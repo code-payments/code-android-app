@@ -14,17 +14,24 @@ import com.flipcash.shared.onramp.coinbase.BuildConfig
 import com.getcode.network.jwt.ApiProvider
 import com.getcode.network.jwt.Jwt
 import com.getcode.network.jwt.JwtSecuredEndpoint
+import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
+import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
+import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.solana.keys.base58
 import com.getcode.utils.base64
+import com.getcode.vendor.Base58
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import retrofit2.HttpException
+import java.security.SecureRandom
 import javax.inject.Inject
 
 typealias OrderWithPaymentLink = Pair<String, OnRampPurchaseResponse.PaymentLink>
@@ -38,7 +45,66 @@ class OnRampController @Inject constructor(
     private val userManager: UserManager,
     private val exchange: Exchange,
     private val featureFlags: FeatureFlagController,
+    private val coinbaseOnRampManager: CoinbaseOnRampManager,
+    private val transactionController: TransactionOperations,
+    private val googlePayReadiness: GooglePayReadiness,
 ) {
+
+    val state: StateFlow<CoinbaseOnRampState> get() = coinbaseOnRampManager.state
+
+    suspend fun placeOrderAndStartPayment(
+        amount: Fiat,
+        token: Token,
+        localFiat: LocalFiat,
+    ): Result<Unit> {
+        when (googlePayReadiness.check()) {
+            GooglePayReadiness.Status.NotSupported ->
+                return Result.failure(OnRampPaymentError.GooglePayNotSupported)
+            GooglePayReadiness.Status.NoPaymentMethod ->
+                return Result.failure(OnRampPaymentError.GooglePayNoPaymentMethod)
+            GooglePayReadiness.Status.Ready -> Unit
+        }
+
+        return placeOrderInclusiveOfFees(amount)
+            .map { (orderId, paymentLink) ->
+                val order = OnrampOrder(orderId, paymentLink.url)
+                coinbaseOnRampManager.startPayment(order, token, localFiat)
+            }
+    }
+
+    suspend fun processPayment(): Result<SwapId> {
+        val current = coinbaseOnRampManager.state.value
+        if (current !is CoinbaseOnRampState.Processing) {
+            return Result.failure(IllegalStateException("Not in Processing state"))
+        }
+
+        return lookupOrder(current.orderId)
+            .mapCatching { order ->
+                order.txHash ?: throw IllegalStateException("No hash provided from provider")
+            }
+            .mapCatching { txHash ->
+                val owner = userManager.accountCluster
+                    ?: throw IllegalStateException("No account cluster")
+
+                transactionController.buy(
+                    owner = owner,
+                    amount = current.amount,
+                    of = current.token,
+                    source = SwapFundingSource.ExternalWallet(
+                        transactionSignature = runCatching { Base58.decode(txHash) }
+                            .getOrElse { ByteArray(64).also { SecureRandom().nextBytes(it) } }
+                            .toList()
+                    ),
+                    fund = { Result.success(Unit) }
+                ).getOrThrow()
+            }
+            .onSuccess { swapId ->
+                coinbaseOnRampManager.onCompleted(swapId)
+            }
+            .onFailure {
+                coinbaseOnRampManager.reset()
+            }
+    }
 
     suspend fun placeOrderInclusiveOfFees(
         amount: Fiat,
@@ -240,6 +306,16 @@ class OnRampController @Inject constructor(
             }
         )
     }
+}
+
+sealed class OnRampPaymentError(
+    override val message: String? = null,
+) : Throwable(message) {
+    data object GooglePayNotSupported :
+        OnRampPaymentError("Google Pay is not available on this device")
+
+    data object GooglePayNoPaymentMethod :
+        OnRampPaymentError("No payment method enrolled in Google Pay")
 }
 
 sealed class OnRampAuthError(

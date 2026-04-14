@@ -40,6 +40,7 @@ import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.internal.ui.navigation.appEntryProvider
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
+import com.flipcash.app.onramp.CoinbaseOnRampHandler
 import com.flipcash.app.onramp.ExternalWalletOnRampHandler
 import com.flipcash.app.onramp.LocalExternalWalletState
 import com.flipcash.app.onramp.rememberExternalWalletState
@@ -152,86 +153,92 @@ internal fun App(
                                     lifecycleOwner = LocalLifecycleOwner.current,
                                     navigator = codeNavigator,
                                 ) {
-                                    AppNavHost(
+                                    CoinbaseOnRampHandler(
+                                        manager = viewModel.coinbaseOnRampManager,
+                                        controller = viewModel.onRampController,
                                         navigator = codeNavigator,
-                                        resultStateRegistry = resultStateRegistry,
-                                        decorators = listOf(
-                                            rememberNavMessagingEntryDecorator(
-                                                codeNavigator.backStack,
-                                                barManager
-                                            ),
-                                            rememberNavBlockingOverlayEntryDecorator(),
-                                        ),
-                                        sceneStrategy = ModalBottomSheetSceneStrategy<NavKey>(
-                                            codeNavigator.resultStore
-                                        ) {
-                                            codeNavigator.backStack.getOrNull(
-                                                codeNavigator.backStack.lastIndex - 1
-                                            )
-                                        } then SinglePaneSceneStrategy(),
-                                        transitionSpec = {
-                                            val shouldCrossfade =
-                                                initialState.key == AppRoute.Loading.toString() ||
-                                                        targetState.key == AppRoute.Loading.toString() ||
-                                                        targetState.key.toString()
-                                                            .startsWith("Login")
-                                            when {
-                                                shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
-                                                    tween(300)
-                                                )
-
-                                                targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
-                                                    EnterTransition.None togetherWith ExitTransition.None
-
-                                                else -> slideInHorizontally(initialOffsetX = { it }) togetherWith
-                                                        slideOutHorizontally(targetOffsetX = { -it })
-                                            }
-                                        },
-                                        popTransitionSpec = {
-                                            val shouldCrossfade =
-                                                initialState.key == AppRoute.Loading.toString() ||
-                                                        targetState.key == AppRoute.Loading.toString() ||
-                                                        targetState.key.toString()
-                                                            .startsWith("Login")
-                                            when {
-                                                shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
-                                                    tween(300)
-                                                )
-
-                                                targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
-                                                    EnterTransition.None togetherWith ExitTransition.None
-
-                                                else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
-                                                        slideOutHorizontally(targetOffsetX = { it })
-                                            }
-                                        },
-                                        predictivePopTransitionSpec = {
-                                            val shouldCrossfade =
-                                                initialState.key == AppRoute.Loading.toString() ||
-                                                        targetState.key == AppRoute.Loading.toString() ||
-                                                        targetState.key.toString()
-                                                            .startsWith("Login")
-                                            when {
-                                                shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
-                                                    tween(300)
-                                                )
-
-                                                targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
-                                                    EnterTransition.None togetherWith ExitTransition.None
-
-                                                else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
-                                                        slideOutHorizontally(targetOffsetX = { it })
-                                            }
-                                        },
-                                        onBack = { codeNavigator.navigateBack() },
-                                        entryProvider = appEntryProvider(
+                                    ) {
+                                        AppNavHost(
+                                            navigator = codeNavigator,
                                             resultStateRegistry = resultStateRegistry,
-                                            barManager = barManager,
-                                            deepLink = { deepLink },
-                                        ),
-                                    )
+                                            decorators = listOf(
+                                                rememberNavMessagingEntryDecorator(
+                                                    codeNavigator.backStack,
+                                                    barManager
+                                                ),
+                                                rememberNavBlockingOverlayEntryDecorator(),
+                                            ),
+                                            sceneStrategy = ModalBottomSheetSceneStrategy<NavKey>(
+                                                codeNavigator.resultStore
+                                            ) {
+                                                codeNavigator.backStack.getOrNull(
+                                                    codeNavigator.backStack.lastIndex - 1
+                                                )
+                                            } then SinglePaneSceneStrategy(),
+                                            transitionSpec = {
+                                                val shouldCrossfade =
+                                                    initialState.key == AppRoute.Loading.toString() ||
+                                                            targetState.key == AppRoute.Loading.toString() ||
+                                                            targetState.key.toString()
+                                                                .startsWith("Login")
+                                                when {
+                                                    shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
+                                                        tween(300)
+                                                    )
 
-                                    ScrimOverlay(scrimController)
+                                                    targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
+                                                        EnterTransition.None togetherWith ExitTransition.None
+
+                                                    else -> slideInHorizontally(initialOffsetX = { it }) togetherWith
+                                                            slideOutHorizontally(targetOffsetX = { -it })
+                                                }
+                                            },
+                                            popTransitionSpec = {
+                                                val shouldCrossfade =
+                                                    initialState.key == AppRoute.Loading.toString() ||
+                                                            targetState.key == AppRoute.Loading.toString() ||
+                                                            targetState.key.toString()
+                                                                .startsWith("Login")
+                                                when {
+                                                    shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
+                                                        tween(300)
+                                                    )
+
+                                                    targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
+                                                        EnterTransition.None togetherWith ExitTransition.None
+
+                                                    else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
+                                                            slideOutHorizontally(targetOffsetX = { it })
+                                                }
+                                            },
+                                            predictivePopTransitionSpec = {
+                                                val shouldCrossfade =
+                                                    initialState.key == AppRoute.Loading.toString() ||
+                                                            targetState.key == AppRoute.Loading.toString() ||
+                                                            targetState.key.toString()
+                                                                .startsWith("Login")
+                                                when {
+                                                    shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
+                                                        tween(300)
+                                                    )
+
+                                                    targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
+                                                        EnterTransition.None togetherWith ExitTransition.None
+
+                                                    else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
+                                                            slideOutHorizontally(targetOffsetX = { it })
+                                                }
+                                            },
+                                            onBack = { codeNavigator.navigateBack() },
+                                            entryProvider = appEntryProvider(
+                                                resultStateRegistry = resultStateRegistry,
+                                                barManager = barManager,
+                                                deepLink = { deepLink },
+                                            ),
+                                        )
+
+                                        ScrimOverlay(scrimController)
+                                    }
                                 }
 
                                 val emailCodeChannel = LocalEmailCodeChannel.current

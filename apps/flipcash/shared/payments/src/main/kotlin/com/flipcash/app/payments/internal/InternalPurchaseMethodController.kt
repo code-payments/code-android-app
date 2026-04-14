@@ -53,6 +53,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -82,7 +83,7 @@ class InternalPurchaseMethodController @Inject constructor(
         ) { enabled, available ->
             enabled && available
         }.onEach { coinbaseAvailable ->
-            _state.value = _state.value.copy(coinbaseOnRampAvailable = coinbaseAvailable)
+            _state.update { it.copy(coinbaseOnRampAvailable = coinbaseAvailable) }
         }.launchIn(scope)
 
         combine(
@@ -94,14 +95,14 @@ class InternalPurchaseMethodController @Inject constructor(
                 nativeAmount = balance.convertingTo(rate),
             )
         }.onEach { reservesBalance ->
-            _state.value = _state.value.copy(reservesBalance = reservesBalance)
+            _state.update { it.copy(reservesBalance = reservesBalance) }
         }.launchIn(scope)
 
         userFlags.resolvedFlags
             .mapNotNull { it.preferredOnRampProvider.effectiveValue }
             .filterIsInstance<OnRampProvider.Defined>()
             .onEach { provider ->
-                _state.value = _state.value.copy(preferredProvider = provider)
+                _state.update { it.copy(preferredProvider = provider) }
             }.launchIn(scope)
     }
 
@@ -188,18 +189,18 @@ class InternalPurchaseMethodController @Inject constructor(
                     placeholder = Placeholder(
                         width = width,
                         height = height,
-                        placeholderVerticalAlign = PlaceholderVerticalAlign.Companion.TextCenter
+                        placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
                     ),
                     children = {
                         val buttonColors = ButtonState.Filled.colors()
                         Box(
-                            modifier = Modifier.Companion.fillMaxSize(),
-                            contentAlignment = Alignment.Companion.Center
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
                             Image(
-                                modifier = Modifier.Companion.padding(iconPadding()),
+                                modifier = Modifier.padding(iconPadding()),
                                 painter = painterResource(iconRes),
-                                colorFilter = ColorFilter.Companion.tint(
+                                colorFilter = ColorFilter.tint(
                                     buttonColors.contentColor(
                                         true
                                     ).value

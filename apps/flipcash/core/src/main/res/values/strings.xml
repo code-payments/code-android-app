@@ -562,6 +562,12 @@
     <string name="error_title_onrampInvalidRequest">Something Went Wrong</string>
     <string name="error_description_onrampInvalidRequest">We are working with the Coinbase team to resolve the issue. Your card will be refunded in the meantime. Please try again later</string>
 
+    <string name="error_title_onrampGooglePayNotSupported">Google Pay Not Available</string>
+    <string name="error_description_onrampGooglePayNotSupported">Google Pay is not available on this device. Please try on a device with Google Pay support</string>
+
+    <string name="error_title_onrampGooglePayNotReady">Google Pay Not Ready</string>
+    <string name="error_description_onrampGooglePayNotReady">Please add a payment method to Google Pay and try again</string>
+
     <string name="error_title_onrampUnknownFailure">Something Went Wrong</string>
     <string name="error_description_onrampUnknownFailure">Please contact support@flipcash.com</string>
 

@@ -163,6 +163,7 @@ hilt-nav-compose = { module = "androidx.hilt:hilt-navigation-compose", version.r
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-rx3 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-rx3", version.ref = "kotlinx-coroutines" }
 kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version = "0.4.0" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
@@ -230,6 +231,7 @@ firebase-perf = { module = "com.google.firebase:firebase-perf" }
 # Google Play Services
 play-integrity = { module = "com.google.android.play:integrity", version = "1.6.0" }
 play-service-ml-barcode = { module = "com.google.android.gms:play-services-mlkit-barcode-scanning", version.ref = "play-service-ml-barcode" }
+play-services-wallet = { module = "com.google.android.gms:play-services-wallet", version = "19.5.0" }
 
 # Google Play Billing
 google-play-billing-runtime = { module = "com.android.billingclient:billing", version.ref = "google-play-billing" }
