@@ -14,6 +14,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
@@ -104,6 +105,7 @@ internal fun NameSelectionContent(
                 transition = SharedTransition.CurrencyName,
             ),
             keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
                 keyboardType = KeyboardType.Text,
                 imeAction = ImeAction.Done,
             ),
