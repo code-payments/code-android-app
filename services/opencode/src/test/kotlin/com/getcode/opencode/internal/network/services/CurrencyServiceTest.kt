@@ -247,7 +247,7 @@ class CurrencyServiceTest {
 
     // region helpers
 
-    private fun makeName() = ModerationAttestation.Name("Test", emptyList())
+    private fun makeName() = ModerationAttestation.Text("Test", emptyList())
 
     private fun makeIconRequest() = TokenUpdateRequest.Icon(
         token = mockk(relaxed = true),

@@ -53,9 +53,9 @@ internal class InternalCurrencyRepository @Inject constructor(
         service.checkTokenAvailability(name)
 
     override suspend fun launchToken(
-        name: ModerationAttestation.Name,
-        symbol: ModerationAttestation.Symbol?,
-        description: ModerationAttestation.Description?,
+        name: ModerationAttestation.Text,
+        symbol: ModerationAttestation.Text?,
+        description: ModerationAttestation.Text?,
         bill: TokenBillCustomizations?,
         icon: ModerationAttestation.Image?,
         owner: Ed25519.KeyPair

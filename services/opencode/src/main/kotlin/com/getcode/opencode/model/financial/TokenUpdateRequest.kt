@@ -8,7 +8,7 @@ sealed interface TokenUpdateRequest {
 
     data class Metadata(
         override val token: Token,
-        val description: ModerationAttestation.Description? = null,
+        val description: ModerationAttestation.Text? = null,
         val billCustomization: TokenBillCustomizations? = null,
         val socialLinks: List<SocialLink>? = null,
     ): TokenUpdateRequest

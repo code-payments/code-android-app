@@ -102,9 +102,9 @@ internal class CurrencyApi @Inject constructor(
     }
 
     suspend fun launchToken(
-        name: ModerationAttestation.Name,
-        desiredSymbol: ModerationAttestation.Symbol?,
-        desiredDescription: ModerationAttestation.Description?,
+        name: ModerationAttestation.Text,
+        desiredSymbol: ModerationAttestation.Text?,
+        desiredDescription: ModerationAttestation.Text?,
         bill: TokenBillCustomizations?,
         desiredIcon: ModerationAttestation.Image?,
         owner: Ed25519.KeyPair

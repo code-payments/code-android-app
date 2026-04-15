@@ -2,9 +2,7 @@ package com.getcode.opencode.model.moderation
 
 sealed interface ModerationAttestation {
     val attestation: List<Byte>
-    data class Name(val text: String, override val attestation: List<Byte>): ModerationAttestation
-    data class Symbol(val text: String, override val attestation: List<Byte>): ModerationAttestation
-    data class Description(val text: String, override val attestation: List<Byte>): ModerationAttestation
+    data class Text(val text: String, override val attestation: List<Byte>): ModerationAttestation
     data class Image(val imageBytes: ByteArray, override val attestation: List<Byte>): ModerationAttestation {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true

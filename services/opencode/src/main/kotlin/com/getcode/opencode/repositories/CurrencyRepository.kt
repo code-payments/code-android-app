@@ -36,9 +36,9 @@ interface CurrencyRepository {
 
     suspend fun checkTokenAvailability(name: String): Result<Boolean>
     suspend fun launchToken(
-        name: ModerationAttestation.Name,
-        symbol: ModerationAttestation.Symbol? = null,
-        description: ModerationAttestation.Description? = null,
+        name: ModerationAttestation.Text,
+        symbol: ModerationAttestation.Text? = null,
+        description: ModerationAttestation.Text? = null,
         bill: TokenBillCustomizations?,
         icon: ModerationAttestation.Image? = null,
         owner: Ed25519.KeyPair
