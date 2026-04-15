@@ -5,12 +5,14 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
-import android.media.ExifInterface
+import androidx.exifinterface.media.ExifInterface
 import java.io.File
+import androidx.core.graphics.scale
 
 interface ContentReader {
     fun readBytes(uri: Uri): ByteArray?
-    fun copyToCache(uri: Uri, fileName: String): Uri?
+    fun copyToCache(uri: Uri, fileName: String, maxSize: Int = Int.MAX_VALUE): Uri?
+    fun removeFromCache(uri: Uri)
 }
 
 class AndroidContentReader(private val context: Context) : ContentReader {
@@ -18,7 +20,7 @@ class AndroidContentReader(private val context: Context) : ContentReader {
         return context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
     }
 
-    override fun copyToCache(uri: Uri, fileName: String): Uri? {
+    override fun copyToCache(uri: Uri, fileName: String, maxSize: Int): Uri? {
         val bytes = readBytes(uri) ?: return null
         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
 
@@ -39,8 +41,21 @@ class AndroidContentReader(private val context: Context) : ContentReader {
             bitmap
         }
 
+        val scaled = if (oriented.width > maxSize || oriented.height > maxSize) {
+            val scale = maxSize.toFloat() / maxOf(oriented.width, oriented.height)
+            val newWidth = (oriented.width * scale).toInt()
+            val newHeight = (oriented.height * scale).toInt()
+            oriented.scale(newWidth, newHeight)
+        } else {
+            oriented
+        }
+
         val file = File(context.cacheDir, fileName)
-        file.outputStream().use { oriented.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        file.outputStream().use { scaled.compress(Bitmap.CompressFormat.PNG, 100, it) }
         return Uri.fromFile(file)
+    }
+
+    override fun removeFromCache(uri: Uri) {
+        uri.path?.let { File(it).delete() }
     }
 }
