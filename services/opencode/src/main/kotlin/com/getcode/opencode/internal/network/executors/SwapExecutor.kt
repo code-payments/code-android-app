@@ -66,7 +66,7 @@ internal class SwapExecutor(
             toMint = request.direction.destinationMint.address,
             amount = request.amount.underlyingTokenAmount,
             fundingSource = when (request.kind) {
-                is SwapStartKind.CurrencyCreator -> request.kind.fundingSource
+                is SwapStartKind.Reserve -> request.kind.fundingSource
             },
         )
 
@@ -169,10 +169,13 @@ private fun handleServerParameters(
     try {
         val params = when (serverParameters?.kindCase) {
             null -> null
-            TransactionService.StatefulSwapResponse.ServerParameters.KindCase.CURRENCY_CREATOR -> {
-                serverParameters.currencyCreator.toProps()
+            TransactionService.StatefulSwapResponse.ServerParameters.KindCase.RESERVE_EXISTING_CURRENCY -> {
+                serverParameters.reserveExistingCurrency.toProps()
             }
 
+            TransactionService.StatefulSwapResponse.ServerParameters.KindCase.RESERVE_NEW_CURRENCY -> {
+                serverParameters.reserveNewCurrency.toProps()
+            }
             TransactionService.StatefulSwapResponse.ServerParameters.KindCase.KIND_NOT_SET -> null
         }
 

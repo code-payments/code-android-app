@@ -39,8 +39,8 @@ import com.getcode.solana.keys.PublicKey
  * @param minOutput The minimum amount of target currency to receive.
  * @return A list of [Instruction]s to execute the buy operation.
  */
-internal fun buildBuyInstructions(
-    serverParameters: SwapResponseServerParameters,
+internal fun buildExistingCurrencyBuyInstructions(
+    serverParameters: SwapResponseServerParameters.ExistingCurrency,
     nonce: PublicKey,
     authority: PublicKey,
     swapAuthority: PublicKey,

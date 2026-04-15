@@ -274,11 +274,11 @@ internal fun LocalFiat.asExchangeData(): TransactionService.ExchangeData {
         .build()
 }
 
-internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwapRequest.Initiate.CurrencyCreator.Builder {
-    return TransactionService.StatefulSwapRequest.Initiate.CurrencyCreator.newBuilder()
+internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.Builder {
+    return TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.newBuilder()
         .apply {
             when (val details = kind) {
-                is SwapStartKind.CurrencyCreator -> {
+                is SwapStartKind.Reserve -> {
                     setId(swapId.asSwapId())
                         .setFromMint(details.fromMint.asSolanaAccountId())
                         .setToMint(details.toMint.asSolanaAccountId())
@@ -305,10 +305,9 @@ internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwa
 
 internal fun SwapRequest.verifiedMetadata(): TransactionService.VerifiedSwapMetadata.Builder {
     return TransactionService.VerifiedSwapMetadata.newBuilder()
-        .setCurrencyCreator(
-            TransactionService.VerifiedCurrencyCreatorSwapMetadata.newBuilder()
+        .setReserve(
+            TransactionService.VerifiedReserveSwapMetadata.newBuilder()
                 .setClientParameters(currencyCreatorParams())
-
         )
 }
 

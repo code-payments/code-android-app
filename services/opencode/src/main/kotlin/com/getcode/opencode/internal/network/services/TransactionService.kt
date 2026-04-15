@@ -179,7 +179,7 @@ internal class TransactionService @Inject constructor(
         val request = SwapRequest(
             owner = owner,
             swapAuthority = Ed25519.createKeyPair(),
-            kind = SwapStartKind.CurrencyCreator(
+            kind = SwapStartKind.Reserve(
                 fromMint = Mint.usdf,
                 toMint = of.address,
                 amount = amount.underlyingTokenAmount.quarks,
@@ -209,7 +209,7 @@ internal class TransactionService @Inject constructor(
             owner = tokenCluster,
             swapId = SwapId.generate(),
             swapAuthority = Ed25519.createKeyPair(),
-            kind = SwapStartKind.CurrencyCreator(
+            kind = SwapStartKind.Reserve(
                 fromMint = of.address,
                 toMint = Mint.usdf,
                 amount = amount.underlyingTokenAmount.quarks,
