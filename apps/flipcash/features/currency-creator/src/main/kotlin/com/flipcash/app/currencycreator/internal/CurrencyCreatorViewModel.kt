@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.core.text.trimmedLength
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.currencycreator.internal.components.CurrencyCreatorTopBarController
@@ -17,6 +18,7 @@ import com.flipcash.app.core.extensions.flatMapResult
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
+import com.flipcash.app.payments.PurchaseMethodMetadata
 import com.flipcash.features.currencycreator.R
 import com.flipcash.services.controllers.ModerationController
 import com.flipcash.services.models.ImageModerationError
@@ -139,6 +141,10 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         ) : Event
 
         data object Purchase: Event
+        data object PurchaseWithReserves: Event
+        data object PurchaseWithGooglePay: Event
+        data object ConnectPhantomWallet : Event
+        data object PhantomConnected: Event
     }
 
     init {
@@ -208,11 +214,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     }
                 }
             )
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnIconCached>()
-            .onEach { dispatchEvent(Event.CheckImage) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -306,21 +307,21 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.Purchase>()
-            .onEach { purchaseMethodController.present() }
+            .map { PurchaseMethodMetadata(purchaseAmount = stateFlow.value.purchaseAmount) }
+            .onEach { metadata -> purchaseMethodController.present(metadata) }
             .launchIn(viewModelScope)
 
         purchaseMethodController.selections
             .onEach { (method, metadata) ->
                 when (method) {
                     PurchaseMethod.CoinbaseOnRamp -> {
-                        val mint = metadata.mint ?: return@onEach
+                        // TODO:
                     }
                     is PurchaseMethod.CashReserves -> {
-                        val mint = metadata.mint ?: return@onEach
 
                     }
                     PurchaseMethod.PhantomWallet -> {
-
+                        dispatchEvent(Event.ConnectPhantomWallet)
                     }
                 }
             }
@@ -392,6 +393,11 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     val attestations = state.attestations
                     state.copy(attestations = attestations.copy(icon = event.attestation))
                 }
+
+                is Event.PurchaseWithReserves -> { state -> state }
+                is Event.PurchaseWithGooglePay -> { state -> state }
+                is Event.ConnectPhantomWallet -> { state -> state }
+                is Event.PhantomConnected -> { state -> state }
             }
         }
     }
