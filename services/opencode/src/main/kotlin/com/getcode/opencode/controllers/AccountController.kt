@@ -148,14 +148,10 @@ class AccountController @Inject constructor(
                     throw error
                 }
             }?.map { response ->
-                val primary =
-                    response.accounts.values.find {
-                        it.accountType == AccountType.Primary && it.mint == Mint.usdf
-                    }
-
                 accounts.value = response.accounts.values.toList()
+                val isUnlocked = response.accounts.any { it.value.unusable }
 
-                if (primary?.unusable == true) {
+                if (isUnlocked) {
                     onTimelockUnlocked()
                 }
             }?.onSuccess {
