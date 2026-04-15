@@ -283,12 +283,23 @@ fun ExternalWalletOnRampHandler(
                     error = error
                 )
 
-                BottomBarManager.showError(
-                    title = title,
-                    message = message,
-                ) {
+                val onDismiss = {
                     close(false)
                     controller.reset()
+                }
+
+                if (error.isAlert) {
+                    BottomBarManager.showAlert(
+                        title = title,
+                        message = message,
+                        onDismiss = { onDismiss()  },
+                    )
+                } else {
+                    BottomBarManager.showError(
+                        title = title,
+                        message = message,
+                        onDismiss = { onDismiss()  },
+                    )
                 }
             }
         }
@@ -299,6 +310,13 @@ fun ExternalWalletOnRampHandler(
 
 
 private const val TAG = "onramp::deeplinks"
+
+private val DeeplinkOnRampError.isAlert: Boolean
+    get() = this is DeeplinkOnRampError.WalletProvidedError && error in listOf(
+        DeeplinkError.UserRejectedRequest,
+        DeeplinkError.Disconnected,
+        DeeplinkError.TransactionRejected,
+    )
 
 private typealias Title = String
 private typealias Message = String
