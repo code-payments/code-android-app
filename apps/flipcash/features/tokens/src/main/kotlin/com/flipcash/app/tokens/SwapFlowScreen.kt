@@ -8,8 +8,8 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
 import com.getcode.navigation.annotatedEntry
-import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.flowAnnotatedEntry
 import com.getcode.navigation.flow.rememberInitialStack
 import com.getcode.navigation.flow.FlowExitReason
 import com.getcode.navigation.flow.FlowHost
@@ -46,14 +46,14 @@ fun SwapFlowScreen(
                 SwapResult.Canceled -> outerNavigator.pop()
             }
         },
-        entryProvider = swapEntryProvider(outerNavigator),
+        entryProvider = swapEntryProvider(),
     )
 }
 
-private fun swapEntryProvider(
-    outerNavigator: CodeNavigator,
-): (NavKey) -> NavEntry<NavKey> = entryProvider {
-    annotatedEntry<SwapStep.Entry> { step -> SwapEntryContent(step.purpose) }
+private fun swapEntryProvider(): (NavKey) -> NavEntry<NavKey> = entryProvider {
+    flowAnnotatedEntry<SwapStep.Entry> { step ->
+        SwapEntryContent(step.purpose)
+    }
     annotatedEntry<SwapStep.SellReceipt> { SellReceiptContent() }
     annotatedEntry<SwapStep.Processing> { step ->
         SwapProcessingContent(step.swapId, step.awaitExternalWallet)
