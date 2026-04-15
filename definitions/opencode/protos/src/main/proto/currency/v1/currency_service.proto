@@ -228,10 +228,14 @@ message LaunchRequest {
     // using the private key of the owner account. This provides an authentication
     // mechanism to the RPC.
     common.v1.Signature signature = 2;
-    // The name of the currency to launch
-    string name = 3 ;
-    // The ticker symbol for the currency. If not provided, a default will be
-    // generated using the currency name.
+    // The name of the currency to launch. Must be printable ASCII with no
+    // leading or trailing spaces.
+    string name = 3;
+
+
+    // The ticker symbol for the currency. Must be printable ASCII with no
+    // spaces. If not provided, a default will be generated using the currency
+    // name.
     string symbol = 4 ;
     // Optional description
     string description = 5 ;
@@ -239,6 +243,14 @@ message LaunchRequest {
     BillCustomization bill_customization = 6;
     // The raw image data for the icon. If not provided, a default will be set.
     bytes icon = 7 ;
+    // Attestation that the name passed moderation
+    ModerationAttestation name_moderation_attestation = 8;
+    // Attestation that the symbol, if provided, passed moderation
+    ModerationAttestation symbol_moderation_attestation = 9;
+    // Attestation that the descritpion, if provided, passed moderation
+    ModerationAttestation description_moderation_attestation = 10;
+    // Attestation that the icon image, if provided, passed moderation
+    ModerationAttestation icon_moderation_attestation = 11;
 }
 message LaunchResponse {
     Result result = 1;
@@ -265,6 +277,8 @@ message UpdateIconRequest {
     common.v1.SolanaAccountId mint = 3;
     // The raw image data for the icon
     bytes icon = 4 ;
+    // Attestation that the icon image passed moderation
+    ModerationAttestation moderation_attestation = 5;
 }
 message UpdateIconResponse {
     Result result = 1;
@@ -293,6 +307,8 @@ message UpdateMetadataRequest {
     SocialLinksUpdate new_social_links = 6;
     message DescriptionUpdate {
         string value = 1 ;
+        // Attestation that the description passed moderation
+        ModerationAttestation moderation_attestation = 2;
     }
     message BillCustomizationUpdate {
         BillCustomization value = 1;
@@ -326,7 +342,7 @@ message DiscoverResponse {
 }
 message CheckAvailabilityRequest {
     // The currency name to check availability for
-    string name = 1 ;
+    string name = 1;
 }
 message CheckAvailabilityResponse {
     Result result = 1;
@@ -342,4 +358,7 @@ enum PredefinedRange {
     LAST_WEEK  = 2;
     LAST_MONTH = 3;
     LAST_YEAR  = 4;
+}
+message ModerationAttestation {
+    bytes raw_value = 1 ;
 }

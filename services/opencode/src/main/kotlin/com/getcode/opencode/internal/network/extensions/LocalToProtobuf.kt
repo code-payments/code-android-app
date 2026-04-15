@@ -15,6 +15,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.SocialLink
 import com.getcode.opencode.model.messaging.Message
 import com.getcode.opencode.model.messaging.MessageKind
+import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.GiveRequest
 import com.getcode.opencode.model.transactions.GrabRequest
@@ -337,4 +338,10 @@ internal fun SocialLink.asProto(): CurrencyService.SocialLink {
                 is SocialLink.X -> setX(CurrencyService.SocialLink.X.newBuilder().setUsername(username))
             }
         }.build()
+}
+
+internal fun ModerationAttestation.asProto(): CurrencyService.ModerationAttestation {
+    return CurrencyService.ModerationAttestation.newBuilder()
+        .setRawValue(attestation.toByteString())
+        .build()
 }

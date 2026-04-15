@@ -25,6 +25,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.HistoricalMintData
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.TokenUpdateRequest
+import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -134,14 +135,15 @@ internal class CurrencyService @Inject constructor(
     }
 
     suspend fun launchNewToken(
-        name: String,
-        symbol: String,
+        name: ModerationAttestation.Name,
+        symbol: ModerationAttestation.Symbol?,
+        description: ModerationAttestation.Description?,
         bill: TokenBillCustomizations?,
-        icon: ByteArray?,
+        icon: ModerationAttestation.Image?,
         owner: Ed25519.KeyPair
     ): Result<Mint> {
         return runCatching {
-            api.launchToken(name, symbol, bill, icon, owner)
+            api.launchToken(name, symbol, description, bill, icon, owner)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {

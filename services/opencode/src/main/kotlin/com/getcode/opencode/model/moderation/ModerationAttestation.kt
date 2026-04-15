@@ -1,0 +1,27 @@
+package com.getcode.opencode.model.moderation
+
+sealed interface ModerationAttestation {
+    val attestation: List<Byte>
+    data class Name(val text: String, override val attestation: List<Byte>): ModerationAttestation
+    data class Symbol(val text: String, override val attestation: List<Byte>): ModerationAttestation
+    data class Description(val text: String, override val attestation: List<Byte>): ModerationAttestation
+    data class Image(val imageBytes: ByteArray, override val attestation: List<Byte>): ModerationAttestation {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Image
+
+            if (!imageBytes.contentEquals(other.imageBytes)) return false
+            if (attestation != other.attestation) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = imageBytes.contentHashCode()
+            result = 31 * result + attestation.hashCode()
+            return result
+        }
+    }
+}

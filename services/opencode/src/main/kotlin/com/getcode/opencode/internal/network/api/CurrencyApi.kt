@@ -13,6 +13,7 @@ import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.TokenUpdateRequest
+import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -101,22 +102,34 @@ internal class CurrencyApi @Inject constructor(
     }
 
     suspend fun launchToken(
-        name: String,
-        symbol: String,
+        name: ModerationAttestation.Name,
+        desiredSymbol: ModerationAttestation.Symbol?,
+        desiredDescription: ModerationAttestation.Description?,
         bill: TokenBillCustomizations?,
-        icon: ByteArray?,
+        desiredIcon: ModerationAttestation.Image?,
         owner: Ed25519.KeyPair
     ): CurrencyService.LaunchResponse {
         val request = CurrencyService.LaunchRequest.newBuilder()
-            .setName(name)
-            .setSymbol(symbol)
+            .setName(name.text.trim())
+            .setNameModerationAttestation(name.asProto())
             .apply apply@{
-                if (bill != null) {
-                    setBillCustomization(bill.asProto())
+                if (desiredSymbol != null) {
+                    setSymbol(desiredSymbol.text)
+                    setSymbolModerationAttestation(desiredSymbol.asProto())
                 }
 
-                if (icon != null) {
-                    setIcon(icon.toByteString())
+                if (desiredDescription != null) {
+                    setDescription(desiredDescription.text)
+                    setDescriptionModerationAttestation(desiredDescription.asProto())
+                }
+
+                if (desiredIcon != null) {
+                    setIcon(desiredIcon.imageBytes.toByteString())
+                    setIconModerationAttestation(desiredIcon.asProto())
+                }
+
+                if (bill != null) {
+                    setBillCustomization(bill.asProto())
                 }
             }
             .setOwner(owner.asSolanaAccountId())
@@ -134,7 +147,8 @@ internal class CurrencyApi @Inject constructor(
     ): CurrencyService.UpdateIconResponse {
         val request = CurrencyService.UpdateIconRequest.newBuilder()
             .setMint(update.token.address.asSolanaAccountId())
-            .setIcon(update.icon.toByteString())
+            .setIcon(update.icon.imageBytes.toByteString())
+            .setModerationAttestation(update.icon.asProto())
             .setOwner(owner.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()
@@ -163,7 +177,8 @@ internal class CurrencyApi @Inject constructor(
                 if (update.description != null) {
                     setNewDescription(
                         CurrencyService.UpdateMetadataRequest.DescriptionUpdate.newBuilder()
-                            .setValue(update.description)
+                            .setValue(update.description.text)
+                            .setModerationAttestation(update.description.asProto())
                     )
                 }
 
