@@ -571,4 +571,25 @@
     <string name="error_title_onrampUnknownFailure">Something Went Wrong</string>
     <string name="error_description_onrampUnknownFailure">Please contact support@flipcash.com</string>
 
+    <string name="error_title_moderationFailed">Something Went Wrong</string>
+    <string name="error_description_moderationFailed">Please try again</string>
+
+    <string name="error_title_nameCheckFailed">Something Went Wrong</string>
+    <string name="error_description_nameCheckFailed">Please try again</string>
+
+    <string name="error_title_nameNotAllowed">This Name is Not Allowed</string>
+    <string name="error_description_nameNotAllowed">Try a different currency name</string>
+
+    <string name="error_title_nameAlreadyTaken">This Name is Taken</string>
+    <string name="error_description_nameAlreadyTaken">Try a different currency name</string>
+
+    <string name="error_title_imageNotAllowed">This Image is Not Allowed</string>
+    <string name="error_description_imageNotAllowed">Try a different image</string>
+
+    <string name="error_title_imageNotSupported">This Image is Not Supported</string>
+    <string name="error_description_imageNotSupported">Try a different image format</string>
+
+    <string name="error_title_descriptionNotAllowed">This Description is Not Allowed</string>
+    <string name="error_description_descriptionNotAllowed">Try a different currency description</string>
+
 </resources>

@@ -4,25 +4,33 @@ import android.net.Uri
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.core.text.trimmedLength
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.currencycreator.internal.components.CurrencyCreatorTopBarController
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.flipcash.app.core.data.Loadable
-import com.flipcash.app.core.data.isLoaded
-import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.core.extensions.flatMapResult
+import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
+import com.flipcash.features.currencycreator.R
+import com.flipcash.services.controllers.ModerationController
+import com.flipcash.services.models.ImageModerationError
+import com.flipcash.services.models.ModerationResult
+import com.flipcash.services.models.TextModerationError
+import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.controllers.CurrencyController
+import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
 import com.getcode.util.resources.ContentReader
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flowOn
@@ -30,12 +38,22 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+internal data class ModerationAttestations(
+    val name: ModerationResult.Attestation? = null,
+    val icon: ModerationResult.Attestation? = null,
+    val description: ModerationResult.Attestation? = null,
+)
 
 @HiltViewModel
 internal class CurrencyCreatorViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
     userFlags: UserFlagsCoordinator,
+    moderationController: ModerationController,
+    currencyController: CurrencyController,
+    resources: ResourceHelper,
     val contentReader: ContentReader,
     val purchaseMethodController: PurchaseMethodController,
 ) : BaseViewModel2<CurrencyCreatorViewModel.State, CurrencyCreatorViewModel.Event>(
@@ -55,6 +73,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         val bill: Bill? = null,
         val purchaseAmount: Fiat = 20.toFiat(),
         val processingState: LoadingSuccessState = LoadingSuccessState(),
+        val attestations: ModerationAttestations = ModerationAttestations(),
     ) {
         val hasName: Boolean
             get() = nameFieldState.text.isNotBlank()
@@ -77,6 +96,13 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 return (index + 1).toFloat() / PROGRESS_STEPS.size
             }
 
+        val hasAllAttestations: Boolean
+            get() {
+                return attestations.name != null
+                        && attestations.icon != null
+                        && attestations.description != null
+            }
+
         private companion object {
             private const val MAX_DESCRIPTION = 500
 
@@ -92,6 +118,14 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
     internal sealed interface Event {
         data class OnStepChanged(val step: CurrencyCreatorStep) : Event
+
+        data object CheckName: Event
+        data object CheckDescription: Event
+        data object CheckImage: Event
+
+        data class OnNameApproved(val attestation: ModerationResult.Attestation): Event
+        data class OnDescriptionApproved(val attestation: ModerationResult.Attestation): Event
+        data class OnImageApproved(val attestation: ModerationResult.Attestation): Event
 
         data class OnIconSelected(val image: Uri) : Event
         data class OnIconCached(val image: Uri) : Event
@@ -116,10 +150,158 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnIconSelected>()
             .mapNotNull { event ->
-                contentReader.copyToCache(event.image, "currency_icon_${System.nanoTime()}")
+                contentReader.copyToCache(
+                    uri = event.image,
+                    fileName = "currency_icon_${System.nanoTime()}",
+                    maxSize = 500
+                )
             }
             .flowOn(dispatchers.IO)
             .onEach { cached -> dispatchEvent(Event.OnIconCached(cached)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.CheckName>()
+            .map { stateFlow.value.nameFieldState.text.toString() }
+            .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
+            .map { moderationController.moderateText(it) }
+            .flatMapResult { result ->
+                when (result.flaggedCategory) {
+                    ModerationResult.FlaggedCategory.NONE -> {
+                        currencyController.checkTokenAvailability(result.text)
+                            .map { result.attestation }
+                    }
+                    else -> Result.failure(TextModerationError.Flagged(result.flaggedCategory))
+                }
+            }
+            .onResult(
+                onSuccess = { attestation ->
+                    viewModelScope.launch {
+                        dispatchEvent(Event.UpdateProcessingState(success = true))
+                        delay(500)
+                        dispatchEvent(Event.OnNameApproved(attestation))
+                        dispatchEvent(Event.UpdateProcessingState())
+                    }
+                },
+                onError = { cause ->
+                    dispatchEvent(Event.UpdateProcessingState())
+                    when (cause) {
+                        is TextModerationError.Flagged,
+                        is TextModerationError.Denied -> {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_nameNotAllowed),
+                                message = resources.getString(R.string.error_description_nameNotAllowed)
+                            )
+                        }
+                        is CheckTokenAvailabilityError.Unavailable -> {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_nameAlreadyTaken),
+                                message = resources.getString(R.string.error_description_nameAlreadyTaken)
+                            )
+                        }
+                        else -> {
+                            BottomBarManager.showError(
+                                title = resources.getString(R.string.error_title_nameCheckFailed),
+                                message = resources.getString(R.string.error_description_nameCheckFailed),
+                            )
+                        }
+                    }
+                }
+            )
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnIconCached>()
+            .onEach { dispatchEvent(Event.CheckImage) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.CheckImage>()
+            .mapNotNull { stateFlow.value.icon.dataOrNull }
+            .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
+            .map { moderationController.moderateImage(it) }
+            .flatMapResult { result ->
+                when (result.flaggedCategory) {
+                    ModerationResult.FlaggedCategory.NONE -> Result.success(result.attestation)
+                    else -> Result.failure(ImageModerationError.Flagged(result.flaggedCategory))
+                }
+            }
+            .onResult(
+                onSuccess = { attestation ->
+                    viewModelScope.launch {
+                        dispatchEvent(Event.UpdateProcessingState(success = true))
+                        delay(500)
+                        dispatchEvent(Event.OnImageApproved(attestation))
+                        dispatchEvent(Event.UpdateProcessingState())
+                    }
+                },
+                onError = { cause ->
+                    dispatchEvent(Event.UpdateProcessingState())
+                    stateFlow.value.icon.dataOrNull?.let { contentReader.removeFromCache(it) }
+                    when (cause) {
+                        is ImageModerationError.Flagged,
+                        is ImageModerationError.Denied -> {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_imageNotAllowed),
+                                message = resources.getString(R.string.error_description_nameNotAllowed)
+                            )
+                        }
+                        is ImageModerationError.UnsupportedFormat -> {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_imageNotSupported),
+                                message = resources.getString(R.string.error_description_imageNotSupported)
+                            )
+                        }
+                        else -> {
+                            BottomBarManager.showError(
+                                title = resources.getString(R.string.error_title_moderationFailed),
+                                message = resources.getString(R.string.error_description_moderationFailed),
+                            )
+                        }
+                    }
+                }
+            )
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.CheckDescription>()
+            .map { stateFlow.value.descriptionFieldState.text.toString() }
+            .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
+            .map { moderationController.moderateText(it) }
+            .flatMapResult { result ->
+                when (result.flaggedCategory) {
+                    ModerationResult.FlaggedCategory.NONE -> Result.success(result.attestation)
+                    else -> Result.failure(TextModerationError.Flagged(result.flaggedCategory))
+                }
+            }
+            .onResult(
+                onSuccess = { attestation ->
+                    viewModelScope.launch {
+                        dispatchEvent(Event.UpdateProcessingState(success = true))
+                        delay(500)
+                        dispatchEvent(Event.OnDescriptionApproved(attestation))
+                        dispatchEvent(Event.UpdateProcessingState())
+                    }
+                },
+                onError = { cause ->
+                    dispatchEvent(Event.UpdateProcessingState())
+                    when (cause) {
+                        is TextModerationError.Flagged,
+                        is TextModerationError.Denied -> {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_descriptionNotAllowed),
+                                message = resources.getString(R.string.error_description_descriptionNotAllowed)
+                            )
+                        }
+                        else -> {
+                            BottomBarManager.showError(
+                                title = resources.getString(R.string.error_title_moderationFailed),
+                                message = resources.getString(R.string.error_description_moderationFailed),
+                            )
+                        }
+                    }
+                }
+            )
             .launchIn(viewModelScope)
 
         eventFlow
@@ -195,6 +377,21 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 }
 
                 is Event.Purchase -> { state -> state }
+                is Event.CheckName -> { state -> state }
+                is Event.CheckDescription -> { state -> state }
+                is Event.CheckImage -> { state -> state }
+                is Event.OnNameApproved -> { state ->
+                    val attestations = state.attestations
+                    state.copy(attestations = attestations.copy(name = event.attestation))
+                }
+                is Event.OnDescriptionApproved -> { state ->
+                    val attestations = state.attestations
+                    state.copy(attestations = attestations.copy(description = event.attestation))
+                }
+                is Event.OnImageApproved -> { state ->
+                    val attestations = state.attestations
+                    state.copy(attestations = attestations.copy(icon = event.attestation))
+                }
             }
         }
     }

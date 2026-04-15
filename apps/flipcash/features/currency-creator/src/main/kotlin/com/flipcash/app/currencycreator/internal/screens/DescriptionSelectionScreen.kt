@@ -45,12 +45,24 @@ import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.rememberKeyboardController
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun DescriptionSelectionScreen() {
+    val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
+
     val viewModel = flowSharedViewModel<CurrencyCreatorViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     DescriptionSelectionContent(state, viewModel::dispatchEvent)
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<CurrencyCreatorViewModel.Event.OnDescriptionApproved>()
+            .onEach { flowNavigator.navigateTo(CurrencyCreatorStep.BillCustomization()) }
+            .launchIn(this)
+    }
 }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -59,7 +71,6 @@ internal fun DescriptionSelectionContent(
     state: CurrencyCreatorViewModel.State,
     dispatch: (CurrencyCreatorViewModel.Event) -> Unit
 ) {
-    val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
     val keyboard = rememberKeyboardController()
 
     CodeScaffold(
@@ -114,10 +125,12 @@ internal fun DescriptionSelectionContent(
                             bottom = CodeTheme.dimens.grid.x3
                         ),
                     text = stringResource(R.string.action_next),
-                    enabled = state.hasDescription,
+                    enabled = state.hasDescription && state.processingState.isIdle,
+                    isLoading = state.processingState.loading,
+                    isSuccess = state.processingState.success,
                     onClick = {
                         keyboard.hideIfVisible {
-                            flowNavigator.navigateTo(CurrencyCreatorStep.BillCustomization())
+                            dispatch(CurrencyCreatorViewModel.Event.CheckDescription)
                         }
                     },
                 )
@@ -181,7 +194,7 @@ internal fun DescriptionSelectionContent(
                 maxLines = Int.MAX_VALUE,
                 onKeyboardAction = {
                     keyboard.hideIfVisible {
-                        flowNavigator.navigateTo(CurrencyCreatorStep.BillCustomization())
+                        dispatch(CurrencyCreatorViewModel.Event.CheckDescription)
                     }
                 },
             )

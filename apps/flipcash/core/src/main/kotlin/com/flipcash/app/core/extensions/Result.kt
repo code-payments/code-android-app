@@ -9,7 +9,7 @@ fun <T> Flow<Result<T>>.onResult(onError: (Throwable) -> Unit = { }, onSuccess: 
     }
 }
 
-fun <T, R> Flow<Result<T>>.mapResult(block: (T) -> R): Flow<Result<R>> {
+fun <T, R> Flow<Result<T>>.mapResult(block: suspend (T) -> R): Flow<Result<R>> {
     return this.map {
         if (it.isSuccess) {
             Result.success(block(it.getOrNull()!!))

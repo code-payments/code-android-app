@@ -20,7 +20,6 @@ import com.flipcash.app.core.tokens.CurrencyCreatorResult
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.core.ui.DisplayTextInput
 import com.flipcash.app.core.ui.transitions.SharedTransition
-import com.flipcash.app.core.ui.transitions.sharedBoundsTransition
 import com.flipcash.app.core.ui.transitions.sharedElementTransition
 import com.flipcash.app.currencycreator.internal.CurrencyCreatorViewModel
 import com.flipcash.core.R
@@ -30,12 +29,24 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.rememberKeyboardController
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun NameSelectionScreen() {
+    val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
+
     val viewModel = flowSharedViewModel<CurrencyCreatorViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     NameSelectionContent(state, viewModel::dispatchEvent)
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<CurrencyCreatorViewModel.Event.OnNameApproved>()
+            .onEach { flowNavigator.navigateTo(CurrencyCreatorStep.IconSelection()) }
+            .launchIn(this)
+    }
 }
 
 @Composable
@@ -43,7 +54,6 @@ internal fun NameSelectionContent(
     state: CurrencyCreatorViewModel.State,
     dispatch: (CurrencyCreatorViewModel.Event) -> Unit
 ) {
-    val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
     val keyboard = rememberKeyboardController()
     CodeScaffold(
         modifier = Modifier
@@ -71,10 +81,12 @@ internal fun NameSelectionContent(
                         bottom = CodeTheme.dimens.grid.x3
                     ),
                 text = stringResource(R.string.action_next),
-                enabled = state.hasName,
+                enabled = state.hasName && state.processingState.isIdle,
+                isLoading = state.processingState.loading,
+                isSuccess = state.processingState.success,
                 onClick = {
                     keyboard.hideIfVisible {
-                        flowNavigator.navigateTo(CurrencyCreatorStep.IconSelection())
+                        dispatch(CurrencyCreatorViewModel.Event.CheckName)
                     }
                 },
             )
@@ -97,7 +109,7 @@ internal fun NameSelectionContent(
             ),
             onKeyboardAction = {
                 keyboard.hideIfVisible {
-                    flowNavigator.navigateTo(CurrencyCreatorStep.IconSelection())
+                    dispatch(CurrencyCreatorViewModel.Event.CheckName)
                 }
             },
         )

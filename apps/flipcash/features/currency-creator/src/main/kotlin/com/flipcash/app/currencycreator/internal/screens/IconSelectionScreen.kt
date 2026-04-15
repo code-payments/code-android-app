@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,14 +54,25 @@ import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun IconSelectionScreen() {
+    val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
+
     val viewModel = flowSharedViewModel<CurrencyCreatorViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     IconSelectionContent(state, viewModel::dispatchEvent)
-}
 
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<CurrencyCreatorViewModel.Event.OnImageApproved>()
+            .onEach { flowNavigator.navigateTo(CurrencyCreatorStep.DescriptionSelection()) }
+            .launchIn(this)
+    }
+}
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -68,7 +80,6 @@ internal fun IconSelectionContent(
     state: CurrencyCreatorViewModel.State,
     dispatch: (CurrencyCreatorViewModel.Event) -> Unit
 ) {
-    val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
     val pickMedia = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
         if (uri != null) {
             trace(tag = "CurrencyCreator", message = "image selected @ $uri", type = TraceType.User)
@@ -122,9 +133,11 @@ internal fun IconSelectionContent(
                         .navigationBarsPadding()
                         .padding(bottom = CodeTheme.dimens.grid.x3),
                     text = stringResource(R.string.action_next),
-                    enabled = state.icon.isLoaded(),
+                    enabled = state.icon.isLoaded() && state.processingState.isIdle,
+                    isLoading = state.processingState.loading,
+                    isSuccess = state.processingState.success,
                     onClick = {
-                        flowNavigator.navigateTo(CurrencyCreatorStep.DescriptionSelection())
+                        dispatch(CurrencyCreatorViewModel.Event.CheckImage)
                     },
                 )
             }
