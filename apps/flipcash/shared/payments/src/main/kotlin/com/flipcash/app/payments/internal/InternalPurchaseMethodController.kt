@@ -86,7 +86,7 @@ class InternalPurchaseMethodController @Inject constructor(
     override fun present(metadata: PurchaseMethodMetadata) {
         BottomBarManager.showMessage(
             title = resources.getString(R.string.prompt_title_selectPurchaseMethod),
-            actions = purchaseOptions(_state.value, resources) { method ->
+            actions = purchaseOptions(_state.value, metadata, resources) { method ->
                 scope.launch {
                     val selection = PurchaseMethodSelection(method, metadata)
                     _selections.emit(selection)

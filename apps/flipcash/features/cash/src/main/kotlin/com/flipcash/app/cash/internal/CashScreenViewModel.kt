@@ -143,12 +143,11 @@ internal class CashScreenViewModel @Inject constructor(
                             val amountFiat = LocalFiat.valueExchangeIn(
                                 amount =  Fiat(amount, rate.currency),
                                 token = token,
-                                balance = balance.underlyingTokenAmount,
                                 rate = rate,
                             )
 
                             val neededAmount = amountFiat.nativeAmount - tokenBalance
-
+                            println("entered amount ${amountFiat.nativeAmount}, tokenbalace=$tokenBalance, needed=$neededAmount")
                             dispatchEvent(Event.AddCashToWallet(neededAmount))
                         }
                     },
@@ -322,13 +321,14 @@ internal class CashScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.AddCashToWallet>()
             .map { it.amount }
-            .onEach {
+            .onEach { shortfall ->
                 // route to buy the token
+                println("shortfall=$shortfall")
                 dispatchEvent(
                     Event.OpenScreen(
                         AppRoute.Token.Info(
                             mint = stateFlow.value.selectedTokenAddress!!,
-                            isFundingShortfall = true
+                            shortfall = shortfall,
                         ),
                     )
                 )

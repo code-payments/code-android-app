@@ -1,13 +1,12 @@
 package com.flipcash.app.onramp
 
-import android.annotation.SuppressLint
-import android.content.Context
+import android.content.res.Resources
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.analytics.rememberAnalytics
@@ -30,7 +29,6 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@SuppressLint("LocalContextGetResourceValueCall", "InlinedApi")
 @Composable
 fun ExternalWalletOnRampHandler(
     controller: ExternalWalletOnRampController,
@@ -44,6 +42,7 @@ fun ExternalWalletOnRampHandler(
 
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
+    val resources = LocalResources.current
 
     fun close(exit: Boolean) {
         val origin = (state as? ExternalWalletOnRampState.Transacted)?.origin
@@ -93,7 +92,7 @@ fun ExternalWalletOnRampHandler(
                         controller.emitPendingNavigation(
                             AppRoute.Token.Swap(
                                 SwapPurpose.FundWithWallet(current.origin.mint),
-                                isFundingShortfall = current.origin.isFundingShortfall
+                                shortfall = current.origin.shortfall
                             )
                         )
                     }
@@ -215,17 +214,17 @@ fun ExternalWalletOnRampHandler(
                     navigator.push(AppRoute.Token.TxProcessing(swapId))
                 } else {
                     val title = token?.let {
-                        context.getString(R.string.prompt_title_tokenPurchaseOnTheWay, it.name)
-                    } ?: context.getString(R.string.prompt_title_cashOnTheWay)
+                        resources.getString(R.string.prompt_title_tokenPurchaseOnTheWay, it.name)
+                    } ?: resources.getString(R.string.prompt_title_cashOnTheWay)
                     BottomBarManager.showSuccess(
                         title = title,
-                        message = context.getString(R.string.prompt_description_cashOnTheWay),
+                        message = resources.getString(R.string.prompt_description_cashOnTheWay),
                         showScrim = true,
                         actions = buildList {
                             if (notifications.isGranted) {
                                 add(
                                     BottomBarAction(
-                                        text = context.getString(R.string.action_ok),
+                                        text = resources.getString(R.string.action_ok),
                                     ) {
                                         close(true)
                                     }
@@ -233,7 +232,7 @@ fun ExternalWalletOnRampHandler(
                             } else {
                                 add(
                                     BottomBarAction(
-                                        text = context.getString(R.string.action_notifyMe)
+                                        text = resources.getString(R.string.action_notifyMe)
                                     ) {
                                         notifications.launch()
                                     }
@@ -241,7 +240,7 @@ fun ExternalWalletOnRampHandler(
 
                                 add(
                                     BottomBarAction(
-                                        text = context.getString(R.string.action_dismiss),
+                                        text = resources.getString(R.string.action_dismiss),
                                         style = BottomBarManager.BottomBarButtonStyle.Text
                                     ) {
                                         close(true)
@@ -256,11 +255,11 @@ fun ExternalWalletOnRampHandler(
             is ExternalWalletOnRampState.Failed -> {
                 val error = current.error
                 val (title, message) = error.messaging(
-                    context = context,
+                    resources = resources,
                     provider = when (current.provider) {
-                        OnRampProvider.Backpack -> context.getString(R.string.label_backpack)
-                        OnRampProvider.Phantom -> context.getString(R.string.label_phantom)
-                        OnRampProvider.Solflare -> context.getString(R.string.label_solflare)
+                        OnRampProvider.Backpack -> resources.getString(R.string.label_backpack)
+                        OnRampProvider.Phantom -> resources.getString(R.string.label_phantom)
+                        OnRampProvider.Solflare -> resources.getString(R.string.label_solflare)
                         null -> ""
                     }
                 )
@@ -321,23 +320,23 @@ private val DeeplinkOnRampError.isAlert: Boolean
 private typealias Title = String
 private typealias Message = String
 
-private fun DeeplinkOnRampError.messaging(context: Context, provider: String): Pair<Title, Message> = when (this) {
-    is DeeplinkOnRampError.DecryptionError -> context.getString(R.string.error_title_deeplinkOnRampDecryption) to context.getString(R.string.error_description_deeplinkOnRampDecryption).format(provider)
-    is DeeplinkOnRampError.DeserializationError -> context.getString(R.string.error_title_deeplinkOnRampDeserialization) to context.getString(R.string.error_description_deeplinkOnRampDeserialization).format(provider)
-    is DeeplinkOnRampError.FailedToCreateTransaction -> context.getString(R.string.error_title_deeplinkOnRampFailedToCreateTransaction) to context.getString(R.string.error_description_deeplinkOnRampFailedToCreateTransaction)
-    is DeeplinkOnRampError.FailedToSimulateTransaction -> context.getString(R.string.error_title_deeplinkOnRampFailedToSimulateTransaction) to context.getString(R.string.error_description_deeplinkOnRampFailedToSimulateTransaction)
-    is DeeplinkOnRampError.FailedToGenerateDeeplink -> context.getString(R.string.error_title_deeplinkOnRampFailedToCreateDeeplink) to context.getString(R.string.error_description_deeplinkOnRampFailedToCreateDeeplink)
-    is DeeplinkOnRampError.FailedToSendTransaction -> context.getString(R.string.error_title_deeplinkOnRampFailedToSendTransaction) to context.getString(R.string.error_description_deeplinkOnRampFailedToSendTransaction).format(provider)
-    is DeeplinkOnRampError.FailedToSubmitBuyToServer -> context.getString(R.string.error_title_deeplinkOnRampExternalFundBuy) to context.getString(R.string.error_description_deeplinkOnRampExternalFundBuy).format(provider)
+private fun DeeplinkOnRampError.messaging(resources: Resources, provider: String): Pair<Title, Message> = when (this) {
+    is DeeplinkOnRampError.DecryptionError -> resources.getString(R.string.error_title_deeplinkOnRampDecryption) to resources.getString(R.string.error_description_deeplinkOnRampDecryption).format(provider)
+    is DeeplinkOnRampError.DeserializationError -> resources.getString(R.string.error_title_deeplinkOnRampDeserialization) to resources.getString(R.string.error_description_deeplinkOnRampDeserialization).format(provider)
+    is DeeplinkOnRampError.FailedToCreateTransaction -> resources.getString(R.string.error_title_deeplinkOnRampFailedToCreateTransaction) to resources.getString(R.string.error_description_deeplinkOnRampFailedToCreateTransaction)
+    is DeeplinkOnRampError.FailedToSimulateTransaction -> resources.getString(R.string.error_title_deeplinkOnRampFailedToSimulateTransaction) to resources.getString(R.string.error_description_deeplinkOnRampFailedToSimulateTransaction)
+    is DeeplinkOnRampError.FailedToGenerateDeeplink -> resources.getString(R.string.error_title_deeplinkOnRampFailedToCreateDeeplink) to resources.getString(R.string.error_description_deeplinkOnRampFailedToCreateDeeplink)
+    is DeeplinkOnRampError.FailedToSendTransaction -> resources.getString(R.string.error_title_deeplinkOnRampFailedToSendTransaction) to resources.getString(R.string.error_description_deeplinkOnRampFailedToSendTransaction).format(provider)
+    is DeeplinkOnRampError.FailedToSubmitBuyToServer -> resources.getString(R.string.error_title_deeplinkOnRampExternalFundBuy) to resources.getString(R.string.error_description_deeplinkOnRampExternalFundBuy).format(provider)
     is DeeplinkOnRampError.WalletProvidedError -> when (this.error) {
-        DeeplinkError.Disconnected -> context.getString(R.string.error_title_deeplinkOnRampDisconnected) to context.getString(R.string.error_description_deeplinkOnRampDisconnected).format(provider)
-        DeeplinkError.Unauthorized -> context.getString(R.string.error_title_deeplinkOnRampUnauthorized) to context.getString(R.string.error_description_deeplinkOnRampUnauthorized)
-        DeeplinkError.UserRejectedRequest -> context.getString(R.string.error_title_deeplinkOnRampUserRejected).format(provider) to context.getString(R.string.error_description_deeplinkOnRampUserRejected).format(provider)
-        DeeplinkError.InvalidInput -> context.getString(R.string.error_title_deeplinkOnRampInvalidInput) to context.getString(R.string.error_description_deeplinkOnRampInvalidInput)
-        DeeplinkError.RequestedResourceNotAvailable -> context.getString(R.string.error_title_deeplinkOnRampRequestedResourceNotAvailable) to context.getString(R.string.error_description_deeplinkOnRampRequestedResourceNotAvailable).format(provider)
-        DeeplinkError.TransactionRejected -> context.getString(R.string.error_title_deeplinkOnRampTransactionRejected) to context.getString(R.string.error_description_deeplinkOnRampTransactionRejected).format(provider)
-        DeeplinkError.MethodNotFound -> context.getString(R.string.error_title_deeplinkOnRampMethodNotFound) to context.getString(R.string.error_description_deeplinkOnRampMethodNotFound).format(provider)
-        DeeplinkError.InternalError -> context.getString(R.string.error_title_deeplinkOnRampInternalError) to context.getString(R.string.error_description_deeplinkOnRampInternalError).format(provider)
-        DeeplinkError.Unknown -> context.getString(R.string.error_title_deeplinkOnRampUnknown) to context.getString(R.string.error_description_deeplinkOnRampUnknown)
+        DeeplinkError.Disconnected -> resources.getString(R.string.error_title_deeplinkOnRampDisconnected) to resources.getString(R.string.error_description_deeplinkOnRampDisconnected).format(provider)
+        DeeplinkError.Unauthorized -> resources.getString(R.string.error_title_deeplinkOnRampUnauthorized) to resources.getString(R.string.error_description_deeplinkOnRampUnauthorized)
+        DeeplinkError.UserRejectedRequest -> resources.getString(R.string.error_title_deeplinkOnRampUserRejected).format(provider) to resources.getString(R.string.error_description_deeplinkOnRampUserRejected).format(provider)
+        DeeplinkError.InvalidInput -> resources.getString(R.string.error_title_deeplinkOnRampInvalidInput) to resources.getString(R.string.error_description_deeplinkOnRampInvalidInput)
+        DeeplinkError.RequestedResourceNotAvailable -> resources.getString(R.string.error_title_deeplinkOnRampRequestedResourceNotAvailable) to resources.getString(R.string.error_description_deeplinkOnRampRequestedResourceNotAvailable).format(provider)
+        DeeplinkError.TransactionRejected -> resources.getString(R.string.error_title_deeplinkOnRampTransactionRejected) to resources.getString(R.string.error_description_deeplinkOnRampTransactionRejected).format(provider)
+        DeeplinkError.MethodNotFound -> resources.getString(R.string.error_title_deeplinkOnRampMethodNotFound) to resources.getString(R.string.error_description_deeplinkOnRampMethodNotFound).format(provider)
+        DeeplinkError.InternalError -> resources.getString(R.string.error_title_deeplinkOnRampInternalError) to resources.getString(R.string.error_description_deeplinkOnRampInternalError).format(provider)
+        DeeplinkError.Unknown -> resources.getString(R.string.error_title_deeplinkOnRampUnknown) to resources.getString(R.string.error_description_deeplinkOnRampUnknown)
     }
 }

@@ -17,6 +17,7 @@ import com.getcode.navigation.NonDismissableRoute
 import com.getcode.navigation.NonDraggableRoute
 import com.getcode.navigation.flow.FlowRouteWithResult
 import com.getcode.opencode.internal.solana.model.SwapId
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
 import kotlinx.parcelize.Parcelize
@@ -119,7 +120,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class Info(
             val mint: Mint,
-            val isFundingShortfall: Boolean = false,
+            val shortfall: Fiat? = null,
             val fromDeeplink: Boolean = false
         ) : Token
 
@@ -128,7 +129,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class Swap(
             val purpose: SwapPurpose,
-            val isFundingShortfall: Boolean = false,
+            val shortfall: Fiat? = null,
         ) : Token, FlowRouteWithResult<SwapResult> {
             override val initialStack: List<NavKey>
                 get() = listOf(SwapStep.Entry(purpose))

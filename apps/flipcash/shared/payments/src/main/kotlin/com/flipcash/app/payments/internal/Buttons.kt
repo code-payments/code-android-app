@@ -20,16 +20,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.app.core.money.formatted
 import com.flipcash.app.payments.PurchaseMethod
+import com.flipcash.app.payments.PurchaseMethodMetadata
 import com.flipcash.app.payments.PurchaseMethodState
 import com.flipcash.shared.payments.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.util.resources.ResourceHelper
 
 internal fun purchaseOptions(
     state: PurchaseMethodState,
+    metadata: PurchaseMethodMetadata,
     resources: ResourceHelper,
     onClick: (PurchaseMethod) -> Unit
 ): List<BottomBarAction> {
@@ -48,15 +51,18 @@ internal fun purchaseOptions(
             )
         }
         if (state.hasReserves) {
-            add(
-                BottomBarAction(
-                    text = resources.getString(
-                        R.string.action_useCashReservesWithBalance,
-                        state.reservesBalance.formatted()
-                    ),
-                    onClick = { onClick(PurchaseMethod.CashReserves(state.reservesBalance)) }
+            val minimumAmountNeeded = metadata.purchaseAmount ?: Fiat.MIN_VALUE
+            if (state.reservesBalance.nativeAmount >= minimumAmountNeeded) {
+                add(
+                    BottomBarAction(
+                        text = resources.getString(
+                            R.string.action_useCashReservesWithBalance,
+                            state.reservesBalance.formatted()
+                        ),
+                        onClick = { onClick(PurchaseMethod.CashReserves(state.reservesBalance)) }
+                    )
                 )
-            )
+            }
         }
 
         add(

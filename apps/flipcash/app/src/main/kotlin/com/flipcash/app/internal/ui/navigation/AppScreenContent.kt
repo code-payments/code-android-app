@@ -102,7 +102,7 @@ fun appEntryProvider(
 
     // Tokens
     annotatedEntry<AppRoute.Token.Info> { key ->
-        TokenInfoScreen(key.mint, key.isFundingShortfall, key.fromDeeplink)
+        TokenInfoScreen(key.mint, key.shortfall, key.fromDeeplink)
     }
     annotatedEntry<AppRoute.Token.Transactions> { key -> TransactionHistoryScreen(key.mint) }
     annotatedEntry<AppRoute.Token.Swap> { key ->
