@@ -4,19 +4,27 @@ import android.net.Uri
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.core.text.trimmedLength
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
-import com.flipcash.app.core.data.Loadable
-import com.flipcash.app.core.extensions.flatMapResult
-import com.flipcash.app.core.extensions.mapResult
-import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.currencycreator.internal.components.CurrencyCreatorTopBarController
+import com.flipcash.app.onramp.ExternalWalletOnRampController
+import com.flipcash.app.onramp.ExternalWalletOnRampState
+import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.libs.coroutines.DispatcherProvider
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.toFiat
+import com.getcode.opencode.model.ui.TokenBillCustomizations
+import com.flipcash.app.core.data.Loadable
+import com.flipcash.app.core.extensions.flatMapResult
+import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
-import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.currencycreator.R
-import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ModerationController
 import com.flipcash.services.models.ImageModerationError
 import com.flipcash.services.models.ModerationResult
@@ -24,13 +32,16 @@ import com.flipcash.services.models.TextModerationError
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.CurrencyController
+import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
-import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.MintMetadata
+import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenCreateRequest
-import com.getcode.opencode.model.financial.toFiat
+import com.getcode.opencode.model.financial.fromLaunch
 import com.getcode.opencode.model.moderation.ModerationAttestation
-import com.getcode.opencode.model.ui.TokenBillCustomizations
-import com.getcode.solana.keys.Mint
+import com.getcode.opencode.model.transactions.SwapFundingSource
+import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
@@ -38,7 +49,9 @@ import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -46,6 +59,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 internal data class ModerationAttestations(
     val name: ModerationResult.Attestation = ModerationResult.Attestation.Empty,
@@ -60,6 +74,9 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     userFlags: UserFlagsCoordinator,
     moderationController: ModerationController,
     currencyController: CurrencyController,
+    transactionController: TransactionController,
+    exchange: Exchange,
+    onRampController: ExternalWalletOnRampController,
     resources: ResourceHelper,
     val contentReader: ContentReader,
     val purchaseMethodController: PurchaseMethodController,
@@ -119,30 +136,39 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     internal sealed interface Event {
         data class OnStepChanged(val step: CurrencyCreatorStep) : Event
 
-        data object CheckName: Event
-        data object CheckDescription: Event
-        data object CheckImage: Event
+        data object CheckName : Event
+        data object CheckDescription : Event
+        data object CheckImage : Event
 
-        data class OnNameApproved(val attestation: ModerationResult.Attestation): Event
-        data class OnDescriptionApproved(val attestation: ModerationResult.Attestation): Event
-        data class OnImageApproved(val attestation: ModerationResult.Attestation): Event
+        data class OnNameApproved(val attestation: ModerationResult.Attestation) : Event
+        data class OnDescriptionApproved(val attestation: ModerationResult.Attestation) : Event
+        data class OnImageApproved(val attestation: ModerationResult.Attestation) : Event
 
         data class OnIconSelected(val image: Uri) : Event
         data class OnIconCached(val image: Uri) : Event
 
         data class OnPurchaseAmountChanged(val amount: Fiat) : Event
 
-        data class OnBillConfirmed(val bill: Bill?): Event
+        data class OnBillConfirmed(val bill: Bill?) : Event
         data class UpdateProcessingState(
             val loading: Boolean = false,
             val success: Boolean = false,
         ) : Event
 
-        data object LaunchToken: Event
-        data object Purchase: Event
-        data class PurchaseWithReserves(val mint: Mint, val amount: Fiat): Event
-        data object PurchaseWithGooglePay: Event
+        data class LaunchToken(val method: PurchaseMethod) : Event
+        data object Purchase : Event
+        data class PurchaseWithReserves(val token: Token, val amount: Fiat) : Event
+        data class PurchaseWithPhantom(val token: Token, val amount: Fiat) : Event
+        data object PurchaseWithGooglePay : Event
+
+        data class PurchaseSubmitted(val swapId: SwapId) : Event
     }
+
+    private data class LaunchedContext(
+        val method: PurchaseMethod,
+        val token: Token,
+        val amount: Fiat,
+    )
 
     init {
         userFlags.resolvedFlags
@@ -174,6 +200,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                         currencyController.checkTokenAvailability(result.text)
                             .map { result.attestation }
                     }
+
                     else -> Result.failure(TextModerationError.Flagged(result.flaggedCategory))
                 }
             }
@@ -196,12 +223,14 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                                 message = resources.getString(R.string.error_description_nameNotAllowed)
                             )
                         }
+
                         is CheckTokenAvailabilityError.Unavailable -> {
                             BottomBarManager.showAlert(
                                 title = resources.getString(R.string.error_title_nameAlreadyTaken),
                                 message = resources.getString(R.string.error_description_nameAlreadyTaken)
                             )
                         }
+
                         else -> {
                             BottomBarManager.showError(
                                 title = resources.getString(R.string.error_title_nameCheckFailed),
@@ -244,12 +273,14 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                                 message = resources.getString(R.string.error_description_nameNotAllowed)
                             )
                         }
+
                         is ImageModerationError.UnsupportedFormat -> {
                             BottomBarManager.showAlert(
                                 title = resources.getString(R.string.error_title_imageNotSupported),
                                 message = resources.getString(R.string.error_description_imageNotSupported)
                             )
                         }
+
                         else -> {
                             BottomBarManager.showError(
                                 title = resources.getString(R.string.error_title_moderationFailed),
@@ -291,6 +322,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                                 message = resources.getString(R.string.error_description_descriptionNotAllowed)
                             )
                         }
+
                         else -> {
                             BottomBarManager.showError(
                                 title = resources.getString(R.string.error_title_moderationFailed),
@@ -303,9 +335,27 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.Purchase>()
+            .onEach {
+                val metadata = PurchaseMethodMetadata(
+                    mint = null,
+                    token = null,
+                    purchaseAmount = stateFlow.value.purchaseAmount,
+                )
+                purchaseMethodController.present(metadata)
+            }
+            .launchIn(viewModelScope)
+
+        purchaseMethodController.selections
+            .onEach { (method, _) ->
+                dispatchEvent(Event.LaunchToken(method))
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.LaunchToken>()
-            .map {
-                TokenCreateRequest(
+            .map { event ->
+                val request = TokenCreateRequest(
                     name = ModerationAttestation.Text(
                         text = stateFlow.value.nameFieldState.text.toString(),
                         attestation = stateFlow.value.attestations.name.rawValue,
@@ -322,20 +372,38 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     ),
                     bill = stateFlow.value.customizations,
                 )
+                request to event.method
             }
-            .mapNotNull { request ->
-                val owner = userManager.accountCluster?.authority?.keyPair ?: return@mapNotNull null
-                request to owner
+            .mapNotNull { (request, method) ->
+                val accountCluster = userManager.accountCluster ?: return@mapNotNull null
+                Triple(request, method, accountCluster)
             }
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
-            .map { (request, owner) -> currencyController.launchToken(request, owner) }
-            .mapResult { mint ->
-                PurchaseMethodMetadata(
-                    purchaseAmount = stateFlow.value.purchaseAmount,
-                    mint = mint,
-                )
-            }.onResult(
-                onSuccess = { metadata -> purchaseMethodController.present(metadata) },
+            .map { (request, method, accountCluster) ->
+                currencyController.launchToken(request, accountCluster.authority.keyPair)
+                    .map { mint ->
+                        val token = MintMetadata.fromLaunch(
+                            mint = mint,
+                            request = request,
+                            owner = accountCluster.authorityPublicKey,
+                        )
+                        LaunchedContext(method, token, stateFlow.value.purchaseAmount)
+                    }
+            }
+            .onResult(
+                onSuccess = { ctx ->
+                    when (ctx.method) {
+                        is PurchaseMethod.CashReserves ->
+                            dispatchEvent(Event.PurchaseWithReserves(ctx.token, ctx.amount))
+
+                        PurchaseMethod.PhantomWallet ->
+                            dispatchEvent(Event.PurchaseWithPhantom(ctx.token, ctx.amount))
+
+                        PurchaseMethod.CoinbaseOnRamp -> {
+                            // TODO:
+                        }
+                    }
+                },
                 onError = {
                     dispatchEvent(Event.UpdateProcessingState())
                     BottomBarManager.showError(
@@ -346,21 +414,92 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             )
             .launchIn(viewModelScope)
 
-        purchaseMethodController.selections
-            .onEach { (method, metadata) ->
-                when (method) {
-                    PurchaseMethod.CoinbaseOnRamp -> {
-                        // TODO:
-                    }
-                    is PurchaseMethod.CashReserves -> {
-
-                    }
-                    PurchaseMethod.PhantomWallet -> {
-
-                    }
-                }
+        eventFlow
+            .filterIsInstance<Event.PurchaseWithPhantom>()
+            .onEach { event ->
+                // start() must come first — it calls reset() which clears amount/token.
+                onRampController.start(
+                    AppRoute.Token.CurrencyCreator,
+                    OnRampProvider.Phantom
+                )
+                onRampController.setAmount(LocalFiat(usdf = event.amount))
+                onRampController.setTokenToPurchase(event.token)
             }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PurchaseWithReserves>()
+            .mapNotNull { event ->
+                val owner = userManager.accountCluster ?: return@mapNotNull null
+                Triple(owner, event.token, event.amount)
+            }
+            .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
+            .map { (owner, token, amount) ->
+                transactionController.buy(
+                    owner = owner,
+                    amount = LocalFiat(usdf = amount),
+                    of = token,
+                    source = SwapFundingSource.SubmitIntent(),
+                    fund = null,
+                )
+            }
+            .onResult(
+                onSuccess = {
+                    dispatchEvent(Event.PurchaseSubmitted(it))
+                },
+                onError = {
+                    dispatchEvent(Event.UpdateProcessingState())
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_buyNewCurrencyFailed),
+                        message = resources.getString(R.string.error_description_buyNewCurrencyFailed),
+                    )
+                }
+            )
+            .launchIn(viewModelScope)
+
+        onRampController.state
+            .filterIsInstance<ExternalWalletOnRampState.Transacted>()
+            .filter { it.origin is AppRoute.Token.CurrencyCreator }
+            .mapNotNull { it.swapId }
+            .onEach {
+                onRampController.reset()
+                dispatchEvent(Event.PurchaseSubmitted(it))
+            }
+            .launchIn(viewModelScope)
+
+        onRampController.state
+            .filterIsInstance<ExternalWalletOnRampState.Failed>()
+            .onEach {
+                dispatchEvent(Event.UpdateProcessingState())
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PurchaseSubmitted>()
+            .map { it.swapId }
+            .mapNotNull { swapId ->
+                val owner = userManager.accountCluster ?: return@mapNotNull null
+                swapId to owner
+            }
+            .map { (swapId, owner) ->
+                // currency creation is at *best* 2 mins
+                // safe buffer is 4-5 minutes
+                // instead of polling 300 times (every second)
+                // we'll poll every 10 seconds (30 times)
+                transactionController.pollSwapForState(
+                    swapId = swapId,
+                    owner = owner,
+                    targetState = SwapState.FINALIZED,
+                    maxAttempts = 30,
+                    interval = 10.seconds,
+                )
+            }.onResult(
+                onSuccess = {
+                    dispatchEvent(Event.UpdateProcessingState(success = true))
+                },
+                onError = {
+                    dispatchEvent(Event.UpdateProcessingState())
+                }
+            ).launchIn(viewModelScope)
     }
 
     /**
@@ -421,17 +560,21 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     val attestations = state.attestations
                     state.copy(attestations = attestations.copy(name = event.attestation))
                 }
+
                 is Event.OnDescriptionApproved -> { state ->
                     val attestations = state.attestations
                     state.copy(attestations = attestations.copy(description = event.attestation))
                 }
+
                 is Event.OnImageApproved -> { state ->
                     val attestations = state.attestations
                     state.copy(attestations = attestations.copy(icon = event.attestation))
                 }
 
                 is Event.PurchaseWithReserves -> { state -> state }
+                is Event.PurchaseWithPhantom -> { state -> state }
                 is Event.PurchaseWithGooglePay -> { state -> state }
+                is Event.PurchaseSubmitted -> { state -> state }
             }
         }
     }

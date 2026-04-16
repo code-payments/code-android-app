@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,12 +27,26 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun ReviewAndPurchaseScreen() {
+    val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
     val viewModel = flowSharedViewModel<CurrencyCreatorViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     ReviewAndPurchaseContent(state, viewModel::dispatchEvent)
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<CurrencyCreatorViewModel.Event.PurchaseSubmitted>()
+            .map { it.swapId }
+            .onEach {
+                flowNavigator.navigateTo(CurrencyCreatorStep.Processing)
+            }.launchIn(this)
+    }
 }
 
 @Composable
@@ -39,7 +54,6 @@ internal fun ReviewAndPurchaseContent(
     state: CurrencyCreatorViewModel.State,
     dispatch: (CurrencyCreatorViewModel.Event) -> Unit
 ) {
-    val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
     CodeScaffold(
         modifier = Modifier
             .padding(horizontal = CodeTheme.dimens.inset),
@@ -60,7 +74,7 @@ internal fun ReviewAndPurchaseContent(
                 isLoading = state.processingState.loading,
                 isSuccess = state.processingState.success,
                 onClick = {
-                    dispatch(CurrencyCreatorViewModel.Event.LaunchToken)
+                    dispatch(CurrencyCreatorViewModel.Event.Purchase)
                 },
             )
         }
