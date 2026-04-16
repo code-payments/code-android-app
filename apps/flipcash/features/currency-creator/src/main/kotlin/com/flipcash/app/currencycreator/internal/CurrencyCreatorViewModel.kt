@@ -13,7 +13,6 @@ import com.flipcash.app.onramp.ExternalWalletOnRampState
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.toFiat
@@ -51,7 +50,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -75,8 +73,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     moderationController: ModerationController,
     currencyController: CurrencyController,
     transactionController: TransactionController,
-    exchange: Exchange,
-    onRampController: ExternalWalletOnRampController,
+    externalWalletController: ExternalWalletOnRampController,
     resources: ResourceHelper,
     val contentReader: ContentReader,
     val purchaseMethodController: PurchaseMethodController,
@@ -159,7 +156,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         data object Purchase : Event
         data class PurchaseWithReserves(val token: Token, val amount: Fiat) : Event
         data class PurchaseWithPhantom(val token: Token, val amount: Fiat) : Event
-        data object PurchaseWithGooglePay : Event
+        data class PurchaseWithGooglePay(val token: Token, val amount: Fiat) : Event
 
         data class PurchaseSubmitted(val swapId: SwapId) : Event
     }
@@ -400,7 +397,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                             dispatchEvent(Event.PurchaseWithPhantom(ctx.token, ctx.amount))
 
                         PurchaseMethod.CoinbaseOnRamp -> {
-                            // TODO:
+                            dispatchEvent(Event.PurchaseWithGooglePay(ctx.token, ctx.amount))
                         }
                     }
                 },
@@ -418,12 +415,12 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .filterIsInstance<Event.PurchaseWithPhantom>()
             .onEach { event ->
                 // start() must come first — it calls reset() which clears amount/token.
-                onRampController.start(
+                externalWalletController.start(
                     AppRoute.Token.CurrencyCreator,
                     OnRampProvider.Phantom
                 )
-                onRampController.setAmount(LocalFiat(usdf = event.amount))
-                onRampController.setTokenToPurchase(event.token)
+                externalWalletController.setAmount(LocalFiat(usdf = event.amount))
+                externalWalletController.setTokenToPurchase(event.token)
             }
             .launchIn(viewModelScope)
 
@@ -457,17 +454,17 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             )
             .launchIn(viewModelScope)
 
-        onRampController.state
+        externalWalletController.state
             .filterIsInstance<ExternalWalletOnRampState.Transacted>()
             .filter { it.origin is AppRoute.Token.CurrencyCreator }
             .mapNotNull { it.swapId }
             .onEach {
-                onRampController.reset()
+                externalWalletController.reset()
                 dispatchEvent(Event.PurchaseSubmitted(it))
             }
             .launchIn(viewModelScope)
 
-        onRampController.state
+        externalWalletController.state
             .filterIsInstance<ExternalWalletOnRampState.Failed>()
             .onEach {
                 dispatchEvent(Event.UpdateProcessingState())
