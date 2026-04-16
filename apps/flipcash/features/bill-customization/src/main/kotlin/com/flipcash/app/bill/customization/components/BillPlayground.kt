@@ -45,7 +45,12 @@ import com.flipcash.app.bill.customization.features.BackgroundControls
 import com.flipcash.app.bill.customization.features.TextureControls
 import com.flipcash.app.bill.customization.internal.InternalBillPlaygroundController
 import com.flipcash.app.bill.customization.models.PlaygroundFeature
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.featureflags.NoOpFeatureFlagController
 import com.flipcash.app.theme.FlipcashPreview
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Pill
 import com.getcode.ui.core.addIf
@@ -197,13 +202,20 @@ internal fun Modifier.presenceBorder(
     shape = shape
 )
 
+private object PreviewFeatureFlagController : FeatureFlagController by NoOpFeatureFlagController {
+    override fun observe(flag: FeatureFlag): StateFlow<Boolean> = MutableStateFlow(true)
+}
+
 @Composable
 @Preview
 private fun PreviewCustomizationControls() {
     FlipcashPreview {
         val clipboardManager = LocalContext.current.getSystemService(ClipboardManager::class.java)
         val controller = remember {
-            InternalBillPlaygroundController(clipboardManager)
+            InternalBillPlaygroundController(
+                clipboard = clipboardManager,
+                featureFlags = PreviewFeatureFlagController,
+            )
         }
         val state by controller.state.collectAsStateWithLifecycle()
 

@@ -12,6 +12,8 @@ import com.flipcash.app.bill.customization.internal.features.BlendMode
 import com.flipcash.app.bill.customization.internal.features.TextureController
 import com.flipcash.app.bill.customization.models.PlaygroundFeature
 import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.Fiat
@@ -39,10 +41,14 @@ import com.flipcash.app.bill.customization.Event.Graphics as GraphicsEvent
 @OptIn(ExperimentalStdlibApi::class)
 class InternalBillPlaygroundController(
     private val clipboard: ClipboardManager,
+    featureFlags: FeatureFlagController,
 ) : BillPlaygroundController, ViewModel() {
 
     private val backgroundController = BackgroundController { pushUndoSnapshot() }
     private val textureController = TextureController { pushUndoSnapshot() }
+
+    private val texturesEnabled: StateFlow<Boolean> =
+        featureFlags.observe(FeatureFlag.BillTextures)
 
     private val _state: MutableStateFlow<PlaygroundState> = MutableStateFlow(PlaygroundState())
     override val state: StateFlow<PlaygroundState> = _state.asStateFlow()
@@ -52,10 +58,24 @@ class InternalBillPlaygroundController(
             _state,
             backgroundController.state,
             textureController.state,
-        ) { currentPlayground, currentBackground, currentTexture ->
+            texturesEnabled,
+        ) { currentPlayground, currentBackground, currentTexture, texturesOn ->
+            val features = currentPlayground.context.availableFeatures
+                .filter { feature ->
+                    when (feature) {
+                        PlaygroundFeature.Textures -> texturesOn
+                        else -> true
+                    }
+                }
+            val selectedFeature = currentPlayground.selectedFeature
+                .takeIf { it in features }
+                ?: features.firstOrNull()
+                ?: currentPlayground.selectedFeature
             currentPlayground.copy(
                 backgroundState = currentBackground,
                 textureState = currentTexture,
+                features = features,
+                selectedFeature = selectedFeature,
             )
         }.onEach { combinedState ->
             _state.value = combinedState
@@ -108,14 +128,9 @@ class InternalBillPlaygroundController(
         )
 
         _state.update { current ->
-            val features = context.availableFeatures
-            val selectedFeature = current.selectedFeature.takeIf { it in features }
-                ?: features.first()
             current.copy(
                 bill = bill,
                 context = context,
-                features = features,
-                selectedFeature = selectedFeature,
             )
         }
     }
