@@ -63,7 +63,7 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.bars.rememberBarManager
 import com.getcode.ui.core.RestrictionType
 import com.flipcash.app.core.extensions.navigateTo
-import com.getcode.navigation.animation.LocalSharedTransitionScope
+import com.getcode.animation.LocalSharedTransitionScope
 import com.getcode.navigation.scrim.LocalScrimController
 import com.getcode.navigation.scrim.ScrimController
 import com.getcode.navigation.scrim.ScrimOverlay

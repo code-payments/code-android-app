@@ -172,6 +172,8 @@ internal fun DescriptionSelectionContent(
                 )
 
                 Text(
+                    modifier = Modifier
+                        .fillMaxWidth(0.65f),
                     text = stringResource(R.string.title_currencyCreatorDescription),
                     style = CodeTheme.typography.textLarge,
                     color = CodeTheme.colors.textMain,
