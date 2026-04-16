@@ -57,6 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
+import kotlin.time.Duration
 
 @Singleton
 class TransactionController @Inject constructor(
@@ -313,8 +314,10 @@ class TransactionController @Inject constructor(
         swapId: SwapId,
         owner: AccountCluster,
         targetState: SwapState,
+        maxAttempts: Int,
+        interval: Duration,
     ): Result<SwapMetadata> {
-        return swapRepository.pollForState(swapId, owner.authority.keyPair, targetState)
+        return swapRepository.pollForState(swapId, owner.authority.keyPair, targetState, maxAttempts, interval)
     }
 
     internal suspend fun submitIntent(

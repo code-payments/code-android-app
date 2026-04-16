@@ -22,12 +22,14 @@ internal class SwapPoller @Inject constructor(
         swapId: SwapId,
         owner: Ed25519.KeyPair,
         targetState: SwapState,
+        maxAttempts: Int,
+        interval: Duration,
     ): Result<SwapMetadata> = runCatching {
         pollSwapUntil(
             swapId = swapId,
             owner = owner,
-            maxAttempts = 90,
-            interval = 1.seconds,
+            maxAttempts = maxAttempts,
+            interval = interval,
             targetState = targetState,
         )
     }
