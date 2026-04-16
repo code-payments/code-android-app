@@ -11,6 +11,7 @@ import com.getcode.opencode.internal.network.api.CurrencyApi
 import com.getcode.opencode.model.core.errors.LaunchTokenError
 import com.getcode.opencode.model.core.errors.UpdateIconError
 import com.getcode.opencode.model.core.errors.UpdateMetadataError
+import com.getcode.opencode.model.financial.TokenCreateRequest
 import com.getcode.opencode.model.financial.TokenUpdateRequest
 import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.google.protobuf.ByteString
@@ -44,17 +45,10 @@ class CurrencyServiceTest {
 
     @Test
     fun `launchNewToken OK returns success with Mint`() = runTest {
-        coEvery { api.launchToken(any(), any(), any(), any(), any(), any()) } returns
+        coEvery { api.launchToken(any(), any()) } returns
             launchResponse(CurrencyProto.LaunchResponse.Result.OK, includeMint = true)
 
-        val result = service.launchNewToken(
-            name = makeName(),
-            symbol = null,
-            description = null,
-            bill = null,
-            icon = null,
-            owner = owner,
-        )
+        val result = service.launchNewToken(makeCreateRequest(), owner)
 
         assertTrue(result.isSuccess)
         assertNotNull(result.getOrNull())
@@ -62,17 +56,10 @@ class CurrencyServiceTest {
 
     @Test
     fun `launchNewToken DENIED returns Denied error`() = runTest {
-        coEvery { api.launchToken(any(), any(), any(), any(), any(), any()) } returns
+        coEvery { api.launchToken(any(), any()) } returns
             launchResponse(CurrencyProto.LaunchResponse.Result.DENIED)
 
-        val result = service.launchNewToken(
-            name = makeName(),
-            symbol = null,
-            description = null,
-            bill = null,
-            icon = null,
-            owner = owner,
-        )
+        val result = service.launchNewToken(makeCreateRequest(), owner)
 
         assertTrue(result.isFailure)
         assertIs<LaunchTokenError.Denied>(result.exceptionOrNull())
@@ -80,17 +67,10 @@ class CurrencyServiceTest {
 
     @Test
     fun `launchNewToken NAME_EXISTS returns Exists error`() = runTest {
-        coEvery { api.launchToken(any(), any(), any(), any(), any(), any()) } returns
+        coEvery { api.launchToken(any(), any()) } returns
             launchResponse(CurrencyProto.LaunchResponse.Result.NAME_EXISTS)
 
-        val result = service.launchNewToken(
-            name = makeName(),
-            symbol = null,
-            description = null,
-            bill = null,
-            icon = null,
-            owner = owner,
-        )
+        val result = service.launchNewToken(makeCreateRequest(), owner)
 
         assertTrue(result.isFailure)
         assertIs<LaunchTokenError.Exists>(result.exceptionOrNull())
@@ -98,17 +78,10 @@ class CurrencyServiceTest {
 
     @Test
     fun `launchNewToken INVALID_ICON returns InvalidIcon error`() = runTest {
-        coEvery { api.launchToken(any(), any(), any(), any(), any(), any()) } returns
+        coEvery { api.launchToken(any(), any()) } returns
             launchResponse(CurrencyProto.LaunchResponse.Result.INVALID_ICON)
 
-        val result = service.launchNewToken(
-            name = makeName(),
-            symbol = null,
-            description = null,
-            bill = null,
-            icon = null,
-            owner = owner,
-        )
+        val result = service.launchNewToken(makeCreateRequest(), owner)
 
         assertTrue(result.isFailure)
         assertIs<LaunchTokenError.InvalidIcon>(result.exceptionOrNull())
@@ -117,16 +90,9 @@ class CurrencyServiceTest {
     @Test
     fun `launchNewToken exception returns Other error with cause`() = runTest {
         val exception = RuntimeException("network failure")
-        coEvery { api.launchToken(any(), any(), any(), any(), any(), any()) } throws exception
+        coEvery { api.launchToken(any(), any()) } throws exception
 
-        val result = service.launchNewToken(
-            name = makeName(),
-            symbol = null,
-            description = null,
-            bill = null,
-            icon = null,
-            owner = owner,
-        )
+        val result = service.launchNewToken(makeCreateRequest(), owner)
 
         assertTrue(result.isFailure)
         val error = result.exceptionOrNull()
@@ -248,6 +214,14 @@ class CurrencyServiceTest {
     // region helpers
 
     private fun makeName() = ModerationAttestation.Text("Test", emptyList())
+
+    private fun makeCreateRequest() = TokenCreateRequest(
+        name = makeName(),
+        symbol = null,
+        description = null,
+        bill = null,
+        icon = null,
+    )
 
     private fun makeIconRequest() = TokenUpdateRequest.Icon(
         token = mockk(relaxed = true),
