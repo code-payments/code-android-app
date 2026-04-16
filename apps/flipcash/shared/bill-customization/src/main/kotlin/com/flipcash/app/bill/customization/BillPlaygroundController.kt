@@ -29,6 +29,7 @@ interface BillPlaygroundController {
 
 data class PlaygroundState(
     val bill: Bill? = null,
+    val context: PlaygroundContext = PlaygroundContext.Standalone,
     val features: List<PlaygroundFeature> = PlaygroundFeature.entries.toList(),
     val selectedFeature: PlaygroundFeature = PlaygroundFeature.Background,
     val backgroundState: ColorState = ColorState(),
@@ -103,6 +104,7 @@ sealed interface Event {
     data class Load(
         val customizations: TokenBillCustomizations? = null,
         val amount: Fiat = 5.toFiat(),
+        val context: PlaygroundContext = PlaygroundContext.Standalone,
     ): Event
     data class SelectFeature(val feature: PlaygroundFeature): Event
     sealed interface Colors: Event {

@@ -39,8 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.core.bill.BillState
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.scanner.internal.ScannerDecorItem
 import com.flipcash.app.session.SessionState
 import com.flipcash.features.scanner.R
@@ -59,17 +57,14 @@ internal fun DecorView(
     onAction: (ScannerDecorItem) -> Unit,
 ) {
     val billPlayground = LocalBillPlaygroundController.current
-    val featureFlags = LocalFeatureFlags.current
     val playgroundState by billPlayground.state.collectAsStateWithLifecycle()
-    val currencyCreatorEnabled by featureFlags.observe(FeatureFlag.CurrencyCreator)
-        .collectAsStateWithLifecycle()
 
     val isUsingPlayground by remember(
         playgroundState.isCustomizing,
-        currencyCreatorEnabled
+        playgroundState.context,
     ) {
         derivedStateOf {
-            playgroundState.isCustomizing && !currencyCreatorEnabled
+            playgroundState.isCustomizing && playgroundState.context.renderAsOverlay
         }
     }
 

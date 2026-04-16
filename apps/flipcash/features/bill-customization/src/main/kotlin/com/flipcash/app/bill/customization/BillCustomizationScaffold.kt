@@ -41,8 +41,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bill.customization.components.BillPlayground
 import com.flipcash.app.bills.AnimatedBill
 import com.flipcash.app.core.bill.Bill
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.features.bill.playground.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
@@ -54,18 +52,14 @@ import com.getcode.ui.utils.AnimationUtils
 @Composable
 fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
     val controller = LocalBillPlaygroundController.current
-    val featureFlags = LocalFeatureFlags.current
     val playgroundState by controller.state.collectAsStateWithLifecycle()
-
-    val currencyCreatorEnabled by featureFlags.observe(FeatureFlag.CurrencyCreator)
-        .collectAsStateWithLifecycle()
 
     val isUsingPlayground by remember(
         playgroundState.isCustomizing,
-        currencyCreatorEnabled
+        playgroundState.context,
     ) {
         derivedStateOf {
-            playgroundState.isCustomizing && !currencyCreatorEnabled
+            playgroundState.isCustomizing && playgroundState.context.renderAsOverlay
         }
     }
 
@@ -79,9 +73,13 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
 
     val customizationsOptions = playgroundState.customizations
 
-    val augmentedBill by remember(playgroundState.bill, customizationsOptions) {
+    val augmentedBill by remember(
+        playgroundState.bill,
+        customizationsOptions,
+        playgroundState.context,
+    ) {
         derivedStateOf {
-            if (currencyCreatorEnabled) return@derivedStateOf null
+            if (!playgroundState.context.renderAsOverlay) return@derivedStateOf null
             val bill = playgroundState.bill ?: return@derivedStateOf null
             if (bill !is Bill.Cash) return@derivedStateOf null
             bill.copy(

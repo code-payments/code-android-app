@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.bill.customization.BillPlaygroundController
 import com.flipcash.app.bill.customization.Event
+import com.flipcash.app.bill.customization.PlaygroundContext
 import com.flipcash.app.bill.customization.PlaygroundState
 import com.flipcash.app.bill.customization.internal.features.BackgroundController
 import com.flipcash.app.bill.customization.internal.features.BlendMode
@@ -81,7 +82,12 @@ class InternalBillPlaygroundController(
     override val canCopy: Boolean
         get() = false
 
-    private fun customizeFor(token: Token, amount: Fiat, customizations: TokenBillCustomizations?) {
+    private fun customizeFor(
+        token: Token,
+        amount: Fiat,
+        customizations: TokenBillCustomizations?,
+        context: PlaygroundContext,
+    ) {
         // create amount for the bill
         val demoAmount = LocalFiat(
             usdf = amount,
@@ -101,14 +107,24 @@ class InternalBillPlaygroundController(
             data = payloadInfo.codeData.toList()
         )
 
-        _state.update { it.copy(bill = bill) }
+        _state.update { current ->
+            val features = context.availableFeatures
+            val selectedFeature = current.selectedFeature.takeIf { it in features }
+                ?: features.first()
+            current.copy(
+                bill = bill,
+                context = context,
+                features = features,
+                selectedFeature = selectedFeature,
+            )
+        }
     }
 
     override fun dispatchEvent(event: Event) {
         when (event) {
             // high level actions
             is Event.Load -> {
-                customizeFor(Token.usdf, event.amount, event.customizations)
+                customizeFor(Token.usdf, event.amount, event.customizations, event.context)
             }
             
             // selecting feature from tab row

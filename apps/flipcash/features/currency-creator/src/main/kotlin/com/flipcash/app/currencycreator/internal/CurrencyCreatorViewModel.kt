@@ -152,6 +152,8 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             val success: Boolean = false,
         ) : Event
 
+        data class CustomizationsChanged(val customizations: TokenBillCustomizations): Event
+
         data class LaunchToken(val method: PurchaseMethod) : Event
         data object Purchase : Event
         data class PurchaseWithReserves(val token: Token, val amount: Fiat) : Event
@@ -352,6 +354,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.LaunchToken>()
             .map { event ->
+                println("customizations=${stateFlow.value.customizations}")
                 val request = TokenCreateRequest(
                     name = ModerationAttestation.Text(
                         text = stateFlow.value.nameFieldState.text.toString(),
@@ -546,6 +549,10 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                             success = event.success,
                         )
                     )
+                }
+
+                is Event.CustomizationsChanged -> { state ->
+                    state.copy(customizations = event.customizations)
                 }
 
                 is Event.LaunchToken -> { state -> state }
