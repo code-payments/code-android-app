@@ -176,9 +176,20 @@ internal class TransactionService @Inject constructor(
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         fund: (suspend (SwapRequest) -> Result<Unit>)?,
     ): Result<SwapId> {
+        // For a freshly-launched stub Token (launchpadMetadata == null && address != USDF), the
+        // Solana program requires authority == buyer == swapAuthority for the atomic 11-instruction
+        // swap that initializes the currency + pool + VM. The server infers new-vs-existing from
+        // owner == swapAuthority in the Initiate request, so we must use the owner's keypair here.
+        // Otherwise the server returns RESERVE_EXISTING_CURRENCY params, and the client crashes at
+        // ExistingCurrencyBuyInstructions ("Target mint has no launchpad metadata").
+        val isFreshlyLaunchedStub =
+            of.launchpadMetadata == null && of.address != Mint.usdf
+        val swapAuthority =
+            if (isFreshlyLaunchedStub) owner.authority.keyPair else Ed25519.createKeyPair()
+
         val request = SwapRequest(
             owner = owner,
-            swapAuthority = Ed25519.createKeyPair(),
+            swapAuthority = swapAuthority,
             kind = SwapStartKind.Reserve(
                 fromMint = Mint.usdf,
                 toMint = of.address,
