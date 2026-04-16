@@ -7,6 +7,7 @@ import io.grpc.Status
 import io.grpc.StatusRuntimeException
 import io.reactivex.rxjava3.exceptions.OnErrorNotImplementedException
 import io.reactivex.rxjava3.exceptions.UndeliverableException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import timber.log.Timber
 import java.net.ConnectException
@@ -28,10 +29,12 @@ object ErrorUtils {
         UnknownHostException::class,
         TimeoutException::class,
         TimeoutCancellationException::class,
+        CancellationException::class,
         ConnectException::class,
     )
 
     fun handleError(throwable: Throwable) {
+        if (throwable is CancellationException) return
         if (isNetworkError(throwable)) return
 
         val throwableCause: Throwable =
