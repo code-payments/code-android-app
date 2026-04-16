@@ -12,11 +12,12 @@ internal val FlipcashErrorCallback = OnErrorCallback onError@{ event ->
         return@onError false
     }
 
-    // Only tag unhandled errors — handled errors go through ErrorUtils.handleError()
+    // Discard handled gRPC INTERNAL — server-side errors, not actionable from the client
+    if (!event.isUnhandled && cause is StatusException && cause.status.code == io.grpc.Status.Code.INTERNAL) {
+        return@onError false
+    }
+
     if (!event.isUnhandled) return@onError true
 
-    event.addMetadata("alert", "slack_notify", true)
-    event.addMetadata("alert", "error_type", cause.javaClass.simpleName)
-    event.addMetadata("alert", "error_family", cause.javaClass.enclosingClass?.simpleName ?: "Unknown")
     true
 }
