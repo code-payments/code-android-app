@@ -104,6 +104,7 @@
     <string name="action_nevermind">Nevermind</string>
 
     <string name="subtitle_ofUsdSuffix">of USD</string>
+    <string name="subtitle_usdSuffix">USD</string>
 
     <string name="error_title_alreadyCollected">Cash Already Collected</string>
     <string name="error_description_alreadyCollected">This cash has already been collected, or was cancelled by the sender</string>
@@ -365,7 +366,7 @@
 
     <string name="title_billCustomizer">Bill Creator</string>
     <string name="title_createYourCurrency">Create Your Currency</string>
-    <string name="subtitle_currencyCreatorInfo">Launch your own currency in %1$d easy steps</string>
+    <string name="subtitle_currencyCreatorInfo">Launch your own currency in minutes.\nReady to use right away.</string>
     <string name="title_currencyCreatorStepName">Name</string>
     <string name="subtitle_currencyCreatorStepName">Choose a unique name for your currency</string>
     <string name="title_currencyCreatorStepIcon">Icon</string>
