@@ -99,13 +99,13 @@ internal fun buildNewCurrencyBuyInstructions(
 
     // ATAs
     val createTemporaryCoreMintAta = AssociatedTokenProgram_CreateIdempotent(
-        subsidizer = authority,
+        subsidizer = serverParams.authority,
         owner = authority,
         mint = coreMintMetadata.address,
     )
 
     val createVmDepositAta = AssociatedTokenProgram_CreateIdempotent(
-        subsidizer = authority,
+        subsidizer = serverParams.authority,
         owner = depositPda.publicKey,
         mint = targetMint,
     )
@@ -204,7 +204,7 @@ internal fun buildNewCurrencyBuyInstructions(
         add(
             TokenProgram_CloseAccount(
                 account = createTemporaryCoreMintAta.address,
-                destination = authority,
+                destination = serverParams.authority,
                 owner = authority,
             ).instruction()
         )
