@@ -48,7 +48,7 @@ fun ExternalWalletOnRampHandler(
         val origin = (state as? ExternalWalletOnRampState.Transacted)?.origin
             ?: (state as? ExternalWalletOnRampState.Failed)?.origin
 
-        if (origin is AppRoute.Token.Info) {
+        if (origin is AppRoute.Token.Info || origin is AppRoute.Token.CurrencyCreator) {
             return
         }
 
@@ -114,20 +114,24 @@ fun ExternalWalletOnRampHandler(
             is ExternalWalletOnRampState.Connecting -> Unit
 
             is ExternalWalletOnRampState.Connected -> {
+                trace(
+                    tag = TAG,
+                    message = "wallet connected",
+                    type = TraceType.Process
+                )
                 if (amount != null) {
                     when (current.origin) {
-                        is AppRoute.Token.Info -> controller.createAndValidateSwapTransaction()
+                        is AppRoute.Token.Info,
+                        is AppRoute.Token.CurrencyCreator -> controller.createAndValidateSwapTransaction()
                         else -> controller.createAndValidateDepositTransaction()
                     }
                 } else {
-                    trace(
-                        tag = TAG,
-                        message = "wallet connected",
-                        type = TraceType.Process
-                    )
                     when (current.origin) {
                         is AppRoute.Token.Info -> {
                             // Swap already navigated via pendingNavigation at Started
+                        }
+                        is AppRoute.Token.CurrencyCreator -> {
+                            // Amount is always pre-set from CurrencyCreator; no-op for safety
                         }
                         else -> {
                             navigator.push(AppRoute.Token.OnRamp(controller.tokenToPurchase.value!!.address))
@@ -203,6 +207,11 @@ fun ExternalWalletOnRampHandler(
 
                 if (current.origin is AppRoute.Token.Info) {
                     // TxProcessingScreen observes Transacted, calls reset() and dispatches OnSwapIdChanged
+                    return@LaunchedEffect
+                }
+
+                if (current.origin is AppRoute.Token.CurrencyCreator) {
+                    // CurrencyCreatorViewModel observes Transacted, handles reset and completion
                     return@LaunchedEffect
                 }
 

@@ -266,7 +266,7 @@ class ExternalWalletOnRampController @Inject constructor(
                     }
             }
 
-            if (state.origin is AppRoute.Token.Info) {
+            if (state.origin is AppRoute.Token.Info || state.origin is AppRoute.Token.CurrencyCreator) {
                 initiateBuy(state)
                     .fold(
                         onSuccess = {
