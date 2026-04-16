@@ -2,6 +2,7 @@ package com.flipcash.services.models
 
 import com.getcode.crypt.Sha256Hash
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
 import kotlin.time.Instant
@@ -17,6 +18,7 @@ sealed interface ModerationResult {
      * The signature is computed over this message without the signature field set.
      */
     data class Attestation(
+        val rawValue: List<Byte>,
         /** SHA-256 hash of the moderated content to be allowed */
         val hash: Sha256Hash,
         /** Timestamp of the moderation */
@@ -27,7 +29,18 @@ sealed interface ModerationResult {
         val attestor: PublicKey,
         /** Attestor signature over this message */
         val signature: Signature,
-    )
+    ) {
+        companion object {
+            val Empty = Attestation(
+                rawValue = emptyList(),
+                hash = Sha256Hash.ZERO_HASH,
+                timestamp = Instant.DISTANT_PAST,
+                userId = emptyList(),
+                attestor = PublicKey.ZERO,
+                signature = Signature.zero,
+            )
+        }
+    }
 
     enum class FlaggedCategory {
         NONE,          // 0

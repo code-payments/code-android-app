@@ -4,29 +4,33 @@ import android.net.Uri
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.core.text.trimmedLength
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
-import com.flipcash.app.core.tokens.CurrencyCreatorStep
-import com.flipcash.app.currencycreator.internal.components.CurrencyCreatorTopBarController
-import com.flipcash.app.userflags.UserFlagsCoordinator
-import com.flipcash.libs.coroutines.DispatcherProvider
-import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.toFiat
-import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.extensions.flatMapResult
+import com.flipcash.app.core.extensions.mapResult
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.core.tokens.CurrencyCreatorStep
+import com.flipcash.app.currencycreator.internal.components.CurrencyCreatorTopBarController
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.currencycreator.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ModerationController
 import com.flipcash.services.models.ImageModerationError
 import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.TextModerationError
+import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.TokenCreateRequest
+import com.getcode.opencode.model.financial.toFiat
+import com.getcode.opencode.model.moderation.ModerationAttestation
+import com.getcode.opencode.model.ui.TokenBillCustomizations
+import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
@@ -44,14 +48,15 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 internal data class ModerationAttestations(
-    val name: ModerationResult.Attestation? = null,
-    val icon: ModerationResult.Attestation? = null,
-    val description: ModerationResult.Attestation? = null,
+    val name: ModerationResult.Attestation = ModerationResult.Attestation.Empty,
+    val icon: ModerationResult.Attestation = ModerationResult.Attestation.Empty,
+    val description: ModerationResult.Attestation = ModerationResult.Attestation.Empty,
 )
 
 @HiltViewModel
 internal class CurrencyCreatorViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
+    userManager: UserManager,
     userFlags: UserFlagsCoordinator,
     moderationController: ModerationController,
     currencyController: CurrencyController,
@@ -98,13 +103,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 return (index + 1).toFloat() / PROGRESS_STEPS.size
             }
 
-        val hasAllAttestations: Boolean
-            get() {
-                return attestations.name != null
-                        && attestations.icon != null
-                        && attestations.description != null
-            }
-
         private companion object {
             private const val MAX_DESCRIPTION = 500
 
@@ -140,11 +138,10 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             val success: Boolean = false,
         ) : Event
 
+        data object LaunchToken: Event
         data object Purchase: Event
-        data object PurchaseWithReserves: Event
+        data class PurchaseWithReserves(val mint: Mint, val amount: Fiat): Event
         data object PurchaseWithGooglePay: Event
-        data object ConnectPhantomWallet : Event
-        data object PhantomConnected: Event
     }
 
     init {
@@ -306,9 +303,47 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.Purchase>()
-            .map { PurchaseMethodMetadata(purchaseAmount = stateFlow.value.purchaseAmount) }
-            .onEach { metadata -> purchaseMethodController.present(metadata) }
+            .filterIsInstance<Event.LaunchToken>()
+            .map {
+                TokenCreateRequest(
+                    name = ModerationAttestation.Text(
+                        text = stateFlow.value.nameFieldState.text.toString(),
+                        attestation = stateFlow.value.attestations.name.rawValue,
+                    ),
+                    description = ModerationAttestation.Text(
+                        text = stateFlow.value.descriptionFieldState.text.toString(),
+                        attestation = stateFlow.value.attestations.description.rawValue
+                    ),
+                    icon = ModerationAttestation.Image(
+                        imageBytes = stateFlow.value.icon.dataOrNull?.let {
+                            contentReader.readBytes(it)
+                        } ?: ByteArray(32),
+                        attestation = stateFlow.value.attestations.icon.rawValue,
+                    ),
+                    bill = stateFlow.value.customizations,
+                )
+            }
+            .mapNotNull { request ->
+                val owner = userManager.accountCluster?.authority?.keyPair ?: return@mapNotNull null
+                request to owner
+            }
+            .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
+            .map { (request, owner) -> currencyController.launchToken(request, owner) }
+            .mapResult { mint ->
+                PurchaseMethodMetadata(
+                    purchaseAmount = stateFlow.value.purchaseAmount,
+                    mint = mint,
+                )
+            }.onResult(
+                onSuccess = { metadata -> purchaseMethodController.present(metadata) },
+                onError = {
+                    dispatchEvent(Event.UpdateProcessingState())
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_launchTokenFailed),
+                        message = resources.getString(R.string.error_description_launchTokenFailed),
+                    )
+                }
+            )
             .launchIn(viewModelScope)
 
         purchaseMethodController.selections
@@ -321,7 +356,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
                     }
                     PurchaseMethod.PhantomWallet -> {
-                        dispatchEvent(Event.ConnectPhantomWallet)
+
                     }
                 }
             }
@@ -377,6 +412,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     )
                 }
 
+                is Event.LaunchToken -> { state -> state }
                 is Event.Purchase -> { state -> state }
                 is Event.CheckName -> { state -> state }
                 is Event.CheckDescription -> { state -> state }
@@ -396,8 +432,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
                 is Event.PurchaseWithReserves -> { state -> state }
                 is Event.PurchaseWithGooglePay -> { state -> state }
-                is Event.ConnectPhantomWallet -> { state -> state }
-                is Event.PhantomConnected -> { state -> state }
             }
         }
     }

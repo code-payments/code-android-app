@@ -592,4 +592,7 @@
     <string name="error_title_descriptionNotAllowed">This Description is Not Allowed</string>
     <string name="error_description_descriptionNotAllowed">Try a different currency description</string>
 
+    <string name="error_title_launchTokenFailed">Something Went Wrong</string>
+    <string name="error_description_launchTokenFailed">Please try again</string>
+
 </resources>

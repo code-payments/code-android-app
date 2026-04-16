@@ -12,6 +12,7 @@ import com.getcode.opencode.internal.network.extensions.asProto
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.TokenCreateRequest
 import com.getcode.opencode.model.financial.TokenUpdateRequest
 import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.ui.TokenBillCustomizations
@@ -102,34 +103,30 @@ internal class CurrencyApi @Inject constructor(
     }
 
     suspend fun launchToken(
-        name: ModerationAttestation.Text,
-        desiredSymbol: ModerationAttestation.Text?,
-        desiredDescription: ModerationAttestation.Text?,
-        bill: TokenBillCustomizations?,
-        desiredIcon: ModerationAttestation.Image?,
+        request: TokenCreateRequest,
         owner: Ed25519.KeyPair
     ): CurrencyService.LaunchResponse {
         val request = CurrencyService.LaunchRequest.newBuilder()
-            .setName(name.text.trim())
-            .setNameModerationAttestation(name.asProto())
+            .setName(request.name.text.trim())
+            .setNameModerationAttestation(request.name.asProto())
             .apply apply@{
-                if (desiredSymbol != null) {
-                    setSymbol(desiredSymbol.text)
-                    setSymbolModerationAttestation(desiredSymbol.asProto())
+                if (request.symbol != null) {
+                    setSymbol(request.symbol.text)
+                    setSymbolModerationAttestation(request.symbol.asProto())
                 }
 
-                if (desiredDescription != null) {
-                    setDescription(desiredDescription.text)
-                    setDescriptionModerationAttestation(desiredDescription.asProto())
+                if (request.description != null) {
+                    setDescription(request.description.text)
+                    setDescriptionModerationAttestation(request.description.asProto())
                 }
 
-                if (desiredIcon != null) {
-                    setIcon(desiredIcon.imageBytes.toByteString())
-                    setIconModerationAttestation(desiredIcon.asProto())
+                if (request.icon != null) {
+                    setIcon(request.icon.imageBytes.toByteString())
+                    setIconModerationAttestation(request.icon.asProto())
                 }
 
-                if (bill != null) {
-                    setBillCustomization(bill.asProto())
+                if (request.bill != null) {
+                    setBillCustomization(request.bill.asProto())
                 }
             }
             .setOwner(owner.asSolanaAccountId())

@@ -9,6 +9,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.HistoricalMintData
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenCreateRequest
 import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Mint
@@ -36,11 +37,7 @@ interface CurrencyRepository {
 
     suspend fun checkTokenAvailability(name: String): Result<Boolean>
     suspend fun launchToken(
-        name: ModerationAttestation.Text,
-        symbol: ModerationAttestation.Text? = null,
-        description: ModerationAttestation.Text? = null,
-        bill: TokenBillCustomizations?,
-        icon: ModerationAttestation.Image? = null,
+        request: TokenCreateRequest,
         owner: Ed25519.KeyPair
     ): Result<Mint>
 }

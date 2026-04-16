@@ -24,6 +24,7 @@ import com.getcode.opencode.model.core.errors.UpdateMetadataError
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.HistoricalMintData
 import com.getcode.opencode.model.financial.MintMetadata
+import com.getcode.opencode.model.financial.TokenCreateRequest
 import com.getcode.opencode.model.financial.TokenUpdateRequest
 import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.ui.TokenBillCustomizations
@@ -135,15 +136,11 @@ internal class CurrencyService @Inject constructor(
     }
 
     suspend fun launchNewToken(
-        name: ModerationAttestation.Text,
-        symbol: ModerationAttestation.Text?,
-        description: ModerationAttestation.Text?,
-        bill: TokenBillCustomizations?,
-        icon: ModerationAttestation.Image?,
+        request: TokenCreateRequest,
         owner: Ed25519.KeyPair
     ): Result<Mint> {
         return runCatching {
-            api.launchToken(name, symbol, description, bill, icon, owner)
+            api.launchToken(request, owner)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {

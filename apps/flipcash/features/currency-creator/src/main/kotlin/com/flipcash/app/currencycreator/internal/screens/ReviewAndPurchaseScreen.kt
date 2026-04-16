@@ -1,12 +1,7 @@
 package com.flipcash.app.currencycreator.internal.screens
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -61,9 +56,11 @@ internal fun ReviewAndPurchaseContent(
                     R.string.action_buyFirstToCreate,
                     state.purchaseAmount.formatted(rule = Fiat.FormattingRule.Truncated)
                 ),
-                enabled = state.hasName,
+                enabled = state.hasName && state.processingState.isIdle,
+                isLoading = state.processingState.loading,
+                isSuccess = state.processingState.success,
                 onClick = {
-                    dispatch(CurrencyCreatorViewModel.Event.Purchase)
+                    dispatch(CurrencyCreatorViewModel.Event.LaunchToken)
                 },
             )
         }
