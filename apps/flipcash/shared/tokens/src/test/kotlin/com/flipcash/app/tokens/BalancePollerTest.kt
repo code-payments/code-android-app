@@ -4,13 +4,12 @@ import com.flipcash.app.core.MainCoroutineRule
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
-import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
-import io.mockk.just
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -48,7 +47,7 @@ class BalancePollerTest {
         val fake = CoordinatorFake(state)
         val coordinator = mockk<TokenCoordinator>()
         every { coordinator.balanceForToken(any<Mint>()) } returns state.map { it }
-        coEvery { coordinator.updateTokenAccount(any()) } answers {
+        coEvery { coordinator.updateTokenAccount(any<Mint>()) } answers {
             fake.updateCount += 1
         }
         return coordinator to fake
@@ -59,7 +58,7 @@ class BalancePollerTest {
         val (coordinator, fake) = fakeCoordinator(initial = Fiat.Zero)
         val poller = BalancePoller(coordinator)
 
-        val deferred = kotlinx.coroutines.async {
+        val deferred = async {
             poller.awaitBalanceChange(
                 mint = mint,
                 maxAttempts = 5,
@@ -90,21 +89,21 @@ class BalancePollerTest {
         val maxAttempts = 3
         val interval = 10.seconds
 
-        val startTime = currentTime
+        val startTime = testScheduler.currentTime
         val result = poller.awaitBalanceChange(
             mint = mint,
             maxAttempts = maxAttempts,
             interval = interval,
         )
-        val elapsed = currentTime - startTime
+        val elapsed = testScheduler.currentTime - startTime
 
         assertTrue(result.isFailure)
         val error = result.exceptionOrNull()
         assertTrue(error is BalancePollError.Timeout)
-        assertEquals(maxAttempts, (error as BalancePollError.Timeout).attempts)
+        assertEquals(maxAttempts, error.attempts)
         assertEquals(maxAttempts, fake.updateCount)
-        // Poller delays between attempts (maxAttempts - 1) times before giving up.
-        assertEquals((maxAttempts - 1) * interval.inWholeMilliseconds, elapsed)
+        // Poller delays after each failed attempt before recursing; the guard fires at attempt == maxAttempts.
+        assertEquals(maxAttempts * interval.inWholeMilliseconds, elapsed)
 
         coVerify(exactly = maxAttempts) { coordinator.updateTokenAccount(mint) }
     }
@@ -115,11 +114,11 @@ class BalancePollerTest {
         val (coordinator, fake) = fakeCoordinator(initial = baseline)
         val poller = BalancePoller(coordinator)
 
-        val deferred = kotlinx.coroutines.async {
+        val deferred = async {
             poller.awaitBalanceChange(
                 mint = mint,
                 baseline = baseline,
-                predicate = { base, current -> current.amount > base.amount },
+                predicate = { base, current -> current.decimalValue > base.decimalValue },
                 maxAttempts = 5,
                 interval = 10.seconds,
             )
