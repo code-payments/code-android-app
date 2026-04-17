@@ -7,12 +7,13 @@ import com.flipcash.app.bill.customization.BillPlaygroundController
 import com.flipcash.app.bill.customization.Event
 import com.flipcash.app.bill.customization.PlaygroundContext
 import com.flipcash.app.bill.customization.PlaygroundState
+import com.flipcash.app.bill.customization.internal.defaults.PresetTextures
 import com.flipcash.app.bill.customization.internal.features.BackgroundController
-import com.flipcash.app.bill.customization.internal.features.BlendMode
+import com.flipcash.app.bill.customization.internal.features.ColorState
+import com.flipcash.app.bill.customization.internal.features.GraphicState
 import com.flipcash.app.bill.customization.internal.features.TextureController
 import com.flipcash.app.bill.customization.models.PlaygroundFeature
 import com.flipcash.app.core.bill.Bill
-import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
@@ -21,6 +22,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.ui.BillBackground
+import com.getcode.opencode.model.ui.BlendMode
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.opencode.utils.nonce
 import com.getcode.ui.utils.Hsv
@@ -48,6 +50,7 @@ import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import com.flipcash.app.bill.customization.Event.Colors as ColorEvent
 import com.flipcash.app.bill.customization.Event.Graphics as GraphicsEvent
+import com.flipcash.app.bill.customization.internal.features.BlendMode as UiBlendMode
 
 @OptIn(ExperimentalStdlibApi::class)
 class InternalBillPlaygroundController(
@@ -56,10 +59,7 @@ class InternalBillPlaygroundController(
 ) : BillPlaygroundController, ViewModel() {
 
     private val backgroundController = BackgroundController { pushUndoSnapshot() }
-    private val textureController = TextureController { pushUndoSnapshot() }
-
-    private val texturesEnabled: StateFlow<Boolean> =
-        featureFlags.observe(FeatureFlag.BillTextures)
+    private val textureController = TextureController(featureFlags, viewModelScope) { pushUndoSnapshot() }
 
     private val _state: MutableStateFlow<PlaygroundState> = MutableStateFlow(PlaygroundState())
     override val state: StateFlow<PlaygroundState> = _state.asStateFlow()
@@ -71,12 +71,11 @@ class InternalBillPlaygroundController(
             _state,
             backgroundController.state,
             textureController.state,
-            texturesEnabled,
-        ) { currentPlayground, currentBackground, currentTexture, texturesOn ->
+        ) { currentPlayground, currentBackground, currentTexture ->
             val features = currentPlayground.context.availableFeatures
                 .filter { feature ->
                     when (feature) {
-                        PlaygroundFeature.Textures -> texturesOn
+                        PlaygroundFeature.Textures -> currentTexture.enabled
                         else -> true
                     }
                 }
@@ -84,6 +83,7 @@ class InternalBillPlaygroundController(
                 .takeIf { it in features }
                 ?: features.firstOrNull()
                 ?: currentPlayground.selectedFeature
+
             currentPlayground.copy(
                 backgroundState = currentBackground,
                 textureState = currentTexture,
@@ -155,6 +155,32 @@ class InternalBillPlaygroundController(
         when (event) {
             // high level actions
             is Event.Load -> {
+                // Reset to fresh random state
+                backgroundController.restore(ColorState())
+                textureController.restore(
+                    GraphicState(
+                        options = PresetTextures,
+                        selectedOption = 0
+                    )
+                )
+
+                // Load existing customizations if provided
+                event.customizations?.background?.let { backgroundController.load(it) }
+                event.customizations?.texture?.let { texture ->
+                    textureController.apply(texture.index - 1) // 1-based → 0-based
+                    val mode = when (texture.blendMode) {
+                        BlendMode.Normal -> UiBlendMode.Normal
+                        BlendMode.Lighten -> UiBlendMode.Lighten
+                        BlendMode.Screen -> UiBlendMode.Screen
+                        BlendMode.ColorDodge -> UiBlendMode.ColorDodge
+                        BlendMode.PlusLighter -> UiBlendMode.PlusLighter
+                    }
+                    textureController.commitBlend(mode, texture.strength)
+                }
+
+                // Clear undo — fresh session (also clears entries pushed by load/apply/commitBlend)
+                undoStack.clear()
+
                 customizeFor(Token.usdf, event.amount, event.customizations, event.context)
             }
 
@@ -288,7 +314,7 @@ class InternalBillPlaygroundController(
         }
     }
 
-    private fun commitBlend(blendMode: BlendMode, strength: Float?) {
+    private fun commitBlend(blendMode: UiBlendMode, strength: Float?) {
         val feature = _state.value.selectedFeature
         if (feature !is PlaygroundFeature.Graphic) return
 
@@ -348,7 +374,7 @@ class InternalBillPlaygroundController(
                 val strength = tex["strength"]?.jsonPrimitive?.float ?: return@let
 
                 val blendMode =
-                    BlendMode.entries.firstOrNull { it.name == blendModeName } ?: return@let
+                    UiBlendMode.entries.firstOrNull { it.name == blendModeName } ?: return@let
                 textureController.apply(index - 1)
                 textureController.commitBlend(blendMode, strength)
             }
