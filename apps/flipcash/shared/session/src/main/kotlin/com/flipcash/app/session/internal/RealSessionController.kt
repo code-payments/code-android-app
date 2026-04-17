@@ -258,6 +258,7 @@ class RealSessionController @Inject constructor(
         if (userManager.authState.canAccessAuthenticatedApis) {
             scope.launch {
                 accountController.getUserFlags()
+                    .onSuccess { userManager.set(it) }
             }
         }
     }
