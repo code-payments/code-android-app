@@ -2,6 +2,7 @@ package com.flipcash.app.currencycreator.internal.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -74,8 +75,9 @@ internal fun ProcessingContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = CodeTheme.dimens.inset)
-                        .padding(bottom = CodeTheme.dimens.grid.x2),
-                    text = stringResource(R.string.action_next),
+                        .padding(bottom = CodeTheme.dimens.grid.x2)
+                        .navigationBarsPadding(),
+                    text = stringResource(R.string.action_receiveNewCurrency, state.nameFieldState.text.toString()),
                     buttonState = ButtonState.Filled,
                     onClick = {
                         flowNavigator.exitWithResult(CurrencyCreatorResult.Success)
@@ -86,7 +88,8 @@ internal fun ProcessingContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = CodeTheme.dimens.inset)
-                        .padding(bottom = CodeTheme.dimens.grid.x2),
+                        .padding(bottom = CodeTheme.dimens.grid.x2)
+                        .navigationBarsPadding(),
                     text = stringResource(R.string.action_ok),
                     buttonState = ButtonState.Filled,
                     onClick = {

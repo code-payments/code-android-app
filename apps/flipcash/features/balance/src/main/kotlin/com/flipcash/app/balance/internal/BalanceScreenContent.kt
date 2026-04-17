@@ -1,5 +1,6 @@
 package com.flipcash.app.balance.internal
 
+import androidx.compose.animation.animateBounds
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

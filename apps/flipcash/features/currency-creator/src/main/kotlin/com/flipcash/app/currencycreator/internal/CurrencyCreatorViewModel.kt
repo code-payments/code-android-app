@@ -10,6 +10,7 @@ import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.currencycreator.internal.components.CurrencyCreatorTopBarController
 import com.flipcash.app.onramp.ExternalWalletOnRampController
 import com.flipcash.app.onramp.ExternalWalletOnRampState
+import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -20,9 +21,11 @@ import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.extensions.flatMapResult
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.payments.PaymentAction
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.currencycreator.R
 import com.flipcash.services.controllers.ModerationController
 import com.flipcash.services.models.ImageModerationError
@@ -34,13 +37,15 @@ import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
+import com.getcode.opencode.model.core.errors.GetMintsError
+import com.getcode.opencode.model.core.errors.LaunchTokenError
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenCreateRequest
 import com.getcode.opencode.model.financial.fromLaunch
 import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.transactions.SwapFundingSource
-import com.getcode.opencode.model.transactions.SwapState
+import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
@@ -74,6 +79,8 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     currencyController: CurrencyController,
     transactionController: TransactionController,
     externalWalletController: ExternalWalletOnRampController,
+    tokenCoordinator: TokenCoordinator,
+    balancePoller: BalancePoller,
     resources: ResourceHelper,
     val contentReader: ContentReader,
     val purchaseMethodController: PurchaseMethodController,
@@ -92,6 +99,8 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         val icon: Loadable<Uri> = Loadable.Loading(),
         val customizations: TokenBillCustomizations? = null,
         val bill: Bill? = null,
+        val createdMint: Mint? = null,
+        val launchedToken: Token? = null,
         val purchaseAmount: Fiat = 20.toFiat(),
         val processingState: LoadingSuccessState = LoadingSuccessState(),
         val attestations: ModerationAttestations = ModerationAttestations(),
@@ -155,12 +164,14 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         data class CustomizationsChanged(val customizations: TokenBillCustomizations): Event
 
         data class LaunchToken(val method: PurchaseMethod) : Event
+        data class OnTokenMinted(val mint: Mint): Event
         data object Purchase : Event
         data class PurchaseWithReserves(val token: Token, val amount: Fiat) : Event
         data class PurchaseWithPhantom(val token: Token, val amount: Fiat) : Event
         data class PurchaseWithGooglePay(val token: Token, val amount: Fiat) : Event
 
-        data class PurchaseSubmitted(val swapId: SwapId) : Event
+        data class PurchaseSubmitted(val swapId: SwapId, val mint: Mint) : Event
+        data class PurchaseCompleted(val token: Token): Event
     }
 
     private data class LaunchedContext(
@@ -338,8 +349,8 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .onEach {
                 val metadata = PurchaseMethodMetadata(
                     mint = null,
-                    token = null,
                     purchaseAmount = stateFlow.value.purchaseAmount,
+                    paymentAction = PaymentAction.Pay,
                 )
                 purchaseMethodController.present(metadata)
             }
@@ -381,7 +392,21 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
             .map { (request, method, accountCluster) ->
                 currencyController.launchToken(request, accountCluster.authority.keyPair)
+                    .recoverCatching { cause ->
+                        // The server returns Exists when the mint address is already
+                        // registered. If we minted in a prior attempt this session
+                        // but the subsequent purchase failed (e.g. transient OCP
+                        // error), the mint exists on-chain yet has no funded token
+                        // account. Recover the mint so the purchase step can retry.
+                        if (cause !is LaunchTokenError.Exists) throw cause
+                        val mint = stateFlow.value.createdMint ?: throw cause
+                        val notFound = tokenCoordinator.getTokenMetadata(mint)
+                            .exceptionOrNull() is GetMintsError.NotFound
+                        if (!notFound) throw cause
+                        mint
+                    }
                     .map { mint ->
+                        dispatchEvent(Event.OnTokenMinted(mint))
                         val token = MintMetadata.fromLaunch(
                             mint = mint,
                             request = request,
@@ -441,11 +466,11 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     of = token,
                     source = SwapFundingSource.SubmitIntent(),
                     fund = null,
-                )
+                ).map { swapId -> swapId to token.address }
             }
             .onResult(
-                onSuccess = {
-                    dispatchEvent(Event.PurchaseSubmitted(it))
+                onSuccess = { (swapId, mint) ->
+                    dispatchEvent(Event.PurchaseSubmitted(swapId, mint))
                 },
                 onError = {
                     dispatchEvent(Event.UpdateProcessingState())
@@ -460,10 +485,14 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         externalWalletController.state
             .filterIsInstance<ExternalWalletOnRampState.Transacted>()
             .filter { it.origin is AppRoute.Token.CurrencyCreator }
-            .mapNotNull { it.swapId }
-            .onEach {
+            .mapNotNull { state ->
+                val swapId = state.swapId ?: return@mapNotNull null
+                val mint = state.token?.address ?: return@mapNotNull null
+                swapId to mint
+            }
+            .onEach { (swapId, mint) ->
                 externalWalletController.reset()
-                dispatchEvent(Event.PurchaseSubmitted(it))
+                dispatchEvent(Event.PurchaseSubmitted(swapId, mint))
             }
             .launchIn(viewModelScope)
 
@@ -475,25 +504,21 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.PurchaseSubmitted>()
-            .map { it.swapId }
-            .mapNotNull { swapId ->
-                val owner = userManager.accountCluster ?: return@mapNotNull null
-                swapId to owner
-            }
-            .map { (swapId, owner) ->
+            .map { event ->
                 // currency creation is at *best* 2 mins
                 // safe buffer is 4-5 minutes
                 // instead of polling 300 times (every second)
                 // we'll poll every 10 seconds (30 times)
-                transactionController.pollSwapForState(
-                    swapId = swapId,
-                    owner = owner,
-                    targetState = SwapState.FINALIZED,
+                balancePoller.awaitBalanceChange(
+                    mint = event.mint,
                     maxAttempts = 30,
                     interval = 10.seconds,
-                )
+                ).map { event.mint }
+            }.flatMapResult { mint ->
+                tokenCoordinator.getTokenMetadata(mint)
             }.onResult(
-                onSuccess = {
+                onSuccess = { result ->
+                    dispatchEvent(Event.PurchaseCompleted(result.token))
                     dispatchEvent(Event.UpdateProcessingState(success = true))
                 },
                 onError = {
@@ -556,6 +581,9 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 }
 
                 is Event.LaunchToken -> { state -> state }
+
+                is Event.OnTokenMinted -> { state -> state.copy(createdMint = event.mint) }
+
                 is Event.Purchase -> { state -> state }
                 is Event.CheckName -> { state -> state }
                 is Event.CheckDescription -> { state -> state }
@@ -579,6 +607,9 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 is Event.PurchaseWithPhantom -> { state -> state }
                 is Event.PurchaseWithGooglePay -> { state -> state }
                 is Event.PurchaseSubmitted -> { state -> state }
+                is Event.PurchaseCompleted -> { state ->
+                    state.copy(launchedToken = event.token)
+                }
             }
         }
     }

@@ -12,4 +12,4 @@ sealed class PlaygroundFeature(val labelRes: Int) {
     companion object {
         val entries = listOf(Background, Textures)
     }
-}''
+}

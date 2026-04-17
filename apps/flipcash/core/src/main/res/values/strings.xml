@@ -599,4 +599,5 @@
     <string name="error_title_buyNewCurrencyFailed">Purchase failed</string>
     <string name="error_description_buyNewCurrencyFailed">We couldn\'t complete your initial purchase. Your currency is on hold for the next 30 minutes.</string>
 
+    <string name="action_receiveNewCurrency">Receive My %1$s</string>
 </resources>

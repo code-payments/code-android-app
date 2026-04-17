@@ -2,6 +2,7 @@ package com.flipcash.app.currencycreator
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +25,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.currencycreator.internal.screens.BillCustomizationContent
@@ -44,6 +46,7 @@ import com.flipcash.app.currencycreator.internal.screens.ProcessingContent
 import com.flipcash.app.currencycreator.internal.screens.ProcessingScreen
 import com.flipcash.app.currencycreator.internal.screens.ReviewAndPurchaseContent
 import com.flipcash.app.currencycreator.internal.screens.ReviewAndPurchaseScreen
+import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.core.R
 import com.getcode.navigation.annotatedEntry
@@ -55,6 +58,7 @@ import com.getcode.navigation.flow.PreviewFlowNavigator
 import com.getcode.navigation.flow.deliverFlowResult
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.unboundedClickable
 
@@ -72,6 +76,8 @@ fun CurrencyCreatorFlowScreen(
     val viewModel = hiltViewModel<CurrencyCreatorViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
+    val session = LocalSessionController.current
+
     CompositionLocalProvider(LocalCurrencyCreatorTopBar provides topBarController) {
         Column(modifier = Modifier.fillMaxSize()) {
             CurrencyCreatorTopBar(
@@ -84,16 +90,21 @@ fun CurrencyCreatorFlowScreen(
                             } else if (state.processingState.error) {
                                 stringResource(R.string.title_failed)
                             } else {
-                                stringResource(R.string.title_creatingCurrency, state.nameFieldState.text.toString())
+                                stringResource(
+                                    R.string.title_creatingCurrency,
+                                    state.nameFieldState.text.toString()
+                                )
                             }
 
                             Text(
+                                modifier = Modifier.fillMaxWidth(),
                                 text = text,
                                 style = CodeTheme.typography.textLarge,
                                 color = CodeTheme.colors.textMain,
                             )
                         }
                     }
+
                     else -> null
                 },
                 endContent = when (state.currentStep) {
@@ -125,11 +136,26 @@ fun CurrencyCreatorFlowScreen(
                         FlowExitReason.Canceled,
                         FlowExitReason.BackedOutOfRoot -> CurrencyCreatorResult.Canceled
                     }
+
                     outerNavigator.deliverFlowResult(
                         route = route,
                         value = NavResultOrCanceled.ReturnValue(result),
                     )
-                    outerNavigator.pop()
+
+                    if (result is CurrencyCreatorResult.Success) {
+                        val token = state.launchedToken
+                        if (token != null) {
+                            val bill = Bill.Cash(
+                                token = token,
+                                amount = LocalFiat(usdf = state.purchaseAmount),
+                                didReceive = true,
+                            )
+                            outerNavigator.hide()
+                            session?.showBill(bill)
+                        }
+                    } else {
+                        outerNavigator.pop()
+                    }
                 },
                 entryProvider = currencyCreatorEntryProvider(),
             )
@@ -163,7 +189,11 @@ private fun SyncTopBar(step: CurrencyCreatorStep) {
 
     LaunchedEffect(step) {
         viewModel.dispatchEvent(CurrencyCreatorViewModel.Event.OnStepChanged(step))
-        topBar.onBack = { flowNavigator.back() }
+        if (step is CurrencyCreatorStep.Processing) {
+            topBar.onBack = null
+        } else {
+            topBar.onBack = { flowNavigator.back() }
+        }
         topBar.onEndAction = {
             val bill = billPlaygroundController.state.value.customizedBill
             viewModel.dispatchEvent(CurrencyCreatorViewModel.Event.OnBillConfirmed(bill))

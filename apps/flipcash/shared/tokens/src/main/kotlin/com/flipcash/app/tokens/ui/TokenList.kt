@@ -9,7 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -30,6 +30,7 @@ import com.getcode.ui.utils.sheetResignmentBehavior
 fun TokenList(
     tokens: List<TokenWithLocalizedBalance>?,
     modifier: Modifier = Modifier,
+    itemModifier: Modifier = Modifier,
     showFlags: Boolean = false,
     selectedToken: Mint? = null,
     showSelections: Boolean = false,
@@ -75,14 +76,15 @@ fun TokenList(
                 TokenBalanceRow(
                     modifier = Modifier
                         .fillParentMaxWidth()
-                        .padding(horizontal = CodeTheme.dimens.inset),
+                        .padding(horizontal = CodeTheme.dimens.inset)
+                        .then(itemModifier),
                     tokenWithBalance = item,
                     showFlag = showFlags,
                     showLogo = !item.isReserves,
                     isSelected = (selectedToken == item.token.address).takeIf { showSelections },
                 ) { onTokenSelected(item.token) }
 
-                Divider(color = CodeTheme.colors.dividerVariant)
+                HorizontalDivider(color = CodeTheme.colors.dividerVariant)
             }
 
             reserves?.let {
@@ -92,7 +94,7 @@ fun TokenList(
                 ) {
                     item {
                         it(Mint.usdf, cashReserves)
-                        Divider(
+                        HorizontalDivider(
                             modifier = Modifier.padding(bottom = CodeTheme.dimens.inset),
                             color = CodeTheme.colors.dividerVariant
                         )

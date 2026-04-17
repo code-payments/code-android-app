@@ -61,28 +61,25 @@ internal class SwapPoller @Inject constructor(
             throw SwapError.Other(cause = e)
         }
 
-        return when {
-            metadata.state == targetState -> {
+        return when (metadata.state) {
+            targetState -> {
                 // Reached desired state
                 metadata
             }
-
-            metadata.state in listOf(SwapState.FAILED, SwapState.CANCELLED) -> {
+            in listOf(SwapState.FAILED, SwapState.CANCELLED) -> {
                 trace(
                     type = TraceType.Error,
                     message = "Swap reached terminal state: ${metadata.state}, Swap ID: ${swapId.publicKey.base58()}"
                 )
                 throw SwapError.Other()
             }
-
-            metadata.state == SwapState.UNKNOWN -> {
+            SwapState.UNKNOWN -> {
                 trace(
                     type = TraceType.Error,
                     message = "Swap in unknown state, Swap ID: ${swapId.publicKey.base58()}"
                 )
                 throw SwapError.Other()
             }
-
             else -> {
                 // Still in progress, poll again
                 trace(

@@ -66,9 +66,11 @@ internal fun CurrencyCreatorTopBar(
         isInModal = true,
         title = { mainContent?.invoke() ?: defaultMainContent() },
         leftIcon = {
-            AppBarDefaults.UpNavigation {
-                keyboard.hideIfVisible {
-                    controller.onBack()
+            controller.onBack?.let { onBack ->
+                AppBarDefaults.UpNavigation {
+                    keyboard.hideIfVisible {
+                        onBack()
+                    }
                 }
             }
         },
