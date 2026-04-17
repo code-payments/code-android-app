@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.RenderedBill
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
@@ -63,7 +66,6 @@ internal fun ReviewAndPurchaseContent(
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .padding(
-                        top = CodeTheme.dimens.grid.x6,
                         bottom = CodeTheme.dimens.grid.x3
                     ),
                 text = stringResource(
@@ -90,19 +92,35 @@ internal fun ReviewAndPurchaseContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x5),
         ) {
-            TokenIconWithName(
-                tokenName = state.nameFieldState.text.toString(),
-                tokenImage = state.icon.dataOrNull,
-                imageSize = CodeTheme.dimens.staticGrid.x6,
-                textStyle = CodeTheme.typography.displaySmall,
-                spacing = CodeTheme.dimens.grid.x2,
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.grid.x2),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            ) {
+                TokenIconWithName(
+                    tokenName = state.nameFieldState.text.toString(),
+                    tokenImage = state.icon.dataOrNull,
+                    imageSize = CodeTheme.dimens.staticGrid.x6,
+                    textStyle = CodeTheme.typography.displaySmall,
+                    spacing = CodeTheme.dimens.grid.x2,
+                )
+
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = state.descriptionFieldState.text.toString(),
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            }
 
             state.bill?.let { bill ->
                 RenderedBill(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(top = CodeTheme.dimens.grid.x3)
                         .fillMaxWidth()
                         .sharedBoundsTransition(
                             transition = SharedTransition.CurrencyBill
