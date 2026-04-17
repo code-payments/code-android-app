@@ -376,7 +376,7 @@
     <string name="title_currencyCreatorStepDesign">Cash Design</string>
     <string name="subtitle_currencyCreatorStepDesign">Customize the look of your cash</string>
     <string name="title_currencyCreatorStepPurchase">Purchase %1$s</string>
-    <string name="subtitle_currencyCreatorStepPurchase">Buy the first %1$s to create your currency</string>
+    <string name="subtitle_currencyCreatorStepPurchase">Pay for the first %1$s to create your currency</string>
     <string name="action_getStarted">Get Started</string>
     <string name="title_currencyCreatorNameSelection">What do you want to call your currency?</string>
     <string name="hint_currencyName">Currency Name</string>
@@ -390,7 +390,7 @@
     <string name="label_remaining">remaining</string>
     <string name="placeholder_currencyName">Currency Name</string>
     <string name="placeholder_currencyTicker">$BadBoys</string>
-    <string name="action_buyFirstToCreate">Buy the First %1$s to Create</string>
+    <string name="action_buyFirstToCreate">Pay for the First %1$s to Create</string>
     <string name="title_creatingCurrency">Creating %1$s</string>
     <string name="title_currencyIsLive">%1$s Is Live</string>
     <string name="subtitle_currencyIsLive">Your currency is ready to receive and use</string>
