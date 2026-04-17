@@ -506,13 +506,11 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .filterIsInstance<Event.PurchaseSubmitted>()
             .map { event ->
                 // currency creation is at *best* 2 mins
-                // safe buffer is 4-5 minutes
-                // instead of polling 300 times (every second)
-                // we'll poll every 10 seconds (30 times)
+                // safe buffer is 5 minutes
                 balancePoller.awaitBalanceChange(
                     mint = event.mint,
-                    maxAttempts = 30,
-                    interval = 10.seconds,
+                    maxAttempts = 300,
+                    interval = 1.seconds,
                 ).map { event.mint }
             }.flatMapResult { mint ->
                 tokenCoordinator.getTokenMetadata(mint)

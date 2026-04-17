@@ -65,6 +65,7 @@ internal fun CurrencyCreatorTopBar(
     AppBarWithTitle(
         isInModal = true,
         title = { mainContent?.invoke() ?: defaultMainContent() },
+        titleAlignment = Alignment.CenterHorizontally,
         leftIcon = {
             controller.onBack?.let { onBack ->
                 AppBarDefaults.UpNavigation {
