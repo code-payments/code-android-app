@@ -61,7 +61,7 @@ internal fun ProcessingContent(
                 text = when (state) {
                     LoadingSuccessState.State.Error -> stringResource(R.string.error_description_buySellFailed)
                     LoadingSuccessState.State.Success -> stringResource(R.string.subtitle_currencyIsLive)
-                    LoadingSuccessState.State.Loading -> stringResource(R.string.subtitle_processingYourTransaction)
+                    LoadingSuccessState.State.Loading -> stringResource(R.string.subtitle_processingYourNewCurrencyTransaction)
                     else -> ""
                 },
                 style = CodeTheme.typography.textSmall,
