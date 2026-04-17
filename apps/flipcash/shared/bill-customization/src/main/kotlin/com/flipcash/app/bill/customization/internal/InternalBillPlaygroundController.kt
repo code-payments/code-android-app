@@ -159,6 +159,7 @@ class InternalBillPlaygroundController(
                 backgroundController.restore(ColorState())
                 textureController.restore(
                     GraphicState(
+                        enabled = textureController.state.value.enabled,
                         options = PresetTextures,
                         selectedOption = 0
                     )
@@ -368,15 +369,17 @@ class InternalBillPlaygroundController(
             }
             backgroundController.load(background)
 
-            root["texture"]?.jsonObject?.let { tex ->
-                val index = tex["index"]?.jsonPrimitive?.int ?: return@let
-                val blendModeName = tex["blendMode"]?.jsonPrimitive?.content ?: return@let
-                val strength = tex["strength"]?.jsonPrimitive?.float ?: return@let
+            if (textureController.state.value.enabled) {
+                root["texture"]?.jsonObject?.let { tex ->
+                    val index = tex["index"]?.jsonPrimitive?.int ?: return@let
+                    val blendModeName = tex["blendMode"]?.jsonPrimitive?.content ?: return@let
+                    val strength = tex["strength"]?.jsonPrimitive?.float ?: return@let
 
-                val blendMode =
-                    UiBlendMode.entries.firstOrNull { it.name == blendModeName } ?: return@let
-                textureController.apply(index - 1)
-                textureController.commitBlend(blendMode, strength)
+                    val blendMode =
+                        UiBlendMode.entries.firstOrNull { it.name == blendModeName } ?: return@let
+                    textureController.apply(index - 1)
+                    textureController.commitBlend(blendMode, strength)
+                }
             }
         } catch (_: Exception) {
             // Fall back to legacy comma-separated hex colors
