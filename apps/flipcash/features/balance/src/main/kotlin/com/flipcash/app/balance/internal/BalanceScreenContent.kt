@@ -71,6 +71,7 @@ private fun BalanceScreenContent(
 
         TokenList(
             modifier = Modifier.weight(1f),
+            itemModifier = { Modifier.animateItem() },
             emptyState = {
                 Box(
                     modifier = Modifier

@@ -30,7 +30,7 @@ import com.getcode.ui.utils.sheetResignmentBehavior
 fun TokenList(
     tokens: List<TokenWithLocalizedBalance>?,
     modifier: Modifier = Modifier,
-    itemModifier: Modifier = Modifier,
+    itemModifier: LazyItemScope.() -> Modifier = { Modifier },
     showFlags: Boolean = false,
     selectedToken: Mint? = null,
     showSelections: Boolean = false,
@@ -77,7 +77,7 @@ fun TokenList(
                     modifier = Modifier
                         .fillParentMaxWidth()
                         .padding(horizontal = CodeTheme.dimens.inset)
-                        .then(itemModifier),
+                        .then(itemModifier()),
                     tokenWithBalance = item,
                     showFlag = showFlags,
                     showLogo = !item.isReserves,
