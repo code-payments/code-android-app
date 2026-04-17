@@ -52,11 +52,13 @@ internal class InternalCurrencyRepository @Inject constructor(
 
     override suspend fun checkTokenAvailability(name: String): Result<Boolean> =
         service.checkTokenAvailability(name)
+            .onFailure { ErrorUtils.handleError(it) }
 
     override suspend fun launchToken(
         request: TokenCreateRequest,
         owner: Ed25519.KeyPair
     ): Result<Mint> {
         return service.launchNewToken(request, owner)
+            .onFailure { ErrorUtils.handleError(it) }
     }
 }

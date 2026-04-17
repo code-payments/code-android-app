@@ -316,12 +316,13 @@ internal fun TokenBillCustomizations.asProto(): CurrencyService.BillCustomizatio
     return CurrencyService.BillCustomization.newBuilder()
         .apply {
             when (background) {
-                is BillBackground.Gradient -> background.colors.onEachIndexed { index, color ->
-                    setColors(index, CurrencyService.Color.newBuilder().setHex(color))
-                }
+                is BillBackground.Gradient -> addAllColors(
+                    background.colors.map { color ->
+                        CurrencyService.Color.newBuilder().setHex(color).build()
+                    }
+                )
 
-                is BillBackground.Solid -> setColors(
-                    0,
+                is BillBackground.Solid -> addColors(
                     CurrencyService.Color.newBuilder().setHex(background.colorHex)
                 )
             }
