@@ -22,6 +22,7 @@ interface BillPlaygroundController {
     val state: StateFlow<PlaygroundState>
     val canUndo: Boolean
     val canCopy: Boolean
+    val canPaste: Boolean
 
     fun dispatchEvent(event: Event)
     fun cancel()
@@ -34,6 +35,7 @@ data class PlaygroundState(
     val selectedFeature: PlaygroundFeature = PlaygroundFeature.Background,
     val backgroundState: ColorState = ColorState(),
     val textureState: GraphicState = GraphicState(),
+    val awaitingPaste: Boolean = false,
 ) {
     val isCustomizing: Boolean
         get() = bill != null
@@ -101,6 +103,9 @@ data class PlaygroundState(
 }
 
 sealed interface Event {
+    data class PresentPasteOption(val show: Boolean): Event
+    data object ApplyFromClipboard: Event
+
     data class Load(
         val customizations: TokenBillCustomizations? = null,
         val amount: Fiat = 5.toFiat(),
@@ -131,6 +136,7 @@ internal object StubPlaygroundController : BillPlaygroundController {
     override val state: StateFlow<PlaygroundState> = MutableStateFlow(PlaygroundState())
     override val canUndo: Boolean = false
     override val canCopy: Boolean = false
+    override val canPaste: Boolean = false
     override fun dispatchEvent(event: Event) = Unit
     override fun cancel() = Unit
 }

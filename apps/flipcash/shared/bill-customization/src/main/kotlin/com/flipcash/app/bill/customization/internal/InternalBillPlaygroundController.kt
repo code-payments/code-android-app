@@ -35,6 +35,17 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.float
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import com.flipcash.app.bill.customization.Event.Colors as ColorEvent
 import com.flipcash.app.bill.customization.Event.Graphics as GraphicsEvent
 
@@ -52,6 +63,8 @@ class InternalBillPlaygroundController(
 
     private val _state: MutableStateFlow<PlaygroundState> = MutableStateFlow(PlaygroundState())
     override val state: StateFlow<PlaygroundState> = _state.asStateFlow()
+
+    private val json = Json { explicitNulls = false }
 
     init {
         combine(
@@ -102,6 +115,9 @@ class InternalBillPlaygroundController(
     override val canCopy: Boolean
         get() = false
 
+    override val canPaste: Boolean
+        get() = true
+
     private fun customizeFor(
         token: Token,
         amount: Fiat,
@@ -140,6 +156,14 @@ class InternalBillPlaygroundController(
             // high level actions
             is Event.Load -> {
                 customizeFor(Token.usdf, event.amount, event.customizations, event.context)
+            }
+
+            is Event.PresentPasteOption -> {
+                _state.update { it.copy(awaitingPaste = event.show) }
+            }
+            is Event.ApplyFromClipboard -> {
+                applyConfiguration()
+                dispatchEvent(Event.PresentPasteOption(false))
             }
             
             // selecting feature from tab row
@@ -303,14 +327,66 @@ class InternalBillPlaygroundController(
         }
     }
 
+    private fun applyConfiguration() {
+        val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString()?.trim() ?: return
+        try {
+            // Try new JSON format first
+            val root = Json.parseToJsonElement(text).jsonObject
+
+            val backgroundArray = root["background"]?.jsonArray ?: return
+            val hexColors = backgroundArray.map { it.jsonPrimitive.content }
+            val background = if (hexColors.size == 1) {
+                BillBackground.Solid(hexColors.first())
+            } else {
+                BillBackground.Gradient(hexColors)
+            }
+            backgroundController.load(background)
+
+            root["texture"]?.jsonObject?.let { tex ->
+                val index = tex["index"]?.jsonPrimitive?.int ?: return@let
+                val blendModeName = tex["blendMode"]?.jsonPrimitive?.content ?: return@let
+                val strength = tex["strength"]?.jsonPrimitive?.float ?: return@let
+
+                val blendMode =
+                    BlendMode.entries.firstOrNull { it.name == blendModeName } ?: return@let
+                textureController.apply(index - 1)
+                textureController.commitBlend(blendMode, strength)
+            }
+        } catch (_: Exception) {
+            // Fall back to legacy comma-separated hex colors
+            val hexColors = text.split(",").map { it.trim() }.filter { it.startsWith("#") }
+            if (hexColors.isEmpty()) return
+            val background = if (hexColors.size == 1) {
+                BillBackground.Solid(hexColors.first())
+            } else {
+                BillBackground.Gradient(hexColors)
+            }
+            backgroundController.load(background)
+        }
+    }
+
     private fun copyConfiguration() {
-        val backgroundColors = _state.value.backgroundState.selectedColors.map { it.color }
-            .map { it.toHex() }
+        val payload = buildJsonObject {
+            putJsonArray("background") {
+                _state.value.backgroundState.selectedColors.forEach { store ->
+                    add(store.color.toHex())
+                }
+            }
+            _state.value.texture?.let { texture ->
+                putJsonObject("texture") {
+                    put("index", texture.index)
+                    put("blendMode", texture.blendMode.name)
+                    put("strength", texture.strength)
+                }
+            }
+        }
+
+        val export = json.encodeToString(payload)
 
         clipboard.setPrimaryClip(
             android.content.ClipData.newPlainText(
                 "",
-                backgroundColors.joinToString()
+                export
             )
         )
     }

@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -56,6 +57,7 @@ import com.getcode.ui.components.Pill
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.measured
 import com.getcode.ui.core.rememberedClickable
+import com.getcode.ui.core.swallowClicks
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -71,6 +73,7 @@ fun BillPlayground(
         val halfWidth = screenWidth / 2
         val startPadding = halfWidth - firstFeatureWidth / 2
         val endPadding = halfWidth - lastFeatureWidth / 2
+        val toolbar = LocalTextToolbar.current
 
         Column(
             modifier = Modifier
@@ -80,8 +83,6 @@ fun BillPlayground(
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-
-
             val selectedIndex by remember(state.selectedFeature) {
                 derivedStateOf {
                     state.features.indexOf(state.selectedFeature).takeIf { it >= 0 } ?: 0
@@ -139,8 +140,10 @@ fun BillPlayground(
                     PlaygroundFeature.Background -> {
                         Box(modifier = Modifier.measured { playgroundHeight = it.height }) {
                             BackgroundControls(
-                                state.backgroundState,
-                                dispatchEvent
+                                state = state.backgroundState,
+                                onShowingPaste = { dispatchEvent(Event.PresentPasteOption(true)) },
+                                onPasteConfiguration = { dispatchEvent(Event.ApplyFromClipboard) },
+                                dispatchEvent = dispatchEvent
                             )
                         }
                     }
@@ -151,6 +154,17 @@ fun BillPlayground(
                     )
                 }
             }
+        }
+
+        if (state.awaitingPaste) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .swallowClicks {
+                        dispatchEvent(Event.PresentPasteOption(false))
+                        toolbar.hide()
+                    }
+            )
         }
     }
 }
