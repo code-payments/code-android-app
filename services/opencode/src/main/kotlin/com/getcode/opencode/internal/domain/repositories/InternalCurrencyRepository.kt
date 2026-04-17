@@ -51,7 +51,7 @@ internal class InternalCurrencyRepository @Inject constructor(
             }
 
     override suspend fun checkTokenAvailability(name: String): Result<Boolean> =
-        service.checkTokenAvailability(name)
+        service.checkTokenAvailability(name.trim())
             .onFailure { ErrorUtils.handleError(it) }
 
     override suspend fun launchToken(
