@@ -4,6 +4,7 @@ import android.database.SQLException
 import com.getcode.libs.logging.BuildConfig
 import com.getcode.manager.TopBarManager
 import io.grpc.Status
+import io.grpc.StatusException
 import io.grpc.StatusRuntimeException
 import io.reactivex.rxjava3.exceptions.OnErrorNotImplementedException
 import io.reactivex.rxjava3.exceptions.UndeliverableException
@@ -42,13 +43,7 @@ object ErrorUtils {
                 throwable.cause ?: throwable
             else throwable
 
-        if (throwableCause is StatusRuntimeException) {
-            when (throwableCause.status.code) {
-                Status.Code.UNAVAILABLE -> return
-                Status.Code.CANCELLED -> return
-                else -> { /* fall through */ }
-            }
-        }
+        if (isIgnoredGrpcStatus(throwableCause)) return
 
         Timber.e(throwable)
 
@@ -82,9 +77,36 @@ object ErrorUtils {
                 throwable is UnknownHostException ||
                 throwable.cause is UnknownHostException
 
+    val ignoredGrpcStatusCodes = setOf(
+        // Transport/transient
+        Status.Code.UNAVAILABLE,
+        Status.Code.CANCELLED,
+        Status.Code.DEADLINE_EXCEEDED,
+        Status.Code.UNIMPLEMENTED,
+        // Client-error / validation (not bugs)
+        Status.Code.NOT_FOUND,
+        Status.Code.ALREADY_EXISTS,
+        Status.Code.PERMISSION_DENIED,
+        Status.Code.UNAUTHENTICATED,
+        Status.Code.FAILED_PRECONDITION,
+        Status.Code.OUT_OF_RANGE,
+        Status.Code.RESOURCE_EXHAUSTED,
+    )
+
+    private fun isIgnoredGrpcStatus(throwable: Throwable): Boolean {
+        val code = when (throwable) {
+            is StatusRuntimeException -> throwable.status.code
+            is StatusException -> throwable.status.code
+            else -> return false
+        }
+        return code in ignoredGrpcStatusCodes
+    }
+
     private fun isRuntimeError(throwable: Throwable): Boolean =
         throwable is StatusRuntimeException ||
-                throwable.cause is StatusRuntimeException
+                throwable is StatusException ||
+                throwable.cause is StatusRuntimeException ||
+                throwable.cause is StatusException
 
     private fun isSuppressibleError(throwable: Throwable): Boolean =
         throwable is SQLException || throwable is SuppressibleException || throwable is TimeoutCancellationException

@@ -1,14 +1,15 @@
 package com.flipcash.app.internal.debug
 
 import com.bugsnag.android.OnErrorCallback
+import com.getcode.utils.ErrorUtils
 import io.grpc.StatusException
 
 internal val FlipcashErrorCallback = OnErrorCallback onError@{ event ->
     val error = event.originalError ?: return@onError true
     val cause = error.cause ?: error
 
-    // Discard gRPC deadline exceeded — these are expected transient timeouts
-    if (cause is StatusException && cause.status.code == io.grpc.Status.Code.DEADLINE_EXCEEDED) {
+    // Discard gRPC client-error / validation status codes — these are not bugs
+    if (cause is StatusException && cause.status.code in ErrorUtils.ignoredGrpcStatusCodes) {
         return@onError false
     }
 
