@@ -695,7 +695,6 @@ class RealSessionController @Inject constructor(
                 tokenCoordinator.add(token, amount)
                 giftCardClaimInProgress.value = null
                 analytics.transfer(Analytics.Transfer.ClaimedCashLink, amount = amount)
-                toastController.enqueue(amount, isDeposit = true)
                 showBill(
                     bill = Bill.Cash(
                         amount = amount,
@@ -806,7 +805,6 @@ class RealSessionController @Inject constructor(
 
                 analytics.transfer(Analytics.Transfer.GrabBill(grabTime), amount)
                 BottomBarManager.clear()
-                toastController.enqueue(amount, isDeposit = true)
                 checkPendingItemsInFeed()
                 bringActivityFeedCurrent()
             },
@@ -847,6 +845,8 @@ class RealSessionController @Inject constructor(
         _state.update { it.copy(billResult = style) }
 
         if (bill.didReceive) {
+            // enqueue toast
+            toastController.enqueue(bill.amount, isDeposit = true)
             // shorter punch than standard
             vibrator.vibrate(duration = 50)
         }
