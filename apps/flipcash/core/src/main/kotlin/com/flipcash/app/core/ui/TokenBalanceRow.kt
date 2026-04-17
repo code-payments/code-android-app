@@ -29,6 +29,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.text.AnimatedNumberText
 import com.getcode.ui.core.addIf
 
 data class TokenBalanceRowSizing(
@@ -187,8 +188,8 @@ fun TokenBalanceRow(
                 }
             }
 
-            Text(
-                text = formattedBalance(balance),
+            AnimatedNumberText(
+                value = formattedBalance(balance),
                 style = sizing.balanceTextStyle,
                 color = CodeTheme.colors.textMain,
             )

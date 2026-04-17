@@ -57,9 +57,9 @@ class SelectTokenViewModel @Inject constructor(
         val tokens: List<TokenWithLocalizedBalance>? = null,
         val selectedToken: Mint? = null,
     ) {
-        val totalBalance: LocalFiat
+        val totalBalance: LocalFiat?
             get() {
-                val set = tokens.orEmpty()
+                val set = tokens ?: return null
                 if (set.isEmpty()) {
                     return LocalFiat.Zero
                         .copy(

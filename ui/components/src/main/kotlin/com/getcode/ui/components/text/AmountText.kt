@@ -3,6 +3,7 @@ package com.getcode.ui.components.text
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -31,6 +32,35 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.bolded
 import com.getcode.ui.components.R
+
+@Composable
+internal fun RowScope.AmountLeadingIcons(
+    currencyResId: Int?,
+    isClickable: Boolean,
+) {
+    if (currencyResId != null && currencyResId > 0) {
+        Image(
+            modifier = Modifier
+                .align(CenterVertically)
+                .requiredSize(CodeTheme.dimens.staticGrid.x7)
+                .clip(CircleShape),
+            painter = painterResource(currencyResId),
+            contentDescription = ""
+        )
+    }
+    if (isClickable) {
+        Image(
+            modifier = Modifier
+                .padding(end = CodeTheme.dimens.grid.x2)
+                .requiredSize(CodeTheme.dimens.grid.x5)
+                .align(CenterVertically),
+            painter = painterResource(R.drawable.ic_dropdown),
+            contentDescription = ""
+        )
+    } else {
+        Spacer(modifier = Modifier.requiredWidth(CodeTheme.dimens.grid.x3))
+    }
+}
 
 
 object AmountSizeStore {
@@ -73,28 +103,10 @@ fun AmountText(
             .then(modifier),
         horizontalArrangement = Arrangement.Center
     ) {
-        if (currencyResId != null && currencyResId > 0) {
-            Image(
-                modifier = Modifier
-                    .align(CenterVertically)
-                    .requiredSize(CodeTheme.dimens.staticGrid.x7)
-                    .clip(CircleShape),
-                painter = painterResource(currencyResId),
-                contentDescription = ""
-            )
-        }
-        if (isClickable) {
-            Image(
-                modifier = Modifier
-                    .padding(end = CodeTheme.dimens.grid.x2)
-                    .requiredSize(CodeTheme.dimens.grid.x5)
-                    .align(CenterVertically),
-                painter = painterResource(R.drawable.ic_dropdown),
-                contentDescription = ""
-            )
-        } else {
-            Spacer(modifier = Modifier.requiredWidth(CodeTheme.dimens.grid.x3))
-        }
+        AmountLeadingIcons(
+            currencyResId = currencyResId,
+            isClickable = isClickable,
+        )
 
         Text(
             modifier = Modifier

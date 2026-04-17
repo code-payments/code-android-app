@@ -109,16 +109,21 @@ class TokenCoordinator @Inject constructor(
     )
 
     private val _state = MutableStateFlow(TokenState())
+    private val _hydrated = MutableStateFlow(false)
 
     val tokens: Flow<List<Token>> = _state.map { it.tokens.values.toList() }
 
-    val tokenBalances: Flow<List<TokenWithBalance>> = _state.map { state ->
-        state.balances.mapNotNull { (mint, balance) ->
-            val token = state.tokens[mint] ?: return@mapNotNull null
-            val appreciation = if (mint == Mint.usdf) Fiat.MIN_VALUE else state.appreciation[mint] ?: Fiat.Zero
-            TokenWithBalance(token, balance, appreciation)
+    val tokenBalances: Flow<List<TokenWithBalance>> = _hydrated
+        .filter { it }
+        .flatMapLatest {
+            _state.map { state ->
+                state.balances.mapNotNull { (mint, balance) ->
+                    val token = state.tokens[mint] ?: return@mapNotNull null
+                    val appreciation = if (mint == Mint.usdf) Fiat.MIN_VALUE else state.appreciation[mint] ?: Fiat.Zero
+                    TokenWithBalance(token, balance, appreciation)
+                }
+            }
         }
-    }
 
     // region SessionListener
 
@@ -280,6 +285,7 @@ class TokenCoordinator @Inject constructor(
     suspend fun reset() {
         val previousTokenCount = _state.value.tokens.size
         _state.value = TokenState()
+        _hydrated.value = false
         cluster.value = null
         selectedToken.edit { it.clear() }
         dataSource.clear()
@@ -304,11 +310,13 @@ class TokenCoordinator @Inject constructor(
 
         if (persisted.isEmpty()) {
             trace(tag = TAG, message = "No persisted tokens found", type = TraceType.Process)
+            _hydrated.value = true
             return
         }
 
         applyTokenUpdates(persisted)
         ensureValidTokenSelection()
+        _hydrated.value = true
 
         trace(tag = TAG, message = "Hydrated ${persisted.size} tokens from persistence", type = TraceType.Process)
     }
