@@ -34,6 +34,7 @@ fun TokenList(
     showFlags: Boolean = false,
     selectedToken: Mint? = null,
     showSelections: Boolean = false,
+    includeReserves: Boolean = false,
     emptyState: (@Composable LazyItemScope.() -> Unit)? = null,
     reserves: (@Composable LazyItemScope.(mint: Mint, cashReserves: LocalFiat) -> Unit)? = null,
     footer: (@Composable LazyItemScope.() -> Unit)? = null,
@@ -46,9 +47,10 @@ fun TokenList(
             tokens?.find { it.token.address == Mint.usdf }?.balance ?: LocalFiat.Zero
         }
     }
-    val filteredTokens by remember(tokens) {
+    val filteredTokens by remember(tokens, includeReserves) {
         derivedStateOf {
-            tokens?.filter { it.token.address != Mint.usdf }
+            if (includeReserves) tokens
+            else tokens?.filterNot { it.token.address == Mint.usdf }
         }
     }
 
