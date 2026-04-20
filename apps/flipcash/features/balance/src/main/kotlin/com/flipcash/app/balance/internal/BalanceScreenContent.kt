@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
@@ -35,6 +36,7 @@ import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.addIf
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 
@@ -131,15 +133,16 @@ private fun BalanceScreenContent(
                     )
                 }
             },
+            pinFooter = true,
             footer = if (tokenState.discoveryEnabled) {
                 {
                     CodeButton(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(bottom = CodeTheme.dimens.grid.x3),
+                            .padding(bottom = CodeTheme.dimens.grid.x3)
+                            .navigationBarsPadding(),
                         text = stringResource(R.string.action_discoverCurrencies),
-                        buttonState = ButtonState.Filled10,
                         onClick = {
                             dispatchEvent(
                                 BalanceViewModel.Event.OpenScreen(AppRoute.Token.Discovery)
