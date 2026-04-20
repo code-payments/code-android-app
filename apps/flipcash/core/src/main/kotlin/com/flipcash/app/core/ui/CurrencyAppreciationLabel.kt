@@ -15,6 +15,7 @@ import com.flipcash.core.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
+import com.getcode.ui.components.text.AnimatedNumberText
 
 @Composable
 fun CurrencyAppreciationLabel(
@@ -34,7 +35,7 @@ fun CurrencyAppreciationLabel(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
     ) {
-        Text(
+        AnimatedNumberText(
             modifier = Modifier
                 .background(
                     color = changeColor.copy(0.20f),
@@ -44,7 +45,7 @@ fun CurrencyAppreciationLabel(
                     vertical = 2.dp,
                     horizontal = CodeTheme.dimens.grid.x1
                 ),
-            text = appreciation.formatted(
+            value = appreciation.formatted(
                 extraPrefix = when {
                     isZero -> null
                     hasAppreciation -> "+"

@@ -17,15 +17,15 @@ data class SwapRequest(
     val verifiedState: VerifiedState,
 ) {
     val fundingIntentId = when (kind) {
-        is SwapStartKind.CurrencyCreator -> kind.fundingIntentId
+        is SwapStartKind.Reserve -> kind.fundingIntentId
     }
 }
 
 sealed interface SwapStartKind {
     /**
-     * Server parameters for starting swaps against the Currency Creator program
+     * Server parameters for starting swaps against the Reserve program
      */
-    data class CurrencyCreator(
+    data class Reserve(
         /**
          * The source mint that will be swapped from
          */

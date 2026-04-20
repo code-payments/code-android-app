@@ -1,12 +1,7 @@
 package com.flipcash.app.currencycreator.internal.screens
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bill.customization.Event
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
+import com.flipcash.app.bill.customization.PlaygroundContext
 import com.flipcash.app.bill.customization.components.BillPlayground
 import com.flipcash.app.bills.RenderedBill
 import com.flipcash.app.core.bill.Bill
@@ -42,7 +38,8 @@ internal fun BillCustomizationScreen() {
         controller.dispatchEvent(
             Event.Load(
                 customizations = state.customizations,
-                amount = state.purchaseAmount
+                amount = state.purchaseAmount,
+                context = PlaygroundContext.CurrencyCreator,
             )
         )
     }
@@ -60,17 +57,21 @@ internal fun BillCustomizationContent(
 
     val augmentedBill by remember(
         playgroundState.bill,
-        playgroundState.customizations
+        state.customizations
     ) {
         derivedStateOf {
             val bill = playgroundState.bill ?: return@derivedStateOf null
             if (bill !is Bill.Cash) return@derivedStateOf null
             bill.copy(
                 token = bill.token.copy(
-                    billCustomizations = playgroundState.customizations
+                    billCustomizations = state.customizations
                 )
             )
         }
+    }
+
+    LaunchedEffect(playgroundState.customizations) {
+        dispatch(CurrencyCreatorViewModel.Event.CustomizationsChanged(playgroundState.customizations))
     }
 
     Column(

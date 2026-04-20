@@ -2,8 +2,10 @@ package com.getcode.ui.components.text
 
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -20,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
+import com.getcode.theme.White
 import com.getcode.theme.bolded
 import com.getcode.ui.components.ConnectionStatus
 import com.getcode.ui.components.R
@@ -44,6 +47,7 @@ fun AmountArea(
     isClickable: Boolean = true,
     isLoading: Boolean = false,
     isAnimated: Boolean = false,
+    animateDigits: Boolean = false,
     decimalPlaces: Int = 2,
     textStyle: TextStyle = CodeTheme.typography.displayMedium.bolded(),
     uiModel: AmountAnimatedInputUiModel? = null,
@@ -60,12 +64,30 @@ fun AmountArea(
                 verticalAlignment = CenterVertically
             ) {
                 if (!isAnimated) {
-                    AmountText(
-                        currencyResId = currencyResId,
-                        amountText = "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}",
-                        isClickable = isClickable,
-                        textStyle = textStyle,
-                    )
+                    if (animateDigits) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = CenterVertically,
+                        ) {
+                            AmountLeadingIcons(
+                                currencyResId = currencyResId,
+                                isClickable = isClickable,
+                            )
+                            AnimatedNumberText(
+                                value = "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}",
+                                style = textStyle.copy(textAlign = TextAlign.Center),
+                                color = White,
+                            )
+                        }
+                    } else {
+                        AmountText(
+                            currencyResId = currencyResId,
+                            amountText = "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}",
+                            isClickable = isClickable,
+                            textStyle = textStyle,
+                        )
+                    }
                 } else {
                     AmountTextAnimated(
                         uiModel = uiModel,

@@ -19,17 +19,16 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
-import com.getcode.navigation.animation.LocalSharedTransitionScope
+import com.getcode.animation.LocalSharedTransitionScope
 
 sealed class SharedTransition(
     val key: String,
@@ -84,7 +83,7 @@ val CircleOverlayClip: OverlayClip =
 @Composable
 fun Modifier.sharedBoundsTransition(
     key: String,
-    animatedVisibilityScope: AnimatedVisibilityScope = LocalNavAnimatedContentScope.current,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
     sharedTransitionScope: SharedTransitionScope = LocalSharedTransitionScope.current,
     enter: EnterTransition = fadeIn(),
     exit: ExitTransition = fadeOut(),
@@ -95,12 +94,18 @@ fun Modifier.sharedBoundsTransition(
     placeholderSize: PlaceholderSize = AnimatedSize,
     clipInOverlayDuringTransition: OverlayClip = ParentClip,
 ): Modifier {
+    if(LocalInspectionMode.current) {
+        return this
+    }
+
+    val animatedScope = animatedVisibilityScope ?: LocalNavAnimatedContentScope.current
+
     return with(sharedTransitionScope) {
         this@sharedBoundsTransition.sharedBounds(
             sharedContentState = rememberSharedContentState(key = key),
             enter = enter,
             exit = exit,
-            animatedVisibilityScope = animatedVisibilityScope,
+            animatedVisibilityScope = animatedScope,
             boundsTransform = boundsTransform,
             renderInOverlayDuringTransition = renderInOverlayDuringTransition,
             resizeMode = resizeMode,
@@ -114,7 +119,7 @@ fun Modifier.sharedBoundsTransition(
 @Composable
 fun Modifier.sharedBoundsTransition(
     transition: SharedTransition,
-    animatedVisibilityScope: AnimatedVisibilityScope = LocalNavAnimatedContentScope.current,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
     sharedTransitionScope: SharedTransitionScope = LocalSharedTransitionScope.current,
     zIndexInOverlay: Float = 0f,
     renderInOverlayDuringTransition: Boolean = true,
@@ -139,17 +144,23 @@ fun Modifier.sharedBoundsTransition(
 @Composable
 fun Modifier.sharedElementTransition(
     key: String,
-    animatedVisibilityScope: AnimatedVisibilityScope = LocalNavAnimatedContentScope.current,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
     sharedTransitionScope: SharedTransitionScope = LocalSharedTransitionScope.current,
     boundsTransform: BoundsTransform = DefaultTransform,
     placeholderSize: PlaceholderSize = AnimatedSize,
     zIndexInOverlay: Float = 0f,
     renderInOverlayDuringTransition: Boolean = true,
 ): Modifier {
+    if(LocalInspectionMode.current) {
+        return this
+    }
+
+    val animatedScope = animatedVisibilityScope ?: LocalNavAnimatedContentScope.current
+
     return with(sharedTransitionScope) {
         this@sharedElementTransition.sharedElement(
             sharedContentState = rememberSharedContentState(key = key),
-            animatedVisibilityScope = animatedVisibilityScope,
+            animatedVisibilityScope = animatedScope,
             boundsTransform = boundsTransform,
             placeholderSize = placeholderSize,
             zIndexInOverlay = zIndexInOverlay,
@@ -161,7 +172,7 @@ fun Modifier.sharedElementTransition(
 @Composable
 fun Modifier.sharedElementTransition(
     transition: SharedTransition,
-    animatedVisibilityScope: AnimatedVisibilityScope = LocalNavAnimatedContentScope.current,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
     boundsTransform: BoundsTransform? = null,
     sharedTransitionScope: SharedTransitionScope = LocalSharedTransitionScope.current,
     placeholderSize: PlaceholderSize = AnimatedSize,
@@ -190,6 +201,10 @@ fun Modifier.sharedElementTransitionWithCallerManagedVisibility(
     renderInOverlayDuringTransition: Boolean = true,
     clipInOverlayDuringTransition: OverlayClip = ParentClip,
 ): Modifier {
+    if(LocalInspectionMode.current) {
+        return this
+    }
+
     return with(sharedTransitionScope) {
         this@sharedElementTransitionWithCallerManagedVisibility.sharedElementWithCallerManagedVisibility(
             sharedContentState = rememberSharedContentState(key = key),

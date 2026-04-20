@@ -57,6 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
+import kotlin.time.Duration
 
 @Singleton
 class TransactionController @Inject constructor(
@@ -244,14 +245,23 @@ class TransactionController @Inject constructor(
         trace("Starting ${amount.nativeAmount.formatted()} buy of ${of.symbol}")
         val tokenizedOwner = owner.withTimelockForToken(of)
 
+        // A Token whose launchpadMetadata is null and whose address isn't USDF is
+        // a freshly-launched stub (see MintMetadata.fromLaunch). For that case the
+        // on-chain VM doesn't exist yet; the atomic new-currency swap transaction
+        // itself creates the VM (VM::InitializeVm) and the VM deposit ATA
+        // (CreateIdempotent), so no pre-flight createUserAccount call is needed —
+        // and attempting one would fail against a non-existent VM.
+        val isFreshlyLaunchedStub =
+            of.launchpadMetadata == null && of.address != Mint.usdf
+
         // create an account if we don't currently have one for this token
-        val accountResult = if (!accountController.hasAccountFor(of.address)) {
-            accountController.createUserAccount(
+        val accountResult = when {
+            isFreshlyLaunchedStub -> Result.success(Unit)
+            accountController.hasAccountFor(of.address) -> Result.success(Unit)
+            else -> accountController.createUserAccount(
                 ownerForMint = tokenizedOwner,
-                mint = of.address
+                mint = of.address,
             )
-        } else {
-            Result.success(Unit)
         }
 
         val verifiedState =
@@ -313,8 +323,10 @@ class TransactionController @Inject constructor(
         swapId: SwapId,
         owner: AccountCluster,
         targetState: SwapState,
+        maxAttempts: Int,
+        interval: Duration,
     ): Result<SwapMetadata> {
-        return swapRepository.pollForState(swapId, owner.authority.keyPair, targetState)
+        return swapRepository.pollForState(swapId, owner.authority.keyPair, targetState, maxAttempts, interval)
     }
 
     internal suspend fun submitIntent(

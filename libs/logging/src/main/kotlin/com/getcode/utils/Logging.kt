@@ -108,7 +108,7 @@ object TraceManager {
     }
 
     /** Returns the current log file, or `null` if not yet initialized. */
-    fun getLogFile(): File? = fileTree?.getLogFile()
+    fun getLogFile(includeHeader: Boolean = true): File? = fileTree?.getLogFile(includeHeader)
 
     /**
      * Hot stream of processed log lines for live in-app viewers. Emits only

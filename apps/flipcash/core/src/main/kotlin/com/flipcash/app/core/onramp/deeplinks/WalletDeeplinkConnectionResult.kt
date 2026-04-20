@@ -50,6 +50,9 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
     @Serializable @Parcelize
     data object Reserves: OnRampDeeplinkOrigin()
 
+    @Serializable @Parcelize
+    data object CurrencyCreator: OnRampDeeplinkOrigin()
+
 
     fun forUri(): String {
         return when(this) {
@@ -58,6 +61,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
             Wallet -> "wallet"
             is TokenInfo -> "token-${mint.base58().base64UrlSafe}"
             Reserves -> "reserves"
+            CurrencyCreator -> "currency-creator"
         }.lowercase()
     }
 
@@ -70,6 +74,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
                 is AppRoute.Token.Info -> {
                     if (route.mint == Mint.usdf) Reserves else TokenInfo(route.mint)
                 }
+                is AppRoute.Token.CurrencyCreator -> CurrencyCreator
 
                 else -> null
             }
@@ -87,6 +92,7 @@ sealed class OnRampDeeplinkOrigin: Parcelable {
                 }
                 value == "wallet" -> Wallet
                 value == "reserves" -> Reserves
+                value == "currency-creator" -> CurrencyCreator
                 value?.startsWith("token-") == true -> {
                     val mintString = value.removePrefix("token-").decodeBase64().base58
                     val mint = runCatching {

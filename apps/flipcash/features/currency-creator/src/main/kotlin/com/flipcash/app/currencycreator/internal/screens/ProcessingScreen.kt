@@ -2,6 +2,7 @@ package com.flipcash.app.currencycreator.internal.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,19 +39,12 @@ internal fun ProcessingContent(
 ) {
     val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
 
-    // Simulate processing: loading → success
-    LaunchedEffect(Unit) {
-        dispatch(CurrencyCreatorViewModel.Event.UpdateProcessingState(loading = true))
-        delay(2000)
-        dispatch(CurrencyCreatorViewModel.Event.UpdateProcessingState(success = true))
-    }
-
-
     FlowProcessingScreen(
         processingState = state.processingState,
         title = { s ->
             Text(
                 text = when (s) {
+                    LoadingSuccessState.State.Error -> stringResource(R.string.error_title_buySellFailed)
                     LoadingSuccessState.State.Success -> stringResource(R.string.title_currencyIsLive, state.nameFieldState.text.toString())
                     LoadingSuccessState.State.Loading -> stringResource(R.string.title_processingYourTransaction)
                     else -> ""
@@ -65,8 +59,9 @@ internal fun ProcessingContent(
                     .fillMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.grid.x12),
                 text = when (state) {
+                    LoadingSuccessState.State.Error -> stringResource(R.string.error_description_buySellFailed)
                     LoadingSuccessState.State.Success -> stringResource(R.string.subtitle_currencyIsLive)
-                    LoadingSuccessState.State.Loading -> stringResource(R.string.subtitle_processingYourTransaction)
+                    LoadingSuccessState.State.Loading -> stringResource(R.string.subtitle_processingYourNewCurrencyTransaction)
                     else -> ""
                 },
                 style = CodeTheme.typography.textSmall,
@@ -80,11 +75,25 @@ internal fun ProcessingContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = CodeTheme.dimens.inset)
-                        .padding(bottom = CodeTheme.dimens.grid.x2),
-                    text = stringResource(R.string.action_next),
+                        .padding(bottom = CodeTheme.dimens.grid.x2)
+                        .navigationBarsPadding(),
+                    text = stringResource(R.string.action_receiveNewCurrency, state.nameFieldState.text.toString()),
                     buttonState = ButtonState.Filled,
                     onClick = {
                         flowNavigator.exitWithResult(CurrencyCreatorResult.Success)
+                    },
+                )
+            } else if (state.processingState.error) {
+                CodeButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = CodeTheme.dimens.inset)
+                        .padding(bottom = CodeTheme.dimens.grid.x2)
+                        .navigationBarsPadding(),
+                    text = stringResource(R.string.action_ok),
+                    buttonState = ButtonState.Filled,
+                    onClick = {
+                        flowNavigator.exitWithResult(CurrencyCreatorResult.Canceled)
                     },
                 )
             }

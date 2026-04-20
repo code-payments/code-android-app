@@ -2,90 +2,197 @@ package com.getcode.opencode.model.transactions
 
 import com.getcode.solana.keys.PublicKey
 
-/**
- * Server parameters when executing stateful buy/sell flows against the
- * Currency Creator program
- *
- * Supported Solana transaction version: v0
- *
- * Instruction formats:
- *
- * Buy Tokens (Core Mint -> Launchpad Currency Mint):
- *  1. System::AdvanceNonce
- *  2. [Optional] ComputeBudget::SetComputeUnitLimit
- *  3. [Optional] ComputeBudget::SetComputeUnitPrice
- *  4. [Optional] Memo::Memo
- *  5. AssociatedTokenAccount::CreateIdempotent (open Core Mint temporary account)
- *  6. VM::TransferForSwap (Core Mint VM swap ATA -> Core Mint temporary account)
- *  7. CurrencyCreator::BuyAndDepositIntoVm (bounded buy depositing to_mint tokens into the to_mint VM)
- *  8. Token::CloseAccount (closes Core Mint temporary account)
- *  9. VM::CloseSwapAccountIfEmpty (closes Core Mint VM swap ATA if empty)
- *
- * Sell Tokens (Launchpad Currency Mint -> Core Mint):
- *  1. System::AdvanceNonce
- *  2. [Optional] ComputeBudget::SetComputeUnitLimit
- *  3. [Optional] ComputeBudget::SetComputeUnitPrice
- *  4. [Optional] Memo::Memo
- *  5. AssociatedTokenAccount::CreateIdempotent (open from_mint temporary account)
- *  6. VM::TransferForSwap (from_mint VM swap ATA -> from_mint temporary account)
- *  7. CurrencyCreator
- *  8. Token::CloseAccount (closes from_mint temporary account)
- *  9. VM::CloseSwapAccountIfEmpty (closes from_mint swap PDA/ATA if empty)
- * 10. CurrencyCreator::SellAndDepositIntoVm (bounded sell depositing Core Mint into the Core Mint VM)
- * 11. Token::CloseAccount (closes Core Mint temporary account)
- * 12. VM::CloseSwapAccountIfEmpty (closes Core Mint VM swap ATA if empty)
- *
- * Swap Tokens (Launchpad Currency Mint -> Launchpad Currency Mint):
- *  1.  System::AdvanceNonce
- *  2.  [Optional] ComputeBudget::SetComputeUnitLimit
- *  3.  [Optional] ComputeBudget::SetComputeUnitPrice
- *  4.  [Optional] Memo::Memo
- *  5.  AssociatedTokenAccount::CreateIdempotent (open Core Mint temporary account)
- *  6.  AssociatedTokenAccount::CreateIdempotent (open from_mint temporary account)
- *  7.  VM::TransferForSwap
- *  8.  CurrencyCreator::SellTokens (bounded sell transferring Core Mint into temporary account)
- *  9.  CurrencyCreator::BuyAndDepositIntoVm (unlimited buy depositing to_mint tokens into the to_mint VM)
- *  10. Token::CloseAccount (closes Core Mint temporary account)
- *  11. Token::CloseAccount (closes from_mint temporary account)
- *  12. VM::CloseSwapAccountIfEmpty (closes from_mint swap PDA/ATA if empty)
- *
- */
-data class SwapResponseServerParameters(
+sealed interface SwapResponseServerParameters {
     /**
      * Subisdizer account that will be paying for the swap
      */
-    val payer: PublicKey,
+    val payer: PublicKey
     /**
      *  The nonce that is reserved for use in the swap transaction
      */
-    val nonce: PublicKey,
+    val nonce: PublicKey
     /**
      * The blockhash that is reserved for use in the swap transaction
      */
-    val blockhash: PublicKey,
+    val blockhash: PublicKey
     /**
      * ALTs that should be used when constructing the versioned transaction
      */
-    val alts: List<AddressLookupTable>,
+    val alts: List<AddressLookupTable>
     /**
      * Compute unit limit provided to the ComputeBudget::SetComputeUnitLimit
      */
-    val computeUnitLimit: Int,
+    val computeUnitLimit: Int
     /**
      * Compute unit price provided in the ComputeBudget::SetCompute
      */
-    val computeUnitPrice: Long,
+    val computeUnitPrice: Long
+
     /**
-     * Value provided into the Memo::Memo instruction. If the value length is 0,
-     * then the instruction can be omitted.
+     * Server parameters when executing stateful buy/sell flows against the
+     * Reserve contract against an existing currency
+     *
+     * Supported Solana transaction version: v0
+     *
+     * Instruction formats:
+     *
+     * Buy Tokens (Core Mint -> Launchpad Currency Mint):
+     *  1. System::AdvanceNonce
+     *  2. [Optional] ComputeBudget::SetComputeUnitLimit
+     *  3. [Optional] ComputeBudget::SetComputeUnitPrice
+     *  4. [Optional] Memo::Memo
+     *  5. AssociatedTokenAccount::CreateIdempotent (open Core Mint temporary account)
+     *  6. VM::TransferForSwap (Core Mint VM swap ATA -> Core Mint temporary account)
+     *  7. Reserve::BuyAndDepositIntoVm (bounded buy depositing to_mint tokens into the to_mint VM)
+     *  8. Token::CloseAccount (closes Core Mint temporary account)
+     *  9. VM::CloseSwapAccountIfEmpty (closes Core Mint VM swap ATA if empty)
+     *
+     * Sell Tokens (Launchpad Currency Mint -> Core Mint):
+     *  1. System::AdvanceNonce
+     *  2. [Optional] ComputeBudget::SetComputeUnitLimit
+     *  3. [Optional] ComputeBudget::SetComputeUnitPrice
+     *  4. [Optional] Memo::Memo
+     *  5. AssociatedTokenAccount::CreateIdempotent (open from_mint temporary account)
+     *  6. VM::TransferForSwap (from_mint VM swap ATA -> from_mint temporary account)
+     *  7. Reserve::SellAndDepositIntoVm (bounded sell depositing Core Mint into the Core Mint VM)
+     *  8. Token::CloseAccount (closes from_mint temporary account)
+     *  9. VM::CloseSwapAccountIfEmpty (closes from_mint swap PDA/ATA if empty)
+     * 10. CurrencyCreator::SellAndDepositIntoVm (bounded sell depositing Core Mint into the Core Mint VM)
+     * 11. Token::CloseAccount (closes Core Mint temporary account)
+     * 12. VM::CloseSwapAccountIfEmpty (closes Core Mint VM swap ATA if empty)
+     *
+     * Swap Tokens (Launchpad Currency Mint -> Launchpad Currency Mint):
+     *  1.  System::AdvanceNonce
+     *  2.  [Optional] ComputeBudget::SetComputeUnitLimit
+     *  3.  [Optional] ComputeBudget::SetComputeUnitPrice
+     *  4.  [Optional] Memo::Memo
+     *  5.  AssociatedTokenAccount::CreateIdempotent (open Core Mint temporary account)
+     *  6.  AssociatedTokenAccount::CreateIdempotent (open from_mint temporary account)
+     *  7.  VM::TransferForSwap
+     *  8.  Reserve::SellTokens (bounded sell transferring Core Mint into temporary account)
+     *  9.  Reserve::BuyAndDepositIntoVm (unlimited buy depositing to_mint tokens into the to_mint VM)
+     *  10. Token::CloseAccount (closes Core Mint temporary account)
+     *  11. Token::CloseAccount (closes from_mint temporary account)
+     *  12. VM::CloseSwapAccountIfEmpty (closes from_mint swap PDA/ATA if empty)
+     *
      */
-    val memoValue: String,
+    data class ExistingCurrency(
+        /**
+         * Subisdizer account that will be paying for the swap
+         */
+        override val payer: PublicKey,
+        /**
+         *  The nonce that is reserved for use in the swap transaction
+         */
+        override val nonce: PublicKey,
+        /**
+         * The blockhash that is reserved for use in the swap transaction
+         */
+        override val blockhash: PublicKey,
+        /**
+         * ALTs that should be used when constructing the versioned transaction
+         */
+        override val alts: List<AddressLookupTable>,
+        /**
+         * Compute unit limit provided to the ComputeBudget::SetComputeUnitLimit
+         */
+        override val computeUnitLimit: Int,
+        /**
+         * Compute unit price provided in the ComputeBudget::SetCompute
+         */
+        override val computeUnitPrice: Long,
+        /**
+         * Value provided into the Memo::Memo instruction. If the value length is 0,
+         * then the instruction can be omitted.
+         */
+        val memoValue: String,
+        /**
+         * The memory account where the destination virtual Timelock account lives
+         */
+        val memoryAccount: PublicKey,
+        /**
+         * The memory index where the destination virtual Timelock account lives
+         */
+        val memoryIndex: Int,
+    ): SwapResponseServerParameters
+
     /**
-     * The memory account where the destination virtual Timelock account lives
+     * Server parameters when executing stateful buy flows against the
+     * Reserve contract against a new currency. Only the creator of the
+     * currency will be able to execute this flow.
+     *
+     * Supported Solana transaction version: v0
+     *
+     * Instruction format:
+     * 1. System::AdvanceNonce
+     * 2. [Optional] ComputeBudget::SetComputeUnitLimit
+     * 3. [Optional] ComputeBudget::SetComputeUnitPrice
+     * 4. [Optional] Memo::Memo
+     * 5. Reserve::InitializeCurrency
+     * 6. Reserve::InitializePool
+     * 7. VM::InitializeVm
+     * 8. AssociatedTokenAccount::CreateIdempotent (open owner's Core Mint ATA)
+     * 9. AssociatedTokenAccount::CreateIdempotent (open owner's to_mint VM Deposit ATA)
+     * 10. VM::TransferForSwap (Core Mint VM swap ATA -> owner's Core Mint ATA)
+     * 11. Reserve::BuyTokens (limited buy transferring to_mint tokens into the to_mint VM Deposit ATA)
+     * 12. Token::CloseAccount (closes owner's Core Mint ATA)
+     *
+     * Note: Client should verify that the new currency's mint address matches that derive
+     * from using these server parameters.
      */
-    val memoryAccount: PublicKey,
-    /**
-     * The memory index where the destination virtual Timelock account lives
-     */
-    val memoryIndex: Int,
-)
+    data class NewCurrency(
+        /**
+         * Subisdizer account that will be paying for the swap
+         */
+        override val payer: PublicKey,
+        /**
+         *  The nonce that is reserved for use in the swap transaction
+         */
+        override val nonce: PublicKey,
+        /**
+         * The blockhash that is reserved for use in the swap transaction
+         */
+        override val blockhash: PublicKey,
+        /**
+         * ALTs that should be used when constructing the versioned transaction
+         */
+        override val alts: List<AddressLookupTable>,
+        /**
+         * Compute unit limit provided to the ComputeBudget::SetComputeUnitLimit
+         */
+        override val computeUnitLimit: Int,
+        /**
+         * Compute unit price provided in the ComputeBudget::SetCompute
+         */
+        override val computeUnitPrice: Long,
+        /**
+         * Value provided into the Memo::Memo instruction. If the value length is 0,
+         * then the instruction can be omitted.
+         */
+        val memoValue: String,
+        /**
+         * The VM and currency authority
+         */
+        val authority: PublicKey,
+        /**
+         * The currency name
+         */
+        val name: String,
+        /**
+         * The currency symbol
+         */
+        val symbol: String,
+        /**
+         * The random seed value used to generate a unique currency of the given name
+         */
+        val seed: PublicKey,
+        /**
+         * Liquidity pool's percent sell fee in basis points
+         */
+        val sellFeeBps: Int,
+        /**
+         * The VM lock duration
+         */
+        val vmLockDurationInDays: Int,
+    ): SwapResponseServerParameters
+}

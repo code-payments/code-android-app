@@ -1,21 +1,20 @@
 package com.flipcash.app.currencycreator.internal.screens
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.RenderedBill
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
@@ -31,12 +30,26 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun ReviewAndPurchaseScreen() {
+    val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
     val viewModel = flowSharedViewModel<CurrencyCreatorViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     ReviewAndPurchaseContent(state, viewModel::dispatchEvent)
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<CurrencyCreatorViewModel.Event.PurchaseSubmitted>()
+            .map { it.swapId }
+            .onEach {
+                flowNavigator.navigateTo(CurrencyCreatorStep.Processing)
+            }.launchIn(this)
+    }
 }
 
 @Composable
@@ -44,7 +57,6 @@ internal fun ReviewAndPurchaseContent(
     state: CurrencyCreatorViewModel.State,
     dispatch: (CurrencyCreatorViewModel.Event) -> Unit
 ) {
-    val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
     CodeScaffold(
         modifier = Modifier
             .padding(horizontal = CodeTheme.dimens.inset),
@@ -54,14 +66,15 @@ internal fun ReviewAndPurchaseContent(
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .padding(
-                        top = CodeTheme.dimens.grid.x6,
                         bottom = CodeTheme.dimens.grid.x3
                     ),
                 text = stringResource(
                     R.string.action_buyFirstToCreate,
                     state.purchaseAmount.formatted(rule = Fiat.FormattingRule.Truncated)
                 ),
-                enabled = state.hasName,
+                enabled = state.hasName && state.processingState.isIdle,
+                isLoading = state.processingState.loading,
+                isSuccess = state.processingState.success,
                 onClick = {
                     dispatch(CurrencyCreatorViewModel.Event.Purchase)
                 },
@@ -79,19 +92,35 @@ internal fun ReviewAndPurchaseContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x5),
         ) {
-            TokenIconWithName(
-                tokenName = state.nameFieldState.text.toString(),
-                tokenImage = state.icon.dataOrNull,
-                imageSize = CodeTheme.dimens.staticGrid.x6,
-                textStyle = CodeTheme.typography.displaySmall,
-                spacing = CodeTheme.dimens.grid.x2,
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.grid.x2),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            ) {
+                TokenIconWithName(
+                    tokenName = state.nameFieldState.text.toString(),
+                    tokenImage = state.icon.dataOrNull,
+                    imageSize = CodeTheme.dimens.staticGrid.x6,
+                    textStyle = CodeTheme.typography.displaySmall,
+                    spacing = CodeTheme.dimens.grid.x2,
+                )
+
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = state.descriptionFieldState.text.toString(),
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            }
 
             state.bill?.let { bill ->
                 RenderedBill(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(top = CodeTheme.dimens.grid.x3)
                         .fillMaxWidth()
                         .sharedBoundsTransition(
                             transition = SharedTransition.CurrencyBill

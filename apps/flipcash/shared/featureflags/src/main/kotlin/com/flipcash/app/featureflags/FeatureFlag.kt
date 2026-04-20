@@ -126,6 +126,15 @@ sealed interface FeatureFlag {
         override val persistLogOut: Boolean = false
     }
 
+    @FeatureFlagMarker
+    data object BillTextures : FeatureFlag {
+        override val key: String = "bill_textures_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
     companion object {
         val entries: List<FeatureFlag>
             get() = FeatureFlagEntries.entries
@@ -152,6 +161,7 @@ val FeatureFlag.title: String
         FeatureFlag.CoinbaseOnRampSandbox -> "Coinbase Onramp Sandbox"
         FeatureFlag.TokenDiscovery -> "Token Discovery"
         FeatureFlag.CurrencyCreator -> "Currency Creator"
+        FeatureFlag.BillTextures -> "Bill Textures"
     }
 
 val FeatureFlag.message: String
@@ -169,6 +179,7 @@ val FeatureFlag.message: String
         FeatureFlag.CoinbaseOnRampSandbox -> "When enabled, Coinbase onramp purchases will use the sandbox environment for testing"
         FeatureFlag.TokenDiscovery -> "When enabled, you'll gain access to leaderboards for tokens and discovery"
         FeatureFlag.CurrencyCreator -> "When enabled, you'll gain access to create new currencies"
+        FeatureFlag.BillTextures -> "When enabled, you'll gain the ability to select textures for bills during currency creation"
     }
 
 

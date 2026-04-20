@@ -116,8 +116,8 @@ class ProgramAddressesTest {
     }
 
     @Test
-    fun `CurrencyCreatorProgram Command has 5 entries`() {
-        assertEquals(5, CurrencyCreatorProgram.Command.entries.size)
+    fun `CurrencyCreatorProgram Command has 8 entries`() {
+        assertEquals(8, CurrencyCreatorProgram.Command.entries.size)
     }
 
     @Test

@@ -22,12 +22,14 @@ internal class SwapPoller @Inject constructor(
         swapId: SwapId,
         owner: Ed25519.KeyPair,
         targetState: SwapState,
+        maxAttempts: Int,
+        interval: Duration,
     ): Result<SwapMetadata> = runCatching {
         pollSwapUntil(
             swapId = swapId,
             owner = owner,
-            maxAttempts = 90,
-            interval = 1.seconds,
+            maxAttempts = maxAttempts,
+            interval = interval,
             targetState = targetState,
         )
     }
@@ -59,28 +61,25 @@ internal class SwapPoller @Inject constructor(
             throw SwapError.Other(cause = e)
         }
 
-        return when {
-            metadata.state == targetState -> {
+        return when (metadata.state) {
+            targetState -> {
                 // Reached desired state
                 metadata
             }
-
-            metadata.state in listOf(SwapState.FAILED, SwapState.CANCELLED) -> {
+            in listOf(SwapState.FAILED, SwapState.CANCELLED) -> {
                 trace(
                     type = TraceType.Error,
                     message = "Swap reached terminal state: ${metadata.state}, Swap ID: ${swapId.publicKey.base58()}"
                 )
                 throw SwapError.Other()
             }
-
-            metadata.state == SwapState.UNKNOWN -> {
+            SwapState.UNKNOWN -> {
                 trace(
                     type = TraceType.Error,
                     message = "Swap in unknown state, Swap ID: ${swapId.publicKey.base58()}"
                 )
                 throw SwapError.Other()
             }
-
             else -> {
                 // Still in progress, poll again
                 trace(

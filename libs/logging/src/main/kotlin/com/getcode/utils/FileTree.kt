@@ -93,11 +93,13 @@ class FileTree(
         logFlow.tryEmit(processed!!)
     }
 
-    fun getLogFile(): File? {
+    fun getLogFile(includeHeader: Boolean = true): File? {
         if (!logFile.exists() || logFile.length() == 0L) return null
         synchronized(lock) {
             exportFile.delete()
-            exportFile.writeText(buildDeviceHeader(appContext))
+            if (includeHeader) {
+                exportFile.writeText(buildDeviceHeader(appContext))
+            }
             logFile.inputStream().use { input ->
                 FileOutputStream(exportFile, true).use { output ->
                     input.copyTo(output)

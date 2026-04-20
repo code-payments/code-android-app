@@ -104,6 +104,7 @@
     <string name="action_nevermind">Nevermind</string>
 
     <string name="subtitle_ofUsdSuffix">of USD</string>
+    <string name="subtitle_usdSuffix">USD</string>
 
     <string name="error_title_alreadyCollected">Cash Already Collected</string>
     <string name="error_description_alreadyCollected">This cash has already been collected, or was cancelled by the sender</string>
@@ -365,7 +366,7 @@
 
     <string name="title_billCustomizer">Bill Creator</string>
     <string name="title_createYourCurrency">Create Your Currency</string>
-    <string name="subtitle_currencyCreatorInfo">Launch your own currency in %1$d easy steps</string>
+    <string name="subtitle_currencyCreatorInfo">Launch your own currency in minutes.\nReady to use right away.</string>
     <string name="title_currencyCreatorStepName">Name</string>
     <string name="subtitle_currencyCreatorStepName">Choose a unique name for your currency</string>
     <string name="title_currencyCreatorStepIcon">Icon</string>
@@ -375,7 +376,7 @@
     <string name="title_currencyCreatorStepDesign">Cash Design</string>
     <string name="subtitle_currencyCreatorStepDesign">Customize the look of your cash</string>
     <string name="title_currencyCreatorStepPurchase">Purchase %1$s</string>
-    <string name="subtitle_currencyCreatorStepPurchase">Buy the first %1$s to create your currency</string>
+    <string name="subtitle_currencyCreatorStepPurchase">Pay for the first %1$s to create your currency</string>
     <string name="action_getStarted">Get Started</string>
     <string name="title_currencyCreatorNameSelection">What do you want to call your currency?</string>
     <string name="hint_currencyName">Currency Name</string>
@@ -389,7 +390,7 @@
     <string name="label_remaining">remaining</string>
     <string name="placeholder_currencyName">Currency Name</string>
     <string name="placeholder_currencyTicker">$BadBoys</string>
-    <string name="action_buyFirstToCreate">Buy the First %1$s to Create</string>
+    <string name="action_buyFirstToCreate">Pay for the First %1$s to Create</string>
     <string name="title_creatingCurrency">Creating %1$s</string>
     <string name="title_currencyIsLive">%1$s Is Live</string>
     <string name="subtitle_currencyIsLive">Your currency is ready to receive and use</string>
@@ -592,4 +593,12 @@
     <string name="error_title_descriptionNotAllowed">This Description is Not Allowed</string>
     <string name="error_description_descriptionNotAllowed">Try a different currency description</string>
 
+    <string name="error_title_launchTokenFailed">Something Went Wrong</string>
+    <string name="error_description_launchTokenFailed">Please try again</string>
+
+    <string name="error_title_buyNewCurrencyFailed">Purchase failed</string>
+    <string name="error_description_buyNewCurrencyFailed">We couldn\'t complete your initial purchase. Your currency is on hold for the next 30 minutes.</string>
+
+    <string name="subtitle_processingYourNewCurrencyTransaction">This transaction typically takes a few minutes. You may leave the app while it completes</string>
+    <string name="action_receiveNewCurrency">Receive My %1$s</string>
 </resources>

@@ -43,6 +43,7 @@ import com.flipcash.app.tokens.internal.components.info.TokenBalance
 import com.flipcash.app.tokens.internal.components.info.TokenDetailsSection
 import com.flipcash.features.tokens.R
 import com.getcode.libs.analytics.LocalAnalytics
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.measured
@@ -56,21 +57,21 @@ import com.getcode.ui.utils.calculateStartPadding
 import com.getcode.ui.utils.sheetResignmentBehavior
 
 @Composable
-internal fun TokenInfoScreen(viewModel: TokenInfoViewModel, isForNeededFunds: Boolean) {
+internal fun TokenInfoScreen(viewModel: TokenInfoViewModel, shortfall: Fiat?) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    TokenInfoScreen(isForNeededFunds, state, viewModel::dispatchEvent)
+    TokenInfoScreen(shortfall, state, viewModel::dispatchEvent)
 }
 
 @Composable
 private fun TokenInfoScreen(
-    isForNeededFunds: Boolean,
+    shortfall: Fiat?,
     state: TokenInfoViewModel.State,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
     val listState = rememberLazyListState()
 
     CodeScaffold(
-        bottomBar = { BottomBar(isForNeededFunds, state, dispatch) }
+        bottomBar = { BottomBar(shortfall, state, dispatch) }
     ) { innerPadding ->
         Box(
             modifier = Modifier.verticalScrollStateGradient(
@@ -232,7 +233,7 @@ private fun TokenInfoScreen(
 
 @Composable
 private fun BottomBar(
-    isForNeededFunds: Boolean,
+    shortfall: Fiat?,
     state: TokenInfoViewModel.State,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
@@ -258,7 +259,7 @@ private fun BottomBar(
                     top = CodeTheme.dimens.grid.x9,
                     bottom = CodeTheme.dimens.grid.x3
                 ),
-            isForNeededFunds = isForNeededFunds,
+            shortfall = shortfall,
             state = state,
             dispatch = dispatch
         )
@@ -267,7 +268,7 @@ private fun BottomBar(
 
 @Composable
 private fun BottomBarButtons(
-    isForNeededFunds: Boolean,
+    shortfall: Fiat?,
     state: TokenInfoViewModel.State,
     modifier: Modifier = Modifier,
     dispatch: (TokenInfoViewModel.Event) -> Unit
@@ -290,7 +291,7 @@ private fun BottomBarButtons(
                     buttonState = ButtonState.Filled,
                     text = stringResource(R.string.action_buy),
                 ) {
-                    dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(forNeededFunds = isForNeededFunds))
+                    dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(shortfall))
                 }
 
                 if (canGive) {

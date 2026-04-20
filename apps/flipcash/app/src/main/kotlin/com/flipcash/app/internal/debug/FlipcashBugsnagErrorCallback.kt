@@ -1,15 +1,34 @@
 package com.flipcash.app.internal.debug
 
 import com.bugsnag.android.OnErrorCallback
+import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceManager
+import io.grpc.StatusException
 
 internal val FlipcashErrorCallback = OnErrorCallback onError@{ event ->
-    // Only tag unhandled errors — handled errors go through ErrorUtils.handleError()
-    if (!event.isUnhandled) return@onError true
     val error = event.originalError ?: return@onError true
-
     val cause = error.cause ?: error
-    event.addMetadata("alert", "slack_notify", true)
-    event.addMetadata("alert", "error_type", cause.javaClass.simpleName)
-    event.addMetadata("alert", "error_family", cause.javaClass.enclosingClass?.simpleName ?: "Unknown")
+
+    // Discard gRPC client-error / validation status codes — these are not bugs
+    if (cause is StatusException && cause.status.code in ErrorUtils.ignoredGrpcStatusCodes) {
+        return@onError false
+    }
+
+    // Discard handled gRPC INTERNAL — server-side errors, not actionable from the client
+    if (!event.isUnhandled && cause is StatusException && cause.status.code == io.grpc.Status.Code.INTERNAL) {
+        return@onError false
+    }
+
+    if (!event.isUnhandled) return@onError true
+
+    // Attach recent logs
+    val logFile = TraceManager.getLogFile(includeHeader = false)
+    if (logFile != null && logFile.exists()) {
+        // Bugsnag metadata has a size limit (~1MB per event).
+        // Attach the last ~64KB of log content as a metadata tab.
+        val tail = logFile.readText().takeLast(64_000)
+        event.addMetadata("App Logs", "app_log", tail)
+    }
+
     true
 }

@@ -12,8 +12,8 @@ import com.flipcash.app.withdrawal.internal.screens.WithdrawalConfirmationConten
 import com.flipcash.app.withdrawal.internal.screens.WithdrawalDestinationContent
 import com.flipcash.app.withdrawal.internal.screens.WithdrawalEntryContent
 import com.getcode.navigation.annotatedEntry
-import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.flowAnnotatedEntry
 import com.getcode.navigation.flow.FlowExitReason
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.deliverFlowResult
@@ -52,16 +52,15 @@ fun WithdrawalFlowScreen(
                 }
             }
         },
-        entryProvider = withdrawalEntryProvider(route.mint, outerNavigator),
+        entryProvider = withdrawalEntryProvider(route.mint),
     )
 }
 
 private fun withdrawalEntryProvider(
     mint: Mint,
-    outerNavigator: CodeNavigator,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
-    annotatedEntry<WithdrawalStep.Amount> { step ->
-        WithdrawalEntryContent(step.mint, outerNavigator)
+    flowAnnotatedEntry<WithdrawalStep.Amount> { step ->
+        WithdrawalEntryContent(step.mint)
     }
     annotatedEntry<WithdrawalStep.Destination> {
         WithdrawalDestinationContent()

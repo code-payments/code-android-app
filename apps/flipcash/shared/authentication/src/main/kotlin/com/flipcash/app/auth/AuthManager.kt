@@ -154,6 +154,7 @@ class AuthManager @Inject constructor(
         return credentialManager.login(entropyB64, isFromSelection)
             .onSuccess { account ->
                 persistence.openDatabase(entropyB64)
+                userManager.establish(entropyB64)
                 userManager.set(accountId = account.id)
 
                 coroutineScope {

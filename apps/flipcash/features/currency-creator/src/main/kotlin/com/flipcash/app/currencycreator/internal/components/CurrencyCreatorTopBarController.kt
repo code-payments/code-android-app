@@ -8,7 +8,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 
 internal class CurrencyCreatorTopBarController {
     var progress: Float by mutableFloatStateOf(0f)
-    var onBack: () -> Unit by mutableStateOf({})
+    var onBack: (() -> Unit)? by mutableStateOf(null)
     var onEndAction: (() -> Unit)? by mutableStateOf(null)
 
     companion object {

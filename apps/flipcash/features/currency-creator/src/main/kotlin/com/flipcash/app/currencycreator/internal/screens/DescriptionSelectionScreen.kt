@@ -25,6 +25,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -171,6 +172,8 @@ internal fun DescriptionSelectionContent(
                 )
 
                 Text(
+                    modifier = Modifier
+                        .fillMaxWidth(0.65f),
                     text = stringResource(R.string.title_currencyCreatorDescription),
                     style = CodeTheme.typography.textLarge,
                     color = CodeTheme.colors.textMain,
@@ -184,6 +187,7 @@ internal fun DescriptionSelectionContent(
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
                 keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Done,
                 ),

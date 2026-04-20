@@ -113,7 +113,7 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
     onExit: (FlowExitReason<R>) -> Unit,
     entryProvider: (NavKey) -> NavEntry<NavKey>,
     decorators: List<NavEntryDecorator<NavKey>> = emptyList(),
-    sceneStrategy: SceneStrategy<NavKey> = SinglePaneSceneStrategy(),
+    sceneStrategies: List<SceneStrategy<NavKey>> = listOf(SinglePaneSceneStrategy()),
     transitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform =
         DefaultFlowTransitionSpec,
     popTransitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform =
@@ -176,7 +176,12 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
         }
     }
 
+    // Expose the outer navigator so that flowAnnotatedEntry (or manual overrides)
+    // can restore it for steps that need to push routes onto the app-level nav graph.
+    val outerNavigator = LocalCodeNavigator.current
+
     CompositionLocalProvider(
+        LocalOuterCodeNavigator provides outerNavigator,
         LocalCodeNavigator provides innerNavigator,
         LocalFlowNavigator provides flowNavigator,
         LocalFlowViewModelStoreOwner provides flowOwner,
@@ -184,7 +189,7 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
         AppNavHost(
             navigator = innerNavigator,
             resultStateRegistry = resultStateRegistry,
-            sceneStrategy = sceneStrategy,
+            sceneStrategies = sceneStrategies,
             transitionSpec = transitionSpec,
             popTransitionSpec = popTransitionSpec,
             onBack = { innerNavigator.navigateBack() },

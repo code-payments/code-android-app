@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
@@ -80,8 +81,8 @@ class TokenInfoViewModel @Inject constructor(
 
     sealed interface Event {
         data class MarketCapChartEnabled(val enabled: Boolean) : Event
-        data class OnMintProvided(val mint: Mint, val forNeededFunds: Boolean = false) : Event
-        data class OnTokenChanged(val token: Loadable<Token>, val forNeededFunds: Boolean = false) : Event
+        data class OnMintProvided(val mint: Mint, val shortFall: Fiat? = null) : Event
+        data class OnTokenChanged(val token: Loadable<Token>, val shortFall: Fiat? = null) : Event
         data class OnMarketCapChanged(val mcap: Fiat?) : Event
         data class LoadHistoricalDataForPeriod(val period: Period, val evict: Boolean = false) : Event
 
@@ -97,7 +98,7 @@ class TokenInfoViewModel @Inject constructor(
         data class OnAppreciationUpdated(val amount: LocalFiat?) : Event
         data class ExpandDescription(val expand: Boolean) : Event
         data object Share : Event
-        data class OpenPurchaseMethods(val forNeededFunds: Boolean = false) : Event
+        data class OpenPurchaseMethods(val shortFall: Fiat? = null) : Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object ConnectPhantomWallet : Event
         data object Exit : Event
@@ -115,7 +116,7 @@ class TokenInfoViewModel @Inject constructor(
             .onEach {
                 tokenCoordinator.getTokenMetadata(it.mint)
                     .onSuccess { result ->
-                        dispatchEvent(Event.OnTokenChanged(Loadable.Loaded(result.token), it.forNeededFunds))
+                        dispatchEvent(Event.OnTokenChanged(Loadable.Loaded(result.token), it.shortFall))
                     }.onFailure { cause ->
                         dispatchEvent(
                             Event.OnTokenChanged(
@@ -138,7 +139,7 @@ class TokenInfoViewModel @Inject constructor(
             .filterIsInstance<Event.OnTokenChanged>()
             .distinctUntilChanged()
             .filter { it.token.isLoaded() }
-            .map { it.token.dataOrNull!! to it.forNeededFunds }
+            .map { it.token.dataOrNull!! to it.shortFall }
             .flatMapLatest { (token, _) ->
                 combine(
                     tokenCoordinator.balanceForToken(token.address),
@@ -174,9 +175,10 @@ class TokenInfoViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnTokenChanged>()
             .distinctUntilChanged()
-            .filter { it.forNeededFunds }
+            .map { it.shortFall }
+            .filterNotNull()
             .onEach {
-                 dispatchEvent(Event.OpenPurchaseMethods(true))
+                 dispatchEvent(Event.OpenPurchaseMethods(it))
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -264,7 +266,7 @@ class TokenInfoViewModel @Inject constructor(
             .filterIsInstance<Event.OpenPurchaseMethods>()
             .mapNotNull {
                 val mint = stateFlow.value.mint ?: return@mapNotNull null
-                PurchaseMethodMetadata(mint, isFundingShortfall = it.forNeededFunds)
+                PurchaseMethodMetadata(mint, purchaseAmount = it.shortFall)
             }
             .onEach { metadata ->
                 purchaseMethodController.present(metadata)
@@ -286,7 +288,7 @@ class TokenInfoViewModel @Inject constructor(
                             Event.OpenScreen(
                                 AppRoute.Token.Swap(
                                     purpose = SwapPurpose.Buy(mint),
-                                    isFundingShortfall = metadata.isFundingShortfall
+                                    shortfall = metadata.purchaseAmount
                                 )
                             )
                         )

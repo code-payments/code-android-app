@@ -13,6 +13,7 @@ import kotlin.time.Instant
 class ModerationAttestationMapper @Inject constructor(): Mapper<ModerationService.ModerationAttestation, ModerationResult.Attestation> {
     override fun map(from: ModerationService.ModerationAttestation): ModerationResult.Attestation {
         return ModerationResult.Attestation(
+            rawValue = from.toByteArray().toList(),
             hash = Sha256Hash.of(from.contentHash.toByteArray()),
             timestamp = Instant.fromEpochSeconds(from.timestamp.seconds * 1000L),
             userId = from.userId.toId(),

@@ -2,10 +2,13 @@ package com.getcode.navigation
 
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.getcode.navigation.results.NavResultKey
 import com.getcode.navigation.results.NavigationRetVal
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.flow.LocalOuterCodeNavigator
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.full.allSupertypes
@@ -25,6 +28,22 @@ inline fun <reified T : NavKey> EntryProviderScope<NavKey>.annotatedEntry(
     noinline content: @Composable (T) -> Unit
 ) {
     entry(metadata = T::class.metadata(), content = content)
+}
+
+/**
+ * Like [annotatedEntry] but re-provides the outer app-level [CodeNavigator][com.getcode.navigation.core.CodeNavigator]
+ * as [LocalCodeNavigator] inside [content]. Use this for flow steps that need to push routes onto the
+ * outer/app nav graph (e.g. region selection) while running inside a [FlowHost][com.getcode.navigation.flow.FlowHost].
+ */
+inline fun <reified T : NavKey> EntryProviderScope<NavKey>.flowAnnotatedEntry(
+    noinline content: @Composable (T) -> Unit
+) {
+    entry(metadata = T::class.metadata()) { step: T ->
+        val outerNavigator = LocalOuterCodeNavigator.current
+        CompositionLocalProvider(LocalCodeNavigator provides outerNavigator) {
+            content(step)
+        }
+    }
 }
 
 /**

@@ -12,11 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Receipt
-import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,45 +19,55 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraSmall
 
 @Composable
 internal fun Stepper(modifier: Modifier = Modifier, cost: Fiat) {
-    println("cost=${cost.formatted()}")
     Column(modifier = modifier) {
         StepperItem(
-            icon = Icons.Outlined.TextFields,
+            icon = painterResource(R.drawable.ic_currencycreator_name),
             title = stringResource(R.string.title_currencyCreatorStepName),
             description = stringResource(R.string.subtitle_currencyCreatorStepName),
             weight = 0.6f,
         )
         StepperItem(
-            icon = Icons.Outlined.Image,
+            icon = painterResource(R.drawable.ic_currencycreator_icon),
             title = stringResource(R.string.title_currencyCreatorStepIcon),
             description = stringResource(R.string.subtitle_currencyCreatorStepIcon),
             weight = 0.6f,
         )
         StepperItem(
-            icon = Icons.Outlined.Edit,
+            painterResource(R.drawable.ic_currencycreator_description),
             title = stringResource(R.string.title_currencyCreatorStepDescription),
             description = stringResource(R.string.subtitle_currencyCreatorStepDescription),
             weight = 0.6f,
         )
         StepperItem(
-            icon = Icons.Outlined.Receipt,
+            painterResource(R.drawable.ic_currencycreator_cashbill),
             title = stringResource(R.string.title_currencyCreatorStepDesign),
             description = stringResource(R.string.subtitle_currencyCreatorStepDesign),
             weight = 0.6f,
         )
         StepperItem(
-            icon = Icons.Outlined.Receipt,
-            title = stringResource(R.string.title_currencyCreatorStepPurchase, cost.formatted(rule = Fiat.FormattingRule.Truncated)),
-            description = stringResource(R.string.subtitle_currencyCreatorStepPurchase, cost.formatted(rule = Fiat.FormattingRule.Truncated)),
+            painterResource(R.drawable.ic_currencycreator_purchase),
+            title = stringResource(
+                R.string.title_currencyCreatorStepPurchase,
+                cost.formatted(
+                    rule = Fiat.FormattingRule.Truncated,
+                    suffix = stringResource(R.string.subtitle_usdSuffix)
+                )
+            ),
+            description = stringResource(
+                R.string.subtitle_currencyCreatorStepPurchase,
+                cost.formatted(rule = Fiat.FormattingRule.Truncated)
+            ),
             weight = 0.6f,
             showConnector = false
         )
@@ -76,7 +81,7 @@ internal fun Stepper(modifier: Modifier = Modifier, cost: Fiat) {
  */
 @Composable
 private fun ColumnScope.StepperItem(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     description: String,
     weight: Float,
@@ -98,17 +103,17 @@ private fun ColumnScope.StepperItem(
                     .size(48.dp)
                     .background(
                         color = CodeTheme.colors.surfaceVariant,
-                        shape = CodeTheme.shapes.medium,
+                        shape = CodeTheme.shapes.extraSmall,
                     )
                     .border(
                         width = CodeTheme.dimens.border,
                         color = CodeTheme.colors.divider,
-                        shape = CodeTheme.shapes.medium,
+                        shape = CodeTheme.shapes.extraSmall,
                     ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = icon,
+                    painter = icon,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(24.dp),
@@ -139,7 +144,6 @@ private fun ColumnScope.StepperItem(
         }
 
         Column(
-            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
         ) {
             Text(

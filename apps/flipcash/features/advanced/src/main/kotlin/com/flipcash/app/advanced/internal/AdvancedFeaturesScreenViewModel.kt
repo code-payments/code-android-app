@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 private val FullMenuList = buildList {
-    add(CurrencyCreator)
     add(BillCustomizer)
     add(Deposit)
     add(DeviceLogs)
@@ -39,17 +38,11 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
-        data class OnCurrencyCreatorEnabled(val enabled: Boolean) : Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object OpenBillPlayground : Event
     }
 
     init {
-        featureFlagController.observe(FeatureFlag.CurrencyCreator)
-            .onEach {
-                dispatchEvent(Event.OnCurrencyCreatorEnabled(it))
-            }.launchIn(viewModelScope)
-
         combine(
             featureFlagController.observeOverride(),
             userFlags.resolvedFlags.map { it.isStaff.effectiveValue }
@@ -66,16 +59,6 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
                 is Event.OnBetaFeaturesUnlocked -> { state ->
                     state.copy(
                         isBetaEnabled = event.unlocked,
-                    )
-                }
-
-                is Event.OnCurrencyCreatorEnabled -> { state ->
-                    state.copy(
-                        items = if (event.enabled) {
-                            FullMenuList.filterNot { it is BillCustomizer }
-                        } else {
-                            FullMenuList.filterNot { it is CurrencyCreator }
-                        }
                     )
                 }
 

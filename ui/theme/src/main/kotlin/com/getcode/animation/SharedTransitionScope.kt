@@ -1,4 +1,4 @@
-package com.getcode.navigation.animation
+package com.getcode.animation
 
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.runtime.staticCompositionLocalOf

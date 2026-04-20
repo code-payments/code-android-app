@@ -21,6 +21,7 @@ import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.features.tokens.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
@@ -36,7 +37,7 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 fun TokenInfoScreen(
     mint: Mint,
-    forNeededFunds: Boolean,
+    shortFall: Fiat?,
     fromDeeplink: Boolean,
 ) {
     val navigator = LocalCodeNavigator.current
@@ -82,7 +83,7 @@ fun TokenInfoScreen(
 
         LaunchedEffect(Unit) {
             val source = when {
-                forNeededFunds -> Analytics.TokenInfoSource.Give
+                shortFall != null -> Analytics.TokenInfoSource.Give
                 fromDeeplink -> Analytics.TokenInfoSource.Deeplink
                 else -> Analytics.TokenInfoSource.Wallet
             }
@@ -93,10 +94,10 @@ fun TokenInfoScreen(
             )
         }
 
-        TokenInfoScreen(viewModel, forNeededFunds)
+        TokenInfoScreen(viewModel, shortFall)
 
         LaunchedEffect(Unit) {
-            viewModel.dispatchEvent(TokenInfoViewModel.Event.OnMintProvided(mint, forNeededFunds))
+            viewModel.dispatchEvent(TokenInfoViewModel.Event.OnMintProvided(mint, shortFall))
         }
 
         LaunchedEffect(viewModel) {

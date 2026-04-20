@@ -12,7 +12,7 @@ google-services = "4.4.4"
 
 androidx-appcompat = "1.7.1"
 androidx-activity = "1.13.0"
-androidx-annotation = "1.9.1"
+androidx-annotation = "1.10.0"
 androidx-biometrics = "1.4.0-alpha06"
 androidx-camerax = "1.6.0"
 androidx-credentials = "1.6.0"
@@ -21,14 +21,13 @@ androidx-datastore = "1.2.1"
 androidx-exif = "1.4.2"
 androidx-lifecycle = "2.10.0"
 androidx-navigation = "2.9.7"
-navigation3 = "1.0.1"
+navigation3 = "1.1.0"
 navigation3-lifecycle = "2.10.0"
 androidx-browser = "1.10.0"
 androidx-paging = "3.4.2"
 androidx-room = "2.8.4"
 androidx-work = "2.11.2"
 androidx-webkit = "1.15.0"
-androidx-ui = "1.10.6"
 
 sqlcipher = "4.5.4"
 
@@ -50,8 +49,7 @@ rxandroid = "3.0.2"
 kin-sdk = "2.1.2"
 grpc-android = "1.79.0"
 slf4j = "1.7.36"
-firebase-bom = "34.11.0"
-crashlytics-gradle = "3.0.6"
+firebase-bom = "34.12.0"
 play-service-ml-barcode = "18.3.1"
 google-play-billing = "8.3.0"
 google-play-updates = "2.1.0"
@@ -62,8 +60,8 @@ grpc-kotlin = "1.5.0"
 protobuf = "4.34.0"
 protobuf-plugin = "0.9.6"
 
-lib-phone-number-port = "9.0.27"
-lib-phone-number-google = "9.0.27"
+lib-phone-number-port = "9.0.28"
+lib-phone-number-google = "9.0.28"
 zxing = "3.5.4"
 
 androidx-test-runner = "1.7.0"
@@ -73,10 +71,10 @@ espresso = "3.7.0"
 mockito-kotlin = "6.3.0"
 mockk = "1.14.9"
 turbine = "1.2.1"
-robolectric = "4.16"
+robolectric = "4.16.1"
 slf4j-simple = "2.0.17"
 androidxUiJUnit = "1.10.6"
-mixpanel = "8.4.0"
+mixpanel = "8.5.0"
 
 timber = "5.0.1"
 voyager = "1.1.0-beta03"
@@ -84,12 +82,10 @@ voyager = "1.1.0-beta03"
 sodium-bindings = "0.9.5"
 desugaring = "2.1.5"
 event-bus = "0.1.0"
-solana-mwa = "2.1.0"
 
-bugsnag = "6.25.0"
+bugsnag = "6.26.0"
 bugsnag-agp = "8.2.0"
 bugsnag-gradle-plugin = "1.1.0"
-
 rinku = "1.6.0"
 haze = "1.7.2"
 cloudy = "0.5.0"
@@ -141,7 +137,6 @@ androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "
 androidx-work = { module = "androidx.work:work-runtime", version.ref = "androidx-work" }
 androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "androidx-work" }
 androidx-datastore = { module = "androidx.datastore:datastore-preferences", version.ref = "androidx-datastore" }
-androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling-android", version.ref = "androidx-ui" }
 androidx-webkit = { module = "androidx.webkit:webkit", version.ref = "androidx-webkit" }
 
 sqlcipher = { module = "net.zetetic:android-database-sqlcipher", version.ref = "sqlcipher" }
@@ -225,7 +220,6 @@ retrofit-converter-serialization = { module = "com.squareup.retrofit2:converter-
 # Firebase
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
-firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 firebase-installations = { module = "com.google.firebase:firebase-installations" }
 firebase-perf = { module = "com.google.firebase:firebase-perf" }
@@ -233,7 +227,7 @@ firebase-perf = { module = "com.google.firebase:firebase-perf" }
 # Google Play Services
 play-integrity = { module = "com.google.android.play:integrity", version = "1.6.0" }
 play-service-ml-barcode = { module = "com.google.android.gms:play-services-mlkit-barcode-scanning", version.ref = "play-service-ml-barcode" }
-play-services-wallet = { module = "com.google.android.gms:play-services-wallet", version = "19.5.0" }
+play-services-wallet = { module = "com.google.android.gms:play-services-wallet", version = "20.0.0" }
 
 # Google Play Billing
 google-play-billing-runtime = { module = "com.android.billingclient:billing", version.ref = "google-play-billing" }
@@ -274,7 +268,6 @@ haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = 
 rinku = { module = "dev.theolm:rinku", version.ref = "rinku" }
 rinku-compose = { module = "dev.theolm:rinku-compose-ext", version.ref = "rinku" }
 event-bus = { module = "io.github.hoc081098:channel-event-bus", version.ref = "event-bus" }
-solana-mwa = { module = "com.solanamobile:mobile-wallet-adapter-clientlib-ktx", version.ref = "solana-mwa" }
 
 # Testing
 androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test-runner" }
@@ -329,7 +322,6 @@ kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt = { id = "dagger.hilt.android.plugin", version.ref = "hilt" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
-firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "crashlytics-gradle" }
 firebase-perf = { id = "com.google.firebase.firebase-perf", version.ref = "firebase-perf-plugin" }
 bugsnag-android = { id = "com.bugsnag.android.gradle", version.ref = "bugsnag-agp" }
 bugsnag-gradle = { id = "com.bugsnag.gradle", version.ref = "bugsnag-gradle-plugin" }

@@ -39,9 +39,7 @@ import javax.inject.Inject
 class SelectTokenViewModel @Inject constructor(
     tokenCoordinator: TokenCoordinator,
     exchange: Exchange,
-    analytics: FlipcashAnalyticsService,
     featureFlags: FeatureFlagController,
-    private val purchaseMethodController: PurchaseMethodController,
     resources: ResourceHelper,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel2<SelectTokenViewModel.State, SelectTokenViewModel.Event>(
@@ -57,9 +55,9 @@ class SelectTokenViewModel @Inject constructor(
         val tokens: List<TokenWithLocalizedBalance>? = null,
         val selectedToken: Mint? = null,
     ) {
-        val totalBalance: LocalFiat
+        val totalBalance: LocalFiat?
             get() {
-                val set = tokens.orEmpty()
+                val set = tokens ?: return null
                 if (set.isEmpty()) {
                     return LocalFiat.Zero
                         .copy(
@@ -87,8 +85,6 @@ class SelectTokenViewModel @Inject constructor(
 
         data class OnDiscoveryEnabled(val enabled: Boolean): Event
 
-        data object OnAddCashClicked : Event
-        data object OpenOnRampAmountModal : Event
         data class OpenScreen(val route: AppRoute) : Event
     }
 
@@ -165,17 +161,6 @@ class SelectTokenViewModel @Inject constructor(
             }.onEach { dispatchEvent(Event.OnTokensUpdated(it)) }
             .launchIn(viewModelScope)
 
-        eventFlow
-            .filterIsInstance<Event.OnAddCashClicked>()
-            .onEach {
-                analytics.openOnramp(Analytics.OnrampSource.Balance)
-                val provider = purchaseMethodController.state.value.preferredProvider
-                if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
-                    // has coinbase provider supporting google pay - pop selection for quick add
-                    dispatchEvent(Event.OpenOnRampAmountModal)
-                }
-            }.launchIn(viewModelScope)
-
         tokenCoordinator.observeSelectedTokenMint()
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnTokenSelected(it, fromUser = false)) }
@@ -206,8 +191,6 @@ class SelectTokenViewModel @Inject constructor(
                 is Event.OnTokensUpdated -> { state -> state.copy(tokens = event.tokens) }
                 is Event.OnTokenSelected -> { state -> state.copy(selectedToken = event.mint) }
                 is Event.OnTokenChanged -> { state -> state }
-                is Event.OnAddCashClicked -> { state -> state }
-                is Event.OpenOnRampAmountModal -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
             }
         }

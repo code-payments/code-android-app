@@ -14,7 +14,6 @@ import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.flipcash.app.withdrawal.WithdrawalViewModel
 import com.flipcash.app.withdrawal.internal.entry.WithdrawalEntryScreen
 import com.flipcash.core.R
-import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
@@ -27,7 +26,6 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 internal fun WithdrawalEntryContent(
     selectedMint: Mint,
-    outerNavigator: CodeNavigator,
 ) {
     val codeNavigator = LocalCodeNavigator.current
     val flowNavigator = rememberFlowNavigator<WithdrawalStep, WithdrawalResult>()
@@ -40,14 +38,14 @@ internal fun WithdrawalEntryContent(
             title = stringResource(R.string.title_withdraw),
             isInModal = true,
             backButton = true,
-            onBackIconClicked = { codeNavigator.pop() },
+            onBackIconClicked = { flowNavigator.back() },
             titleAlignment = Alignment.CenterHorizontally,
         )
         WithdrawalEntryScreen(
             viewModel = viewModel,
             mint = selectedMint,
             onOpenRegionSelection = {
-                outerNavigator.push(
+                codeNavigator.push(
                     AppRoute.Main.RegionSelection(kind = RegionSelectionKind.Entry)
                 )
             },
