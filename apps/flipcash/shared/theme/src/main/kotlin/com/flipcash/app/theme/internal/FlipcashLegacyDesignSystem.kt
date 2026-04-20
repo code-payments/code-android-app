@@ -22,6 +22,7 @@ import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.White08
 import com.getcode.theme.White10
+import com.getcode.theme.White50
 import com.getcode.theme.codeTypography
 
 object FlipcashColorSpec {
@@ -75,6 +76,7 @@ private val colors = with(FlipcashColorSpec) {
         successText = success,
         textMain = Color.White,
         textSecondary = secondaryText,
+        textTertiary = White50,
         border = White08,
         divider = White10,
         dividerVariant = White05,

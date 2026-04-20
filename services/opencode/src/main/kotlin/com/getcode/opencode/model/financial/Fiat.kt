@@ -150,10 +150,7 @@ data class Fiat(
     // Comparable implementation
     override fun compareTo(other: Fiat): Int = this.quarks.compareTo(other.quarks)
 
-    fun toDouble() = formatted(
-        showPrefix = false,
-        includeCommas = false
-    ).toLocaleAwareDoubleOrNull() ?: 0.0
+    fun toDouble() = decimalValue.roundTo(currencyCode.fractionDigits, ROUNDING_MODE)
 
     fun valueNonZero(): Boolean = toDouble() != 0.0
 

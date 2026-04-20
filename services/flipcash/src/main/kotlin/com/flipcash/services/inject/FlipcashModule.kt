@@ -4,12 +4,15 @@ import android.content.Context
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.annotations.FlipcashProtocol
 import com.flipcash.services.internal.domain.ActivityFeedMessageMapper
+import com.flipcash.services.internal.domain.ImageModerationResponseMapper
 import com.flipcash.services.internal.domain.UserFlagsMapper
 import com.flipcash.services.internal.domain.SocialAccountMapper
+import com.flipcash.services.internal.domain.TextModerationResponseMapper
 import com.flipcash.services.internal.domain.UserProfileMapper
 import com.flipcash.services.internal.network.services.AccountService
 import com.flipcash.services.internal.network.services.ActivityFeedService
 import com.flipcash.services.internal.network.services.EmailVerificationService
+import com.flipcash.services.internal.network.services.ModerationService
 import com.flipcash.services.internal.network.services.PhoneVerificationService
 import com.flipcash.services.internal.network.services.ProfileService
 import com.flipcash.services.internal.network.services.PurchaseService
@@ -19,6 +22,7 @@ import com.flipcash.services.internal.network.services.ThirdPartyService
 import com.flipcash.services.internal.repositories.InternalAccountRepository
 import com.flipcash.services.internal.repositories.InternalActivityFeedRepository
 import com.flipcash.services.internal.repositories.InternalContactVerificationRepository
+import com.flipcash.services.internal.repositories.InternalModerationRepository
 import com.flipcash.services.internal.repositories.InternalProfileRepository
 import com.flipcash.services.internal.repositories.InternalPurchaseRepository
 import com.flipcash.services.internal.repositories.InternalPushRepository
@@ -27,6 +31,7 @@ import com.flipcash.services.internal.repositories.InternalThirdPartyRepository
 import com.flipcash.services.repository.AccountRepository
 import com.flipcash.services.repository.ActivityFeedRepository
 import com.flipcash.services.repository.ContactVerificationRepository
+import com.flipcash.services.repository.ModerationRepository
 import com.flipcash.services.repository.ProfileRepository
 import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.repository.PushRepository
@@ -58,12 +63,13 @@ internal object FlipcashModule {
     fun providesFlipcashProtocolConfig(
         @ApplicationContext context: Context
     ): ProtocolConfig {
-        return object: ProtocolConfig {
+        return object : ProtocolConfig {
             override val baseUrl: String
                 get() = "fc-v2.api.flipcash-infra.net"
             override val userAgent: String
                 get() {
-                    val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                    val version =
+                        context.packageManager.getPackageInfo(context.packageName, 0).versionName
                     return "Flipcash/Core/Android/$version"
                 }
         }
@@ -143,14 +149,25 @@ internal object FlipcashModule {
     internal fun providesContactVerificationRepository(
         emailService: EmailVerificationService,
         phoneService: PhoneVerificationService,
-    ): ContactVerificationRepository = InternalContactVerificationRepository(emailService, phoneService)
+    ): ContactVerificationRepository =
+        InternalContactVerificationRepository(emailService, phoneService)
 
     @Provides
     internal fun providesProfileRepository(
         service: ProfileService,
         userProfileMapper: UserProfileMapper,
         socialAccountMapper: SocialAccountMapper,
-    ): ProfileRepository = InternalProfileRepository(service, userProfileMapper, socialAccountMapper)
+    ): ProfileRepository =
+        InternalProfileRepository(service, userProfileMapper, socialAccountMapper)
 
-
+    @Provides
+    internal fun providesModerationRepository(
+        service: ModerationService,
+        textModerationResponseMapper: TextModerationResponseMapper,
+        imageModerationResponseMapper: ImageModerationResponseMapper,
+    ): ModerationRepository = InternalModerationRepository(
+        service,
+        textModerationResponseMapper,
+        imageModerationResponseMapper
+    )
 }

@@ -316,6 +316,7 @@ fun BottomBarView(
                             action.onClick()
                             onClose(SelectedBottomBarAction(index.takeIf { action.isUser } ?: -1))
                         },
+                        enabled = action.enabled,
                         textColor = when (bottomBarMessage.type) {
                             BottomBarManager.BottomBarMessageType.ERROR,
                             BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> when (action.style) {

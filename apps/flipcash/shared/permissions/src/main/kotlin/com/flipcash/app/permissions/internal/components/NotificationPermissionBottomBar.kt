@@ -44,7 +44,7 @@ internal fun NotificationPermissionBottomBar(
                 .padding(bottom = CodeTheme.dimens.grid.x2)
                 .padding(horizontal = CodeTheme.dimens.inset),
             onClick = {
-                BottomBarManager.showError(
+                BottomBarManager.showAlert(
                     title = resources.getString(R.string.error_title_ignoredPushPermissions),
                     message = resources.getString(R.string.error_description_ignoredPushPermissions),
                     actions = listOf(

@@ -25,6 +25,7 @@ import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.BalanceScreen
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
+import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositScreen
@@ -39,25 +40,18 @@ import com.flipcash.app.login.seed.SeedInputScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.onramp.OnRampCustomAmountScreen
-import com.flipcash.app.onramp.OnRampFlowTracker
-import com.flipcash.app.onramp.OnRampProviderListScreen
 import com.flipcash.app.permissions.NotificationPermissionRationaleScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
-import com.flipcash.app.tokens.BuySellFlow
-import com.flipcash.app.tokens.TokenBuySellEntryScreen
+import com.flipcash.app.tokens.SwapFlowScreen
 import com.flipcash.app.tokens.TokenInfoScreen
 import com.flipcash.app.tokens.TokenSelectScreen
-import com.flipcash.app.tokens.TokenSellReceiptScreen
 import com.flipcash.app.tokens.TokenTxProcessingScreen
 import com.flipcash.app.transactions.TransactionHistoryScreen
 import com.flipcash.app.userflags.UserFlagsScreen
-import com.flipcash.app.withdrawal.WithdrawalConfirmationScreen
-import com.flipcash.app.withdrawal.WithdrawalDestinationScreen
-import com.flipcash.app.withdrawal.WithdrawalEntryScreen
-import com.flipcash.app.withdrawal.WithdrawalFlow
+import com.flipcash.app.withdrawal.WithdrawalFlowScreen
 import com.getcode.navigation.AppNavHost
 import com.getcode.navigation.NonDismissableRoute
 import com.getcode.navigation.NonDraggableRoute
@@ -108,40 +102,25 @@ fun appEntryProvider(
 
     // Tokens
     annotatedEntry<AppRoute.Token.Info> { key ->
-        TokenInfoScreen(key.mint, key.forNeededFunds, key.fromDeeplink)
+        TokenInfoScreen(key.mint, key.shortfall, key.fromDeeplink)
     }
     annotatedEntry<AppRoute.Token.Transactions> { key -> TransactionHistoryScreen(key.mint) }
-    annotatedEntry<AppRoute.Token.SwapTransact> { key ->
-        remember { BuySellFlow.start(key.forNeededFunds) }
-        TokenBuySellEntryScreen(key.purpose)
+    annotatedEntry<AppRoute.Token.Swap> { key ->
+        SwapFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
     annotatedEntry<AppRoute.Token.TxProcessing> { key ->
-        TokenTxProcessingScreen(key.swapId, key.awaitExternalWallet)
+        TokenTxProcessingScreen(key.swapId, key.awaitExternalWallet, key.isFundingShortfall)
     }
-    annotatedEntry<AppRoute.Token.SellReceipt> { TokenSellReceiptScreen() }
+    annotatedEntry<AppRoute.Token.OnRamp> { key -> OnRampCustomAmountScreen(key.mint) }
     annotatedEntry<AppRoute.Token.Discovery> { TokenDiscoveryScreen() }
+    annotatedEntry<AppRoute.Token.CurrencyCreator> { key ->
+        CurrencyCreatorFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
+    }
 
     // Verification
     annotatedEntry<AppRoute.Verification> { key ->
-        VerificationFlowScreen(
-            origin = key.origin,
-            target = key.target,
-            includePhone = key.includePhone,
-            includeEmail = key.includeEmail,
-            emailAddress = key.email,
-            emailVerificationCode = key.emailVerificationCode,
-        )
+        VerificationFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
-
-    // OnRamp
-    annotatedEntry<AppRoute.OnRamp.ProviderList> { key ->
-        remember { OnRampFlowTracker.start(key.from) }
-        OnRampProviderListScreen(
-            neededAmount = key.neededAmount?.quarks,
-            neededCurrency = key.neededAmount?.currencyCode,
-        )
-    }
-    annotatedEntry<AppRoute.OnRamp.AmountEntry> { key -> OnRampCustomAmountScreen(key.mint) }
 
     // Menu
     annotatedEntry<AppRoute.Menu.AppSettings> { AppSettingsScreen() }
@@ -154,12 +133,9 @@ fun appEntryProvider(
 
     annotatedEntry<AppRoute.UserFlags> { UserFlagsScreen() }
     // Transfers
-    annotatedEntry<AppRoute.Transfers.Withdrawal.Amount> { key ->
-        remember { WithdrawalFlow.start() }
-        WithdrawalEntryScreen(key.mint)
+    annotatedEntry<AppRoute.Transfers.Withdrawal> { key ->
+        WithdrawalFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
-    annotatedEntry<AppRoute.Transfers.Withdrawal.Destination> { WithdrawalDestinationScreen() }
-    annotatedEntry<AppRoute.Transfers.Withdrawal.Confirmation> { WithdrawalConfirmationScreen() }
 }
 
 /**
@@ -219,9 +195,12 @@ private fun SheetContent(
             decorators = listOf(
                 rememberNavMessagingEntryDecorator(navigator.backStack, barManager)
             ),
-            sceneStrategy = ModalBottomSheetSceneStrategy<NavKey>(navigator.resultStore) {
-                navigator.backStack.getOrNull(navigator.backStack.lastIndex - 1)
-            } then SinglePaneSceneStrategy(),
+            sceneStrategies = listOf(
+                ModalBottomSheetSceneStrategy(navigator.resultStore) {
+                    navigator.backStack.getOrNull(navigator.backStack.lastIndex - 1)
+                },
+                SinglePaneSceneStrategy(),
+            ),
             transitionSpec = {
                 if (targetState is OverlayScene<*> || initialState is OverlayScene<*>) {
                     EnterTransition.None togetherWith ExitTransition.None

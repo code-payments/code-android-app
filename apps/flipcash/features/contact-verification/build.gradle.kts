@@ -17,7 +17,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     implementation(project(":apps:flipcash:shared:analytics"))
-    implementation(project(":apps:flipcash:shared:navigation-flow"))
     implementation(project(":apps:flipcash:shared:phone"))
     implementation(project(":libs:messaging"))
 }

@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,10 +27,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.withdrawal.WithdrawalViewModel
 import com.flipcash.features.withdrawal.R
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
 import com.getcode.ui.components.TextInput
@@ -39,23 +36,11 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.rememberKeyboardController
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun WithdrawalDestinationScreen(viewModel: WithdrawalViewModel) {
-    val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     WithdrawalDestinationScreenContent(state, viewModel::dispatchEvent)
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<WithdrawalViewModel.Event.OnDestinationConfirmed>()
-            .onEach {
-                navigator.push(AppRoute.Transfers.Withdrawal.Confirmation)
-            }.launchIn(this)
-    }
 }
 
 @Composable
@@ -142,9 +127,6 @@ private fun WithdrawalDestinationScreenContent(
                                 modifier = Modifier.align(Alignment.CenterVertically),
                                 text = when {
                                     availability.isValid -> stringResource(id = R.string.subtitle_validAddress)
-//                                    !availability.hasResolvedDestination -> {
-//                                        stringResource(R.string.error_title_destinationAccountNotInitialized)
-//                                    }
                                     else -> stringResource(R.string.error_title_invalidAddress)
                                 },
                                 color = if (availability.isValid) CodeTheme.colors.successText else CodeTheme.colors.errorText,

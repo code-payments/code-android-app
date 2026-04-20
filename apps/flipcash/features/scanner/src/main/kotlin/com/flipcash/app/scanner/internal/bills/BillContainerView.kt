@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -71,15 +72,16 @@ internal fun BillContainer(
 ) {
     val session = LocalSessionController.current!!
     val context = LocalContext.current
+    val resources = LocalResources.current
     val onPermissionResult = { result: PermissionResult ->
         if (result == PermissionResult.PermanentlyDenied) {
-            BottomBarManager.showError(
-                title = context.getString(R.string.action_allowCameraAccess),
-                message = context.getString(R.string.error_description_cameraAccessRequired),
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.action_allowCameraAccess),
+                message = resources.getString(R.string.error_description_cameraAccessRequired),
                 actions = listOf(
                     BottomBarAction.Ok,
                     BottomBarAction(
-                        text = context.getString(R.string.action_openSettings),
+                        text = resources.getString(R.string.action_openSettings),
                         style = BottomBarManager.BottomBarButtonStyle.Filled50,
                         onClick = { context.launchAppSettings() }
 

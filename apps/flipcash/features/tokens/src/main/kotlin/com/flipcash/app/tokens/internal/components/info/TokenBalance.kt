@@ -45,25 +45,22 @@ internal fun TokenBalance(
             }
         } else {
             key(balance) {
-                Crossfade(balance) { amount ->
-                    AmountArea(
-                        amountText = amount.formatted(),
-                        isAltCaption = false,
-                        isAltCaptionKinIcon = false,
-                        captionText = null,
-                        currencyResId = exchange.getFlagByCurrency(amount.currencyCode.name),
-                        isClickable = true,
-                        textStyle = CodeTheme.typography.displayLarge,
-                        onClick = onClick
-                    )
-                }
+                AmountArea(
+                    amountText = balance.formatted(),
+                    isAltCaption = false,
+                    isAltCaptionKinIcon = false,
+                    captionText = null,
+                    currencyResId = exchange.getFlagByCurrency(balance.currencyCode.name),
+                    isClickable = true,
+                    animateDigits = true,
+                    textStyle = CodeTheme.typography.displayLarge,
+                    onClick = onClick
+                )
             }
 
             if (appreciation != null) {
                 key(appreciation) {
-                    Crossfade(appreciation) { amount ->
-                        CurrencyAppreciationLabel(amount)
-                    }
+                    CurrencyAppreciationLabel(appreciation)
                 }
             }
         }

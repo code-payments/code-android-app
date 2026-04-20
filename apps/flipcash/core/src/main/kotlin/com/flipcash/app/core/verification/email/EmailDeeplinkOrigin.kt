@@ -24,9 +24,7 @@ sealed class EmailDeeplinkOrigin {
             is OnRamp -> {
                 val amountString = amount?.let { Json.encodeToString(Fiat.Companion.serializer(), it) }
                 when (source) {
-                    is AppRoute.Sheets.Menu -> "onramp|menu|$amountString"
-                    is AppRoute.OnRamp.AmountEntry -> "onramp|amountentry|${source.mint.base58()}"
-
+                    is AppRoute.Token.OnRamp -> "onramp|amountentry|${source.mint.base58()}"
                     else -> "onramp|null|$amountString"
                 }
             }
@@ -38,7 +36,7 @@ sealed class EmailDeeplinkOrigin {
     companion object {
         fun fromRoute(route: AppRoute?): EmailDeeplinkOrigin? {
             return when (route) {
-                is AppRoute.OnRamp.AmountEntry -> {
+                is AppRoute.Token.OnRamp -> {
                     OnRamp(route)
                 }
 
@@ -66,7 +64,7 @@ sealed class EmailDeeplinkOrigin {
                                 return null
                             }
 
-                            AppRoute.OnRamp.AmountEntry(mint)
+                            AppRoute.Token.OnRamp(mint)
                         }
                         else -> null
                     }

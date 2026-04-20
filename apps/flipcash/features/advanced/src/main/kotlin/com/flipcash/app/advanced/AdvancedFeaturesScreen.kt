@@ -10,6 +10,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.flipcash.app.advanced.internal.AdvancedFeaturesScreen
 import com.flipcash.app.advanced.internal.AdvancedFeaturesScreenViewModel
+import com.flipcash.app.bill.customization.Event
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -53,7 +54,7 @@ fun AdvancedFeaturesScreen() {
             .filterIsInstance<AdvancedFeaturesScreenViewModel.Event.OpenBillPlayground>()
             .onEach {
                 navigator.hide()
-                billPlayground.customizeFor(Token.usdf)
+                billPlayground.dispatchEvent(Event.Load())
             }
             .launchIn(this)
     }

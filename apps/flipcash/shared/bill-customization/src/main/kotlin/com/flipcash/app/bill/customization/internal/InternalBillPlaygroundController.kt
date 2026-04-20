@@ -5,20 +5,25 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.bill.customization.BillPlaygroundController
 import com.flipcash.app.bill.customization.Event
-import com.flipcash.app.bill.customization.Event.Colors as ColorEvent
-import com.flipcash.app.bill.customization.Event.Graphics as GraphicsEvent
+import com.flipcash.app.bill.customization.PlaygroundContext
 import com.flipcash.app.bill.customization.PlaygroundState
+import com.flipcash.app.bill.customization.internal.defaults.PresetTextures
 import com.flipcash.app.bill.customization.internal.features.BackgroundController
-import com.flipcash.app.bill.customization.internal.features.BlendMode
+import com.flipcash.app.bill.customization.internal.features.ColorState
+import com.flipcash.app.bill.customization.internal.features.GraphicState
 import com.flipcash.app.bill.customization.internal.features.TextureController
 import com.flipcash.app.bill.customization.models.PlaygroundFeature
 import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.financial.toFiat
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.ui.BillBackground
+import com.getcode.opencode.model.ui.BlendMode
+import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.opencode.utils.nonce
 import com.getcode.ui.utils.Hsv
 import com.getcode.ui.utils.toHex
@@ -32,17 +37,34 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.float
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
+import com.flipcash.app.bill.customization.Event.Colors as ColorEvent
+import com.flipcash.app.bill.customization.Event.Graphics as GraphicsEvent
+import com.flipcash.app.bill.customization.internal.features.BlendMode as UiBlendMode
 
 @OptIn(ExperimentalStdlibApi::class)
 class InternalBillPlaygroundController(
     private val clipboard: ClipboardManager,
+    featureFlags: FeatureFlagController,
 ) : BillPlaygroundController, ViewModel() {
 
     private val backgroundController = BackgroundController { pushUndoSnapshot() }
-    private val textureController = TextureController { pushUndoSnapshot() }
+    private val textureController = TextureController(featureFlags, viewModelScope) { pushUndoSnapshot() }
 
     private val _state: MutableStateFlow<PlaygroundState> = MutableStateFlow(PlaygroundState())
     override val state: StateFlow<PlaygroundState> = _state.asStateFlow()
+
+    private val json = Json { explicitNulls = false }
 
     init {
         combine(
@@ -50,9 +72,23 @@ class InternalBillPlaygroundController(
             backgroundController.state,
             textureController.state,
         ) { currentPlayground, currentBackground, currentTexture ->
+            val features = currentPlayground.context.availableFeatures
+                .filter { feature ->
+                    when (feature) {
+                        PlaygroundFeature.Textures -> currentTexture.enabled
+                        else -> true
+                    }
+                }
+            val selectedFeature = currentPlayground.selectedFeature
+                .takeIf { it in features }
+                ?: features.firstOrNull()
+                ?: currentPlayground.selectedFeature
+
             currentPlayground.copy(
                 backgroundState = currentBackground,
                 textureState = currentTexture,
+                features = features,
+                selectedFeature = selectedFeature,
             )
         }.onEach { combinedState ->
             _state.value = combinedState
@@ -77,12 +113,20 @@ class InternalBillPlaygroundController(
         get() = !undoStack.isEmpty()
 
     override val canCopy: Boolean
+        get() = false
+
+    override val canPaste: Boolean
         get() = true
 
-    override fun customizeFor(token: Token) {
+    private fun customizeFor(
+        token: Token,
+        amount: Fiat,
+        customizations: TokenBillCustomizations?,
+        context: PlaygroundContext,
+    ) {
         // create amount for the bill
         val demoAmount = LocalFiat(
-            usdf = 5.toFiat(),
+            usdf = amount,
         )
 
         // provide bill "data" to render the scan code
@@ -93,18 +137,61 @@ class InternalBillPlaygroundController(
         )
         // create bill for token
         val bill = Bill.Cash(
-            token = token.copy(billCustomizations = null),
+            token = token.copy(billCustomizations = customizations),
             amount = demoAmount,
             disableGestures = true,
             data = payloadInfo.codeData.toList()
         )
 
-        _state.update { it.copy(bill = bill) }
+        _state.update { current ->
+            current.copy(
+                bill = bill,
+                context = context,
+            )
+        }
     }
 
     override fun dispatchEvent(event: Event) {
         when (event) {
             // high level actions
+            is Event.Load -> {
+                // Reset to fresh random state
+                backgroundController.restore(ColorState())
+                textureController.restore(
+                    GraphicState(
+                        enabled = textureController.state.value.enabled,
+                        options = PresetTextures,
+                        selectedOption = 0
+                    )
+                )
+
+                // Load existing customizations if provided
+                event.customizations?.background?.let { backgroundController.load(it) }
+                event.customizations?.texture?.let { texture ->
+                    textureController.apply(texture.index - 1) // 1-based → 0-based
+                    val mode = when (texture.blendMode) {
+                        BlendMode.Normal -> UiBlendMode.Normal
+                        BlendMode.Lighten -> UiBlendMode.Lighten
+                        BlendMode.Screen -> UiBlendMode.Screen
+                        BlendMode.ColorDodge -> UiBlendMode.ColorDodge
+                        BlendMode.PlusLighter -> UiBlendMode.PlusLighter
+                    }
+                    textureController.commitBlend(mode, texture.strength)
+                }
+
+                // Clear undo — fresh session (also clears entries pushed by load/apply/commitBlend)
+                undoStack.clear()
+
+                customizeFor(Token.usdf, event.amount, event.customizations, event.context)
+            }
+
+            is Event.PresentPasteOption -> {
+                _state.update { it.copy(awaitingPaste = event.show) }
+            }
+            is Event.ApplyFromClipboard -> {
+                applyConfiguration()
+                dispatchEvent(Event.PresentPasteOption(false))
+            }
             
             // selecting feature from tab row
             is Event.SelectFeature -> selectFeature(event.feature)
@@ -228,7 +315,7 @@ class InternalBillPlaygroundController(
         }
     }
 
-    private fun commitBlend(blendMode: BlendMode, strength: Float?) {
+    private fun commitBlend(blendMode: UiBlendMode, strength: Float?) {
         val feature = _state.value.selectedFeature
         if (feature !is PlaygroundFeature.Graphic) return
 
@@ -267,14 +354,68 @@ class InternalBillPlaygroundController(
         }
     }
 
+    private fun applyConfiguration() {
+        val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString()?.trim() ?: return
+        try {
+            // Try new JSON format first
+            val root = Json.parseToJsonElement(text).jsonObject
+
+            val backgroundArray = root["background"]?.jsonArray ?: return
+            val hexColors = backgroundArray.map { it.jsonPrimitive.content }
+            val background = if (hexColors.size == 1) {
+                BillBackground.Solid(hexColors.first())
+            } else {
+                BillBackground.Gradient(hexColors)
+            }
+            backgroundController.load(background)
+
+            if (textureController.state.value.enabled) {
+                root["texture"]?.jsonObject?.let { tex ->
+                    val index = tex["index"]?.jsonPrimitive?.int ?: return@let
+                    val blendModeName = tex["blendMode"]?.jsonPrimitive?.content ?: return@let
+                    val strength = tex["strength"]?.jsonPrimitive?.float ?: return@let
+
+                    val blendMode =
+                        UiBlendMode.entries.firstOrNull { it.name == blendModeName } ?: return@let
+                    textureController.apply(index - 1)
+                    textureController.commitBlend(blendMode, strength)
+                }
+            }
+        } catch (_: Exception) {
+            // Fall back to legacy comma-separated hex colors
+            val hexColors = text.split(",").map { it.trim() }.filter { it.startsWith("#") }
+            if (hexColors.isEmpty()) return
+            val background = if (hexColors.size == 1) {
+                BillBackground.Solid(hexColors.first())
+            } else {
+                BillBackground.Gradient(hexColors)
+            }
+            backgroundController.load(background)
+        }
+    }
+
     private fun copyConfiguration() {
-        val backgroundColors = _state.value.backgroundState.selectedColors.map { it.color }
-            .map { it.toHex() }
+        val payload = buildJsonObject {
+            putJsonArray("background") {
+                _state.value.backgroundState.selectedColors.forEach { store ->
+                    add(store.color.toHex())
+                }
+            }
+            _state.value.texture?.let { texture ->
+                putJsonObject("texture") {
+                    put("index", texture.index)
+                    put("blendMode", texture.blendMode.name)
+                    put("strength", texture.strength)
+                }
+            }
+        }
+
+        val export = json.encodeToString(payload)
 
         clipboard.setPrimaryClip(
             android.content.ClipData.newPlainText(
                 "",
-                backgroundColors.joinToString()
+                export
             )
         )
     }

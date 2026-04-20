@@ -28,6 +28,8 @@ open class PublicKey(bytes: List<Byte>) : Key32(bytes), Parcelable {
             return PublicKey(byteString.toByteArray().toList())
         }
 
+        val ZERO: PublicKey = PublicKey(zero.bytes)
+
         @JvmField
         val CREATOR: Parcelable.Creator<PublicKey> =
             object : Parcelable.Creator<PublicKey> {

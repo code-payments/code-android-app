@@ -24,6 +24,7 @@ class ExchangeStub(
     override fun observeEntryRate(): Flow<Rate> = emptyFlow()
 
     override suspend fun setPreferredEntryCurrency(currencyCode: CurrencyCode) = Unit
+    override fun resetEntryToBalance() = Unit
 
     override val balanceRate: Rate = Rate.oneToOne
 

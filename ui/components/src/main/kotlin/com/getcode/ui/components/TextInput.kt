@@ -6,13 +6,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
@@ -24,6 +21,9 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.Text
 import androidx.compose.material.TextFieldColors
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,11 +39,14 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.datasource.LoremIpsum
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.theme.extraSmall
 import com.getcode.theme.inputColors
 import com.getcode.ui.core.addIf
@@ -57,6 +60,7 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 fun TextInput(
     modifier: Modifier = Modifier,
+    textModifier: Modifier = Modifier,
     placeholder: String = "",
     minLines: Int = 1,
     maxLines: Int = 4,
@@ -117,12 +121,14 @@ fun TextInput(
             keyboardOptions = keyboardOptions,
             onKeyboardAction = onKeyboardAction,
             textStyle = style.copy(color = textColor, fontSize = textSize),
-            lineLimits = if (maxLines == 1) {
-                TextFieldLineLimits.SingleLine
-            } else {
-                TextFieldLineLimits.MultiLine(
+            lineLimits = when (maxLines) {
+                1 -> TextFieldLineLimits.SingleLine
+                Int.MAX_VALUE -> TextFieldLineLimits.MultiLine(
                     minHeightInLines = minLines,
-                    maxHeightInLines = maxLines
+                )
+                else -> TextFieldLineLimits.MultiLine(
+                    minHeightInLines = minLines,
+                    maxHeightInLines = maxLines,
                 )
             },
             inputTransformation = inputTransformation,
@@ -139,7 +145,8 @@ fun TextInput(
                     contentPadding = contentPadding,
                     textFieldAlignment = textFieldAlignment,
                     shape = shape,
-                    innerTextField = it
+                    innerTextField = it,
+                    textModifier = textModifier,
                 )
             },
             scrollState = scrollState
@@ -167,6 +174,7 @@ private fun DecoratorBox(
     placeholder: String,
     placeholderStyle: TextStyle,
     placeholderColor: Color,
+    textModifier: Modifier = Modifier,
     borderColor: Color = CodeTheme.colors.brandLight,
     contentPadding: PaddingValues,
     leadingIcon: (@Composable () -> Unit)?,
@@ -178,7 +186,6 @@ private fun DecoratorBox(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
             .border(
                 width = CodeTheme.dimens.border,
                 color = borderColor,
@@ -190,12 +197,10 @@ private fun DecoratorBox(
         leadingIcon?.invoke()
         Box(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-            ,
+                .weight(1f),
             contentAlignment = textFieldAlignment
         ) {
-            Box(modifier = Modifier.padding(contentPadding)) {
+            Box(modifier = Modifier.padding(contentPadding).then(textModifier)) {
                 innerTextField()
             }
             if (state.text.isEmpty() && placeholder.isNotEmpty()) {
@@ -215,3 +220,147 @@ private fun DecoratorBox(
         trailingIcon?.invoke()
     }
 }
+
+// region Previews
+
+@Preview
+@Composable
+private fun TextInputEmptyPreview() {
+    DesignSystem {
+        TextInput(
+            state = remember { TextFieldState() },
+            placeholder = "Enter text",
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TextInputWithTextPreview() {
+    DesignSystem {
+        TextInput(
+            state = remember { TextFieldState("Hello, world!") },
+            placeholder = "Enter text",
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TextInputSingleLinePreview() {
+    DesignSystem {
+        TextInput(
+            state = remember { TextFieldState() },
+            placeholder = "Single line",
+            maxLines = 1,
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TextInputMultiLinePreview() {
+    DesignSystem {
+        TextInput(
+            state = remember { TextFieldState("Line one\nLine two\nLine three") },
+            placeholder = "Multi line",
+            maxLines = 4,
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TextInputUnboundedEmptyPreview() {
+    DesignSystem {
+        TextInput(
+            state = remember { TextFieldState() },
+            placeholder = "Unbounded lines",
+            maxLines = Int.MAX_VALUE,
+            minHeight = 0.dp,
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TextInputUnboundedWithTextPreview() {
+    DesignSystem {
+        TextInput(
+            state = remember { TextFieldState("First line\nSecond line\nThird line") },
+            placeholder = "Unbounded lines",
+            maxLines = Int.MAX_VALUE,
+            minHeight = 0.dp,
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TextInputDisabledPreview() {
+    DesignSystem {
+        TextInput(
+            state = remember { TextFieldState("Disabled input") },
+            placeholder = "Disabled",
+            enabled = false,
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TextInputErrorPreview() {
+    DesignSystem {
+        TextInput(
+            state = remember { TextFieldState("Invalid value") },
+            placeholder = "Error state",
+            isError = true,
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TextInputUnboundedLoremIpsumPreview() {
+    DesignSystem {
+        TextInput(
+            state = remember {
+                TextFieldState(LoremIpsum(1000).values.joinToString(" "))
+            },
+            placeholder = "Unbounded lines",
+            maxLines = Int.MAX_VALUE,
+            minHeight = 0.dp,
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun TextInputWithIconsPreview() {
+    DesignSystem {
+        TextInput(
+            state = remember { TextFieldState() },
+            placeholder = "Search...",
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    modifier = Modifier.padding(start = 12.dp),
+                    tint = Color.White,
+                )
+            },
+        )
+    }
+}
+
+// endregion

@@ -3,10 +3,19 @@ package com.flipcash.app.core
 import android.os.Parcelable
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.money.RegionSelectionKind
+import com.flipcash.app.core.tokens.CurrencyCreatorResult
+import com.flipcash.app.core.tokens.CurrencyCreatorStep
+import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.core.tokens.SwapResult
+import com.flipcash.app.core.tokens.SwapStep
 import com.flipcash.app.core.tokens.TokenPurpose
-import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.flipcash.app.core.verification.VerificationResult
+import com.flipcash.app.core.verification.VerificationStep
+import com.flipcash.app.core.withdrawal.WithdrawalResult
+import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.getcode.navigation.NonDismissableRoute
 import com.getcode.navigation.NonDraggableRoute
+import com.getcode.navigation.flow.FlowRouteWithResult
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
@@ -73,12 +82,20 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Parcelize
     data class Verification(
         val origin: AppRoute,
-        val target: AppRoute? = null,
         val includePhone: Boolean = true,
         val includeEmail: Boolean = true,
         val email: String? = null,
         val emailVerificationCode: String? = null,
-    ) : AppRoute
+    ) : AppRoute, FlowRouteWithResult<VerificationResult> {
+        override val initialStack: List<NavKey>
+            get() = buildVerificationInitialStack(
+                origin = origin,
+                includePhone = includePhone,
+                includeEmail = includeEmail,
+                emailAddress = email,
+                emailVerificationCode = emailVerificationCode,
+            )
+    }
 
     @Serializable
     @Parcelize
@@ -103,53 +120,49 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class Info(
             val mint: Mint,
-            val forNeededFunds: Boolean = false,
+            val shortfall: Fiat? = null,
             val fromDeeplink: Boolean = false
         ) : Token
 
         @Serializable
         data class Transactions(val mint: Mint) : Token
         @Serializable
-        data class SwapTransact(
-            val purpose: TokenSwapPurpose,
-            val forNeededFunds: Boolean = false
-        ) : Token
+        data class Swap(
+            val purpose: SwapPurpose,
+            val shortfall: Fiat? = null,
+        ) : Token, FlowRouteWithResult<SwapResult> {
+            override val initialStack: List<NavKey>
+                get() = listOf(SwapStep.Entry(purpose))
+        }
 
         @Serializable
-        data class TxProcessing(val swapId: SwapId, val awaitExternalWallet: Boolean = false) :
-            Token, NonDismissableRoute, NonDraggableRoute
+        data class TxProcessing(
+            val swapId: SwapId,
+            val awaitExternalWallet: Boolean = false,
+            val isFundingShortfall: Boolean = false,
+        ) : Token, NonDismissableRoute, NonDraggableRoute
 
         @Serializable
-        data object SellReceipt : Token
+        data class OnRamp(val mint: Mint) : Token
 
         @Serializable
         data object Discovery: AppRoute
 
-    }
-    @Serializable
-    @Parcelize
-    sealed interface OnRamp : AppRoute {
         @Serializable
-        data class ProviderList(
-            val from: AppRoute? = null,
-            val neededAmount: Fiat? = null,
-        ) : OnRamp
-
-        @Serializable
-        data class AmountEntry(val mint: Mint) : OnRamp
+        data object CurrencyCreator : Token, FlowRouteWithResult<CurrencyCreatorResult> {
+            override val initialStack: List<NavKey>
+                get() = listOf(CurrencyCreatorStep.Info)
+        }
     }
 
     @Serializable
     @Parcelize
     sealed interface Transfers : AppRoute {
 
-        sealed interface Withdrawal {
-            @Serializable
-            data class Amount(val mint: Mint) : Transfers
-            @Serializable
-            data object Destination : Transfers
-            @Serializable
-            data object Confirmation : Transfers
+        @Serializable
+        data class Withdrawal(val mint: Mint) : Transfers, FlowRouteWithResult<WithdrawalResult> {
+            override val initialStack: List<NavKey>
+                get() = listOf(WithdrawalStep.Amount(mint))
         }
     }
 
@@ -175,4 +188,28 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Serializable
     @Parcelize
     data object UserFlags : AppRoute
+}
+
+private fun buildVerificationInitialStack(
+    origin: AppRoute,
+    includePhone: Boolean,
+    includeEmail: Boolean,
+    emailAddress: String?,
+    emailVerificationCode: String?,
+): List<NavKey> {
+    if (includePhone && includeEmail) {
+        return listOf(VerificationStep.Intro(origin is AppRoute.Token.OnRamp))
+    }
+    if (includePhone) {
+        return listOf(VerificationStep.PhoneEntry)
+    }
+    if (includeEmail) {
+        return buildList {
+            add(VerificationStep.EmailEntry)
+            if (emailAddress != null && emailVerificationCode != null) {
+                add(VerificationStep.EmailMagicLink(emailAddress, emailVerificationCode))
+            }
+        }
+    }
+    return emptyList()
 }

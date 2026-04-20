@@ -6,7 +6,9 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapDirection
 import com.getcode.opencode.model.transactions.SwapResponseServerParameters
-import com.getcode.opencode.solana.swap.buildBuyInstructions
+import com.getcode.opencode.model.financial.MintMetadata
+import com.getcode.opencode.solana.swap.buildExistingCurrencyBuyInstructions
+import com.getcode.opencode.solana.swap.buildNewCurrencyBuyInstructions
 import com.getcode.opencode.solana.swap.buildSellInstructions
 import com.getcode.opencode.solana.swap.buildUsdcToUsdfSwapInstructions
 import com.getcode.solana.keys.Hash
@@ -31,7 +33,7 @@ object TransactionBuilder {
      * @return A constructed [SolanaTransaction] (V0) ready to be signed and submitted to the network.
      */
     fun swap(
-        response: SwapResponseServerParameters,
+        response: SwapResponseServerParameters.ExistingCurrency,
         authority: PublicKey,
         swapAuthority: PublicKey,
         direction: SwapDirection,
@@ -41,7 +43,7 @@ object TransactionBuilder {
         val coreMint = Token.usdf
 
         val instructions = when (direction) {
-            is SwapDirection.Buy -> buildBuyInstructions(
+            is SwapDirection.Buy -> buildExistingCurrencyBuyInstructions(
                 serverParameters = response,
                 nonce = response.nonce,
                 authority = authority,
@@ -63,6 +65,28 @@ object TransactionBuilder {
                 minOutput = minOutput,
             )
         }
+
+        return SolanaTransaction.newV0Instance(
+            payer = response.payer,
+            recentBlockhash = response.blockhash,
+            addressLookupTables = response.alts,
+            instructions = instructions,
+        )
+    }
+
+    fun buyNewCurrency(
+        response: SwapResponseServerParameters.NewCurrency,
+        authority: PublicKey,
+        coreMintMetadata: MintMetadata,
+        amount: Long,
+    ): SolanaTransaction {
+        val instructions = buildNewCurrencyBuyInstructions(
+            serverParameters = response,
+            nonce = response.nonce,
+            authority = authority,
+            coreMintMetadata = coreMintMetadata,
+            amount = amount,
+        )
 
         return SolanaTransaction.newV0Instance(
             payer = response.payer,

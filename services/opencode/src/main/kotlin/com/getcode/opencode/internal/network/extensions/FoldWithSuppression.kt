@@ -3,6 +3,7 @@ package com.getcode.opencode.internal.network.extensions
 import com.getcode.utils.SuppressibleException
 import io.grpc.Status
 import io.grpc.StatusException
+import kotlinx.coroutines.CancellationException
 
 fun <T, R> Result<T>.foldWithSuppression(
     onSuccess: (T) -> R,
@@ -10,6 +11,8 @@ fun <T, R> Result<T>.foldWithSuppression(
 ): R = fold(
     onSuccess = onSuccess,
     onFailure = { throwable ->
+        if (throwable is CancellationException) throw throwable
+
         val shouldSuppress = when {
             didReceiveGoAway(throwable) -> true
             else -> false

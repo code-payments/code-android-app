@@ -2,7 +2,7 @@ package com.getcode.navigation.scenes
 
 import android.os.Build
 import android.os.Parcelable
-import androidx.compose.foundation.LocalOverscrollFactory
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -33,6 +33,7 @@ import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SceneStrategyScope
+import com.getcode.animation.LocalSharedTransitionScope
 import com.getcode.navigation.NavMetadataKeys
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -183,13 +184,16 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                             .fillMaxWidth()
                             .fillMaxHeight(CodeTheme.dimens.modalHeightRatio)
                     ) {
-                        CompositionLocalProvider(
-                            LocalBottomSheetDismissDispatcher provides { dismiss(true) },
-                            LocalSheetNavigator provides navigator,
-                        ) {
-                            entry.Content()
+                        SharedTransitionLayout {
+                            CompositionLocalProvider(
+                                LocalBottomSheetDismissDispatcher provides { dismiss(true) },
+                                LocalSheetNavigator provides navigator,
+                                LocalSharedTransitionScope provides this,
+                            ) {
+                                entry.Content()
+                            }
+                            ScrimOverlay(scrim)
                         }
-                        ScrimOverlay(scrim)
                     }
                 }
             }

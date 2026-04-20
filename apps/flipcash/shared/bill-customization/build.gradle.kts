@@ -9,6 +9,7 @@ android {
 dependencies {
     implementation(libs.kotlinx.serialization.json)
 
+    implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:router"))
     implementation(project(":libs:messaging"))
 }

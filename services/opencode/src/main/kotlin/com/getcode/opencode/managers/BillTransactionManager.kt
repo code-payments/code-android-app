@@ -21,6 +21,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.timedTraceSuspend
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -170,7 +171,10 @@ class BillTransactionManager @Inject constructor(
                     val mint = metadata.exchangeData.mint
                     val amount = LocalFiat(metadata.exchangeData)
 
-                    val token = tokenProvider.getTokenMetadata(mint).getOrNull()?.token
+                    val token = timedTraceSuspend(
+                        message = "post-grab tokenMetadata fetch",
+                        tag = "Bill",
+                    ) { tokenProvider.getTokenMetadata(mint).getOrNull()?.token }
                     if (token == null) {
                         onError(IllegalStateException("No metadata found for token $mint"))
                         return@onSuccess

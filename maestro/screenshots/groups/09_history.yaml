@@ -15,7 +15,7 @@ tags:
       id: token_info_screen
 
 # Navigate to transaction history
-- tapOn: View Transaction History
+- tapOn: Transaction History
 - extendedWaitUntil:
     visible:
       id: transaction_history_screen

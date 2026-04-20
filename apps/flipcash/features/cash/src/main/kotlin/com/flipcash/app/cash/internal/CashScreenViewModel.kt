@@ -143,12 +143,11 @@ internal class CashScreenViewModel @Inject constructor(
                             val amountFiat = LocalFiat.valueExchangeIn(
                                 amount =  Fiat(amount, rate.currency),
                                 token = token,
-                                balance = balance.underlyingTokenAmount,
                                 rate = rate,
                             )
 
                             val neededAmount = amountFiat.nativeAmount - tokenBalance
-
+                            println("entered amount ${amountFiat.nativeAmount}, tokenbalace=$tokenBalance, needed=$neededAmount")
                             dispatchEvent(Event.AddCashToWallet(neededAmount))
                         }
                     },
@@ -168,7 +167,7 @@ internal class CashScreenViewModel @Inject constructor(
             currency.code?.let { stateFlow.value.limits?.sendLimitFor(it) } ?: SendLimit.Zero
         val isOverLimit = amount > sendLimit.nextTransaction
         if (isOverLimit) {
-            BottomBarManager.showError(
+            BottomBarManager.showAlert(
                 resources.getString(R.string.error_title_sendLimitReached),
                 resources.getString(R.string.error_description_sendLimitReached)
             )
@@ -322,17 +321,22 @@ internal class CashScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.AddCashToWallet>()
             .map { it.amount }
-            .onEach {
+            .onEach { shortfall ->
                 // route to buy the token
+                println("shortfall=$shortfall")
                 dispatchEvent(
                     Event.OpenScreen(
                         AppRoute.Token.Info(
                             mint = stateFlow.value.selectedTokenAddress!!,
-                            forNeededFunds = true
+                            shortfall = shortfall,
                         ),
                     )
                 )
             }.launchIn(viewModelScope)
+    }
+
+    override fun onCleared() {
+        exchange.resetEntryToBalance()
     }
 
     internal companion object {

@@ -52,10 +52,11 @@ internal class TokenDiscoveryViewModel @Inject constructor(
         data class LoadTokensForCategory(val category: DiscoverCategory) : Event
         data object Refresh : Event
         data class OpenTokenInfo(val mint: Mint) : Event
+        data object CreateCurrency: Event
     }
 
     init {
-        featureFlags.observe(FeatureFlag.TokenCreate)
+        featureFlags.observe(FeatureFlag.CurrencyCreator)
             .onEach { dispatchEvent(Event.OnCreateAllowed(it)) }
             .launchIn(viewModelScope)
 
@@ -120,6 +121,7 @@ internal class TokenDiscoveryViewModel @Inject constructor(
                 is Event.LoadTokensForCategory -> { state -> state }
                 is Event.OpenTokenInfo -> { state -> state }
                 is Event.Refresh -> { state -> state }
+                is Event.CreateCurrency -> { state -> state }
             }
         }
     }

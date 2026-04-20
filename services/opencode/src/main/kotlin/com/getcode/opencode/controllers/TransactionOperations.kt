@@ -18,6 +18,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 interface TransactionOperations {
     val limits: StateFlow<Limits?>
@@ -44,6 +46,8 @@ interface TransactionOperations {
         swapId: SwapId,
         owner: AccountCluster,
         targetState: SwapState,
+        maxAttempts: Int = 90,
+        interval: Duration = 1.seconds,
     ): Result<SwapMetadata>
 
     suspend fun cancelRemoteSend(

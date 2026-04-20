@@ -12,9 +12,12 @@ import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.internal.phone.PhoneEntryScreen
 import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
+import com.flipcash.app.core.verification.VerificationResult
+import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.features.contact.verification.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.getcode.navigation.flow.flowSharedViewModel
+import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.filterIsInstance
@@ -22,12 +25,10 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun PhoneVerificationContent(
-    onPushCountryCode: () -> Unit = {},
-    onPushPhoneCode: () -> Unit = {},
-) {
+fun PhoneVerificationContent() {
     val codeNavigator = LocalCodeNavigator.current
-    val viewModel = hiltViewModel<PhoneVerificationViewModel>()
+    val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
+    val viewModel = flowSharedViewModel<PhoneVerificationViewModel>()
     val keyboard = rememberKeyboardController()
 
     Column(
@@ -64,7 +65,7 @@ fun PhoneVerificationContent(
             .filterIsInstance<PhoneVerificationViewModel.Event.OpenCountrySelector>()
             .onEach {
                 keyboard.hideIfVisible {
-                    onPushCountryCode()
+                    flowNavigator.navigateTo(VerificationStep.PhoneCountryCode)
                 }
             }.launchIn(this)
     }
@@ -74,7 +75,7 @@ fun PhoneVerificationContent(
             .filterIsInstance<PhoneVerificationViewModel.Event.OnCodeSent>()
             .onEach {
                 keyboard.hideIfVisible {
-                    onPushPhoneCode()
+                    flowNavigator.navigateTo(VerificationStep.PhoneCode)
                 }
             }.launchIn(this)
     }

@@ -52,4 +52,11 @@ fun TokenDiscoveryScreen() {
             .onEach { navigator.navigate(AppRoute.Token.Info(it)) }
             .launchIn(this)
     }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<TokenDiscoveryViewModel.Event.CreateCurrency>()
+            .onEach { navigator.navigate(AppRoute.Token.CurrencyCreator) }
+            .launchIn(this)
+    }
 }

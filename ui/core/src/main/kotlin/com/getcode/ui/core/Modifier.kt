@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material.ripple
@@ -388,6 +389,34 @@ fun Modifier.verticalScrollStateGradient(
         .addIf(showAtEnd && !scrollState.isVerticallyScrolledToEnd()) {
             Modifier.drawWithGradient(
                 color = color,
+                startY = { size.height - gradientSizePx },
+            )
+        }
+}
+
+fun Modifier.verticalScrollStateGradient(
+    scrollState: ScrollState,
+    color: Color = Color.Unspecified,
+    showAtStart: Boolean = true,
+    showAtStartAlways: Boolean = false,
+    showAtEnd: Boolean = true,
+    showAtEndAlways: Boolean = false,
+    isLongGradient: Boolean = false,
+): Modifier = composed {
+    val backgroundColor = color.takeOrElse { CodeTheme.colors.background }
+    val gradientSizePx =
+        with(LocalDensity.current) { gradientSize.toPx() } * if (isLongGradient) 1.5f else 1f
+    this
+        .addIf((showAtStart && scrollState.value > 0) || showAtStartAlways) {
+            Modifier.drawWithGradient(
+                color = backgroundColor,
+                startY = { gradientSizePx },
+                endY = { 0f },
+            )
+        }
+        .addIf((showAtEnd && scrollState.value < scrollState.maxValue) || showAtEndAlways) {
+            Modifier.drawWithGradient(
+                color = backgroundColor,
                 startY = { size.height - gradientSizePx },
             )
         }

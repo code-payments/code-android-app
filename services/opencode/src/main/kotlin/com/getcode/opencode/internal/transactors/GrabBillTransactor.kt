@@ -12,6 +12,7 @@ import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
+import com.getcode.utils.timedTraceSuspend
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 
@@ -100,35 +101,54 @@ internal class GrabBillTransactor(
     private suspend fun handleMultiMintScan(
         ownerKey: AccountCluster,
         data: OpenCodePayload
-    ): Result<TransactionMetadata.SendPublicPayment> {
+    ): Result<TransactionMetadata.SendPublicPayment> = timedTraceSuspend(
+        message = "handleMultiMintScan",
+        tag = tag,
+    ) { onStep ->
         // 1. Wait for the give request from the sender so we can determine what mint we are operating on
         val (messageId, giveRequestMint, exchangeData, mintMetadata) = messagingController.pollForGiveRequest(data.rendezvous)
             .getOrNull()
-            ?: return logAndFail(GrabTransactorError.Other(message = "No give request found for rendezvous"))
+            ?: run {
+                onStep("pollForGiveRequest")
+                return@timedTraceSuspend logAndFail(GrabTransactorError.Other(message = "No give request found for rendezvous"))
+            }
+        onStep("pollForGiveRequest")
 
         // 2. Utilize the mint from the give request to get the Token metadata
         val token = mintMetadata
             ?: (tokenProvider.getTokenMetadata(giveRequestMint)
                 .getOrNull()?.token
-                ?: return logAndFail(GrabTransactorError.Other(message = "No token found for proposed mint")))
+                ?: run {
+                    onStep("tokenMetadata")
+                    return@timedTraceSuspend logAndFail(GrabTransactorError.Other(message = "No token found for proposed mint"))
+                })
+        onStep("tokenMetadata")
 
         val tokenizedCluster = ownerKey.withTimelockForToken(token)
 
         // 3. create an account if we don't currently have one for this token
-        if (!accountController.hasAccountFor(token.address)) {
+        val needsAccount = !accountController.hasAccountFor(token.address)
+        if (needsAccount) {
             accountController.createUserAccount(
                 ownerForMint = tokenizedCluster,
                 mint = token.address
-            ).onFailure { return handleGrabError(it) }
+            ).onFailure {
+                onStep("createUserAccount (needed=true)")
+                return@timedTraceSuspend handleGrabError(it)
+            }
         }
+        onStep("createUserAccount (needed=$needsAccount)")
 
         // 4. Send grab request and wait for confirmation
-        return requestGrab<TransactionMetadata.SendPublicPayment>(tokenizedCluster, data)
+        val result = requestGrab<TransactionMetadata.SendPublicPayment>(tokenizedCluster, data)
             .map { it.copy(verifiedExchangeData = exchangeData) }
             .onSuccess {
                 // 5. Ack the receipt of the give request to clear it from the stream
                 messagingController.ackMessages(data.rendezvous, listOf(messageId))
             }
+        onStep("requestGrab+ack")
+
+        result
     }
 
     private fun handleGrabError(error: Throwable): Result<Nothing> {

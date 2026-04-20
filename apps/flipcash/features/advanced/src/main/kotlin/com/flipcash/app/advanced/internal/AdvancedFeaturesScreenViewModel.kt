@@ -6,8 +6,6 @@ import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.userflags.UserFlagsCoordinator
-import com.flipcash.services.user.UserManager
-import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +23,6 @@ private val FullMenuList = buildList {
 
 @HiltViewModel
 internal class AdvancedFeaturesScreenViewModel @Inject constructor(
-    userManager: UserManager,
     featureFlagController: FeatureFlagController,
     userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
@@ -41,18 +38,11 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
-        data class OnBillCustomizerEnabled(val enabled: Boolean) : Event
         data class OpenScreen(val screen: AppRoute) : Event
-
-        data object OpenBillPlayground: Event
+        data object OpenBillPlayground : Event
     }
 
     init {
-        featureFlagController.observe(FeatureFlag.BillCustomizer)
-            .onEach {
-                dispatchEvent(Event.OnBillCustomizerEnabled(it))
-            }.launchIn(viewModelScope)
-
         combine(
             featureFlagController.observeOverride(),
             userFlags.resolvedFlags.map { it.isStaff.effectiveValue }
@@ -69,16 +59,6 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
                 is Event.OnBetaFeaturesUnlocked -> { state ->
                     state.copy(
                         isBetaEnabled = event.unlocked,
-                    )
-                }
-
-                is Event.OnBillCustomizerEnabled -> { state ->
-                    state.copy(
-                        items = if (event.enabled) {
-                            FullMenuList
-                        } else {
-                            FullMenuList.filterNot { it is BillCustomizer }
-                        }
                     )
                 }
 

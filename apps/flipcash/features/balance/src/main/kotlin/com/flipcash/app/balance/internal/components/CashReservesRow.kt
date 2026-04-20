@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Icon
-import androidx.compose.material.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,6 +15,7 @@ import com.flipcash.app.core.money.formatted
 import com.flipcash.features.balance.R
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.text.AnimatedNumberText
 import com.getcode.ui.core.rememberedClickable
 
 @Composable
@@ -50,8 +51,8 @@ internal fun CashReservesRow(
 
         Spacer(Modifier.weight(1f))
 
-        Text(
-            text = reserves.formatted(),
+        AnimatedNumberText(
+            value = reserves.formatted(),
             style = CodeTheme.typography.screenTitle,
             color = CodeTheme.colors.textMain,
         )

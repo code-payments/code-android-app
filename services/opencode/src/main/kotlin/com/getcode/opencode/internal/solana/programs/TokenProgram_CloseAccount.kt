@@ -15,7 +15,7 @@ internal class TokenProgram_CloseAccount(
             accounts = listOf(
                 AccountMeta.writable(publicKey = account),
                 AccountMeta.writable(publicKey = destination),
-                AccountMeta.writable(publicKey = owner),
+                AccountMeta.readonly(publicKey = owner, signer = true),
             ),
             data = encode()
         )

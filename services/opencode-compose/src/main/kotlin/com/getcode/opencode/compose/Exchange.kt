@@ -28,6 +28,8 @@ private class ExchangeNull : Exchange {
 
     }
 
+    override fun resetEntryToBalance() = Unit
+
     override fun observeBalanceRate(): Flow<Rate> {
         return emptyFlow()
     }

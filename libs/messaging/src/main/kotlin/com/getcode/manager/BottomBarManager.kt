@@ -11,18 +11,21 @@ data class BottomBarAction(
     val inlineContentMap: Map<String, InlineTextContent>,
     val style: BottomBarManager.BottomBarButtonStyle = BottomBarManager.BottomBarButtonStyle.Filled,
     val isUser: Boolean = true,
+    val enabled: Boolean = true,
     val onClick: () -> Unit = { }
 ) {
     constructor(
         text: String,
         style: BottomBarManager.BottomBarButtonStyle = BottomBarManager.BottomBarButtonStyle.Filled,
         isUser: Boolean = true,
+        enabled: Boolean = true,
         onClick: () -> Unit = { }
-    ): this(
+    ) : this(
         text = AnnotatedString(text),
         inlineContentMap = emptyMap(),
         style = style,
         isUser = isUser,
+        enabled = enabled,
         onClick = onClick
     )
 
@@ -31,6 +34,7 @@ data class BottomBarAction(
         val Ok = BottomBarAction(
             text = OK_DESCRIPTOR,
             isUser = false,
+            enabled = true,
             style = BottomBarManager.BottomBarButtonStyle.Filled
         )
     }
@@ -88,11 +92,25 @@ object BottomBarManager {
             subtitle = subtitle,
             actions = buildList {
                 if (positiveText.isNotBlank()) {
-                    add(BottomBarAction(positiveText, positiveStyle, true, onPositive))
+                    add(
+                        BottomBarAction(
+                            positiveText, positiveStyle,
+                            isUser = true,
+                            enabled = true,
+                            onClick = onPositive
+                        )
+                    )
                 }
 
                 if (negativeText.isNotBlank()) {
-                    add(BottomBarAction(negativeText, negativeStyle, true, onNegative))
+                    add(
+                        BottomBarAction(
+                            negativeText, negativeStyle,
+                            isUser = true,
+                            enabled = true,
+                            onClick = onNegative
+                        )
+                    )
                 }
             },
             showCancel = tertiaryText != null,

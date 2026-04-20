@@ -15,6 +15,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.SocialLink
 import com.getcode.opencode.model.messaging.Message
 import com.getcode.opencode.model.messaging.MessageKind
+import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.GiveRequest
 import com.getcode.opencode.model.transactions.GrabRequest
@@ -274,11 +275,11 @@ internal fun LocalFiat.asExchangeData(): TransactionService.ExchangeData {
         .build()
 }
 
-internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwapRequest.Initiate.CurrencyCreator.Builder {
-    return TransactionService.StatefulSwapRequest.Initiate.CurrencyCreator.newBuilder()
+internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.Builder {
+    return TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.newBuilder()
         .apply {
             when (val details = kind) {
-                is SwapStartKind.CurrencyCreator -> {
+                is SwapStartKind.Reserve -> {
                     setId(swapId.asSwapId())
                         .setFromMint(details.fromMint.asSolanaAccountId())
                         .setToMint(details.toMint.asSolanaAccountId())
@@ -305,10 +306,9 @@ internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwa
 
 internal fun SwapRequest.verifiedMetadata(): TransactionService.VerifiedSwapMetadata.Builder {
     return TransactionService.VerifiedSwapMetadata.newBuilder()
-        .setCurrencyCreator(
-            TransactionService.VerifiedCurrencyCreatorSwapMetadata.newBuilder()
+        .setReserve(
+            TransactionService.VerifiedReserveSwapMetadata.newBuilder()
                 .setClientParameters(currencyCreatorParams())
-
         )
 }
 
@@ -316,12 +316,13 @@ internal fun TokenBillCustomizations.asProto(): CurrencyService.BillCustomizatio
     return CurrencyService.BillCustomization.newBuilder()
         .apply {
             when (background) {
-                is BillBackground.Gradient -> background.colors.onEachIndexed { index, color ->
-                    setColors(index, CurrencyService.Color.newBuilder().setHex(color))
-                }
+                is BillBackground.Gradient -> addAllColors(
+                    background.colors.map { color ->
+                        CurrencyService.Color.newBuilder().setHex(color).build()
+                    }
+                )
 
-                is BillBackground.Solid -> setColors(
-                    0,
+                is BillBackground.Solid -> addColors(
                     CurrencyService.Color.newBuilder().setHex(background.colorHex)
                 )
             }
@@ -338,4 +339,10 @@ internal fun SocialLink.asProto(): CurrencyService.SocialLink {
                 is SocialLink.X -> setX(CurrencyService.SocialLink.X.newBuilder().setUsername(username))
             }
         }.build()
+}
+
+internal fun ModerationAttestation.asProto(): CurrencyService.ModerationAttestation {
+    return CurrencyService.ModerationAttestation.newBuilder()
+        .setRawValue(attestation.toByteString())
+        .build()
 }
