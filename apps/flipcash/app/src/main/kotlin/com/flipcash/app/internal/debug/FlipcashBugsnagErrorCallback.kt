@@ -2,6 +2,7 @@ package com.flipcash.app.internal.debug
 
 import com.bugsnag.android.OnErrorCallback
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceManager
 import io.grpc.StatusException
 
 internal val FlipcashErrorCallback = OnErrorCallback onError@{ event ->
@@ -19,6 +20,15 @@ internal val FlipcashErrorCallback = OnErrorCallback onError@{ event ->
     }
 
     if (!event.isUnhandled) return@onError true
+
+    // Attach recent logs
+    val logFile = TraceManager.getLogFile(includeHeader = false)
+    if (logFile != null && logFile.exists()) {
+        // Bugsnag metadata has a size limit (~1MB per event).
+        // Attach the last ~64KB of log content as a metadata tab.
+        val tail = logFile.readText().takeLast(64_000)
+        event.addMetadata("App Logs", "app_log", tail)
+    }
 
     true
 }

@@ -86,10 +86,9 @@ desugaring = "2.1.5"
 event-bus = "0.1.0"
 solana-mwa = "2.1.0"
 
-bugsnag = "6.25.0"
+bugsnag = "6.26.0"
 bugsnag-agp = "8.2.0"
 bugsnag-gradle-plugin = "1.1.0"
-
 rinku = "1.6.0"
 haze = "1.7.2"
 cloudy = "0.5.0"
