@@ -460,6 +460,7 @@ class TokenCoordinator @Inject constructor(
                 _state.update { state ->
                     var updatedTokens = state.tokens
                     var updatedBalances = state.balances
+                    var updatedAppreciation = state.appreciation
 
                     response.reserveStates.forEach { update ->
                         val mint = update.reserveState.mint
@@ -477,7 +478,7 @@ class TokenCoordinator @Inject constructor(
                             val exchangedValue = runCatching {
                                 LocalFiat.valueExchangeIn(
                                     amount = balance,
-                                    token = token,
+                                    token = updatedToken,
                                     balance = balance,
                                     rate = Rate.oneToOne,
                                     debug = false,
@@ -488,14 +489,19 @@ class TokenCoordinator @Inject constructor(
                             if (exchangedValue != null) {
                                 val newBalance = Fiat.tokenBalance(
                                     quarks = exchangedValue.quarks,
-                                    token = token
+                                    token = updatedToken
                                 )
                                 updatedBalances = updatedBalances + (mint to newBalance)
+
+                                val currentAppreciation = state.appreciation[mint] ?: Fiat.Zero
+                                val costBasis = balance - currentAppreciation
+                                val newAppreciation = newBalance - costBasis
+                                updatedAppreciation = updatedAppreciation + (mint to newAppreciation)
                             }
                         }
                     }
 
-                    state.copy(tokens = updatedTokens, balances = updatedBalances)
+                    state.copy(tokens = updatedTokens, balances = updatedBalances, appreciation = updatedAppreciation)
                 }
             }
         }
