@@ -15,13 +15,13 @@ import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.TokenIconWithName
-import com.flipcash.app.onramp.LocalExternalWalletState
-import com.flipcash.app.onramp.OnRampFlowTracker
+import com.flipcash.app.onramp.LocalExternalWalletOnRampController
 import com.flipcash.app.tokens.internal.TokenInfoScreen
 import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.features.tokens.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
@@ -37,11 +37,11 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 fun TokenInfoScreen(
     mint: Mint,
-    forNeededFunds: Boolean,
+    shortFall: Fiat?,
     fromDeeplink: Boolean,
 ) {
     val navigator = LocalCodeNavigator.current
-    val externalWalletOnRamp = LocalExternalWalletState.current
+    val externalWalletOnRampController = LocalExternalWalletOnRampController.current
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -54,7 +54,7 @@ fun TokenInfoScreen(
             isInModal = true,
             title = {
                 state.token.dataOrNull?.let { token ->
-                    if (state.isCashReserve && state.cashReservesEnabled) {
+                    if (state.isCashReserve) {
                         AppBarDefaults.Title(text = stringResource(R.string.title_cashReserves))
                     } else {
                         TokenIconWithName(
@@ -83,7 +83,7 @@ fun TokenInfoScreen(
 
         LaunchedEffect(Unit) {
             val source = when {
-                forNeededFunds -> Analytics.TokenInfoSource.Give
+                shortFall != null -> Analytics.TokenInfoSource.Give
                 fromDeeplink -> Analytics.TokenInfoSource.Deeplink
                 else -> Analytics.TokenInfoSource.Wallet
             }
@@ -94,10 +94,10 @@ fun TokenInfoScreen(
             )
         }
 
-        TokenInfoScreen(viewModel, forNeededFunds)
+        TokenInfoScreen(viewModel, shortFall)
 
         LaunchedEffect(Unit) {
-            viewModel.dispatchEvent(TokenInfoViewModel.Event.OnMintProvided(mint, forNeededFunds))
+            viewModel.dispatchEvent(TokenInfoViewModel.Event.OnMintProvided(mint, shortFall))
         }
 
         LaunchedEffect(viewModel) {
@@ -122,17 +122,17 @@ fun TokenInfoScreen(
                 .filterIsInstance<TokenInfoViewModel.Event.ConnectPhantomWallet>()
                 .onEach { delay(300.scaled(animationScale)) }
                 .onEach {
-                    externalWalletOnRamp.start(OnRampFlowTracker.source, OnRampProvider.Phantom)
+                    externalWalletOnRampController.start(AppRoute.Token.Info(mint), OnRampProvider.Phantom)
                 }.launchIn(this)
         }
 
         // Navigate to pending routes from ExternalWalletOnRampHandler using the
         // sheet's inner navigator (which the handler can't access directly).
-        val pendingNav = externalWalletOnRamp.pendingNavigation
-        LaunchedEffect(pendingNav) {
-            if (pendingNav is AppRoute.Token.SwapTransact) {
-                navigator.push(pendingNav)
-                externalWalletOnRamp.pendingNavigation = null
+        LaunchedEffect(Unit) {
+            externalWalletOnRampController.pendingNavigation.collect { nav ->
+                if (nav is AppRoute.Token.Swap) {
+                    navigator.push(nav)
+                }
             }
         }
     }

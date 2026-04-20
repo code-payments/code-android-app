@@ -13,49 +13,35 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.ui.AmountWithKeypad
 import com.flipcash.app.withdrawal.WithdrawalViewModel
 import com.flipcash.features.withdrawal.R
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun WithdrawalEntryScreen(viewModel: WithdrawalViewModel, mint: Mint) {
-    val navigator = LocalCodeNavigator.current
+internal fun WithdrawalEntryScreen(
+    viewModel: WithdrawalViewModel,
+    mint: Mint,
+    onOpenRegionSelection: () -> Unit,
+) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
-    WithdrawalEntryScreenContent(state, viewModel::dispatchEvent)
+    WithdrawalEntryScreenContent(state, viewModel::dispatchEvent, onOpenRegionSelection)
 
     LaunchedEffect(viewModel) {
         viewModel.dispatchEvent(WithdrawalViewModel.Event.OnMintSelected(mint))
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<WithdrawalViewModel.Event.OnAmountAccepted>()
-            .onEach {
-                navigator.push(
-                    AppRoute.Transfers.Withdrawal.Destination
-                )
-            }.launchIn(this)
     }
 }
 
 @Composable
 private fun WithdrawalEntryScreenContent(
     state: WithdrawalViewModel.State,
-    dispatchEvent: (WithdrawalViewModel.Event) -> Unit
+    dispatchEvent: (WithdrawalViewModel.Event) -> Unit,
+    onOpenRegionSelection: () -> Unit,
 ) {
-    val navigator = LocalCodeNavigator.current
-
     val entryState = remember(state.amountEntryState) {
         state.amountEntryState
     }
@@ -78,13 +64,7 @@ private fun WithdrawalEntryScreenContent(
             },
             decimalPlaces = entryState.currencyModel.fractionUnits,
             isClickable = true,
-            onAmountClicked = {
-                navigator.push(
-                    AppRoute.Main.RegionSelection(
-                        kind = RegionSelectionKind.Entry
-                    )
-                )
-            },
+            onAmountClicked = onOpenRegionSelection,
             isError = state.isError,
             onNumberPressed = { dispatchEvent(WithdrawalViewModel.Event.OnNumberPressed(it)) },
             onBackspace = { dispatchEvent(WithdrawalViewModel.Event.OnBackspace) },

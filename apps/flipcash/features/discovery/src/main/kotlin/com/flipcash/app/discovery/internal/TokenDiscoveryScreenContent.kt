@@ -61,30 +61,7 @@ private fun TokenDiscoveryScreenContent(
 ) {
     val listState = rememberLazyListState()
     CodeScaffold(
-        topBar = {
-            CodeSegmentedControl(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.inset),
-                options = DiscoverCategory.entries.toList(),
-                selected = state.category,
-                mapper = { category ->
-                    Text(
-                        text = when (category) {
-                            DiscoverCategory.Popular -> stringResource(R.string.title_discoverPopular)
-                            DiscoverCategory.New -> stringResource(R.string.title_discoverNew)
-                        },
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textMain,
-                    )
-                },
-                onSelectionChanged = {
-                    dispatch(TokenDiscoveryViewModel.Event.OnCategorySelected(it, true))
-                }
-            )
-        },
         bottomBar = {
-            val resources = LocalResources.current
             if (state.createEnabled) {
                 Box {
                     var buttonHeight by remember { mutableStateOf(0.dp) }
@@ -110,10 +87,7 @@ private fun TokenDiscoveryScreenContent(
                             ),
                         text = stringResource(R.string.action_createYourOwnCurrency),
                     ) {
-                        BottomBarManager.showInfo(
-                            title = resources.getString(R.string.prompt_title_notYetAvailable),
-                            message = resources.getString(R.string.prompt_message_currencyCreateNotYetAvailable),
-                        )
+                        dispatch(TokenDiscoveryViewModel.Event.CreateCurrency)
                     }
                 }
             }

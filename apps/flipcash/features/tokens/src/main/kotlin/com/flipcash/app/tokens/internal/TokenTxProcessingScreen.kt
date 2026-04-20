@@ -1,11 +1,6 @@
 package com.flipcash.app.tokens.internal
 
 import android.Manifest
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -19,24 +14,23 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.ui.buildNotifyButtonLabel
+import com.flipcash.app.core.ui.processing.FlowProcessingScreen
 import com.flipcash.app.theme.FlipcashPreview
-import com.flipcash.app.tokens.internal.components.processing.ProcessingLoadingIndicator
-import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel
-import com.flipcash.features.tokens.R
+import com.flipcash.app.tokens.ui.SwapViewModel
+import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.theme.CodeScaffold
 import com.getcode.util.permissions.ProvideTestPermissions
 import com.getcode.util.permissions.rememberNotificationPermission
 import com.getcode.view.LoadingSuccessState
 
 @Composable
 internal fun TokenTxProcessingScreen(
-    viewModel: BuySellSwapTokenViewModel,
+    viewModel: SwapViewModel,
     processingProgressOverride: LoadingSuccessState? = null,
 ) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
@@ -50,22 +44,23 @@ internal fun TokenTxProcessingScreen(
 
 @Composable
 private fun TokenTxProcessingScreen(
-    state: BuySellSwapTokenViewModel.State,
-    dispatch: (BuySellSwapTokenViewModel.Event) -> Unit,
+    state: SwapViewModel.State,
+    dispatch: (SwapViewModel.Event) -> Unit,
 ) {
     val notifications = rememberNotificationPermission()
 
-    CodeScaffold(
+    FlowProcessingScreen(
+        processingState = state.processingProgress,
         topBar = {
             AppBarWithTitle(
                 isInModal = true,
                 title = when (state.purpose) {
-                    is TokenSwapPurpose.BalanceIncrease -> stringResource(
+                    is SwapPurpose.BalanceIncrease -> stringResource(
                         R.string.title_purchasingToken,
                         state.tokenName
                     )
 
-                    is TokenSwapPurpose.BalanceDecrease -> stringResource(
+                    is SwapPurpose.BalanceDecrease -> stringResource(
                         R.string.title_sellingToken,
                         state.tokenName
                     )
@@ -114,73 +109,46 @@ private fun TokenTxProcessingScreen(
                         text = stringResource(R.string.action_ok),
                         buttonState = ButtonState.Filled,
                         onClick = {
-                            dispatch(BuySellSwapTokenViewModel.Event.OnTransactionSuccessful)
+                            dispatch(SwapViewModel.Event.OnTransactionSuccessful)
                         }
                     )
                 }
             }
-
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x6),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.24f)
-                        .aspectRatio(1f),
-                ) {
-                    ProcessingLoadingIndicator(
-                        processingState = state.processingProgress,
-                        modifier = Modifier.matchParentSize(),
-                    )
-                }
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = when (state.processingProgress.state) {
-                            LoadingSuccessState.State.Error -> stringResource(R.string.error_title_buySellFailed)
-                            LoadingSuccessState.State.Idle -> ""
-                            LoadingSuccessState.State.Loading -> stringResource(R.string.title_processingYourTransaction)
-                            LoadingSuccessState.State.Success -> {
-                                val name = when (state.purpose) {
-                                    is TokenSwapPurpose.BalanceIncrease -> state.tokenName
-                                    else -> stringResource(R.string.title_cashReserves)
-                                }
-                                state.netTransferAmount.formatted(suffix = stringResource(R.string.label_ofToken, name))
-                            }
-                        },
-                        style = CodeTheme.typography.textLarge,
-                        color = CodeTheme.colors.textMain,
-                    )
-                    Text(
-                        modifier = Modifier.fillMaxWidth()
-                            .padding(horizontal = CodeTheme.dimens.grid.x12),
-                        text = when (state.processingProgress.state) {
-                            LoadingSuccessState.State.Error -> stringResource(R.string.error_description_buySellFailed)
-                            LoadingSuccessState.State.Idle -> ""
-                            LoadingSuccessState.State.Loading -> stringResource(R.string.subtitle_processingYourTransaction)
-                            LoadingSuccessState.State.Success -> stringResource(R.string.subtitle_wasAddedToYourWallet)
-                        },
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
-    }
+        },
+        title = { processingStateValue ->
+            Text(
+                text = when (processingStateValue) {
+                    LoadingSuccessState.State.Error -> stringResource(R.string.error_title_buySellFailed)
+                    LoadingSuccessState.State.Idle -> ""
+                    LoadingSuccessState.State.Loading -> stringResource(R.string.title_processingYourTransaction)
+                    LoadingSuccessState.State.Success -> {
+                        val name = when (state.purpose) {
+                            is SwapPurpose.BalanceIncrease -> state.tokenName
+                            else -> stringResource(R.string.title_cashReserves)
+                        }
+                        state.netTransferAmount.formatted(suffix = stringResource(R.string.label_ofToken, name))
+                    }
+                },
+                style = CodeTheme.typography.textLarge,
+                color = CodeTheme.colors.textMain,
+            )
+        },
+        subtitle = { processingStateValue ->
+            Text(
+                modifier = Modifier.fillMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.grid.x12),
+                text = when (processingStateValue) {
+                    LoadingSuccessState.State.Error -> stringResource(R.string.error_description_buySellFailed)
+                    LoadingSuccessState.State.Idle -> ""
+                    LoadingSuccessState.State.Loading -> stringResource(R.string.subtitle_processingYourTransaction)
+                    LoadingSuccessState.State.Success -> stringResource(R.string.subtitle_wasAddedToYourWallet)
+                },
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+                textAlign = TextAlign.Center,
+            )
+        },
+    )
 }
 
 @Preview
@@ -189,7 +157,7 @@ private fun TxProcessiongPreview() {
     FlipcashPreview {
         ProvideTestPermissions(granted = setOf(Manifest.permission.POST_NOTIFICATIONS)) {
             TokenTxProcessingScreen(
-                state = BuySellSwapTokenViewModel.State(
+                state = SwapViewModel.State(
                     processingProgress = LoadingSuccessState(loading = true)
                 )
             ) { }

@@ -96,6 +96,10 @@ internal class OpenCodeExchange @Inject constructor(
         }
     }
 
+    override fun resetEntryToBalance() {
+        scope.launch { setPreferredEntryCurrency(balanceRate.currency) }
+    }
+
     private var balanceCurrency: CurrencyCode? = null
     private var entryCurrency: CurrencyCode? = null
 

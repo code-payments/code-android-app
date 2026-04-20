@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.flipcash.app.core.AppRoute.Menu.Deposit
-import com.flipcash.app.core.AppRoute.Transfers.Withdrawal.Amount
+import com.flipcash.app.core.AppRoute.Transfers.Withdrawal
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.tokens.internal.SelectTokenScreen
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
@@ -62,7 +62,7 @@ fun TokenSelectScreen(purpose: TokenPurpose) {
                         TokenPurpose.Balance -> Unit
                         TokenPurpose.Select -> Unit
                         TokenPurpose.Withdraw -> {
-                            navigator.push(Amount(token))
+                            navigator.push(Withdrawal(token))
                         }
                         TokenPurpose.Deposit -> {
                             navigator.push(Deposit(token))

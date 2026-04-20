@@ -48,6 +48,21 @@ internal object CoinbaseOnRampScripts {
                     return result;
                 });
             };
+
+            if (PaymentRequest.prototype.hasEnrolledInstrument) {
+                var origHas = PaymentRequest.prototype.hasEnrolledInstrument;
+                PaymentRequest.prototype.hasEnrolledInstrument = function() {
+                    return origHas.apply(this, arguments).then(function(result) {
+                        if (!result) {
+                            window.postMessage(JSON.stringify({
+                                eventName: 'onramp_api.load_error',
+                                data: { errorCode: 'ERROR_CODE_GUEST_GOOGLE_PAY_NOT_READY' }
+                            }), '*');
+                        }
+                        return result;
+                    });
+                };
+            }
         })();
     """.trimIndent()
 
@@ -190,6 +205,7 @@ sealed class CoinbaseOnRampWebError(val data: String? = null): Exception() {
     class GuestTransactionSendFailed(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
     class GuestTransactionAvsValidationFailed(data: String? = null) : CoinbaseOnRampWebError(data)
     class GuestTransactionTransactionFailed(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
+    class GuestGooglePayNotReady(data: String? = null) : CoinbaseOnRampWebError(data)
     class Internal(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
     class GooglePayButtonNotFound(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
 
@@ -203,6 +219,7 @@ sealed class CoinbaseOnRampWebError(val data: String? = null): Exception() {
                 "ERROR_CODE_GUEST_TRANSACTION_SEND_FAILED" -> GuestTransactionSendFailed(data)
                 "ERROR_CODE_GUEST_TRANSACTION_AVS_VALIDATION_FAILED" -> GuestTransactionAvsValidationFailed(data)
                 "ERROR_CODE_GUEST_TRANSACTION_TRANSACTION_FAILED" -> GuestTransactionTransactionFailed(data)
+                "ERROR_CODE_GUEST_GOOGLE_PAY_NOT_READY" -> GuestGooglePayNotReady(data)
                 "ERROR_CODE_INTERNAL" -> Internal(data)
                 "ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND" -> GooglePayButtonNotFound(data)
                 else -> Unknown(data)

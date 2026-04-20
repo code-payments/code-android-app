@@ -83,22 +83,12 @@ internal class AppRouter(
         val origin = EmailDeeplinkOrigin.deserialize(type.origin.orEmpty())
         val routes: List<AppRoute> = when (origin) {
             is EmailDeeplinkOrigin.OnRamp -> when (val source = origin.source) {
-                is AppRoute.Sheets.Menu -> {
-                    buildOnRampScreenFlow(source) + AppRoute.Verification(
-                        origin = source,
-                        target = null,
-                        includePhone = false,
-                        email = type.email,
-                        emailVerificationCode = type.code
-                    )
-                }
-                is AppRoute.OnRamp.AmountEntry -> {
+                is AppRoute.Token.OnRamp -> {
                     listOf(
                         AppRoute.Token.Info(source.mint),
-                        AppRoute.OnRamp.AmountEntry(source.mint),
+                        AppRoute.Token.OnRamp(source.mint),
                     ) + AppRoute.Verification(
-                        origin = AppRoute.OnRamp.AmountEntry(source.mint),
-                        target = null,
+                        origin = AppRoute.Token.OnRamp(source.mint),
                         includePhone = false,
                         email = type.email,
                         emailVerificationCode = type.code
@@ -113,7 +103,6 @@ internal class AppRouter(
                     AppRoute.Menu.MyAccount
                 ) + AppRoute.Verification(
                     origin = AppRoute.Menu.MyAccount,
-                    target = null,
                     includePhone = false,
                     email = type.email,
                     emailVerificationCode = type.code
@@ -129,12 +118,6 @@ internal class AppRouter(
         }
     }
 }
-
-private fun buildOnRampScreenFlow(origin: List<AppRoute>) =
-    origin.dropLast(1) +
-    AppRoute.OnRamp.ProviderList(origin.last())
-
-private fun buildOnRampScreenFlow(origin: AppRoute) = buildOnRampScreenFlow(listOf(origin))
 
 private fun DeepLink.isLogin(): Boolean = login.contains(pathSegments[0])
 private fun DeepLink.isCashLink(): Boolean = cashLink.contains(pathSegments[0])

@@ -1,49 +1,24 @@
 package com.flipcash.app.tokens.ui
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.foundation.text.appendInlineContent
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
-import com.flipcash.app.core.money.formatted
-import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.onramp.OnRampAmountController
-import com.flipcash.app.onramp.OnRampFlowTracker
+import com.flipcash.app.payments.PurchaseMethod
+import com.flipcash.app.payments.PurchaseMethodController
+import com.flipcash.app.payments.PurchaseMethodMetadata
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.Period
-import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.flipcash.services.models.UserFlags
-import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.flipcash.services.internal.model.thirdparty.OnRampType
-import com.flipcash.services.user.UserManager
 import com.flipcash.shared.tokens.R
-import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.exchange.Exchange
@@ -52,8 +27,6 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.solana.keys.Mint
-import com.getcode.theme.CodeTheme
-import com.getcode.ui.theme.ButtonState
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -61,6 +34,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
@@ -77,10 +51,8 @@ class TokenInfoViewModel @Inject constructor(
     private val shareController: ShareSheetController,
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalyticsService,
-    private val onramp: OnRampAmountController,
+    private val purchaseMethodController: PurchaseMethodController,
     features: FeatureFlagController,
-    userManager: UserManager,
-    userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel2<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
     initialState = State(),
@@ -90,35 +62,27 @@ class TokenInfoViewModel @Inject constructor(
     data class State(
         val mint: Mint? = null,
         val token: Loadable<Token> = Loadable.Loading(),
-        val coinbaseOnRampAvailable: Boolean = false,
         val marketCap: Fiat? = null,
-        val cashReservesEnabled: Boolean = false,
         val marketCapChartEnabled: Boolean = false,
         val balance: LocalFiat = LocalFiat.Zero,
         val showAppreciation: Boolean = false,
         val showTransactionHistory: Boolean = false,
         val appreciation: LocalFiat? = null,
         val descriptionExpanded: Boolean = false,
-        val reservesBalance: LocalFiat = LocalFiat.Zero,
         val historicalMarketCapData: Map<Period, Loadable<List<MarketCapPoint>>> = emptyMap(),
         val selectedPeriod: Period = Period.All,
     ) {
         val canSell: Boolean
             get() = balance.underlyingTokenAmount.valueNonZero()
 
-        val hasReserves: Boolean
-            get() = cashReservesEnabled && reservesBalance.underlyingTokenAmount.valueNonZero()
-
         val isCashReserve: Boolean
             get() = token.dataOrNull?.address == Mint.usdf
     }
 
     sealed interface Event {
-        data class CashReservesEnabled(val enabled: Boolean) : Event
         data class MarketCapChartEnabled(val enabled: Boolean) : Event
-        data class CoinbaseOnRampAvailable(val enabled: Boolean): Event
-        data class OnMintProvided(val mint: Mint, val forNeededFunds: Boolean = false) : Event
-        data class OnTokenChanged(val token: Loadable<Token>, val forNeededFunds: Boolean = false) : Event
+        data class OnMintProvided(val mint: Mint, val shortFall: Fiat? = null) : Event
+        data class OnTokenChanged(val token: Loadable<Token>, val shortFall: Fiat? = null) : Event
         data class OnMarketCapChanged(val mcap: Fiat?) : Event
         data class LoadHistoricalDataForPeriod(val period: Period, val evict: Boolean = false) : Event
 
@@ -129,37 +93,22 @@ class TokenInfoViewModel @Inject constructor(
 
         data class OnMarketCapPeriodSelected(val period: Period) : Event
         data class OnBalanceUpdated(val balance: LocalFiat) : Event
-        data class OnReservesUpdated(val balance: LocalFiat) : Event
         data class OnAppreciatedEnabled(val enabled: Boolean) : Event
         data class OnTransactionHistoryEnabled(val enabled: Boolean): Event
         data class OnAppreciationUpdated(val amount: LocalFiat?) : Event
         data class ExpandDescription(val expand: Boolean) : Event
         data object Share : Event
-        data class OpenPurchaseMethods(val forNeededFunds: Boolean = false) : Event
+        data class OpenPurchaseMethods(val shortFall: Fiat? = null) : Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object ConnectPhantomWallet : Event
         data object Exit : Event
     }
 
     init {
-        features.observe(FeatureFlag.CashReservesEnabled)
-            .onEach {
-                dispatchEvent(Event.CashReservesEnabled(it))
-            }.launchIn(viewModelScope)
-
         features.observe(FeatureFlag.MarketCapChart)
             .onEach {
                 dispatchEvent(Event.MarketCapChartEnabled(it))
             }.launchIn(viewModelScope)
-
-        combine(
-            features.observe(FeatureFlag.CoinbaseOnRamp),
-            userFlags.resolvedFlags
-                .map { it.supportedOnRampProviders.effectiveValue }
-                .map { it.contains(OnRampProvider.Coinbase(OnRampType.Virtual)) }
-        ) { enabled, available ->
-            dispatchEvent(Event.CoinbaseOnRampAvailable(enabled = enabled && available))
-        }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnMintProvided>()
@@ -167,7 +116,7 @@ class TokenInfoViewModel @Inject constructor(
             .onEach {
                 tokenCoordinator.getTokenMetadata(it.mint)
                     .onSuccess { result ->
-                        dispatchEvent(Event.OnTokenChanged(Loadable.Loaded(result.token), it.forNeededFunds))
+                        dispatchEvent(Event.OnTokenChanged(Loadable.Loaded(result.token), it.shortFall))
                     }.onFailure { cause ->
                         dispatchEvent(
                             Event.OnTokenChanged(
@@ -190,7 +139,7 @@ class TokenInfoViewModel @Inject constructor(
             .filterIsInstance<Event.OnTokenChanged>()
             .distinctUntilChanged()
             .filter { it.token.isLoaded() }
-            .map { it.token.dataOrNull!! to it.forNeededFunds }
+            .map { it.token.dataOrNull!! to it.shortFall }
             .flatMapLatest { (token, _) ->
                 combine(
                     tokenCoordinator.balanceForToken(token.address),
@@ -226,23 +175,11 @@ class TokenInfoViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnTokenChanged>()
             .distinctUntilChanged()
-            .filter { it.forNeededFunds }
+            .map { it.shortFall }
+            .filterNotNull()
             .onEach {
-                 dispatchEvent(Event.OpenPurchaseMethods(true))
+                 dispatchEvent(Event.OpenPurchaseMethods(it))
             }.launchIn(viewModelScope)
-
-        combine(
-            tokenCoordinator.observeReservesBalance(),
-            exchange.observeBalanceRate(),
-        ) { balance, rate ->
-            LocalFiat(
-                usdf = balance,
-                nativeAmount = balance.convertingTo(rate),
-            )
-        }.onEach {
-            dispatchEvent(Event.OnReservesUpdated(it))
-        }.launchIn(viewModelScope)
-
 
         eventFlow
             .filterIsInstance<Event.OnMarketCapPeriodSelected>()
@@ -327,7 +264,41 @@ class TokenInfoViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OpenPurchaseMethods>()
-            .onEach { presentPaymentOptions(it.forNeededFunds) }
+            .mapNotNull {
+                val mint = stateFlow.value.mint ?: return@mapNotNull null
+                PurchaseMethodMetadata(mint, purchaseAmount = it.shortFall)
+            }
+            .onEach { metadata ->
+                purchaseMethodController.present(metadata)
+            }
+            .launchIn(viewModelScope)
+
+        purchaseMethodController.selections
+            .onEach { (method, metadata) ->
+                when (method) {
+                    PurchaseMethod.CoinbaseOnRamp -> {
+                        val mint = metadata.mint ?: return@onEach
+                        analytics.buttonTapped(Button.TokenBuyWithCoinbase)
+                        dispatchEvent(Event.OpenScreen(AppRoute.Token.OnRamp(mint)))
+                    }
+                    is PurchaseMethod.CashReserves -> {
+                        val mint = metadata.mint ?: return@onEach
+                        analytics.buttonTapped(Button.TokenBuyWithReserves)
+                        dispatchEvent(
+                            Event.OpenScreen(
+                                AppRoute.Token.Swap(
+                                    purpose = SwapPurpose.Buy(mint),
+                                    shortfall = metadata.purchaseAmount
+                                )
+                            )
+                        )
+                    }
+                    PurchaseMethod.PhantomWallet -> {
+                        analytics.buttonTapped(Button.TokenBuyWithPhantom)
+                        dispatchEvent(Event.ConnectPhantomWallet)
+                    }
+                }
+            }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -338,152 +309,14 @@ class TokenInfoViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    private fun presentPaymentOptions(forNeededFunds: Boolean) {
-        BottomBarManager.showMessage(
-            title = resources.getString(R.string.prompt_title_selectPurchaseMethod),
-            actions = buildList {
-                if (stateFlow.value.coinbaseOnRampAvailable) {
-                    add(
-                        buildButtonAction(
-                            prefix = resources.getString(R.string.action_debitCardWithPrefix),
-                            suffix = null,
-                            icon = { painterResource(R.drawable.ic_google_pay) },
-                            width = 50.sp,
-                            height = 32.sp,
-                            iconPadding = {
-                                PaddingValues(horizontal = CodeTheme.dimens.grid.x1)
-                            },
-                            onClick = { handleBuyWithCoinbase() }
-                        )
-                    )
-                }
-                if (stateFlow.value.hasReserves) {
-                    add(
-                        BottomBarAction(
-                            text = resources.getString(
-                                R.string.action_useCashReservesWithBalance,
-                                stateFlow.value.reservesBalance.formatted()
-                            ),
-                            onClick = { handleBuyWithReserves(forNeededFunds) }
-                        )
-                    )
-                }
-
-                add(
-                    buildButtonAction(
-                        prefix = resources.getString(R.string.label_solanaUsdc),
-                        suffix = resources.getString(R.string.label_phantom),
-                        icon = { painterResource(R.drawable.ic_phantom_wallet) },
-                        onClick = { handleBuyWithPhantom() }
-                    )
-                )
-
-                add(
-                    BottomBarAction(
-                        text = resources.getString(R.string.action_dismiss),
-                        style = BottomBarManager.BottomBarButtonStyle.Text,
-                    )
-                )
-            },
-            showCancel = false,
-            showScrim = true,
-        )
-    }
-
-    private fun buildButtonAction(
-        prefix: String,
-        suffix: String?,
-        icon: @Composable () -> Painter,
-        width: TextUnit = 25.sp,
-        height: TextUnit = 14.sp,
-        iconPadding: @Composable () -> PaddingValues = {
-            PaddingValues(
-                start = CodeTheme.dimens.grid.x1 + 2.dp,
-                end = CodeTheme.dimens.grid.x1
-            )
-        },
-        onClick: () -> Unit
-    ): BottomBarAction {
-        return BottomBarAction(
-            text = buildAnnotatedString {
-                append(prefix)
-                appendInlineContent("[icon]", alternateText = " ")
-                if (suffix != null) {
-                    append(suffix)
-                }
-            },
-            inlineContentMap = mapOf(
-                "[icon]" to InlineTextContent(
-                    placeholder = Placeholder(
-                        width = width,
-                        height = height,
-                        placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
-                    ),
-                    children = {
-                        val buttonColors = ButtonState.Filled.colors()
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                modifier = Modifier.padding(iconPadding()),
-                                painter = icon(),
-                                colorFilter = ColorFilter.tint(
-                                    buttonColors.contentColor(
-                                        true
-                                    ).value
-                                ),
-                                contentDescription = null
-                            )
-                        }
-                    }
-                )
-            ),
-            onClick = onClick
-        )
-    }
-
-    private fun handleBuyWithCoinbase() {
-        analytics.buttonTapped(Button.TokenBuyWithCoinbase)
-        val mint = stateFlow.value.mint ?: return
-        OnRampFlowTracker.start(
-            AppRoute.Token.Info(mint)
-        )
-        onramp.requestAmountSelection(OnRampProvider.Coinbase(OnRampType.Virtual))
-        dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.AmountEntry(mint)))
-    }
-
-    private fun handleBuyWithReserves(forNeededFunds: Boolean) {
-        analytics.buttonTapped(Button.TokenBuyWithReserves)
-        dispatchEvent(
-            Event.OpenScreen(
-                AppRoute.Token.SwapTransact(
-                    purpose = TokenSwapPurpose.Buy(stateFlow.value.token.dataOrNull!!.address),
-                    forNeededFunds = forNeededFunds
-                )
-            )
-        )
-    }
-    private fun handleBuyWithPhantom() {
-        // start the onramp flow here since we skip the provider list
-        OnRampFlowTracker.start(
-            AppRoute.Token.Info(stateFlow.value.token.dataOrNull!!.address)
-        )
-        analytics.buttonTapped(Button.TokenBuyWithPhantom)
-        dispatchEvent(Event.ConnectPhantomWallet)
-    }
-
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.CashReservesEnabled -> { state -> state.copy(cashReservesEnabled = event.enabled) }
                 is Event.MarketCapChartEnabled -> { state -> state.copy(marketCapChartEnabled = event.enabled) }
-                is Event.CoinbaseOnRampAvailable -> { state -> state.copy(coinbaseOnRampAvailable = event.enabled) }
                 is Event.OnMintProvided -> { state -> state.copy(mint = event.mint) }
                 is Event.OnTokenChanged -> { state -> state.copy(token = event.token) }
                 is Event.OnMarketCapChanged -> { state -> state.copy(marketCap = event.mcap) }
                 is Event.OnBalanceUpdated -> { state -> state.copy(balance = event.balance) }
-                is Event.OnReservesUpdated -> { state -> state.copy(reservesBalance = event.balance) }
                 is Event.OnAppreciationUpdated -> { state -> state.copy(appreciation = event.amount) }
                 is Event.ExpandDescription -> { state -> state.copy(descriptionExpanded = event.expand) }
                 is Event.OnHistoricalMarketCapDataUpdated -> { state ->

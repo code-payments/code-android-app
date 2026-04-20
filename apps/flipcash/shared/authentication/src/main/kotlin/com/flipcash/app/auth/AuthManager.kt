@@ -130,7 +130,7 @@ class AuthManager @Inject constructor(
                         .onSuccess { userManager.set(it) }
                 },
                 onFailure = { Result.failure(it) }
-            ).map { Unit }
+            ).onSuccess { savePrefs() }.map { Unit }
     }
 
     suspend fun login(
@@ -154,6 +154,7 @@ class AuthManager @Inject constructor(
         return credentialManager.login(entropyB64, isFromSelection)
             .onSuccess { account ->
                 persistence.openDatabase(entropyB64)
+                userManager.establish(entropyB64)
                 userManager.set(accountId = account.id)
 
                 coroutineScope {

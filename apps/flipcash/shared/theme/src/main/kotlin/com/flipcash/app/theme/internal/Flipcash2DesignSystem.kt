@@ -80,6 +80,7 @@ private val colors = with(Flipcash2ColorSpec) {
         successText = success,
         textMain = Color.White,
         textSecondary = secondaryText,
+        textTertiary = White10,
         border = White08,
         divider = White10,
         dividerVariant = White05,

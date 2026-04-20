@@ -258,6 +258,7 @@ class RealSessionController @Inject constructor(
         if (userManager.authState.canAccessAuthenticatedApis) {
             scope.launch {
                 accountController.getUserFlags()
+                    .onSuccess { userManager.set(it) }
             }
         }
     }
@@ -695,7 +696,6 @@ class RealSessionController @Inject constructor(
                 tokenCoordinator.add(token, amount)
                 giftCardClaimInProgress.value = null
                 analytics.transfer(Analytics.Transfer.ClaimedCashLink, amount = amount)
-                toastController.enqueue(amount, isDeposit = true)
                 showBill(
                     bill = Bill.Cash(
                         amount = amount,
@@ -751,14 +751,14 @@ class RealSessionController @Inject constructor(
                     }
 
                     is ReceiveGiftTransactorError.AlreadyClaimed -> {
-                        BottomBarManager.showError(
+                        BottomBarManager.showAlert(
                             resources.getString(R.string.error_title_alreadyCollected),
                             resources.getString(R.string.error_description_alreadyCollected)
                         )
                     }
 
                     is ReceiveGiftTransactorError.Expired -> {
-                        BottomBarManager.showError(
+                        BottomBarManager.showAlert(
                             resources.getString(R.string.error_title_linkExpired),
                             resources.getString(R.string.error_description_linkExpired)
                         )
@@ -806,7 +806,6 @@ class RealSessionController @Inject constructor(
 
                 analytics.transfer(Analytics.Transfer.GrabBill(grabTime), amount)
                 BottomBarManager.clear()
-                toastController.enqueue(amount, isDeposit = true)
                 checkPendingItemsInFeed()
                 bringActivityFeedCurrent()
             },
@@ -847,6 +846,8 @@ class RealSessionController @Inject constructor(
         _state.update { it.copy(billResult = style) }
 
         if (bill.didReceive) {
+            // enqueue toast
+            toastController.enqueue(bill.amount, isDeposit = true)
             // shorter punch than standard
             vibrator.vibrate(duration = 50)
         }

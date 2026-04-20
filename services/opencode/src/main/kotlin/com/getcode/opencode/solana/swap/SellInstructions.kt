@@ -40,7 +40,7 @@ import com.getcode.solana.keys.PublicKey
  * @return A list of [Instruction]s to execute the sell operation.
  */
 internal fun buildSellInstructions(
-    serverParameters: SwapResponseServerParameters,
+    serverParameters: SwapResponseServerParameters.ExistingCurrency,
     nonce: PublicKey,
     authority: PublicKey,
     swapAuthority: PublicKey,
@@ -94,7 +94,7 @@ internal fun buildSellInstructions(
             ).instruction()
         )
 
-        // 7. CurrencyCreator::SellAndDepositIntoVm
+        // 7. Reserve::SellAndDepositIntoVm
         add(
             CurrencyCreatorProgram_SellAndDepositIntoVm(
                 inAmount = amount,

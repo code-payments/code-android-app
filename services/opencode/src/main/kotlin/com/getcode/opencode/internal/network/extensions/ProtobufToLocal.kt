@@ -130,8 +130,8 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
     }
 }
 
-internal fun TransactionService.StatefulSwapResponse.ServerParameters.CurrencyCreator.toProps(): SwapResponseServerParameters {
-    return SwapResponseServerParameters(
+internal fun TransactionService.StatefulSwapResponse.ServerParameters.ReserveExistingCurrencyServerParameters.toProps(): SwapResponseServerParameters {
+    return SwapResponseServerParameters.ExistingCurrency(
         payer = payer.toPublicKey(),
         nonce = nonce.toPublicKey(),
         blockhash = blockhash.toPublicKey(),
@@ -148,7 +148,29 @@ internal fun TransactionService.StatefulSwapResponse.ServerParameters.CurrencyCr
     )
 }
 
-internal fun TransactionService.StatefulSwapRequest.Initiate.CurrencyCreator.toMetadata(): VerifiedSwapMetadata {
+internal fun TransactionService.StatefulSwapResponse.ServerParameters.ReserveNewCurrencyServerParameter.toProps(): SwapResponseServerParameters {
+    return SwapResponseServerParameters.NewCurrency(
+        payer = payer.toPublicKey(),
+        nonce = nonce.toPublicKey(),
+        blockhash = blockhash.toPublicKey(),
+        alts = altsList.map { table ->
+            val address = table.address.toPublicKey()
+            val entries = table.entriesList.map { it.toPublicKey() }
+            AddressLookupTable(address, entries)
+        },
+        computeUnitLimit = computeUnitLimit,
+        computeUnitPrice = computeUnitPrice,
+        memoValue = memoValue,
+        authority = authority.toPublicKey(),
+        name = name,
+        symbol = symbol,
+        seed = seed.toPublicKey(),
+        sellFeeBps = sellFeeBps,
+        vmLockDurationInDays = vmLockDurationInDays
+    )
+}
+
+internal fun TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.toMetadata(): VerifiedSwapMetadata {
     return VerifiedSwapMetadata(
         id = id.toSwapId(),
         fromMint = fromMint.toPublicKey(),

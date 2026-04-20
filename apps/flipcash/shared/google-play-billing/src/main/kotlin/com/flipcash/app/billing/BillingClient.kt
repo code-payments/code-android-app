@@ -61,5 +61,3 @@ object StubBillingClient: BillingClient {
         _eventFlow.emit(IapPaymentEvent.OnSuccess(product.productId))
     }
 }
-
-val LocalBillingClient = staticCompositionLocalOf<BillingClient> { StubBillingClient }

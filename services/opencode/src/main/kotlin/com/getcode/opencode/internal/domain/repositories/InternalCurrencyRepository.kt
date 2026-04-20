@@ -10,6 +10,8 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.HistoricalMintData
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenCreateRequest
+import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.opencode.repositories.CurrencyRepository
 import com.getcode.solana.keys.Mint
@@ -49,16 +51,14 @@ internal class InternalCurrencyRepository @Inject constructor(
             }
 
     override suspend fun checkTokenAvailability(name: String): Result<Boolean> =
-        service.checkTokenAvailability(name)
+        service.checkTokenAvailability(name.trim())
+            .onFailure { ErrorUtils.handleError(it) }
 
     override suspend fun launchToken(
-        name: String,
-        symbol: String,
-        description: String,
-        bill: TokenBillCustomizations?,
-        icon: ByteArray?,
+        request: TokenCreateRequest,
         owner: Ed25519.KeyPair
     ): Result<Mint> {
-        return service.launchNewToken(name, symbol, bill, icon, owner)
+        return service.launchNewToken(request, owner)
+            .onFailure { ErrorUtils.handleError(it) }
     }
 }

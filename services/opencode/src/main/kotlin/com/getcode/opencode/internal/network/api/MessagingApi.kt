@@ -9,6 +9,7 @@ import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.internal.network.extensions.asRendezvousKey
 import com.getcode.opencode.internal.network.extensions.sign
+import com.getcode.utils.trace
 import com.google.protobuf.ByteString
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
@@ -117,6 +118,9 @@ internal class MessagingApi @Inject constructor(
     suspend fun pollMessages(
         rendezvous: KeyPair
     ): MessagingService.PollMessagesResponse {
+        val channelState = managedChannels.first().getState(false)
+        trace(tag = "gRPC", message = "pollMessages channel state: $channelState")
+
         val request = MessagingService.PollMessagesRequest.newBuilder()
             .setRendezvousKey(rendezvous.asRendezvousKey())
             .apply { setSignature(sign(rendezvous)) }

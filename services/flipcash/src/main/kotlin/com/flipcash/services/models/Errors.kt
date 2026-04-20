@@ -224,3 +224,25 @@ sealed class UpdateSettingsError(
     data class Other(override val cause: Throwable? = null) : UpdateSettingsError(message = cause?.message, cause = cause), NotifiableError
 
 }
+
+sealed class TextModerationError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Flagged(category: ModerationResult.FlaggedCategory) : TextModerationError("Content flagged: $category")
+    class Denied : TextModerationError("Denied")
+    class Unrecognized : TextModerationError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : TextModerationError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class ImageModerationError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Flagged(category: ModerationResult.FlaggedCategory) : TextModerationError("Content flagged: $category")
+
+    class Denied : ImageModerationError("Denied")
+    class UnsupportedFormat: ImageModerationError("Unsupported Format")
+    class Unrecognized : ImageModerationError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : ImageModerationError(message = cause?.message, cause = cause), NotifiableError
+}

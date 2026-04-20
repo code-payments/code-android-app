@@ -104,6 +104,7 @@
     <string name="action_nevermind">Nevermind</string>
 
     <string name="subtitle_ofUsdSuffix">of USD</string>
+    <string name="subtitle_usdSuffix">USD</string>
 
     <string name="error_title_alreadyCollected">Cash Already Collected</string>
     <string name="error_description_alreadyCollected">This cash has already been collected, or was cancelled by the sender</string>
@@ -355,7 +356,7 @@
 
     <string name="action_give">Give</string>
     <string name="title_transactionHistory">Transaction History</string>
-    <string name="action_viewTransactionHistory">View Transaction History</string>
+    <string name="action_viewTransactionHistory">Transaction History</string>
     <string name="subtitle_marketCap">Market Cap</string>
     <string name="subtitle_currencyInfo">Currency Info</string>
     <string name="title_shareToken">Check out %1$s on Flipcash</string>
@@ -364,6 +365,37 @@
     <string name="description_noTransactionHistory">Your recent activity will appear here when you send or receive money</string>
 
     <string name="title_billCustomizer">Bill Creator</string>
+    <string name="title_createYourCurrency">Create Your Currency</string>
+    <string name="subtitle_currencyCreatorInfo">Launch your own currency in minutes.\nReady to use right away.</string>
+    <string name="title_currencyCreatorStepName">Name</string>
+    <string name="subtitle_currencyCreatorStepName">Choose a unique name for your currency</string>
+    <string name="title_currencyCreatorStepIcon">Icon</string>
+    <string name="subtitle_currencyCreatorStepIcon">Upload an icon to represent your currency</string>
+    <string name="title_currencyCreatorStepDescription">Description</string>
+    <string name="subtitle_currencyCreatorStepDescription">Describe what your currency is about</string>
+    <string name="title_currencyCreatorStepDesign">Cash Design</string>
+    <string name="subtitle_currencyCreatorStepDesign">Customize the look of your cash</string>
+    <string name="title_currencyCreatorStepPurchase">Purchase %1$s</string>
+    <string name="subtitle_currencyCreatorStepPurchase">Pay for the first %1$s to create your currency</string>
+    <string name="action_getStarted">Get Started</string>
+    <string name="title_currencyCreatorNameSelection">What do you want to call your currency?</string>
+    <string name="hint_currencyName">Currency Name</string>
+    <string name="action_next">Next</string>
+    <string name="title_currencyCreatorIconSelection">Upload Currency Icon</string>
+    <string name="subtitle_currencyCreatorIconSelection">Et nulla qui esse adipisicing veniam deserunt amet veniam veniam veniam cupidatat enim id</string>
+    <string name="subtitle_currencyCreatorIconRecommended">500x500 Recommended</string>
+    <string name="title_currencyCreatorDescription">Provide a description for your currency</string>
+    <string name="hint_description">Description</string>
+    <string name="label_characters">characters</string>
+    <string name="label_remaining">remaining</string>
+    <string name="placeholder_currencyName">Currency Name</string>
+    <string name="placeholder_currencyTicker">$BadBoys</string>
+    <string name="action_buyFirstToCreate">Pay for the First %1$s to Create</string>
+    <string name="title_creatingCurrency">Creating %1$s</string>
+    <string name="title_currencyIsLive">%1$s Is Live</string>
+    <string name="subtitle_currencyIsLive">Your currency is ready to receive and use</string>
+    <string name="action_done">Done</string>
+
     <string name="title_deviceLogs">Application Logs</string>
     <string name="action_clearLogs">Clear</string>
     <string name="action_shareLogs">Share</string>
@@ -531,7 +563,42 @@
     <string name="error_title_onrampInvalidRequest">Something Went Wrong</string>
     <string name="error_description_onrampInvalidRequest">We are working with the Coinbase team to resolve the issue. Your card will be refunded in the meantime. Please try again later</string>
 
+    <string name="error_title_onrampGooglePayNotSupported">Google Pay Not Available</string>
+    <string name="error_description_onrampGooglePayNotSupported">Google Pay is not available on this device. Please try on a device with Google Pay support</string>
+
+    <string name="error_title_onrampGooglePayNotReady">Google Pay Not Ready</string>
+    <string name="error_description_onrampGooglePayNotReady">Please add a payment method to Google Pay and try again</string>
+
     <string name="error_title_onrampUnknownFailure">Something Went Wrong</string>
     <string name="error_description_onrampUnknownFailure">Please contact support@flipcash.com</string>
 
+    <string name="error_title_moderationFailed">Something Went Wrong</string>
+    <string name="error_description_moderationFailed">Please try again</string>
+
+    <string name="error_title_nameCheckFailed">Something Went Wrong</string>
+    <string name="error_description_nameCheckFailed">Please try again</string>
+
+    <string name="error_title_nameNotAllowed">This Name is Not Allowed</string>
+    <string name="error_description_nameNotAllowed">Try a different currency name</string>
+
+    <string name="error_title_nameAlreadyTaken">This Name is Taken</string>
+    <string name="error_description_nameAlreadyTaken">Try a different currency name</string>
+
+    <string name="error_title_imageNotAllowed">This Image is Not Allowed</string>
+    <string name="error_description_imageNotAllowed">Try a different image</string>
+
+    <string name="error_title_imageNotSupported">This Image is Not Supported</string>
+    <string name="error_description_imageNotSupported">Try a different image format</string>
+
+    <string name="error_title_descriptionNotAllowed">This Description is Not Allowed</string>
+    <string name="error_description_descriptionNotAllowed">Try a different currency description</string>
+
+    <string name="error_title_launchTokenFailed">Something Went Wrong</string>
+    <string name="error_description_launchTokenFailed">Please try again</string>
+
+    <string name="error_title_buyNewCurrencyFailed">Purchase failed</string>
+    <string name="error_description_buyNewCurrencyFailed">We couldn\'t complete your initial purchase. Your currency is on hold for the next 30 minutes.</string>
+
+    <string name="subtitle_processingYourNewCurrencyTransaction">This transaction typically takes a few minutes. You may leave the app while it completes</string>
+    <string name="action_receiveNewCurrency">Receive My %1$s</string>
 </resources>

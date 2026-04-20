@@ -7,8 +7,10 @@ import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.annotations.AccountType
+import com.getcode.util.resources.AndroidContentReader
 import com.getcode.util.resources.AndroidResources
 import com.getcode.util.resources.AndroidSettingsHelper
+import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.SettingsHelper
 import dagger.Module
@@ -32,6 +34,11 @@ object AppModule {
     @Provides
     @AccountType
     fun providesAccountType(): String = "flipcash.com"
+
+    @Provides
+    fun providesContentReader(
+        @ApplicationContext context: Context,
+    ): ContentReader = AndroidContentReader(context)
 
     @Provides
     fun providesResourceHelper(

@@ -80,8 +80,7 @@ fun TokenSelectionPill(
         ) {
             TokenIconWithName(
                 tokenName = tokenName,
-                tokenImageUrl = tokenImageUrl,
-                tokenSymbol = tokenSymbol,
+                tokenImage = tokenImageUrl,
                 imageSize = CodeTheme.dimens.staticGrid.x5,
                 spacing = CodeTheme.dimens.grid.x1,
             )

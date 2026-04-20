@@ -22,8 +22,9 @@ class TraceInitializer: Initializer<Unit> {
             Timber.plant(FlipcashDebugTree)
         } else {
             CoroutineScope(Dispatchers.IO).launch {
-                val config = Configuration.load(context)
-                config.addOnError(FlipcashErrorCallback)
+                val config = Configuration.load(context).apply {
+                    addOnError(FlipcashErrorCallback)
+                }
                 Bugsnag.start(context, config)
 
                 ErrorUtils.addReporter(BugsnagErrorReporter())

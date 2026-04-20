@@ -202,7 +202,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
         dispatchEvent(Event.OnSendingCodeChanged(loading = true))
         if (stateFlow.value.attempts >= 3) {
             dispatchEvent(Event.OnSendingCodeChanged())
-            BottomBarManager.showError(
+            BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_maxAttemptsReached),
                 message = resources.getString(R.string.error_description_maxAttemptsReached),
             ) {
