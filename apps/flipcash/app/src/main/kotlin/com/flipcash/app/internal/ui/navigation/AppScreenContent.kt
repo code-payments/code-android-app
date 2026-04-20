@@ -195,9 +195,12 @@ private fun SheetContent(
             decorators = listOf(
                 rememberNavMessagingEntryDecorator(navigator.backStack, barManager)
             ),
-            sceneStrategy = ModalBottomSheetSceneStrategy<NavKey>(navigator.resultStore) {
-                navigator.backStack.getOrNull(navigator.backStack.lastIndex - 1)
-            } then SinglePaneSceneStrategy(),
+            sceneStrategies = listOf(
+                ModalBottomSheetSceneStrategy(navigator.resultStore) {
+                    navigator.backStack.getOrNull(navigator.backStack.lastIndex - 1)
+                },
+                SinglePaneSceneStrategy(),
+            ),
             transitionSpec = {
                 if (targetState is OverlayScene<*> || initialState is OverlayScene<*>) {
                     EnterTransition.None togetherWith ExitTransition.None

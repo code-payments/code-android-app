@@ -159,13 +159,16 @@ internal fun App(
                                                 ),
                                                 rememberNavBlockingOverlayEntryDecorator(),
                                             ),
-                                            sceneStrategy = ModalBottomSheetSceneStrategy<NavKey>(
-                                                codeNavigator.resultStore
-                                            ) {
-                                                codeNavigator.backStack.getOrNull(
-                                                    codeNavigator.backStack.lastIndex - 1
-                                                )
-                                            } then SinglePaneSceneStrategy(),
+                                            sceneStrategies = listOf(
+                                                ModalBottomSheetSceneStrategy(
+                                                    codeNavigator.resultStore
+                                                ) {
+                                                    codeNavigator.backStack.getOrNull(
+                                                        codeNavigator.backStack.lastIndex - 1
+                                                    )
+                                                },
+                                                SinglePaneSceneStrategy(),
+                                            ),
                                             transitionSpec = {
                                                 val shouldCrossfade =
                                                     initialState.key == AppRoute.Loading.toString() ||

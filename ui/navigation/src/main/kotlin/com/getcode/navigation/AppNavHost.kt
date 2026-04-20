@@ -8,6 +8,7 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -28,6 +29,7 @@ import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SinglePaneSceneStrategy
 import androidx.navigation3.ui.NavDisplay
+import com.getcode.animation.LocalSharedTransitionScope
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.decorators.rememberNavResultScopeEntryDecorator
 import com.getcode.navigation.results.NavResultStateRegistry
@@ -39,7 +41,8 @@ import com.getcode.theme.CodeTheme
 fun AppNavHost(
     navigator: CodeNavigator,
     resultStateRegistry: NavResultStateRegistry = rememberNavResultStateRegistry(),
-    sceneStrategy: SceneStrategy<NavKey> = SinglePaneSceneStrategy(),
+    sceneStrategies: List<SceneStrategy<NavKey>> = listOf(SinglePaneSceneStrategy()),
+    sharedTransitionScope: SharedTransitionScope = LocalSharedTransitionScope.current,
     transitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
         if (targetState is OverlayScene<*> || initialState is OverlayScene<*>) {
             EnterTransition.None togetherWith ExitTransition.None
@@ -64,7 +67,8 @@ fun AppNavHost(
                 navigator.backStack.removeAt(navigator.backStack.lastIndex)
             }
         },
-        sceneStrategy = sceneStrategy,
+        sceneStrategies = sceneStrategies,
+        sharedTransitionScope = sharedTransitionScope,
         transitionSpec = transitionSpec,
         popTransitionSpec = popTransitionSpec,
         predictivePopTransitionSpec = predictivePopTransitionSpec,
