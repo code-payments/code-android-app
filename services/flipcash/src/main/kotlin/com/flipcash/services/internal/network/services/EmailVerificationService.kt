@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.network.services
 
 import com.flipcash.services.internal.network.api.EmailVerificationApi
+import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.EmailVerificationError
 import com.getcode.ed25519.Ed25519
@@ -39,7 +40,7 @@ internal class EmailVerificationService @Inject constructor(
 
             },
             onFailure = { cause ->
-                Result.failure(EmailVerificationError.Other(cause))
+                Result.failure(cause.toValidationOrElse { EmailVerificationError.Other(it) })
 
             }
         )
@@ -76,7 +77,7 @@ internal class EmailVerificationService @Inject constructor(
 
             },
             onFailure = { cause ->
-                Result.failure(EmailVerificationError.Other(cause))
+                Result.failure(cause.toValidationOrElse { EmailVerificationError.Other(it) })
             }
         )
     }
@@ -101,7 +102,7 @@ internal class EmailVerificationService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(EmailVerificationError.Other(cause))
+                Result.failure(cause.toValidationOrElse { EmailVerificationError.Other(it) })
             }
         )
     }

@@ -2,6 +2,7 @@ package com.flipcash.services.internal.network.services
 
 import com.codeinc.flipcash.gen.moderation.v1.ModerationService
 import com.flipcash.services.internal.network.api.ModerationApi
+import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.ImageModerationError
 import com.flipcash.services.models.TextModerationError
 import com.getcode.ed25519.Ed25519
@@ -25,7 +26,7 @@ internal class ModerationService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(TextModerationError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { TextModerationError.Other(cause = it) })
             }
         )
     }
@@ -45,7 +46,7 @@ internal class ModerationService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(ImageModerationError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { ImageModerationError.Other(cause = it) })
             }
         )
     }

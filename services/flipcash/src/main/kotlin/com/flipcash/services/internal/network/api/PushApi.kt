@@ -4,10 +4,12 @@ import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.push.v1.Model
 import com.codeinc.flipcash.gen.push.v1.PushGrpcKt
 import com.codeinc.flipcash.gen.push.v1.PushService
+import com.codeinc.flipcash.gen.push.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
+import dev.bmcreations.protovalidate.orThrow
 import io.grpc.Deadline
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +43,8 @@ internal class PushApi @Inject constructor(
                 .apply { setAuth(authenticate(owner)) }
                 .build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.addToken(request)
         }
@@ -58,6 +62,8 @@ internal class PushApi @Inject constructor(
                 .setAppInstall(Common.AppInstallId.newBuilder().setValue(installationId))
                 .apply { setAuth(authenticate(owner)) }
                 .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.deleteTokens(request)

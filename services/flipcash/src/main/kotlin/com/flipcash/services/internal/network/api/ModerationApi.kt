@@ -2,11 +2,13 @@ package com.flipcash.services.internal.network.api
 
 import com.codeinc.flipcash.gen.moderation.v1.ModerationGrpcKt
 import com.codeinc.flipcash.gen.moderation.v1.ModerationService
+import com.codeinc.flipcash.gen.moderation.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.utils.toByteString
+import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,6 +29,8 @@ internal class ModerationApi @Inject constructor(
             .apply { setAuth(authenticate(owner)) }
             .build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.moderateText(request)
         }
@@ -37,6 +41,8 @@ internal class ModerationApi @Inject constructor(
             .setImageData(imageBytes.toByteString())
             .apply { setAuth(authenticate(owner)) }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.moderateImage(request)

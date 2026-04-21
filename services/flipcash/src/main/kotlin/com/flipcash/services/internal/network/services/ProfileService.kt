@@ -3,6 +3,7 @@ package com.flipcash.services.internal.network.services
 import com.codeinc.flipcash.gen.profile.v1.Model
 import com.codeinc.flipcash.gen.profile.v1.ProfileService
 import com.flipcash.services.internal.network.api.ProfileApi
+import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.LinkSocialAccountError
 import com.flipcash.services.models.SetDisplayNameError
@@ -31,7 +32,7 @@ internal class ProfileService @Inject constructor(
                     ProfileService.GetProfileResponse.Result.UNRECOGNIZED -> Result.failure(GetUserProfileError.Unrecognized())
                 }
             },
-            onFailure = { Result.failure(it) }
+            onFailure = { Result.failure(it.toValidationOrElse { cause -> GetUserProfileError.Other(cause) }) }
         )
     }
 
@@ -50,7 +51,7 @@ internal class ProfileService @Inject constructor(
                     ProfileService.SetDisplayNameResponse.Result.UNRECOGNIZED -> Result.failure(SetDisplayNameError.Unrecognized())
                 }
             },
-            onFailure = { Result.failure(it) }
+            onFailure = { Result.failure(it.toValidationOrElse { cause -> SetDisplayNameError.Other(cause) }) }
         )
     }
 
@@ -70,7 +71,7 @@ internal class ProfileService @Inject constructor(
                     ProfileService.LinkSocialAccountResponse.Result.UNRECOGNIZED -> Result.failure(LinkSocialAccountError.Unrecognized())
                 }
             },
-            onFailure = { Result.failure(it) }
+            onFailure = { Result.failure(it.toValidationOrElse { cause -> LinkSocialAccountError.Other(cause) }) }
         )
     }
 
@@ -88,7 +89,7 @@ internal class ProfileService @Inject constructor(
                     ProfileService.UnlinkSocialAccountResponse.Result.UNRECOGNIZED -> Result.failure(UnlinkSocialAccountError.Unrecognized())
                 }
             },
-            onFailure = { Result.failure(it) }
+            onFailure = { Result.failure(it.toValidationOrElse { cause -> UnlinkSocialAccountError.Other(cause) }) }
         )
     }
 }

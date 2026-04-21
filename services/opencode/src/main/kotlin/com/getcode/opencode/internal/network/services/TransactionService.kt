@@ -16,6 +16,7 @@ import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.errors.GetIntentMetadataError
 import com.getcode.opencode.model.core.errors.GetLimitsError
+import com.getcode.opencode.model.core.errors.SendMessageError
 import com.getcode.opencode.model.core.errors.VoidGiftCardError
 import com.getcode.opencode.model.core.errors.WithdrawalAvailabilityError
 import com.getcode.opencode.model.financial.Limits
@@ -28,6 +29,7 @@ import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.solana.intents.IntentType
+import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
@@ -80,7 +82,7 @@ internal class TransactionService @Inject constructor(
                 }
             },
             onFailure = { error ->
-                Result.failure(GetIntentMetadataError.Other(cause = error))
+                Result.failure(error.toValidationOrElse { GetIntentMetadataError.Other(cause = it) })
             }
         )
     }
@@ -112,7 +114,7 @@ internal class TransactionService @Inject constructor(
                 }
             },
             onFailure = { error ->
-                Result.failure(GetLimitsError.Other(cause = error))
+                Result.failure(error.toValidationOrElse { GetLimitsError.Other(cause = it) })
             }
         )
     }
@@ -138,7 +140,7 @@ internal class TransactionService @Inject constructor(
                 Result.success(availability)
             },
             onFailure = { error ->
-                Result.failure(WithdrawalAvailabilityError.Other(cause = error))
+                Result.failure(error.toValidationOrElse { WithdrawalAvailabilityError.Other(cause = it) })
             }
         )
     }
@@ -161,7 +163,7 @@ internal class TransactionService @Inject constructor(
                 }
             },
             onFailure = { error ->
-                Result.failure(VoidGiftCardError.Other(cause = error))
+                Result.failure(error.toValidationOrElse { VoidGiftCardError.Other(cause = it) })
             }
         )
     }

@@ -9,6 +9,7 @@ import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.accounts.AccountResponse
 import com.getcode.opencode.model.core.errors.CodeAccountCheckError
 import com.getcode.opencode.model.core.errors.GetAccountsError
+import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.solana.keys.PublicKey
 import javax.inject.Inject
 
@@ -32,7 +33,7 @@ internal class AccountService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(CodeAccountCheckError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { CodeAccountCheckError.Other(cause = it) })
             }
         )
     }
@@ -73,7 +74,7 @@ internal class AccountService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(GetAccountsError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { GetAccountsError.Other(cause = it) })
             }
         )
     }

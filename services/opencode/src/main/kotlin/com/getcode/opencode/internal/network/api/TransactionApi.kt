@@ -14,6 +14,7 @@ import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentRe
 import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentResponse
 import com.codeinc.opencode.gen.transaction.v1.TransactionService.VoidGiftCardRequest
 import com.codeinc.opencode.gen.transaction.v1.TransactionService.VoidGiftCardResponse
+import com.codeinc.opencode.gen.transaction.v1.validate
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -25,6 +26,7 @@ import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -100,6 +102,8 @@ class TransactionApi @Inject constructor(
             .apply { setSignature(sign(owner)) }
             .build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.getIntentMetadata(request)
         }
@@ -125,6 +129,8 @@ class TransactionApi @Inject constructor(
             .apply { setSignature(sign(owner)) }
             .build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.getLimits(request)
         }
@@ -142,6 +148,8 @@ class TransactionApi @Inject constructor(
             .setAccount(destination.asSolanaAccountId())
             .setMint(mint.asSolanaAccountId())
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.canWithdrawToAccount(request)
@@ -166,6 +174,8 @@ class TransactionApi @Inject constructor(
             .apply { setSignature(sign(owner)) }
             .build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.voidGiftCard(request)
         }
@@ -187,6 +197,8 @@ class TransactionApi @Inject constructor(
             .apply { setSignature(sign(owner)) }
             .build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.getSwap(request)
         }
@@ -205,6 +217,8 @@ class TransactionApi @Inject constructor(
             .setOwner(owner.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.getPendingSwaps(request)

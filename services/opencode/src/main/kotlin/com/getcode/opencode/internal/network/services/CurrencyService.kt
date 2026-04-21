@@ -16,9 +16,11 @@ import com.getcode.opencode.internal.network.streamers.LiveMintDataStreamer
 import com.getcode.opencode.internal.network.streamers.ManagedMintStream
 import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
 import com.getcode.opencode.model.core.errors.DiscoverTokensError
+import com.getcode.opencode.model.core.errors.GetAccountsError
 import com.getcode.opencode.model.core.errors.GetHistoricalMintDataError
 import com.getcode.opencode.model.core.errors.GetMintsError
 import com.getcode.opencode.model.core.errors.LaunchTokenError
+import com.getcode.opencode.model.core.errors.SendMessageError
 import com.getcode.opencode.model.core.errors.UpdateIconError
 import com.getcode.opencode.model.core.errors.UpdateMetadataError
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -28,6 +30,7 @@ import com.getcode.opencode.model.financial.TokenCreateRequest
 import com.getcode.opencode.model.financial.TokenUpdateRequest
 import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.ui.TokenBillCustomizations
+import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.CoroutineScope
@@ -60,7 +63,7 @@ internal class CurrencyService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(GetMintsError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { GetMintsError.Other(cause = it) })
             }
         )
     }
@@ -91,7 +94,7 @@ internal class CurrencyService @Inject constructor(
 
             },
             onFailure = { cause ->
-                Result.failure(GetHistoricalMintDataError.Other(cause))
+                Result.failure(cause.toValidationOrElse { GetHistoricalMintDataError.Other(cause = it) })
             }
         )
     }
@@ -130,7 +133,7 @@ internal class CurrencyService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(CheckTokenAvailabilityError.Other(cause))
+                Result.failure(cause.toValidationOrElse { CheckTokenAvailabilityError.Other(cause = it) })
             }
         )
     }
@@ -152,7 +155,7 @@ internal class CurrencyService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(LaunchTokenError.Other(cause))
+                Result.failure(cause.toValidationOrElse { LaunchTokenError.Other(cause = it) })
             }
         )
     }
@@ -174,7 +177,7 @@ internal class CurrencyService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(UpdateIconError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { UpdateIconError.Other(cause = it) })
             }
         )
     }
@@ -195,7 +198,7 @@ internal class CurrencyService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(UpdateMetadataError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { UpdateMetadataError.Other(cause = it) })
             }
         )
     }
@@ -217,7 +220,7 @@ internal class CurrencyService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(DiscoverTokensError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { SendMessageError.Other(cause = it) })
             }
         )
     }

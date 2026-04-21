@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.network.api
 
 import com.codeinc.flipcash.gen.account.v1.AccountGrpcKt
+import com.codeinc.flipcash.gen.account.v1.validate
 import com.codeinc.flipcash.gen.common.v1.Common
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asCountryCode
@@ -12,6 +13,7 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.model.core.ID
 import com.google.protobuf.Timestamp
+import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -37,6 +39,8 @@ internal class AccountApi @Inject constructor(
             .apply { setSignature(sign(owner)) }
             .build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.register(request)
         }
@@ -51,6 +55,8 @@ internal class AccountApi @Inject constructor(
             .setTimestamp(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000))
             .apply { setAuth(authenticate(owner)) }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.login(request)
@@ -71,6 +77,8 @@ internal class AccountApi @Inject constructor(
             .setCountryCode(countryCode.asCountryCode())
             .apply { setAuth(authenticate(owner)) }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.getUserFlags(request)
