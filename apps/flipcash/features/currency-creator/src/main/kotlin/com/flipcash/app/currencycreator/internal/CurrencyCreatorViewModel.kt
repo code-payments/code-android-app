@@ -7,9 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
+import com.flipcash.app.currencycreator.CurrencyCreatorCoordinator
 import com.flipcash.app.currencycreator.internal.components.CurrencyCreatorTopBarController
 import com.flipcash.app.onramp.ExternalWalletOnRampController
 import com.flipcash.app.onramp.ExternalWalletOnRampState
+import com.flipcash.app.core.tokens.CurrencyCreatorDraft
 import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
@@ -52,7 +54,10 @@ import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flowOn
@@ -84,6 +89,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     resources: ResourceHelper,
     val contentReader: ContentReader,
     val purchaseMethodController: PurchaseMethodController,
+    private val currencyCreatorCoordinator: CurrencyCreatorCoordinator,
 ) : BaseViewModel2<CurrencyCreatorViewModel.State, CurrencyCreatorViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -184,6 +190,40 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         userFlags.resolvedFlags
             .map { it.newCurrencyPurchaseAmount.effectiveValue }
             .onEach { dispatchEvent(Event.OnPurchaseAmountChanged(it)) }
+            .launchIn(viewModelScope)
+
+        // Debounced draft persistence — save state 300ms after changes.
+        // The coordinator handles ID assignment; the VM is ID-unaware.
+        @OptIn(FlowPreview::class)
+        stateFlow
+            .drop(1) // skip initial empty state
+            .filter { it.currentStep != null }
+            .debounce(300)
+            .distinctUntilChanged()
+            .onEach { state ->
+                currencyCreatorCoordinator.saveDraft(
+                    CurrencyCreatorDraft(
+                        name = state.nameFieldState.text.toString(),
+                        description = state.descriptionFieldState.text.toString(),
+                        iconUri = state.icon.dataOrNull,
+                        customizations = state.customizations,
+                        currentStep = state.currentStep!!,
+                        nameAttestation = state.attestations.name,
+                        iconAttestation = state.attestations.icon,
+                        descriptionAttestation = state.attestations.description,
+                        createdMint = state.createdMint,
+                        savedAtMillis = System.currentTimeMillis(),
+                    )
+                )
+            }
+            .flowOn(dispatchers.IO)
+            .launchIn(viewModelScope)
+
+        // Clear this flow's draft on successful purchase
+        eventFlow
+            .filterIsInstance<Event.PurchaseCompleted>()
+            .onEach { currencyCreatorCoordinator.clearDraft() }
+            .flowOn(dispatchers.IO)
             .launchIn(viewModelScope)
 
         eventFlow

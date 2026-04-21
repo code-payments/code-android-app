@@ -21,7 +21,7 @@ typealias Usd = Fiat
  * fiat representation.
  *
  * This class maps the relationship between the blockchain reality (USD value for the core mint)
- * and the user's perception (Local Fiat value or non-USDC token value).
+ * and the user's perception (Local Fiat value or non-USDF token value).
  *
  * @property underlyingTokenAmount The raw amount of the core mint token (always denominated in USD for USDF).
  *                                 This represents the actual on-chain value involved.
@@ -33,7 +33,7 @@ typealias Usd = Fiat
  * If the user wants to send, for example, $5 CAD of Jeffy, this will look like:
  *
  * ```
- * underlyingTokenAmount: (USD value amount for $5 CAD worth of Jeffy in USDC)
+ * underlyingTokenAmount: (USD value amount for $5 CAD worth of Jeffy in USDF)
  * nativeAmount: (5 CAD in Jeffy)
  * rate: (fx determined by bonding curve for $5 CAD of Jeffy)
  * mint: (Mint address for Jeffy)
