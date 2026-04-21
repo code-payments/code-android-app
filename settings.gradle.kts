@@ -1,6 +1,7 @@
 pluginManagement {
     includeBuild("build-logic")
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         gradlePluginPortal()
@@ -18,6 +19,7 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode = RepositoriesMode.PREFER_SETTINGS
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         maven(url = "https://plugins.gradle.org/m2/")

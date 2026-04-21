@@ -1,77 +1,114 @@
 syntax = "proto3";
+
 package flipcash.common.v1;
+
 option go_package = "github.com/code-payments/flipcash2-protobuf-api/generated/go/common/v1;commonpb";
 option java_package = "com.codeinc.flipcash.gen.common.v1";
 option objc_class_prefix = "FPBCommonV1";
 
+import "validate/validate.proto";
+
 message PublicKey {
-    bytes value = 1 ;
+    bytes value = 1 [(validate.rules).bytes = {
+        min_len: 32
+        max_len: 32
+    }];
 }
+
 message Signature {
-    bytes value = 1 ;
+    bytes value = 1 [(validate.rules).bytes = {
+        min_len: 64
+        max_len: 64
+    }];
 }
+
 // Auth provides an authentication information for RPCs/messages.
 //
 // Currently, only a single form is supported, but it may be useful in
 // the future to rely on session tokens instead.
 message Auth {
     oneof kind {
+        option (validate.required) = true;
+
         // KeyPair uses pub key cryptography to verify.
         KeyPair key_pair = 1;
     }
+
     // KeyPair uses a keypair to verify a message.
     //
     // The signature should be of the encapsulating proto message,
     // _without_ the Auth section being set.
     message KeyPair {
-        PublicKey pub_key = 1;
-        Signature signature = 2;
+        PublicKey pub_key = 1 [(validate.rules).message.required = true];
+        Signature signature = 2 [(validate.rules).message.required = true];
     }
 }
+
 message UserId {
-    bytes value = 1 ;
+    bytes value = 1 [(validate.rules).bytes = {
+        min_len: 1
+        max_len: 32
+    }];
 }
+
 // AppInstallId is a unque ID tied to a client app installation. It does not
 // identify a device. Value should remain private and not be shared across
 // installs.
 message AppInstallId {
-    string value = 1 ;
+    string value = 1 [(validate.rules).string = {
+        min_len: 1
+        max_len: 256 // todo: What's a reasonable size
+    }];
 }
+
 enum Platform {
     UNKNOWN = 0;
     APPLE   = 1;
     GOOGLE  = 2;
 }
+
 // CryptoPaymentAmount defines an amount of crypto with currency exchange data
 message CryptoPaymentAmount {
     // ISO 4217 alpha-3 currency code the payment was made in
-    string currency = 1;
+    string currency = 1 [(validate.rules).string = { pattern: "^[a-z]{3,4}$" }];
+
     // The amount in the native currency that was paid
-    double native_amount = 2;
+    double native_amount = 2 [(validate.rules).double.gte = 0];
+
     // The amount in quarks of crypto that was paid
     uint64 quarks = 3;
+
     // The crypto mint that was paid
-    PublicKey mint = 4;
+    PublicKey mint = 4 [(validate.rules).message.required = true];
 }
+
 // FiatPaymentAmount defines an amount of fiat
 message FiatPaymentAmount {
     // ISO 4217 alpha-3 currency code the payment was made in
-    string currency = 1;
+    string currency = 1 [(validate.rules).string = { pattern: "^[a-z]{3,4}$" }];
+
     // The amount in the native currency that was paid
-    double native_amount = 2;
+    double native_amount = 2 [(validate.rules).double.gte = 0];
 }
+
 message PagingToken {
-    bytes value = 1 ;
+    bytes value = 1 [(validate.rules).bytes = {
+        min_len: 1
+        max_len: 128
+    }];
 }
+
 message QueryOptions {
     // PageSize limits the maximum page size of a response.
     //
     // Server may choose to return less items. If <= 0,
     // server may select an arbitrary default page size.
-    int32 page_size = 1;
+    int32 page_size = 1 [(validate.rules).int32.lte = 1024];
+
     // PagingToken is a token that can be extracted from the
     // identifier of a collection.
     PagingToken paging_token = 2;
+
     // Order is the order of elements, if applicable.
     Order order = 3;
     enum Order {
@@ -79,6 +116,7 @@ message QueryOptions {
         DESC = 1;
     }
 }
+
 // Request is a generic wrapper for gRPC requests
 message Request {
     string version = 1;
@@ -86,25 +124,40 @@ message Request {
     string method = 3;
     bytes body = 4;
 }
+
 // Response is a generic wrapper for gRPC responses
 message Response {
     Result result = 1;
+
     bytes body = 2;
     string message = 3;
+
     enum Result {
         OK = 0;
         ERROR = 1;
     }
 }
+
 message CountryCode {
     // ISO 3166-1 Alpha-2
-    string value = 1 ;
+    string value = 1 [(validate.rules).string = {
+        min_len: 2
+        max_len: 2
+    }];
 }
+
 // Locale represents an IETF BCP 47 language tag (e.g. "en", "en-US", "zh-Hans-CN")
 message Locale {
-    string value = 1 ;
+    string value = 1 [(validate.rules).string = {
+        pattern: "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*$"
+        min_len: 2
+        max_len: 35
+    }];
 }
+
 // Region represents a fiat currency region identified by its ISO 4217 alpha-3 currency code (e.g. "usd", "eur")
 message Region {
-    string value = 1 ;
+    string value = 1 [(validate.rules).string = {
+        pattern: "^[a-z]{3,4}$"
+    }];
 }

@@ -59,6 +59,7 @@ grpc-okhttp = "1.79.0"
 grpc-kotlin = "1.5.0"
 protobuf = "4.34.0"
 protobuf-plugin = "0.9.6"
+protovalidate-kt = "0.1.0"
 
 lib-phone-number-port = "9.0.28"
 lib-phone-number-google = "9.0.28"
@@ -211,6 +212,7 @@ grpc-protobuf-lite = { module = "io.grpc:grpc-protobuf-lite", version.ref = "grp
 grpc-stub = { module = "io.grpc:grpc-stub", version.ref = "grpc" }
 protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
 protobuf-kotlin-lite = { module = "com.google.protobuf:protobuf-kotlin-lite", version.ref = "protobuf" }
+protobuf-validate-runtime = { module = "dev.bmcreations:protovalidate-runtime", version.ref = "protovalidate-kt" }
 
 # Retrofit
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
@@ -332,3 +334,4 @@ protobuf = { id = "com.google.protobuf", version.ref = "protobuf-plugin" }
 androidx-room = { id = "androidx.room", version.ref = "androidx-room" }
 screenshot = { id = "com.android.compose.screenshot", version.ref = "screenshot" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+protobuf-validate = { id = "dev.bmcreations.protovalidate", version.ref = "protovalidate-kt" }

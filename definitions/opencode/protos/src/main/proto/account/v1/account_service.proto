@@ -10,7 +10,7 @@ import "common/v1/model.proto";
 import "currency/v1/currency_service.proto";
 import "transaction/v1/transaction_service.proto";
 import "google/protobuf/timestamp.proto";
-
+import "validate/validate.proto";
 
 service Account {
     // IsOcpAccount returns whether an owner account is a OCP account. This hints
@@ -25,13 +25,15 @@ service Account {
 
 message IsOcpAccountRequest {
     // The owner account to check against.
-    common.v1.SolanaAccountId owner = 1;
+    common.v1.SolanaAccountId owner = 1 [(validate.rules).message.required = true];
+
 
 
     // The signature is of serialize(IsOcpAccountRequest) without this field set
     // using the private key of the owner account. This provides an authentication
     // mechanism to the RPC.
-    common.v1.Signature signature = 2;
+    common.v1.Signature signature = 2 [(validate.rules).message.required = true];
+
 
 }
 
@@ -50,13 +52,15 @@ message IsOcpAccountResponse {
 message GetTokenAccountInfosRequest {
     // The owner account to fetch balances for, which can also be thought of as a
     // parent account for this RPC that links to one or more token accounts.
-    common.v1.SolanaAccountId owner = 1;
+    common.v1.SolanaAccountId owner = 1 [(validate.rules).message.required = true];
+
 
 
     // The signature is of serialize(GetTokenAccountInfosRequest) without signature
     // fields set using the private key of the owner account. This provides
     // an authentication mechanism to the RPC.
-    common.v1.Signature signature = 2;
+    common.v1.Signature signature = 2 [(validate.rules).message.required = true];
+
 
 
     // A requesting owner account that is requesting the balance for owner. Additional
@@ -93,7 +97,8 @@ message GetTokenAccountInfosResponse {
 
 message TokenAccountInfo {
     // The token account's address
-    common.v1.SolanaAccountId address = 1;
+    common.v1.SolanaAccountId address = 1 [(validate.rules).message.required = true];
+
 
 
     // The owner of the token account, which can also be thought of as a parent
@@ -107,7 +112,8 @@ message TokenAccountInfo {
     common.v1.SolanaAccountId authority = 3;
 
     // The type of token account, which infers its intended use.
-    common.v1.AccountType account_type = 4;
+    common.v1.AccountType account_type = 4 [(validate.rules).enum.not_in = 0];
+
 
 
     // The account's derivation index for applicable account types. When this field
