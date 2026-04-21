@@ -399,7 +399,7 @@ class TransactionController @Inject constructor(
             .map { Result.success(it) }
             .catch { emit(Result.failure(it)) }
             .firstOrNull()
-            ?: Result.failure(IllegalStateException("Never received the desired metadata"))
+            ?: Result.failure(GetIntentMetadataError.Timeout())
     }
 
     override suspend fun checkWithdrawalAvailability(

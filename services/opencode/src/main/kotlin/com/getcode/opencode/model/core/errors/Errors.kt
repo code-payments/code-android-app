@@ -162,6 +162,7 @@ sealed class GetIntentMetadataError(
 ) : CodeServerError(message, cause) {
     class NotFound : GetIntentMetadataError("Not found")
     class Denied : GetIntentMetadataError("Denied")
+    class Timeout : GetIntentMetadataError("Never received the desired metadata")
     class Unrecognized : GetIntentMetadataError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : GetIntentMetadataError(message = cause?.message, cause = cause), NotifiableError
 }
