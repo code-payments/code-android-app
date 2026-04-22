@@ -98,7 +98,7 @@ class SwapViewModelErrorTest {
     fun `buy failure shows buySellFailed error`() = runTest(mainCoroutineRule.dispatcher) {
         dispatchers = TestDispatchers(testScheduler)
         transactionController.stub {
-            onBlocking { buy(any(), any(), anyOrNull(), any(), any(), anyOrNull()) } doReturn
+            onBlocking { buy(any(), any(), anyOrNull(), anyOrNull(), any(), anyOrNull(), anyOrNull()) } doReturn
                 Result.failure(RuntimeException("buy failed"))
         }
 
