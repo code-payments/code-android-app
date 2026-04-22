@@ -79,6 +79,7 @@ object TransactionBuilder {
         authority: PublicKey,
         coreMintMetadata: MintMetadata,
         amount: Long,
+        feeAmount: Long?,
     ): SolanaTransaction {
         val instructions = buildNewCurrencyBuyInstructions(
             serverParameters = response,
@@ -86,6 +87,7 @@ object TransactionBuilder {
             authority = authority,
             coreMintMetadata = coreMintMetadata,
             amount = amount,
+            feeAmount = feeAmount ?: 0,
         )
 
         return SolanaTransaction.newV0Instance(

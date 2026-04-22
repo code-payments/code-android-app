@@ -49,6 +49,7 @@ internal class IntentSwap(
                 authority = request.owner.authorityPublicKey,
                 coreMintMetadata = Token.usdf,
                 amount = request.swapAmount.underlyingTokenAmount.quarks,
+                feeAmount = request.feeAmount?.underlyingTokenAmount?.quarks,
             )
         }
     }

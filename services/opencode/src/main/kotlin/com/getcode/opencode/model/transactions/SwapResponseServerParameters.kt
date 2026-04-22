@@ -197,6 +197,6 @@ sealed interface SwapResponseServerParameters {
         /**
          * Destination account where fee should be paid
          */
-        val feeDestination: PublicKey?,
+        val feeDestination: PublicKey,
     ): SwapResponseServerParameters
 }

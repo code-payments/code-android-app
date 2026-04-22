@@ -36,14 +36,6 @@ sealed interface SwapStartKind {
          */
         val toMint: PublicKey,
         /**
-         * The amount to swap from the source mint in quarks.
-         */
-        val swapAmount: Long,
-        /**
-         * The fee amount to pay for this swap in quarks
-         */
-        val feeAmount: Long?,
-        /**
          * Where "amount" of "from_mint" will be sent from to the VM swap PDA
          */
         val fundingSource: SwapFundingSource,

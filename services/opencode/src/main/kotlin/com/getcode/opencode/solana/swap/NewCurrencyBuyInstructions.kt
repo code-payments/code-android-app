@@ -19,6 +19,7 @@ import com.getcode.opencode.internal.solana.programs.SystemProgram_AdvanceNonce
 import com.getcode.opencode.internal.solana.programs.TokenProgram_CloseAccount
 import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram_InitVm
 import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram_TransferForSwap
+import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram_TransferForSwapWithFee
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.transactions.SwapResponseServerParameters
 import com.getcode.opencode.solana.Instruction
@@ -52,6 +53,7 @@ internal fun buildNewCurrencyBuyInstructions(
     authority: PublicKey,
     coreMintMetadata: MintMetadata,
     amount: Long,
+    feeAmount: Long,
 ): List<Instruction> {
     val serverParams = extractServerParameters(serverParameters)
 
@@ -172,14 +174,16 @@ internal fun buildNewCurrencyBuyInstructions(
 
         // 9. VM::TransferForSwap (Core Mint VM swap ATA -> temporary Core Mint ATA)
         add(
-            VirtualMachineProgram_TransferForSwap(
+            VirtualMachineProgram_TransferForSwapWithFee(
                 vmAuthority = coreMintMetadata.vmMetadata.authority,
                 vm = coreMintMetadata.vmMetadata.vm,
                 swapper = authority,
                 swapPda = coreTimelockAccounts.pda.publicKey,
                 swapAta = coreTimelockAccounts.ata.publicKey,
                 destination = createTemporaryCoreMintAta.address,
-                amount = amount,
+                feeDestination = serverParams.feeDestination,
+                swapAmount = amount,
+                feeAmount = feeAmount,
                 bump = coreTimelockAccounts.pda.bump,
             ).instruction()
         )

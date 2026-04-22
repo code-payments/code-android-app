@@ -18,9 +18,11 @@ import com.getcode.opencode.model.core.errors.GetIntentMetadataError
 import com.getcode.opencode.model.core.errors.GetLimitsError
 import com.getcode.opencode.model.core.errors.VoidGiftCardError
 import com.getcode.opencode.model.core.errors.WithdrawalAvailabilityError
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.transactions.SwapDirection
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapRequest
@@ -188,18 +190,17 @@ internal class TransactionService @Inject constructor(
         val swapAuthority =
             if (isFreshlyLaunchedStub) owner.authority.keyPair else Ed25519.createKeyPair()
 
+        val netAmount = amount - (feeAmount ?: LocalFiat.Zero)
         val request = SwapRequest(
             owner = owner,
             swapAuthority = swapAuthority,
             kind = SwapStartKind.Reserve(
                 fromMint = Mint.usdf,
                 toMint = of.address,
-                swapAmount = amount.underlyingTokenAmount.quarks,
-                feeAmount = feeAmount?.underlyingTokenAmount?.quarks,
                 fundingSource = source,
             ),
             direction = SwapDirection.Buy(of),
-            swapAmount = amount,
+            swapAmount = netAmount,
             feeAmount = feeAmount,
             swapId = swapId ?: SwapId.generate(),
             verifiedState = verifiedState,
@@ -226,8 +227,6 @@ internal class TransactionService @Inject constructor(
             kind = SwapStartKind.Reserve(
                 fromMint = of.address,
                 toMint = Mint.usdf,
-                swapAmount = amount.underlyingTokenAmount.quarks,
-                feeAmount = null,
                 fundingSource = source,
             ),
             direction = SwapDirection.Sell(of),

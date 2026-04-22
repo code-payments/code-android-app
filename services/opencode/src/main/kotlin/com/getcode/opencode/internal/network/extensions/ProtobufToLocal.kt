@@ -167,7 +167,7 @@ internal fun TransactionService.StatefulSwapResponse.ServerParameters.ReserveNew
         seed = seed.toPublicKey(),
         sellFeeBps = sellFeeBps,
         vmLockDurationInDays = vmLockDurationInDays,
-        feeDestination = feeDestinationOrNull?.toPublicKey(),
+        feeDestination = feeDestination.toPublicKey(),
     )
 }
 
