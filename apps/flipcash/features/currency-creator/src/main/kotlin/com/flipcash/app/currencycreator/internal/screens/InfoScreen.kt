@@ -71,14 +71,7 @@ internal fun InfoScreenContent(state: CurrencyCreatorViewModel.State) {
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
             ) {
                 Text(
-                    text = stringResource(R.string.title_createYourCurrency),
-                    style = CodeTheme.typography.displaySmall.copy(fontSize = 30.sp),
-                    color = CodeTheme.colors.textMain,
-                )
-
-                Text(
                     modifier = Modifier
-                        .padding(top = CodeTheme.dimens.grid.x1)
                         .padding(horizontal = CodeTheme.dimens.inset),
                     text = stringResource(R.string.subtitle_currencyCreatorInfo, state.stepCount),
                     style = CodeTheme.typography.textSmall,
@@ -91,7 +84,8 @@ internal fun InfoScreenContent(state: CurrencyCreatorViewModel.State) {
                 modifier = Modifier
                     .weight(0.5f)
                     .padding(top = CodeTheme.dimens.grid.x12),
-                cost = state.purchaseAmount,
+                cost = state.totalCost,
+                fee = state.feeAmount
             )
         }
     }

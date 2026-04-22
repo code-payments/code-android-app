@@ -106,8 +106,9 @@ internal class CurrencyApi @Inject constructor(
         request: TokenCreateRequest,
         owner: Ed25519.KeyPair
     ): CurrencyService.LaunchResponse {
+        println(request)
         val request = CurrencyService.LaunchRequest.newBuilder()
-            .setName(request.name.text.trim())
+            .setName(request.name.text)
             .setNameModerationAttestation(request.name.asProto())
             .apply apply@{
                 if (request.symbol != null) {

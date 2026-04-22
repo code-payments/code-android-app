@@ -19,6 +19,7 @@ import com.flipcash.app.currencycreator.internal.CurrencyCreatorViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -71,13 +72,22 @@ internal fun ProcessingContent(
         },
         bottomBar = {
             if (state.processingState.success) {
+                val text = if (state.purchaseAmount == state.totalCost) {
+                    stringResource(R.string.action_ok)
+                } else {
+                    stringResource(
+                        R.string.action_receiveNewCurrency,
+                        state.purchaseAmount.formatted(rule = Fiat.FormattingRule.Truncated)
+                    )
+                }
+
                 CodeButton(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = CodeTheme.dimens.inset)
                         .padding(bottom = CodeTheme.dimens.grid.x2)
                         .navigationBarsPadding(),
-                    text = stringResource(R.string.action_receiveNewCurrency, state.nameFieldState.text.toString()),
+                    text = text,
                     buttonState = ButtonState.Filled,
                     onClick = {
                         flowNavigator.exitWithResult(CurrencyCreatorResult.Success)

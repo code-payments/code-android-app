@@ -15,6 +15,7 @@ sealed interface PurchaseMethod {
 data class PurchaseMethodMetadata(
     val mint: Mint? = null,
     val purchaseAmount: Fiat? = null,
+    val feeAmount: Fiat? = null,
     val paymentAction: PaymentAction = PaymentAction.Buy
 )
 

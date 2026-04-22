@@ -43,11 +43,6 @@ internal fun Scanner() {
     val billState by session.billState.collectAsState()
     val analytics = rememberAnalytics()
 
-    val sheetLifecycleHandler = rememberSheetAutoResign()
-    LaunchedEffect(sheetLifecycleHandler) {
-        sheetLifecycleHandler.handle()
-    }
-
     var isPaused by remember { mutableStateOf(false) }
 
     var previewing by remember {
