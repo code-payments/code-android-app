@@ -42,13 +42,13 @@ internal class IntentSwap(
                 authority = request.owner.authorityPublicKey,
                 swapAuthority = request.swapAuthority.toPublicKey(),
                 direction = request.direction,
-                amount = request.amount.underlyingTokenAmount.quarks,
+                amount = request.swapAmount.underlyingTokenAmount.quarks,
             )
             is SwapResponseServerParameters.NewCurrency -> TransactionBuilder.buyNewCurrency(
                 response = parameters,
                 authority = request.owner.authorityPublicKey,
                 coreMintMetadata = Token.usdf,
-                amount = request.amount.underlyingTokenAmount.quarks,
+                amount = request.swapAmount.underlyingTokenAmount.quarks,
             )
         }
     }

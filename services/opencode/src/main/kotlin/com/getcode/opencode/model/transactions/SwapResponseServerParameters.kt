@@ -133,7 +133,7 @@ sealed interface SwapResponseServerParameters {
      * 7. VM::InitializeVm
      * 8. AssociatedTokenAccount::CreateIdempotent (open owner's Core Mint ATA)
      * 9. AssociatedTokenAccount::CreateIdempotent (open owner's to_mint VM Deposit ATA)
-     * 10. VM::TransferForSwap (Core Mint VM swap ATA -> owner's Core Mint ATA)
+     * 10. VM::TransferForSwapWithFee (Core Mint VM swap ATA -> owner's Core Mint ATA (swap amount) and fee destination (fee amount))
      * 11. Reserve::BuyTokens (limited buy transferring to_mint tokens into the to_mint VM Deposit ATA)
      * 12. Token::CloseAccount (closes owner's Core Mint ATA)
      *
@@ -194,5 +194,9 @@ sealed interface SwapResponseServerParameters {
          * The VM lock duration
          */
         val vmLockDurationInDays: Int,
+        /**
+         * Destination account where fee should be paid
+         */
+        val feeDestination: PublicKey?,
     ): SwapResponseServerParameters
 }

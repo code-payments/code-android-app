@@ -3,7 +3,6 @@ package com.getcode.opencode.model.transactions
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 
 typealias Swap = SwapMetadata
@@ -23,7 +22,7 @@ data class SwapMetadata(
         get() = verifiedMetadata.toMint
 
     val amount: Fiat
-        get() = verifiedMetadata.amount
+        get() = verifiedMetadata.swapAmount
 }
 
 /**
@@ -85,6 +84,7 @@ data class VerifiedSwapMetadata(
     val id: SwapId,
     val fromMint: PublicKey,
     val toMint: PublicKey,
-    val amount: Fiat,
+    val swapAmount: Fiat,
+    val feeAmount: Fiat?,
     val fundingSource: SwapFundingSource,
 )

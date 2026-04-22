@@ -27,6 +27,7 @@ data class ResolvedUserFlags(
     val minimumVersion: ResolvedFlag<Int?>,
     val billExchangeDataTimeout: ResolvedFlag<Duration?>,
     val newCurrencyPurchaseAmount: ResolvedFlag<Fiat>,
+    val newCurrencyFeeAmount: ResolvedFlag<Fiat>,
 )
 
 internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = ResolvedUserFlags(
@@ -38,4 +39,5 @@ internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = Resolv
     minimumVersion = ResolvedFlag(minimumVersion, overrides.minimumVersion),
     billExchangeDataTimeout = ResolvedFlag(billExchangeDataTimeout, overrides.billExchangeDataTimeout),
     newCurrencyPurchaseAmount = ResolvedFlag(newCurrencyPurchaseAmount, overrides.newCurrencyPurchaseAmount),
+    newCurrencyFeeAmount = ResolvedFlag(newCurrencyFeeAmount, overrides.newCurrencyPurchaseAmount)
 )

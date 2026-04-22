@@ -21,7 +21,7 @@ internal class SwapFunding @Inject constructor(
         val fundingIntent = IntentFundSwap.create(
             intentId = PublicKey(request.fundingIntentId),
             sourceCluster = request.owner,
-            amount = request.amount,
+            amount = request.swapAmount,
             fromMint = request.direction.sourceMint,
             verifiedState = request.verifiedState,
         )

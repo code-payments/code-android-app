@@ -343,6 +343,8 @@ message DiscoverResponse {
 message CheckAvailabilityRequest {
     // The currency name to check availability for
     string name = 1;
+
+
 }
 message CheckAvailabilityResponse {
     Result result = 1;

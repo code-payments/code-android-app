@@ -12,7 +12,8 @@ data class SwapRequest(
     val swapAuthority: KeyPair,
     val kind: SwapStartKind,
     val direction: SwapDirection,
-    val amount: LocalFiat,
+    val swapAmount: LocalFiat,
+    val feeAmount: LocalFiat?,
     val swapId: SwapId,
     val verifiedState: VerifiedState,
 ) {
@@ -37,7 +38,11 @@ sealed interface SwapStartKind {
         /**
          * The amount to swap from the source mint in quarks.
          */
-        val amount: Long,
+        val swapAmount: Long,
+        /**
+         * The fee amount to pay for this swap in quarks
+         */
+        val feeAmount: Long?,
         /**
          * Where "amount" of "from_mint" will be sent from to the VM swap PDA
          */

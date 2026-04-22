@@ -231,6 +231,7 @@ sealed class TextModerationError(
 ): CodeServerError(message, cause) {
     class Flagged(category: ModerationResult.FlaggedCategory) : TextModerationError("Content flagged: $category")
     class Denied : TextModerationError("Denied")
+    class UnsupportedLanguage: TextModerationError("Unsupported Language")
     class Unrecognized : TextModerationError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : TextModerationError(message = cause?.message, cause = cause), NotifiableError
 }

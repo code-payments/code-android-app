@@ -264,7 +264,7 @@ message StatefulSwapRequest {
             // The destination mint that will be swapped to
             common.v1.SolanaAccountId to_mint = 3;
             // The amount to swap from the source mint in quarks.
-            uint64 amount = 4;
+            uint64 swap_amount = 4;
             // Where "amount" of "from_mint" will be sent from to the VM swap PDA
             FundingSource funding_source = 5 ;
             // The ID of the "transaction" to lookup funding state.
@@ -272,6 +272,8 @@ message StatefulSwapRequest {
             // For FUNDING_SOURCE_SUBMIT_INTENT, this value is the base58 encoded intent ID.
             // For FUNDING_SOURCE_EXTERNAL_WALLET, this value is the base58 encoded transaction signature.
             string funding_id = 6 ;
+              // The fee amount to pay for this swap
+            uint64 fee_amount = 7;
         }
         // The owner account starting the swap
         common.v1.SolanaAccountId owner = 9;
@@ -386,7 +388,7 @@ message StatefulSwapResponse {
         //  7. VM::InitializeVm
         //  8. AssociatedTokenAccount::CreateIdempotent (open owner's Core Mint ATA)
         //  9. AssociatedTokenAccount::CreateIdempotent (open owner's to_mint VM Deposit ATA)
-        // 10. VM::TransferForSwap (Core Mint VM swap ATA -> owner's Core Mint ATA)
+        // 10. VM::TransferForSwapWithFee (Core Mint VM swap ATA -> owner's Core Mint ATA (swap amount) and fee destination (fee amount))
         // 11. Reserve::BuyTokens (limited buy transferring to_mint tokens into the to_mint VM Deposit ATA)
         // 12. Token::CloseAccount (closes owner's Core Mint ATA)
         //
@@ -412,7 +414,7 @@ message StatefulSwapResponse {
             string memo_value = 7;
             // The VM and currency authority
             common.v1.SolanaAccountId authority = 8;
-            // The VM and currency authority
+            // The currency name
             string name = 9 ;
             // The currency symbol
             string symbol = 10 ;
@@ -422,6 +424,8 @@ message StatefulSwapResponse {
             uint32 sell_fee_bps = 12;
             // The VM lock duration
             uint32 vm_lock_duration_in_days = 13;
+            // Destination account where fee should be paid
+            common.v1.SolanaAccountId fee_destination = 14;
         }
     }
     message Success {

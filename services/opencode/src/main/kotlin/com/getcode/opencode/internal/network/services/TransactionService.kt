@@ -170,6 +170,7 @@ internal class TransactionService @Inject constructor(
         scope: CoroutineScope,
         swapId: SwapId?,
         amount: LocalFiat,
+        feeAmount: LocalFiat?,
         of: Token,
         owner: AccountCluster,
         verifiedState: VerifiedState,
@@ -193,11 +194,13 @@ internal class TransactionService @Inject constructor(
             kind = SwapStartKind.Reserve(
                 fromMint = Mint.usdf,
                 toMint = of.address,
-                amount = amount.underlyingTokenAmount.quarks,
+                swapAmount = amount.underlyingTokenAmount.quarks,
+                feeAmount = feeAmount?.underlyingTokenAmount?.quarks,
                 fundingSource = source,
             ),
             direction = SwapDirection.Buy(of),
-            amount = amount,
+            swapAmount = amount,
+            feeAmount = feeAmount,
             swapId = swapId ?: SwapId.generate(),
             verifiedState = verifiedState,
         )
@@ -223,11 +226,13 @@ internal class TransactionService @Inject constructor(
             kind = SwapStartKind.Reserve(
                 fromMint = of.address,
                 toMint = Mint.usdf,
-                amount = amount.underlyingTokenAmount.quarks,
+                swapAmount = amount.underlyingTokenAmount.quarks,
+                feeAmount = null,
                 fundingSource = source,
             ),
             direction = SwapDirection.Sell(of),
-            amount = amount,
+            swapAmount = amount,
+            feeAmount = null,
             verifiedState = verifiedState,
         )
 

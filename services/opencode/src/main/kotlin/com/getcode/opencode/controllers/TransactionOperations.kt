@@ -30,6 +30,7 @@ interface TransactionOperations {
     suspend fun buy(
         owner: AccountCluster,
         amount: LocalFiat,
+        feeAmount: LocalFiat? = null,
         swapId: SwapId? = null,
         of: Token,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
