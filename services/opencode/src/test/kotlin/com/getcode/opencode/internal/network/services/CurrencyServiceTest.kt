@@ -11,6 +11,9 @@ import com.getcode.opencode.internal.network.api.CurrencyApi
 import com.getcode.opencode.model.core.errors.LaunchTokenError
 import com.getcode.opencode.model.core.errors.UpdateIconError
 import com.getcode.opencode.model.core.errors.UpdateMetadataError
+import com.getcode.opencode.model.core.errors.ValidationException
+import dev.bmcreations.protovalidate.FieldViolation
+import dev.bmcreations.protovalidate.ProtoValidationException
 import com.getcode.opencode.model.financial.TokenCreateRequest
 import com.getcode.opencode.model.financial.TokenUpdateRequest
 import com.getcode.opencode.model.moderation.ModerationAttestation
@@ -19,6 +22,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -100,6 +104,20 @@ class CurrencyServiceTest {
         assertNotNull(error.cause)
     }
 
+    @Test
+    fun `launchNewToken ProtoValidationException returns ValidationException`() = runTest {
+        val violation = FieldViolation(field = "name", rule = "string.min_len", message = "too short")
+        coEvery { api.launchToken(any(), any()) } throws ProtoValidationException(listOf(violation))
+
+        val result = service.launchNewToken(makeCreateRequest(), owner)
+
+        assertTrue(result.isFailure)
+        val error = result.exceptionOrNull()
+        assertIs<ValidationException>(error)
+        assertEquals("name", error.violations.first().field)
+        assertEquals("too short", error.violations.first().message)
+    }
+
     // endregion
 
     // region updateIcon
@@ -158,6 +176,17 @@ class CurrencyServiceTest {
         val error = result.exceptionOrNull()
         assertIs<UpdateIconError.Other>(error)
         assertNotNull(error.cause)
+    }
+
+    @Test
+    fun `updateIcon ProtoValidationException returns ValidationException`() = runTest {
+        val violation = FieldViolation(field = "icon", rule = "bytes.min_len", message = "icon required")
+        coEvery { api.updateIcon(any(), any()) } throws ProtoValidationException(listOf(violation))
+
+        val result = service.updateIcon(makeIconRequest(), owner)
+
+        assertTrue(result.isFailure)
+        assertIs<ValidationException>(result.exceptionOrNull())
     }
 
     // endregion

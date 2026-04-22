@@ -107,7 +107,7 @@ class VirtualMachineProgramTest {
             feeDestination = testKey(7),
             swapAmount = 1000L, feeAmount = 500L, bump = 255
         )
-        assertEquals(17.toByte(), ix.encode()[0])
+        assertEquals(20.toByte(), ix.encode()[0])
     }
 
     @Test

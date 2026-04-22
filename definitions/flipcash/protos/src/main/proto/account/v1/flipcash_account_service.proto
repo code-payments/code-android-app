@@ -1,30 +1,39 @@
 syntax = "proto3";
+
 package flipcash.account.v1;
+
 option go_package = "github.com/code-payments/flipcash2-protobuf-api/generated/go/account/v1;acountpb";
 option java_package = "com.codeinc.flipcash.gen.account.v1";
 option objc_class_prefix = "FPBAccountV1";
+
 import "common/v1/common.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 service Account {
 	// Register registers a new user, bound to the provided PublicKey.
 	// If the PublicKey is already in use, the previous user account is returned.
 	rpc Register(RegisterRequest) returns (RegisterResponse);
+
 	// Login retrieves the UserId (and in the future, potentially other information)
 	// required for 'recovering' an account.
 	rpc Login(LoginRequest) returns (LoginResponse);
+
 	// GetUserFlags gets user-specific flags.
 	rpc GetUserFlags(GetUserFlagsRequest) returns (GetUserFlagsResponse);
+
 	// GetUserFlags gets user flags for unauthenticated users
 	rpc GetUnauthenticatedUserFlags(GetUnauthenticatedUserFlagsRequest) returns (GetUnauthenticatedUserFlagsResponse);
 }
+
 message RegisterRequest {
 	// PublicKey the public key that is authorized to perform actions on the
 	// registered users behalf.
-	common.v1.PublicKey public_key = 1;
+	common.v1.PublicKey public_key = 1 [(validate.rules).message.required = true];
+
 	// Signature of this message (without the signature), using the provided keypair.
-	common.v1.Signature signature = 2;
+	common.v1.Signature signature = 2 [(validate.rules).message.required = true];
 }
 message RegisterResponse {
 	Result result = 1;
@@ -33,16 +42,19 @@ message RegisterResponse {
 		INVALID_SIGNATURE    = 1;
 		DENIED               = 2;
 	}
+
 	// The UserId associated with the account.
 	common.v1.UserId user_id = 2;
 }
+
 message LoginRequest {
 	// Timestamp is the timestamp the request was generated
 	//
 	// The server may reject the request if the timestamp is too far off
 	// the current (server) time. This is to prevent replay attacks.
-	google.protobuf.Timestamp timestamp = 1;
-	common.v1.Auth auth = 2;
+	google.protobuf.Timestamp timestamp = 1 [(validate.rules).timestamp.required = true];
+
+	common.v1.Auth auth = 2 [(validate.rules).message.required = true];
 }
 message LoginResponse {
 	Result result = 1;
@@ -51,12 +63,17 @@ message LoginResponse {
 		INVALID_TIMESTAMP = 1;
 		DENIED            = 2;
 	}
+
 	common.v1.UserId user_id = 2;
 }
+
 message GetUserFlagsRequest {
-	common.v1.UserId user_id = 1;
-	common.v1.Auth auth = 2;
+	common.v1.UserId user_id = 1 [(validate.rules).message.required = true];
+
+	common.v1.Auth auth = 2 [(validate.rules).message.required = true];
+
 	common.v1.Platform platform = 3;
+
 	common.v1.CountryCode country_code = 4;
 }
 message GetUserFlagsResponse {
@@ -65,10 +82,13 @@ message GetUserFlagsResponse {
 		OK     = 0;
 		DENIED = 1;
 	}
+
 	UserFlags user_flags = 2;
 }
+
 message GetUnauthenticatedUserFlagsRequest {
 	common.v1.Platform platform = 1;
+
 	common.v1.CountryCode country_code = 2;
 }
 message GetUnauthenticatedUserFlagsResponse {
@@ -76,15 +96,20 @@ message GetUnauthenticatedUserFlagsResponse {
 	enum Result {
 		OK = 0;
 	}
+
 	UserFlags user_flags = 2;
 }
+
 message UserFlags {
     // Is this a fully registered account using IAP for account creation?
 	bool is_registered_account = 1;
+
 	// Is this user associated with a Flipcash staff member?
 	bool is_staff = 2;
+
 	// Does this user require IAP for registration in the account creation flow?
 	bool requires_iap_for_registration = 3;
+
 	enum OnRampProvider {
 		UNKNOWN                  = 0;
 		COINBASE_VIRTUAL         = 1;
@@ -96,20 +121,28 @@ message UserFlags {
 		BACKPACK                 = 7;
 		BASE                     = 8;
 	}
+
 	// The set of supported on ramp providers for the user, based on their platform
 	// and locale if provided
-	repeated OnRampProvider supported_on_ramp_providers = 4 ;
+	repeated OnRampProvider supported_on_ramp_providers = 4 [(validate.rules).repeated = {
+		min_items: 0
+		max_items: 256
+	}];
 	
 	// The preferred on ramp provider for this user. If the value is UNKNOWN, client
 	// should show the list of all supported providers.
 	OnRampProvider preferred_on_ramp_provider = 5;
+
 	// The minumum build number for this user. If their build number is less than the
 	// provided value, client should show a forced upgrade screen.
 	uint32 min_build_number = 6;
+
 	// Exchange data timeout for sequential give/grabs for bills
 	google.protobuf.Duration bill_exchange_data_timeout = 7;
+
 	// USDF amount, in quarks, that must be purchased when launching a new currency
 	uint64 new_currency_purchase_amount = 8;
+
 	// USDF amount, in quarks, that must be paid in a fee when launching a new currency
 	uint64 new_currency_fee_amount = 9;
 }

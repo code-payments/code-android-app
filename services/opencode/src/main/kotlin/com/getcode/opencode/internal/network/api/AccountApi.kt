@@ -2,12 +2,14 @@ package com.getcode.opencode.internal.network.api
 
 import com.codeinc.opencode.gen.account.v1.AccountGrpcKt
 import com.codeinc.opencode.gen.account.v1.AccountService
+import com.codeinc.opencode.gen.account.v1.validate
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.opencode.model.accounts.AccountFilter
+import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -29,7 +31,7 @@ internal class AccountApi @Inject constructor(
      * etc.
      *
      * @param owner The owner account to check against.
-     * @return The [AccountService.IsCodeAccountResponse]
+     * @return The [AccountService.IsOcpAccountResponse]
      */
     suspend fun isCodeAccount(
         owner: KeyPair,
@@ -38,6 +40,8 @@ internal class AccountApi @Inject constructor(
             .setOwner(owner.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.isOcpAccount(request)
@@ -87,6 +91,8 @@ internal class AccountApi @Inject constructor(
                 setRequestingOwnerSignature(requestingOwnerSig)
             }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.getTokenAccountInfos(request)

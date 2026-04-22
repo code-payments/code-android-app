@@ -46,6 +46,8 @@ dependencies {
 
     api(project(":vendor:kik:scanner"))
 
+    implementation(libs.protobuf.validate.runtime)
+
     implementation(libs.javax.inject)
 
     implementation(libs.kotlinx.serialization.json)

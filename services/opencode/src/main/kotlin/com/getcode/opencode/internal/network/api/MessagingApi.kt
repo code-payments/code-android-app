@@ -3,6 +3,7 @@ package com.getcode.opencode.internal.network.api
 import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.messaging.v1.MessagingGrpcKt
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
+import com.codeinc.opencode.gen.messaging.v1.validate
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
@@ -11,6 +12,7 @@ import com.getcode.opencode.internal.network.extensions.asRendezvousKey
 import com.getcode.opencode.internal.network.extensions.sign
 import com.getcode.utils.trace
 import com.google.protobuf.ByteString
+import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -59,6 +61,8 @@ internal class MessagingApi @Inject constructor(
             .setRendezvousKey(rendezvous.asRendezvousKey())
             .apply { setSignature(sign(rendezvous)) }
             .build()
+
+        request.validate().orThrow()
 
         return api.openMessageStream(request)
     }
@@ -126,6 +130,8 @@ internal class MessagingApi @Inject constructor(
             .apply { setSignature(sign(rendezvous)) }
             .build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) { api.pollMessages(request) }
     }
 
@@ -140,6 +146,8 @@ internal class MessagingApi @Inject constructor(
             .setRendezvousKey(rendezvous.asRendezvousKey())
             .addAllMessageIds(messageIds)
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) { api.ackMessages(request) }
     }
@@ -162,6 +170,8 @@ internal class MessagingApi @Inject constructor(
             .setRendezvousKey(rendezvous.asRendezvousKey())
             .setSignature(signature)
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) { api.sendMessage(request) }
     }

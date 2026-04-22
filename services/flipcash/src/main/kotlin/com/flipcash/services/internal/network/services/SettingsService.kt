@@ -2,6 +2,7 @@ package com.flipcash.services.internal.network.services
 
 import com.codeinc.flipcash.gen.settings.v1.SettingsService
 import com.flipcash.services.internal.network.api.SettingsApi
+import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.UpdateSettingsError
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
@@ -28,7 +29,7 @@ internal class SettingsService @Inject constructor(
                 }
             },
             onFailure = {
-                Result.failure(UpdateSettingsError.Other(it))
+                Result.failure(it.toValidationOrElse { cause -> UpdateSettingsError.Other(cause) })
             }
         )
     }

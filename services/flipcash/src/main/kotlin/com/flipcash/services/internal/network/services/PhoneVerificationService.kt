@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.network.services
 
 import com.flipcash.services.internal.network.api.PhoneVerificationApi
+import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.PhoneVerificationError
 import com.getcode.ed25519.Ed25519
@@ -42,7 +43,7 @@ internal class PhoneVerificationService @Inject constructor(
 
             },
             onFailure = { cause ->
-                Result.failure(PhoneVerificationError.Other(cause))
+                Result.failure(cause.toValidationOrElse { PhoneVerificationError.Other(it) })
 
             }
         )
@@ -79,7 +80,7 @@ internal class PhoneVerificationService @Inject constructor(
 
             },
             onFailure = { cause ->
-                Result.failure(PhoneVerificationError.Other(cause))
+                Result.failure(cause.toValidationOrElse { PhoneVerificationError.Other(it) })
             }
         )
     }
@@ -106,7 +107,7 @@ internal class PhoneVerificationService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(PhoneVerificationError.Other(cause))
+                Result.failure(cause.toValidationOrElse { PhoneVerificationError.Other(it) })
             }
         )
     }

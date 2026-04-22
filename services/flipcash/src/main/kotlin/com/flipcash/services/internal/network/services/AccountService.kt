@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.network.services
 
 import com.flipcash.services.internal.network.api.AccountApi
+import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.flipcash.services.models.GetUserFlagsError
 import com.flipcash.services.models.LoginError
@@ -39,7 +40,7 @@ internal class AccountService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(RegisterError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { RegisterError.Other(cause = it) })
             }
         )
     }
@@ -70,7 +71,7 @@ internal class AccountService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(LoginError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { LoginError.Other(cause = it) })
             }
         )
     }
@@ -99,7 +100,7 @@ internal class AccountService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(GetUserFlagsError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { GetUserFlagsError.Other(cause = it) })
             }
         )
     }

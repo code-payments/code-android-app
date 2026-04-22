@@ -3,12 +3,14 @@ package com.flipcash.services.internal.network.api
 import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.iap.v1.IapGrpcKt
 import com.codeinc.flipcash.gen.iap.v1.IapService
+import com.codeinc.flipcash.gen.iap.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.model.billing.IapMetadata
 import com.flipcash.services.internal.model.billing.Receipt
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
+import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -39,6 +41,8 @@ internal class PurchaseApi @Inject constructor(
             )
             .apply { setAuth(authenticate(owner)) }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.onPurchaseCompleted(request)

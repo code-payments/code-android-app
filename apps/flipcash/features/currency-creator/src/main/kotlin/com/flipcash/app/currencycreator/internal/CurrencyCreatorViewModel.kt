@@ -41,6 +41,7 @@ import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
 import com.getcode.opencode.model.core.errors.GetMintsError
 import com.getcode.opencode.model.core.errors.LaunchTokenError
+import com.getcode.opencode.model.core.errors.ValidationException
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenCreateRequest
@@ -280,6 +281,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 onError = { cause ->
                     dispatchEvent(Event.UpdateProcessingState())
                     when (cause) {
+                        is ValidationException,
                         is TextModerationError.Flagged,
                         is TextModerationError.Denied -> {
                             BottomBarManager.showAlert(
@@ -330,6 +332,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     dispatchEvent(Event.UpdateProcessingState())
                     stateFlow.value.icon.dataOrNull?.let { contentReader.removeFromCache(it) }
                     when (cause) {
+                        is ValidationException,
                         is ImageModerationError.Flagged,
                         is ImageModerationError.Denied -> {
                             BottomBarManager.showAlert(
@@ -379,6 +382,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 onError = { cause ->
                     dispatchEvent(Event.UpdateProcessingState())
                     when (cause) {
+                        is ValidationException,
                         is TextModerationError.Flagged,
                         is TextModerationError.Denied -> {
                             BottomBarManager.showAlert(

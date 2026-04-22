@@ -2,6 +2,7 @@ package com.getcode.opencode.internal.network.api
 
 import com.codeinc.opencode.gen.currency.v1.CurrencyGrpcKt
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
+import com.codeinc.opencode.gen.currency.v1.validate
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.annotations.OpenCodeManagedStreamingChannel
@@ -19,6 +20,7 @@ import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
+import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -58,6 +60,8 @@ internal class CurrencyApi @Inject constructor(
                 }
             }.build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.getMints(request)
         }
@@ -81,6 +85,8 @@ internal class CurrencyApi @Inject constructor(
                 }
             ).build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.getHistoricalMintData(request)
         }
@@ -94,8 +100,10 @@ internal class CurrencyApi @Inject constructor(
 
     suspend fun checkTokenAvailability(name: String): CurrencyService.CheckAvailabilityResponse {
         val request = CurrencyService.CheckAvailabilityRequest.newBuilder()
-            .setName(name)
+            .setName(name.trim())
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.checkAvailability(request)
@@ -134,6 +142,8 @@ internal class CurrencyApi @Inject constructor(
             .apply { setSignature(sign(owner)) }
             .build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.launch(request)
         }
@@ -150,6 +160,8 @@ internal class CurrencyApi @Inject constructor(
             .setOwner(owner.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.updateIcon(request)
@@ -196,6 +208,8 @@ internal class CurrencyApi @Inject constructor(
             }
             .apply { setSignature(sign(owner)) }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.updateMetadata(request)
