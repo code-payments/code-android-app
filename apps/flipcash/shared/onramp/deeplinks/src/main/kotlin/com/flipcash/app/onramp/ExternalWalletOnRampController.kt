@@ -71,6 +71,9 @@ class ExternalWalletOnRampController @Inject constructor(
     private val _amount = MutableStateFlow<LocalFiat?>(null)
     val amount: StateFlow<LocalFiat?> = _amount.asStateFlow()
 
+    private val _feeAmount = MutableStateFlow<LocalFiat?>(null)
+    val feeAmount: StateFlow<LocalFiat?> = _feeAmount.asStateFlow()
+
     private val _tokenToPurchase = MutableStateFlow<Token?>(null)
     val tokenToPurchase: StateFlow<Token?> = _tokenToPurchase.asStateFlow()
 
@@ -82,8 +85,9 @@ class ExternalWalletOnRampController @Inject constructor(
         _state.value = ExternalWalletOnRampState.Started(origin, provider)
     }
 
-    fun setAmount(amount: LocalFiat?) {
+    fun setAmount(amount: LocalFiat?, feeAmount: LocalFiat? = null) {
         _amount.value = amount
+        _feeAmount.value = feeAmount
     }
 
     fun setTokenToPurchase(token: Token?) {
@@ -97,6 +101,7 @@ class ExternalWalletOnRampController @Inject constructor(
     fun reset() {
         _state.value = ExternalWalletOnRampState.Idle
         _amount.value = null
+        _feeAmount.value = null
         _tokenToPurchase.value = null
     }
 
@@ -149,6 +154,7 @@ class ExternalWalletOnRampController @Inject constructor(
         val state = _state.value
         if (state !is ExternalWalletOnRampState.Connected) return
         val amount = _amount.value ?: return
+        val fee = _feeAmount.value ?: LocalFiat.Zero
 
         createUsdcToUsdfSwapTransaction(state, amount)
             .onFailure { fail(DeeplinkOnRampError.FailedToCreateTransaction(message = it.message), state) }
@@ -174,6 +180,7 @@ class ExternalWalletOnRampController @Inject constructor(
                         encryptionPublicKey = state.encryptionPublicKey,
                         unsignedTransaction = transaction.encode().toList(),
                         amount = amount,
+                        fee = fee,
                         token = _tokenToPurchase.value,
                         swapId = swapId,
                     )
@@ -185,6 +192,7 @@ class ExternalWalletOnRampController @Inject constructor(
         val state = _state.value
         if (state !is ExternalWalletOnRampState.Connected) return
         val amount = _amount.value ?: return
+        val fee = _feeAmount.value ?: LocalFiat.Zero
 
         createDepositTransaction(state, amount)
             .onFailure { fail(DeeplinkOnRampError.FailedToCreateTransaction(message = it.message), state) }
@@ -210,6 +218,7 @@ class ExternalWalletOnRampController @Inject constructor(
                         encryptionPublicKey = state.encryptionPublicKey,
                         unsignedTransaction = transaction.serialize().toList(),
                         amount = amount,
+                        fee = fee,
                         token = _tokenToPurchase.value,
                         swapId = null,
                     )
@@ -360,6 +369,7 @@ class ExternalWalletOnRampController @Inject constructor(
                     signedTransaction = data.serializedTransaction,
                     signature = signature,
                     amount = signing.amount,
+                    fee = signing.fee,
                     token = signing.token,
                     swapId = signing.swapId,
                 )
@@ -406,6 +416,7 @@ class ExternalWalletOnRampController @Inject constructor(
             transactionController.buy(
                 owner = owner,
                 amount = state.amount,
+                feeAmount = state.fee,
                 of = token,
                 swapId = state.swapId,
                 source = SwapFundingSource.ExternalWallet(state.signature.bytes),

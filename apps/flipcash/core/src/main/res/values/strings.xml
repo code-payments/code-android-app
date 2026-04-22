@@ -375,8 +375,10 @@
     <string name="subtitle_currencyCreatorStepDescription">Describe what your currency is about</string>
     <string name="title_currencyCreatorStepDesign">Cash Design</string>
     <string name="subtitle_currencyCreatorStepDesign">Customize the look of your cash</string>
-    <string name="title_currencyCreatorStepPurchase">Purchase %1$s</string>
-    <string name="subtitle_currencyCreatorStepPurchase">Pay for the first %1$s to create your currency</string>
+    <string name="title_currencyCreatorStepPurchase">Pay %1$s Fee</string>
+    <string name="subtitle_currencyCreatorStepPurchase">Pay to create your currency</string>
+    <string name="title_currencyCreatorStepPurchaseFreeGift">Limited Time: Get %1$s Free</string>
+    <string name="subtitle_currencyCreatorStepPurchaseFreeGift">Get the first %1$s of your currency</string>
     <string name="action_getStarted">Get Started</string>
     <string name="title_currencyCreatorNameSelection">What do you want to call your currency?</string>
     <string name="hint_currencyName">Currency Name</string>
@@ -390,7 +392,7 @@
     <string name="label_remaining">remaining</string>
     <string name="placeholder_currencyName">Currency Name</string>
     <string name="placeholder_currencyTicker">$BadBoys</string>
-    <string name="action_buyFirstToCreate">Pay for the First %1$s to Create</string>
+    <string name="action_buyFirstToCreate">Pay %1$s to Create</string>
     <string name="title_creatingCurrency">Creating %1$s</string>
     <string name="title_currencyIsLive">%1$s Is Live</string>
     <string name="subtitle_currencyIsLive">Your currency is ready to receive and use</string>
@@ -600,5 +602,5 @@
     <string name="error_description_buyNewCurrencyFailed">We couldn\'t complete your initial purchase. Your currency is on hold for the next 30 minutes.</string>
 
     <string name="subtitle_processingYourNewCurrencyTransaction">This transaction typically takes a few minutes. You may leave the app while it completes</string>
-    <string name="action_receiveNewCurrency">Receive My %1$s</string>
+    <string name="action_receiveNewCurrency">Get the First %1$s of Your Currency Free</string>
 </resources>

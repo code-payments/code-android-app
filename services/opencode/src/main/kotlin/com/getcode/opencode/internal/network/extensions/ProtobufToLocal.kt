@@ -6,6 +6,7 @@ import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.codeinc.opencode.gen.transaction.v1.clientExchangeDataOrNull
 import com.codeinc.opencode.gen.transaction.v1.destinationOrNull
+import com.codeinc.opencode.gen.transaction.v1.feeDestinationOrNull
 import com.getcode.opencode.internal.extensions.toHash
 import com.getcode.opencode.internal.extensions.toMint
 import com.getcode.opencode.internal.extensions.toPublicKey
@@ -18,7 +19,6 @@ import com.getcode.opencode.model.financial.Distribution
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LaunchpadMetadata
 import com.getcode.opencode.model.financial.VmMetadata
-import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.messaging.MessageKind
 import com.getcode.opencode.model.transactions.AddressLookupTable
 import com.getcode.opencode.model.transactions.ExchangeData
@@ -166,7 +166,8 @@ internal fun TransactionService.StatefulSwapResponse.ServerParameters.ReserveNew
         symbol = symbol,
         seed = seed.toPublicKey(),
         sellFeeBps = sellFeeBps,
-        vmLockDurationInDays = vmLockDurationInDays
+        vmLockDurationInDays = vmLockDurationInDays,
+        feeDestination = feeDestination.toPublicKey(),
     )
 }
 
@@ -175,7 +176,8 @@ internal fun TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientPa
         id = id.toSwapId(),
         fromMint = fromMint.toPublicKey(),
         toMint = toMint.toPublicKey(),
-        amount = Fiat(quarks = amount),
+        swapAmount = Fiat(quarks = swapAmount),
+        feeAmount = Fiat(quarks = feeAmount),
         fundingSource = when (fundingSource) {
             TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN -> SwapFundingSource.Unknown
             TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT -> SwapFundingSource.SubmitIntent(PublicKey(fundingId).bytes)

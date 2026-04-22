@@ -22,6 +22,7 @@ internal class ModerationService @Inject constructor(
                         Result.success(response)
                     }
                     ModerationService.ModerateTextResponse.Result.DENIED -> Result.failure(TextModerationError.Denied())
+                    ModerationService.ModerateTextResponse.Result.UNSUPPORTED_LANGUAGE -> Result.failure(TextModerationError.UnsupportedLanguage())
                     ModerationService.ModerateTextResponse.Result.UNRECOGNIZED -> Result.failure(TextModerationError.Unrecognized())
                 }
             },

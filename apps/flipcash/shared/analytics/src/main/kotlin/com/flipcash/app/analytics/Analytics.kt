@@ -32,7 +32,7 @@ interface FlipcashAnalyticsService : AnalyticsService {
     fun deeplinkOpened(url: String)
     fun deeplinkParsed(type: DeeplinkType?, url: String)
     fun deeplinkRouted(type: DeeplinkType, error: Throwable? = null)
-    fun displayedErrorModal(title: String, message: String)
+    fun displayedErrorModal(title: String, message: String, screen: String? = null, callSite: String? = null)
 
     fun buttonTapped(button: Button) {
         action(button)
@@ -99,7 +99,7 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun deeplinkOpened(url: String) = Unit
     override fun deeplinkParsed(type: DeeplinkType?, url: String) = Unit
     override fun deeplinkRouted(type: DeeplinkType, error: Throwable?) = Unit
-    override fun displayedErrorModal(title: String, message: String) = Unit
+    override fun displayedErrorModal(title: String, message: String, screen: String?, callSite: String?) = Unit
 }
 
 @Composable

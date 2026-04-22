@@ -69,6 +69,7 @@ object BottomBarManager {
         val showScrim: Boolean = true,
         val timeoutSeconds: Int? = null,
         val id: Long = UUID.randomUUID().mostSignificantBits,
+        val callSite: String? = null,
     ) {
         constructor(
             title: String = "",
@@ -288,6 +289,10 @@ object BottomBarManager {
         showCancel: Boolean = false,
         onDismiss: (fromAction: Boolean) -> Unit = { },
     ) {
+        val callSite = Throwable().stackTrace
+            .firstOrNull { it.className != BottomBarManager::class.java.name }
+            ?.let { "${it.fileName}:${it.lineNumber}" }
+
         showMessage(
             BottomBarMessage(
                 title = title,
@@ -298,7 +303,8 @@ object BottomBarManager {
                 type = BottomBarMessageType.ERROR,
                 isDismissible = true,
                 showScrim = true,
-                onClose = { onDismiss(it.index != -1) }
+                onClose = { onDismiss(it.index != -1) },
+                callSite = callSite,
             )
         )
     }

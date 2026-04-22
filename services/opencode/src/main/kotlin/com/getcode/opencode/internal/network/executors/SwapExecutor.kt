@@ -64,7 +64,8 @@ internal class SwapExecutor(
             id = request.swapId,
             fromMint = request.direction.sourceMint.address,
             toMint = request.direction.destinationMint.address,
-            amount = request.amount.underlyingTokenAmount,
+            swapAmount = request.swapAmount.underlyingTokenAmount,
+            feeAmount = request.feeAmount?.underlyingTokenAmount,
             fundingSource = when (request.kind) {
                 is SwapStartKind.Reserve -> request.kind.fundingSource
             },

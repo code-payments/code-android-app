@@ -12,5 +12,6 @@
     <string name="hint_flag_billExchangeDataTimeout">Enter time in seconds</string>
     <string name="label_flag_newCurrencyPurchaseAmount">New Currency Purchase Amount</string>
     <string name="hint_flag_newCurrencyPurchaseAmount">Enter amount</string>
-
+    <string name="label_flag_newCurrencyFeeAmount">New Currency Fee Amount</string>
+    <string name="hint_flag_newCurrencyFeeAmount">Enter amount</string>
 </resources>

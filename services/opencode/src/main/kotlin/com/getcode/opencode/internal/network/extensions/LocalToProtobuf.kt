@@ -283,7 +283,8 @@ internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwa
                     setId(swapId.asSwapId())
                         .setFromMint(details.fromMint.asSolanaAccountId())
                         .setToMint(details.toMint.asSolanaAccountId())
-                        .setAmount(details.amount)
+                        .setSwapAmount(this@currencyCreatorParams.swapAmount.underlyingTokenAmount.quarks)
+                        .setFeeAmount(this@currencyCreatorParams.feeAmount?.underlyingTokenAmount?.quarks ?: 0)
                         .apply {
                             when (val source = details.fundingSource) {
                                 is SwapFundingSource.ExternalWallet -> {

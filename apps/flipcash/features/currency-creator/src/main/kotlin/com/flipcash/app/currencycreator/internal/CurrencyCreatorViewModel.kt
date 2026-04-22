@@ -45,6 +45,9 @@ import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenCreateRequest
 import com.getcode.opencode.model.financial.fromLaunch
+import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.financial.orZero
+import com.getcode.opencode.model.financial.plus
 import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.solana.keys.Mint
@@ -107,7 +110,8 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         val bill: Bill? = null,
         val createdMint: Mint? = null,
         val launchedToken: Token? = null,
-        val purchaseAmount: Fiat = 20.toFiat(),
+        val purchaseAmount: Fiat = 5.toFiat(),
+        val feeAmount: Fiat? = null,
         val processingState: LoadingSuccessState = LoadingSuccessState(),
         val attestations: ModerationAttestations = ModerationAttestations(),
     ) {
@@ -130,6 +134,12 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 val index = PROGRESS_STEPS.indexOfFirst { it.isInstance(step) }
                 if (index < 0) return 0f
                 return (index + 1).toFloat() / PROGRESS_STEPS.size
+            }
+
+        val totalCost: Fiat
+            get() {
+                val fee = feeAmount.orZero()
+                return purchaseAmount + fee
             }
 
         private companion object {
@@ -159,7 +169,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         data class OnIconSelected(val image: Uri) : Event
         data class OnIconCached(val image: Uri) : Event
 
-        data class OnPurchaseAmountChanged(val amount: Fiat) : Event
+        data class OnPurchaseAmountChanged(val amount: Fiat, val feeAmount: Fiat) : Event
 
         data class OnBillConfirmed(val bill: Bill?) : Event
         data class UpdateProcessingState(
@@ -172,24 +182,28 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         data class LaunchToken(val method: PurchaseMethod) : Event
         data class OnTokenMinted(val mint: Mint): Event
         data object Purchase : Event
-        data class PurchaseWithReserves(val token: Token, val amount: Fiat) : Event
-        data class PurchaseWithPhantom(val token: Token, val amount: Fiat) : Event
-        data class PurchaseWithGooglePay(val token: Token, val amount: Fiat) : Event
+        data class PurchaseWithReserves(val context: LaunchedContext) : Event
+        data class PurchaseWithPhantom(val context: LaunchedContext) : Event
+        data class PurchaseWithGooglePay(val context: LaunchedContext) : Event
 
         data class PurchaseSubmitted(val swapId: SwapId, val mint: Mint) : Event
         data class PurchaseCompleted(val token: Token): Event
     }
 
-    private data class LaunchedContext(
+    data class LaunchedContext(
         val method: PurchaseMethod,
         val token: Token,
         val amount: Fiat,
+        val feeAmount: Fiat?,
     )
 
     init {
         userFlags.resolvedFlags
-            .map { it.newCurrencyPurchaseAmount.effectiveValue }
-            .onEach { dispatchEvent(Event.OnPurchaseAmountChanged(it)) }
+            .onEach { flags ->
+                val purchaseAmount = flags.newCurrencyPurchaseAmount.effectiveValue
+                val feeAmount = flags.newCurrencyFeeAmount.effectiveValue
+                dispatchEvent(Event.OnPurchaseAmountChanged(purchaseAmount, feeAmount))
+            }
             .launchIn(viewModelScope)
 
         // Debounced draft persistence — save state 300ms after changes.
@@ -243,11 +257,11 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .filterIsInstance<Event.CheckName>()
             .map { stateFlow.value.nameFieldState.text.toString() }
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
-            .map { moderationController.moderateText(it) }
+            .map { moderationController.moderateText(it.trim()) }
             .flatMapResult { result ->
                 when (result.flaggedCategory) {
                     ModerationResult.FlaggedCategory.NONE -> {
-                        currencyController.checkTokenAvailability(result.text)
+                        currencyController.checkTokenAvailability(result.text.trim())
                             .map { result.attestation }
                     }
 
@@ -346,7 +360,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .filterIsInstance<Event.CheckDescription>()
             .map { stateFlow.value.descriptionFieldState.text.toString() }
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
-            .map { moderationController.moderateText(it) }
+            .map { moderationController.moderateText(it.trim()) }
             .flatMapResult { result ->
                 when (result.flaggedCategory) {
                     ModerationResult.FlaggedCategory.NONE -> Result.success(result.attestation)
@@ -389,7 +403,8 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .onEach {
                 val metadata = PurchaseMethodMetadata(
                     mint = null,
-                    purchaseAmount = stateFlow.value.purchaseAmount,
+                    purchaseAmount = stateFlow.value.totalCost,
+                    feeAmount = stateFlow.value.feeAmount,
                     paymentAction = PaymentAction.Pay,
                 )
                 purchaseMethodController.present(metadata)
@@ -408,11 +423,11 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 println("customizations=${stateFlow.value.customizations}")
                 val request = TokenCreateRequest(
                     name = ModerationAttestation.Text(
-                        text = stateFlow.value.nameFieldState.text.toString(),
+                        text = stateFlow.value.nameFieldState.text.trim().toString(),
                         attestation = stateFlow.value.attestations.name.rawValue,
                     ),
                     description = ModerationAttestation.Text(
-                        text = stateFlow.value.descriptionFieldState.text.toString(),
+                        text = stateFlow.value.descriptionFieldState.text.trim().toString(),
                         attestation = stateFlow.value.attestations.description.rawValue
                     ),
                     icon = ModerationAttestation.Image(
@@ -452,20 +467,25 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                             request = request,
                             owner = accountCluster.authorityPublicKey,
                         )
-                        LaunchedContext(method, token, stateFlow.value.purchaseAmount)
+                        LaunchedContext(
+                            method = method,
+                            token = token,
+                            amount = stateFlow.value.totalCost,
+                            feeAmount = stateFlow.value.feeAmount,
+                        )
                     }
             }
             .onResult(
                 onSuccess = { ctx ->
                     when (ctx.method) {
                         is PurchaseMethod.CashReserves ->
-                            dispatchEvent(Event.PurchaseWithReserves(ctx.token, ctx.amount))
+                            dispatchEvent(Event.PurchaseWithReserves(ctx))
 
                         PurchaseMethod.PhantomWallet ->
-                            dispatchEvent(Event.PurchaseWithPhantom(ctx.token, ctx.amount))
+                            dispatchEvent(Event.PurchaseWithPhantom(ctx))
 
                         PurchaseMethod.CoinbaseOnRamp -> {
-                            dispatchEvent(Event.PurchaseWithGooglePay(ctx.token, ctx.amount))
+                            dispatchEvent(Event.PurchaseWithGooglePay(ctx))
                         }
                     }
                 },
@@ -487,8 +507,11 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     AppRoute.Token.CurrencyCreator,
                     OnRampProvider.Phantom
                 )
-                externalWalletController.setAmount(LocalFiat(usdf = event.amount))
-                externalWalletController.setTokenToPurchase(event.token)
+                val totalAmount = LocalFiat(usdf = event.context.amount)
+                println("total amount ${totalAmount.underlyingTokenAmount}")
+                val feeAmount = event.context.feeAmount?.let { LocalFiat(usdf = it) }
+                externalWalletController.setAmount(amount = totalAmount, feeAmount = feeAmount)
+                externalWalletController.setTokenToPurchase(event.context.token)
             }
             .launchIn(viewModelScope)
 
@@ -496,17 +519,18 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .filterIsInstance<Event.PurchaseWithReserves>()
             .mapNotNull { event ->
                 val owner = userManager.accountCluster ?: return@mapNotNull null
-                Triple(owner, event.token, event.amount)
+                Pair(owner, event.context)
             }
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
-            .map { (owner, token, amount) ->
+            .map { (owner, context) ->
                 transactionController.buy(
                     owner = owner,
-                    amount = LocalFiat(usdf = amount),
-                    of = token,
+                    amount = LocalFiat(usdf = context.amount),
+                    feeAmount = context.feeAmount?.let { LocalFiat(usdf = it) },
+                    of = context.token,
                     source = SwapFundingSource.SubmitIntent(),
                     fund = null,
-                ).map { swapId -> swapId to token.address }
+                ).map { swapId -> swapId to context.token.address }
             }
             .onResult(
                 onSuccess = { (swapId, mint) ->
@@ -600,7 +624,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 }
 
                 is Event.OnPurchaseAmountChanged -> { state ->
-                    state.copy(purchaseAmount = event.amount)
+                    state.copy(purchaseAmount = event.amount, feeAmount = event.feeAmount)
                 }
 
                 is Event.UpdateProcessingState -> { state ->

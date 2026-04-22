@@ -49,6 +49,7 @@ interface TransactionRepository {
         scope: CoroutineScope,
         owner: AccountCluster,
         amount: LocalFiat,
+        feeAmount: LocalFiat? = null,
         of: Token,
         swapId: SwapId? = null,
         verifiedState: VerifiedState,

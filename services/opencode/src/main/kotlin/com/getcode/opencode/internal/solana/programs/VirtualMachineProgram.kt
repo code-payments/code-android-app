@@ -10,6 +10,7 @@ internal class VirtualMachineProgram {
         initVm(1),
         transferForSwap(17),
         closeSwapAccountIfEmpty(19),
+        transferForSwapWithFee(20),
         ;
     }
 

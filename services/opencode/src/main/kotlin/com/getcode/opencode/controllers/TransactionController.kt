@@ -237,6 +237,7 @@ class TransactionController @Inject constructor(
     override suspend fun buy(
         owner: AccountCluster,
         amount: LocalFiat,
+        feeAmount: LocalFiat?,
         swapId: SwapId?,
         of: Token,
         source: SwapFundingSource,
@@ -275,6 +276,7 @@ class TransactionController @Inject constructor(
                     swapId = swapId,
                     owner = owner,
                     amount = amount,
+                    feeAmount = feeAmount,
                     of = of,
                     source = source,
                     fund = fund,

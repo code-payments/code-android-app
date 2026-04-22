@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
@@ -25,11 +24,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.minus
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
 
 @Composable
-internal fun Stepper(modifier: Modifier = Modifier, cost: Fiat) {
+internal fun Stepper(modifier: Modifier = Modifier, cost: Fiat, fee: Fiat?) {
+    val receiving = cost - (fee ?: Fiat.Zero)
+    val isReceivingAmount = receiving > Fiat.Zero
+
     Column(modifier = modifier) {
         StepperItem(
             icon = painterResource(R.drawable.ic_currencycreator_name),
@@ -64,13 +67,26 @@ internal fun Stepper(modifier: Modifier = Modifier, cost: Fiat) {
                     suffix = stringResource(R.string.subtitle_usdSuffix)
                 )
             ),
-            description = stringResource(
-                R.string.subtitle_currencyCreatorStepPurchase,
-                cost.formatted(rule = Fiat.FormattingRule.Truncated)
-            ),
+            description = stringResource(R.string.subtitle_currencyCreatorStepPurchase),
             weight = 0.6f,
-            showConnector = false
+            showConnector = isReceivingAmount,
         )
+
+        if (isReceivingAmount) {
+            StepperItem(
+                painterResource(R.drawable.ic_currencycreator_gift),
+                title = stringResource(
+                    R.string.title_currencyCreatorStepPurchaseFreeGift,
+                    receiving.formatted(rule = Fiat.FormattingRule.Truncated)
+                ),
+                description = stringResource(
+                    R.string.subtitle_currencyCreatorStepPurchaseFreeGift,
+                    receiving.formatted(rule = Fiat.FormattingRule.Truncated)
+                ),
+                weight = 0.6f,
+                showConnector = false
+            )
+        }
     }
 }
 

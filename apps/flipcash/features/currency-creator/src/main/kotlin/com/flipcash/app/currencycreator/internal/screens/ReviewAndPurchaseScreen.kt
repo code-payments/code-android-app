@@ -70,7 +70,10 @@ internal fun ReviewAndPurchaseContent(
                     ),
                 text = stringResource(
                     R.string.action_buyFirstToCreate,
-                    state.purchaseAmount.formatted(rule = Fiat.FormattingRule.Truncated)
+                    state.totalCost.formatted(
+                        rule = Fiat.FormattingRule.Truncated,
+                        suffix = stringResource(R.string.subtitle_usdSuffix)
+                    )
                 ),
                 enabled = state.hasName && state.processingState.isIdle,
                 isLoading = state.processingState.loading,

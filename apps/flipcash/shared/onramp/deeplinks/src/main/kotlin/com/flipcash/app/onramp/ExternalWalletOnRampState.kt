@@ -35,6 +35,7 @@ sealed interface ExternalWalletOnRampState {
         val encryptionPublicKey: List<Byte>,
         val unsignedTransaction: List<Byte>,
         val amount: LocalFiat,
+        val fee: LocalFiat,
         val token: Token?,
         val swapId: SwapId?,
     ) : ExternalWalletOnRampState
@@ -46,6 +47,7 @@ sealed interface ExternalWalletOnRampState {
         val signedTransaction: String,
         val signature: Signature,
         val amount: LocalFiat,
+        val fee: LocalFiat,
         val token: Token?,
         val swapId: SwapId?,
     ) : ExternalWalletOnRampState

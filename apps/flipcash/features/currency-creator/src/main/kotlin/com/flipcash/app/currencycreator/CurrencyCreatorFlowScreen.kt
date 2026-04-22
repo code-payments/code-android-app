@@ -58,7 +58,9 @@ import com.getcode.navigation.flow.PreviewFlowNavigator
 import com.getcode.navigation.flow.deliverFlowResult
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.unboundedClickable
 
@@ -83,6 +85,15 @@ fun CurrencyCreatorFlowScreen(
             CurrencyCreatorTopBar(
                 controller = topBarController,
                 mainContent = when (state.currentStep) {
+                    is CurrencyCreatorStep.Info -> {
+                        {
+                            Text(
+                                text = stringResource(R.string.title_createYourCurrency),
+                                style = CodeTheme.typography.textLarge,
+                                color = CodeTheme.colors.textMain,
+                            )
+                        }
+                    }
                     is CurrencyCreatorStep.Processing -> {
                         {
                             val text = if (state.processingState.success) {
@@ -97,7 +108,6 @@ fun CurrencyCreatorFlowScreen(
                             }
 
                             Text(
-                                modifier = Modifier.fillMaxWidth(),
                                 text = text,
                                 style = CodeTheme.typography.textLarge,
                                 color = CodeTheme.colors.textMain,
@@ -143,15 +153,19 @@ fun CurrencyCreatorFlowScreen(
                     )
 
                     if (result is CurrencyCreatorResult.Success) {
-                        val token = state.launchedToken
-                        if (token != null) {
-                            val bill = Bill.Cash(
-                                token = token,
-                                amount = LocalFiat(usdf = state.purchaseAmount),
-                                didReceive = true,
-                            )
-                            outerNavigator.hide()
-                            session?.showBill(bill)
+                        if (state.purchaseAmount > Fiat.Zero) {
+                            val token = state.launchedToken
+                            if (token != null) {
+                                val bill = Bill.Cash(
+                                    token = token,
+                                    amount = LocalFiat(usdf = state.purchaseAmount),
+                                    didReceive = true,
+                                )
+                                outerNavigator.hide()
+                                session?.showBill(bill)
+                            }
+                        } else {
+                            outerNavigator.pop()
                         }
                     } else {
                         outerNavigator.pop()
@@ -203,13 +217,16 @@ private fun SyncTopBar(step: CurrencyCreatorStep) {
 }
 
 @Composable
-private fun CurrencyCreatorPreview(content: @Composable (state: CurrencyCreatorViewModel.State) -> Unit) {
+private fun CurrencyCreatorPreview(
+    feeAmount: Fiat = 15.toFiat(),
+    content: @Composable (state: CurrencyCreatorViewModel.State) -> Unit
+) {
     FlipcashPreview(showBackground = true) {
         CompositionLocalProvider(
             LocalFlowNavigator provides PreviewFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>(),
             LocalCurrencyCreatorTopBar provides remember { CurrencyCreatorTopBarController() },
         ) {
-            val state = CurrencyCreatorViewModel.State()
+            val state = CurrencyCreatorViewModel.State(feeAmount = feeAmount)
             content(state)
         }
     }
@@ -217,8 +234,20 @@ private fun CurrencyCreatorPreview(content: @Composable (state: CurrencyCreatorV
 
 @Preview
 @Composable
-private fun Preview_Info() {
+private fun Preview_Info_15Fee() {
     CurrencyCreatorPreview { InfoScreenContent(it) }
+}
+
+@Preview
+@Composable
+private fun Preview_Info_NoFee() {
+    CurrencyCreatorPreview(feeAmount = Fiat.Zero) { InfoScreenContent(it) }
+}
+
+@Preview
+@Composable
+private fun Preview_Info_5Fee() {
+    CurrencyCreatorPreview(feeAmount = 5.toFiat()) { InfoScreenContent(it) }
 }
 
 @Preview

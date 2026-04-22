@@ -22,7 +22,8 @@ internal class UserFlagsMapper @Inject constructor():
             supportedOnRampProviders = from.supportedOnRampProvidersList.map { it.toDomain() },
             minimumVersion = from.minBuildNumber,
             billExchangeDataTimeout = from.billExchangeDataTimeout.seconds.toDuration(DurationUnit.SECONDS),
-            newCurrencyPurchaseAmount = Fiat(quarks = from.newCurrencyPurchaseAmount)
+            newCurrencyPurchaseAmount = Fiat(quarks = from.newCurrencyPurchaseAmount),
+            newCurrencyFeeAmount = Fiat(quarks = from.newCurrencyFeeAmount),
         )
     }
 }

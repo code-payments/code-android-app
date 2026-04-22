@@ -216,8 +216,8 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(AnalyticsEvent.DeeplinkEvent.Routed(type, error))
     }
 
-    override fun displayedErrorModal(title: String, message: String) {
-        track(AnalyticsEvent.ErrorModalDisplayed(title, message))
+    override fun displayedErrorModal(title: String, message: String, screen: String?, callSite: String?) {
+        track(AnalyticsEvent.ErrorModalDisplayed(title, message, screen, callSite))
     }
 
     // region Internal

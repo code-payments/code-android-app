@@ -42,6 +42,8 @@ class SwapInstructionsTest {
     private val mockSwapAuthority = generateRandomPublicKeyForTest() // The temporary swap authority
     private val mockRecentBlockhash = generateRandomPublicKeyForTest()
 
+    private val mockFeeDestination = generateRandomPublicKeyForTest()
+
     // Mock VMs
     private val coreVmMetadata = VmMetadata(
         authority = vmAuthority,
@@ -348,12 +350,15 @@ class SwapInstructionsTest {
         seed = mockSeed,
         sellFeeBps = 100,
         vmLockDurationInDays = 21,
-        alts = emptyList()
+        alts = emptyList(),
+        feeDestination = mockFeeDestination
     )
 
     @Test
     fun testBuildNewCurrencyBuyInstructionsCount() {
-        val amount = 100_000L
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
 
         val instructions = buildNewCurrencyBuyInstructions(
             serverParameters = mockNewCurrencyServerParams,
@@ -361,6 +366,7 @@ class SwapInstructionsTest {
             authority = mockNewCurrencyAuthority,
             coreMintMetadata = coreMint,
             amount = amount,
+            feeAmount = fee,
         )
 
         // Expected Sequence (11 instructions):
@@ -381,7 +387,9 @@ class SwapInstructionsTest {
 
     @Test
     fun testBuildNewCurrencyBuyInstructionPrograms() {
-        val amount = 100_000L
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
 
         val instructions = buildNewCurrencyBuyInstructions(
             serverParameters = mockNewCurrencyServerParams,
@@ -389,6 +397,7 @@ class SwapInstructionsTest {
             authority = mockNewCurrencyAuthority,
             coreMintMetadata = coreMint,
             amount = amount,
+            feeAmount = fee,
         )
 
         // 1. System::AdvanceNonce
@@ -427,7 +436,9 @@ class SwapInstructionsTest {
 
     @Test
     fun testBuildNewCurrencyBuyInstructionAccounts() {
-        val amount = 100_000L
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
 
         val instructions = buildNewCurrencyBuyInstructions(
             serverParameters = mockNewCurrencyServerParams,
@@ -435,6 +446,7 @@ class SwapInstructionsTest {
             authority = mockNewCurrencyAuthority,
             coreMintMetadata = coreMint,
             amount = amount,
+            feeAmount = fee,
         )
 
         // Derive expected PDAs
@@ -494,9 +506,13 @@ class SwapInstructionsTest {
         assertEquals(expectedDepositAta, instructions[7].accounts[1].publicKey)
         assertEquals(derivedTargetMint, instructions[7].accounts[3].publicKey)
 
-        // 9. VM::TransferForSwap: vmAuthority at 0 matches core VM authority
+        // 9. VM::TransferForSwapWithFee: vmAuthority at 0 matches core VM authority
         assertEquals(coreMint.vmMetadata.authority, instructions[8].accounts[0].publicKey)
         assertEquals(coreMint.vmMetadata.vm, instructions[8].accounts[1].publicKey)
+        assertEquals(8, instructions[8].accounts.size)
+        // feeDestination at index 6
+        assertEquals(mockFeeDestination, instructions[8].accounts[6].publicKey)
+        assertTrue(instructions[8].accounts[6].isWritable)
 
         // 10. Reserve::BuyTokens: buyer at 0 is authority
         assertEquals(mockNewCurrencyAuthority, instructions[9].accounts[0].publicKey)
@@ -523,7 +539,9 @@ class SwapInstructionsTest {
 
     @Test
     fun testBuildNewCurrencyBuyInstructionInitializeCurrencyData() {
-        val amount = 100_000L
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
 
         val instructions = buildNewCurrencyBuyInstructions(
             serverParameters = mockNewCurrencyServerParams,
@@ -531,6 +549,7 @@ class SwapInstructionsTest {
             authority = mockNewCurrencyAuthority,
             coreMintMetadata = coreMint,
             amount = amount,
+            feeAmount = fee,
         )
 
         // InitializeCurrency data: command(1) + name(32) + symbol(8) + seed(32) + bump(1) + mintBump(1) + padding(6) = 81 bytes
@@ -561,7 +580,9 @@ class SwapInstructionsTest {
 
     @Test
     fun testBuildNewCurrencyBuyInstructionInitializePoolData() {
-        val amount = 100_000L
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
 
         val instructions = buildNewCurrencyBuyInstructions(
             serverParameters = mockNewCurrencyServerParams,
@@ -569,6 +590,7 @@ class SwapInstructionsTest {
             authority = mockNewCurrencyAuthority,
             coreMintMetadata = coreMint,
             amount = amount,
+            feeAmount = fee,
         )
 
         // InitializePool data: command(1) + sellFee(2) + bump(1) + vaultTargetBump(1) + vaultBaseBump(1) + padding(1) = 7 bytes
@@ -583,7 +605,9 @@ class SwapInstructionsTest {
 
     @Test
     fun testBuildNewCurrencyBuyInstructionInitVmData() {
-        val amount = 100_000L
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
 
         val instructions = buildNewCurrencyBuyInstructions(
             serverParameters = mockNewCurrencyServerParams,
@@ -591,6 +615,7 @@ class SwapInstructionsTest {
             authority = mockNewCurrencyAuthority,
             coreMintMetadata = coreMint,
             amount = amount,
+            feeAmount = fee,
         )
 
         // InitVm data: command(1) + lockDuration(1) + vmBump(1) + vmOmnibusBump(1) = 4 bytes
@@ -602,7 +627,9 @@ class SwapInstructionsTest {
 
     @Test
     fun testBuildNewCurrencyBuyInstructionBuyTokensData() {
-        val amount = 100_000L
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
 
         val instructions = buildNewCurrencyBuyInstructions(
             serverParameters = mockNewCurrencyServerParams,
@@ -610,6 +637,7 @@ class SwapInstructionsTest {
             authority = mockNewCurrencyAuthority,
             coreMintMetadata = coreMint,
             amount = amount,
+            feeAmount = fee,
         )
 
         // BuyTokens data: command(1) + inAmount(8) + minOutAmount(8) = 17 bytes
@@ -617,9 +645,9 @@ class SwapInstructionsTest {
         assertEquals(17, buyData.size)
         assertEquals(CurrencyCreatorProgram.Command.buyTokens.value, buyData[0])
 
-        // inAmount = 100_000 = 0xA0860100_00000000 in LE
-        assertEquals(0xA0.toByte(), buyData[1])
-        assertEquals(0x86.toByte(), buyData[2])
+        // inAmount = 95_000 = 0x18730100_00000000 in LE
+        assertEquals(0x18.toByte(), buyData[1])
+        assertEquals(0x73.toByte(), buyData[2])
         assertEquals(0x01.toByte(), buyData[3])
         assertEquals(0x00.toByte(), buyData[4])
 
@@ -630,8 +658,10 @@ class SwapInstructionsTest {
     }
 
     @Test
-    fun testNewCurrencyBuyInstructionAuthorityIsBuyer() {
-        val amount = 50_000L
+    fun testBuildNewCurrencyBuyTransferForSwapWithFeeData() {
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
 
         val instructions = buildNewCurrencyBuyInstructions(
             serverParameters = mockNewCurrencyServerParams,
@@ -639,6 +669,44 @@ class SwapInstructionsTest {
             authority = mockNewCurrencyAuthority,
             coreMintMetadata = coreMint,
             amount = amount,
+            feeAmount = fee,
+        )
+
+        // TransferForSwapWithFee data: command(1) + swapAmount(8) + feeAmount(8) + bump(1) = 18 bytes
+        val transferData = instructions[8].data
+        assertEquals(18, transferData.size)
+
+        // Command byte is transferForSwap (17)
+        assertEquals(VirtualMachineProgram.Command.transferForSwap.value, transferData[0])
+
+        // swapAmount = 95_000 at bytes [1..8] in LE
+        assertEquals(0x18.toByte(), transferData[1])
+        assertEquals(0x73.toByte(), transferData[2])
+        assertEquals(0x01.toByte(), transferData[3])
+        for (i in 4..8) assertEquals(0x00.toByte(), transferData[i])
+
+        // feeAmount = 5_000 at bytes [9..16] in LE
+        assertEquals(0x88.toByte(), transferData[9])
+        assertEquals(0x13.toByte(), transferData[10])
+        for (i in 11..16) assertEquals(0x00.toByte(), transferData[i])
+
+        // bump is last byte
+        assertTrue(transferData[17] in Byte.MIN_VALUE..Byte.MAX_VALUE)
+    }
+
+    @Test
+    fun testNewCurrencyBuyInstructionAuthorityIsBuyer() {
+        val totalAmount = 50_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
+
+        val instructions = buildNewCurrencyBuyInstructions(
+            serverParameters = mockNewCurrencyServerParams,
+            nonce = mockNonce,
+            authority = mockNewCurrencyAuthority,
+            coreMintMetadata = coreMint,
+            amount = amount,
+            feeAmount = fee,
         )
 
         // In the new currency flow, authority == buyer == swapAuthority

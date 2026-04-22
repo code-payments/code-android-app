@@ -134,4 +134,5 @@ private fun ResolvedUserFlags.editableEntries(): List<EditableEntry<*>> = listOf
     EditableEntry(Field.MinimumVersion, minimumVersion),
     EditableEntry(Field.BillExchangeDataTimeout, billExchangeDataTimeout),
     EditableEntry(Field.NewCurrencyPurchaseAmount, newCurrencyPurchaseAmount),
+    EditableEntry(Field.NewCurrencyFeeAmount, newCurrencyFeeAmount),
 )

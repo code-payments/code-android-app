@@ -120,6 +120,25 @@ sealed class Field<Stored, Domain>(
             }
         },
     )
+
+    data object NewCurrencyFeeAmount : Field<Long, Fiat>(
+        longPreferencesKey("override_new_fee_amount"),
+        encode = { it.quarks },
+        decode = { Fiat(quarks = it) },
+        label = R.string.label_flag_newCurrencyFeeAmount,
+        hint = R.string.hint_flag_newCurrencyFeeAmount,
+        format = { it.formatted(rule = Fiat.FormattingRule.Truncated) },
+        editFormat = { it.formatted(showPrefix = false, rule = Fiat.FormattingRule.Truncated) },
+        editor = FieldEditor.TextInput(
+            keyboard = KeyboardType.Decimal,
+            parse = { it.toDoubleOrNull()?.let { d -> Fiat(fiat = d) } },
+        ),
+        outputTransformation = OutputTransformation {
+            if (length > 0) {
+                insert(0, "$")
+            }
+        },
+    )
 }
 
 internal fun OnRampProvider.Defined.encode(): String = when (this) {
