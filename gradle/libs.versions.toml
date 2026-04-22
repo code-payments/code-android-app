@@ -54,7 +54,7 @@ play-service-ml-barcode = "18.3.1"
 google-play-billing = "8.3.0"
 google-play-updates = "2.1.0"
 
-grpc = "1.79.0"
+grpc = "1.80.0"
 grpc-okhttp = "1.79.0"
 grpc-kotlin = "1.5.0"
 protobuf = "4.34.0"
