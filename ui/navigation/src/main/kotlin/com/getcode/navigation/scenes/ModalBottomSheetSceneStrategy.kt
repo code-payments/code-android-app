@@ -67,6 +67,14 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
 
     override val entries: List<NavEntry<T>> = listOf(entry)
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ModalBottomSheetScene<*>) return false
+        return key == other.key
+    }
+
+    override fun hashCode(): Int = key.hashCode()
+
     @OptIn(ExperimentalMaterial3Api::class)
     override val content: @Composable (() -> Unit) = {
         // Scope composition by the scene key + generation counter so that
