@@ -16,6 +16,8 @@ import androidx.compose.ui.text.style.TextAlign
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.view.LoadingSuccessState
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * A reusable processing screen layout with a centered loading indicator,
@@ -30,6 +32,7 @@ import com.getcode.view.LoadingSuccessState
 @Composable
 fun FlowProcessingScreen(
     processingState: LoadingSuccessState,
+    processingTime: Duration = 60.seconds,
     title: @Composable (LoadingSuccessState.State) -> Unit,
     subtitle: @Composable (LoadingSuccessState.State) -> Unit,
     topBar: @Composable () -> Unit = {},
@@ -58,6 +61,7 @@ fun FlowProcessingScreen(
                     ProcessingLoadingIndicator(
                         processingState = processingState,
                         modifier = Modifier.matchParentSize(),
+                        duration = processingTime,
                     )
                 }
 

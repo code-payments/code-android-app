@@ -25,6 +25,7 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.minutes
 
 @Composable
 internal fun ProcessingScreen() {
@@ -42,6 +43,7 @@ internal fun ProcessingContent(
 
     FlowProcessingScreen(
         processingState = state.processingState,
+        processingTime = 3.minutes,
         title = { s ->
             Text(
                 text = when (s) {
