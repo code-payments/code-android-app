@@ -554,9 +554,19 @@ class SwapViewModel @Inject constructor(
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = true))
                     // buy submitted from reserves, drop reserves balance
                     tokenCoordinator.subtract(Token.usdf, amount)
-                }.onFailure {
-                    trackTransaction(token, error = it)
+                }.onFailure { cause ->
+                    trackTransaction(token, error = cause)
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = false))
+                    if (cause is SwapError.InvalidSwap) {
+                        if (cause.insufficientBalance) {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_paymentFailedDueToInsufficientFunds),
+                                message = resources.getString(R.string.error_title_paymentFailedDueToInsufficientFunds),
+                            )
+                        }
+                        return@onFailure
+                    }
+
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_buySellFailed),
                         message = resources.getString(R.string.error_description_buySellFailed),

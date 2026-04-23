@@ -221,7 +221,9 @@ sealed class SwapError(
     }
     class Signature : SwapError(), NotifiableError
     class Unrecognized : SwapError("Unrecognized"), NotifiableError
-    class InvalidSwap(reasons: List<String>): SwapError(message = reasons.joinToString()), NotifiableError
+    class InvalidSwap(reasons: List<String>): SwapError(message = reasons.joinToString()), NotifiableError {
+        val insufficientBalance = reasons.contains("insufficient balance")
+    }
 
     data class Other(override val cause: Throwable? = null) : SwapError(message = cause?.message, cause = cause), NotifiableError
 
