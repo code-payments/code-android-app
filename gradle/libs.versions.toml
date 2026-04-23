@@ -59,7 +59,7 @@ grpc-okhttp = "1.79.0"
 grpc-kotlin = "1.5.0"
 protobuf = "4.34.0"
 protobuf-plugin = "0.9.6"
-protovalidate-kt = "0.1.0"
+protovalidate-kt = "0.1.1"
 
 lib-phone-number-port = "9.0.28"
 lib-phone-number-google = "9.0.28"
