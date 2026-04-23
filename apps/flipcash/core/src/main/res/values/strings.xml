@@ -368,13 +368,13 @@
     <string name="title_createYourCurrency">Create Your Currency</string>
     <string name="subtitle_currencyCreatorInfo">Launch your own currency in minutes.\nReady to use right away.</string>
     <string name="title_currencyCreatorStepName">Name</string>
-    <string name="subtitle_currencyCreatorStepName">Choose a unique name for your currency</string>
+    <string name="subtitle_currencyCreatorStepName">Pick a name for your currency</string>
     <string name="title_currencyCreatorStepIcon">Icon</string>
-    <string name="subtitle_currencyCreatorStepIcon">Upload an icon to represent your currency</string>
+    <string name="subtitle_currencyCreatorStepIcon">Choose an image</string>
     <string name="title_currencyCreatorStepDescription">Description</string>
-    <string name="subtitle_currencyCreatorStepDescription">Describe what your currency is about</string>
+    <string name="subtitle_currencyCreatorStepDescription">Describe your currency</string>
     <string name="title_currencyCreatorStepDesign">Cash Design</string>
-    <string name="subtitle_currencyCreatorStepDesign">Customize the look of your cash</string>
+    <string name="subtitle_currencyCreatorStepDesign">Customize the look</string>
     <string name="title_currencyCreatorStepPurchase">Pay %1$s Fee</string>
     <string name="subtitle_currencyCreatorStepPurchase">Pay to create your currency</string>
     <string name="title_currencyCreatorStepPurchaseFreeGift">Limited Time: Get %1$s Free</string>
@@ -384,7 +384,7 @@
     <string name="hint_currencyName">Currency Name</string>
     <string name="action_next">Next</string>
     <string name="title_currencyCreatorIconSelection">Upload Currency Icon</string>
-    <string name="subtitle_currencyCreatorIconSelection">Choose an image that represents your currency. It will be displayed as a circular icon.</string>
+    <string name="subtitle_currencyCreatorIconSelection">Choose an image that represents your currency.\nIt will be displayed as a circular icon.</string>
     <string name="subtitle_currencyCreatorIconRecommended">500x500 Recommended</string>
     <string name="title_currencyCreatorDescription">Provide a description for your currency</string>
     <string name="hint_description">Description</string>
