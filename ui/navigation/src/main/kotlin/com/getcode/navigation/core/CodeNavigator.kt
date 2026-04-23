@@ -121,6 +121,13 @@ data class CodeNavigator(
             NavOptions.PopUpTo.None -> {
                 Snapshot.withMutableSnapshot {
                     if (currentRouteKey != route) {
+                        // Sheet routes must be unique on the backstack —
+                        // SaveableStateProvider uses contentKey (toString()) and
+                        // crashes on duplicates. Remove any existing instance
+                        // before pushing the new one.
+                        if (route is Sheet) {
+                            backStack.removeAll { it == route }
+                        }
                         backStack.add(route)
                     }
                 }
@@ -128,6 +135,9 @@ data class CodeNavigator(
             NavOptions.PopUpTo.PopLast -> {
                 Snapshot.withMutableSnapshot {
                     if (currentRouteKey != route) {
+                        if (route is Sheet) {
+                            backStack.removeAll { it == route }
+                        }
                         backStack.add(route)
                         val lastIndex = backStack.lastIndex - 1
                         if (lastIndex >= 0) backStack.removeAt(lastIndex)

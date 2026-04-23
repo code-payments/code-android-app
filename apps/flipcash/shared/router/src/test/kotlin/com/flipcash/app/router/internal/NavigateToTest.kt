@@ -179,5 +179,32 @@ class NavigateToTest {
         assertNotNull(navigator.pendingSheetDismiss)
     }
 
+    @Test
+    fun `pendingSheetDismiss callback deduplicates when onBack removes wrong entry`() {
+        // Reproduces the scenario where a navigation happens during the dismiss animation,
+        // causing onBack() to remove the wrong entry and leaving a stale sheet on the
+        // backstack. The callback's navigate() must not produce a duplicate Sheet key
+        // (which would crash SaveableStateProvider).
+        val navigator = createNavigator(
+            AppRoute.Main.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
+        )
+
+        navigator.navigateTo(listOf(AppRoute.Sheets.Wallet), options = quietOptions)
+
+        // Simulate: a route is pushed during the dismiss animation
+        navigator.backStack.add(AppRoute.Menu.MyAccount)
+        // onBack() removes the last entry (MyAccount), NOT the old sheet
+        navigator.backStack.removeAt(navigator.backStack.lastIndex)
+        // Old sheet is still on the backstack
+        assertIs<AppRoute.Main.Sheet>(navigator.backStack.last())
+
+        // Callback fires — must not produce a duplicate Sheet
+        navigator.pendingSheetDismiss!!.invoke()
+
+        val sheets = navigator.backStack.filterIsInstance<AppRoute.Main.Sheet>()
+        assertEquals(1, sheets.size, "Expected exactly one Sheet on the backstack")
+    }
+
     // endregion
 }
