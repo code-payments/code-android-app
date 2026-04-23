@@ -273,7 +273,7 @@ class SwapViewModel @Inject constructor(
         val limit = stateFlow.value.transactionLimit
         val isOverLimit = stateFlow.value.enteredAmount.valueGreaterThan(limit)
         if (isOverLimit) {
-            BottomBarManager.showError(
+            BottomBarManager.showAlert(
                 resources.getString(R.string.error_title_insufficientFunds),
                 resources.getString(R.string.error_description_insufficientFunds)
             )
