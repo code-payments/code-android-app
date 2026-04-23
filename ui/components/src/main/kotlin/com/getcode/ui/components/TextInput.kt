@@ -36,21 +36,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.datasource.LoremIpsum
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.extraSmall
 import com.getcode.theme.inputColors
 import com.getcode.ui.core.addIf
-import com.getcode.ui.core.measured
 import com.getcode.ui.utils.ConstraintMode
 import com.getcode.ui.utils.constrain
 import com.getcode.ui.utils.rememberKeyboardController
@@ -94,11 +90,9 @@ fun TextInput(
         interactionSource = remember { MutableInteractionSource() }
     )
 
-    val density = LocalDensity.current
-    var textSize by remember { mutableStateOf(style.fontSize) }
-    var textFieldSize by remember { mutableStateOf(DpSize.Zero) }
+    var textSize by remember(style.fontSize) { mutableStateOf(style.fontSize) }
 
-    Box(modifier = modifier.measured { textFieldSize = it }) {
+    Box(modifier = modifier) {
         BasicTextField(
             modifier = Modifier
                 .background(backgroundColor, shape)
@@ -107,12 +101,6 @@ fun TextInput(
                     mode = constraintMode,
                     state = state,
                     style = style,
-                    frameConstraints = Constraints(
-                        minWidth = 0,
-                        minHeight = 0,
-                        maxWidth = with(density) { textFieldSize.width.roundToPx() },
-                        maxHeight = with(density) { textFieldSize.height.roundToPx() },
-                    )
                 ) { textSize = it },
             enabled = enabled,
             readOnly = readOnly,
