@@ -10,8 +10,13 @@ internal class BillCustomizationMapper @Inject constructor(): Mapper<CurrencySer
     override fun map(from: CurrencyService.BillCustomization?): TokenBillCustomizations? {
         if (from == null) return null
         val colors = from.colorsList.map { it.hex }
+        val background = if (colors.count() == 1) {
+            BillBackground.Solid(colors.first())
+        } else {
+            BillBackground.Gradient(colors)
+        }
         return TokenBillCustomizations(
-            background = BillBackground.Gradient(colors),
+            background = background,
             texture = null,
             icon = null,
         )
