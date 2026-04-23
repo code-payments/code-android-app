@@ -288,7 +288,7 @@ fun ExternalWalletOnRampHandler(
                         "userMessage" to message
                         "code" to error.code
                     },
-                    error = error
+                    error = error.takeUnless { it.isAlert }
                 )
 
                 val onDismiss = {
