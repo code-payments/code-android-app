@@ -324,7 +324,7 @@ private val DeeplinkOnRampError.isAlert: Boolean
         DeeplinkError.UserRejectedRequest,
         DeeplinkError.Disconnected,
         DeeplinkError.TransactionRejected,
-    )
+    ) || this is DeeplinkOnRampError.FailedToSendTransaction
 
 private typealias Title = String
 private typealias Message = String
