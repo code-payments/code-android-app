@@ -166,6 +166,7 @@ internal fun DescriptionSelectionContent(
                     textModifier = Modifier.sharedBoundsTransition(
                         transition = SharedTransition.CurrencyName,
                     ),
+                    textStyle = CodeTheme.typography.displaySmall,
                     tokenImage = state.icon.dataOrNull,
                     imageSize = CodeTheme.dimens.staticGrid.x6,
                     spacing = CodeTheme.dimens.grid.x2
@@ -191,8 +192,8 @@ internal fun DescriptionSelectionContent(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Done,
                 ),
-                style = CodeTheme.typography.screenTitle,
-                placeholderStyle = CodeTheme.typography.screenTitle.copy(
+                style = CodeTheme.typography.textMedium,
+                placeholderStyle = CodeTheme.typography.textMedium.copy(
                     color = CodeTheme.colors.textTertiary,
                 ),
                 maxLines = Int.MAX_VALUE,

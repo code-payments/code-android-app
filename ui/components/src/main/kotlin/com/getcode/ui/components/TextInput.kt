@@ -146,7 +146,7 @@ fun TextInput(
                     textFieldAlignment = textFieldAlignment,
                     shape = shape,
                     innerTextField = it,
-                    textModifier = textModifier,
+                    modifier = textModifier,
                 )
             },
             scrollState = scrollState
@@ -174,7 +174,7 @@ private fun DecoratorBox(
     placeholder: String,
     placeholderStyle: TextStyle,
     placeholderColor: Color,
-    textModifier: Modifier = Modifier,
+    modifier: Modifier = Modifier,
     borderColor: Color = CodeTheme.colors.brandLight,
     contentPadding: PaddingValues,
     leadingIcon: (@Composable () -> Unit)?,
@@ -200,7 +200,7 @@ private fun DecoratorBox(
                 .weight(1f),
             contentAlignment = textFieldAlignment
         ) {
-            Box(modifier = Modifier.padding(contentPadding).then(textModifier)) {
+            Box(modifier = Modifier.padding(contentPadding).then(modifier)) {
                 innerTextField()
             }
             if (state.text.isEmpty() && placeholder.isNotEmpty()) {
