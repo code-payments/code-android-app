@@ -82,7 +82,6 @@ internal fun TokenDetailsSection(
             style = CodeTheme.typography.textMedium,
             color = CodeTheme.colors.textSecondary,
             isExpanded = state.descriptionExpanded,
-            isExpandable = false,
             contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset)
         ) {
             dispatch(TokenInfoViewModel.Event.ExpandDescription(!state.descriptionExpanded))
