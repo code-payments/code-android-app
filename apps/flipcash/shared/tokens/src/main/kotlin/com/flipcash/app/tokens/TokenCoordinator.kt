@@ -15,6 +15,7 @@ import com.flipcash.app.tokens.core.ReservesBalanceProvider
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -82,6 +83,7 @@ class TokenCoordinator @Inject constructor(
     private val accountController: AccountController,
     private val networkObserver: NetworkConnectivityListener,
     private val exchange: Exchange,
+    private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val dataSource: TokenDataSource,
 ) : TokenMetadataProvider, SessionListener, DefaultLifecycleObserver, ReservesBalanceProvider {
 
@@ -476,12 +478,11 @@ class TokenCoordinator @Inject constructor(
 
                         state.balances[mint]?.let { balance ->
                             val exchangedValue = runCatching {
-                                LocalFiat.valueExchangeIn(
+                                verifiedFiatCalculator.compute(
                                     amount = balance,
                                     token = updatedToken,
                                     balance = balance,
                                     rate = Rate.oneToOne,
-                                    debug = false,
                                     trace = false,
                                 ).underlyingTokenAmount
                             }.getOrNull()

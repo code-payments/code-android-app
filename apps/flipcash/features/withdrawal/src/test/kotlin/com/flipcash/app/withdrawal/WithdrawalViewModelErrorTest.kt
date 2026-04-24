@@ -9,6 +9,7 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
@@ -32,6 +33,7 @@ class WithdrawalViewModelErrorTest {
 
     private val resources = mockk<ResourceHelper>(relaxed = true)
     private val exchange = mockk<Exchange>(relaxed = true)
+    private val verifiedFiatCalculator = mockk<VerifiedFiatCalculator>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true)
     private val transactionController = mockk<TransactionOperations>(relaxed = true)
     private val clipboardManager = mockk<ClipboardManager>(relaxed = true)
@@ -58,6 +60,7 @@ class WithdrawalViewModelErrorTest {
         return WithdrawalViewModel(
             resources = resources,
             exchange = exchange,
+            verifiedFiatCalculator = verifiedFiatCalculator,
             userManager = userManager,
             transactionController = transactionController,
             clipboardManager = clipboardManager,

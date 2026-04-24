@@ -15,6 +15,7 @@ import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.Currency
@@ -67,6 +68,7 @@ data class AmountEntryState(
 class SwapViewModel @Inject constructor(
     userManager: UserManager,
     private val exchange: Exchange,
+    private val verifiedFiatCalculator: VerifiedFiatCalculator,
     transactionController: TransactionOperations,
     resources: ResourceHelper,
     tokenCoordinator: TokenCoordinator,
@@ -475,7 +477,7 @@ class SwapViewModel @Inject constructor(
                     is SwapPurpose.Buy -> {
                         val rate = exchange.entryRate
                         // buy with reserves
-                        val amountFiat = LocalFiat.valueExchangeIn(
+                        val amountFiat = verifiedFiatCalculator.compute(
                             amount = Fiat(data.amountData.amount, rate.currency),
                             token = Token.usdf,
                             balance = stateFlow.value.reservesBalance.convertingToUsdIfNeeded(rate),
@@ -511,7 +513,7 @@ class SwapViewModel @Inject constructor(
                     is SwapPurpose.Sell -> {
                         val rate = exchange.entryRate
                         val tokenWithBalance = stateFlow.value.tokenWithBalance!!
-                        val amountFiat = LocalFiat.valueExchangeIn(
+                        val amountFiat = verifiedFiatCalculator.compute(
                             amount = Fiat(data.amountData.amount, rate.currency),
                             token = tokenWithBalance.token,
                             balance = tokenWithBalance.balance,

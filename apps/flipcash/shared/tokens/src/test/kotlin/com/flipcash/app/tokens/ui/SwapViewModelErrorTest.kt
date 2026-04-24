@@ -9,6 +9,7 @@ import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -47,6 +48,7 @@ class SwapViewModelErrorTest {
 
     private val userManager = mockk<UserManager>(relaxed = true)
     private val exchange = mockk<Exchange>(relaxed = true)
+    private val verifiedFiatCalculator = mockk<VerifiedFiatCalculator>(relaxed = true)
     // Mockito for Result-returning methods (MockK double-boxes Result inline class)
     private val transactionController: TransactionOperations = mock()
     private val resources = mockk<ResourceHelper>(relaxed = true)
@@ -85,6 +87,7 @@ class SwapViewModelErrorTest {
         return SwapViewModel(
             userManager = userManager,
             exchange = exchange,
+            verifiedFiatCalculator = verifiedFiatCalculator,
             transactionController = transactionController,
             resources = resources,
             tokenCoordinator = tokenCoordinator,

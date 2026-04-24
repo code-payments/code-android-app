@@ -203,7 +203,8 @@ data class Fiat(
 
         fun tokenBalance(
             quarks: Long,
-            token: Token
+            token: Token,
+            supplyOverride: Long? = null,
         ): Fiat {
             if (token.address == Mint.usdf) {
                 return Fiat(quarks, CurrencyCode.USD)
@@ -214,7 +215,7 @@ data class Fiat(
                     Estimator.sell(
                         amountInQuarks = quarks,
                         marketState = MarketState.FromSupply(
-                            token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,
+                            supplyOverride ?: token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,
                         ),
                         mintDecimals = token.decimals,
                         outputDecimals = 6, // The desired value here is USDF which is 6

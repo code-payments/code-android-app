@@ -17,6 +17,7 @@ import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -68,6 +69,7 @@ internal data class DestinationState(
 internal class WithdrawalViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val exchange: Exchange,
+    private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val userManager: UserManager,
     transactionController: TransactionOperations,
     clipboardManager: ClipboardManager,
@@ -267,7 +269,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = true))
                 val rate = exchange.rateForUsd()
                 val token = stateFlow.value.token!!.token
-                val amountFiat = LocalFiat.valueExchangeIn(
+                val amountFiat = verifiedFiatCalculator.compute(
                     amount = Fiat(data.amountData.amount, rate.currency),
                     token = token,
                     balance = stateFlow.value.token!!.balance,
@@ -394,8 +396,8 @@ internal class WithdrawalViewModel @Inject constructor(
                 val sendingVault = owner.withTimelockForToken(token)
 
                 val feeInMint = feeInUsd?.let { fee ->
-                    LocalFiat.valueExchangeIn(
-                        fee,
+                    verifiedFiatCalculator.compute(
+                        amount = fee,
                         token = token,
                         balance = stateFlow.value.token!!.balance,
                         rate = exchange.rateToUsd(CurrencyCode.USD)!!,

@@ -1,17 +1,10 @@
 package com.getcode.opencode.model.financial
 
 import android.os.Parcelable
-import com.flipcash.libs.currency.math.Estimator
-import com.flipcash.libs.currency.math.divideWithHighPrecision
-import com.flipcash.libs.currency.math.units
-import com.getcode.opencode.model.financial.Fiat.FormattingRule
 import com.getcode.opencode.model.transactions.ExchangeData
-import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.Mint
-import com.getcode.utils.trace
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
-import java.math.BigDecimal
 import javax.annotation.concurrent.Immutable
 
 typealias Usd = Fiat
@@ -104,125 +97,6 @@ data class LocalFiat(
                 mint = mint,
                 rate = rate
             )
-        }
-
-        fun valueExchangeIn(
-            amount: Fiat,
-            token: Token,
-            balance: Fiat? = null,
-            rate: Rate,
-            debug: Boolean = BuildConfig.DEBUG,
-            trace: Boolean = true,
-        ): LocalFiat {
-            val usdValue = amount.convertingToUsdIfNeeded(rate)
-            // cap the entered amount as well, since our display rounds HALF_UP
-            // e,g entered 0.02 USD, but balance is 0.016 USD
-            val cappedValue = balance?.let { min(it, usdValue) } ?: usdValue
-
-            if (token.address == Mint.usdf) {
-                // this doesn't need a calculated value exchange since we are USDC
-               return if (rate.currency != CurrencyCode.USD) {
-                   LocalFiat(
-                       usdf = cappedValue,
-                       rate = rate,
-                       mint = token.address,
-                   )
-               } else {
-                   LocalFiat(usdf = cappedValue)
-               }
-            }
-
-            val supply = token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0
-
-            // determine quarks to exchange for the desired amount
-            val valuation = Estimator.valueExchangeAsQuarks(
-                valueInQuarks = cappedValue.quarks,
-                currentSupplyInQuarks = supply,
-                mintDecimals = 6, // usdf is 6 decimals
-            ).getOrThrow()
-
-            val (quarks, _) = valuation
-            val units = quarks.units()
-            val underlyingTokenAmount = Fiat(quarks = quarks.toLong(), currencyCode = CurrencyCode.USD)
-
-            val sellEstimate = Fiat.tokenBalance(quarks.toLong(), token).convertingTo(rate)
-            val fx = sellEstimate.decimalValue.toBigDecimal().divideWithHighPrecision(units).toDouble()
-
-            logExchange(
-                debug = debug,
-                trace = trace,
-                rate = rate,
-                amount = amount,
-                usdValue = usdValue,
-                balance = balance,
-                cappedValue = cappedValue,
-                token = token,
-                supply = supply,
-                quarks = quarks,
-                units = units,
-                fx = fx,
-                sellEstimate = sellEstimate
-            )
-
-            return LocalFiat(
-                underlyingTokenAmount = underlyingTokenAmount,
-                // our native amount for the transfer is the valuation of the quarks from a sell
-                nativeAmount = sellEstimate,
-                mint = token.address,
-                rate = Rate(fx = fx, currency = rate.currency),
-            )
-        }
-
-        private fun logExchange(
-            debug: Boolean,
-            trace: Boolean,
-            rate: Rate,
-            amount: Fiat,
-            usdValue: Fiat,
-            balance: Fiat?,
-            cappedValue: Fiat,
-            token: Token,
-            supply: Long,
-            quarks: BigDecimal,
-            units: BigDecimal,
-            fx: Double,
-            sellEstimate: Fiat,
-        ) {
-            if (debug) {
-                println("############## EXCHANGE REPORT ###################")
-                println("requested currency:  ${rate.currency.name}")
-                println("original currency fx: ${rate.fx}")
-                println("requested amount: ${amount.formatted()}")
-                println("requested quarks (in USD): ${usdValue.quarks * 1_000_000}")
-                println("balance quarks (in USD): ${balance?.quarks?.times(1_000_000)}")
-                println("capped quarks (in USD): ${cappedValue.quarks * 1_000_000}")
-                println("supply (of ${token.symbol}): $supply")
-                println("calculated quarks: $quarks")
-                println("units: $units")
-                println("fx: $fx")
-                println("sell estimate: ${sellEstimate.formatted(rule = FormattingRule.Length(token.decimals))}")
-                println("##################################################")
-            }
-
-            if (trace) {
-                trace(
-                    tag = "LocalFiat",
-                    message = "currency exchange",
-                    metadata = {
-                        "requested currency" to rate.currency.name
-                        "original currency fx" to rate.fx
-                        "requested amount" to amount.formatted()
-                        "requested quarks (in USD)" to usdValue.quarks * 1_000_000
-                        "balance quarks (in USD)" to balance?.quarks?.times(1_000_000)
-                        "capped quarks (in USD)" to cappedValue.quarks * 1_000_000
-                        "supply of ${token.symbol}" to supply
-                        "calculated quarks" to quarks
-                        "units" to units
-                        "fx" to fx
-                        "sell estimate" to sellEstimate.formatted(rule = FormattingRule.Length(token.decimals))
-                    }
-                )
-            }
         }
     }
 }
