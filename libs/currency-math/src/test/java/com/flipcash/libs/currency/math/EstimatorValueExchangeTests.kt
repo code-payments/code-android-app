@@ -1,8 +1,5 @@
 package com.flipcash.libs.currency.math
 
-import com.flipcash.libs.currency.math.internal.curves.DiscreteBondingCurve
-import com.flipcash.libs.currency.math.loader.FileTableLoader
-import kotlinx.coroutines.runBlocking
 import java.math.BigDecimal
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -15,7 +12,7 @@ class EstimatorValueExchangeAsTokensTests {
 
     @BeforeTest
     fun initializeCurve() {
-        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
+        CurveTestInitializer.initialize()
     }
 
     // -- valueExchangeAsTokens --
@@ -209,7 +206,7 @@ class EstimatorMultipleMintDecimalsTests {
 
     @BeforeTest
     fun initializeCurve() {
-        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
+        CurveTestInitializer.initialize()
     }
 
     @Test
@@ -314,7 +311,7 @@ class EstimatorEdgeCaseTests {
 
     @BeforeTest
     fun initializeCurve() {
-        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
+        CurveTestInitializer.initialize()
     }
 
     // -- Zero amount edge cases --
