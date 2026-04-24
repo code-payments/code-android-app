@@ -18,6 +18,7 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.session.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.flipcash.app.core.bill.Bill
@@ -196,6 +197,7 @@ class SessionControllerGiftCardErrorTest {
     // Phase 3: fund gift card error
     @Test
     fun `fund gift card error shows failedToCreateGiftCard error`() = runTest {
+        val verifiedState = mockk<VerifiedState>(relaxed = true)
         val onErrorSlot = slot<(Throwable) -> Unit>()
         every {
             billController.fundGiftCard(
@@ -204,6 +206,7 @@ class SessionControllerGiftCardErrorTest {
                 token = any(),
                 owner = any(),
                 onFunded = any(),
+                verifiedState = verifiedState,
                 onError = capture(onErrorSlot),
             )
         } answers {
