@@ -44,7 +44,6 @@ class GiveBillTransactorTest {
             messagingController = messagingController,
             transactionController = transactionController,
             scope = scope,
-            verifiedFiatCalculator = verifiedFiatCalculator,
             payloadFactory = payloadFactory,
         )
     }
@@ -142,7 +141,6 @@ class GiveBillTransactorTest {
             messagingController = messagingController,
             transactionController = transactionController,
             scope = this,
-            verifiedFiatCalculator = verifiedFiatCalculator,
             payloadFactory = factory,
         )
 
@@ -173,7 +171,6 @@ class GiveBillTransactorTest {
             messagingController = messagingController,
             transactionController = transactionController,
             scope = this,
-            verifiedFiatCalculator = verifiedFiatCalculator,
             payloadFactory = factory,
         )
 
@@ -197,14 +194,12 @@ class GiveBillTransactorTest {
             messagingController = messagingController,
             transactionController = transactionController,
             scope = this,
-            verifiedFiatCalculator = verifiedFiatCalculator,
             payloadFactory = factory,
         )
         val transactor2 = GiveBillTransactor(
             messagingController = messagingController,
             transactionController = transactionController,
             scope = this,
-            verifiedFiatCalculator = verifiedFiatCalculator,
             payloadFactory = factory,
         )
 
