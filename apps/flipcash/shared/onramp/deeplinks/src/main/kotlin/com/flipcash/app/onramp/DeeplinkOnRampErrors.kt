@@ -9,11 +9,15 @@ sealed class DeeplinkOnRampError(
     class FailedToGenerateDeeplink(
         override val message: String? = null
     ) : DeeplinkOnRampError(message = message)
-    class FailedToCreateTransaction(override val message: String?) :
-        DeeplinkOnRampError(message = message)
+    class FailedToCreateTransaction(
+        override val message: String?,
+        override val cause: Throwable? = null
+    ) : DeeplinkOnRampError(message = message, cause = cause)
 
-    class FailedToSimulateTransaction(override val message: String?) :
-        DeeplinkOnRampError(message = message)
+    class FailedToSimulateTransaction(
+        override val message: String?,
+        override val cause: Throwable? = null
+    ) : DeeplinkOnRampError(message = message, cause = cause)
 
     class FailedToSendTransaction(
         override val code: Long = -99,

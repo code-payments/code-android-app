@@ -603,4 +603,7 @@
 
     <string name="subtitle_processingYourNewCurrencyTransaction">This transaction typically takes a few minutes. You may leave the app while it completes</string>
     <string name="action_receiveNewCurrency">Get the First %1$s of Your Currency Free</string>
+
+    <string name="error_title_noInternet">Something Went Wrong</string>
+    <string name="error_description_noInternet">Please check your internet connection or try again later.</string>
 </resources>

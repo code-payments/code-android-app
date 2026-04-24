@@ -157,7 +157,7 @@ class ExternalWalletOnRampController @Inject constructor(
         val fee = _feeAmount.value ?: LocalFiat.Zero
 
         createUsdcToUsdfSwapTransaction(state, amount)
-            .onFailure { fail(DeeplinkOnRampError.FailedToCreateTransaction(message = it.message), state) }
+            .onFailure { fail(DeeplinkOnRampError.FailedToCreateTransaction(message = it.message, cause = it), state) }
             .fold(
                 onSuccess = { (transaction, swapId) ->
                     withContext(Dispatchers.IO) {
@@ -170,7 +170,7 @@ class ExternalWalletOnRampController @Inject constructor(
                 },
                 onFailure = { Result.failure(it) }
             )
-            .onFailure { fail(DeeplinkOnRampError.FailedToSimulateTransaction(message = it.message), state) }
+            .onFailure { fail(DeeplinkOnRampError.FailedToSimulateTransaction(message = it.message, cause = it), state) }
             .onSuccess { (transaction, swapId) ->
                 transitionTo(
                     ExternalWalletOnRampState.Signing(
@@ -195,7 +195,7 @@ class ExternalWalletOnRampController @Inject constructor(
         val fee = _feeAmount.value ?: LocalFiat.Zero
 
         createDepositTransaction(state, amount)
-            .onFailure { fail(DeeplinkOnRampError.FailedToCreateTransaction(message = it.message), state) }
+            .onFailure { fail(DeeplinkOnRampError.FailedToCreateTransaction(message = it.message, cause = it), state) }
             .fold(
                 onSuccess = { transaction ->
                     withContext(Dispatchers.IO) {
@@ -208,7 +208,7 @@ class ExternalWalletOnRampController @Inject constructor(
                 },
                 onFailure = { Result.failure(it) }
             )
-            .onFailure { fail(DeeplinkOnRampError.FailedToSimulateTransaction(message = it.message), state) }
+            .onFailure { fail(DeeplinkOnRampError.FailedToSimulateTransaction(message = it.message, cause = it), state) }
             .onSuccess { transaction ->
                 transitionTo(
                     ExternalWalletOnRampState.Signing(

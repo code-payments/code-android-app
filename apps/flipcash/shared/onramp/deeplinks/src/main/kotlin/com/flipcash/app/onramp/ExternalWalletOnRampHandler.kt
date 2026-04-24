@@ -25,6 +25,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.util.permissions.rememberNotificationPermission
 import com.getcode.utils.TraceType
+import com.getcode.utils.isNetworkError
 import com.getcode.utils.trace
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -296,18 +297,28 @@ fun ExternalWalletOnRampHandler(
                     controller.reset()
                 }
 
-                if (error.isAlert) {
-                    BottomBarManager.showAlert(
-                        title = title,
-                        message = message,
-                        onDismiss = { onDismiss()  },
-                    )
-                } else {
-                    BottomBarManager.showError(
-                        title = title,
-                        message = message,
-                        onDismiss = { onDismiss()  },
-                    )
+                when {
+                    error.isNetworkCause -> {
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_noInternet),
+                            message = resources.getString(R.string.error_description_noInternet),
+                            onDismiss = { onDismiss() },
+                        )
+                    }
+                    error.isAlert -> {
+                        BottomBarManager.showAlert(
+                            title = title,
+                            message = message,
+                            onDismiss = { onDismiss() },
+                        )
+                    }
+                    else -> {
+                        BottomBarManager.showError(
+                            title = title,
+                            message = message,
+                            onDismiss = { onDismiss() },
+                        )
+                    }
                 }
             }
         }
@@ -325,6 +336,12 @@ private val DeeplinkOnRampError.isAlert: Boolean
         DeeplinkError.Disconnected,
         DeeplinkError.TransactionRejected,
     ) || this is DeeplinkOnRampError.FailedToSendTransaction
+        || (this is DeeplinkOnRampError.FailedToSimulateTransaction && cause?.isNetworkError() == true)
+        || (this is DeeplinkOnRampError.FailedToCreateTransaction && cause?.isNetworkError() == true)
+
+private val DeeplinkOnRampError.isNetworkCause: Boolean
+    get() = (this is DeeplinkOnRampError.FailedToSimulateTransaction || this is DeeplinkOnRampError.FailedToCreateTransaction)
+        && cause?.isNetworkError() == true
 
 private typealias Title = String
 private typealias Message = String

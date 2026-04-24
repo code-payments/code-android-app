@@ -112,6 +112,11 @@ object ErrorUtils {
         throwable is SQLException || throwable is SuppressibleException || throwable is TimeoutCancellationException
 }
 
+fun Throwable.isNetworkError(): Boolean =
+    this is UnknownHostException || cause is UnknownHostException ||
+    this is ConnectException || cause is ConnectException ||
+    this is TimeoutException || cause is TimeoutException
+
 data class SuppressibleException(override val message: String, override val cause: Throwable? = null) : Throwable(message, cause) {
     constructor(cause: Throwable) : this(cause.message.orEmpty(), cause)
 }
