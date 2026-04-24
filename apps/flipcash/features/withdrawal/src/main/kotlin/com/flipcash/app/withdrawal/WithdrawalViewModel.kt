@@ -17,6 +17,7 @@ import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -56,7 +57,7 @@ internal data class AmountEntryState(
     val currencyModel: CurrencyHolder = CurrencyHolder(),
     val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
     val confirmingAmount: LoadingSuccessState = LoadingSuccessState(),
-    val selectedAmount: LocalFiat = LocalFiat.Zero,
+    val selectedAmount: VerifiedFiat = VerifiedFiat(LocalFiat.Zero, null),
 )
 
 internal data class DestinationState(
@@ -123,7 +124,7 @@ internal class WithdrawalViewModel @Inject constructor(
         data class OnAmountChanged(val amountAnimatedModel: AmountAnimatedInputUiModel) : Event
         data class OnCurrencyChanged(val currency: Currency) : Event
         data object OnAmountConfirmed : Event
-        data class OnAmountAccepted(val amount: LocalFiat) : Event
+        data class OnAmountAccepted(val amount: VerifiedFiat) : Event
         data object OnDestinationConfirmed : Event
         data class UpdateConfirmingAmountState(
             val loading: Boolean = false,
@@ -269,7 +270,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = true))
                 val rate = exchange.rateForUsd()
                 val token = stateFlow.value.token!!.token
-                val amountFiat = verifiedFiatCalculator.compute(
+                val amountVerified = verifiedFiatCalculator.compute(
                     amount = Fiat(data.amountData.amount, rate.currency),
                     token = token,
                     balance = stateFlow.value.token!!.balance,
@@ -277,7 +278,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 )
 
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = true))
-                dispatchEvent(Event.OnAmountAccepted(amountFiat))
+                dispatchEvent(Event.OnAmountAccepted(amountVerified))
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -341,7 +342,7 @@ internal class WithdrawalViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnWithdraw>()
             .onEach {
-                val amount = stateFlow.value.amountEntryState.selectedAmount
+                val amount = stateFlow.value.amountEntryState.selectedAmount.localFiat
                 val withdrawalChecks = stateFlow.value.destinationState.availability
                 val fee = withdrawalChecks?.feeAmount
                 if (amount.nativeAmount - (fee ?: Fiat.Zero) < Fiat.Zero) {
@@ -401,7 +402,7 @@ internal class WithdrawalViewModel @Inject constructor(
                         token = token,
                         balance = stateFlow.value.token!!.balance,
                         rate = exchange.rateToUsd(CurrencyCode.USD)!!,
-                    ).underlyingTokenAmount
+                    ).localFiat.underlyingTokenAmount
                 }
 
                 transactionController.withdraw(
@@ -417,7 +418,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 onError = {
                     analytics.transfer(
                         event = Analytics.Transfer.Withdrawal,
-                        amount = stateFlow.value.amountEntryState.selectedAmount,
+                        amount = stateFlow.value.amountEntryState.selectedAmount.localFiat,
                         successful = false,
                         error = it,
                     )
@@ -430,7 +431,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 onSuccess = {
                     analytics.transfer(
                         event = Analytics.Transfer.Withdrawal,
-                        amount = stateFlow.value.amountEntryState.selectedAmount,
+                        amount = stateFlow.value.amountEntryState.selectedAmount.localFiat,
                     )
                     viewModelScope.launch {
                         coroutineScope {

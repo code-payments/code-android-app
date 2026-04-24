@@ -63,8 +63,8 @@ class RealVerifiedFiatCalculatorTest {
             trace = false,
         )
 
-        assertEquals(Mint.usdf, result.mint)
-        assertEquals(amount.quarks, result.underlyingTokenAmount.quarks)
+        assertEquals(Mint.usdf, result.localFiat.mint)
+        assertEquals(amount.quarks, result.localFiat.underlyingTokenAmount.quarks)
     }
 
     @Test
@@ -80,8 +80,8 @@ class RealVerifiedFiatCalculatorTest {
             trace = false,
         )
 
-        assertEquals(Mint.usdf, result.mint)
-        assertEquals(CurrencyCode.CAD, result.nativeAmount.currencyCode)
+        assertEquals(Mint.usdf, result.localFiat.mint)
+        assertEquals(CurrencyCode.CAD, result.localFiat.nativeAmount.currencyCode)
     }
 
     // endregion
@@ -118,8 +118,8 @@ class RealVerifiedFiatCalculatorTest {
 
         // Results should differ because different supplies were used
         assertNotEquals(
-            result.underlyingTokenAmount.quarks,
-            resultWithTokenSupply.underlyingTokenAmount.quarks,
+            result.localFiat.underlyingTokenAmount.quarks,
+            resultWithTokenSupply.localFiat.underlyingTokenAmount.quarks,
         )
     }
 
@@ -139,8 +139,8 @@ class RealVerifiedFiatCalculatorTest {
             trace = false,
         )
 
-        assertTrue(result.underlyingTokenAmount.quarks > 0)
-        assertEquals(testMint, result.mint)
+        assertTrue(result.localFiat.underlyingTokenAmount.quarks > 0)
+        assertEquals(testMint, result.localFiat.mint)
     }
 
     @Test
@@ -165,7 +165,7 @@ class RealVerifiedFiatCalculatorTest {
             trace = false,
         )
 
-        assertTrue(result.underlyingTokenAmount.quarks > 0)
+        assertTrue(result.localFiat.underlyingTokenAmount.quarks > 0)
     }
 
     // endregion
@@ -198,8 +198,8 @@ class RealVerifiedFiatCalculatorTest {
 
         // Capped result should match computing with the balance amount directly
         assertEquals(
-            directResult.underlyingTokenAmount.quarks,
-            cappedResult.underlyingTokenAmount.quarks,
+            directResult.localFiat.underlyingTokenAmount.quarks,
+            cappedResult.localFiat.underlyingTokenAmount.quarks,
         )
     }
 
@@ -228,8 +228,8 @@ class RealVerifiedFiatCalculatorTest {
         )
 
         assertEquals(
-            withoutBalance.underlyingTokenAmount.quarks,
-            withBalance.underlyingTokenAmount.quarks,
+            withoutBalance.localFiat.underlyingTokenAmount.quarks,
+            withBalance.localFiat.underlyingTokenAmount.quarks,
         )
     }
 
@@ -250,7 +250,7 @@ class RealVerifiedFiatCalculatorTest {
             trace = false,
         )
 
-        assertEquals(testMint, result.mint)
+        assertEquals(testMint, result.localFiat.mint)
     }
 
     @Test
@@ -266,9 +266,9 @@ class RealVerifiedFiatCalculatorTest {
             trace = false,
         )
 
-        assertTrue(result.underlyingTokenAmount.quarks > 0)
-        assertTrue(result.nativeAmount.quarks > 0)
-        assertTrue(result.rate.fx > 0)
+        assertTrue(result.localFiat.underlyingTokenAmount.quarks > 0)
+        assertTrue(result.localFiat.nativeAmount.quarks > 0)
+        assertTrue(result.localFiat.rate.fx > 0)
     }
 
     @Test
@@ -297,12 +297,12 @@ class RealVerifiedFiatCalculatorTest {
         )
 
         assertEquals(
-            verifiedResult.underlyingTokenAmount.quarks,
-            fallbackResult.underlyingTokenAmount.quarks,
+            verifiedResult.localFiat.underlyingTokenAmount.quarks,
+            fallbackResult.localFiat.underlyingTokenAmount.quarks,
         )
         assertEquals(
-            verifiedResult.nativeAmount.quarks,
-            fallbackResult.nativeAmount.quarks,
+            verifiedResult.localFiat.nativeAmount.quarks,
+            fallbackResult.localFiat.nativeAmount.quarks,
         )
     }
 

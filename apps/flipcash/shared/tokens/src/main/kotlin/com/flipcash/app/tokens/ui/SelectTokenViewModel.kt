@@ -15,6 +15,7 @@ import com.flipcash.shared.tokens.R
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.rounded
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.sum
@@ -66,7 +67,7 @@ class SelectTokenViewModel @Inject constructor(
                         )
                 }
 
-                return set.map { it.balance }.sum()
+                return set.map { it.balance.rounded() }.sum()
             }
 
         val aggregateAppreciation: LocalFiat?

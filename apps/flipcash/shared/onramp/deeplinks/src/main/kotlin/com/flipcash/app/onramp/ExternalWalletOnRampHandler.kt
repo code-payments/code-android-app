@@ -177,7 +177,7 @@ fun ExternalWalletOnRampHandler(
                     )
                 }
 
-                analytics.amountSelectedForWalletTransfer(current.provider, current.amount.underlyingTokenAmount)
+                analytics.amountSelectedForWalletTransfer(current.provider, current.amount.localFiat.underlyingTokenAmount)
                 uriHandler.openUri(uri.toString())
             }
 

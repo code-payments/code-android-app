@@ -3,7 +3,8 @@ package com.flipcash.app.onramp
 import android.os.Parcelable
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
 import com.getcode.opencode.internal.solana.model.SwapId
-import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.exchange.VerifiedFiat
+
 import com.getcode.opencode.model.financial.Token
 import kotlinx.parcelize.Parcelize
 
@@ -15,8 +16,8 @@ data class OnrampOrder(
 
 sealed interface CoinbaseOnRampState {
     data object Idle : CoinbaseOnRampState
-    data class Paying(val order: OnrampOrder, val token: Token, val amount: LocalFiat) : CoinbaseOnRampState
-    data class Processing(val orderId: String, val token: Token, val amount: LocalFiat) : CoinbaseOnRampState
+    data class Paying(val order: OnrampOrder, val token: Token, val amount: VerifiedFiat) : CoinbaseOnRampState
+    data class Processing(val orderId: String, val token: Token, val amount: VerifiedFiat) : CoinbaseOnRampState
     data class Completed(val swapId: SwapId) : CoinbaseOnRampState
     data class Failed(val error: CoinbaseOnRampWebError) : CoinbaseOnRampState
 }

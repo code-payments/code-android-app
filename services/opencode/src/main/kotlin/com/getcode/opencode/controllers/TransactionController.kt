@@ -2,6 +2,7 @@ package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.events.Events
+import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.network.api.intents.IntentDistribution
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteReceive
@@ -118,7 +119,7 @@ class TransactionController @Inject constructor(
     }
 
     override suspend fun withdraw(
-        amount: LocalFiat,
+        amount: VerifiedFiat,
         mint: Mint,
         owner: AccountCluster,
         destination: PublicKey,
@@ -126,11 +127,12 @@ class TransactionController @Inject constructor(
         fee: Fiat?,
         scope: CoroutineScope,
     ): Result<IntentType> {
-        val verifiedState = verifiedStateManager.getVerifiedStateFor(amount.rate.currency, mint)
+        val verifiedState = amount.verifiedState
+            ?: verifiedStateManager.getVerifiedStateFor(amount.localFiat.rate.currency, mint)
             ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
         val intent = IntentWithdraw.create(
-            amount = amount,
+            amount = amount.localFiat,
             mint = mint,
             fee = fee?.let { Fee(it, FeeType.CreateOnSendWithdrawal) },
             sourceCluster = owner,
@@ -233,14 +235,14 @@ class TransactionController @Inject constructor(
 
     override suspend fun buy(
         owner: AccountCluster,
-        amount: LocalFiat,
+        amount: VerifiedFiat,
         feeAmount: LocalFiat?,
         swapId: SwapId?,
         of: Token,
         source: SwapFundingSource,
         fund: (suspend (SwapRequest) -> Result<Unit>)?,
     ): Result<SwapId> {
-        trace("Starting ${amount.nativeAmount.formatted()} buy of ${of.symbol}")
+        trace("Starting ${amount.localFiat.nativeAmount.formatted()} buy of ${of.symbol}")
         val tokenizedOwner = owner.withTimelockForToken(of)
 
         // A Token whose launchpadMetadata is null and whose address isn't USDF is
@@ -262,9 +264,9 @@ class TransactionController @Inject constructor(
             )
         }
 
-        val verifiedState =
-            verifiedStateManager.getVerifiedStateFor(amount.rate.currency, Mint.usdf)
-                ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+        val verifiedState = amount.verifiedState
+            ?: verifiedStateManager.getVerifiedStateFor(amount.localFiat.rate.currency, Mint.usdf)
+            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
         return accountResult.fold(
             onSuccess = {
@@ -272,7 +274,7 @@ class TransactionController @Inject constructor(
                     scope = scope,
                     swapId = swapId,
                     owner = owner,
-                    amount = amount,
+                    amount = amount.localFiat,
                     feeAmount = feeAmount,
                     of = of,
                     source = source,
@@ -294,17 +296,17 @@ class TransactionController @Inject constructor(
 
     override suspend fun sell(
         owner: AccountCluster,
-        amount: LocalFiat,
+        amount: VerifiedFiat,
         of: Token,
     ): Result<SwapId> {
-        val verifiedState =
-            verifiedStateManager.getVerifiedStateFor(amount.rate.currency, of.address)
-                ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+        val verifiedState = amount.verifiedState
+            ?: verifiedStateManager.getVerifiedStateFor(amount.localFiat.rate.currency, of.address)
+            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
         return repository.sell(
             scope = scope,
             owner = owner,
-            amount = amount,
+            amount = amount.localFiat,
             of = of,
             verifiedState = verifiedState
         )

@@ -484,7 +484,7 @@ class TokenCoordinator @Inject constructor(
                                     balance = balance,
                                     rate = Rate.oneToOne,
                                     trace = false,
-                                ).underlyingTokenAmount
+                                ).localFiat.underlyingTokenAmount
                             }.getOrNull()
 
                             if (exchangedValue != null) {

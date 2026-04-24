@@ -16,11 +16,12 @@ import com.getcode.network.jwt.Jwt
 import com.getcode.network.jwt.JwtSecuredEndpoint
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.LocalFiat
+
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapFundingSource
@@ -58,7 +59,7 @@ class CoinbaseOnRampController @Inject constructor(
     private val _state = MutableStateFlow<CoinbaseOnRampState>(CoinbaseOnRampState.Idle)
     val state: StateFlow<CoinbaseOnRampState> = _state.asStateFlow()
 
-    fun startPayment(order: OnrampOrder, token: Token, amount: LocalFiat) {
+    fun startPayment(order: OnrampOrder, token: Token, amount: VerifiedFiat) {
         _state.value = CoinbaseOnRampState.Paying(order, token, amount)
     }
 
@@ -86,7 +87,7 @@ class CoinbaseOnRampController @Inject constructor(
     suspend fun placeOrderAndStartPayment(
         amount: Fiat,
         token: Token,
-        localFiat: LocalFiat,
+        verifiedFiat: VerifiedFiat,
     ): Result<Unit> {
         when (googlePayReadiness.check()) {
             GooglePayReadiness.Status.NotSupported ->
@@ -99,7 +100,7 @@ class CoinbaseOnRampController @Inject constructor(
         return placeOrderInclusiveOfFees(amount)
             .map { (orderId, paymentLink) ->
                 val order = OnrampOrder(orderId, paymentLink.url)
-                startPayment(order, token, localFiat)
+                startPayment(order, token, verifiedFiat)
             }
     }
 

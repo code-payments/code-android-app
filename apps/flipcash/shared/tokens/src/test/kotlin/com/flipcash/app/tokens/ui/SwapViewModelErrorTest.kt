@@ -9,6 +9,7 @@ import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.LocalFiat
@@ -109,7 +110,7 @@ class SwapViewModelErrorTest {
         val tokenWithBalance = mockk<TokenWithBalance>(relaxed = true) {
             every { this@mockk.token } returns token
         }
-        val amount = mockk<LocalFiat>(relaxed = true)
+        val amount = VerifiedFiat(mockk<LocalFiat>(relaxed = true), null)
 
         val vm = createViewModel()
         vm.dispatchEvent(SwapViewModel.Event.OnPurposeChanged(SwapPurpose.Buy(mockk(relaxed = true))))
@@ -130,7 +131,7 @@ class SwapViewModelErrorTest {
         val tokenWithBalance = mockk<TokenWithBalance>(relaxed = true) {
             every { this@mockk.token } returns token
         }
-        val amount = mockk<LocalFiat>(relaxed = true)
+        val amount = VerifiedFiat(mockk<LocalFiat>(relaxed = true), null)
 
         val vm = createViewModel()
         vm.dispatchEvent(SwapViewModel.Event.OnPurposeChanged(SwapPurpose.Sell(mockk(relaxed = true))))

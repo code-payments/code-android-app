@@ -37,18 +37,22 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.exchange.VerifiedFiat
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
 import com.getcode.opencode.model.core.errors.GetMintsError
 import com.getcode.opencode.model.core.errors.LaunchTokenError
 import com.getcode.opencode.model.core.errors.ValidationException
 import com.getcode.opencode.model.financial.MintMetadata
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenCreateRequest
 import com.getcode.opencode.model.financial.fromLaunch
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.orZero
 import com.getcode.opencode.model.financial.plus
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.solana.keys.Mint
@@ -87,6 +91,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     moderationController: ModerationController,
     currencyController: CurrencyController,
     transactionController: TransactionController,
+    private val verifiedFiatCalculator: VerifiedFiatCalculator,
     externalWalletController: ExternalWalletOnRampController,
     tokenCoordinator: TokenCoordinator,
     balancePoller: BalancePoller,
@@ -513,8 +518,11 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     AppRoute.Token.CurrencyCreator,
                     OnRampProvider.Phantom
                 )
-                val totalAmount = LocalFiat(usdf = event.context.amount)
-                println("total amount ${totalAmount.underlyingTokenAmount}")
+                val totalAmount = verifiedFiatCalculator.compute(
+                    amount = event.context.amount,
+                    token = Token.usdf,
+                    rate = Rate.oneToOne,
+                )
                 val feeAmount = event.context.feeAmount?.let { LocalFiat(usdf = it) }
                 externalWalletController.setAmount(amount = totalAmount, feeAmount = feeAmount)
                 externalWalletController.setTokenToPurchase(event.context.token)
@@ -529,10 +537,16 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             }
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
             .map { (owner, context) ->
+                val totalAmount = verifiedFiatCalculator.compute(
+                    amount = context.amount,
+                    token = Token.usdf,
+                    rate = Rate.oneToOne,
+                )
+                val feeAmount = context.feeAmount?.let { LocalFiat(usdf = it) }
                 transactionController.buy(
                     owner = owner,
-                    amount = LocalFiat(usdf = context.amount),
-                    feeAmount = context.feeAmount?.let { LocalFiat(usdf = it) },
+                    amount = totalAmount,
+                    feeAmount = feeAmount,
                     of = context.token,
                     source = SwapFundingSource.SubmitIntent(),
                     fund = null,

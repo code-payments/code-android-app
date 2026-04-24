@@ -1,6 +1,7 @@
 package com.getcode.opencode.model.financial
 
 import android.os.Parcelable
+import com.getcode.opencode.internal.extensions.fractionDigits
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.solana.keys.Mint
 import kotlinx.parcelize.Parcelize
@@ -100,6 +101,11 @@ data class LocalFiat(
         }
     }
 }
+
+fun LocalFiat.rounded(): LocalFiat = copy(
+    underlyingTokenAmount = underlyingTokenAmount.rounded(underlyingTokenAmount.currencyCode.fractionDigits),
+    nativeAmount = nativeAmount.rounded(nativeAmount.currencyCode.fractionDigits),
+)
 
 fun Iterable<LocalFiat>.sum(): LocalFiat {
     return this.fold(LocalFiat.Zero) { acc, localFiat ->

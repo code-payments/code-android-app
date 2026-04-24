@@ -146,7 +146,7 @@ internal class CashScreenViewModel @Inject constructor(
                                 amount =  Fiat(amount, rate.currency),
                                 token = token,
                                 rate = rate,
-                            )
+                            ).localFiat
 
                             val neededAmount = amountFiat.nativeAmount - tokenBalance
                             println("entered amount ${amountFiat.nativeAmount}, tokenbalace=$tokenBalance, needed=$neededAmount")
@@ -304,7 +304,7 @@ internal class CashScreenViewModel @Inject constructor(
                 val (token, balance) = stateFlow.value.token!!
                 val rate = exchange.entryRate
 
-                val amountFiat = verifiedFiatCalculator.compute(
+                val result = verifiedFiatCalculator.compute(
                     amount = Fiat(data.amountData.amount, rate.currency),
                     token = token,
                     balance = balance.underlyingTokenAmount,
@@ -313,7 +313,8 @@ internal class CashScreenViewModel @Inject constructor(
 
                 val bill = Bill.Cash(
                     token = stateFlow.value.token!!.token,
-                    amount = amountFiat
+                    amount = result.localFiat,
+                    verifiedState = result.verifiedState,
                 )
 
                 dispatchEvent(Event.UpdateLoadingState(loading = false, success = true))

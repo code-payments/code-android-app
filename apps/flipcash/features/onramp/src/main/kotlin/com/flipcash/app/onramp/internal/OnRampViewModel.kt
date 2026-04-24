@@ -16,6 +16,8 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiat
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -24,6 +26,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.toFiat
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
@@ -45,7 +48,7 @@ internal data class AmountEntryState(
     val currencyModel: CurrencyHolder = CurrencyHolder(),
     val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
     val confirmingAmount: LoadingSuccessState = LoadingSuccessState(),
-    val selectedAmount: LocalFiat = LocalFiat.Zero,
+    val selectedAmount: VerifiedFiat = VerifiedFiat(LocalFiat.Zero, null),
 ) {
     val canAdd: Boolean
         get() = (amountAnimatedModel.amountData.amount) > 0.00
@@ -71,6 +74,7 @@ internal data class AmountEntryState(
 @HiltViewModel
 internal class OnRampViewModel @Inject constructor(
     private val exchange: Exchange,
+    private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val resources: ResourceHelper,
     private val onRampController: CoinbaseOnRampController,
     tokenController: TokenController,
@@ -127,9 +131,9 @@ internal class OnRampViewModel @Inject constructor(
             val success: Boolean = false
         ) : Event
 
-        data class OnAmountAccepted(val amount: LocalFiat) : Event
+        data class OnAmountAccepted(val amount: VerifiedFiat) : Event
 
-        data class CreateAndSendTransactionToWallet(val amount: LocalFiat) : Event
+        data class CreateAndSendTransactionToWallet(val amount: VerifiedFiat) : Event
         // endregion
     }
 
@@ -279,9 +283,10 @@ internal class OnRampViewModel @Inject constructor(
                     }
                 }
 
-                val amountFiat = LocalFiat(
-                    usdf = localizedAmount.convertingTo(exchange.rateToUsd(rate.currency)!!),
-                    nativeAmount = localizedAmount,
+                val amountFiat = verifiedFiatCalculator.compute(
+                    amount = localizedAmount,
+                    token = Token.usdf,
+                    rate = rate,
                 )
 
                 dispatchEvent(Event.OnAmountAccepted(amountFiat))
@@ -314,9 +319,9 @@ internal class OnRampViewModel @Inject constructor(
                                 }
 
                                 onRampController.placeOrderAndStartPayment(
-                                    amount = selectedAmount.underlyingTokenAmount,
+                                    amount = selectedAmount.localFiat.underlyingTokenAmount,
                                     token = token,
-                                    localFiat = selectedAmount,
+                                    verifiedFiat = selectedAmount,
                                 ).onFailure { error ->
                                     dispatchEvent(Event.UpdateConfirmingAmountState())
                                     when (error) {

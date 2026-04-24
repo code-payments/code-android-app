@@ -3,6 +3,7 @@ package com.getcode.opencode.internal.exchange
 import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.libs.currency.math.divideWithHighPrecision
 import com.flipcash.libs.currency.math.units
+import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -29,15 +30,17 @@ internal class RealVerifiedFiatCalculator @Inject constructor(
         balance: Fiat?,
         rate: Rate,
         trace: Boolean,
-    ): LocalFiat {
+    ): VerifiedFiat {
         val usdValue = amount.convertingToUsdIfNeeded(rate)
         // cap the entered amount as well, since our display rounds HALF_UP
         // e,g entered 0.02 USD, but balance is 0.016 USD
         val cappedValue = balance?.let { min(it, usdValue) } ?: usdValue
 
+        val verifiedState = verifiedStateManager.getVerifiedStateFor(rate.currency, token.address)
+
         if (token.address == Mint.usdf) {
             // this doesn't need a calculated value exchange since we are USDC
-            return if (rate.currency != CurrencyCode.USD) {
+            val localFiat = if (rate.currency != CurrencyCode.USD) {
                 LocalFiat(
                     usdf = cappedValue,
                     rate = rate,
@@ -46,11 +49,10 @@ internal class RealVerifiedFiatCalculator @Inject constructor(
             } else {
                 LocalFiat(usdf = cappedValue)
             }
+            return VerifiedFiat(localFiat, verifiedState)
         }
 
-        val verifiedSupply = verifiedStateManager
-            .getVerifiedStateFor(rate.currency, token.address)
-            ?.reserveProto?.reserveState?.supplyFromBonding
+        val verifiedSupply = verifiedState?.reserveProto?.reserveState?.supplyFromBonding
 
         val supply = verifiedSupply ?: token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0
 
@@ -84,12 +86,15 @@ internal class RealVerifiedFiatCalculator @Inject constructor(
             )
         }
 
-        return LocalFiat(
-            underlyingTokenAmount = underlyingTokenAmount,
-            // our native amount for the transfer is the valuation of the quarks from a sell
-            nativeAmount = sellEstimate,
-            mint = token.address,
-            rate = Rate(fx = fx, currency = rate.currency),
+        return VerifiedFiat(
+            localFiat = LocalFiat(
+                underlyingTokenAmount = underlyingTokenAmount,
+                // our native amount for the transfer is the valuation of the quarks from a sell
+                nativeAmount = sellEstimate,
+                mint = token.address,
+                rate = Rate(fx = fx, currency = rate.currency),
+            ),
+            verifiedState = verifiedState,
         )
     }
 
