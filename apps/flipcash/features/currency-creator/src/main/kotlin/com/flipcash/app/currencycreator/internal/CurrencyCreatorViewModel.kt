@@ -169,6 +169,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
         data class OnIconSelected(val image: Uri) : Event
         data class OnIconCached(val image: Uri) : Event
+        data object OnIconCleared : Event
 
         data class OnPurchaseAmountChanged(val amount: Fiat, val feeAmount: Fiat) : Event
 
@@ -331,6 +332,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 onError = { cause ->
                     dispatchEvent(Event.UpdateProcessingState())
                     stateFlow.value.icon.dataOrNull?.let { contentReader.removeFromCache(it) }
+                    dispatchEvent(Event.OnIconCleared)
                     when (cause) {
                         is ValidationException,
                         is ImageModerationError.Flagged,
@@ -621,6 +623,10 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
                 is Event.OnIconCached -> { state ->
                     state.copy(icon = Loadable.Loaded(event.image))
+                }
+
+                is Event.OnIconCleared -> { state ->
+                    state.copy(icon = Loadable.Loading())
                 }
 
                 is Event.OnBillConfirmed -> { state ->

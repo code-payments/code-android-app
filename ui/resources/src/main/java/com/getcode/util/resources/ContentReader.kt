@@ -17,7 +17,11 @@ interface ContentReader {
 
 class AndroidContentReader(private val context: Context) : ContentReader {
     override fun readBytes(uri: Uri): ByteArray? {
-        return context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+        return try {
+            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+        } catch (_: java.io.FileNotFoundException) {
+            null
+        }
     }
 
     override fun copyToCache(uri: Uri, fileName: String, maxSize: Int): Uri? {
