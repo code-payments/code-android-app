@@ -37,6 +37,7 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
@@ -329,7 +330,12 @@ class RealSessionController @Inject constructor(
                                         action = {
                                             billController.cancelAwaitForGrab()
 
-                                            shareGiftCard(bill.amount, bill.token, owner) {
+                                            shareGiftCard(
+                                                amount = bill.amount,
+                                                token = bill.token,
+                                                owner = owner,
+                                                verifiedState = bill.verifiedState!!
+                                            ) {
                                                 trace(
                                                     tag = "Session",
                                                     message = "Cash link not sent. Restarting awaiting grab",
@@ -413,6 +419,7 @@ class RealSessionController @Inject constructor(
         amount: LocalFiat,
         token: Token,
         owner: AccountCluster,
+        verifiedState: VerifiedState,
         restartBillGrabber: () -> Unit
     ) {
         val giftCard = GiftCardAccount.create(token)
@@ -428,7 +435,13 @@ class RealSessionController @Inject constructor(
                     is ShareResult.ActionTaken -> {
                         scope.launch action@{
                             // immediately fund the gift card
-                            val fundingResult = initiateGiftCardFunding(giftCard, owner, amount, token)
+                            val fundingResult = initiateGiftCardFunding(
+                                giftCard = giftCard,
+                                owner = owner,
+                                amount = amount,
+                                token = token,
+                                verifiedState = verifiedState
+                            )
                             if (fundingResult.isFailure) {
                                 return@action
                             }
@@ -566,12 +579,14 @@ class RealSessionController @Inject constructor(
         owner: AccountCluster,
         amount: LocalFiat,
         token: Token,
+        verifiedState: VerifiedState,
     ): Result<LocalFiat> = suspendCancellableCoroutine { cont ->
         billController.fundGiftCard(
             giftCard = giftCard,
             amount = amount,
             token = token,
             owner = owner,
+            verifiedState = verifiedState,
             onFunded = {
                 tokenCoordinator.subtract(token, amount)
                 shareSheetController.reset()
@@ -863,5 +878,4 @@ class RealSessionController @Inject constructor(
     }
 }
 
-private val AIRDROP_INITIAL_DELAY = 1.seconds
 private val CASH_LINK_CONFIRMATION_DELAY = 500.milliseconds

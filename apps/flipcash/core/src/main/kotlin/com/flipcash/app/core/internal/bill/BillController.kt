@@ -87,9 +87,10 @@ class BillController @Inject constructor(
         amount: LocalFiat,
         token: Token,
         owner: AccountCluster,
+        verifiedState: VerifiedState,
         onFunded: suspend (LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
-    ) = transactionManager.fundGiftCard(giftCard, amount, owner, token, onFunded, onError)
+    ) = transactionManager.fundGiftCard(giftCard, amount, owner, token, verifiedState, onFunded, onError)
 
     /** Initiates the **receive cash link** flow — claims a gift card by entropy. */
     fun receiveGiftCard(

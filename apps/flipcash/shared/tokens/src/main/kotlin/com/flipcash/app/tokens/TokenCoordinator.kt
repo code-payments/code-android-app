@@ -459,50 +459,50 @@ class TokenCoordinator @Inject constructor(
             ).collect { response ->
                 trace(tag = TAG, message = "Received ${response.reserveStates.size} reserve state updates", type = TraceType.Process)
 
-                _state.update { state ->
-                    var updatedTokens = state.tokens
-                    var updatedBalances = state.balances
-                    var updatedAppreciation = state.appreciation
+                val state = _state.value
+                var updatedTokens = state.tokens
+                var updatedBalances = state.balances
+                var updatedAppreciation = state.appreciation
 
-                    response.reserveStates.forEach { update ->
-                        val mint = update.reserveState.mint
-                        val token = state.tokens[mint] ?: return@forEach
-                        val launchpad = token.launchpadMetadata ?: return@forEach
+                for (update in response.reserveStates) {
+                    val mint = update.reserveState.mint
+                    val token = state.tokens[mint] ?: continue
+                    val launchpad = token.launchpadMetadata ?: continue
 
-                        val updatedToken = token.copy(
-                            launchpadMetadata = launchpad.copy(
-                                currentCirculatingSupplyQuarks = update.reserveState.currentSupply
-                            )
+                    val updatedToken = token.copy(
+                        launchpadMetadata = launchpad.copy(
+                            currentCirculatingSupplyQuarks = update.reserveState.currentSupply
                         )
-                        updatedTokens = updatedTokens + (mint to updatedToken)
+                    )
+                    updatedTokens = updatedTokens + (mint to updatedToken)
 
-                        state.balances[mint]?.let { balance ->
-                            val exchangedValue = runCatching {
-                                verifiedFiatCalculator.compute(
-                                    amount = balance,
-                                    token = updatedToken,
-                                    balance = balance,
-                                    rate = Rate.oneToOne,
-                                    trace = false,
-                                ).localFiat.underlyingTokenAmount
-                            }.getOrNull()
+                    val balance = state.balances[mint] ?: continue
+                    val exchangedValue = runCatching {
+                        verifiedFiatCalculator.compute(
+                            amount = balance,
+                            token = updatedToken,
+                            balance = balance,
+                            rate = Rate.oneToOne,
+                            trace = false,
+                        ).localFiat.underlyingTokenAmount
+                    }.getOrNull()
 
-                            if (exchangedValue != null) {
-                                val newBalance = Fiat.tokenBalance(
-                                    quarks = exchangedValue.quarks,
-                                    token = updatedToken
-                                )
-                                updatedBalances = updatedBalances + (mint to newBalance)
+                    if (exchangedValue != null) {
+                        val newBalance = Fiat.tokenBalance(
+                            quarks = exchangedValue.quarks,
+                            token = updatedToken
+                        )
+                        updatedBalances = updatedBalances + (mint to newBalance)
 
-                                val currentAppreciation = state.appreciation[mint] ?: Fiat.Zero
-                                val costBasis = balance - currentAppreciation
-                                val newAppreciation = newBalance - costBasis
-                                updatedAppreciation = updatedAppreciation + (mint to newAppreciation)
-                            }
-                        }
+                        val currentAppreciation = state.appreciation[mint] ?: Fiat.Zero
+                        val costBasis = balance - currentAppreciation
+                        val newAppreciation = newBalance - costBasis
+                        updatedAppreciation = updatedAppreciation + (mint to newAppreciation)
                     }
+                }
 
-                    state.copy(tokens = updatedTokens, balances = updatedBalances, appreciation = updatedAppreciation)
+                _state.update {
+                    it.copy(tokens = updatedTokens, balances = updatedBalances, appreciation = updatedAppreciation)
                 }
             }
         }

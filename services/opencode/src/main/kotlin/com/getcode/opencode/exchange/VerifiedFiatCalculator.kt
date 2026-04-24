@@ -12,7 +12,7 @@ data class VerifiedFiat(
 )
 
 interface VerifiedFiatCalculator {
-    fun compute(
+    suspend fun compute(
         amount: Fiat,
         token: Token,
         balance: Fiat? = null,

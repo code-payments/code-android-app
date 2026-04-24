@@ -6,6 +6,7 @@ import com.codeinc.opencode.gen.currency.v1.launchpadCurrencyReserveState
 import com.codeinc.opencode.gen.currency.v1.verifiedCoreMintFiatExchangeRate
 import com.codeinc.opencode.gen.currency.v1.verifiedLaunchpadCurrencyReserveState
 import com.flipcash.libs.currency.math.CurveTestInitializer
+import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -20,6 +21,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -38,6 +40,7 @@ class RealVerifiedFiatCalculatorTest {
     }
 
     private lateinit var verifiedStateManager: VerifiedProtoManager
+    private lateinit var currencyController: CurrencyController
     private lateinit var calculator: RealVerifiedFiatCalculator
 
     private val testMint = Mint(List(32) { 1.toByte() })
@@ -46,13 +49,14 @@ class RealVerifiedFiatCalculatorTest {
     @Before
     fun setUp() {
         verifiedStateManager = mockk(relaxed = true)
-        calculator = RealVerifiedFiatCalculator(verifiedStateManager)
+        currencyController = mockk(relaxed = true)
+        calculator = RealVerifiedFiatCalculator(verifiedStateManager, currencyController)
     }
 
     // region USDF passthrough
 
     @Test
-    fun `USDF token returns simple LocalFiat without bonding curve`() {
+    fun `USDF token returns simple LocalFiat without bonding curve`() = runTest {
         val amount = Fiat(fiat = 5.0, currencyCode = CurrencyCode.USD)
         val token = usdfToken()
 
@@ -68,7 +72,7 @@ class RealVerifiedFiatCalculatorTest {
     }
 
     @Test
-    fun `USDF token with non-USD rate converts native amount`() {
+    fun `USDF token with non-USD rate converts native amount`() = runTest {
         val amount = Fiat(fiat = 10.0, currencyCode = CurrencyCode.CAD)
         val rate = Rate(fx = 1.35, currency = CurrencyCode.CAD)
         val token = usdfToken()
@@ -89,7 +93,7 @@ class RealVerifiedFiatCalculatorTest {
     // region verified supply usage
 
     @Test
-    fun `uses verified supply when available`() {
+    fun `uses verified supply when available`() = runTest {
         val supply = 1_000_000_000_000L // 1M tokens
         val token = bondingCurveToken(supply = supply)
 
@@ -124,7 +128,7 @@ class RealVerifiedFiatCalculatorTest {
     }
 
     @Test
-    fun `falls back to token supply when no verified state`() {
+    fun `falls back to token supply when no verified state`() = runTest {
         val supply = 1_000_000_000_000L
         val token = bondingCurveToken(supply = supply)
 
@@ -144,7 +148,7 @@ class RealVerifiedFiatCalculatorTest {
     }
 
     @Test
-    fun `falls back to token supply when verified state has no reserve proto`() {
+    fun `falls back to token supply when verified state has no reserve proto`() = runTest {
         val supply = 1_000_000_000_000L
         val token = bondingCurveToken(supply = supply)
 
@@ -173,7 +177,7 @@ class RealVerifiedFiatCalculatorTest {
     // region balance capping
 
     @Test
-    fun `caps amount to balance when balance is smaller`() {
+    fun `caps amount to balance when balance is smaller`() = runTest {
         val supply = 1_000_000_000_000L
         val token = bondingCurveToken(supply = supply)
         every { verifiedStateManager.getVerifiedStateFor(any(), any()) } returns null
@@ -204,7 +208,7 @@ class RealVerifiedFiatCalculatorTest {
     }
 
     @Test
-    fun `does not cap when balance is larger than amount`() {
+    fun `does not cap when balance is larger than amount`() = runTest {
         val supply = 1_000_000_000_000L
         val token = bondingCurveToken(supply = supply)
         every { verifiedStateManager.getVerifiedStateFor(any(), any()) } returns null
@@ -238,7 +242,7 @@ class RealVerifiedFiatCalculatorTest {
     // region result consistency
 
     @Test
-    fun `result has correct mint`() {
+    fun `result has correct mint`() = runTest {
         val supply = 1_000_000_000_000L
         val token = bondingCurveToken(supply = supply)
         every { verifiedStateManager.getVerifiedStateFor(any(), any()) } returns null
@@ -254,7 +258,7 @@ class RealVerifiedFiatCalculatorTest {
     }
 
     @Test
-    fun `result underlying amount is positive for positive input`() {
+    fun `result underlying amount is positive for positive input`() = runTest {
         val supply = 1_000_000_000_000L
         val token = bondingCurveToken(supply = supply)
         every { verifiedStateManager.getVerifiedStateFor(any(), any()) } returns null
@@ -272,7 +276,7 @@ class RealVerifiedFiatCalculatorTest {
     }
 
     @Test
-    fun `same supply produces same result regardless of source`() {
+    fun `same supply produces same result regardless of source`() = runTest {
         val supply = 5_000_000_000_000L
         val token = bondingCurveToken(supply = supply)
 

@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.user.UserManager
+import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.managers.BillTransactionManager
 import com.getcode.opencode.managers.GiftCardManager
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -37,6 +38,7 @@ class GiftCardFundingWorkerTest {
     private val transactionManager: BillTransactionManager = mockk(relaxed = true)
     private val giftCardManager: GiftCardManager = mockk(relaxed = true)
     private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true)
+    private val verifiedStateManager: VerifiedProtoManager = mockk(relaxed = true)
 
     private fun createWorker(inputData: Data = Data.EMPTY): GiftCardFundingWorker {
         every { workerParams.inputData } returns inputData
@@ -48,6 +50,7 @@ class GiftCardFundingWorkerTest {
             transactionManager = transactionManager,
             giftCardManager = giftCardManager,
             tokenCoordinator = tokenCoordinator,
+            verifiedStateManager = verifiedStateManager,
         )
     }
 
