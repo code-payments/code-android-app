@@ -8,6 +8,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.solana.keys.Key32
 import com.getcode.solana.keys.Mint
 import io.mockk.every
@@ -71,8 +72,9 @@ class SendGiftCardTransactorTest {
             every { vaultPublicKey } returns Key32.mock
         }
         val giftCard = mockk<GiftCardAccount>(relaxed = true)
+        val verifiedState = mockk<VerifiedState>(relaxed = true)
 
-        transactor.with(giftCard, amount, token, owner)
+        transactor.with(giftCard, amount, token, owner, verifiedState)
     }
 
     // endregion
