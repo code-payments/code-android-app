@@ -43,7 +43,6 @@ allprojects {
         resolutionStrategy {
             force(libs.kotlinx.serialization.core.get().toString())
             force(libs.kotlinx.serialization.json.get().toString())
-            force(libs.protobuf.java.get().toString())
         }
     }
 
