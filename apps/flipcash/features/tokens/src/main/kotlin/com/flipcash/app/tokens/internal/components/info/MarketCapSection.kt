@@ -137,7 +137,7 @@ internal fun MarketCapSection(
     ) {
         Text(
             modifier = Modifier.padding(start = contentPadding.calculateStartPadding()),
-            text = stringResource(R.string.subtitle_marketCap),
+            text = stringResource(R.string.subtitle_circulatingValue),
             style = CodeTheme.typography.textMedium,
             color = CodeTheme.colors.textSecondary,
         )

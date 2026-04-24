@@ -357,7 +357,7 @@
     <string name="action_give">Give</string>
     <string name="title_transactionHistory">Transaction History</string>
     <string name="action_viewTransactionHistory">Transaction History</string>
-    <string name="subtitle_marketCap">Market Cap</string>
+    <string name="subtitle_circulatingValue">Circulating Value</string>
     <string name="subtitle_currencyInfo">Currency Info</string>
     <string name="title_shareToken">Check out %1$s on Flipcash</string>
 
