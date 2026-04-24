@@ -191,7 +191,7 @@ sealed class ReceiveGiftTransactorError(
     class FailedToQuery(
         override val message: String? = null,
         override val cause: Throwable? = null
-    ) : ReceiveGiftTransactorError(message = message?.let { "Failed to query account - $it" } ?: "Failed to query account"), NotifiableError
+    ) : ReceiveGiftTransactorError(message = message?.let { "Failed to query account - $it" } ?: "Failed to query account")
     class AlreadyClaimed : ReceiveGiftTransactorError(message = "Already claimed")
     class UsersGiftCard : ReceiveGiftTransactorError(message = "User is gift card issuer")
     class Expired : ReceiveGiftTransactorError(message = "Expired")
