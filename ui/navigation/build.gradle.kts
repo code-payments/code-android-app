@@ -22,11 +22,11 @@ dependencies {
 
     implementation(libs.compose.material3)
     implementation(libs.compose.activities)
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
     implementation(libs.kotlin.reflect)
 
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.android.compiler)
+    implementation(libs.bundles.hilt)
+    ksp(libs.bundles.hilt.compiler)
 
     api(libs.navigation3.runtime)
     api(libs.navigation3.ui)

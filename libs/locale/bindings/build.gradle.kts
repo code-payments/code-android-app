@@ -12,7 +12,6 @@ dependencies {
     implementation(project(":libs:locale:impl"))
     api(project(":libs:locale:public"))
 
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.android.compiler)
-    ksp(libs.hilt.compiler)
+    implementation(libs.bundles.hilt)
+    ksp(libs.bundles.hilt.compiler)
 }

@@ -12,8 +12,6 @@ dependencies {
     testImplementation(libs.mockito.kotlin)
     testImplementation(project(":libs:test-utils"))
 
-    implementation(libs.compose.activities)
-
     implementation(project(":apps:flipcash:shared:accesskey"))
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:authentication"))

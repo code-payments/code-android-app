@@ -10,7 +10,7 @@ dependencies {
     implementation(project(":libs:encryption:base58"))
     implementation(libs.protobuf.kotlin.lite)
     implementation(project(":libs:encryption:ed25519"))
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.robolectric)

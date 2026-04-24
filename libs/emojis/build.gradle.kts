@@ -15,10 +15,8 @@ android {
 }
 
 dependencies {
-    implementation(libs.javax.inject)
-    implementation(libs.hilt.android)
-    implementation(libs.kotlinx.serialization.core)
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.hilt)
+    implementation(libs.bundles.kotlinx.serialization)
     implementation(libs.kotlinx.datetime)
     implementation(libs.androidx.datastore)
 }

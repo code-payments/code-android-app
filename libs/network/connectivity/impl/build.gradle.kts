@@ -9,8 +9,7 @@ android {
 dependencies {
     api(project(":libs:network:connectivity:public"))
 
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
 
-    implementation(libs.javax.inject)
-    implementation(libs.hilt.android)
+    implementation(libs.bundles.hilt)
 }

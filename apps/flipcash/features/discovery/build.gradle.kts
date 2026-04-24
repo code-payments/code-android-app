@@ -7,10 +7,7 @@ android {
 }
 
 dependencies {
-    implementation(libs.compose.activities)
-
-    implementation(libs.haze)
-    implementation(libs.haze.materials)
+    implementation(libs.bundles.haze)
 
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:featureflags"))

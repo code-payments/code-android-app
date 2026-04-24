@@ -15,7 +15,7 @@ dependencies {
     implementation(project(":libs:crypto:kin"))
     implementation(project(":libs:currency"))
     api(project(":libs:models"))
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

@@ -11,7 +11,7 @@ dependencies {
     testImplementation(libs.bundles.unit.testing)
     testImplementation(project(":libs:test-utils"))
 
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
 
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":libs:crypto:solana"))

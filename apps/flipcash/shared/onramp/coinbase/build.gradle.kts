@@ -15,7 +15,7 @@ dependencies {
     testImplementation(libs.robolectric)
 
     implementation(libs.androidx.localbroadcastmanager)
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
 
     implementation(libs.play.services.wallet)
     implementation(libs.kotlinx.coroutines.play.services)

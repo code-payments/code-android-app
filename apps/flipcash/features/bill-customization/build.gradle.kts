@@ -9,7 +9,6 @@ android {
 dependencies {
     implementation(libs.compose.foundation.layout)
     implementation(libs.compose.material3)
-    implementation(libs.compose.activities)
 
     implementation(project(":apps:flipcash:shared:bills"))
     api(project(":apps:flipcash:shared:bill-customization"))

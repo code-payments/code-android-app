@@ -10,13 +10,11 @@ android {
 }
 
 dependencies {
-    implementation(libs.compose.activities)
     implementation(libs.compose.webview)
 
     implementation(libs.androidx.localbroadcastmanager)
 
-    implementation(libs.kotlinx.serialization.core)
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
 
     implementation(project(":apps:flipcash:shared:onramp:coinbase"))
     implementation(project(":apps:flipcash:shared:onramp:deeplinks"))

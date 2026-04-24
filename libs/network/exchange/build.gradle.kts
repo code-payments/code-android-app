@@ -9,12 +9,11 @@ android {
 dependencies {
     implementation(project(":libs:currency"))
 
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
     implementation(libs.kotlinx.datetime)
-    implementation(libs.javax.inject)
+    implementation(libs.bundles.hilt)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)
-    implementation(libs.hilt.android)
 }

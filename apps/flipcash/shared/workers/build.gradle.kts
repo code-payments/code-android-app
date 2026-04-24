@@ -8,7 +8,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.work)
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
 
     implementation(libs.hilt.worker)
 

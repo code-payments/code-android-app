@@ -18,7 +18,7 @@ dependencies {
     implementation(project(":libs:encryption:sha512"))
     implementation(project(":libs:encryption:utils"))
     implementation(project(":libs:currency"))
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
 
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
@@ -28,9 +28,8 @@ dependencies {
     api("com.solanamobile:rpc-core:0.2.9")
     implementation("com.solanamobile:rpc-okiodriver:0.2.9")
 
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.android.compiler)
-    ksp(libs.hilt.compiler)
+    implementation(libs.bundles.hilt)
+    ksp(libs.bundles.hilt.compiler)
 
     testImplementation(kotlin("test"))
 }

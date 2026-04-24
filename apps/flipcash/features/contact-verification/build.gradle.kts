@@ -12,9 +12,7 @@ dependencies {
     testImplementation(libs.mockito.kotlin)
     testImplementation(project(":libs:test-utils"))
 
-    implementation(libs.compose.activities)
-
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
 
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:phone"))
