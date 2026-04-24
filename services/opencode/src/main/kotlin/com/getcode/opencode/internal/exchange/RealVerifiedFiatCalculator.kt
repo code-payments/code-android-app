@@ -3,9 +3,11 @@ package com.getcode.opencode.internal.exchange
 import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.libs.currency.math.divideWithHighPrecision
 import com.flipcash.libs.currency.math.units
+import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Fiat.FormattingRule
@@ -15,7 +17,11 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.min
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.Mint
+import com.getcode.utils.TraceType
 import com.getcode.utils.trace
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import java.math.BigDecimal
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,8 +29,40 @@ import javax.inject.Singleton
 @Singleton
 internal class RealVerifiedFiatCalculator @Inject constructor(
     private val verifiedStateManager: VerifiedProtoManager,
+    private val currencyController: CurrencyController,
 ) : VerifiedFiatCalculator {
-    override fun compute(
+
+    private val resolveScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    private suspend fun resolveVerifiedState(
+        currencyCode: CurrencyCode,
+        mint: Mint,
+    ): VerifiedState? {
+        verifiedStateManager.getVerifiedStateFor(currencyCode, mint)?.let { cached ->
+            val needsReserve = mint != Mint.usdf
+            if (!needsReserve || cached.reserveProto != null) return cached
+        }
+
+        trace(
+            tag = "VerifiedFiatCalculator",
+            message = "live mint data is either expired or nonexistent. Fetching fresh",
+            type = TraceType.Log,
+        )
+
+        currencyController.getLiveMintData(resolveScope, mint)
+            .onFailure { cause ->
+                trace(
+                    tag = "VerifiedFiatCalculator",
+                    message = "Live mint data fetch failed for $mint",
+                    type = TraceType.Error,
+                    error = cause
+                )
+            }
+
+        return verifiedStateManager.getVerifiedStateFor(currencyCode, mint)
+    }
+
+    override suspend fun compute(
         amount: Fiat,
         token: Token,
         balance: Fiat?,
@@ -36,7 +74,7 @@ internal class RealVerifiedFiatCalculator @Inject constructor(
         // e,g entered 0.02 USD, but balance is 0.016 USD
         val cappedValue = balance?.let { min(it, usdValue) } ?: usdValue
 
-        val verifiedState = verifiedStateManager.getVerifiedStateFor(rate.currency, token.address)
+        val verifiedState = resolveVerifiedState(rate.currency, token.address)
 
         if (token.address == Mint.usdf) {
             // this doesn't need a calculated value exchange since we are USDC

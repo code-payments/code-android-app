@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 /**
  * Manages and caches verified state information fetched from the OpenCodeProtocol,
@@ -20,6 +23,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class VerifiedProtoManager @Inject constructor() {
+
+    private val TTL = 15.minutes
 
     /**
      * A [MutableStateFlow] holding the latest cached exchange rate data.
@@ -58,13 +63,39 @@ class VerifiedProtoManager @Inject constructor() {
         return exchangeData.value[currencyCode]
     }
 
+    private fun getOrEvict(currencyCode: CurrencyCode): CurrencyService.VerifiedCoreMintFiatExchangeRate? {
+        val now = Clock.System.now()
+        val stored = get(currencyCode) ?: return null
+        val ts = Instant.fromEpochSeconds(stored.exchangeRate.timestamp.seconds, stored.exchangeRate.timestamp.nanos)
+        val expired = now - ts > TTL
+        if (expired) {
+            val updated = exchangeData.value.filterNot { it.key == currencyCode }
+            exchangeData.update { updated }
+        }
+
+        return stored
+    }
+
     private fun get(mint: Mint): CurrencyService.VerifiedLaunchpadCurrencyReserveState? {
         return reserveStates.value[mint]
     }
 
+    private fun getOrEvict(mint: Mint): CurrencyService.VerifiedLaunchpadCurrencyReserveState? {
+        val now = Clock.System.now()
+        val stored = get(mint) ?: return null
+        val ts = Instant.fromEpochSeconds(stored.reserveState.timestamp.seconds, stored.reserveState.timestamp.nanos)
+        val expired = now - ts > TTL
+        if (expired) {
+            val updated = reserveStates.value.filterNot { it.key == mint }
+            reserveStates.update { updated }
+        }
+
+        return stored
+    }
+
     fun getVerifiedStateFor(currencyCode: CurrencyCode, mint: Mint): VerifiedState? {
-        val exchangeRate = get(currencyCode) ?: return null
-        val reserveState = get(mint)
+        val exchangeRate = getOrEvict(currencyCode) ?: return null
+        val reserveState = getOrEvict(mint)
 
         return VerifiedState(exchangeRate, reserveState)
     }

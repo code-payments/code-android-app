@@ -1,11 +1,9 @@
 package com.getcode.opencode.managers
 
 import com.getcode.opencode.controllers.AccountController
-import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.domain.mapping.MintMapper
-import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.transactors.AccountClusterFactory
 import com.getcode.opencode.internal.transactors.BillPresentationData
@@ -50,13 +48,11 @@ import kotlin.time.Duration
 @Singleton
 class BillTransactionManager @Inject constructor(
     private val accountController: AccountController,
-    private val currencyController: CurrencyController,
     private val messagingController: MessagingController,
     private val transactionController: TransactionController,
     private val tokenProvider: TokenMetadataProvider,
     private val mnemonicManager: MnemonicManager,
     private val giftCardManager: GiftCardManager,
-    private val verifiedProtoManager: VerifiedProtoManager,
     private val payloadFactory: PayloadFactory,
     private val accountClusterFactory: AccountClusterFactory,
 ) {
@@ -102,11 +98,9 @@ class BillTransactionManager @Inject constructor(
             val childScope = CoroutineScope(sharedScope.coroutineContext + Job())
 
             val transactor = GiveBillTransactor(
-                currencyController = currencyController,
                 messagingController = messagingController,
                 transactionController = transactionController,
                 scope = childScope,
-                verifiedProtoManager = verifiedProtoManager,
                 payloadFactory = payloadFactory,
             ).apply {
                 with(token, amount, owner, billExchangeDataTimeout, verifiedState, nonce)
@@ -209,6 +203,7 @@ class BillTransactionManager @Inject constructor(
         amount: LocalFiat,
         owner: AccountCluster,
         token: Token,
+        verifiedState: VerifiedState,
         onFunded: suspend (LocalFiat) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
@@ -216,7 +211,7 @@ class BillTransactionManager @Inject constructor(
 
         sharedScope.launch {
             val transactor = SendGiftCardTransactor(transactionController, payloadFactory).apply {
-                with(giftCard, amount, token, owner)
+                with(giftCard, amount, token, owner, verifiedState)
             }
             giftTransactor = transactor
 

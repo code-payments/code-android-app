@@ -1,10 +1,8 @@
 package com.getcode.opencode.internal.transactors
 
-import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.extensions.exchangeDataFor
-import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -34,10 +32,8 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class GiveBillTransactorTest {
 
-    private val currencyController = mockk<CurrencyController>(relaxed = true)
     private val messagingController = mockk<MessagingController>(relaxed = true)
     private val transactionController = mockk<TransactionController>(relaxed = true)
-    private val verifiedProtoManager = mockk<VerifiedProtoManager>(relaxed = true)
 
     private val payloadFactory = PayloadFactory { _, _, _ ->
         PayloadResult(rendezvous = mockk(relaxed = true), codeData = emptyList())
@@ -45,11 +41,10 @@ class GiveBillTransactorTest {
 
     private fun createTransactor(scope: TestScope): GiveBillTransactor {
         return GiveBillTransactor(
-            currencyController = currencyController,
             messagingController = messagingController,
             transactionController = transactionController,
             scope = scope,
-            verifiedProtoManager = verifiedProtoManager,
+            verifiedFiatCalculator = verifiedFiatCalculator,
             payloadFactory = payloadFactory,
         )
     }
@@ -66,21 +61,14 @@ class GiveBillTransactorTest {
     }
 
     @Test
-    fun `start fails when no verified state provided and none resolvable`() = runTest {
+    fun `start fails when no verified state provided`() = runTest {
         val transactor = createTransactor(this)
-        // Pass verifiedState = null, proto store returns null → resolveVerifiedState
-        // will call getLiveMintData which throws (MockK can't mock Result<Unit> returns)
-        // → resolveVerifiedState returns null → start() returns failure
+        // Pass verifiedState = null → start() uses providedVerifiedState which is null → failure
         setupWith(transactor, verifiedState = null)
 
-        every { verifiedProtoManager.getVerifiedStateFor(any(), any()) } returns null
-        // getLiveMintData throws → runCatching in resolveVerifiedState catches it → returns null
-        coEvery { currencyController.getLiveMintData(any(), any(), any()) } throws RuntimeException("no data")
+        val result = transactor.start()
 
-        // Use runCatching because the thrown exception may propagate
-        val result = runCatching { transactor.start() }
-
-        assertTrue(result.isFailure || result.getOrNull()?.isFailure == true)
+        assertTrue(result.isFailure)
     }
 
     @Test
@@ -151,11 +139,10 @@ class GiveBillTransactorTest {
         }
 
         val transactor = GiveBillTransactor(
-            currencyController = currencyController,
             messagingController = messagingController,
             transactionController = transactionController,
             scope = this,
-            verifiedProtoManager = verifiedProtoManager,
+            verifiedFiatCalculator = verifiedFiatCalculator,
             payloadFactory = factory,
         )
 
@@ -183,11 +170,10 @@ class GiveBillTransactorTest {
         }
 
         val transactor = GiveBillTransactor(
-            currencyController = currencyController,
             messagingController = messagingController,
             transactionController = transactionController,
             scope = this,
-            verifiedProtoManager = verifiedProtoManager,
+            verifiedFiatCalculator = verifiedFiatCalculator,
             payloadFactory = factory,
         )
 
@@ -208,19 +194,17 @@ class GiveBillTransactorTest {
         }
 
         val transactor1 = GiveBillTransactor(
-            currencyController = currencyController,
             messagingController = messagingController,
             transactionController = transactionController,
             scope = this,
-            verifiedProtoManager = verifiedProtoManager,
+            verifiedFiatCalculator = verifiedFiatCalculator,
             payloadFactory = factory,
         )
         val transactor2 = GiveBillTransactor(
-            currencyController = currencyController,
             messagingController = messagingController,
             transactionController = transactionController,
             scope = this,
-            verifiedProtoManager = verifiedProtoManager,
+            verifiedFiatCalculator = verifiedFiatCalculator,
             payloadFactory = factory,
         )
 

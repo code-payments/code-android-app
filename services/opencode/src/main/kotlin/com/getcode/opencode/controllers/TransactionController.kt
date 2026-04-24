@@ -3,7 +3,7 @@ package com.getcode.opencode.controllers
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.events.Events
 import com.getcode.opencode.exchange.VerifiedFiat
-import com.getcode.opencode.internal.manager.VerifiedProtoManager
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.intents.IntentDistribution
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteReceive
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
@@ -63,7 +63,6 @@ class TransactionController @Inject constructor(
     private val swapRepository: SwapRepository,
     private val accountController: AccountController,
     private val eventBus: ChannelEventBus,
-    private val verifiedStateManager: VerifiedProtoManager,
 ) : TransactionOperations {
     val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -128,7 +127,6 @@ class TransactionController @Inject constructor(
         scope: CoroutineScope,
     ): Result<IntentType> {
         val verifiedState = amount.verifiedState
-            ?: verifiedStateManager.getVerifiedStateFor(amount.localFiat.rate.currency, mint)
             ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
         val intent = IntentWithdraw.create(
@@ -154,11 +152,9 @@ class TransactionController @Inject constructor(
         owner: AccountCluster,
         source: AccountCluster,
         rendezvous: PublicKey,
+        verifiedState: VerifiedState,
         scope: CoroutineScope = this.scope,
     ): Result<IntentType> {
-        val verifiedState =
-            verifiedStateManager.getVerifiedStateFor(amount.rate.currency, token.address)
-                ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
         val intent = IntentRemoteSend.create(
             amount = amount,
@@ -265,7 +261,6 @@ class TransactionController @Inject constructor(
         }
 
         val verifiedState = amount.verifiedState
-            ?: verifiedStateManager.getVerifiedStateFor(amount.localFiat.rate.currency, Mint.usdf)
             ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
         return accountResult.fold(
@@ -300,7 +295,6 @@ class TransactionController @Inject constructor(
         of: Token,
     ): Result<SwapId> {
         val verifiedState = amount.verifiedState
-            ?: verifiedStateManager.getVerifiedStateFor(amount.localFiat.rate.currency, of.address)
             ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
         return repository.sell(
