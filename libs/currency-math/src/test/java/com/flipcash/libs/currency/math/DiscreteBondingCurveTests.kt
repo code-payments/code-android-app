@@ -1,8 +1,6 @@
 package com.flipcash.libs.currency.math
 
 import com.flipcash.libs.currency.math.internal.curves.DiscreteBondingCurve
-import com.flipcash.libs.currency.math.loader.FileTableLoader
-import kotlinx.coroutines.runBlocking
 import kotlin.test.BeforeTest
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -18,7 +16,7 @@ class DiscreteSpotPriceTests {
 
     @BeforeTest
     fun initializeCurve() {
-        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
+        CurveTestInitializer.initialize()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -104,7 +102,7 @@ class DiscreteTokensToValueTests {
 
     @BeforeTest
     fun initializeCurve() {
-        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
+        CurveTestInitializer.initialize()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -293,7 +291,7 @@ class DiscreteValueToTokensTests {
 
     @BeforeTest
     fun initializeCurve() {
-        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
+        CurveTestInitializer.initialize()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -411,7 +409,7 @@ class DiscreteRoundtripTests {
 
     @BeforeTest
     fun initializeCurve() {
-        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
+        CurveTestInitializer.initialize()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -491,7 +489,7 @@ class DiscreteTableValidationTests {
 
     @BeforeTest
     fun initializeCurve() {
-        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
+        CurveTestInitializer.initialize()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -582,7 +580,7 @@ class DiscreteEdgeCaseTests {
 
     @BeforeTest
     fun initializeCurve() {
-        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
+        CurveTestInitializer.initialize()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -646,7 +644,7 @@ class DiscreteTokensForValueExchangeTests {
 
     @BeforeTest
     fun initializeCurve() {
-        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
+        CurveTestInitializer.initialize()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -810,7 +808,7 @@ class DiscreteRealWorldTests {
 
     @BeforeTest
     fun initializeCurve() {
-        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
+        CurveTestInitializer.initialize()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 

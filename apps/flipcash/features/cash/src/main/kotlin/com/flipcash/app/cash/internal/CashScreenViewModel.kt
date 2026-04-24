@@ -11,6 +11,7 @@ import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -47,6 +48,7 @@ import kotlin.math.min
 internal class CashScreenViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val exchange: Exchange,
+    private val verifiedFiatCalculator: VerifiedFiatCalculator,
     tokenCoordinator: TokenCoordinator,
     transactionController: TransactionOperations,
     dispatchers: DispatcherProvider,
@@ -140,11 +142,11 @@ internal class CashScreenViewModel @Inject constructor(
                         viewModelScope.launch {
                             val rate = exchange.entryRate
                             val (token, balance) = stateFlow.value.token!!
-                            val amountFiat = LocalFiat.valueExchangeIn(
+                            val amountFiat = verifiedFiatCalculator.compute(
                                 amount =  Fiat(amount, rate.currency),
                                 token = token,
                                 rate = rate,
-                            )
+                            ).localFiat
 
                             val neededAmount = amountFiat.nativeAmount - tokenBalance
                             println("entered amount ${amountFiat.nativeAmount}, tokenbalace=$tokenBalance, needed=$neededAmount")
@@ -302,7 +304,7 @@ internal class CashScreenViewModel @Inject constructor(
                 val (token, balance) = stateFlow.value.token!!
                 val rate = exchange.entryRate
 
-                val amountFiat = LocalFiat.valueExchangeIn(
+                val result = verifiedFiatCalculator.compute(
                     amount = Fiat(data.amountData.amount, rate.currency),
                     token = token,
                     balance = balance.underlyingTokenAmount,
@@ -311,7 +313,8 @@ internal class CashScreenViewModel @Inject constructor(
 
                 val bill = Bill.Cash(
                     token = stateFlow.value.token!!.token,
-                    amount = amountFiat
+                    amount = result.localFiat,
+                    verifiedState = result.verifiedState,
                 )
 
                 dispatchEvent(Event.UpdateLoadingState(loading = false, success = true))

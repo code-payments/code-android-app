@@ -9,6 +9,7 @@ import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.annotations.OpenCodeManagedStreamingChannel
 import com.getcode.opencode.internal.annotations.OpenCodeProtocol
@@ -19,6 +20,7 @@ import com.getcode.opencode.internal.domain.repositories.InternalMessagingReposi
 import com.getcode.opencode.internal.domain.repositories.InternalSwapRepository
 import com.getcode.opencode.internal.domain.repositories.InternalTransactionRepository
 import com.getcode.opencode.internal.exchange.OpenCodeExchange
+import com.getcode.opencode.internal.exchange.RealVerifiedFiatCalculator
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.network.pollers.SwapPoller
 import com.getcode.opencode.internal.network.services.AccountService
@@ -191,4 +193,8 @@ object OpenCodeModule {
     @Provides
     @Singleton
     fun bindTransactionOperations(impl: TransactionController): TransactionOperations = impl
+
+    @Provides
+    @Singleton
+    internal fun bindVerifiedFiatCalculator(impl: RealVerifiedFiatCalculator): VerifiedFiatCalculator = impl
 }

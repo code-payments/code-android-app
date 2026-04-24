@@ -10,6 +10,7 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -54,6 +55,7 @@ class CashScreenViewModelTest {
 
     private val resources: ResourceHelper = mockk(relaxed = true)
     private val exchange: Exchange = mockk(relaxed = true)
+    private val verifiedFiatCalculator: VerifiedFiatCalculator = mockk(relaxed = true)
     private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true)
     private val transactionController: TransactionOperations = mockk(relaxed = true)
 
@@ -90,6 +92,7 @@ class CashScreenViewModelTest {
         return CashScreenViewModel(
             resources = resources,
             exchange = exchange,
+            verifiedFiatCalculator = verifiedFiatCalculator,
             tokenCoordinator = tokenCoordinator,
             transactionController = transactionController,
             dispatchers = dispatchers,

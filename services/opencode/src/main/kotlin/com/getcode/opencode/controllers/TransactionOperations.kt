@@ -1,5 +1,6 @@
 package com.getcode.opencode.controllers
 
+import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Fiat
@@ -29,7 +30,7 @@ interface TransactionOperations {
 
     suspend fun buy(
         owner: AccountCluster,
-        amount: LocalFiat,
+        amount: VerifiedFiat,
         feeAmount: LocalFiat? = null,
         swapId: SwapId? = null,
         of: Token,
@@ -39,7 +40,7 @@ interface TransactionOperations {
 
     suspend fun sell(
         owner: AccountCluster,
-        amount: LocalFiat,
+        amount: VerifiedFiat,
         of: Token,
     ): Result<SwapId>
 
@@ -57,7 +58,7 @@ interface TransactionOperations {
     ): Result<Unit>
 
     suspend fun withdraw(
-        amount: LocalFiat,
+        amount: VerifiedFiat,
         mint: Mint,
         owner: AccountCluster,
         destination: PublicKey,

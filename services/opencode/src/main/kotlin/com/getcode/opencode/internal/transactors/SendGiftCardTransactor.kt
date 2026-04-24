@@ -3,6 +3,7 @@ package com.getcode.opencode.internal.transactors
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.extensions.toPublicKey
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
 import com.getcode.opencode.internal.transactors.GiveBillTransactor.GiveTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -29,15 +30,17 @@ internal class SendGiftCardTransactor(
     private var token: Token? = null
     private var amount: LocalFiat? = null
     private var owner: AccountCluster? = null
+    private var verifiedState: VerifiedState? = null
 
     private var rendezvousKey: KeyPair? = null
 
     /** Configures this transactor for a new gift card send. Must be called before [start]. */
-    fun with(giftCard: GiftCardAccount, amount: LocalFiat, token: Token, owner: AccountCluster) {
+    fun with(giftCard: GiftCardAccount, amount: LocalFiat, token: Token, owner: AccountCluster, verifiedState: VerifiedState) {
         this.giftCardAccount = giftCard
         this.token = token
         this.amount = amount
         this.owner = owner
+        this.verifiedState = verifiedState
 
         val payloadResult = payloadFactory.create(
             kind = PayloadKind.MultiMintCash,
@@ -73,6 +76,9 @@ internal class SendGiftCardTransactor(
         val ownerKey = owner
             ?: return logAndFail(GiveTransactorError.Other(message = "No owner key. Did you call with() first?"))
 
+        val pinnedState = verifiedState
+            ?: return logAndFail(GiveTransactorError.Other(message = "No verified state. Did you call with() first?"))
+
         val source = ownerKey.withTimelockForToken(desiredToken)
 
         return transactionController.remoteSend(
@@ -82,6 +88,7 @@ internal class SendGiftCardTransactor(
             amount = amount!!,
             giftCard = giftCard,
             token = desiredToken,
+            verifiedState = pinnedState,
         ).map { it as IntentRemoteSend }
             .fold(
                 onSuccess = { Result.success(it) },

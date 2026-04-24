@@ -36,7 +36,6 @@ object ControllerFactory {
             swapRepository = RepositoryFactory.createSwapRepository(context, config),
             accountController = createAccountController(context, config),
             eventBus = module.providesEventBus(),
-            verifiedStateManager = ManagerFactory.createVerifiedStateManager(),
         )
     }
     fun createCurrencyController(context: Context, config: ProtocolConfig): CurrencyController {

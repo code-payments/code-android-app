@@ -15,6 +15,8 @@ import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiat
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.Currency
@@ -60,13 +62,14 @@ data class AmountEntryState(
     val currencyModel: CurrencyHolder = CurrencyHolder(),
     val maxToAdd: Pair<Double, CurrencyCode>? = null,
     val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
-    val selectedAmount: LocalFiat = LocalFiat.Zero,
+    val selectedAmount: VerifiedFiat = VerifiedFiat(LocalFiat.Zero, null),
 )
 
 @HiltViewModel
 class SwapViewModel @Inject constructor(
     userManager: UserManager,
     private val exchange: Exchange,
+    private val verifiedFiatCalculator: VerifiedFiatCalculator,
     transactionController: TransactionOperations,
     resources: ResourceHelper,
     tokenCoordinator: TokenCoordinator,
@@ -206,12 +209,12 @@ class SwapViewModel @Inject constructor(
 
         data class OnSwapIdChanged(val swapId: SwapId) : Event
 
-        data class CreateAndSendTransactionToWallet(val token: Token, val amount: LocalFiat) : Event
+        data class CreateAndSendTransactionToWallet(val token: Token, val amount: VerifiedFiat) : Event
 
-        data class OnAmountAccepted(val amount: LocalFiat, val netTransferAmount: Fiat) : Event
+        data class OnAmountAccepted(val amount: VerifiedFiat, val netTransferAmount: Fiat) : Event
 
-        data class ProceedWithPurchase(val amount: LocalFiat) : Event
-        data class ProceedWithSale(val amount: LocalFiat) : Event
+        data class ProceedWithPurchase(val amount: VerifiedFiat) : Event
+        data class ProceedWithSale(val amount: VerifiedFiat) : Event
 
         data object ShowSellReceipt : Event
 
@@ -475,13 +478,13 @@ class SwapViewModel @Inject constructor(
                     is SwapPurpose.Buy -> {
                         val rate = exchange.entryRate
                         // buy with reserves
-                        val amountFiat = LocalFiat.valueExchangeIn(
+                        val amountFiat = verifiedFiatCalculator.compute(
                             amount = Fiat(data.amountData.amount, rate.currency),
                             token = Token.usdf,
                             balance = stateFlow.value.reservesBalance.convertingToUsdIfNeeded(rate),
                             rate = rate
                         )
-                        val netAmount = amountFiat.nativeAmount
+                        val netAmount = amountFiat.localFiat.nativeAmount
 
                         dispatchEvent(Event.UpdateBuyState(loading = true))
                         dispatchEvent(Event.OnAmountAccepted(amountFiat, netTransferAmount = netAmount))
@@ -490,15 +493,15 @@ class SwapViewModel @Inject constructor(
 
                     is SwapPurpose.FundWithWallet -> {
                         val rate = exchange.rateForUsd()
-                        // funding through external wallet
-                        val nativeAmount = Fiat(data.amountData.amount, rate.currency)
-                        val underlyingAmount = nativeAmount.convertingToUsdIfNeeded(rate)
-                        val amountFiat = LocalFiat(
-                            usdf = underlyingAmount,
-                            nativeAmount = nativeAmount,
+                        // funding through external wallet — no balance cap,
+                        // funds come from the external wallet not reserves
+                        val amountFiat = verifiedFiatCalculator.compute(
+                            amount = Fiat(data.amountData.amount, rate.currency),
+                            token = Token.usdf,
+                            rate = rate,
                         )
 
-                        dispatchEvent(Event.OnAmountAccepted(amountFiat, netTransferAmount = nativeAmount))
+                        dispatchEvent(Event.OnAmountAccepted(amountFiat, netTransferAmount = amountFiat.localFiat.nativeAmount))
                         dispatchEvent(Event.UpdateBuyState(loading = true))
                         dispatchEvent(
                             Event.CreateAndSendTransactionToWallet(
@@ -511,7 +514,7 @@ class SwapViewModel @Inject constructor(
                     is SwapPurpose.Sell -> {
                         val rate = exchange.entryRate
                         val tokenWithBalance = stateFlow.value.tokenWithBalance!!
-                        val amountFiat = LocalFiat.valueExchangeIn(
+                        val amountFiat = verifiedFiatCalculator.compute(
                             amount = Fiat(data.amountData.amount, rate.currency),
                             token = tokenWithBalance.token,
                             balance = tokenWithBalance.balance,
@@ -553,7 +556,7 @@ class SwapViewModel @Inject constructor(
                     dispatchEvent(Event.OnPurchaseSubmitted(token, swapId))
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = true))
                     // buy submitted from reserves, drop reserves balance
-                    tokenCoordinator.subtract(Token.usdf, amount)
+                    tokenCoordinator.subtract(Token.usdf, amount.localFiat)
                 }.onFailure { cause ->
                     trackTransaction(token, error = cause)
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = false))
@@ -594,7 +597,7 @@ class SwapViewModel @Inject constructor(
                     dispatchEvent(Event.OnSellSubmitted(token, swapId))
                     dispatchEvent(Event.UpdateSellState(loading = false, success = true))
                     // sell submitted, drop from balance
-                    tokenCoordinator.subtract(token, amount)
+                    tokenCoordinator.subtract(token, amount.localFiat)
                 }.onFailure { cause ->
                     trackTransaction(token, error = cause)
                     dispatchEvent(Event.UpdateSellState(loading = false, success = false))

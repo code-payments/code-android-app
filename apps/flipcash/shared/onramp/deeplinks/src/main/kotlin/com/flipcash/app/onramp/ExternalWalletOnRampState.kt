@@ -3,6 +3,7 @@ package com.flipcash.app.onramp
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.onramp.deeplinks.ExternalWalletConnection
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -34,7 +35,7 @@ sealed interface ExternalWalletOnRampState {
         val connection: ExternalWalletConnection,
         val encryptionPublicKey: List<Byte>,
         val unsignedTransaction: List<Byte>,
-        val amount: LocalFiat,
+        val amount: VerifiedFiat,
         val fee: LocalFiat,
         val token: Token?,
         val swapId: SwapId?,
@@ -46,7 +47,7 @@ sealed interface ExternalWalletOnRampState {
         val connection: ExternalWalletConnection,
         val signedTransaction: String,
         val signature: Signature,
-        val amount: LocalFiat,
+        val amount: VerifiedFiat,
         val fee: LocalFiat,
         val token: Token?,
         val swapId: SwapId?,

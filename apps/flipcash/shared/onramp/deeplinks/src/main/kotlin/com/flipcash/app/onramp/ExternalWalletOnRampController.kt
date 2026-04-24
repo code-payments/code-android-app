@@ -2,13 +2,13 @@ package com.flipcash.app.onramp
 
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.encryption.boxOpen
-import com.flipcash.app.core.encryption.toPublicKey
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.onramp.deeplinks.ExternalWalletConnection
 import com.flipcash.app.core.onramp.deeplinks.ExternallySignedTransaction
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.controllers.TransactionOperations
+import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.model.LiquidityPool
 import com.getcode.opencode.internal.solana.model.SwapId
@@ -68,8 +68,8 @@ class ExternalWalletOnRampController @Inject constructor(
     private val _pendingNavigation = MutableSharedFlow<AppRoute>(extraBufferCapacity = 1)
     val pendingNavigation: SharedFlow<AppRoute> = _pendingNavigation.asSharedFlow()
 
-    private val _amount = MutableStateFlow<LocalFiat?>(null)
-    val amount: StateFlow<LocalFiat?> = _amount.asStateFlow()
+    private val _amount = MutableStateFlow<VerifiedFiat?>(null)
+    val amount: StateFlow<VerifiedFiat?> = _amount.asStateFlow()
 
     private val _feeAmount = MutableStateFlow<LocalFiat?>(null)
     val feeAmount: StateFlow<LocalFiat?> = _feeAmount.asStateFlow()
@@ -85,7 +85,7 @@ class ExternalWalletOnRampController @Inject constructor(
         _state.value = ExternalWalletOnRampState.Started(origin, provider)
     }
 
-    fun setAmount(amount: LocalFiat?, feeAmount: LocalFiat? = null) {
+    fun setAmount(amount: VerifiedFiat?, feeAmount: LocalFiat? = null) {
         _amount.value = amount
         _feeAmount.value = feeAmount
     }
@@ -156,7 +156,7 @@ class ExternalWalletOnRampController @Inject constructor(
         val amount = _amount.value ?: return
         val fee = _feeAmount.value ?: LocalFiat.Zero
 
-        createUsdcToUsdfSwapTransaction(state, amount)
+        createUsdcToUsdfSwapTransaction(state, amount.localFiat)
             .onFailure { fail(DeeplinkOnRampError.FailedToCreateTransaction(message = it.message, cause = it), state) }
             .fold(
                 onSuccess = { (transaction, swapId) ->
@@ -194,7 +194,7 @@ class ExternalWalletOnRampController @Inject constructor(
         val amount = _amount.value ?: return
         val fee = _feeAmount.value ?: LocalFiat.Zero
 
-        createDepositTransaction(state, amount)
+        createDepositTransaction(state, amount.localFiat)
             .onFailure { fail(DeeplinkOnRampError.FailedToCreateTransaction(message = it.message, cause = it), state) }
             .fold(
                 onSuccess = { transaction ->

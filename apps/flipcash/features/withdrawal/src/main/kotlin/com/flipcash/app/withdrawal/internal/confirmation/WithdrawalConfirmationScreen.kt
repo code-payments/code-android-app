@@ -73,7 +73,7 @@ private fun WithdrawalConfirmationScreenContent(
             TransferInfo(
                 tokenWithBalance = TokenWithBalance(
                     state.token!!.token,
-                    balance = state.amountEntryState.selectedAmount.nativeAmount,
+                    balance = state.amountEntryState.selectedAmount.localFiat.nativeAmount,
                 ),
                 destination = state.destinationState.textFieldState.text.toString(),
                 fee = state.destinationState.availability?.feeAmount,
