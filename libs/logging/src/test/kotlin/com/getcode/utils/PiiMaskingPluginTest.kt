@@ -187,4 +187,63 @@ class PiiMaskingPluginTest {
         assertTrue(result.contains("[KEY:7EcD...FLtV]"))
         assertTrue(result.contains("[KEY:9WzD...AWWM]"))
     }
+
+    // --- URL masking ---
+
+    @Test
+    fun `masks https URL with query params`() {
+        val line = "Opening https://pay.coinbase.com/buy?appId=abc123&token=secret"
+        val result = plugin.process(line)
+        assertNotNull(result)
+        assertEquals("Opening [URL:https://pay.coinbase.com/buy]", result)
+    }
+
+    @Test
+    fun `masks URL with fragment`() {
+        val line = "Visit https://example.com/page#section"
+        val result = plugin.process(line)
+        assertNotNull(result)
+        assertEquals("Visit [URL:https://example.com/page]", result)
+    }
+
+    @Test
+    fun `preserves URL without query params`() {
+        val line = "Loaded https://example.com/path"
+        val result = plugin.process(line)
+        assertNotNull(result)
+        assertEquals("Loaded [URL:https://example.com/path]", result)
+    }
+
+    @Test
+    fun `masks deeplink-style URL with query params`() {
+        val line = "Handling myapp://callback?code=authcode123&state=xyz"
+        val result = plugin.process(line)
+        assertNotNull(result)
+        assertEquals("Handling [URL:myapp://callback]", result)
+    }
+
+    @Test
+    fun `does not mask non-URL strings`() {
+        val line = "No URLs here, just plain text"
+        val result = plugin.process(line)
+        assertEquals(line, result)
+    }
+
+    @Test
+    fun `masks multiple URLs in one line`() {
+        val line = "from https://a.com/x?k=v to https://b.com/y?t=1"
+        val result = plugin.process(line)
+        assertNotNull(result)
+        assertEquals("from [URL:https://a.com/x] to [URL:https://b.com/y]", result)
+    }
+
+    @Test
+    fun `URL masking runs before Solana key masking`() {
+        // A URL with a base58-like query param should be masked as a URL, not a key
+        val line = "https://pay.coinbase.com/buy?dest=7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV"
+        val result = plugin.process(line)
+        assertNotNull(result)
+        assertTrue(result.startsWith("[URL:"))
+        assertTrue(!result.contains("[KEY:"))
+    }
 }

@@ -1,5 +1,7 @@
 package com.getcode.utils
 
+import java.net.URI
+
 class PiiMaskingPlugin : TraceLogPlugin {
     companion object {
         // E.164 (+1234567890) and parenthesized area code ((123) 456-7890)
@@ -13,11 +15,31 @@ class PiiMaskingPlugin : TraceLogPlugin {
 
         // JWT tokens: three base64url segments separated by dots
         private val JWT_REGEX = Regex("""eyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+""")
+
+        // URLs with a scheme (scheme://...) up to next whitespace
+        private val URL_REGEX = Regex("""[a-zA-Z][a-zA-Z0-9+\-.]*://\S+""")
+    }
+
+    private fun maskUrl(raw: String): String {
+        val stripped = try {
+            val uri = URI(raw)
+            val base = buildString {
+                append(uri.scheme)
+                append("://")
+                if (uri.authority != null) append(uri.authority)
+                if (uri.path != null) append(uri.path)
+            }
+            base
+        } catch (_: Exception) {
+            raw.substringBefore('?').substringBefore('#')
+        }
+        return "[URL:$stripped]"
     }
 
     override fun process(line: String): String? {
         var result = line
         result = JWT_REGEX.replace(result, "[JWT]")
+        result = URL_REGEX.replace(result) { maskUrl(it.value) }
         result = EMAIL_REGEX.replace(result, "[EMAIL]")
         result = SOLANA_KEY_REGEX.replace(result) { match ->
             val key = match.value

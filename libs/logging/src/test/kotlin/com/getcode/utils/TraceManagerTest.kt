@@ -141,4 +141,54 @@ class TraceManagerTest {
         assertNotNull(TraceManager.getLogFile())
         assertTrue(TraceManager.plugins.any { it is PiiMaskingPlugin })
     }
+
+    @Test
+    fun `breadcrumbs are masked through plugin pipeline`() {
+        val context = RuntimeEnvironment.getApplication()
+        TraceManager.initialize(context)
+
+        val recorded = mutableListOf<Pair<String, Map<String, Any>>>()
+        val sink = object : BreadcrumbSink {
+            override fun record(message: String, metadata: Map<String, Any>, type: TraceType) {
+                recorded.add(message to metadata)
+            }
+        }
+        TraceManager.addSink(sink)
+
+        trace(
+            message = "Login by alice@example.com",
+            metadata = {
+                "token" to "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.sig_here"
+            }
+        )
+
+        assertEquals(1, recorded.size)
+        val (msg, meta) = recorded.first()
+        assertTrue(msg.contains("[EMAIL]"), "Email in message should be masked")
+        assertTrue(!msg.contains("alice@example.com"), "Raw email should not appear")
+        assertTrue(meta["token"].toString().contains("[JWT]"), "JWT in metadata should be masked")
+    }
+
+    @Test
+    fun `breadcrumb plugin null return keeps message`() {
+        val context = RuntimeEnvironment.getApplication()
+        TraceManager.initialize(context)
+
+        // A plugin that returns null (drop signal) should not suppress breadcrumbs
+        val dropPlugin = TraceLogPlugin { null }
+        TraceManager.addPlugin(dropPlugin)
+
+        val recorded = mutableListOf<String>()
+        val sink = object : BreadcrumbSink {
+            override fun record(message: String, metadata: Map<String, Any>, type: TraceType) {
+                recorded.add(message)
+            }
+        }
+        TraceManager.addSink(sink)
+
+        trace(message = "should survive")
+
+        assertEquals(1, recorded.size)
+        assertTrue(recorded.first().contains("should survive"))
+    }
 }

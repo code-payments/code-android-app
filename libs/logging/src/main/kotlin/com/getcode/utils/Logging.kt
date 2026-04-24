@@ -187,14 +187,15 @@ fun trace(
         TraceType.User -> tree.d(logMessage)
     }
 
-    val breadcrumb = if (tag != null) {
-        "$tagBlock $message"
-    } else {
-        message
-    }
-
-    TraceManager.sinks().forEach { sink ->
-        sink.record(breadcrumb, metadataMap, type)
+    val rawBreadcrumb = if (tag != null) "$tagBlock $message" else message
+    val sinks = TraceManager.sinks()
+    if (sinks.isNotEmpty()) {
+        val (maskedBreadcrumb, maskedMetadata) = applyPluginsForBreadcrumb(
+            rawBreadcrumb, metadataMap, TraceManager.plugins
+        )
+        sinks.forEach { sink ->
+            sink.record(maskedBreadcrumb, maskedMetadata, type)
+        }
     }
 
     error?.let(ErrorUtils::handleError)
@@ -305,4 +306,20 @@ private fun metadata(block: MetadataBuilder.() -> Unit): Map<String, Any> {
     val builder = MetadataBuilder()
     builder.block()
     return builder.build()
+}
+
+private fun applyPluginsForBreadcrumb(
+    message: String,
+    metadata: Map<String, Any>,
+    plugins: List<TraceLogPlugin>,
+): Pair<String, Map<String, Any>> {
+    val maskedMessage = plugins.fold(message) { acc, plugin ->
+        plugin.process(acc) ?: acc
+    }
+    val maskedMetadata = metadata.mapValues { (_, value) ->
+        plugins.fold(value.toString()) { acc, plugin ->
+            plugin.process(acc) ?: acc
+        }
+    }
+    return maskedMessage to maskedMetadata
 }
