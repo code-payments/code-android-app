@@ -23,10 +23,13 @@ internal object CoinbaseOnRampScripts {
     val PAYMENT_REQUEST_INTERCEPTOR = """
         (function() {
             if (!window.PaymentRequest) return;
+            function bridge(data) {
+                if (typeof AndroidBridge !== 'undefined') AndroidBridge.onEvent(JSON.stringify(data));
+            }
 
             var origShow = PaymentRequest.prototype.show;
             PaymentRequest.prototype.show = function() {
-                AndroidBridge.onEvent(JSON.stringify({ eventName: 'timing.payment_modal_shown' }));
+                bridge({ eventName: 'timing.payment_modal_shown' });
                 return origShow.apply(this, arguments).catch(function(err) {
                     window.postMessage(JSON.stringify({
                         eventName: 'onramp_api.load_error',
@@ -81,8 +84,23 @@ internal object CoinbaseOnRampScripts {
 
     val AUTO_CLICK_GPAY_BUTTON = """
         (function() {
-            function tryClick(attempt) {
+            function findGPayButton() {
                 var btn = document.getElementById('gpay-button-online-api-id');
+                if (btn) return btn;
+                var iframes = document.querySelectorAll('iframe');
+                for (var i = 0; i < iframes.length; i++) {
+                    try {
+                        var doc = iframes[i].contentDocument;
+                        if (doc) {
+                            btn = doc.getElementById('gpay-button-online-api-id');
+                            if (btn) return btn;
+                        }
+                    } catch(e) {}
+                }
+                return null;
+            }
+            function tryClick(attempt) {
+                var btn = findGPayButton();
                 if (btn) {
                     var el = btn;
                     var handlers = null;
@@ -116,9 +134,34 @@ internal object CoinbaseOnRampScripts {
                 } else if (attempt < 10) {
                     setTimeout(function() { tryClick(attempt + 1); }, 500);
                 } else {
+                    var allBtns = document.querySelectorAll('button, [role="button"]');
+                    var gpayEls = document.querySelectorAll('[id*="gpay"], [class*="gpay"], [id*="google-pay"], [class*="google-pay"]');
+                    var iframes = document.querySelectorAll('iframe');
+                    var iframeBtns = 0;
+                    var iframeGpay = 0;
+                    for (var k = 0; k < iframes.length; k++) {
+                        try {
+                            var doc = iframes[k].contentDocument;
+                            if (doc) {
+                                iframeBtns += doc.querySelectorAll('button, [role="button"]').length;
+                                iframeGpay += doc.querySelectorAll('[id*="gpay"], [class*="gpay"]').length;
+                            }
+                        } catch(e) { iframeBtns = -1; }
+                    }
                     AndroidBridge.onEvent(JSON.stringify({
                         eventName: 'onramp_api.load_error',
-                        data: { errorCode: 'ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND' }
+                        data: {
+                            errorCode: 'ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND',
+                            buttons: allBtns.length,
+                            gpayElements: gpayEls.length,
+                            iframes: iframes.length,
+                            iframeBtns: iframeBtns,
+                            iframeGpay: iframeGpay,
+                            readyState: document.readyState,
+                            bodyChildren: document.body ? document.body.children.length : -1,
+                            viewport: window.innerWidth + 'x' + window.innerHeight,
+                            paymentRequest: typeof PaymentRequest
+                        }
                     }));
                 }
             }
@@ -162,7 +205,22 @@ internal class CoinbaseOnRampEventHandler(
                         tag = "CoinbaseOnRamp",
                         message = "Error during coinbase buy module",
                         error = error,
-                        type = TraceType.Error
+                        type = TraceType.Error,
+                        metadata = if (errorCode == "ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND" && data != null) {
+                            {
+                                "buttons" to data.optInt("buttons", -1)
+                                "gpayElements" to data.optInt("gpayElements", -1)
+                                "iframes" to data.optInt("iframes", -1)
+                                "iframeBtns" to data.optInt("iframeBtns", -1)
+                                "iframeGpay" to data.optInt("iframeGpay", -1)
+                                "readyState" to data.optString("readyState", "")
+                                "bodyChildren" to data.optInt("bodyChildren", -1)
+                                "viewport" to data.optString("viewport", "")
+                                "paymentRequest" to data.optString("paymentRequest", "")
+                            }
+                        } else {
+                            {}
+                        },
                     )
 
                     onPaymentFailure(error)

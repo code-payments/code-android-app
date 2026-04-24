@@ -20,6 +20,7 @@ import com.flipcash.app.onramp.internal.CoinbaseOnRampScripts
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
 import com.flipcash.app.web.ComposeWebView
 import com.getcode.utils.trace
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.TimeSource
 
 @SuppressLint("SetJavaScriptEnabled", "WrongConstant")
@@ -55,15 +56,14 @@ private fun WebView.configureForCoinbaseOnRamp(
     val startMark = TimeSource.Monotonic.markNow()
     trace(tag = "CoinbaseOnRamp", message = "WebView configured")
 
+    val autoClickTriggered = AtomicBoolean(false)
     var messageListenerInstalled = false
+
     settings.javaScriptEnabled = true
     settings.domStorageEnabled = true
     settings.javaScriptCanOpenWindowsAutomatically = true
     settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
     settings.setSupportMultipleWindows(false)
-    settings.userAgentString = settings.userAgentString
-        .replace("; wv", "")
-        .replace("Version/4.0 ", "")
 
     val eventHandler = CoinbaseOnRampEventHandler(
         startMark = startMark,
@@ -71,11 +71,13 @@ private fun WebView.configureForCoinbaseOnRamp(
         onPaymentFailure = onPaymentFailure,
         onCancel = onCancel,
         onAutoClickGPay = {
-            post {
-                evaluateJavascript(
-                    CoinbaseOnRampScripts.AUTO_CLICK_GPAY_BUTTON,
-                    null
-                )
+            if (autoClickTriggered.compareAndSet(false, true)) {
+                post {
+                    evaluateJavascript(
+                        CoinbaseOnRampScripts.AUTO_CLICK_GPAY_BUTTON,
+                        null
+                    )
+                }
             }
         },
     )
@@ -96,6 +98,15 @@ private fun WebView.configureForCoinbaseOnRamp(
                 metadata = { "elapsed_ms" to startMark.elapsedNow().inWholeMilliseconds },
             )
             view?.evaluateJavascript(CoinbaseOnRampScripts.MESSAGE_BRIDGE, null)
+
+            // Fallback: if load_success already fired before the bridge was installed,
+            // trigger auto-click after a delay to give the bridge a chance first.
+            view?.postDelayed({
+                if (autoClickTriggered.compareAndSet(false, true)) {
+                    trace(tag = "CoinbaseOnRamp", message = "Fallback auto-click (load_success not received)")
+                    view.evaluateJavascript(CoinbaseOnRampScripts.AUTO_CLICK_GPAY_BUTTON, null)
+                }
+            }, 2000)
         }
 
         override fun onReceivedError(
@@ -124,5 +135,8 @@ private fun WebView.configureForCoinbaseOnRamp(
             CoinbaseOnRampScripts.PAYMENT_REQUEST_INTERCEPTOR,
             setOf("*")
         )
+        // MESSAGE_BRIDGE stays in onPageFinished via evaluateJavascript() because
+        // addEventListener('message') in a document-start isolated world cannot
+        // observe postMessage events dispatched in the page world.
     }
 }
