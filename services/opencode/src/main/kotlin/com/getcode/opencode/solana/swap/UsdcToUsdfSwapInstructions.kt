@@ -1,6 +1,5 @@
 package com.getcode.opencode.solana.swap
 
-import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.model.LiquidityPool
 import com.getcode.opencode.internal.solana.model.SwapId
@@ -33,7 +32,8 @@ internal fun buildUsdcToUsdfSwapInstructions(
             mint = Mint.usdf,
         )
 
-        val usdcAta = PublicKey.deriveAssociatedAccount(
+        val createUsdcAta = AssociatedTokenProgram_CreateIdempotent(
+            subsidizer = sender,
             owner = sender,
             mint = Mint.usdc,
         )
@@ -55,14 +55,17 @@ internal fun buildUsdcToUsdfSwapInstructions(
             ).instruction()
         )
 
-        // 5. Memo:Memo
+        // 5. AssociatedTokenAccount::CreateIdempotent (USDC ATA)
+        add(createUsdcAta.instruction())
+
+        // 6. Memo:Memo
         add(
             MemoProgram_Memo(
                 message = swapId.publicKey.base58()
             ).instruction()
         )
 
-        // 6. Usdf::Swap (USDC ATA -> USDF ATA)
+        // 7. Usdf::Swap (USDC ATA -> USDF ATA)
         add(
             UsdfProgram_Swap(
                 amount = amount,
@@ -72,11 +75,11 @@ internal fun buildUsdcToUsdfSwapInstructions(
                 usdfVault = pool.usdfVault,
                 otherVault = pool.otherVault,
                 userUsdfToken = createUsdfAta.address,
-                userOtherToken = usdcAta.publicKey,
+                userOtherToken = createUsdcAta.address,
             ).instruction()
         )
 
-        // 7. Token::Transfer (USDF ATA -> USDF Swap PDA)
+        // 8. Token::Transfer (USDF ATA -> USDF Swap PDA)
         add(
             TokenProgram_Transfer(
                 amount = amount,
