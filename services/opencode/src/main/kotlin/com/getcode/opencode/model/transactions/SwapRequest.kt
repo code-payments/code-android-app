@@ -5,6 +5,8 @@ import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.plus
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.solana.keys.PublicKey
 
 data class SwapRequest(
@@ -20,6 +22,12 @@ data class SwapRequest(
     val fundingIntentId = when (kind) {
         is SwapStartKind.Reserve -> kind.fundingIntentId
     }
+
+    val totalTransferAmount: LocalFiat
+        get() {
+            val fee = feeAmount ?: LocalFiat(usdf = 0.toFiat(swapAmount.nativeAmount.currencyCode))
+            return swapAmount + fee
+        }
 }
 
 sealed interface SwapStartKind {
