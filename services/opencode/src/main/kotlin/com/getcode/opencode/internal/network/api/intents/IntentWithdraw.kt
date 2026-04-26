@@ -10,6 +10,7 @@ import com.getcode.opencode.model.financial.Fee
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
@@ -38,7 +39,8 @@ internal class IntentWithdraw(
             verifiedState: VerifiedState,
         ): IntentWithdraw {
             // transfer the amount less any fee
-            val transferAmount = amount.underlyingTokenAmount - (fee?.fiat ?: Fiat.Zero)
+            val feeAmount = fee?.fiat ?: 0.toFiat(amount.nativeAmount.currencyCode)
+            val transferAmount = amount.underlyingTokenAmount - feeAmount
 
             val actionGroup = buildActionGroup {
                 add(
