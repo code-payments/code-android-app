@@ -11,6 +11,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -68,7 +69,9 @@ fun CodeScanner(
     val context = LocalContext.current
 
     val previewView = remember(context) {
-        PreviewView(context)
+        PreviewView(context).apply {
+            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+        }
     }
 
     val preview = remember {
@@ -123,13 +126,23 @@ fun CodeScanner(
         }
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            // Synchronously unbind camera before the PreviewView leaves composition
+            // to prevent RenderNode animator from firing on a detached surface.
+            runCatching {
+                ProcessCameraProvider.getInstance(context).get().unbindAll()
+            }
+            camera = null
+        }
+    }
+
     OnLifecycleEvent { _, event ->
         if (event == Lifecycle.Event.ON_STOP) {
-            scope.launch {
-                val cameraProvider = context.getCameraProvider()
-                cameraProvider.unbindAll()
-                camera = null
+            runCatching {
+                ProcessCameraProvider.getInstance(context).get().unbindAll()
             }
+            camera = null
         } else if (event == Lifecycle.Event.ON_RESUME) {
             scope.launch {
                 if (camera == null) {
