@@ -206,5 +206,28 @@ class NavigateToTest {
         assertEquals(1, sheets.size, "Expected exactly one Sheet on the backstack")
     }
 
+    @Test
+    fun `generation stamp makes contentKey unique for same-route dismiss-replace`() {
+        val navigator = createNavigator(
+            AppRoute.Main.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
+        )
+
+        navigator.navigateTo(listOf(AppRoute.Sheets.Wallet), options = quietOptions)
+
+        // Simulate ModalBottomSheetScene dismiss: remove old sheet, then fire callback
+        navigator.backStack.removeAt(navigator.backStack.lastIndex)
+        navigator.pendingSheetDismiss!!.invoke()
+
+        val newSheet = navigator.backStack.filterIsInstance<AppRoute.Main.Sheet>().single()
+        assert(newSheet.generation > 0) {
+            "Expected generation > 0 after dismiss-replace, got ${newSheet.generation}"
+        }
+        val staleKey = AppRoute.Main.Sheet(AppRoute.Sheets.Wallet).toString()
+        assert(newSheet.toString() != staleKey) {
+            "contentKey collision: new sheet toString() must differ from stale key"
+        }
+    }
+
     // endregion
 }

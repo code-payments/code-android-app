@@ -120,7 +120,7 @@ data class CodeNavigator(
             }
             NavOptions.PopUpTo.None -> {
                 Snapshot.withMutableSnapshot {
-                    if (currentRouteKey != route) {
+                    if (route is Sheet || currentRouteKey != route) {
                         // Sheet routes must be unique on the backstack —
                         // SaveableStateProvider uses contentKey (toString()) and
                         // crashes on duplicates. Remove any existing instance
@@ -134,7 +134,7 @@ data class CodeNavigator(
             }
             NavOptions.PopUpTo.PopLast -> {
                 Snapshot.withMutableSnapshot {
-                    if (currentRouteKey != route) {
+                    if (route is Sheet || currentRouteKey != route) {
                         if (route is Sheet) {
                             backStack.removeAll { it == route }
                         }
