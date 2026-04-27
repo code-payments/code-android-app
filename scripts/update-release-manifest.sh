@@ -9,6 +9,9 @@
 #   SERVICE_ACCOUNT_KEY_JSON  — path to the Google service account JSON file
 #   PKG                       — package name (default: com.flipcash.app.android)
 #   MANIFEST_PATH             — manifest location (default: .well-known/release-manifest.json)
+#   TRACKS                    — space-separated list of tracks to fetch and update
+#                               (default: production beta alpha internal)
+#                               Tracks not listed are preserved from the existing manifest.
 #
 # Outputs (written to $GITHUB_OUTPUT when running in CI):
 #   old_prod / new_prod       — previous and current production versionCode
@@ -28,6 +31,13 @@ fi
 SA_PATH="$SERVICE_ACCOUNT_KEY_JSON"
 PKG="${PKG:-com.flipcash.app.android}"
 MANIFEST_PATH="${MANIFEST_PATH:-.well-known/release-manifest.json}"
+TRACKS="${TRACKS:-production beta alpha internal}"
+FORCE_BUMP="${FORCE_BUMP:-false}"
+
+ALL_TRACKS="production beta alpha internal"
+
+# --- helper: check if a value is in a space-separated list ---
+in_list() { [[ " $2 " == *" $1 "* ]]; }
 
 # --- helper: write to $GITHUB_OUTPUT when in CI, otherwise just print ---
 emit() {
@@ -71,25 +81,6 @@ fetch_track() {
         | max_by(.code) // { code: null, name: null }'
 }
 
-PROD_JSON=$(fetch_track production)
-BETA_JSON=$(fetch_track beta)
-ALPHA_JSON=$(fetch_track alpha)
-INTERNAL_JSON=$(fetch_track internal)
-
-PROD=$(echo "$PROD_JSON" | jq '.code')
-BETA=$(echo "$BETA_JSON" | jq '.code')
-ALPHA=$(echo "$ALPHA_JSON" | jq '.code')
-INTERNAL=$(echo "$INTERNAL_JSON" | jq '.code')
-
-PROD_NAME=$(echo "$PROD_JSON" | jq -r '.name // empty')
-BETA_NAME=$(echo "$BETA_JSON" | jq -r '.name // empty')
-ALPHA_NAME=$(echo "$ALPHA_JSON" | jq -r '.name // empty')
-INTERNAL_NAME=$(echo "$INTERNAL_JSON" | jq -r '.name // empty')
-
-echo "Tracks: prod=$PROD ($PROD_NAME) beta=$BETA ($BETA_NAME) alpha=$ALPHA ($ALPHA_NAME) internal=$INTERNAL ($INTERNAL_NAME)"
-
-curl -s -X DELETE "$BASE/edits/$EDIT_ID" -H "$AUTH" >/dev/null || true
-
 # --- helper: build a track object or null ---
 track_obj() {
   local code="$1" name="$2"
@@ -101,17 +92,45 @@ track_obj() {
   fi
 }
 
+echo "Updating tracks: $TRACKS"
+
+# --- read existing manifest as base ---
+mkdir -p "$(dirname "$MANIFEST_PATH")"
+if [ -f "$MANIFEST_PATH" ]; then
+  EXISTING=$(cat "$MANIFEST_PATH")
+else
+  EXISTING='{"tracks":{}}'
+fi
+
+# --- for each track, either fetch fresh or preserve existing ---
+declare -A TRACK_OBJS
+for t in $ALL_TRACKS; do
+  if in_list "$t" "$TRACKS"; then
+    JSON=$(fetch_track "$t")
+    CODE=$(echo "$JSON" | jq '.code')
+    NAME=$(echo "$JSON" | jq -r '.name // empty')
+    TRACK_OBJS[$t]=$(track_obj "$CODE" "$NAME")
+    echo "  $t: fetched code=$CODE name=$NAME"
+  else
+    TRACK_OBJS[$t]=$(echo "$EXISTING" | jq -c ".tracks.$t // null")
+    echo "  $t: preserved from manifest"
+  fi
+done
+
+curl -s -X DELETE "$BASE/edits/$EDIT_ID" -H "$AUTH" >/dev/null || true
+
 # --- read previous prod ---
-OLD_PROD=$(jq -r '.tracks.production.versionCode // .tracks.production // empty' "$MANIFEST_PATH" 2>/dev/null || echo "")
-echo "Previous prod: ${OLD_PROD:-<none>} | New prod: $PROD"
+OLD_PROD=$(echo "$EXISTING" | jq -r '.tracks.production.versionCode // .tracks.production // empty' 2>/dev/null || echo "")
+NEW_PROD=$(echo "${TRACK_OBJS[production]}" | jq -r '.versionCode // empty' 2>/dev/null || echo "")
+NEW_PROD_NAME=$(echo "${TRACK_OBJS[production]}" | jq -r '.versionName // empty' 2>/dev/null || echo "")
+echo "Previous prod: ${OLD_PROD:-<none>} | Current prod: ${NEW_PROD:-<none>} (${NEW_PROD_NAME:-<none>})"
 
 # --- write manifest ---
-mkdir -p "$(dirname "$MANIFEST_PATH")"
 jq -n \
-  --argjson production "$(track_obj "$PROD" "$PROD_NAME")" \
-  --argjson beta "$(track_obj "$BETA" "$BETA_NAME")" \
-  --argjson alpha "$(track_obj "$ALPHA" "$ALPHA_NAME")" \
-  --argjson internal "$(track_obj "$INTERNAL" "$INTERNAL_NAME")" \
+  --argjson production "${TRACK_OBJS[production]}" \
+  --argjson beta "${TRACK_OBJS[beta]}" \
+  --argjson alpha "${TRACK_OBJS[alpha]}" \
+  --argjson internal "${TRACK_OBJS[internal]}" \
   --arg updated "$(date -u +%FT%TZ)" \
   '{updated: $updated, tracks: {production:$production, beta:$beta, alpha:$alpha, internal:$internal}}' \
   > "$MANIFEST_PATH"
@@ -120,17 +139,24 @@ echo "Manifest written:"
 cat "$MANIFEST_PATH"
 
 emit "old_prod" "${OLD_PROD:-null}"
-emit "new_prod" "$PROD"
+emit "new_prod" "${NEW_PROD:-null}"
+emit "new_prod_name" "${NEW_PROD_NAME:-null}"
 
-# --- decide whether prod changed ---
-if [ "$OLD_PROD" = "$PROD" ]; then
-  echo "Production unchanged, skipping patch bump"
+# --- decide whether to bump patch ---
+PROD_CHANGED=false
+if in_list "production" "$TRACKS" && [ "${OLD_PROD:-null}" != "${NEW_PROD:-null}" ]; then
+  PROD_CHANGED=true
+fi
+
+if [ "$FORCE_BUMP" != "true" ] && [ "$PROD_CHANGED" != "true" ]; then
+  echo "Production unchanged and force_bump not set, skipping patch bump"
   emit "prod_changed" "false"
   exit 0
 fi
 
-emit "prod_changed" "true"
-echo "Production changed ($OLD_PROD -> $PROD), bumping patch version"
+emit "prod_changed" "$PROD_CHANGED"
+emit "forced" "$FORCE_BUMP"
+echo "Bumping patch version (prod_changed=$PROD_CHANGED, forced=$FORCE_BUMP)"
 
 # --- bump patch version ---
 KOTLIN_FILE=buildSrc/src/main/java/Packaging.kt

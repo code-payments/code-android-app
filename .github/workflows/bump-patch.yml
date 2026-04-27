@@ -2,6 +2,22 @@ name: Record production release and bump patch
 
 on:
   workflow_dispatch:
+    inputs:
+      track:
+        description: 'Track to record in the manifest'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+      force_bump:
+        description: 'Force patch version bump regardless of track changes'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   release:
@@ -26,14 +42,17 @@ jobs:
         id: manifest
         env:
           SERVICE_ACCOUNT_KEY_JSON: ${{ steps.service_account_json_file.outputs.filePath }}
+          TRACKS: ${{ github.event.inputs.track }}
+          FORCE_BUMP: ${{ github.event.inputs.force_bump }}
         run: bash scripts/update-release-manifest.sh
 
       - name: Commit & Push changes
+        if: steps.manifest.outputs.prod_changed == 'true' || steps.manifest.outputs.forced == 'true'
         uses: actions-js/push@master
         with:
           message: >-
             ${{ steps.manifest.outputs.prod_changed == 'true'
-              && format('build: release versionCode {0}, bump Flipcash to {1}', steps.manifest.outputs.new_prod, steps.manifest.outputs.version)
-              || 'build: refresh release manifest' }}
+              && format('build: release Flipcash {0} ({1}), bump to {2}', steps.manifest.outputs.new_prod_name, steps.manifest.outputs.new_prod, steps.manifest.outputs.version)
+              || format('build: bump Flipcash to {0}', steps.manifest.outputs.version) }}
           branch: "code/cash"
           github_token: ${{ secrets.BOT_GITHUB_TOKEN }}

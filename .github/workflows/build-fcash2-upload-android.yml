@@ -117,6 +117,7 @@ jobs:
         id: manifest
         env:
           SERVICE_ACCOUNT_KEY_JSON: ${{ steps.service_account_json_file.outputs.filePath }}
+          TRACKS: ${{ github.event.inputs.track }}
         run: bash scripts/update-release-manifest.sh
 
       - name: Commit & push manifest
