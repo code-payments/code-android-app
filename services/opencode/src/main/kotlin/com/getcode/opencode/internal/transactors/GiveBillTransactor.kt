@@ -3,6 +3,7 @@ package com.getcode.opencode.internal.transactors
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.extensions.exchangeDataFor
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.manager.VerifiedState
@@ -36,6 +37,7 @@ internal class GiveBillTransactor(
     private val transactionController: TransactionController,
     private val scope: CoroutineScope,
     private val payloadFactory: PayloadFactory,
+    private val verifiedFiatCalculator: VerifiedFiatCalculator,
 ) : Transactor<GiveBillTransactor.GiveTransactorError>("Transactor::Give") {
     private var token: Token? = null
     private var amount: LocalFiat? = null
@@ -120,6 +122,7 @@ internal class GiveBillTransactor(
             ?: return logAndFail(GiveTransactorError.Other(message = "No amount. Did you call with() first?"))
 
         val verifiedState = providedVerifiedState
+            ?: verifiedFiatCalculator.resolveVerifiedState(sendingAmount.rate.currency, desiredToken.address)
             ?: return logAndFail(GiveTransactorError.Other("Failed to get verified state"))
 
         val exchangeData = verifiedState.exchangeDataFor(

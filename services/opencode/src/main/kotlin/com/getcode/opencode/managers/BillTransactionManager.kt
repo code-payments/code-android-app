@@ -3,6 +3,7 @@ package com.getcode.opencode.managers
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.domain.mapping.MintMapper
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.transactors.AccountClusterFactory
@@ -55,6 +56,7 @@ class BillTransactionManager @Inject constructor(
     private val giftCardManager: GiftCardManager,
     private val payloadFactory: PayloadFactory,
     private val accountClusterFactory: AccountClusterFactory,
+    private val verifiedFiatCalculator: VerifiedFiatCalculator,
 ) {
     private var billDismissTimer: TimerTask? = null
 
@@ -102,6 +104,7 @@ class BillTransactionManager @Inject constructor(
                 transactionController = transactionController,
                 scope = childScope,
                 payloadFactory = payloadFactory,
+                verifiedFiatCalculator = verifiedFiatCalculator,
             ).apply {
                 with(token, amount, owner, billExchangeDataTimeout, verifiedState, nonce)
             }

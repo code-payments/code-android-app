@@ -35,7 +35,7 @@ internal class RealVerifiedFiatCalculator @Inject constructor(
 
     private val resolveScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private suspend fun resolveVerifiedState(
+    override suspend fun resolveVerifiedState(
         currencyCode: CurrencyCode,
         mint: Mint,
     ): VerifiedState? {
