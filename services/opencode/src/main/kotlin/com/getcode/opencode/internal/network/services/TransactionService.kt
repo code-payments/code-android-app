@@ -22,7 +22,6 @@ import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.minus
-import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.transactions.SwapDirection
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapRequest
@@ -191,7 +190,7 @@ internal class TransactionService @Inject constructor(
         val swapAuthority =
             if (isFreshlyLaunchedStub) owner.authority.keyPair else Ed25519.createKeyPair()
 
-        val netAmount = amount - (feeAmount ?: LocalFiat(usdf = 0.toFiat(amount.nativeAmount.currencyCode)))
+        val netAmount = amount - (feeAmount ?: LocalFiat.Zero)
         val request = SwapRequest(
             owner = owner,
             swapAuthority = swapAuthority,

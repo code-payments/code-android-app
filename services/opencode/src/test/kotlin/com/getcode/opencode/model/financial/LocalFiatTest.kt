@@ -22,7 +22,7 @@ class LocalFiatTest {
         val usdf = Fiat(quarks = 1000L, currencyCode = CurrencyCode.USD)
         val rate = Rate(fx = 1.5, currency = CurrencyCode.CAD)
 
-        val localFiat = LocalFiat(usdf = usdf, rate = rate)
+        val localFiat = LocalFiat.fromUsd(usdf, rate)
 
         assertEquals(1000L, localFiat.underlyingTokenAmount.quarks)
         assertEquals(CurrencyCode.CAD, localFiat.nativeAmount.currencyCode)
@@ -117,6 +117,45 @@ class LocalFiatTest {
     }
 
     @Test
+    fun `plus with zero does not throw on currency mismatch`() {
+        val a = LocalFiat(
+            underlyingTokenAmount = Fiat(quarks = 100L),
+            nativeAmount = Fiat(fiat = 1.5, currencyCode = CurrencyCode.CAD),
+            rate = Rate(fx = 1.5, currency = CurrencyCode.CAD),
+            mint = Mint.usdf,
+        )
+
+        val result = a + LocalFiat.Zero
+        assertEquals(a, result)
+    }
+
+    @Test
+    fun `plus zero on left returns right`() {
+        val b = LocalFiat(
+            underlyingTokenAmount = Fiat(quarks = 100L),
+            nativeAmount = Fiat(fiat = 1.5, currencyCode = CurrencyCode.CAD),
+            rate = Rate(fx = 1.5, currency = CurrencyCode.CAD),
+            mint = Mint.usdf,
+        )
+
+        val result = LocalFiat.Zero + b
+        assertEquals(b, result)
+    }
+
+    @Test
+    fun `minus zero does not throw on currency mismatch`() {
+        val a = LocalFiat(
+            underlyingTokenAmount = Fiat(quarks = 100L),
+            nativeAmount = Fiat(fiat = 1.5, currencyCode = CurrencyCode.CAD),
+            rate = Rate(fx = 1.5, currency = CurrencyCode.CAD),
+            mint = Mint.usdf,
+        )
+
+        val result = a - LocalFiat.Zero
+        assertEquals(a, result)
+    }
+
+    @Test
     fun `minus throws on currency mismatch`() {
         val a = LocalFiat(
             underlyingTokenAmount = Fiat(quarks = 100L),
@@ -134,6 +173,52 @@ class LocalFiatTest {
         assertFailsWith<IllegalArgumentException> {
             a - b
         }
+    }
+
+    // endregion
+
+    // region zero-fee regressions (commits 73d2ea2, eaf014b, 8542fe4)
+
+    @Test
+    fun `buy net amount - CAD minus null fee uses Zero without crash`() {
+        val cadRate = Rate(fx = 1.35, currency = CurrencyCode.CAD)
+        val amount = LocalFiat(
+            underlyingTokenAmount = Fiat(fiat = 10.0, currencyCode = CurrencyCode.USD),
+            nativeAmount = Fiat(fiat = 13.5, currencyCode = CurrencyCode.CAD),
+            rate = cadRate,
+            mint = Mint.usdf,
+        )
+        val feeAmount: LocalFiat? = null
+
+        val netAmount = amount - (feeAmount ?: LocalFiat.Zero)
+
+        assertEquals(amount, netAmount)
+    }
+
+    @Test
+    fun `swap total transfer - CAD plus null fee uses Zero without crash`() {
+        val cadRate = Rate(fx = 1.35, currency = CurrencyCode.CAD)
+        val swapAmount = LocalFiat(
+            underlyingTokenAmount = Fiat(fiat = 10.0, currencyCode = CurrencyCode.USD),
+            nativeAmount = Fiat(fiat = 13.5, currencyCode = CurrencyCode.CAD),
+            rate = cadRate,
+            mint = Mint.usdf,
+        )
+        val feeAmount: LocalFiat? = null
+
+        val total = swapAmount + (feeAmount ?: LocalFiat.Zero)
+
+        assertEquals(swapAmount, total)
+    }
+
+    @Test
+    fun `withdraw fee - Fiat Zero subtracted from non-USD amount does not crash`() {
+        val underlyingUsd = Fiat(fiat = 10.0, currencyCode = CurrencyCode.USD)
+        val feeAmount = Fiat.Zero
+
+        val transferAmount = underlyingUsd - feeAmount
+
+        assertEquals(underlyingUsd, transferAmount)
     }
 
     // endregion

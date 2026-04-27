@@ -523,7 +523,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     token = Token.usdf,
                     rate = Rate.oneToOne,
                 )
-                val feeAmount = event.context.feeAmount?.let { LocalFiat(usdf = it) }
+                val feeAmount = event.context.feeAmount?.let { LocalFiat.fromUsd(usdf = it) }
                 externalWalletController.setAmount(amount = totalAmount, feeAmount = feeAmount)
                 externalWalletController.setTokenToPurchase(event.context.token)
             }
@@ -542,7 +542,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     token = Token.usdf,
                     rate = Rate.oneToOne,
                 )
-                val feeAmount = context.feeAmount?.let { LocalFiat(usdf = it) }
+                val feeAmount = context.feeAmount?.let { LocalFiat.fromUsd(usdf = it) }
                 transactionController.buy(
                     owner = owner,
                     amount = totalAmount,

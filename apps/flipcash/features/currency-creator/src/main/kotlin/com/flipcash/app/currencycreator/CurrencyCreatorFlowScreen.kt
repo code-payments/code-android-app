@@ -158,7 +158,7 @@ fun CurrencyCreatorFlowScreen(
                             if (token != null) {
                                 val bill = Bill.Cash(
                                     token = token,
-                                    amount = LocalFiat(usdf = state.purchaseAmount),
+                                    amount = LocalFiat.fromUsd(usdf = state.purchaseAmount),
                                     didReceive = true,
                                 )
                                 outerNavigator.hide()

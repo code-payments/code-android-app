@@ -125,9 +125,7 @@ class InternalBillPlaygroundController(
         context: PlaygroundContext,
     ) {
         // create amount for the bill
-        val demoAmount = LocalFiat(
-            usdf = amount,
-        )
+        val demoAmount = LocalFiat.fromUsd(usdf = amount)
 
         // provide bill "data" to render the scan code
         val payloadInfo = OpenCodePayload(

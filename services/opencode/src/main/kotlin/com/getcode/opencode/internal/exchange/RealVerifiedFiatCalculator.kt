@@ -79,13 +79,13 @@ internal class RealVerifiedFiatCalculator @Inject constructor(
         if (token.address == Mint.usdf) {
             // this doesn't need a calculated value exchange since we are USDC
             val localFiat = if (rate.currency != CurrencyCode.USD) {
-                LocalFiat(
+                LocalFiat.fromUsd(
                     usdf = cappedValue,
                     rate = rate,
                     mint = token.address,
                 )
             } else {
-                LocalFiat(usdf = cappedValue)
+                LocalFiat.fromUsd(usdf = cappedValue)
             }
             return VerifiedFiat(localFiat, verifiedState)
         }

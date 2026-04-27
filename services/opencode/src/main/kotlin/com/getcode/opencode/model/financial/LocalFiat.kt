@@ -8,8 +8,6 @@ import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 import javax.annotation.concurrent.Immutable
 
-typealias Usd = Fiat
-
 /**
  * Represents a monetary value bridge between an on-chain token amount and its localized
  * fiat representation.
@@ -68,13 +66,6 @@ data class LocalFiat(
         )
     )
 
-    constructor(usdf: Usd, rate: Rate = Rate.oneToOne, mint: Mint = Mint.usdf) : this(
-        underlyingTokenAmount = usdf,
-        nativeAmount = usdf.convertingTo(rate),
-        mint = mint,
-        rate = rate
-    )
-
     companion object {
         val Zero = LocalFiat(
             underlyingTokenAmount = Fiat(0),
@@ -83,8 +74,20 @@ data class LocalFiat(
             rate = Rate.oneToOne
         )
 
-        val MIN_VALUE = LocalFiat(usdf = Fiat(Int.MIN_VALUE, CurrencyCode.USD),)
-        val MAX_VALUE = LocalFiat(usdf = Fiat(Int.MAX_VALUE, CurrencyCode.USD),)
+        val MIN_VALUE = fromUsd(usdf = Fiat(Int.MIN_VALUE, CurrencyCode.USD))
+        val MAX_VALUE = fromUsd(usdf = Fiat(Int.MAX_VALUE, CurrencyCode.USD))
+
+        /**
+         * Creates a [LocalFiat] from a USD-denominated [Fiat] value, converting to the
+         * native currency via [rate]. Use this when you have a USD amount and an exchange
+         * rate but not a pre-computed native amount.
+         */
+        fun fromUsd(usdf: Fiat, rate: Rate = Rate.oneToOne, mint: Mint = Mint.usdf): LocalFiat = LocalFiat(
+            underlyingTokenAmount = usdf,
+            nativeAmount = usdf.convertingTo(rate),
+            mint = mint,
+            rate = rate
+        )
 
         fun fromNativeAmount(
             nativeAmount: Fiat,
@@ -126,6 +129,7 @@ fun Iterable<LocalFiat>.sum(): LocalFiat {
 }
 
 operator fun LocalFiat.minus(other: LocalFiat): LocalFiat {
+    if (other.underlyingTokenAmount.decimalValue == 0.0 && other.nativeAmount.decimalValue == 0.0) return this
     if (rate.currency != other.rate.currency) throw IllegalArgumentException("Currency is mismatched")
 
     return copy(
@@ -135,6 +139,8 @@ operator fun LocalFiat.minus(other: LocalFiat): LocalFiat {
 }
 
 operator fun LocalFiat.plus(other: LocalFiat): LocalFiat {
+    if (other.underlyingTokenAmount.decimalValue == 0.0 && other.nativeAmount.decimalValue == 0.0) return this
+    if (this.underlyingTokenAmount.decimalValue == 0.0 && this.nativeAmount.decimalValue == 0.0) return other
     if (rate.currency != other.rate.currency) throw IllegalArgumentException("Currency is mismatched")
 
     return copy(
