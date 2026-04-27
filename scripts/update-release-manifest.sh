@@ -65,28 +65,53 @@ echo "Created edit $EDIT_ID"
 
 fetch_track() {
   curl -s "$BASE/edits/$EDIT_ID/tracks/$1" -H "$AUTH" \
-    | jq -c '[.releases[]? | select(.status == "completed") | .versionCodes[]?] | map(tonumber) | max // null'
+    | jq -c '
+        [ .releases[]? | select(.status == "completed") ]
+        | map({ name, code: ([ .versionCodes[]? | tonumber ] | max) })
+        | max_by(.code) // { code: null, name: null }'
 }
 
-PROD=$(fetch_track production)
-BETA=$(fetch_track beta)
-ALPHA=$(fetch_track alpha)
-INTERNAL=$(fetch_track internal)
-echo "Tracks: prod=$PROD beta=$BETA alpha=$ALPHA internal=$INTERNAL"
+PROD_JSON=$(fetch_track production)
+BETA_JSON=$(fetch_track beta)
+ALPHA_JSON=$(fetch_track alpha)
+INTERNAL_JSON=$(fetch_track internal)
+
+PROD=$(echo "$PROD_JSON" | jq '.code')
+BETA=$(echo "$BETA_JSON" | jq '.code')
+ALPHA=$(echo "$ALPHA_JSON" | jq '.code')
+INTERNAL=$(echo "$INTERNAL_JSON" | jq '.code')
+
+PROD_NAME=$(echo "$PROD_JSON" | jq -r '.name // empty')
+BETA_NAME=$(echo "$BETA_JSON" | jq -r '.name // empty')
+ALPHA_NAME=$(echo "$ALPHA_JSON" | jq -r '.name // empty')
+INTERNAL_NAME=$(echo "$INTERNAL_JSON" | jq -r '.name // empty')
+
+echo "Tracks: prod=$PROD ($PROD_NAME) beta=$BETA ($BETA_NAME) alpha=$ALPHA ($ALPHA_NAME) internal=$INTERNAL ($INTERNAL_NAME)"
 
 curl -s -X DELETE "$BASE/edits/$EDIT_ID" -H "$AUTH" >/dev/null || true
 
+# --- helper: build a track object or null ---
+track_obj() {
+  local code="$1" name="$2"
+  if [ "$code" = "null" ]; then
+    echo "null"
+  else
+    jq -nc --argjson c "$code" --arg n "$name" \
+      '{versionCode: $c} + (if $n == "" then {} else {versionName: $n} end)'
+  fi
+}
+
 # --- read previous prod ---
-OLD_PROD=$(jq -r '.tracks.production // empty' "$MANIFEST_PATH" 2>/dev/null || echo "")
+OLD_PROD=$(jq -r '.tracks.production.versionCode // .tracks.production // empty' "$MANIFEST_PATH" 2>/dev/null || echo "")
 echo "Previous prod: ${OLD_PROD:-<none>} | New prod: $PROD"
 
 # --- write manifest ---
 mkdir -p "$(dirname "$MANIFEST_PATH")"
 jq -n \
-  --argjson production "$PROD" \
-  --argjson beta "$BETA" \
-  --argjson alpha "$ALPHA" \
-  --argjson internal "$INTERNAL" \
+  --argjson production "$(track_obj "$PROD" "$PROD_NAME")" \
+  --argjson beta "$(track_obj "$BETA" "$BETA_NAME")" \
+  --argjson alpha "$(track_obj "$ALPHA" "$ALPHA_NAME")" \
+  --argjson internal "$(track_obj "$INTERNAL" "$INTERNAL_NAME")" \
   --arg updated "$(date -u +%FT%TZ)" \
   '{updated: $updated, tracks: {production:$production, beta:$beta, alpha:$alpha, internal:$internal}}' \
   > "$MANIFEST_PATH"
