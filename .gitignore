@@ -21,6 +21,17 @@ fastlane/report.xml
 *.env.*
 .claude/
 
+# Bundler (Ruby gems installed during CI)
+.bundle/
+vendor/bundle/
+
+# Signing keys decoded during CI
+key/
+apps/flipcash/app/key/
+
+# Service account keys
+serviceAccount.json
+
 # Maestro screenshot test artifacts
 maestro/screenshots/results/
 maestro/screenshots/diffs/
