@@ -155,7 +155,7 @@ class CoinbaseOnRampController @Inject constructor(
             ?: return Result.failure(Throwable("User ID not found"))
         val usdfSwapAccounts = Token.usdf.timelockSwapAccounts(owner.authorityPublicKey)
 
-        val destination = usdfSwapAccounts.ata.publicKey.base58()
+        val destination = usdfSwapAccounts.pda.publicKey.base58()
 
         val email = userManager.profile?.verifiedEmailAddress
         val phone = userManager.profile?.verifiedPhoneNumber
@@ -201,7 +201,7 @@ class CoinbaseOnRampController @Inject constructor(
             ?: return Result.failure(Throwable("User ID not found"))
         val usdfSwapAccounts = Token.usdf.timelockSwapAccounts(owner.authorityPublicKey)
 
-        val destination = usdfSwapAccounts.ata.publicKey.base58()
+        val destination = usdfSwapAccounts.pda.publicKey.base58()
 
         val email = userManager.profile?.verifiedEmailAddress
         val phone = userManager.profile?.verifiedPhoneNumber

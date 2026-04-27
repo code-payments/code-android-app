@@ -347,14 +347,14 @@ internal class OnRampViewModel @Inject constructor(
                                         }
 
                                         is OnRampPaymentError.GooglePayNotSupported -> {
-                                            BottomBarManager.showError(
+                                            BottomBarManager.showAlert(
                                                 title = resources.getString(R.string.error_title_onrampGooglePayNotSupported),
                                                 message = resources.getString(R.string.error_description_onrampGooglePayNotSupported),
                                             )
                                         }
 
                                         is OnRampPaymentError.GooglePayNoPaymentMethod -> {
-                                            BottomBarManager.showError(
+                                            BottomBarManager.showAlert(
                                                 title = resources.getString(R.string.error_title_onrampGooglePayNotReady),
                                                 message = resources.getString(R.string.error_description_onrampGooglePayNotReady),
                                             )
