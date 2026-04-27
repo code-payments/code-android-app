@@ -112,6 +112,10 @@ class AccountController @Inject constructor(
         )
     }
 
+    suspend fun refreshAccountState() {
+        fetchAdditionalAccountInfo()
+    }
+
     private suspend fun fetchAdditionalAccountInfo() {
         val owner = cluster.value
         if (owner == null) {

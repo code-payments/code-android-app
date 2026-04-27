@@ -51,6 +51,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -65,6 +66,10 @@ class TransactionController @Inject constructor(
     private val eventBus: ChannelEventBus,
 ) : TransactionOperations {
     val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    private fun refreshAccountState() {
+        scope.launch { accountController.refreshAccountState() }
+    }
 
     private val _limits = MutableStateFlow<Limits?>(Limits.Empty)
     override val limits: StateFlow<Limits?>
@@ -187,6 +192,7 @@ class TransactionController @Inject constructor(
             type = TraceType.User
         )
         return repository.voidGiftCard(owner.authority.keyPair, vault)
+            .onSuccess { refreshAccountState() }
             .onFailure {
                 trace(
                     tag = "Transactions",
@@ -275,7 +281,7 @@ class TransactionController @Inject constructor(
                     source = source,
                     fund = fund,
                     verifiedState = verifiedState,
-                )
+                ).onSuccess { refreshAccountState() }
             },
             onFailure = { error ->
                 trace(
@@ -304,6 +310,7 @@ class TransactionController @Inject constructor(
             of = of,
             verifiedState = verifiedState
         )
+            .onSuccess { refreshAccountState() }
             .onFailure { error ->
                 trace(
                     tag = "TransactionController",
@@ -329,6 +336,7 @@ class TransactionController @Inject constructor(
         intent: IntentType,
         authority: KeyPair,
     ): Result<IntentType> = repository.submitIntent(scope, intent, authority)
+        .onSuccess { refreshAccountState() }
 
     suspend fun getIntentMetadata(
         intentId: PublicKey,

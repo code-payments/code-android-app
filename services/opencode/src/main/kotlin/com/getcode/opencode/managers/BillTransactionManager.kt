@@ -262,6 +262,7 @@ class BillTransactionManager @Inject constructor(
             receiveTransactor?.start(claimIfOwned)
                 ?.onSuccess { (token, amount) ->
                     onReceived(token, amount)
+                    transactionController.updateLimits(owner, force = true)
                 }?.onFailure {
                     onError(it)
                     transactor.dispose()
