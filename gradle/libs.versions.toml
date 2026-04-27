@@ -1,5 +1,4 @@
 [versions]
-java = "21"
 kotlin = "2.3.21"
 ksp = "2.3.6"
 kotlinx-coroutines = "1.10.2"
