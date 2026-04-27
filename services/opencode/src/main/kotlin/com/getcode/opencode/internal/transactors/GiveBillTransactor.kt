@@ -153,7 +153,7 @@ internal class GiveBillTransactor(
 
         // 2. Wait for recipient to grab the bill
         val transferRequest = messagingController.awaitRequestToGrabBill(scope, rendezvous)
-            ?: return logAndFail(GiveTransactorError.Other(message = "No message received"))
+            ?: return logAndFail(GiveTransactorError.NoGrabReceived())
 
 
         // 3. Validate that destination hasn't been tampered with by
@@ -225,6 +225,7 @@ internal class GiveBillTransactor(
         class DuplicateTransferException : GiveTransactorError(message = "Duplicate Transfer"), NotifiableError
         class DestinationSignatureInvalidException : GiveTransactorError(message = "Destination signature invalid"), NotifiableError
         class ExchangeRateExpiredException : GiveTransactorError(message = "Exchange rate expired"), NotifiableError
+        class NoGrabReceived : GiveTransactorError(message = "No message received")
         data class Other(
             override val message: String? = null,
             override val cause: Throwable? = null

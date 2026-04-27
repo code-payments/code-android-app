@@ -116,7 +116,11 @@ sealed class SubmitIntentError(
     data class InvalidIntent(private val reasons: List<String>) :
         SubmitIntentError(message = reasons.joinToString()), NotifiableError
 
-    class Signature : SubmitIntentError(), NotifiableError
+    data class Signature(private val details: List<String> = emptyList()) :
+        SubmitIntentError(message = buildString {
+            append("Signature error")
+            if (details.isNotEmpty()) append(": ${details.joinToString()}")
+        }), NotifiableError
     data class StaleState(private val reasons: List<String>) :
         SubmitIntentError(message = reasons.joinToString()), NotifiableError
 
@@ -147,10 +151,21 @@ sealed class SubmitIntentError(
                 }
 
                 SubmitIntentResponse.Error.Code.INVALID_INTENT -> InvalidIntent(reasonStrings)
-                SubmitIntentResponse.Error.Code.SIGNATURE_ERROR -> Signature()
+                SubmitIntentResponse.Error.Code.SIGNATURE_ERROR -> {
+                    val details = proto.errorDetailsList.mapNotNull {
+                        when (it.typeCase) {
+                            TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+                                it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
+                            TransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE ->
+                                "action=${it.invalidSignature.actionId}"
+                            else -> null
+                        }
+                    }
+                    Signature(details)
+                }
                 SubmitIntentResponse.Error.Code.STALE_STATE -> StaleState(reasonStrings)
                 SubmitIntentResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
-                else -> return Other()
+                else -> return Other(cause = Exception("Unknown error code: ${proto.code}"))
             }
         }
     }
