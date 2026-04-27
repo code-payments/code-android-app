@@ -48,6 +48,7 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
@@ -62,6 +63,7 @@ internal fun TransactionReceipt(
     modifier: Modifier = Modifier,
     onLearnMoreClicked: () -> Unit
 ) {
+    val exchange = LocalExchange.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -81,7 +83,7 @@ internal fun TransactionReceipt(
     ) {
         val netTransferAmount by remember(tokenWithBalance, fee) {
             derivedStateOf {
-                tokenWithBalance.balance - (fee ?: Fiat.Zero)
+                tokenWithBalance.balance - (fee ?: 0.toFiat(tokenWithBalance.balance.currencyCode))
             }
         }
 
@@ -107,7 +109,8 @@ internal fun TransactionReceipt(
                 showName = false,
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 formattedBalance = { amount ->
-                    amount.estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2)
+                    amount.convertingToUsdIfNeeded(exchange.entryRate)
+                        .estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2)
                 },
                 sizing = rememberTokenBalanceRowSizing(
                     balanceTextStyle = CodeTheme.typography.displayMedium.bolded(),
@@ -181,10 +184,12 @@ private fun LineItems(
             )
         }
 
+        val exchange = LocalExchange.current
         ReceiptLineItem(
             modifier = Modifier.fillMaxWidth(),
             label = AnnotatedString("Amount in ${tokenWithBalance.token.name}"),
-            amount = transferAmount.estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2),
+            amount = transferAmount.convertingToUsdIfNeeded(exchange.entryRate)
+                .estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2),
         )
     }
 }
@@ -199,7 +204,8 @@ private val rates = mapOf(
     CurrencyCode.USD to cadToUsdRate,
 )
 
-private val fee = Fiat(0.50, CurrencyCode.USD)
+private val feeUsd = Fiat(0.50, CurrencyCode.USD)
+private val feeCad = feeUsd.convertingTo(usdToCadRate)
 
 @Preview
 @Composable
@@ -217,7 +223,7 @@ private fun Preview_CadWithdrawalWithFeeReceipt() {
                     token = Token.usdf,
                     balance = fiveCad
                 ),
-                fee = fee,
+                fee = feeCad,
             ) {
 
             }
@@ -265,7 +271,7 @@ private fun Preview_UsdWithdrawalWithFeeReceipt() {
                     token = Token.usdf,
                     balance = fiveUsd
                 ),
-                fee = fee,
+                fee = feeUsd,
             ) {
 
             }
@@ -313,7 +319,7 @@ private fun Preview_CadWithdrawalWithFeeButTooSmallReceipt() {
                     token = Token.usdf,
                     balance = halfDollarCad
                 ),
-                fee = fee,
+                fee = feeCad,
             ) {
 
             }

@@ -73,7 +73,7 @@ class SwapViewModel @Inject constructor(
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     transactionController: TransactionOperations,
     resources: ResourceHelper,
-    tokenCoordinator: TokenCoordinator,
+    private val tokenCoordinator: TokenCoordinator,
     feedCoordinator: ActivityFeedCoordinator,
     private val analytics: FlipcashAnalyticsService,
     dispatchers: DispatcherProvider,
@@ -607,6 +607,23 @@ class SwapViewModel @Inject constructor(
             }
             .map { (owner, purpose, amount) -> owner to stateFlow.value.tokenWithBalance!!.token to amount }
             .onEach { (owner, token, amount) ->
+                // Refresh balance from network before submitting to ensure
+                // the on-chain balance matches what we're about to sell.
+                tokenCoordinator.updateTokenAccount(token.address)
+
+                // underlyingTokenAmount.quarks are token quarks, not USD —
+                // convert back through the bonding curve for an apples-to-apples comparison.
+                val amountInUsd = Fiat.tokenBalance(amount.localFiat.underlyingTokenAmount.quarks, token)
+                val refreshedBalance = tokenCoordinator.balanceForToken(token)
+                if (amountInUsd > refreshedBalance) {
+                    dispatchEvent(Event.UpdateSellState(loading = false))
+                    BottomBarManager.showAlert(
+                        title = resources.getString(R.string.error_title_insufficientFunds),
+                        message = resources.getString(R.string.error_description_insufficientFunds),
+                    )
+                    return@onEach
+                }
+
                 transactionController.sell(
                     owner = owner,
                     amount = amount,

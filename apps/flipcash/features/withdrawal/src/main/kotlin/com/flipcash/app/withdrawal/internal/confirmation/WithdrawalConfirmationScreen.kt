@@ -76,7 +76,7 @@ private fun WithdrawalConfirmationScreenContent(
                     balance = state.amountEntryState.selectedAmount.localFiat.nativeAmount,
                 ),
                 destination = state.destinationState.textFieldState.text.toString(),
-                fee = state.destinationState.availability?.feeAmount,
+                fee = state.feeInEntryCurrency,
                 onLearnMoreClicked = {
                     dispatchEvent(WithdrawalViewModel.Event.OnLearnAboutFee)
                 }
