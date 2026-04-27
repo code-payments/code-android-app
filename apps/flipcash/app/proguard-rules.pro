@@ -16,6 +16,10 @@
 # Keep screen names
 -keepnames class * implements cafe.adriel.voyager.core.screen.Screen
 
+# Keep AppRoute class names for analytics screen tracking
+-keepnames class com.flipcash.app.core.AppRoute
+-keepnames class com.flipcash.app.core.AppRoute$**
+
 # Protobuf — keep all generated message classes and their builders.
 # Using type-hierarchy rules so new packages / updated gRPC stubs are
 # caught automatically instead of listing every gen package.

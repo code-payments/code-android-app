@@ -67,7 +67,7 @@ fun rememberNavMessagingEntryDecorator(
 ) = remember { NavMessagingEntryDecorator(backStack, barManager) }
 
 private fun NavKey.screenName(): String? {
-    val prefix = AppRoute::class.qualifiedName ?: return null
-    val qualifiedName = this::class.qualifiedName ?: return null
-    return qualifiedName.removePrefix("$prefix.").takeIf { it != qualifiedName }
+    val prefix = AppRoute::class.java.name
+    val name = this::class.java.name
+    return name.removePrefix("$prefix$").replace('$', '.').takeIf { it != name }
 }

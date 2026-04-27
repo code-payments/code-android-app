@@ -291,7 +291,11 @@ object BottomBarManager {
     ) {
         val callSite = Throwable().stackTrace
             .firstOrNull { it.className != BottomBarManager::class.java.name }
-            ?.let { "${it.fileName}:${it.lineNumber}" }
+            ?.let {
+                val file = it.fileName
+                    ?: it.className.substringAfterLast('.').substringBefore('$')
+                "$file:${it.lineNumber}"
+            }
 
         showMessage(
             BottomBarMessage(
