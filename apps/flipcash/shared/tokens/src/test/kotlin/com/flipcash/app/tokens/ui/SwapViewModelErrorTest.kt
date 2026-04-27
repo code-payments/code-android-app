@@ -12,7 +12,9 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.solana.keys.Mint
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.utils.generate
@@ -124,10 +126,14 @@ class SwapViewModelErrorTest {
     @Test
     fun `sell failure shows buySellFailed error`() = runTest(mainCoroutineRule.dispatcher) {
         dispatchers = TestDispatchers(testScheduler)
+        // Ensure balance check passes so the sell call is reached
+        every { tokenCoordinator.balanceForToken(any<Token>()) } returns Fiat(999_999.0)
         whenever(transactionController.sell(any(), any(), any()))
             .thenReturn(Result.failure(RuntimeException("sell failed")))
 
-        val token = mockk<Token>(relaxed = true)
+        val token = mockk<Token>(relaxed = true) {
+            every { address } returns Mint.usdf
+        }
         val tokenWithBalance = mockk<TokenWithBalance>(relaxed = true) {
             every { this@mockk.token } returns token
         }

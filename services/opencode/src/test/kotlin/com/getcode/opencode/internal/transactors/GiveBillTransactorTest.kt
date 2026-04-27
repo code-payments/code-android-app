@@ -2,6 +2,7 @@ package com.getcode.opencode.internal.transactors
 
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.extensions.exchangeDataFor
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -34,6 +35,7 @@ class GiveBillTransactorTest {
 
     private val messagingController = mockk<MessagingController>(relaxed = true)
     private val transactionController = mockk<TransactionController>(relaxed = true)
+    private val verifiedFiatCalculator = mockk<VerifiedFiatCalculator>(relaxed = true)
 
     private val payloadFactory = PayloadFactory { _, _, _ ->
         PayloadResult(rendezvous = mockk(relaxed = true), codeData = emptyList())
@@ -45,6 +47,7 @@ class GiveBillTransactorTest {
             transactionController = transactionController,
             scope = scope,
             payloadFactory = payloadFactory,
+            verifiedFiatCalculator = verifiedFiatCalculator,
         )
     }
 
@@ -142,6 +145,7 @@ class GiveBillTransactorTest {
             transactionController = transactionController,
             scope = this,
             payloadFactory = factory,
+            verifiedFiatCalculator = verifiedFiatCalculator,
         )
 
         val providedNonce = listOf<Byte>(10, 20, 30, 40)
@@ -172,6 +176,7 @@ class GiveBillTransactorTest {
             transactionController = transactionController,
             scope = this,
             payloadFactory = factory,
+            verifiedFiatCalculator = verifiedFiatCalculator,
         )
 
         val nonce = listOf<Byte>(10, 20, 30, 40)
@@ -195,12 +200,14 @@ class GiveBillTransactorTest {
             transactionController = transactionController,
             scope = this,
             payloadFactory = factory,
+            verifiedFiatCalculator = verifiedFiatCalculator,
         )
         val transactor2 = GiveBillTransactor(
             messagingController = messagingController,
             transactionController = transactionController,
             scope = this,
             payloadFactory = factory,
+            verifiedFiatCalculator = verifiedFiatCalculator,
         )
 
         setupWith(transactor1)
