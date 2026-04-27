@@ -84,7 +84,7 @@ private fun showOnRampFailure(context: Context, error: CoinbaseOnRampWebError) {
         }
 
         is CoinbaseOnRampWebError.GuestCardNotDebit -> {
-            BottomBarManager.showError(
+            BottomBarManager.showAlert(
                 title = context.getString(R.string.error_title_onrampInvalidCard),
                 message = context.getString(R.string.error_description_onrampInvalidCard),
             )
@@ -98,7 +98,7 @@ private fun showOnRampFailure(context: Context, error: CoinbaseOnRampWebError) {
         }
 
         is CoinbaseOnRampWebError.GuestGooglePayNotReady -> {
-            BottomBarManager.showError(
+            BottomBarManager.showAlert(
                 title = context.getString(R.string.error_title_onrampGooglePayNotReady),
                 message = context.getString(R.string.error_description_onrampGooglePayNotReady),
             )

@@ -91,9 +91,9 @@ class CoinbaseOnRampController @Inject constructor(
     ): Result<Unit> {
         when (googlePayReadiness.check()) {
             GooglePayReadiness.Status.NotSupported ->
-                return Result.failure(OnRampPaymentError.GooglePayNotSupported)
+                return Result.failure(OnRampPaymentError.GooglePayNotSupported())
             GooglePayReadiness.Status.NoPaymentMethod ->
-                return Result.failure(OnRampPaymentError.GooglePayNoPaymentMethod)
+                return Result.failure(OnRampPaymentError.GooglePayNoPaymentMethod())
             GooglePayReadiness.Status.Ready -> Unit
         }
 
@@ -343,11 +343,8 @@ class CoinbaseOnRampController @Inject constructor(
 sealed class OnRampPaymentError(
     override val message: String? = null,
 ) : Throwable(message) {
-    data object GooglePayNotSupported :
-        OnRampPaymentError("Google Pay is not available on this device")
-
-    data object GooglePayNoPaymentMethod :
-        OnRampPaymentError("No payment method enrolled in Google Pay")
+    class GooglePayNotSupported : OnRampPaymentError("Google Pay is not available on this device")
+    class GooglePayNoPaymentMethod : OnRampPaymentError("No payment method enrolled in Google Pay")
 }
 
 sealed class OnRampAuthError(

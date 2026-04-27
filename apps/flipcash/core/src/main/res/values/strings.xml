@@ -518,7 +518,7 @@
     <string name="error_description_onrampTransactionLimit">You can only add up to $1,000 per week</string>
 
     <string name="error_title_onrampTransactionCount">Maximum Purchases Reached</string>
-    <string name="error_description_onrampTransactionCount">Each user is limited to 15 purchases total. To add more funds, you will need to purchase USDC on an exchange and deposit it into Flipcash</string>
+    <string name="error_description_onrampTransactionCount">Each user is limited to 15 purchases total</string>
 
     <string name="error_title_onrampCardRiskDeclined">Something Went Wrong</string>
     <string name="error_description_onrampCardRiskDeclined">Please contact support@flipcash.com</string>
