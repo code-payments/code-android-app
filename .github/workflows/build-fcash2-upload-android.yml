@@ -112,6 +112,19 @@ jobs:
           PLAYSTORE_TRACK: ${{ github.event.inputs.track }}
           RELEASE_STATUS: ${{ github.event.inputs.release_status }}
 
+      - name: Update release manifest
+        id: manifest
+        env:
+          SERVICE_ACCOUNT_KEY_JSON: ${{ steps.service_account_json_file.outputs.filePath }}
+        run: bash scripts/update-release-manifest.sh
+
+      - name: Commit & push manifest
+        uses: actions-js/push@master
+        with:
+          message: "build: update release manifest"
+          branch: "code/cash"
+          github_token: ${{ secrets.BOT_GITHUB_TOKEN }}
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: always()
