@@ -11,7 +11,11 @@ import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
+import com.flipcash.app.updates.ReleaseStage
+import com.flipcash.app.updates.ReleaseStageProvider
+import com.flipcash.app.updates.TrackInfo
 import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.features.menu.BuildConfig
 import com.flipcash.features.menu.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
@@ -57,6 +61,7 @@ internal class MenuScreenViewModel @Inject constructor(
     mnemonicManager: MnemonicManager,
     featureFlags: FeatureFlagController,
     dispatchers: DispatcherProvider,
+    releaseStageProvider: ReleaseStageProvider,
 ) :
     BaseViewModel2<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
         initialState = State(),
@@ -70,6 +75,7 @@ internal class MenuScreenViewModel @Inject constructor(
         val flags: List<BetaFeature> = emptyList(),
         val unlockedBetaFeaturesManually: Boolean = false,
         val appVersionInfo: VersionInfo = VersionInfo(),
+        val releaseTrack: String = "",
     )
 
     sealed interface Event {
@@ -77,6 +83,7 @@ internal class MenuScreenViewModel @Inject constructor(
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean): Event
         data class OnFeatureFlagsUpdated(val flags: List<BetaFeature>): Event
         data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
+        data class OnReleaseTrackDetermined(val stage: String): Event
         data class OnStaffUserDetermined(val staff: Boolean) : Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object OnSwitchAccountsClicked : Event
@@ -104,6 +111,18 @@ internal class MenuScreenViewModel @Inject constructor(
         featureFlags.observe()
             .onEach { dispatchEvent(Event.OnFeatureFlagsUpdated(it)) }
             .launchIn(viewModelScope)
+
+        viewModelScope.launch {
+            val resolvedStage = releaseStageProvider.resolvedStage
+            val label = when {
+                BuildConfig.DEBUG -> "debug"
+                resolvedStage == ReleaseStage.Production -> null // omit for production builds
+                else -> resolvedStage.name.lowercase()
+            }
+
+            val formattedLabel = if (label != null) { " • $label" } else ""
+            dispatchEvent(Event.OnReleaseTrackDetermined(formattedLabel))
+        }
 
         eventFlow
             .filterIsInstance<Event.OnLogoTapped>()
@@ -210,6 +229,10 @@ internal class MenuScreenViewModel @Inject constructor(
 
                 is Event.OnAppVersionUpdated -> { state ->
                     state.copy(appVersionInfo = event.versionInfo)
+                }
+
+                is Event.OnReleaseTrackDetermined -> { state ->
+                    state.copy(releaseTrack = event.stage)
                 }
 
                 is Event.OnStaffUserDetermined -> { state ->

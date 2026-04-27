@@ -80,7 +80,8 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                     text = stringResource(
                         R.string.subtitle_appVersionInfoFooter,
                         state.appVersionInfo.versionName,
-                        state.appVersionInfo.versionCode
+                        state.appVersionInfo.versionCode,
+                        state.releaseTrack.orEmpty()
                     ),
                     color = CodeTheme.colors.textSecondary,
                     style = CodeTheme.typography.textSmall.copy(
