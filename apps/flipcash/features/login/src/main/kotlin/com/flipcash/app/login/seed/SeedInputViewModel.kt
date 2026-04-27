@@ -98,7 +98,7 @@ class SeedInputViewModel @Inject constructor(
             authManager.login(entropyB64, isFromSelection = isRestore)
                 .onFailure {
                     if (it is AuthManager.AuthManagerException.TimelockUnlockedException) {
-                        BottomBarManager.showError(
+                        BottomBarManager.showAlert(
                             getString(R.string.error_title_timelockUnlocked),
                             getString(R.string.error_description_timelockUnlocked)
                         )

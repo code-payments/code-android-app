@@ -82,7 +82,7 @@ internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: (r
         isStoragePermissionGranted = result == PermissionResult.Granted
 
         if (!isStoragePermissionGranted) {
-            BottomBarManager.showError(
+            BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_failedToSave),
                 message = resources.getString(R.string.error_description_failedToSave),
                 actions = listOf(

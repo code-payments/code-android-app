@@ -249,7 +249,7 @@ class SwapViewModel @Inject constructor(
             is SwapPurpose.BalanceIncrease -> {
                 val isOverBalance = enteredInUsdf > reservesBalance.rounded()
                 if (isOverBalance || conversionRate == Rate.ignore) {
-                    BottomBarManager.showError(
+                    BottomBarManager.showAlert(
                         title = resources.getString(R.string.error_title_insufficientFunds),
                         message = resources.getString(R.string.error_description_insufficientFunds)
                     )
@@ -260,7 +260,7 @@ class SwapViewModel @Inject constructor(
             is SwapPurpose.BalanceDecrease -> {
                 val isOverBalance = enteredInUsdf > tokenBalance.rounded()
                 if (isOverBalance || conversionRate == Rate.ignore) {
-                    BottomBarManager.showError(
+                    BottomBarManager.showAlert(
                         title = resources.getString(R.string.error_title_insufficientFunds),
                         message = resources.getString(R.string.error_description_insufficientFunds)
                     )
