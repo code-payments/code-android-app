@@ -1,4 +1,4 @@
-name: Record production release and bump patch
+name: Update release manifest and bump patch
 
 on:
   workflow_dispatch:
