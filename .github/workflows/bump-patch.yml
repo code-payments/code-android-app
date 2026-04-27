@@ -1,11 +1,11 @@
-name: Bump Flipcash patch version after production release
+name: Record production release and bump patch
 
 on:
   workflow_dispatch:
 
 jobs:
-  bump-patch:
-    name: Bump patch version
+  release:
+    name: Update manifest and bump patch
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -22,23 +22,126 @@ jobs:
             exit 1
           fi
 
+      - name: Decode Service Account Key JSON file
+        uses: timheuer/base64-to-file@v1
+        id: service_account_json_file
+        with:
+          fileName: serviceAccount.json
+          encodedString: ${{ secrets.FLIPCASH_SERVICE_ACCOUNT_KEY_JSON }}
+
+      - name: Get Play API access token
+        id: token
+        env:
+          SA_PATH: ${{ steps.service_account_json_file.outputs.filePath }}
+        run: |
+          NOW=$(date +%s); EXP=$((NOW + 3600))
+          CLIENT_EMAIL=$(jq -r .client_email "$SA_PATH")
+          PRIVATE_KEY=$(jq -r .private_key "$SA_PATH")
+
+          HEADER=$(echo -n '{"alg":"RS256","typ":"JWT"}' | base64 -w0 | tr '+/' '-_' | tr -d '=')
+          PAYLOAD=$(jq -nc \
+            --arg iss "$CLIENT_EMAIL" \
+            --arg scope "https://www.googleapis.com/auth/androidpublisher" \
+            --argjson iat $NOW --argjson exp $EXP \
+            '{iss:$iss, scope:$scope, aud:"https://oauth2.googleapis.com/token", iat:$iat, exp:$exp}' \
+            | base64 -w0 | tr '+/' '-_' | tr -d '=')
+
+          SIG=$(printf '%s.%s' "$HEADER" "$PAYLOAD" \
+            | openssl dgst -sha256 -sign <(echo "$PRIVATE_KEY") \
+            | base64 -w0 | tr '+/' '-_' | tr -d '=')
+
+          ACCESS=$(curl -s -X POST https://oauth2.googleapis.com/token \
+            -d "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer" \
+            -d "assertion=$HEADER.$PAYLOAD.$SIG" | jq -r .access_token)
+
+          if [ -z "$ACCESS" ] || [ "$ACCESS" = "null" ]; then
+            echo "Error: Failed to mint Play API access token"
+            exit 1
+          fi
+
+          echo "::add-mask::$ACCESS"
+          echo "access_token=$ACCESS" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch tracks and update manifest
+        id: manifest
+        env:
+          ACCESS: ${{ steps.token.outputs.access_token }}
+          PKG: com.flipcash.app.android
+          MANIFEST_PATH: .well-known/release-manifest.json
+        run: |
+          AUTH="Authorization: Bearer $ACCESS"
+          BASE="https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$PKG"
+          EDIT_ID=$(curl -s -X POST "$BASE/edits" -H "$AUTH" | jq -r .id)
+
+          if [ -z "$EDIT_ID" ] || [ "$EDIT_ID" = "null" ]; then
+            echo "Error: Failed to create Play API edit"
+            exit 1
+          fi
+
+          fetch_track() {
+            curl -s "$BASE/edits/$EDIT_ID/tracks/$1" -H "$AUTH" \
+              | jq -c '[.releases[]? | select(.status == "completed") | .versionCodes[]?] | map(tonumber) | max // null'
+          }
+
+          PROD=$(fetch_track production)
+          BETA=$(fetch_track beta)
+          ALPHA=$(fetch_track alpha)
+          INTERNAL=$(fetch_track internal)
+
+          curl -s -X DELETE "$BASE/edits/$EDIT_ID" -H "$AUTH" || true
+
+          OLD_PROD=$(jq -r '.tracks.production // empty' "$MANIFEST_PATH" 2>/dev/null || echo "")
+
+          mkdir -p "$(dirname "$MANIFEST_PATH")"
+          jq -n \
+            --argjson production "$PROD" \
+            --argjson beta "$BETA" \
+            --argjson alpha "$ALPHA" \
+            --argjson internal "$INTERNAL" \
+            --arg updated "$(date -u +%FT%TZ)" \
+            '{updated: $updated, tracks: {production:$production, beta:$beta, alpha:$alpha, internal:$internal}}' \
+            > "$MANIFEST_PATH"
+
+          echo "old_prod=$OLD_PROD" >> "$GITHUB_OUTPUT"
+          echo "new_prod=$PROD" >> "$GITHUB_OUTPUT"
+          cat "$MANIFEST_PATH"
+
+      - name: Determine if production changed
+        id: check
+        run: |
+          if [ "${{ steps.manifest.outputs.old_prod }}" = "${{ steps.manifest.outputs.new_prod }}" ]; then
+            echo "Production unchanged (${{ steps.manifest.outputs.new_prod }}) — manifest refreshed, skipping patch bump"
+            echo "prod_changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "prod_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Read current patch version and increment
+        if: steps.check.outputs.prod_changed == 'true'
         id: version
         run: |
-          CURRENT=$(sed -n '/object Flipcash : Packaging(/,/)/ s/.*patchVersion = \([0-9]\+\).*/\1/p' buildSrc/src/main/java/Packaging.kt)
+          CURRENT=$(sed -n '/object Flipcash : Packaging(/,/)/ s/.*patchVersion = \([0-9][0-9]*\).*/\1/p' buildSrc/src/main/java/Packaging.kt)
+          MAJOR=$(sed -n '/object Flipcash : Packaging(/,/)/ s/.*majorVersion = \([0-9][0-9]*\).*/\1/p' buildSrc/src/main/java/Packaging.kt)
+          MINOR=$(sed -n '/object Flipcash : Packaging(/,/)/ s/.*minorVersion = \([0-9][0-9]*\).*/\1/p' buildSrc/src/main/java/Packaging.kt)
+
+          if [ -z "$CURRENT" ] || [ -z "$MAJOR" ] || [ -z "$MINOR" ]; then
+            echo "Error: Failed to parse version fields from Packaging.kt"
+            echo "  major=$MAJOR minor=$MINOR patch=$CURRENT"
+            exit 1
+          fi
+
           NEXT=$((CURRENT + 1))
           echo "CURRENT=$CURRENT" >> $GITHUB_OUTPUT
           echo "NEXT=$NEXT" >> $GITHUB_OUTPUT
-
-          MAJOR=$(sed -n '/object Flipcash : Packaging(/,/)/ s/.*majorVersion = \([0-9]\+\).*/\1/p' buildSrc/src/main/java/Packaging.kt)
-          MINOR=$(sed -n '/object Flipcash : Packaging(/,/)/ s/.*minorVersion = \([0-9]\+\).*/\1/p' buildSrc/src/main/java/Packaging.kt)
           echo "VERSION=$MAJOR.$MINOR.$NEXT" >> $GITHUB_OUTPUT
 
       - name: Update patchVersion
+        if: steps.check.outputs.prod_changed == 'true'
         run: |
-          sed -i '/object Flipcash : Packaging(/,/)/ s/patchVersion = [0-9]\+/patchVersion = ${{ steps.version.outputs.NEXT }}/' buildSrc/src/main/java/Packaging.kt
+          sed -i '/object Flipcash : Packaging(/,/)/ s/patchVersion = [0-9][0-9]*/patchVersion = ${{ steps.version.outputs.NEXT }}/' buildSrc/src/main/java/Packaging.kt
 
       - name: Validate updated field
+        if: steps.check.outputs.prod_changed == 'true'
         run: |
           if ! grep -A 10 'object Flipcash : Packaging(' buildSrc/src/main/java/Packaging.kt | grep -q "patchVersion = ${{ steps.version.outputs.NEXT }}"; then
             echo "Error: Failed to update patchVersion to ${{ steps.version.outputs.NEXT }}"
@@ -48,6 +151,9 @@ jobs:
       - name: Commit & Push changes
         uses: actions-js/push@master
         with:
-          message: "build: bump Flipcash to ${{ steps.version.outputs.VERSION }}"
+          message: >-
+            ${{ steps.check.outputs.prod_changed == 'true'
+              && format('build: release versionCode {0}, bump Flipcash to {1}', steps.manifest.outputs.new_prod, steps.version.outputs.VERSION)
+              || 'chore: refresh release manifest' }}
           branch: "code/cash"
           github_token: ${{ secrets.BOT_GITHUB_TOKEN }}
