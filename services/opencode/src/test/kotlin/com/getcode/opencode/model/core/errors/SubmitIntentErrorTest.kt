@@ -6,6 +6,7 @@ import com.codeinc.opencode.gen.transaction.v1.reasonStringErrorDetails
 import com.codeinc.opencode.gen.transaction.v1.deniedErrorDetails
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -144,6 +145,30 @@ class SubmitIntentErrorTest {
             SubmitIntentError.Other(RuntimeException("test")),
         )
         errors.forEach { assertTrue(it is Throwable) }
+    }
+
+    @Test
+    fun staleStateWithGiftCardClaimedReasonIsGiftCardAlreadyClaimed() {
+        val error = SubmitIntentError.typed(
+            buildError(
+                SubmitIntentResponse.Error.Code.STALE_STATE,
+                reasonStrings = listOf("gift card balance has already been claimed")
+            )
+        )
+        assertIs<SubmitIntentError.StaleState>(error)
+        assertTrue(error.isGiftCardAlreadyClaimed)
+    }
+
+    @Test
+    fun staleStateWithOtherReasonIsNotGiftCardAlreadyClaimed() {
+        val error = SubmitIntentError.typed(
+            buildError(
+                SubmitIntentResponse.Error.Code.STALE_STATE,
+                reasonStrings = listOf("nonce expired")
+            )
+        )
+        assertIs<SubmitIntentError.StaleState>(error)
+        assertFalse(error.isGiftCardAlreadyClaimed)
     }
 
     @Test

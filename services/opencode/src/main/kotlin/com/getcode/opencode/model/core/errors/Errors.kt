@@ -122,7 +122,10 @@ sealed class SubmitIntentError(
             if (details.isNotEmpty()) append(": ${details.joinToString()}")
         }), NotifiableError
     data class StaleState(private val reasons: List<String>) :
-        SubmitIntentError(message = reasons.joinToString()), NotifiableError
+        SubmitIntentError(message = reasons.joinToString()), NotifiableError {
+        val isGiftCardAlreadyClaimed: Boolean
+            get() = reasons.any { it.contains("gift card balance has already been claimed") }
+    }
 
     data class Denied(private val reasons: List<String>) :
         SubmitIntentError(message = reasons.joinToString())

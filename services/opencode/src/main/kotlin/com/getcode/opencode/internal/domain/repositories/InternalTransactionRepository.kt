@@ -12,6 +12,7 @@ import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapRequest
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
+import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.solana.keys.Mint
@@ -29,7 +30,12 @@ internal class InternalTransactionRepository @Inject constructor(
         intent: IntentType,
         owner: Ed25519.KeyPair
     ): Result<IntentType> = service.submitIntent(scope, intent, owner)
-        .onFailure { ErrorUtils.handleError(it) }
+        .onFailure {
+            // Expected race: pre-claim check passes but the gift card is claimed
+            // before the intent is submitted. Not a bug — skip Bugsnag reporting.
+            if (it is SubmitIntentError.StaleState && it.isGiftCardAlreadyClaimed) return@onFailure
+            ErrorUtils.handleError(it)
+        }
 
     override suspend fun getIntentMetadata(
         intentId: PublicKey,
