@@ -18,6 +18,7 @@ import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
+import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -287,7 +288,14 @@ internal class OnRampViewModel @Inject constructor(
                     amount = localizedAmount,
                     token = Token.usdf,
                     rate = rate,
-                )
+                ).getOrElse { cause ->
+                    dispatchEvent(Event.UpdateConfirmingAmountState())
+                    BottomBarManager.showAlert(
+                        title = resources.getString(R.string.error_title_staleRates),
+                        message = resources.getString(R.string.error_description_staleRates),
+                    )
+                    return@onEach
+                }
 
                 dispatchEvent(Event.OnAmountAccepted(amountFiat))
             }.launchIn(viewModelScope)

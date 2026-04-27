@@ -41,6 +41,7 @@ import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
+import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.core.errors.GetMintsError
 import com.getcode.opencode.model.core.errors.LaunchTokenError
 import com.getcode.opencode.model.core.errors.ValidationException
@@ -522,7 +523,14 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     amount = event.context.amount,
                     token = Token.usdf,
                     rate = Rate.oneToOne,
-                )
+                ).getOrElse {
+                    BottomBarManager.showAlert(
+                        title = resources.getString(R.string.error_title_staleRates),
+                        message = resources.getString(R.string.error_description_staleRates),
+                    )
+                    return@onEach
+                }
+
                 val feeAmount = event.context.feeAmount?.let { LocalFiat.fromUsd(usdf = it) }
                 externalWalletController.setAmount(amount = totalAmount, feeAmount = feeAmount)
                 externalWalletController.setTokenToPurchase(event.context.token)
@@ -537,31 +545,39 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             }
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
             .map { (owner, context) ->
-                val totalAmount = verifiedFiatCalculator.compute(
+                verifiedFiatCalculator.compute(
                     amount = context.amount,
                     token = Token.usdf,
                     rate = Rate.oneToOne,
-                )
-                val feeAmount = context.feeAmount?.let { LocalFiat.fromUsd(usdf = it) }
-                transactionController.buy(
-                    owner = owner,
-                    amount = totalAmount,
-                    feeAmount = feeAmount,
-                    of = context.token,
-                    source = SwapFundingSource.SubmitIntent(),
-                    fund = null,
-                ).map { swapId -> swapId to context.token.address }
+                ).mapCatching { totalAmount ->
+                    val feeAmount = context.feeAmount?.let { LocalFiat.fromUsd(usdf = it) }
+                    transactionController.buy(
+                        owner = owner,
+                        amount = totalAmount,
+                        feeAmount = feeAmount,
+                        of = context.token,
+                        source = SwapFundingSource.SubmitIntent(),
+                        fund = null,
+                    ).getOrThrow()
+                }.map { swapId -> swapId to context.token.address }
             }
             .onResult(
                 onSuccess = { (swapId, mint) ->
                     dispatchEvent(Event.PurchaseSubmitted(swapId, mint))
                 },
-                onError = {
+                onError = { cause ->
                     dispatchEvent(Event.UpdateProcessingState())
-                    BottomBarManager.showError(
-                        title = resources.getString(R.string.error_title_buyNewCurrencyFailed),
-                        message = resources.getString(R.string.error_description_buyNewCurrencyFailed),
-                    )
+                    if (cause is ComputeVerifiedFiatError) {
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_staleRates),
+                            message = resources.getString(R.string.error_description_staleRates),
+                        )
+                    } else {
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_buyNewCurrencyFailed),
+                            message = resources.getString(R.string.error_description_buyNewCurrencyFailed),
+                        )
+                    }
                 }
             )
             .launchIn(viewModelScope)

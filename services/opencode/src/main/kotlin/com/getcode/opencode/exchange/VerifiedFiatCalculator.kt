@@ -18,5 +18,5 @@ interface VerifiedFiatCalculator {
         balance: Fiat? = null,
         rate: Rate,
         trace: Boolean = true,
-    ): VerifiedFiat
+    ): Result<VerifiedFiat>
 }

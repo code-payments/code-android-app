@@ -19,6 +19,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -26,6 +27,7 @@ import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
@@ -65,7 +67,7 @@ class RealVerifiedFiatCalculatorTest {
             token = token,
             rate = Rate.oneToOne,
             trace = false,
-        )
+        ).getOrThrow()
 
         assertEquals(Mint.usdf, result.localFiat.mint)
         assertEquals(amount.quarks, result.localFiat.underlyingTokenAmount.quarks)
@@ -82,10 +84,28 @@ class RealVerifiedFiatCalculatorTest {
             token = token,
             rate = rate,
             trace = false,
-        )
+        ).getOrThrow()
 
         assertEquals(Mint.usdf, result.localFiat.mint)
         assertEquals(CurrencyCode.CAD, result.localFiat.nativeAmount.currencyCode)
+    }
+
+    @Test
+    fun `USDF succeeds even when verified state is null`() = runTest {
+        val amount = Fiat(fiat = 5.0, currencyCode = CurrencyCode.USD)
+        val token = usdfToken()
+
+        every { verifiedStateManager.getVerifiedStateFor(any(), any()) } returns null
+
+        val result = calculator.compute(
+            amount = amount,
+            token = token,
+            rate = Rate.oneToOne,
+            trace = false,
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals(Mint.usdf, result.getOrThrow().localFiat.mint)
     }
 
     // endregion
@@ -106,19 +126,17 @@ class RealVerifiedFiatCalculatorTest {
             token = token,
             rate = Rate.oneToOne,
             trace = false,
-        )
+        ).getOrThrow()
 
-        // Compute what we'd get with the token's own supply
-        every {
-            verifiedStateManager.getVerifiedStateFor(any(), any())
-        } returns null
+        // Compute with the token's own supply using a verified state that has matching supply
+        stubVerifiedState(CurrencyCode.USD, testMint, supply)
 
         val resultWithTokenSupply = calculator.compute(
             amount = Fiat(fiat = 1.0, currencyCode = CurrencyCode.USD),
             token = token,
             rate = Rate.oneToOne,
             trace = false,
-        )
+        ).getOrThrow()
 
         // Results should differ because different supplies were used
         assertNotEquals(
@@ -128,7 +146,7 @@ class RealVerifiedFiatCalculatorTest {
     }
 
     @Test
-    fun `falls back to token supply when no verified state`() = runTest {
+    fun `returns StaleRate failure when verified state is null`() = runTest {
         val supply = 1_000_000_000_000L
         val token = bondingCurveToken(supply = supply)
 
@@ -143,8 +161,8 @@ class RealVerifiedFiatCalculatorTest {
             trace = false,
         )
 
-        assertTrue(result.localFiat.underlyingTokenAmount.quarks > 0)
-        assertEquals(testMint, result.localFiat.mint)
+        assertTrue(result.isFailure)
+        assertIs<ComputeVerifiedFiatError.StaleRate>(result.exceptionOrNull())
     }
 
     @Test
@@ -167,7 +185,7 @@ class RealVerifiedFiatCalculatorTest {
             token = token,
             rate = Rate.oneToOne,
             trace = false,
-        )
+        ).getOrThrow()
 
         assertTrue(result.localFiat.underlyingTokenAmount.quarks > 0)
     }
@@ -180,7 +198,7 @@ class RealVerifiedFiatCalculatorTest {
     fun `caps amount to balance when balance is smaller`() = runTest {
         val supply = 1_000_000_000_000L
         val token = bondingCurveToken(supply = supply)
-        every { verifiedStateManager.getVerifiedStateFor(any(), any()) } returns null
+        stubVerifiedState(CurrencyCode.USD, testMint, supply)
 
         val largeAmount = Fiat(fiat = 10.0, currencyCode = CurrencyCode.USD)
         val smallBalance = Fiat(fiat = 1.0, currencyCode = CurrencyCode.USD)
@@ -191,14 +209,14 @@ class RealVerifiedFiatCalculatorTest {
             balance = smallBalance,
             rate = Rate.oneToOne,
             trace = false,
-        )
+        ).getOrThrow()
 
         val directResult = calculator.compute(
             amount = smallBalance,
             token = token,
             rate = Rate.oneToOne,
             trace = false,
-        )
+        ).getOrThrow()
 
         // Capped result should match computing with the balance amount directly
         assertEquals(
@@ -211,7 +229,7 @@ class RealVerifiedFiatCalculatorTest {
     fun `does not cap when balance is larger than amount`() = runTest {
         val supply = 1_000_000_000_000L
         val token = bondingCurveToken(supply = supply)
-        every { verifiedStateManager.getVerifiedStateFor(any(), any()) } returns null
+        stubVerifiedState(CurrencyCode.USD, testMint, supply)
 
         val amount = Fiat(fiat = 1.0, currencyCode = CurrencyCode.USD)
         val largeBalance = Fiat(fiat = 10.0, currencyCode = CurrencyCode.USD)
@@ -222,14 +240,14 @@ class RealVerifiedFiatCalculatorTest {
             balance = largeBalance,
             rate = Rate.oneToOne,
             trace = false,
-        )
+        ).getOrThrow()
 
         val withoutBalance = calculator.compute(
             amount = amount,
             token = token,
             rate = Rate.oneToOne,
             trace = false,
-        )
+        ).getOrThrow()
 
         assertEquals(
             withoutBalance.localFiat.underlyingTokenAmount.quarks,
@@ -245,14 +263,14 @@ class RealVerifiedFiatCalculatorTest {
     fun `result has correct mint`() = runTest {
         val supply = 1_000_000_000_000L
         val token = bondingCurveToken(supply = supply)
-        every { verifiedStateManager.getVerifiedStateFor(any(), any()) } returns null
+        stubVerifiedState(CurrencyCode.USD, testMint, supply)
 
         val result = calculator.compute(
             amount = Fiat(fiat = 1.0, currencyCode = CurrencyCode.USD),
             token = token,
             rate = Rate.oneToOne,
             trace = false,
-        )
+        ).getOrThrow()
 
         assertEquals(testMint, result.localFiat.mint)
     }
@@ -261,14 +279,14 @@ class RealVerifiedFiatCalculatorTest {
     fun `result underlying amount is positive for positive input`() = runTest {
         val supply = 1_000_000_000_000L
         val token = bondingCurveToken(supply = supply)
-        every { verifiedStateManager.getVerifiedStateFor(any(), any()) } returns null
+        stubVerifiedState(CurrencyCode.USD, testMint, supply)
 
         val result = calculator.compute(
             amount = Fiat(fiat = 1.0, currencyCode = CurrencyCode.USD),
             token = token,
             rate = Rate.oneToOne,
             trace = false,
-        )
+        ).getOrThrow()
 
         assertTrue(result.localFiat.underlyingTokenAmount.quarks > 0)
         assertTrue(result.localFiat.nativeAmount.quarks > 0)
@@ -288,17 +306,25 @@ class RealVerifiedFiatCalculatorTest {
             token = token,
             rate = Rate.oneToOne,
             trace = false,
-        )
+        ).getOrThrow()
 
-        // Second: no verified state, fall back to token supply
-        every { verifiedStateManager.getVerifiedStateFor(any(), any()) } returns null
+        // Second: use verified state with no reserve proto, falls back to token supply
+        val stateWithoutReserve = VerifiedState(
+            rateProto = verifiedCoreMintFiatExchangeRate {
+                exchangeRate = coreMintFiatExchangeRate { currencyCode = "USD" }
+            },
+            reserveProto = null,
+        )
+        every {
+            verifiedStateManager.getVerifiedStateFor(CurrencyCode.USD, testMint)
+        } returns stateWithoutReserve
 
         val fallbackResult = calculator.compute(
             amount = Fiat(fiat = 1.0, currencyCode = CurrencyCode.USD),
             token = token,
             rate = Rate.oneToOne,
             trace = false,
-        )
+        ).getOrThrow()
 
         assertEquals(
             verifiedResult.localFiat.underlyingTokenAmount.quarks,

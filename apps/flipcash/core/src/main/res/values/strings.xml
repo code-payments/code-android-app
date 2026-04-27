@@ -606,4 +606,7 @@
 
     <string name="error_title_noInternet">Something Went Wrong</string>
     <string name="error_description_noInternet">Please check your internet connection or try again later.</string>
+
+    <string name="error_title_staleRates">Rate Unavailable</string>
+    <string name="error_description_staleRates">Couldn\'t get a fresh rate. Please try again.</string>
 </resources>

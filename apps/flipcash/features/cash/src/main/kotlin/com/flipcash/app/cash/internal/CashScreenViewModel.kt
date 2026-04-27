@@ -12,6 +12,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
+import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -146,10 +147,15 @@ internal class CashScreenViewModel @Inject constructor(
                                 amount =  Fiat(amount, rate.currency),
                                 token = token,
                                 rate = rate,
-                            ).localFiat
+                            ).getOrElse {
+                                BottomBarManager.showAlert(
+                                    title = resources.getString(R.string.error_title_staleRates),
+                                    message = resources.getString(R.string.error_description_staleRates),
+                                )
+                                return@launch
+                            }
 
-                            val neededAmount = amountFiat.nativeAmount - tokenBalance
-                            println("entered amount ${amountFiat.nativeAmount}, tokenbalace=$tokenBalance, needed=$neededAmount")
+                            val neededAmount = amountFiat.localFiat.nativeAmount - tokenBalance
                             dispatchEvent(Event.AddCashToWallet(neededAmount))
                         }
                     },
@@ -309,7 +315,14 @@ internal class CashScreenViewModel @Inject constructor(
                     token = token,
                     balance = balance.underlyingTokenAmount,
                     rate = rate,
-                )
+                ).getOrElse {
+                    dispatchEvent(Event.UpdateLoadingState(loading = false))
+                    BottomBarManager.showAlert(
+                        title = resources.getString(R.string.error_title_staleRates),
+                        message = resources.getString(R.string.error_description_staleRates),
+                    )
+                    return@onEach
+                }
 
                 val bill = Bill.Cash(
                     token = stateFlow.value.token!!.token,

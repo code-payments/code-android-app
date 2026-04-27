@@ -34,6 +34,7 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import com.getcode.vendor.Base58
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -275,7 +276,14 @@ internal class WithdrawalViewModel @Inject constructor(
                     token = token,
                     balance = stateFlow.value.token!!.balance,
                     rate = rate,
-                )
+                ).getOrElse { cause ->
+                    dispatchEvent(Event.UpdateConfirmingAmountState(loading = false))
+                    BottomBarManager.showAlert(
+                        title = resources.getString(R.string.error_title_staleRates),
+                        message = resources.getString(R.string.error_description_staleRates),
+                    )
+                    return@onEach
+                }
 
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = false, success = true))
                 dispatchEvent(Event.OnAmountAccepted(amountVerified))
@@ -402,7 +410,14 @@ internal class WithdrawalViewModel @Inject constructor(
                         token = token,
                         balance = stateFlow.value.token!!.balance,
                         rate = exchange.rateToUsd(CurrencyCode.USD)!!,
-                    ).localFiat.underlyingTokenAmount
+                    ).getOrElse {
+                        dispatchEvent(Event.UpdateWithdrawalState(loading = false))
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_staleRates),
+                            message = resources.getString(R.string.error_description_staleRates),
+                        )
+                        return@mapNotNull null
+                    }.localFiat.underlyingTokenAmount
                 }
 
                 transactionController.withdraw(

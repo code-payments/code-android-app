@@ -18,6 +18,7 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.solana.model.SwapId
+import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -483,7 +484,13 @@ class SwapViewModel @Inject constructor(
                             token = Token.usdf,
                             balance = stateFlow.value.reservesBalance.convertingToUsdIfNeeded(rate),
                             rate = rate
-                        )
+                        ).getOrElse {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_staleRates),
+                                message = resources.getString(R.string.error_description_staleRates),
+                            )
+                            return@onEach
+                        }
                         val netAmount = amountFiat.localFiat.nativeAmount
 
                         dispatchEvent(Event.UpdateBuyState(loading = true))
@@ -499,7 +506,13 @@ class SwapViewModel @Inject constructor(
                             amount = Fiat(data.amountData.amount, rate.currency),
                             token = Token.usdf,
                             rate = rate,
-                        )
+                        ).getOrElse {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_staleRates),
+                                message = resources.getString(R.string.error_description_staleRates),
+                            )
+                            return@onEach
+                        }
 
                         dispatchEvent(Event.OnAmountAccepted(amountFiat, netTransferAmount = amountFiat.localFiat.nativeAmount))
                         dispatchEvent(Event.UpdateBuyState(loading = true))
@@ -519,7 +532,13 @@ class SwapViewModel @Inject constructor(
                             token = tokenWithBalance.token,
                             balance = tokenWithBalance.balance,
                             rate = rate,
-                        )
+                        ).getOrElse {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_staleRates),
+                                message = resources.getString(R.string.error_description_staleRates),
+                            )
+                            return@onEach
+                        }
                         val netAmount = stateFlow.value.netTransferAmount
 
                         dispatchEvent(Event.OnAmountAccepted(amountFiat, netTransferAmount = netAmount))

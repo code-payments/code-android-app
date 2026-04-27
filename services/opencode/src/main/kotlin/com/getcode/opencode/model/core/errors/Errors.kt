@@ -324,3 +324,12 @@ sealed class DiscoverTokensError(
     class Unrecognized: DiscoverTokensError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : DiscoverTokensError(message = cause?.message, cause = cause), NotifiableError
 }
+
+sealed class ComputeVerifiedFiatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null,
+) : CodeServerError(message, cause) {
+    class StaleRate : ComputeVerifiedFiatError("Reserve state unavailable or stale")
+    data class ComputationFailed(override val cause: Throwable? = null) :
+        ComputeVerifiedFiatError(message = cause?.message, cause = cause)
+}

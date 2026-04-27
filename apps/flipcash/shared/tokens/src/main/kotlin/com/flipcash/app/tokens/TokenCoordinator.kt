@@ -477,15 +477,13 @@ class TokenCoordinator @Inject constructor(
                     updatedTokens = updatedTokens + (mint to updatedToken)
 
                     val balance = state.balances[mint] ?: continue
-                    val exchangedValue = runCatching {
-                        verifiedFiatCalculator.compute(
-                            amount = balance,
-                            token = updatedToken,
-                            balance = balance,
-                            rate = Rate.oneToOne,
-                            trace = false,
-                        ).localFiat.underlyingTokenAmount
-                    }.getOrNull()
+                    val exchangedValue = verifiedFiatCalculator.compute(
+                        amount = balance,
+                        token = updatedToken,
+                        balance = balance,
+                        rate = Rate.oneToOne,
+                        trace = false,
+                    ).getOrNull()?.localFiat?.underlyingTokenAmount
 
                     if (exchangedValue != null) {
                         val newBalance = Fiat.tokenBalance(
