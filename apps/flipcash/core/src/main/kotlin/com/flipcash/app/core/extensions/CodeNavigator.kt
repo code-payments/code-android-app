@@ -42,10 +42,7 @@ fun CodeNavigator.navigateTo(routes: List<NavKey>, options: NavOptions = NavOpti
             sheetGeneration++
             resolved.forEachIndexed { index, route ->
                 val navOptions = if (index == 0) options else NavOptions()
-                val stampedRoute = if (route is AppRoute.Main.Sheet) {
-                    route.also { it.generation = sheetGeneration }
-                } else route
-                navigate(stampedRoute, navOptions)
+                navigate(route, navOptions)
             }
         }
     } else {

@@ -207,7 +207,7 @@ class NavigateToTest {
     }
 
     @Test
-    fun `generation stamp makes contentKey unique for same-route dismiss-replace`() {
+    fun `dismiss-replace increments sheetGeneration for composition scoping`() {
         val navigator = createNavigator(
             AppRoute.Main.Scanner,
             AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
@@ -220,12 +220,9 @@ class NavigateToTest {
         navigator.pendingSheetDismiss!!.invoke()
 
         val newSheet = navigator.backStack.filterIsInstance<AppRoute.Main.Sheet>().single()
-        assert(newSheet.generation > 0) {
-            "Expected generation > 0 after dismiss-replace, got ${newSheet.generation}"
-        }
-        val staleKey = AppRoute.Main.Sheet(AppRoute.Sheets.Wallet).toString()
-        assert(newSheet.toString() != staleKey) {
-            "contentKey collision: new sheet toString() must differ from stale key"
+        assertEquals(AppRoute.Sheets.Wallet, newSheet.initialRoute)
+        assert(navigator.sheetGeneration > 0) {
+            "Expected sheetGeneration > 0 after dismiss-replace, got ${navigator.sheetGeneration}"
         }
     }
 

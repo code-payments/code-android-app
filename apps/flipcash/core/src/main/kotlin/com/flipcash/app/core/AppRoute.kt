@@ -20,10 +20,8 @@ import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
-import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Serializable
 @Parcelize
@@ -77,16 +75,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class Sheet(
             val initialRoute: Sheets,
             val innerRoutes: List<AppRoute> = emptyList(),
-        ) : Main, com.getcode.navigation.Sheet {
-
-            @IgnoredOnParcel
-            @Transient
-            var generation: Int = 0
-                internal set
-
-            override fun toString(): String =
-                "Sheet(initialRoute=$initialRoute, innerRoutes=$innerRoutes, gen=$generation)"
-        }
+        ) : Main, com.getcode.navigation.Sheet
     }
 
     @Serializable

@@ -114,6 +114,9 @@ data class CodeNavigator(
                         if (routeFound && options.popUpTo.inclusive) {
                             if (backStack.isNotEmpty()) backStack.removeAt(backStack.lastIndex)
                         }
+                        if (route is Sheet) {
+                            backStack.removeAll { it == route }
+                        }
                         backStack.add(route)
                     }
                 }

@@ -21,6 +21,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -103,10 +104,15 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
             }
 
             var allowDismiss by rememberSaveable { mutableStateOf(!navigator.sheetDragDisabled) }
+            var confirmHiddenCalled by remember { mutableStateOf(false) }
             var sheetState: SheetState = rememberModalBottomSheetState(
                 skipPartiallyExpanded = true,
                 confirmValueChange = { value ->
-                    value != SheetValue.Hidden || allowDismiss
+                    val allowed = value != SheetValue.Hidden || allowDismiss
+                    if (value == SheetValue.Hidden && allowed) {
+                        confirmHiddenCalled = true
+                    }
+                    allowed
                 }
             )
 
@@ -163,7 +169,18 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                 // Remove grab bar for bleed to top edge of sheet
                 ModalBottomSheet(
                     sheetState = sheetState,
-                    onDismissRequest = { if (!isNonDismissable) dismiss(false) },
+                    onDismissRequest = {
+                        if (!isNonDismissable) {
+                            if (confirmHiddenCalled) {
+                                confirmHiddenCalled = false
+                                dismiss(false)
+                            } else {
+                                // Spurious Hidden snap from layout anchor recalculation
+                                // (trySnapTo bypasses confirmValueChange) — re-show the sheet
+                                composeScope.launch { sheetState.show() }
+                            }
+                        }
+                    },
                     sheetGesturesEnabled = !navigator.sheetDragDisabled && !scrim.visible,
                     scrimColor = CodeTheme.colors.scrim,
                     properties = if (isNonDismissable) {
