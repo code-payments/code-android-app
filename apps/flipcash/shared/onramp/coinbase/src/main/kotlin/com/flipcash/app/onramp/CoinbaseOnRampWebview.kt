@@ -130,13 +130,8 @@ private fun WebView.configureForCoinbaseOnRamp(
             CoinbaseOnRampScripts.CLICK_HANDLER_INTERCEPTOR,
             setOf("*")
         )
-        WebViewCompat.addDocumentStartJavaScript(
-            this,
-            CoinbaseOnRampScripts.PAYMENT_REQUEST_INTERCEPTOR,
-            setOf("*")
-        )
         // MESSAGE_BRIDGE stays in onPageFinished via evaluateJavascript() because
-        // addEventListener('message') in a document-start isolated world cannot
-        // observe postMessage events dispatched in the page world.
+        // the Coinbase widget expects window.androidWebView to be set in the
+        // page's main world, which document-start scripts may not share.
     }
 }

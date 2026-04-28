@@ -20,65 +20,18 @@ internal object CoinbaseOnRampScripts {
         })();
     """.trimIndent()
 
-    val PAYMENT_REQUEST_INTERCEPTOR = """
-        (function() {
-            if (!window.PaymentRequest) return;
-            function bridge(data) {
-                if (typeof AndroidBridge !== 'undefined') AndroidBridge.onEvent(JSON.stringify(data));
-            }
-
-            var origShow = PaymentRequest.prototype.show;
-            PaymentRequest.prototype.show = function() {
-                bridge({ eventName: 'timing.payment_modal_shown' });
-                return origShow.apply(this, arguments).catch(function(err) {
-                    window.postMessage(JSON.stringify({
-                        eventName: 'onramp_api.load_error',
-                        data: { errorCode: 'ERROR_CODE_GUEST_GOOGLE_PAY_ERROR' }
-                    }), '*');
-                    throw err;
-                });
-            };
-
-            var origCan = PaymentRequest.prototype.canMakePayment;
-            PaymentRequest.prototype.canMakePayment = function() {
-                return origCan.apply(this, arguments).then(function(result) {
-                    if (!result) {
-                        window.postMessage(JSON.stringify({
-                            eventName: 'onramp_api.load_error',
-                            data: { errorCode: 'ERROR_CODE_GUEST_GOOGLE_PAY_ERROR' }
-                        }), '*');
-                    }
-                    return result;
-                });
-            };
-
-            if (PaymentRequest.prototype.hasEnrolledInstrument) {
-                var origHas = PaymentRequest.prototype.hasEnrolledInstrument;
-                PaymentRequest.prototype.hasEnrolledInstrument = function() {
-                    return origHas.apply(this, arguments).then(function(result) {
-                        if (!result) {
-                            window.postMessage(JSON.stringify({
-                                eventName: 'onramp_api.load_error',
-                                data: { errorCode: 'ERROR_CODE_GUEST_GOOGLE_PAY_NOT_READY' }
-                            }), '*');
-                        }
-                        return result;
-                    });
-                };
-            }
-        })();
-    """.trimIndent()
-
     val MESSAGE_BRIDGE = """
-        (function() {
-            window.addEventListener('message', function(e) {
+        (function () {
+            function postMessage(e) {
                 try {
-                    var data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                    var data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
                     if (data && data.eventName) {
                         AndroidBridge.onEvent(JSON.stringify(data));
                     }
-                } catch(err) {}
-            });
+                } catch (err) {}
+            }
+
+            window.androidWebView = { postMessage };
         })();
     """.trimIndent()
 
