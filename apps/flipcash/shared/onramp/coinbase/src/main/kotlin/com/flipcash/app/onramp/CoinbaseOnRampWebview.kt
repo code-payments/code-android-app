@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.flipcash.app.onramp.internal.CoinbaseOnRampEventHandler
@@ -117,6 +118,10 @@ private fun WebView.configureForCoinbaseOnRamp(
                 onPaymentFailure(CoinbaseOnRampWebError.GuestGooglePayError())
             }
         }
+    }
+
+    if (WebViewFeature.isFeatureSupported(WebViewFeature.PAYMENT_REQUEST)) {
+        WebSettingsCompat.setPaymentRequestEnabled(settings, true)
     }
 
     if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
