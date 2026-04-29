@@ -353,7 +353,7 @@ class FiatTests {
 
         val result = cad.convertingToUsdIfNeeded(cadRate)
 
-        assertEquals(CurrencyCode.CAD, result.currencyCode)
+        assertEquals(CurrencyCode.USD, result.currencyCode)
         assertEquals(100.0, result.decimalValue, 0.01)
     }
 

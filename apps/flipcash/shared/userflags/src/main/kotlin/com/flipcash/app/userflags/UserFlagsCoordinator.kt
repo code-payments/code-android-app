@@ -39,7 +39,7 @@ class UserFlagsCoordinator @Inject constructor(
         val billExchangeDataTimeout: FieldOverride<Duration?>,
         val newCurrencyPurchaseAmount: FieldOverride<Fiat>,
         val newCurrencyFeeAmount: FieldOverride<Fiat>,
-        val usdcWithdrawalFeeAmount: FieldOverride<Fiat>,
+        val withdrawalFeeAmount: FieldOverride<Fiat>,
         val preferredUsdcOnRampLiquidityPool: FieldOverride<UsdcLiquidtyPool>,
     ) {
         companion object {
@@ -50,7 +50,7 @@ class UserFlagsCoordinator @Inject constructor(
                 billExchangeDataTimeout = FieldOverride.None,
                 newCurrencyPurchaseAmount = FieldOverride.None,
                 newCurrencyFeeAmount = FieldOverride.None,
-                usdcWithdrawalFeeAmount = FieldOverride.None,
+                withdrawalFeeAmount = FieldOverride.None,
                 preferredUsdcOnRampLiquidityPool = FieldOverride.None,
             )
         }
@@ -73,7 +73,7 @@ class UserFlagsCoordinator @Inject constructor(
             billExchangeDataTimeout = prefs.readOverride(Field.BillExchangeDataTimeout),
             newCurrencyPurchaseAmount = prefs.readOverride(Field.NewCurrencyPurchaseAmount),
             newCurrencyFeeAmount = prefs.readOverride(Field.NewCurrencyFeeAmount),
-            usdcWithdrawalFeeAmount = prefs.readOverride(Field.UsdcWithdrawalFeeAmount),
+            withdrawalFeeAmount = prefs.readOverride(Field.WithdrawalFeeAmount),
             preferredUsdcOnRampLiquidityPool = prefs.readOverride(Field.PreferredUsdcOnRampLiquidityPool),
         )
     }.stateIn(scope, SharingStarted.Eagerly, Overrides.None)

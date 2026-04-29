@@ -59,6 +59,7 @@ message ReceivedCryptoNotificationMetadata {
 }
 
 message WithdrewCryptoNotificationMetadata {
+    SwapState swap_state = 1 [(validate.rules).enum.not_in = 0];
 }
 
 message SentCryptoNotificationMetadata {
@@ -102,4 +103,5 @@ enum SwapState {
     SWAP_STATE_PENDING   = 1;
     SWAP_STATE_SUCCEEDED = 2;
     SWAP_STATE_FAILED    = 3;
+    SWAP_STATE_NONE      = 4;
 }

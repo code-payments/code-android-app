@@ -37,6 +37,7 @@ import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
+import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
@@ -364,18 +365,11 @@ internal class WithdrawalViewModel @Inject constructor(
                     dispatchEvent(Event.OnAvailabilityChecked(null))
                 },
                 onSuccess = { availability ->
-                    // check fees
-                    val fee = availability.feeAmount
-                    if (fee == null && stateFlow.value.token?.token?.address == Mint.usdf) {
-                        // no fee from availability check, but this is a USDF=>USDC swap
-                        // so theres an associated fee provided by user flags
-                        val requiredFee =
-                            userFlags.resolvedFlags.value.usdcWithdrawalFeeAmount.effectiveValue
-                        val updatedAvailability = availability.copy(feeAmount = requiredFee)
-                        dispatchEvent(Event.OnAvailabilityChecked(updatedAvailability))
-                    } else {
-                        dispatchEvent(Event.OnAvailabilityChecked(availability))
-                    }
+                    // this is a USDF => USDC swap so there's an associated fee provided by user flags
+                    val requiredFee =
+                        userFlags.resolvedFlags.value.withdrawalFeeAmount.effectiveValue
+                    val updatedAvailability = availability.copy(feeAmount = requiredFee)
+                    dispatchEvent(Event.OnAvailabilityChecked(updatedAvailability))
                 }
             )
             .launchIn(viewModelScope)
@@ -478,7 +472,7 @@ internal class WithdrawalViewModel @Inject constructor(
                         amount = fee,
                         token = token,
                         balance = stateFlow.value.token!!.balance,
-                        rate = exchange.rateToUsd(CurrencyCode.USD)!!,
+                        rate = Rate.oneToOne,
                     ).getOrElse {
                         dispatchEvent(Event.UpdateWithdrawalState(loading = false))
                         BottomBarManager.showAlert(
@@ -537,8 +531,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 val withdrawalChecks = stateFlow.value.destinationState.availability
                 val rawDestination = withdrawalChecks?.destination
                 val resolvedDestination = withdrawalChecks?.resolvedDestination
-                val feeAmount = withdrawalChecks?.feeAmount ?: 0.toFiat()
-                val feeInUsd = LocalFiat.fromUsd(feeAmount)
+                val feeInUsd = withdrawalChecks?.feeAmount
 
                 val owner = userManager.accountCluster
                 if (token == null || resolvedDestination == null || owner == null || rawDestination == null) {
@@ -568,12 +561,36 @@ internal class WithdrawalViewModel @Inject constructor(
                     return@mapNotNull null
                 }
 
+                val feeInMint = feeInUsd?.let { fee ->
+                    verifiedFiatCalculator.compute(
+                        amount = fee,
+                        token = token,
+                        balance = stateFlow.value.token!!.balance,
+                        rate = Rate.oneToOne,
+                    ).getOrElse {
+                        dispatchEvent(Event.UpdateWithdrawalState(loading = false))
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_staleRates),
+                            message = resources.getString(R.string.error_description_staleRates),
+                        )
+                        return@mapNotNull null
+                    }.localFiat.underlyingTokenAmount
+                }
+
+                val fee = feeInMint?.let {
+                    LocalFiat.fromUsd(
+                        usdf = it,
+                        rate = amount.localFiat.rate
+                    )
+                } ?: LocalFiat.fromUsd(0.toFiat(), rate = amount.localFiat.rate)
+
+                trace("amount=${amount.localFiat.underlyingTokenAmount.currencyCode}, fee=${fee.underlyingTokenAmount.currencyCode}")
                 transactionController.withdrawUsdf(
                     amount = amount,
                     owner = owner,
                     destination = resolvedDestination,
                     destinationOwner = rawDestination,
-                    fee = feeInUsd,
+                    fee = fee,
                 )
             }.onResult(
                 onSuccess = { swapId ->
@@ -624,7 +641,13 @@ internal class WithdrawalViewModel @Inject constructor(
                     }
                 },
                 onError = {
-                    dispatchEvent(Event.UpdateWithdrawalState(loading = false, success = false, error = true))
+                    dispatchEvent(
+                        Event.UpdateWithdrawalState(
+                            loading = false,
+                            success = false,
+                            error = true
+                        )
+                    )
                 }
             ).launchIn(viewModelScope)
     }

@@ -141,7 +141,7 @@ data class Fiat(
 
     fun convertingToUsdIfNeeded(rate: Rate): Fiat {
         return if (rate.currency != CurrencyCode.USD) {
-            convertingTo(Rate(1 / rate.fx, rate.currency))
+            convertingTo(Rate(1 / rate.fx, CurrencyCode.USD))
         } else {
             this
         }

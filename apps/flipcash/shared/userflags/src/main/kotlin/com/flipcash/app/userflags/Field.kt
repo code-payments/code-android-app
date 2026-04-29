@@ -141,12 +141,12 @@ sealed class Field<Stored, Domain>(
         },
     )
 
-    data object UsdcWithdrawalFeeAmount : Field<Long, Fiat>(
-        longPreferencesKey("override_usdc_withdrawal_fee_amount"),
+    data object WithdrawalFeeAmount : Field<Long, Fiat>(
+        longPreferencesKey("override_withdrawal_fee_amount"),
         encode = { it.quarks },
         decode = { Fiat(quarks = it) },
-        label = R.string.label_flag_usdcWithdrawalFeeAmount,
-        hint = R.string.hint_flag_usdcWithdrawalFeeAmount,
+        label = R.string.label_flag_withdrawalFeeAmount,
+        hint = R.string.hint_flag_withdrawalFeeAmount,
         format = { it.formatted(rule = Fiat.FormattingRule.Truncated) },
         editFormat = { it.formatted(showPrefix = false, rule = Fiat.FormattingRule.Truncated) },
         editor = FieldEditor.TextInput(
