@@ -159,11 +159,12 @@ class CoinbaseOnRampController @Inject constructor(
                 trace(
                     message = "Payment processing failed",
                     tag = "OnRamp",
+                    metadata = {
+                        "orderId" to current.orderId
+                        "errorType" to error::class.simpleName.orEmpty()
+                    },
                     error = error,
-                ) {
-                    "orderId" to current.orderId
-                    "errorType" to error::class.simpleName.orEmpty()
-                }
+                )
                 reset()
             }
     }
@@ -277,11 +278,12 @@ class CoinbaseOnRampController @Inject constructor(
                         trace(
                             message = "Coinbase order lookup HTTP ${error.code()}",
                             tag = "OnRamp",
+                            metadata = {
+                                "orderId" to orderId
+                                "responseBody" to errorBody.orEmpty()
+                            },
                             error = error,
-                        ) {
-                            "orderId" to orderId
-                            "responseBody" to errorBody.orEmpty()
-                        }
+                        )
                     }
                 }.map { it.order }
             }
@@ -311,11 +313,12 @@ class CoinbaseOnRampController @Inject constructor(
                 trace(
                     message = "JWT request failed",
                     tag = "OnRamp",
+                    metadata = {
+                        "endpoint" to "$method $host$path"
+                        "errorType" to error::class.simpleName.orEmpty()
+                    },
                     error = error,
-                ) {
-                    "endpoint" to "$method $host$path"
-                    "errorType" to error::class.simpleName.orEmpty()
-                }
+                )
                 when (error) {
                     is GetJwtError.EmailVerificationRequired -> Result.failure(
                         OnRampAuthError.VerificationRequired(
@@ -379,8 +382,9 @@ class CoinbaseOnRampController @Inject constructor(
                     trace(
                         message = "Coinbase OnRamp HTTP ${error.code()}",
                         tag = "OnRamp",
+                        metadata = { "responseBody" to errorBody.orEmpty() },
                         error = error,
-                    ) { "responseBody" to errorBody.orEmpty() }
+                    )
                     if (errorBody != null) {
                         val coinbaseError = runCatching { json.decodeFromString<CoinbaseOnRampApiError>(errorBody) }
                             .getOrNull()
