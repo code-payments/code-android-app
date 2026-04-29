@@ -16,6 +16,8 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation3.runtime.NavBackStack
@@ -133,7 +135,18 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
     }
 
     // Seed the inner back stack from the initial step list.
-    val innerBackStack = remember {
+    // Uses rememberSaveable so the stack survives composition removal (e.g. when a
+    // sheet-level screen like RegionSelection is pushed on top via the outer navigator).
+    val innerBackStack = rememberSaveable(
+        saver = listSaver(
+            save = { it.toList() },
+            restore = { saved ->
+                NavBackStack<NavKey>(saved.first()).apply {
+                    saved.drop(1).forEach { add(it) }
+                }
+            }
+        )
+    ) {
         @Suppress("UNCHECKED_CAST")
         NavBackStack<NavKey>(initialStack.first() as NavKey).apply {
             initialStack.drop(1).forEach { add(it as NavKey) }
