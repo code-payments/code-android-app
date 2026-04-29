@@ -128,7 +128,8 @@ object BottomBarManager {
     private val _messages: MutableStateFlow<List<BottomBarMessage>> = MutableStateFlow(emptyList())
     val messages: StateFlow<List<BottomBarMessage>> get() = _messages.asStateFlow()
 
-    private fun showMessage(bottomBarMessage: BottomBarMessage) {
+    @PublishedApi
+    internal fun showMessage(bottomBarMessage: BottomBarMessage) {
         _messages.update { currentMessages ->
             currentMessages + bottomBarMessage
         }
@@ -281,21 +282,17 @@ object BottomBarManager {
      * Additional [BottomBarAction]'s can be included via [actions] and dismiss callbacks
      * are available via [onDismiss].
      */
-    fun showError(
+    inline fun showError(
         title: String,
         message: String,
         additionalInfo: Map<String, Any?> = emptyMap(),
         actions: List<BottomBarAction> = listOf(BottomBarAction.Ok),
         showCancel: Boolean = false,
-        onDismiss: (fromAction: Boolean) -> Unit = { },
+        noinline onDismiss: (fromAction: Boolean) -> Unit = { },
     ) {
         val callSite = Throwable().stackTrace
-            .firstOrNull { it.className != BottomBarManager::class.java.name }
-            ?.let {
-                val file = it.fileName
-                    ?: it.className.substringAfterLast('.').substringBefore('$')
-                "$file:${it.lineNumber}"
-            }
+            .firstOrNull { it.fileName != null }
+            ?.let { "${it.fileName}:${it.lineNumber}" }
 
         showMessage(
             BottomBarMessage(

@@ -98,6 +98,7 @@ internal class OnRampViewModel @Inject constructor(
         val hasVerifiedEmail: Boolean = false,
         val selectedProvider: OnRampProvider.ThirdParty? = null,
         val amountEntryState: AmountEntryState = AmountEntryState(),
+        val orderLookup: LoadingSuccessState = LoadingSuccessState(),
     ) {
         val minimumPurchaseAmount = 5.toFiat()
     }
@@ -132,6 +133,11 @@ internal class OnRampViewModel @Inject constructor(
             val success: Boolean = false
         ) : Event
 
+        data class UpdateOrderLookupState(
+            val loading: Boolean = false,
+            val success: Boolean = false
+        ): Event
+
         data class OnAmountAccepted(val amount: VerifiedFiat) : Event
 
         data class CreateAndSendTransactionToWallet(val amount: VerifiedFiat) : Event
@@ -158,10 +164,13 @@ internal class OnRampViewModel @Inject constructor(
         numberInputHelper.reset()
 
         onRampController.state
-            .filter { it !is CoinbaseOnRampState.Paying }
-            .onEach {
-                if (stateFlow.value.amountEntryState.confirmingAmount.loading) {
-                    dispatchEvent(Event.UpdateConfirmingAmountState())
+            .onEach { s ->
+                when (s) {
+                    is CoinbaseOnRampState.Completed -> dispatchEvent(Event.UpdateOrderLookupState(success = true))
+                    is CoinbaseOnRampState.Failed -> dispatchEvent(Event.UpdateOrderLookupState())
+                    CoinbaseOnRampState.Idle -> dispatchEvent(Event.UpdateOrderLookupState())
+                    is CoinbaseOnRampState.Paying -> dispatchEvent(Event.UpdateOrderLookupState(loading = true))
+                    is CoinbaseOnRampState.Processing -> dispatchEvent(Event.UpdateOrderLookupState(loading = true))
                 }
             }
             .launchIn(viewModelScope)
@@ -448,6 +457,16 @@ internal class OnRampViewModel @Inject constructor(
                                 loading = event.loading,
                                 success = event.success
                             )
+                        )
+                    )
+                }
+
+                is Event.UpdateOrderLookupState -> { state ->
+                    val lookupState = state.orderLookup
+                    state.copy(
+                        orderLookup = lookupState.copy(
+                            loading = event.loading,
+                            success = event.success,
                         )
                     )
                 }

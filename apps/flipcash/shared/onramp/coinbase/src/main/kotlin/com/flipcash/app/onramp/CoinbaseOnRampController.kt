@@ -26,7 +26,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.solana.keys.base58
-import com.getcode.utils.base64
+import com.getcode.utils.network.pollUntil
 import com.getcode.vendor.Base58
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
@@ -43,6 +43,7 @@ import kotlinx.serialization.json.Json
 import retrofit2.HttpException
 import java.security.SecureRandom
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 typealias OrderWithPaymentLink = Pair<String, OnRampPurchaseResponse.PaymentLink>
 
@@ -121,11 +122,15 @@ class CoinbaseOnRampController @Inject constructor(
             return Result.failure(IllegalStateException("Not in Processing state"))
         }
 
-        return lookupOrder(current.orderId)
-            .mapCatching { order ->
+        return pollUntil(
+                call = { lookupOrder(current.orderId).getOrThrow() },
+                required = { order -> order.txHash != null },
+                maxAttempts = 100,
+                interval = 3.seconds,
+                tag = "CoinbaseOrderPoller",
+            ).mapCatching { order ->
                 order.txHash ?: throw IllegalStateException("No hash provided from provider")
-            }
-            .mapCatching { txHash ->
+            }.mapCatching { txHash ->
                 val owner = userManager.accountCluster
                     ?: throw IllegalStateException("No account cluster")
 
@@ -142,7 +147,7 @@ class CoinbaseOnRampController @Inject constructor(
                 ).getOrThrow()
             }
             .onSuccess { swapId ->
-                _state.update { CoinbaseOnRampState.Completed(swapId, current.token) }
+                _state.update { CoinbaseOnRampState.Completed(swapId,  current.token, current.amount) }
             }
             .onFailure {
                 reset()

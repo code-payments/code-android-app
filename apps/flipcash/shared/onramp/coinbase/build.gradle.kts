@@ -24,4 +24,5 @@ dependencies {
     implementation(project(":apps:flipcash:shared:web"))
     api(project(":libs:network:coinbase:onramp"))
     implementation(project(":libs:network:jwt"))
+    implementation(project(":libs:network:connectivity:public"))
 }

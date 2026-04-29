@@ -16,6 +16,7 @@ import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.getcode.navigation.NonDismissableRoute
 import com.getcode.navigation.NonDraggableRoute
 import com.getcode.navigation.flow.FlowRouteWithResult
+import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
@@ -139,6 +140,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class TxProcessing(
             val swapId: SwapId,
             val swapPurpose: SwapPurpose? = null,
+            val amount: VerifiedFiat? = null,
             val awaitExternalWallet: Boolean = false,
             val isFundingShortfall: Boolean = false,
         ) : Token, NonDismissableRoute, NonDraggableRoute

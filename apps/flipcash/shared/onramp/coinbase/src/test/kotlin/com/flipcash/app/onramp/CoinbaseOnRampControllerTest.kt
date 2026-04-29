@@ -12,7 +12,6 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
-import com.getcode.solana.keys.PublicKey
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -25,6 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -84,14 +84,6 @@ class CoinbaseOnRampControllerTest {
         }
     }
 
-    private fun stubAccountId(present: Boolean = true) {
-        if (present) {
-            every { userManager.accountId } returns listOf(1, 2, 3, 4).map { it.toByte() }
-        } else {
-            every { userManager.accountId } returns null
-        }
-    }
-
     private fun stubProfile(email: String? = "test@test.com", phone: String? = "+11234567890") {
         val profile = UserProfile(
             displayName = "Test",
@@ -104,7 +96,6 @@ class CoinbaseOnRampControllerTest {
 
     private fun stubValidUser() {
         stubAccountCluster()
-        stubAccountId()
         stubProfile()
     }
 
@@ -113,29 +104,16 @@ class CoinbaseOnRampControllerTest {
     @Test
     fun `placeOrderInclusiveOfFees fails when owner is null`() = runTest {
         stubAccountCluster(present = false)
-        stubAccountId()
         stubProfile()
 
         val result = controller.placeOrderInclusiveOfFees(Fiat(10, CurrencyCode.USD))
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("Owner") == true)
-    }
-
-    @Test
-    fun `placeOrderInclusiveOfFees fails when accountId is null`() = runTest {
-        stubAccountCluster()
-        stubAccountId(present = false)
-        stubProfile()
-
-        val result = controller.placeOrderInclusiveOfFees(Fiat(10, CurrencyCode.USD))
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("User ID") == true)
+        assertEquals(result.exceptionOrNull()?.message?.contains("Owner"), true)
     }
 
     @Test
     fun `placeOrderInclusiveOfFees fails when email is null`() = runTest {
         stubAccountCluster()
-        stubAccountId()
         stubProfile(email = null, phone = "+11234567890")
 
         val result = controller.placeOrderInclusiveOfFees(Fiat(10, CurrencyCode.USD))
@@ -147,7 +125,6 @@ class CoinbaseOnRampControllerTest {
     @Test
     fun `placeOrderInclusiveOfFees fails when phone is null`() = runTest {
         stubAccountCluster()
-        stubAccountId()
         stubProfile(email = "test@test.com", phone = null)
 
         val result = controller.placeOrderInclusiveOfFees(Fiat(10, CurrencyCode.USD))
@@ -159,7 +136,6 @@ class CoinbaseOnRampControllerTest {
     @Test
     fun `placeOrderInclusiveOfFees returns VerificationRequired with correct flags`() = runTest {
         stubAccountCluster()
-        stubAccountId()
         stubProfile(email = null, phone = null)
 
         val result = controller.placeOrderInclusiveOfFees(Fiat(10, CurrencyCode.USD))
@@ -175,17 +151,6 @@ class CoinbaseOnRampControllerTest {
     // region placeOrderExclusiveOfFees validation
 
     @Test
-    fun `placeOrderExclusiveOfFees fails when accountId is null`() = runTest {
-        stubAccountCluster()
-        stubAccountId(present = false)
-        stubProfile()
-
-        val result = controller.placeOrderExclusiveOfFees(Fiat(10, CurrencyCode.USD))
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("User ID") == true)
-    }
-
-    @Test
     fun `placeOrderExclusiveOfFees fails when exchange rate missing for non-USD`() = runTest {
         stubValidUser()
         every { exchange.rateToUsd(CurrencyCode.EUR) } returns null
@@ -198,7 +163,6 @@ class CoinbaseOnRampControllerTest {
     @Test
     fun `placeOrderExclusiveOfFees fails when email and phone both null`() = runTest {
         stubAccountCluster()
-        stubAccountId()
         stubProfile(email = null, phone = null)
 
         val result = controller.placeOrderExclusiveOfFees(Fiat(10, CurrencyCode.USD))

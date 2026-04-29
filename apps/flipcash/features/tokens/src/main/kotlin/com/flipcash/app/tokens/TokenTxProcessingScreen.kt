@@ -21,7 +21,9 @@ import com.flipcash.app.tokens.ui.SwapViewModel.Event
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
+import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.internal.solana.model.SwapId
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.firstOrNull
@@ -98,6 +100,7 @@ internal fun SwapProcessingContent(
 fun TokenTxProcessingScreen(
     swapId: SwapId,
     swapPurpose: SwapPurpose?,
+    swapAmount: VerifiedFiat?,
     awaitExternalWallet: Boolean = false,
     isFundingShortfall: Boolean = false,
 ) {
@@ -135,6 +138,9 @@ fun TokenTxProcessingScreen(
             viewModel.dispatchEvent(Event.OnSwapIdChanged(swapId))
             if (swapPurpose != null) {
                 viewModel.dispatchEvent(Event.OnPurposeChanged(swapPurpose))
+            }
+            if (swapAmount != null) {
+                viewModel.dispatchEvent(Event.OnAmountAccepted(swapAmount, swapAmount.localFiat.nativeAmount))
             }
         }
     }

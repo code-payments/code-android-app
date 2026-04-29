@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -14,6 +15,7 @@ import com.flipcash.app.onramp.internal.OnRampViewModel
 import com.flipcash.app.onramp.internal.screens.OnRampAmountScreen
 import com.flipcash.features.onramp.R
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
@@ -26,13 +28,14 @@ fun OnRampCustomAmountScreen(mint: Mint) {
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<OnRampViewModel>()
 
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     Column(
         modifier = Modifier.fillMaxSize(),
     ) {
         AppBarWithTitle(
             title = stringResource(R.string.title_amountToBuy),
             isInModal = true,
-            backButton = true,
+            backButton = state.orderLookup.isIdle,
             onBackIconClicked = { navigator.pop() },
             titleAlignment = Alignment.CenterHorizontally,
         )

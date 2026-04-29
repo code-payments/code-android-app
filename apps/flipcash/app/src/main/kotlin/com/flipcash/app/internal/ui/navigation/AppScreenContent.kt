@@ -109,7 +109,7 @@ fun appEntryProvider(
         SwapFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
     annotatedEntry<AppRoute.Token.TxProcessing> { key ->
-        TokenTxProcessingScreen(key.swapId, key.swapPurpose, key.awaitExternalWallet, key.isFundingShortfall)
+        TokenTxProcessingScreen(key.swapId, key.swapPurpose, key.amount, key.awaitExternalWallet, key.isFundingShortfall)
     }
     annotatedEntry<AppRoute.Token.OnRamp> { key -> OnRampCustomAmountScreen(key.mint) }
     annotatedEntry<AppRoute.Token.Discovery> { TokenDiscoveryScreen() }

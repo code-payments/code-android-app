@@ -53,7 +53,7 @@ fun CoinbaseOnRampHandler(
         is CoinbaseOnRampState.Completed -> {
             LaunchedEffect(current) {
                 controller.emitPendingNavigation(
-                    AppRoute.Token.TxProcessing(current.swapId, SwapPurpose.Buy(current.token.address))
+                    AppRoute.Token.TxProcessing(current.swapId, SwapPurpose.Buy(current.token.address), current.amount)
                 )
                 controller.reset()
             }
