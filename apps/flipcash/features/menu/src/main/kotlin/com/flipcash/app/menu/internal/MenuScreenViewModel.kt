@@ -45,7 +45,6 @@ private val FullMenuList = buildList {
     add(MyAccount)
     add(AppSettings)
     add(AdvancedFeatures)
-    add(Withdraw)
     add(SwitchAccount)
     add(Labs)
     add(LogOut)

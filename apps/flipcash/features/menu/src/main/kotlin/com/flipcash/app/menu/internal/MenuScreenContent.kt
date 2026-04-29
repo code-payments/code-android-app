@@ -1,19 +1,16 @@
 package com.flipcash.app.menu.internal
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +18,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.TokenPurpose
+import com.flipcash.app.core.ui.TileButton
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.features.menu.R
@@ -29,9 +29,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.core.noRippleClickable
-import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.ui.utils.plus
 import kotlinx.coroutines.launch
 
 @Composable
@@ -46,24 +44,9 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             AppBarWithTitle(
                 modifier = Modifier.fillMaxWidth(),
                 isInModal = true,
-                title = {
-                    Image(
-                        painter = painterResource(R.drawable.ic_flipcash_logo_w_name),
-                        contentDescription = "",
-                        modifier = Modifier
-                            .rememberedClickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                viewModel.dispatchEvent(MenuScreenViewModel.Event.OnLogoTapped)
-                            }.requiredHeight(CodeTheme.dimens.staticGrid.x7)
-                            .wrapContentWidth()
-                            .padding(horizontal = CodeTheme.dimens.grid.x3),
-                    )
-                },
+                title = stringResource(R.string.title_settings),
                 titleAlignment = Alignment.CenterHorizontally,
-                rightContents = { AppBarDefaults.Close { navigator.hide() } },
-                contentPadding = AppBarDefaults.ContentPadding.plus(PaddingValues(top = CodeTheme.dimens.grid.x2))
+                endContent = { AppBarDefaults.Close { navigator.hide() } },
             )
         },
         bottomBar = {
@@ -81,7 +64,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                         R.string.subtitle_appVersionInfoFooter,
                         state.appVersionInfo.versionName,
                         state.appVersionInfo.versionCode,
-                        state.releaseTrack.orEmpty()
+                        state.releaseTrack,
                     ),
                     color = CodeTheme.colors.textSecondary,
                     style = CodeTheme.typography.textSmall.copy(
@@ -96,6 +79,31 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 .fillMaxSize()
                 .padding(padding),
             items = state.items,
+            header = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = CodeTheme.dimens.grid.x3),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+                ) {
+                    TileButton(
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(R.string.action_depositFunds),
+                        icon = painterResource(R.drawable.ic_menu_deposit)
+                    ) {
+                        navigator.push(AppRoute.Sheets.TokenSelection(purpose = TokenPurpose.Deposit))
+                    }
+
+                    TileButton(
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(R.string.action_withdraw),
+                        icon = painterResource(R.drawable.ic_menu_withdraw)
+                    ) {
+                        navigator.push(AppRoute.Sheets.TokenSelection(TokenPurpose.Withdraw))
+                    }
+                }
+            },
             contentPadding = PaddingValues(top = CodeTheme.dimens.grid.x6),
             onItemClick = {
                 viewModel.dispatchEvent(it.action)
