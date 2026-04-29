@@ -29,7 +29,9 @@ import com.getcode.utils.network.pollUntil
 import com.getcode.vendor.Base58
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
+import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.NotifiableError
 import com.getcode.utils.trace
 import dagger.hilt.android.scopes.ActivityRetainedScoped
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -404,7 +406,7 @@ class CoinbaseOnRampController @Inject constructor(
 
 sealed class OnRampPaymentError(
     override val message: String? = null,
-) : Throwable(message) {
+) : CodeServerError(message) {
     class GooglePayNotSupported : OnRampPaymentError("Google Pay is not available on this device")
     class GooglePayNoPaymentMethod : OnRampPaymentError("No payment method enrolled in Google Pay")
 }
@@ -412,7 +414,7 @@ sealed class OnRampPaymentError(
 sealed class OnRampAuthError(
     override val message: String? = null,
     override val cause: Throwable? = null
-) : Throwable(message, cause) {
+) : CodeServerError(message, cause) {
     class VerificationRequired(val phone: Boolean = false, val email: Boolean = false) :
         OnRampAuthError(message = "Verification required :: phone: $phone, email: $email")
 
@@ -427,4 +429,4 @@ data class CoinbaseOnRampApiError(
     val correlationId: String? = null,
     val code: String,
     override val message: String,
-) : Throwable(message = message)
+) : Throwable(message = message), NotifiableError
