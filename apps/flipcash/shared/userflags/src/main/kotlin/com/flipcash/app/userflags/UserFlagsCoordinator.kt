@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.internal.model.thirdparty.UsdcLiquidtyPool
 import com.flipcash.services.models.UserFlags
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.financial.Fiat
@@ -39,6 +40,7 @@ class UserFlagsCoordinator @Inject constructor(
         val newCurrencyPurchaseAmount: FieldOverride<Fiat>,
         val newCurrencyFeeAmount: FieldOverride<Fiat>,
         val usdcWithdrawalFeeAmount: FieldOverride<Fiat>,
+        val preferredUsdcOnRampLiquidityPool: FieldOverride<UsdcLiquidtyPool>,
     ) {
         companion object {
             val None = Overrides(
@@ -49,6 +51,7 @@ class UserFlagsCoordinator @Inject constructor(
                 newCurrencyPurchaseAmount = FieldOverride.None,
                 newCurrencyFeeAmount = FieldOverride.None,
                 usdcWithdrawalFeeAmount = FieldOverride.None,
+                preferredUsdcOnRampLiquidityPool = FieldOverride.None,
             )
         }
     }
@@ -71,6 +74,7 @@ class UserFlagsCoordinator @Inject constructor(
             newCurrencyPurchaseAmount = prefs.readOverride(Field.NewCurrencyPurchaseAmount),
             newCurrencyFeeAmount = prefs.readOverride(Field.NewCurrencyFeeAmount),
             usdcWithdrawalFeeAmount = prefs.readOverride(Field.UsdcWithdrawalFeeAmount),
+            preferredUsdcOnRampLiquidityPool = prefs.readOverride(Field.PreferredUsdcOnRampLiquidityPool),
         )
     }.stateIn(scope, SharingStarted.Eagerly, Overrides.None)
 

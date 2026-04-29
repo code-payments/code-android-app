@@ -2,6 +2,7 @@ package com.flipcash.app.userflags
 
 import com.flipcash.app.userflags.UserFlagsCoordinator.Overrides
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.internal.model.thirdparty.UsdcLiquidtyPool
 import com.flipcash.services.models.UserFlags
 import com.getcode.opencode.model.financial.Fiat
 import kotlin.time.Duration
@@ -29,6 +30,7 @@ data class ResolvedUserFlags(
     val newCurrencyPurchaseAmount: ResolvedFlag<Fiat>,
     val newCurrencyFeeAmount: ResolvedFlag<Fiat>,
     val usdcWithdrawalFeeAmount: ResolvedFlag<Fiat>,
+    val usdcOnRampLiquidityPool: ResolvedFlag<UsdcLiquidtyPool>,
 )
 
 internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = ResolvedUserFlags(
@@ -42,4 +44,5 @@ internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = Resolv
     newCurrencyPurchaseAmount = ResolvedFlag(newCurrencyPurchaseAmount, overrides.newCurrencyPurchaseAmount),
     newCurrencyFeeAmount = ResolvedFlag(newCurrencyFeeAmount, overrides.newCurrencyPurchaseAmount),
     usdcWithdrawalFeeAmount = ResolvedFlag(usdcWithdrawalFeeAmount, overrides.usdcWithdrawalFeeAmount),
+    usdcOnRampLiquidityPool = ResolvedFlag(preferredUsdcOnRampLiquidityPool, overrides.preferredUsdcOnRampLiquidityPool)
 )

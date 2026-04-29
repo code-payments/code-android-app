@@ -5,8 +5,8 @@ import com.flipcash.services.internal.domain.mapper.Mapper
 import com.flipcash.services.models.UserFlags
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
+import com.flipcash.services.internal.model.thirdparty.UsdcLiquidtyPool
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.toFiat
 import javax.inject.Inject
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -25,6 +25,7 @@ internal class UserFlagsMapper @Inject constructor():
             newCurrencyPurchaseAmount = Fiat(quarks = from.newCurrencyPurchaseAmount),
             newCurrencyFeeAmount = Fiat(quarks = from.newCurrencyFeeAmount),
             usdcWithdrawalFeeAmount = Fiat(quarks = from.usdcWithdrawalFeeAmount),
+            preferredUsdcOnRampLiquidityPool = from.preferredOnRampUsdcLiquidityPool.toDomain()
         )
     }
 }
@@ -40,7 +41,16 @@ private fun FlipcashAccountService.UserFlags.OnRampProvider.toDomain(): OnRampPr
         FlipcashAccountService.UserFlags.OnRampProvider.BACKPACK -> OnRampProvider.Backpack
         // Unhandled for now
         FlipcashAccountService.UserFlags.OnRampProvider.BASE,
-        FlipcashAccountService.UserFlags.OnRampProvider.UNKNOWN,
+        FlipcashAccountService.UserFlags.OnRampProvider.UNKNOWN_ON_RAMP_PROVIDER,
         FlipcashAccountService.UserFlags.OnRampProvider.UNRECOGNIZED -> OnRampProvider.Unknown
+    }
+}
+
+private fun FlipcashAccountService.UserFlags.UsdcLiquidityPool.toDomain(): UsdcLiquidtyPool {
+    return when (this) {
+        FlipcashAccountService.UserFlags.UsdcLiquidityPool.FLIPCASH -> UsdcLiquidtyPool.Flipcash
+        FlipcashAccountService.UserFlags.UsdcLiquidityPool.COINBASE_STABLE_SWAPPER -> UsdcLiquidtyPool.CoinbaseStableSwapper
+        FlipcashAccountService.UserFlags.UsdcLiquidityPool.UNKNOWN_USDC_LIQUIDITY_POOL,
+        FlipcashAccountService.UserFlags.UsdcLiquidityPool.UNRECOGNIZED -> UsdcLiquidtyPool.Unknown
     }
 }

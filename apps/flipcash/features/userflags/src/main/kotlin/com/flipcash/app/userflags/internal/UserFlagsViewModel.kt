@@ -135,4 +135,6 @@ private fun ResolvedUserFlags.editableEntries(): List<EditableEntry<*>> = listOf
     EditableEntry(Field.BillExchangeDataTimeout, billExchangeDataTimeout),
     EditableEntry(Field.NewCurrencyPurchaseAmount, newCurrencyPurchaseAmount),
     EditableEntry(Field.NewCurrencyFeeAmount, newCurrencyFeeAmount),
+    EditableEntry(Field.UsdcWithdrawalFeeAmount, usdcWithdrawalFeeAmount),
+    EditableEntry(Field.PreferredUsdcOnRampLiquidityPool, usdcOnRampLiquidityPool),
 )

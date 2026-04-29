@@ -16,4 +16,5 @@
     <string name="hint_flag_newCurrencyFeeAmount">Enter amount</string>
     <string name="label_flag_usdcWithdrawalFeeAmount">USDC Withdrawal Fee Amount</string>
     <string name="hint_flag_usdcWithdrawalFeeAmount">Enter amount</string>
+    <string name="label_flag_preferredUsdcLiquidityPool">Preferred USDC On-Ramp Liquidity Pool</string>
 </resources>

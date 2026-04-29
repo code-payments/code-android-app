@@ -1,6 +1,7 @@
 package com.flipcash.services.models
 
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.internal.model.thirdparty.UsdcLiquidtyPool
 import com.getcode.opencode.model.financial.Fiat
 import kotlin.time.Duration
 
@@ -15,6 +16,7 @@ data class UserFlags(
     val newCurrencyPurchaseAmount: Fiat,
     val newCurrencyFeeAmount: Fiat,
     val usdcWithdrawalFeeAmount: Fiat,
+    val preferredUsdcOnRampLiquidityPool: UsdcLiquidtyPool,
 ) {
     companion object {
         val Default = UserFlags(
@@ -28,6 +30,7 @@ data class UserFlags(
             newCurrencyPurchaseAmount = Fiat.MAX_VALUE,
             newCurrencyFeeAmount = Fiat.MAX_VALUE,
             usdcWithdrawalFeeAmount = Fiat.Zero,
+            preferredUsdcOnRampLiquidityPool = UsdcLiquidtyPool.Unknown,
         )
     }
 }

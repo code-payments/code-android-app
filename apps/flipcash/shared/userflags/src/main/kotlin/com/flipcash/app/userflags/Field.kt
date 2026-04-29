@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
+import com.flipcash.services.internal.model.thirdparty.UsdcLiquidtyPool
 import com.flipcash.shared.userflags.R
 import com.getcode.opencode.model.financial.Fiat
 import kotlin.time.Duration
@@ -158,6 +159,20 @@ sealed class Field<Stored, Domain>(
             }
         },
     )
+
+    data object PreferredUsdcOnRampLiquidityPool : Field<String, UsdcLiquidtyPool>(
+        stringPreferencesKey("override_preferred_liquidity_pool"),
+        encode = { it.name },
+        decode = { runCatching { UsdcLiquidtyPool.valueOf(it) }.getOrNull() },
+        label = R.string.label_flag_preferredUsdcLiquidityPool,
+        format = { provider -> provider.displayName() },
+        editor = FieldEditor.SingleSelect(
+            options = listOf(
+                "Flipcash" to UsdcLiquidtyPool.Flipcash,
+                "Coinbase" to UsdcLiquidtyPool.CoinbaseStableSwapper,
+            )
+        ),
+    )
 }
 
 internal fun OnRampProvider.Defined.encode(): String = when (this) {
@@ -184,4 +199,10 @@ private fun OnRampProvider.Defined.displayName(): String = when (this) {
     is OnRampProvider.Solflare -> "Solflare"
     is OnRampProvider.Backpack -> "Backpack"
     is OnRampProvider.Coinbase -> "Coinbase"
+}
+
+private fun UsdcLiquidtyPool.displayName(): String = when (this) {
+    UsdcLiquidtyPool.Unknown -> "Unknown"
+    UsdcLiquidtyPool.Flipcash -> "Flipcash"
+    UsdcLiquidtyPool.CoinbaseStableSwapper -> "Coinbase Stable Swapper"
 }
