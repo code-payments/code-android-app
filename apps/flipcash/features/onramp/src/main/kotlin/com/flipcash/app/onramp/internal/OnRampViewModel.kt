@@ -371,8 +371,8 @@ internal class OnRampViewModel @Inject constructor(
 
                                         else -> {
                                             BottomBarManager.showError(
-                                                title = "Error",
-                                                message = error.message ?: "Unknown error",
+                                                title = "Something Went Wrong",
+                                                message = error.message ?: "Please try again",
                                             )
                                         }
                                     }

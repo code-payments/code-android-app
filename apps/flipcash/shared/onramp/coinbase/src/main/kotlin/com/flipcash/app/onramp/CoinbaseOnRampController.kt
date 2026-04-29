@@ -21,7 +21,6 @@ import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
-
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapFundingSource
@@ -30,6 +29,7 @@ import com.getcode.utils.network.pollUntil
 import com.getcode.vendor.Base58
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
+import com.getcode.utils.ErrorUtils
 import dagger.hilt.android.scopes.ActivityRetainedScoped
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,8 +38,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 import retrofit2.HttpException
 import java.security.SecureRandom
 import javax.inject.Inject
@@ -346,11 +348,16 @@ class CoinbaseOnRampController @Inject constructor(
                 if (error is HttpException) {
                     val errorBody = error.response()?.errorBody()?.string()
                     if (errorBody != null) {
-                        val coinbaseError = json.decodeFromString<CoinbaseOnRampApiError>(errorBody)
-                        return Result.failure(Throwable(coinbaseError.message))
+                        val coinbaseError = runCatching { json.decodeFromString<CoinbaseOnRampApiError>(errorBody) }
+                            .getOrNull()
+                        if (coinbaseError != null) {
+                            ErrorUtils.handleError(coinbaseError)
+                            return Result.failure(Throwable(coinbaseError.message))
+                        }
                     }
                 }
 
+                ErrorUtils.handleError(error)
                 Result.failure(error)
             }
         )
@@ -375,8 +382,11 @@ sealed class OnRampAuthError(
         OnRampAuthError("Phone verification required from Coinbase")
 }
 
+@OptIn(ExperimentalSerializationApi::class)
+@JsonIgnoreUnknownKeys
 @Serializable
 data class CoinbaseOnRampApiError(
+    val correlationId: String? = null,
     val code: String,
     override val message: String,
 ) : Throwable(message = message)
