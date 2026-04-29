@@ -7,6 +7,7 @@ import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.codeinc.opencode.gen.transaction.v1.clientExchangeDataOrNull
 import com.codeinc.opencode.gen.transaction.v1.destinationOrNull
 import com.codeinc.opencode.gen.transaction.v1.feeDestinationOrNull
+import com.codeinc.opencode.gen.transaction.v1.poolFeeRecipientOrNull
 import com.getcode.opencode.internal.extensions.toHash
 import com.getcode.opencode.internal.extensions.toMint
 import com.getcode.opencode.internal.extensions.toPublicKey
@@ -171,8 +172,26 @@ internal fun TransactionService.StatefulSwapResponse.ServerParameters.ReserveNew
     )
 }
 
-internal fun TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.toMetadata(): VerifiedSwapMetadata {
-    return VerifiedSwapMetadata(
+internal fun TransactionService.StatefulSwapResponse.ServerParameters.CoinbaseStableSwapperServerParameter.toProps(): SwapResponseServerParameters {
+    return SwapResponseServerParameters.Stablecoin(
+        payer = payer.toPublicKey(),
+        nonce = nonce.toPublicKey(),
+        blockhash = blockhash.toPublicKey(),
+        alts = altsList.map { table ->
+            val address = table.address.toPublicKey()
+            val entries = table.entriesList.map { it.toPublicKey() }
+            AddressLookupTable(address, entries)
+        },
+        computeUnitLimit = computeUnitLimit,
+        computeUnitPrice = computeUnitPrice,
+        memoValue = memoValue,
+        feeDestination = feeDestination.toPublicKey(),
+        poolFeeRecipient = poolFeeRecipient.toPublicKey(),
+    )
+}
+
+internal fun TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.toMetadata(): VerifiedSwapMetadata.Reserve {
+    return VerifiedSwapMetadata.Reserve(
         id = id.toSwapId(),
         fromMint = fromMint.toPublicKey(),
         toMint = toMint.toPublicKey(),
@@ -185,6 +204,24 @@ internal fun TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientPa
                 fundingId.toByteArray().toList())
             TransactionService.FundingSource.UNRECOGNIZED -> SwapFundingSource.Unknown
         }
+    )
+}
+
+internal fun TransactionService.StatefulSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.toMetadata(): VerifiedSwapMetadata.StableCoin {
+    return VerifiedSwapMetadata.StableCoin(
+        id = id.toSwapId(),
+        fromMint = fromMint.toPublicKey(),
+        toMint = toMint.toPublicKey(),
+        swapAmount = Fiat(quarks = swapAmount),
+        feeAmount = Fiat(quarks = feeAmount),
+        fundingSource = when (fundingSource) {
+            TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN -> SwapFundingSource.Unknown
+            TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT -> SwapFundingSource.SubmitIntent(PublicKey(fundingId).bytes)
+            TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET -> SwapFundingSource.ExternalWallet(
+                fundingId.toByteArray().toList())
+            TransactionService.FundingSource.UNRECOGNIZED -> SwapFundingSource.Unknown
+        },
+        destinationOwner = destinationOwner.toPublicKey(),
     )
 }
 

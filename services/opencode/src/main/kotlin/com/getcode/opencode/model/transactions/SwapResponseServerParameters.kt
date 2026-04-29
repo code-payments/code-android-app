@@ -29,6 +29,12 @@ sealed interface SwapResponseServerParameters {
     val computeUnitPrice: Long
 
     /**
+     * Value provided into the Memo::Memo instruction. If the value length is 0,
+     * then the instruction can be omitted.
+     */
+    val memoValue: String
+
+    /**
      * Server parameters when executing stateful buy/sell flows against the
      * Reserve contract against an existing currency
      *
@@ -105,7 +111,7 @@ sealed interface SwapResponseServerParameters {
          * Value provided into the Memo::Memo instruction. If the value length is 0,
          * then the instruction can be omitted.
          */
-        val memoValue: String,
+        override val memoValue: String,
         /**
          * The memory account where the destination virtual Timelock account lives
          */
@@ -169,7 +175,7 @@ sealed interface SwapResponseServerParameters {
          * Value provided into the Memo::Memo instruction. If the value length is 0,
          * then the instruction can be omitted.
          */
-        val memoValue: String,
+        override val memoValue: String,
         /**
          * The VM and currency authority
          */
@@ -198,5 +204,64 @@ sealed interface SwapResponseServerParameters {
          * Destination account where fee should be paid
          */
         val feeDestination: PublicKey,
+    ): SwapResponseServerParameters
+
+    /**
+     * Server parameters when executing stateful swap flows against the
+     * Coinbase Stable Swapper program.
+     *
+     * Supported Solana transaction version: v0
+     *
+     * Instruction format:
+     * 1. System::AdvanceNonce
+     * 2. [Optional] ComputeBudget::SetComputeUnitLimit
+     * 3. [Optional] ComputeBudget::SetComputeUnitPrice
+     * 4. [Optional] Memo::Memo
+     * 5. AssociatedTokenAccount::CreateIdempotent (open swap authority's from_mint ATA)
+     * 6. AssociatedTokenAccount::CreateIdempotent (open destination owner's to_mint ATA)
+     * 7. VM::TransferForSwapWithFee (from_mint VM swap ATA -> swap authority's from_mint ATA (swap amount) and fee destination (fee amount))
+     * 8. CoinbaseStableSwapper::Swap (from_mint swap authority ATA -> to_mint destination owner ATA)
+     * 9. Token::CloseAccount (closes swap authority's from_mint ATA)
+     */
+    data class Stablecoin(
+        /**
+         * Subisdizer account that will be paying for the swap
+         */
+        override val payer: PublicKey,
+        /**
+         *  The nonce that is reserved for use in the swap transaction
+         */
+        override val nonce: PublicKey,
+        /**
+         * The blockhash that is reserved for use in the swap transaction
+         */
+        override val blockhash: PublicKey,
+        /**
+         * ALTs that should be used when constructing the versioned transaction
+         */
+        override val alts: List<AddressLookupTable>,
+        /**
+         * Compute unit limit provided to the ComputeBudget::SetComputeUnitLimit
+         */
+        override val computeUnitLimit: Int,
+        /**
+         * Compute unit price provided in the ComputeBudget::SetCompute
+         */
+        override val computeUnitPrice: Long,
+        /**
+         * Value provided into the Memo::Memo instruction. If the value length is 0,
+         * then the instruction can be omitted.
+         */
+        override val memoValue: String,
+        /**
+         * Destination account where fee should be paid
+         */
+        val feeDestination: PublicKey,
+        /**
+         * The CoinbaseStableSwapper liquidity pool's configured fee recipient,
+         * sourced from the on-chain LiquidityPool account. Required by the
+         * CoinbaseStableSwapper::Swap instruction.
+         */
+        val poolFeeRecipient: PublicKey,
     ): SwapResponseServerParameters
 }

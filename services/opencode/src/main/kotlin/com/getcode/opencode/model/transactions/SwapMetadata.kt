@@ -3,6 +3,7 @@ package com.getcode.opencode.model.transactions
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.utils.Base58String
 import com.getcode.solana.keys.PublicKey
 
 typealias Swap = SwapMetadata
@@ -79,12 +80,38 @@ enum class SwapState {
     }
 }
 
+sealed interface VerifiedSwapMetadata {
+    val id: SwapId
+    val fromMint: PublicKey
+    val toMint: PublicKey
+    val swapAmount: Fiat
+    val fundingSource: SwapFundingSource
+    val feeAmount: Fiat?
 
-data class VerifiedSwapMetadata(
-    val id: SwapId,
-    val fromMint: PublicKey,
-    val toMint: PublicKey,
-    val swapAmount: Fiat,
-    val feeAmount: Fiat?,
-    val fundingSource: SwapFundingSource,
-)
+    data class Reserve(
+        override val id: SwapId,
+        override val fromMint: PublicKey,
+        override val toMint: PublicKey,
+        override val swapAmount: Fiat,
+        override val feeAmount: Fiat?,
+        override val fundingSource: SwapFundingSource,
+    ): VerifiedSwapMetadata
+
+    data class StableCoin(
+        override val id: SwapId,
+        override val fromMint: PublicKey,
+        override val toMint: PublicKey,
+        override val swapAmount: Fiat,
+        override val feeAmount: Fiat?,
+        override val fundingSource: SwapFundingSource,
+        val destinationOwner: PublicKey,
+    ): VerifiedSwapMetadata
+}
+//data class VerifiedSwapMetadata(
+//    val id: SwapId,
+//    val fromMint: PublicKey,
+//    val toMint: PublicKey,
+//    val swapAmount: Fiat,
+//    val feeAmount: Fiat?,
+//    val fundingSource: SwapFundingSource,
+//)

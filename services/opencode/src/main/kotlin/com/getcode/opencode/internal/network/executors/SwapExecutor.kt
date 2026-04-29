@@ -60,16 +60,26 @@ internal class SwapExecutor(
 
         streamReference.retain()
 
-        val metadata = VerifiedSwapMetadata(
-            id = request.swapId,
-            fromMint = request.direction.sourceMint.address,
-            toMint = request.direction.destinationMint.address,
-            swapAmount = request.swapAmount.underlyingTokenAmount,
-            feeAmount = request.feeAmount?.underlyingTokenAmount,
-            fundingSource = when (request.kind) {
-                is SwapStartKind.Reserve -> request.kind.fundingSource
-            },
-        )
+        val metadata = when (request.kind) {
+            is SwapStartKind.Reserve -> VerifiedSwapMetadata.Reserve(
+                id = request.swapId,
+                fromMint = request.direction.sourceMint.address,
+                toMint = request.direction.destinationMint.address,
+                swapAmount = request.swapAmount.underlyingTokenAmount,
+                feeAmount = request.feeAmount?.underlyingTokenAmount,
+                fundingSource = request.kind.fundingSource
+            )
+
+            is SwapStartKind.Stablecoin -> VerifiedSwapMetadata.StableCoin(
+                id = request.swapId,
+                fromMint = request.direction.sourceMint.address,
+                toMint = request.direction.destinationMint.address,
+                swapAmount = request.swapAmount.underlyingTokenAmount,
+                feeAmount = request.feeAmount?.underlyingTokenAmount,
+                fundingSource = request.kind.fundingSource,
+                destinationOwner = request.kind.destinationOwner
+            )
+        }
 
         val intent = IntentSwap(request = request, metadata = metadata)
 
@@ -177,6 +187,11 @@ private fun handleServerParameters(
             TransactionService.StatefulSwapResponse.ServerParameters.KindCase.RESERVE_NEW_CURRENCY -> {
                 serverParameters.reserveNewCurrency.toProps()
             }
+
+            TransactionService.StatefulSwapResponse.ServerParameters.KindCase.STABLECOIN -> {
+                serverParameters.stablecoin.toProps()
+            }
+
             TransactionService.StatefulSwapResponse.ServerParameters.KindCase.KIND_NOT_SET -> null
         }
 

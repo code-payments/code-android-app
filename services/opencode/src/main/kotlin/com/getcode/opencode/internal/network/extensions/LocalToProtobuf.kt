@@ -276,41 +276,70 @@ internal fun LocalFiat.asExchangeData(): TransactionService.ExchangeData {
 }
 
 internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.Builder {
-    return TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.newBuilder()
-        .apply {
-            when (val details = kind) {
-                is SwapStartKind.Reserve -> {
-                    setId(swapId.asSwapId())
-                        .setFromMint(details.fromMint.asSolanaAccountId())
-                        .setToMint(details.toMint.asSolanaAccountId())
-                        .setSwapAmount(this@currencyCreatorParams.swapAmount.underlyingTokenAmount.quarks)
-                        .setFeeAmount(this@currencyCreatorParams.feeAmount?.underlyingTokenAmount?.quarks ?: 0)
-                        .apply {
-                            when (val source = details.fundingSource) {
-                                is SwapFundingSource.ExternalWallet -> {
-                                    setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET)
-                                    setFundingId(source.transactionSignature.base58)
-                                }
-
-                                is SwapFundingSource.SubmitIntent -> {
-                                    setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
-                                    setFundingId(source.id.base58)
-                                }
-
-                                SwapFundingSource.Unknown -> Unit
-                            }
+    return when (val details = kind) {
+        is SwapStartKind.Reserve -> {
+            TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.newBuilder()
+                .setId(swapId.asSwapId())
+                .setFromMint(details.fromMint.asSolanaAccountId())
+                .setToMint(details.toMint.asSolanaAccountId())
+                .setSwapAmount(this@currencyCreatorParams.swapAmount.underlyingTokenAmount.quarks)
+                .setFeeAmount(this@currencyCreatorParams.feeAmount?.underlyingTokenAmount?.quarks ?: 0)
+                .apply {
+                    when (val source = details.fundingSource) {
+                        is SwapFundingSource.ExternalWallet -> {
+                            setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET)
+                            setFundingId(source.transactionSignature.base58)
                         }
+
+                        is SwapFundingSource.SubmitIntent -> {
+                            setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
+                            setFundingId(source.id.base58)
+                        }
+
+                        SwapFundingSource.Unknown -> Unit
+                    }
                 }
-            }
         }
+
+        is SwapStartKind.Stablecoin -> {
+            throw IllegalStateException("Stablecoin should not be used for currency creator params")
+        }
+    }
+}
+
+internal fun SwapRequest.stablecoinParams(): TransactionService.StatefulSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.Builder {
+    return when (val details = kind) {
+        is SwapStartKind.Reserve -> {
+            throw IllegalStateException("Reserve should not be used for stable swapper params")
+        }
+
+        is SwapStartKind.Stablecoin -> {
+            TransactionService.StatefulSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.newBuilder()
+                .setId(swapId.asSwapId())
+                .setFromMint(details.fromMint.asSolanaAccountId())
+                .setToMint(details.toMint.asSolanaAccountId())
+                .setSwapAmount(this@stablecoinParams.swapAmount.underlyingTokenAmount.quarks)
+                .setFeeAmount(this@stablecoinParams.feeAmount?.underlyingTokenAmount?.quarks ?: 0)
+                .setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
+                .setFundingId(details.fundingSource.id.base58)
+        }
+    }
 }
 
 internal fun SwapRequest.verifiedMetadata(): TransactionService.VerifiedSwapMetadata.Builder {
     return TransactionService.VerifiedSwapMetadata.newBuilder()
-        .setReserve(
-            TransactionService.VerifiedReserveSwapMetadata.newBuilder()
-                .setClientParameters(currencyCreatorParams())
-        )
+        .apply {
+            when (kind) {
+                is SwapStartKind.Reserve -> setReserve(
+                    TransactionService.VerifiedReserveSwapMetadata.newBuilder()
+                        .setClientParameters(currencyCreatorParams())
+                )
+                is SwapStartKind.Stablecoin -> setStablecoin(
+                    TransactionService.VerifiedCoinbaseStableSwapperSwapMetadata.newBuilder()
+                        .setClientParameters(stablecoinParams())
+                )
+            }
+        }
 }
 
 internal fun TokenBillCustomizations.asProto(): CurrencyService.BillCustomization {

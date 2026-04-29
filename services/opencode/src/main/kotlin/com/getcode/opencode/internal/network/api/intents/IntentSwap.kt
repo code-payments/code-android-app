@@ -6,11 +6,13 @@ import com.getcode.opencode.internal.network.extensions.asSignature
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.currencyCreatorParams
 import com.getcode.opencode.internal.network.extensions.sign
+import com.getcode.opencode.internal.network.extensions.stablecoinParams
 import com.getcode.opencode.internal.network.extensions.verifiedMetadata
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapRequest
 import com.getcode.opencode.model.transactions.SwapResponseServerParameters
+import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.VerifiedSwapMetadata
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.TransactionBuilder
@@ -32,6 +34,10 @@ internal class IntentSwap(
                 // For new currency, owner == swapAuthority, so only 1 unique signature needed
                 transaction.signatures(request.owner.authority.keyPair)
             }
+
+            is SwapResponseServerParameters.Stablecoin -> {
+                transaction.signatures(request.owner.authority.keyPair, request.swapAuthority)
+            }
         }
     }
 
@@ -51,6 +57,16 @@ internal class IntentSwap(
                 amount = request.swapAmount.underlyingTokenAmount.quarks,
                 feeAmount = request.feeAmount?.underlyingTokenAmount?.quarks,
             )
+
+            is SwapResponseServerParameters.Stablecoin -> TransactionBuilder.stablecoinSwap(
+                response = parameters,
+                authority = request.owner.authorityPublicKey,
+                swapAuthority = request.swapAuthority.toPublicKey(),
+                destinationOwner = (request.kind as SwapStartKind.Stablecoin).destinationOwner,
+                direction = request.direction,
+                amount = request.swapAmount.underlyingTokenAmount.quarks,
+                feeAmount = request.feeAmount?.underlyingTokenAmount?.quarks ?: 0,
+            )
         }
     }
 
@@ -61,8 +77,11 @@ internal class IntentSwap(
                 TransactionService.StatefulSwapRequest.Initiate.newBuilder()
                     .setOwner(request.owner.authorityPublicKey.asSolanaAccountId())
                     .setSwapAuthority(request.swapAuthority.toPublicKey().asSolanaAccountId())
-                    .setReserve(request.currencyCreatorParams())
                     .apply {
+                        when (request.kind) {
+                            is SwapStartKind.Reserve -> setReserve(request.currencyCreatorParams())
+                            is SwapStartKind.Stablecoin -> setStablecoin(request.stablecoinParams())
+                        }
                         val proofSignature = request.verifiedMetadata().sign(signer)
                         setProofSignature(proofSignature)
                     }

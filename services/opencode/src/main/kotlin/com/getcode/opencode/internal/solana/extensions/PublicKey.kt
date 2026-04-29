@@ -4,6 +4,7 @@ import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.solana.vmAuthority
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram
+import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram
 import com.getcode.opencode.internal.solana.programs.CurrencyCreatorProgram
 import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram
 import com.getcode.opencode.internal.solana.programs.TimelockProgram
@@ -140,6 +141,41 @@ internal fun PublicKey.Companion.deriveVaultAddress(pool: PublicKey, mint: Publi
             mint.bytes.toByteArray()
         ),
         programId = CurrencyCreatorProgram.address,
+    )
+}
+
+internal fun PublicKey.Companion.deriveCoinbasePoolAddress(): ProgramDerivedAccount {
+    return findProgramAddress(
+        seeds = listOf("liquidity_pool".toByteArray(Charsets.UTF_8)),
+        programId = CoinbaseStableSwapperProgram.address,
+    )
+}
+
+internal fun PublicKey.Companion.deriveCoinbaseTokenVaultAddress(pool: PublicKey, mint: PublicKey): ProgramDerivedAccount {
+    return findProgramAddress(
+        seeds = listOf(
+            "token_vault".toByteArray(Charsets.UTF_8),
+            pool.bytes.toByteArray(),
+            mint.bytes.toByteArray(),
+        ),
+        programId = CoinbaseStableSwapperProgram.address,
+    )
+}
+
+internal fun PublicKey.Companion.deriveCoinbaseVaultTokenAccountAddress(vault: PublicKey): ProgramDerivedAccount {
+    return findProgramAddress(
+        seeds = listOf(
+            "vault_token_account".toByteArray(Charsets.UTF_8),
+            vault.bytes.toByteArray(),
+        ),
+        programId = CoinbaseStableSwapperProgram.address,
+    )
+}
+
+internal fun PublicKey.Companion.deriveCoinbaseWhitelistAddress(): ProgramDerivedAccount {
+    return findProgramAddress(
+        seeds = listOf("address_whitelist".toByteArray(Charsets.UTF_8)),
+        programId = CoinbaseStableSwapperProgram.address,
     )
 }
 

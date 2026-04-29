@@ -20,6 +20,7 @@ data class SwapRequest(
 ) {
     val fundingIntentId = when (kind) {
         is SwapStartKind.Reserve -> kind.fundingIntentId
+        is SwapStartKind.Stablecoin -> kind.fundingIntentId
     }
 
     val totalTransferAmount: LocalFiat
@@ -53,5 +54,27 @@ sealed interface SwapStartKind {
                 is SwapFundingSource.SubmitIntent -> fundingSource.id
                 SwapFundingSource.Unknown -> throw IllegalArgumentException("Invalid funding source")
             }
+    }
+
+    data class Stablecoin(
+        /**
+         * The source mint that will be swapped from
+         */
+        val fromMint: PublicKey,
+        /**
+         * The destination mint that will be swapped from
+         */
+        val toMint: PublicKey,
+        /**
+         * The destination owner account where from_mint tokens will land. Use
+         * CanWithdrawToAccountResponse to determine if an account is an owner.
+         */
+        val destinationOwner: PublicKey,
+        /**
+         * Where "amount" of "from_mint" will be sent from to the VM swap PDA
+         */
+        val fundingSource: SwapFundingSource.SubmitIntent,
+    ): SwapStartKind {
+        val fundingIntentId: List<Byte> = fundingSource.id
     }
 }

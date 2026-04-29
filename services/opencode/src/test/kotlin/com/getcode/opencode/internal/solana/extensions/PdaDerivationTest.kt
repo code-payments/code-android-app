@@ -185,6 +185,99 @@ class PdaDerivationTest {
         assertNotEquals(result1.publicKey, result2.publicKey)
     }
 
+    // --- deriveCoinbasePoolAddress ---
+
+    @Test
+    fun coinbasePoolIsDeterministic() {
+        val result1 = PublicKey.deriveCoinbasePoolAddress()
+        val result2 = PublicKey.deriveCoinbasePoolAddress()
+        assertEquals(result1.publicKey, result2.publicKey)
+        assertEquals(result1.bump, result2.bump)
+    }
+
+    @Test
+    fun coinbasePoolIsOffCurve() {
+        val result = PublicKey.deriveCoinbasePoolAddress()
+        assertTrue(!Ed25519.onCurve(result.publicKey.bytes.toByteArray()))
+    }
+
+    // --- deriveCoinbaseTokenVaultAddress ---
+
+    @Test
+    fun coinbaseTokenVaultIsDeterministic() {
+        val pool = testKey(1)
+        val mint = testKey(2)
+        val result1 = PublicKey.deriveCoinbaseTokenVaultAddress(pool, mint)
+        val result2 = PublicKey.deriveCoinbaseTokenVaultAddress(pool, mint)
+        assertEquals(result1.publicKey, result2.publicKey)
+        assertEquals(result1.bump, result2.bump)
+    }
+
+    @Test
+    fun coinbaseTokenVaultDiffersForDifferentMints() {
+        val pool = testKey(1)
+        val result1 = PublicKey.deriveCoinbaseTokenVaultAddress(pool, testKey(2))
+        val result2 = PublicKey.deriveCoinbaseTokenVaultAddress(pool, testKey(3))
+        assertNotEquals(result1.publicKey, result2.publicKey)
+    }
+
+    @Test
+    fun coinbaseTokenVaultDiffersForDifferentPools() {
+        val mint = testKey(2)
+        val result1 = PublicKey.deriveCoinbaseTokenVaultAddress(testKey(1), mint)
+        val result2 = PublicKey.deriveCoinbaseTokenVaultAddress(testKey(3), mint)
+        assertNotEquals(result1.publicKey, result2.publicKey)
+    }
+
+    // --- deriveCoinbaseVaultTokenAccountAddress ---
+
+    @Test
+    fun coinbaseVaultTokenAccountIsDeterministic() {
+        val vault = testKey(1)
+        val result1 = PublicKey.deriveCoinbaseVaultTokenAccountAddress(vault)
+        val result2 = PublicKey.deriveCoinbaseVaultTokenAccountAddress(vault)
+        assertEquals(result1.publicKey, result2.publicKey)
+        assertEquals(result1.bump, result2.bump)
+    }
+
+    @Test
+    fun coinbaseVaultTokenAccountDiffersForDifferentVaults() {
+        val result1 = PublicKey.deriveCoinbaseVaultTokenAccountAddress(testKey(1))
+        val result2 = PublicKey.deriveCoinbaseVaultTokenAccountAddress(testKey(2))
+        assertNotEquals(result1.publicKey, result2.publicKey)
+    }
+
+    // --- deriveCoinbaseWhitelistAddress ---
+
+    @Test
+    fun coinbaseWhitelistIsDeterministic() {
+        val result1 = PublicKey.deriveCoinbaseWhitelistAddress()
+        val result2 = PublicKey.deriveCoinbaseWhitelistAddress()
+        assertEquals(result1.publicKey, result2.publicKey)
+        assertEquals(result1.bump, result2.bump)
+    }
+
+    @Test
+    fun coinbaseWhitelistIsOffCurve() {
+        val result = PublicKey.deriveCoinbaseWhitelistAddress()
+        assertTrue(!Ed25519.onCurve(result.publicKey.bytes.toByteArray()))
+    }
+
+    // --- Coinbase PDA chain: pool -> vault -> vaultTokenAccount ---
+
+    @Test
+    fun coinbasePdaChainProducesDistinctAddresses() {
+        val pool = PublicKey.deriveCoinbasePoolAddress().publicKey
+        val mint = testKey(10)
+        val vault = PublicKey.deriveCoinbaseTokenVaultAddress(pool, mint).publicKey
+        val vaultTA = PublicKey.deriveCoinbaseVaultTokenAccountAddress(vault).publicKey
+        val whitelist = PublicKey.deriveCoinbaseWhitelistAddress().publicKey
+
+        // All four should be distinct
+        val all = setOf(pool, vault, vaultTA, whitelist)
+        assertEquals(4, all.size, "pool, vault, vaultTA, and whitelist should all be distinct")
+    }
+
     // --- Known value: well-known associated token address ---
 
     @Test
