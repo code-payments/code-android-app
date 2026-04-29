@@ -47,7 +47,10 @@ import kotlin.time.Duration.Companion.seconds
 
 typealias OrderWithPaymentLink = Pair<String, OnRampPurchaseResponse.PaymentLink>
 
-private val json = Json { encodeDefaults = true }
+private val json = Json {
+    encodeDefaults = true
+    ignoreUnknownKeys = true
+}
 
 @ActivityRetainedScoped
 class CoinbaseOnRampController @Inject constructor(
