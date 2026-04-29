@@ -30,6 +30,7 @@ import com.getcode.vendor.Base58
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.trace
 import dagger.hilt.android.scopes.ActivityRetainedScoped
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -154,7 +155,15 @@ class CoinbaseOnRampController @Inject constructor(
             .onSuccess { swapId ->
                 _state.update { CoinbaseOnRampState.Completed(swapId,  current.token, current.amount) }
             }
-            .onFailure {
+            .onFailure { error ->
+                trace(
+                    message = "Payment processing failed",
+                    tag = "OnRamp",
+                    error = error,
+                ) {
+                    "orderId" to current.orderId
+                    "errorType" to error::class.simpleName.orEmpty()
+                }
                 reset()
             }
     }
@@ -262,6 +271,18 @@ class CoinbaseOnRampController @Inject constructor(
                         url = "${onRampApiEndpoint.baseUrl}$path",
                         jwt = "Bearer $jwt",
                     )
+                }.onFailure { error ->
+                    if (error is HttpException) {
+                        val errorBody = error.response()?.errorBody()?.string()
+                        trace(
+                            message = "Coinbase order lookup HTTP ${error.code()}",
+                            tag = "OnRamp",
+                            error = error,
+                        ) {
+                            "orderId" to orderId
+                            "responseBody" to errorBody.orEmpty()
+                        }
+                    }
                 }.map { it.order }
             }
         )
@@ -287,6 +308,14 @@ class CoinbaseOnRampController @Inject constructor(
         ).fold(
             onSuccess = { call(it) },
             onFailure = { error ->
+                trace(
+                    message = "JWT request failed",
+                    tag = "OnRamp",
+                    error = error,
+                ) {
+                    "endpoint" to "$method $host$path"
+                    "errorType" to error::class.simpleName.orEmpty()
+                }
                 when (error) {
                     is GetJwtError.EmailVerificationRequired -> Result.failure(
                         OnRampAuthError.VerificationRequired(
@@ -347,6 +376,11 @@ class CoinbaseOnRampController @Inject constructor(
             onFailure = { error ->
                 if (error is HttpException) {
                     val errorBody = error.response()?.errorBody()?.string()
+                    trace(
+                        message = "Coinbase OnRamp HTTP ${error.code()}",
+                        tag = "OnRamp",
+                        error = error,
+                    ) { "responseBody" to errorBody.orEmpty() }
                     if (errorBody != null) {
                         val coinbaseError = runCatching { json.decodeFromString<CoinbaseOnRampApiError>(errorBody) }
                             .getOrNull()
