@@ -14,4 +14,6 @@
     <string name="hint_flag_newCurrencyPurchaseAmount">Enter amount</string>
     <string name="label_flag_newCurrencyFeeAmount">New Currency Fee Amount</string>
     <string name="hint_flag_newCurrencyFeeAmount">Enter amount</string>
+    <string name="label_flag_usdcWithdrawalFeeAmount">USDC Withdrawal Fee Amount</string>
+    <string name="hint_flag_usdcWithdrawalFeeAmount">Enter amount</string>
 </resources>

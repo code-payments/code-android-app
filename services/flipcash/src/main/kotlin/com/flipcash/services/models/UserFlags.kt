@@ -14,6 +14,7 @@ data class UserFlags(
     val billExchangeDataTimeout: Duration?,
     val newCurrencyPurchaseAmount: Fiat,
     val newCurrencyFeeAmount: Fiat,
+    val usdcWithdrawalFeeAmount: Fiat,
 ) {
     companion object {
         val Default = UserFlags(
@@ -26,6 +27,7 @@ data class UserFlags(
             billExchangeDataTimeout = null,
             newCurrencyPurchaseAmount = Fiat.MAX_VALUE,
             newCurrencyFeeAmount = Fiat.MAX_VALUE,
+            usdcWithdrawalFeeAmount = Fiat.Zero,
         )
     }
 }

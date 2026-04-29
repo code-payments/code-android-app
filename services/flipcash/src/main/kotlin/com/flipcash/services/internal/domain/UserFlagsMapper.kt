@@ -24,6 +24,7 @@ internal class UserFlagsMapper @Inject constructor():
             billExchangeDataTimeout = from.billExchangeDataTimeout.seconds.toDuration(DurationUnit.SECONDS),
             newCurrencyPurchaseAmount = Fiat(quarks = from.newCurrencyPurchaseAmount),
             newCurrencyFeeAmount = Fiat(quarks = from.newCurrencyFeeAmount),
+            usdcWithdrawalFeeAmount = Fiat(quarks = from.usdcWithdrawalFeeAmount),
         )
     }
 }
