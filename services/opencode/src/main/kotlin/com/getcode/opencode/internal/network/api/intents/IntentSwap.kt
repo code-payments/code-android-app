@@ -66,6 +66,8 @@ internal class IntentSwap(
                 direction = request.direction,
                 amount = request.swapAmount.underlyingTokenAmount.quarks,
                 feeAmount = request.feeAmount?.underlyingTokenAmount?.quarks ?: 0,
+                // server expects 1:1 for stablecoins
+                minOutput = request.swapAmount.underlyingTokenAmount.quarks,
             )
         }
     }

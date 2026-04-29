@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun WithdrawalEntryContent(
+internal fun WithdrawalEntryScreen(
     selectedMint: Mint,
 ) {
     val codeNavigator = LocalCodeNavigator.current

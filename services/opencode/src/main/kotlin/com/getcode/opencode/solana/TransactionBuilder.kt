@@ -65,6 +65,8 @@ object TransactionBuilder {
                 amount = amount,
                 minOutput = minOutput,
             )
+
+            SwapDirection.WithdrawUsdc -> throw IllegalArgumentException("Withdraw USDC should not be used with ExistingCurrency params")
         }
 
         return SolanaTransaction.newV0Instance(

@@ -91,7 +91,6 @@ fun TokenList(
                             .then(itemModifier()),
                         tokenWithBalance = item,
                         showFlag = showFlags,
-                        showLogo = !item.isReserves,
                         isSelected = (selectedToken == item.token.address).takeIf { showSelections },
                     ) { onTokenSelected(item.token) }
 

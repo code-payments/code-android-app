@@ -67,6 +67,14 @@ interface TransactionOperations {
         scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     ): Result<IntentType>
 
+    suspend fun withdrawUsdf(
+        amount: VerifiedFiat,
+        owner: AccountCluster,
+        destination: PublicKey,
+        destinationOwner: PublicKey,
+        fee: LocalFiat,
+    ): Result<SwapId>
+
     suspend fun checkWithdrawalAvailability(
         address: String,
         mint: Mint,

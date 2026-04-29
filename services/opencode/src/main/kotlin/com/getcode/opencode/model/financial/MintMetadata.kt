@@ -67,6 +67,30 @@ val MintMetadata.Companion.usdf: Token
         holderMetrics = HolderMetrics.None,
     )
 
+val MintMetadata.Companion.usdc: Token
+    get() = MintMetadata(
+        address = Mint.usdc,
+        decimals = 6,
+        name = "USDC",
+        symbol = "USDC",
+        description = "",
+        createdAt = Instant.parse("2018-05-15T05:00:00Z"),
+        imageUrl = "",
+        vmMetadata = VmMetadata(
+            authority = vmAuthority,
+            vm = PublicKey.deriveVirtualMachineAccount(
+                mint = Mint.usdc,
+                authority = vmAuthority,
+                lockout = TimelockDerivedAccounts.lockoutInDays.toUByte()
+            ).publicKey,
+            lockDurationInDays = TimelockDerivedAccounts.lockoutInDays.toInt()
+        ),
+        launchpadMetadata = null,
+        socialLinks = emptyList(),
+        billCustomizations = null,
+        holderMetrics = HolderMetrics.None,
+    )
+
 /**
  * Builds a local [Token] stub for a currency that was just launched via
  * [com.getcode.opencode.controllers.CurrencyController.launchToken] but whose

@@ -18,6 +18,7 @@ import com.getcode.opencode.model.core.errors.GetIntentMetadataError
 import com.getcode.opencode.model.core.errors.GetLimitsError
 import com.getcode.opencode.model.core.errors.VoidGiftCardError
 import com.getcode.opencode.model.core.errors.WithdrawalAvailabilityError
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -236,6 +237,35 @@ internal class TransactionService @Inject constructor(
         )
 
         return swap(scope, request, tokenCluster)
+    }
+
+    suspend fun withdrawUsdf(
+        scope: CoroutineScope,
+        amount: LocalFiat,
+        fee: LocalFiat?,
+        owner: AccountCluster,
+        destinationOwner: PublicKey,
+        verifiedState: VerifiedState,
+    ): Result<SwapId> {
+
+        val netAmount = amount - (fee ?: LocalFiat.Zero)
+        val request = SwapRequest(
+            owner = owner,
+            swapId = SwapId.generate(),
+            swapAuthority = Ed25519.createKeyPair(),
+            kind = SwapStartKind.Stablecoin(
+                fromMint = Mint.usdf,
+                toMint = Mint.usdc,
+                fundingSource = SwapFundingSource.SubmitIntent(),
+                destinationOwner = destinationOwner
+            ),
+            direction = SwapDirection.WithdrawUsdc,
+            swapAmount = netAmount,
+            feeAmount = fee,
+            verifiedState = verifiedState,
+        )
+
+        return swap(scope, request, owner)
     }
 
     private suspend fun swap(

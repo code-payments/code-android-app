@@ -8,11 +8,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.PreviewWrapper
+import androidx.compose.ui.tooling.preview.PreviewWrapperProvider
 import com.getcode.animation.LocalSharedTransitionScope
 import com.flipcash.app.theme.internal.Flipcash2DesignSystem
 import com.flipcash.app.theme.internal.FlipcashLegacyDesignSystem
 import com.getcode.theme.CodeTheme
 
+@Deprecated("Use FlipcashThemeWrapper")
 @Composable
 fun FlipcashPreview(
     showBackground: Boolean = false,
@@ -38,6 +41,29 @@ fun FlipcashPreview(
     if (useLegacyColors) {
         FlipcashLegacyDesignSystem(previewContent)
     } else {
+        Flipcash2DesignSystem(previewContent)
+    }
+}
+
+class FlipcashThemeWrapper: PreviewWrapperProvider {
+    @Composable
+    override fun Wrap(content: @Composable (() -> Unit)) {
+        val previewContent = @Composable {
+            SharedTransitionLayout {
+                CompositionLocalProvider(
+                    LocalSharedTransitionScope provides this,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .wrapContentSize()
+                            .background(CodeTheme.colors.background)
+                    ) {
+                        content()
+                    }
+                }
+            }
+        }
+
         Flipcash2DesignSystem(previewContent)
     }
 }

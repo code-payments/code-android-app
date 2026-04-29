@@ -150,6 +150,33 @@ class TransactionController @Inject constructor(
             }
     }
 
+    override suspend fun withdrawUsdf(
+        amount: VerifiedFiat,
+        owner: AccountCluster,
+        destination: PublicKey,
+        destinationOwner: PublicKey,
+        fee: LocalFiat,
+    ): Result<SwapId> {
+        val verifiedState = amount.verifiedState
+            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+
+        return repository.withdrawUsdf(
+            scope = scope,
+            owner = owner,
+            amount = amount.localFiat,
+            fee = fee,
+            destinationOwner = destinationOwner,
+            verifiedState = verifiedState
+        ).onSuccess { refreshAccountState() }.onFailure { error ->
+            trace(
+                tag = "TransactionController",
+                message = error.message.orEmpty(),
+                type = TraceType.Error,
+                error = error
+            )
+        }
+    }
+
     suspend fun remoteSend(
         giftCard: GiftCardAccount,
         amount: LocalFiat,
@@ -328,7 +355,13 @@ class TransactionController @Inject constructor(
         maxAttempts: Int,
         interval: Duration,
     ): Result<SwapMetadata> {
-        return swapRepository.pollForState(swapId, owner.authority.keyPair, targetState, maxAttempts, interval)
+        return swapRepository.pollForState(
+            swapId,
+            owner.authority.keyPair,
+            targetState,
+            maxAttempts,
+            interval
+        )
     }
 
     internal suspend fun submitIntent(

@@ -319,6 +319,7 @@ internal fun SwapRequest.stablecoinParams(): TransactionService.StatefulSwapRequ
                 .setFromMint(details.fromMint.asSolanaAccountId())
                 .setToMint(details.toMint.asSolanaAccountId())
                 .setSwapAmount(this@stablecoinParams.swapAmount.underlyingTokenAmount.quarks)
+                .setDestinationOwner(this@stablecoinParams.kind.destinationOwner.asSolanaAccountId())
                 .setFeeAmount(this@stablecoinParams.feeAmount?.underlyingTokenAmount?.quarks ?: 0)
                 .setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
                 .setFundingId(details.fundingSource.id.base58)

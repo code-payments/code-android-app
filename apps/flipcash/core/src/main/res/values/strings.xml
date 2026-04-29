@@ -65,6 +65,7 @@
     <string name="title_depositFunds">Deposit Funds</string>
 
     <string name="title_withdraw">Withdraw</string>
+    <string name="title_withdrawing">Withdrawing…</string>
     <string name="title_withdrawFunds">Withdraw Funds</string>
 
     <string name="subtitle_validAddress">Valid address</string>
@@ -611,4 +612,8 @@
     <string name="error_description_staleRates">Couldn\'t get a fresh rate. Please try again.</string>
 
     <string name="title_settings">Settings</string>
+
+    <string name="title_withdrawUsdfAsUsdc">Withdraw as USDC</string>
+    <string name="description_withdrawUsdfAsUsdc">Your USDF will be converted 1:1 to Solana USDC on withdrawal</string>
+    <string name="displayName_solanaUsdc">Solana USDC</string>
 </resources>

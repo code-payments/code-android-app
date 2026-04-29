@@ -21,10 +21,11 @@ import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.util.resources.LocalResources
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun WithdrawalConfirmationContent(mint: Mint) {
+internal fun WithdrawalConfirmationScreen(mint: Mint) {
     val flowNavigator = rememberFlowNavigator<WithdrawalStep, WithdrawalResult>()
     val viewModel = flowSharedViewModel<WithdrawalViewModel>()
     val resources = LocalResources.current
@@ -40,6 +41,15 @@ internal fun WithdrawalConfirmationContent(mint: Mint) {
             onBackIconClicked = { flowNavigator.back() },
         )
         WithdrawalConfirmationScreen(viewModel)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<WithdrawalViewModel.Event.OnUsdcWithdrawalProcessing>()
+            .map { it.swapId }
+            .onEach { swapId ->
+                flowNavigator.navigateTo(WithdrawalStep.Processing(swapId))
+            }.launchIn(this)
     }
 
     LaunchedEffect(viewModel) {

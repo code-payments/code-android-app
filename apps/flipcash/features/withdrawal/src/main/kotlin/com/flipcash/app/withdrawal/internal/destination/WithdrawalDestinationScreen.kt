@@ -74,7 +74,7 @@ private fun WithdrawalDestinationScreenContent(
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
             Text(
-                text = stringResource(R.string.subtitle_whereWithdrawTo, state.token?.token?.name.orEmpty()),
+                text = stringResource(R.string.subtitle_whereWithdrawTo, state.token?.displayName.orEmpty()),
                 style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textSecondary
             )

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.getcode.navigation.flow.flowSharedViewModel
@@ -48,6 +49,7 @@ import com.flipcash.app.currencycreator.internal.screens.ReviewAndPurchaseConten
 import com.flipcash.app.currencycreator.internal.screens.ReviewAndPurchaseScreen
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashPreview
+import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.core.R
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -216,71 +218,79 @@ private fun SyncTopBar(step: CurrencyCreatorStep) {
     }
 }
 
+
 @Composable
 private fun CurrencyCreatorPreview(
     feeAmount: Fiat = 15.toFiat(),
     content: @Composable (state: CurrencyCreatorViewModel.State) -> Unit
 ) {
-    FlipcashPreview(showBackground = true) {
-        CompositionLocalProvider(
-            LocalFlowNavigator provides PreviewFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>(),
-            LocalCurrencyCreatorTopBar provides remember { CurrencyCreatorTopBarController() },
-        ) {
-            val state = CurrencyCreatorViewModel.State(feeAmount = feeAmount)
-            content(state)
-        }
+    CompositionLocalProvider(
+        LocalFlowNavigator provides PreviewFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>(),
+        LocalCurrencyCreatorTopBar provides remember { CurrencyCreatorTopBarController() },
+    ) {
+        val state = CurrencyCreatorViewModel.State(feeAmount = feeAmount)
+        content(state)
     }
 }
 
 @Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 private fun Preview_Info_15Fee() {
     CurrencyCreatorPreview { InfoScreenContent(it) }
 }
 
 @Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 private fun Preview_Info_NoFee() {
     CurrencyCreatorPreview(feeAmount = Fiat.Zero) { InfoScreenContent(it) }
 }
 
 @Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 private fun Preview_Info_5Fee() {
     CurrencyCreatorPreview(feeAmount = 5.toFiat()) { InfoScreenContent(it) }
 }
 
 @Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 private fun Preview_Name() {
     CurrencyCreatorPreview { NameSelectionContent(it) {} }
 }
 
 @Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 private fun Preview_Icon() {
     CurrencyCreatorPreview { IconSelectionContent(it) {} }
 }
 
 @Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 private fun Preview_Description() {
     CurrencyCreatorPreview { DescriptionSelectionContent(it) {} }
 }
 
 @Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 private fun Preview_Bill() {
     CurrencyCreatorPreview { BillCustomizationContent(it) {} }
 }
 
 @Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 private fun Preview_Review() {
     CurrencyCreatorPreview { ReviewAndPurchaseContent(it) {} }
 }
 
 @Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 private fun Preview_Processing() {
     CurrencyCreatorPreview { ProcessingContent(it) {} }

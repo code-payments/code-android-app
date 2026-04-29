@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun WithdrawalDestinationContent() {
+internal fun WithdrawalDestinationScreen() {
     val flowNavigator = rememberFlowNavigator<WithdrawalStep, WithdrawalResult>()
     val viewModel = flowSharedViewModel<WithdrawalViewModel>()
 

@@ -8,4 +8,6 @@ android {
 
 dependencies {
     implementation(project(":ui:theme"))
+    api(libs.androidx.ui.tooling.preview)
+    debugApi(libs.androidx.ui.tooling)
 }

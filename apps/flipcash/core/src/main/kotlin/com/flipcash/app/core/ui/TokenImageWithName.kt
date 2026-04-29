@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
@@ -43,7 +44,9 @@ fun TokenIconWithName(
     ) {
         TokenIcon(
             image = tokenImage,
-            modifier = Modifier.size(imageSize).then(iconModifier)
+            modifier = Modifier
+                .size(imageSize)
+                .then(iconModifier)
         )
         Text(
             modifier = textModifier,
@@ -61,6 +64,7 @@ fun TokenIconWithName(
     modifier: Modifier = Modifier,
     textModifier: Modifier = Modifier,
     iconModifier: Modifier = Modifier,
+    iconOverride: @Composable ((Any?) -> Any?) = { it },
     displayName: (Token) -> String = { it.name },
     textStyle: TextStyle = CodeTheme.typography.screenTitle,
     textColor: Color = CodeTheme.colors.textMain,
@@ -68,7 +72,7 @@ fun TokenIconWithName(
 ) {
     TokenIconWithName(
         tokenName = displayName(token),
-        tokenImage = token.imageUrl,
+        tokenImage = iconOverride(token.imageUrl),
         imageSize = imageSize,
         modifier = modifier,
         textModifier = textModifier,
@@ -82,10 +86,11 @@ fun TokenIconWithName(
 @Composable
 fun TokenIcon(
     token: Token,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    iconOverride: @Composable ((Any?) -> Any?) = { it },
 ) {
     TokenIcon(
-        image = token.imageUrl,
+        image = iconOverride(token.imageUrl),
         modifier = modifier
     )
 }
@@ -96,7 +101,9 @@ fun TokenIcon(
     modifier: Modifier = Modifier,
 ) {
     AsyncImage(
-        modifier = Modifier.clip(CircleShape).then(modifier),
+        modifier = Modifier
+            .clip(CircleShape)
+            .then(modifier),
         model = ImageRequest.Builder(LocalPlatformContext.current)
             .data(image)
             .crossfade(false)

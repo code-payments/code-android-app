@@ -165,7 +165,11 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class Withdrawal(val mint: Mint) : Transfers, FlowRouteWithResult<WithdrawalResult> {
             override val initialStack: List<NavKey>
-                get() = listOf(WithdrawalStep.Amount(mint))
+                get() = if (mint == Mint.usdf) {
+                    listOf(WithdrawalStep.UsdcInformational)
+                } else {
+                    listOf(WithdrawalStep.Amount(mint))
+                }
         }
     }
 

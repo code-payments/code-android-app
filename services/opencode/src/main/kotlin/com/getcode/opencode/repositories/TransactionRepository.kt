@@ -64,4 +64,13 @@ interface TransactionRepository {
         of: Token,
         verifiedState: VerifiedState,
     ): Result<SwapId>
+
+    suspend fun withdrawUsdf(
+        scope: CoroutineScope,
+        amount: LocalFiat,
+        fee: LocalFiat,
+        owner: AccountCluster,
+        destinationOwner: PublicKey,
+        verifiedState: VerifiedState,
+    ): Result<SwapId>
 }

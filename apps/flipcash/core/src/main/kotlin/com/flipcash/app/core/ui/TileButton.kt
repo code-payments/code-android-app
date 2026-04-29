@@ -33,9 +33,9 @@ fun TileButton(
                 color = CodeTheme.colors.surfaceVariant,
                 shape = CodeTheme.shapes.large,
             )
-            .padding(contentPadding)
             .clip(CodeTheme.shapes.large)
-            .rememberedClickable(onClick = onClick),
+            .rememberedClickable(onClick = onClick)
+            .padding(contentPadding),
         contentAlignment = Alignment.Center,
     ) {
         Column(

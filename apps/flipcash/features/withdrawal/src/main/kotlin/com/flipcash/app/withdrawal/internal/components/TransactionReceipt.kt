@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
@@ -50,6 +51,7 @@ import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdf
+import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.bolded
@@ -108,6 +110,13 @@ internal fun TransactionReceipt(
                 tokenWithBalance = tokenWithBalance.copy(balance = netTransferAmount),
                 showName = false,
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                iconOverride = { icon ->
+                    if (tokenWithBalance.token.address == Mint.usdf) {
+                        painterResource(R.drawable.ic_usdc_on_solana)
+                    } else {
+                        icon
+                    }
+                },
                 formattedBalance = { amount ->
                     amount.convertingToUsdIfNeeded(exchange.entryRate)
                         .estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2)
@@ -160,7 +169,7 @@ private fun LineItems(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onLearnMoreClicked),
                 label = buildAnnotatedString {
                     withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
-                        append("Less one time fee")
+                        append("Less fee")
                     }
                     append(" ")
                     appendInlineContent("icon")
@@ -184,13 +193,15 @@ private fun LineItems(
             )
         }
 
-        val exchange = LocalExchange.current
-        ReceiptLineItem(
-            modifier = Modifier.fillMaxWidth(),
-            label = AnnotatedString("Amount in ${tokenWithBalance.token.name}"),
-            amount = transferAmount.convertingToUsdIfNeeded(exchange.entryRate)
-                .estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2),
-        )
+        if (tokenWithBalance.token.address != Mint.usdf) {
+            val exchange = LocalExchange.current
+            ReceiptLineItem(
+                modifier = Modifier.fillMaxWidth(),
+                label = AnnotatedString("Amount in ${tokenWithBalance.displayName}"),
+                amount = transferAmount.convertingToUsdIfNeeded(exchange.entryRate)
+                    .estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2),
+            )
+        }
     }
 }
 

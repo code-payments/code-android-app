@@ -93,4 +93,20 @@ internal class InternalTransactionRepository @Inject constructor(
         owner = owner,
         verifiedState = verifiedState
     ).onFailure { ErrorUtils.handleError(it) }
+
+    override suspend fun withdrawUsdf(
+        scope: CoroutineScope,
+        amount: LocalFiat,
+        fee: LocalFiat,
+        owner: AccountCluster,
+        destinationOwner: PublicKey,
+        verifiedState: VerifiedState,
+    ): Result<SwapId> = service.withdrawUsdf(
+        scope = scope,
+        amount = amount,
+        fee = fee,
+        owner = owner,
+        destinationOwner = destinationOwner,
+        verifiedState = verifiedState,
+    ).onFailure { ErrorUtils.handleError(it) }
 }
