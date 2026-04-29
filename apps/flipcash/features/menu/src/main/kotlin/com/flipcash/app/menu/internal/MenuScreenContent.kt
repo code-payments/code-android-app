@@ -1,9 +1,11 @@
 package com.flipcash.app.menu.internal
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -14,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -22,6 +25,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.TileButton
 import com.flipcash.app.menu.MenuList
+import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.features.menu.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -29,6 +33,9 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.core.noRippleClickable
+import com.getcode.ui.core.unboundedClickable
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import kotlinx.coroutines.launch
 
@@ -104,7 +111,36 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                     }
                 }
             },
-            contentPadding = PaddingValues(top = CodeTheme.dimens.grid.x6),
+            footer = {
+                CodeButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = CodeTheme.dimens.grid.x3)
+                        .padding(horizontal = CodeTheme.dimens.grid.x3),
+                    onClick = { viewModel.dispatchEvent(Event.OnLogOutClicked) },
+                    buttonState = ButtonState.Subtle,
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1, Alignment.CenterHorizontally),
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.ic_menu_logout),
+                            colorFilter = ColorFilter.tint(CodeTheme.colors.textSecondary),
+                            contentDescription = null,
+                        )
+
+                        Text(
+                            modifier = Modifier.padding(start = CodeTheme.dimens.grid.x1),
+                            text = stringResource(R.string.action_logout),
+                            style = CodeTheme.typography.textMedium,
+                            color = CodeTheme.colors.textSecondary,
+                        )
+                    }
+                }
+            },
+            contentPadding = PaddingValues(top = CodeTheme.dimens.grid.x3),
             onItemClick = {
                 viewModel.dispatchEvent(it.action)
             }

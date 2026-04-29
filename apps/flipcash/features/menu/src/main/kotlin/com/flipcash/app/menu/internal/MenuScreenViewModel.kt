@@ -47,7 +47,6 @@ private val FullMenuList = buildList {
     add(AdvancedFeatures)
     add(SwitchAccount)
     add(Labs)
-    add(LogOut)
 }
 
 @HiltViewModel

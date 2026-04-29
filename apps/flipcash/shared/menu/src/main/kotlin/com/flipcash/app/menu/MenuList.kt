@@ -19,6 +19,7 @@ fun <T> MenuList(
     items: List<MenuItem<T>>,
     showChevrons: Boolean = false,
     header: @Composable (() -> Unit)? = null,
+    footer: @Composable (() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     onItemClick: (MenuItem<T>) -> Unit
 ) {
@@ -38,6 +39,10 @@ fun <T> MenuList(
             ListItem(modifier = Modifier.animateItem(), item = item, showChevron = showChevrons) {
                 onItemClick(item)
             }
+        }
+
+        if (footer != null) {
+            item { footer() }
         }
     }
 }
