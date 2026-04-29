@@ -32,7 +32,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ExternalWalletOnRampHandler(
-    controller: ExternalWalletOnRampController,
+    controller: ExternalWalletOnRampController = LocalExternalWalletOnRampController.current,
     navigator: CodeNavigator,
     content: @Composable () -> Unit,
 ) {

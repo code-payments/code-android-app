@@ -1,27 +1,25 @@
 package com.flipcash.app.onramp
 
-import android.content.Context
+import android.content.res.Resources
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
 import com.flipcash.shared.onramp.coinbase.R
 import com.getcode.manager.BottomBarManager
-import com.getcode.navigation.core.CodeNavigator
 import kotlinx.coroutines.delay
 
 @Composable
 fun CoinbaseOnRampHandler(
-    controller: CoinbaseOnRampController,
-    navigator: CodeNavigator,
+    controller: CoinbaseOnRampController = LocalCoinbaseOnRampController.current,
     content: @Composable () -> Unit,
 ) {
     val state by controller.state.collectAsState()
-    val context = LocalContext.current
-
+    val resources = LocalResources.current
     when (val current = state) {
         is CoinbaseOnRampState.Paying -> {
             CoinbaseOnRampWebview(
@@ -54,7 +52,9 @@ fun CoinbaseOnRampHandler(
 
         is CoinbaseOnRampState.Completed -> {
             LaunchedEffect(current) {
-                navigator.push(AppRoute.Token.TxProcessing(current.swapId))
+                controller.emitPendingNavigation(
+                    AppRoute.Token.TxProcessing(current.swapId, SwapPurpose.Buy(current.token.address))
+                )
                 controller.reset()
             }
         }
@@ -62,7 +62,7 @@ fun CoinbaseOnRampHandler(
         is CoinbaseOnRampState.Failed -> {
             LaunchedEffect(current) {
                 delay(400) // let the system payment sheet finish its dismiss animation
-                showOnRampFailure(context, current.error)
+                showOnRampFailure(resources, current.error)
                 controller.reset()
             }
         }
@@ -73,70 +73,70 @@ fun CoinbaseOnRampHandler(
     content()
 }
 
-private fun showOnRampFailure(context: Context, error: CoinbaseOnRampWebError) {
+private fun showOnRampFailure(resources: Resources, error: CoinbaseOnRampWebError) {
     when (error) {
         is CoinbaseOnRampWebError.Unknown,
         is CoinbaseOnRampWebError.MissingTransactionUuid -> {
             BottomBarManager.showError(
-                title = context.getString(R.string.error_title_onrampUnknownFailure),
-                message = context.getString(R.string.error_description_onrampUnknownFailure),
+                title = resources.getString(R.string.error_title_onrampUnknownFailure),
+                message = resources.getString(R.string.error_description_onrampUnknownFailure),
             )
         }
 
         is CoinbaseOnRampWebError.GuestCardNotDebit -> {
             BottomBarManager.showAlert(
-                title = context.getString(R.string.error_title_onrampInvalidCard),
-                message = context.getString(R.string.error_description_onrampInvalidCard),
+                title = resources.getString(R.string.error_title_onrampInvalidCard),
+                message = resources.getString(R.string.error_description_onrampInvalidCard),
             )
         }
 
         is CoinbaseOnRampWebError.GuestGooglePayError -> {
             BottomBarManager.showError(
-                title = context.getString(R.string.error_title_onrampTransactionFailed),
-                message = context.getString(R.string.error_description_onrampTransactionFailed),
+                title = resources.getString(R.string.error_title_onrampTransactionFailed),
+                message = resources.getString(R.string.error_description_onrampTransactionFailed),
             )
         }
 
         is CoinbaseOnRampWebError.GuestGooglePayNotReady -> {
             BottomBarManager.showAlert(
-                title = context.getString(R.string.error_title_onrampGooglePayNotReady),
-                message = context.getString(R.string.error_description_onrampGooglePayNotReady),
+                title = resources.getString(R.string.error_title_onrampGooglePayNotReady),
+                message = resources.getString(R.string.error_description_onrampGooglePayNotReady),
             )
         }
 
         is CoinbaseOnRampWebError.GuestTransactionBuyFailed -> {
             BottomBarManager.showError(
-                title = context.getString(R.string.error_title_onrampTransactionBuyFailed),
-                message = context.getString(R.string.error_description_onrampTransactionBuyFailed),
+                title = resources.getString(R.string.error_title_onrampTransactionBuyFailed),
+                message = resources.getString(R.string.error_description_onrampTransactionBuyFailed),
             )
         }
 
         is CoinbaseOnRampWebError.GuestTransactionSendFailed -> {
             BottomBarManager.showError(
-                title = context.getString(R.string.error_title_onrampTransactionSendFailed),
-                message = context.getString(R.string.error_description_onrampTransactionSendFailed),
+                title = resources.getString(R.string.error_title_onrampTransactionSendFailed),
+                message = resources.getString(R.string.error_description_onrampTransactionSendFailed),
             )
         }
 
         is CoinbaseOnRampWebError.GuestTransactionAvsValidationFailed -> {
             BottomBarManager.showError(
-                title = context.getString(R.string.error_title_onrampTransactionAvsValidationFailed),
-                message = context.getString(R.string.error_description_onrampTransactionAvsValidationFailed),
+                title = resources.getString(R.string.error_title_onrampTransactionAvsValidationFailed),
+                message = resources.getString(R.string.error_description_onrampTransactionAvsValidationFailed),
             )
         }
 
         is CoinbaseOnRampWebError.GuestTransactionTransactionFailed -> {
             BottomBarManager.showError(
-                title = context.getString(R.string.error_title_onrampTransactionFailed),
-                message = context.getString(R.string.error_description_onrampTransactionFailed),
+                title = resources.getString(R.string.error_title_onrampTransactionFailed),
+                message = resources.getString(R.string.error_description_onrampTransactionFailed),
             )
         }
 
         is CoinbaseOnRampWebError.Internal,
         is CoinbaseOnRampWebError.GooglePayButtonNotFound -> {
             BottomBarManager.showError(
-                title = context.getString(R.string.error_title_onrampInternal),
-                message = context.getString(R.string.error_description_onrampInternal),
+                title = resources.getString(R.string.error_title_onrampInternal),
+                message = resources.getString(R.string.error_description_onrampInternal),
             )
         }
     }

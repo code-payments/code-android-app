@@ -1,6 +1,7 @@
 package com.flipcash.app.onramp
 
 import android.annotation.SuppressLint
+import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -106,7 +107,7 @@ private fun WebView.configureForCoinbaseOnRamp(
                     trace(tag = "CoinbaseOnRamp", message = "Fallback auto-click (load_success not received)")
                     view.evaluateJavascript(CoinbaseOnRampScripts.AUTO_CLICK_GPAY_BUTTON, null)
                 }
-            }, 2000)
+            }, 5000)
         }
 
         override fun onReceivedError(
@@ -130,8 +131,6 @@ private fun WebView.configureForCoinbaseOnRamp(
             CoinbaseOnRampScripts.CLICK_HANDLER_INTERCEPTOR,
             setOf("*")
         )
-        // MESSAGE_BRIDGE stays in onPageFinished via evaluateJavascript() because
-        // the Coinbase widget expects window.androidWebView to be set in the
-        // page's main world, which document-start scripts may not share.
+        CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
     }
 }

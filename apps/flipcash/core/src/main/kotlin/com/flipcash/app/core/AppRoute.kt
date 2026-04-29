@@ -138,6 +138,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class TxProcessing(
             val swapId: SwapId,
+            val swapPurpose: SwapPurpose? = null,
             val awaitExternalWallet: Boolean = false,
             val isFundingShortfall: Boolean = false,
         ) : Token, NonDismissableRoute, NonDraggableRoute

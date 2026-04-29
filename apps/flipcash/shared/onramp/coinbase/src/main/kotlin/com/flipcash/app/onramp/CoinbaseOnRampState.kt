@@ -18,6 +18,6 @@ sealed interface CoinbaseOnRampState {
     data object Idle : CoinbaseOnRampState
     data class Paying(val order: OnrampOrder, val token: Token, val amount: VerifiedFiat) : CoinbaseOnRampState
     data class Processing(val orderId: String, val token: Token, val amount: VerifiedFiat) : CoinbaseOnRampState
-    data class Completed(val swapId: SwapId) : CoinbaseOnRampState
+    data class Completed(val swapId: SwapId, val token: Token) : CoinbaseOnRampState
     data class Failed(val error: CoinbaseOnRampWebError) : CoinbaseOnRampState
 }

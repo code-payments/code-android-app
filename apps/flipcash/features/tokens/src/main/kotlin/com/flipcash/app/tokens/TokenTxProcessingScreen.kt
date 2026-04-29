@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
 import com.flipcash.app.onramp.ExternalWalletOnRampState
@@ -96,6 +97,7 @@ internal fun SwapProcessingContent(
 @Composable
 fun TokenTxProcessingScreen(
     swapId: SwapId,
+    swapPurpose: SwapPurpose?,
     awaitExternalWallet: Boolean = false,
     isFundingShortfall: Boolean = false,
 ) {
@@ -131,6 +133,9 @@ fun TokenTxProcessingScreen(
     } else {
         LaunchedEffect(viewModel, swapId) {
             viewModel.dispatchEvent(Event.OnSwapIdChanged(swapId))
+            if (swapPurpose != null) {
+                viewModel.dispatchEvent(Event.OnPurposeChanged(swapPurpose))
+            }
         }
     }
 

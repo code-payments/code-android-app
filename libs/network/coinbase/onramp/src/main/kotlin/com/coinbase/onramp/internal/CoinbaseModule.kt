@@ -30,7 +30,7 @@ object CoinbaseModule {
     fun providesOnRampApiConfig(): OnRampApiConfig = OnRampApiConfig(
         scheme = "https",
         host = "api.cdp.coinbase.com/platform/",
-        path = "/v2/onramp/orders",
+        path = "v2/onramp/orders",
         method = "POST",
     )
 

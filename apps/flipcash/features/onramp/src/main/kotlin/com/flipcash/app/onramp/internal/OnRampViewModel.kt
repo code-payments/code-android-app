@@ -144,7 +144,7 @@ internal class OnRampViewModel @Inject constructor(
         val sendLimit =
             currency.code?.let { stateFlow.value.amountEntryState.limits?.sendLimitFor(it) }
                 ?: SendLimit.Zero
-        val isOverLimit = amount > sendLimit.nextTransaction
+        val isOverLimit = amount > sendLimit.maxPerDay
         if (isOverLimit) {
             BottomBarManager.showAlert(
                 resources.getString(R.string.error_title_insufficientFunds),
@@ -257,7 +257,7 @@ internal class OnRampViewModel @Inject constructor(
             }
             .onEach { (limits, currency) ->
                 val sendLimit = limits?.sendLimitFor(currency) ?: SendLimit.Zero
-                val nextTransactionLimit = sendLimit.nextTransaction
+                val nextTransactionLimit = sendLimit.maxPerDay
                 dispatchEvent(Event.OnMaxDetermined(nextTransactionLimit, currency))
             }.launchIn(viewModelScope)
 

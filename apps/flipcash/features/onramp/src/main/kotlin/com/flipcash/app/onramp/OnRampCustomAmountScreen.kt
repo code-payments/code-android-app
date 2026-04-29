@@ -67,4 +67,11 @@ fun OnRampCustomAmountScreen(mint: Mint) {
                 )
             }.launchIn(this)
     }
+
+    val coinbaseOnRampController = LocalCoinbaseOnRampController.current
+    LaunchedEffect(Unit) {
+        coinbaseOnRampController.pendingNavigation.collect { route ->
+            navigator.push(route)
+        }
+    }
 }

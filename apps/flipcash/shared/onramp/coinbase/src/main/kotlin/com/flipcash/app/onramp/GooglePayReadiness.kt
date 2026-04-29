@@ -5,9 +5,10 @@ import android.os.Build
 import com.google.android.gms.wallet.IsReadyToPayRequest
 import com.google.android.gms.wallet.PaymentsClient
 import com.google.android.gms.wallet.Wallet
-import com.google.android.gms.wallet.WalletConstants
+import com.flipcash.shared.onramp.coinbase.BuildConfig as OnRampBuildConfig
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.google.android.gms.wallet.WalletConstants
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.tasks.await
 import org.json.JSONArray
@@ -44,9 +45,7 @@ class GooglePayReadiness @Inject constructor(
         if (!supported) return Status.NotSupported
 
         val withInstrument = try {
-            val instrumentRequest = baseIsReadyToPayRequest().apply {
-                put("existingPaymentMethodRequired", true)
-            }
+            val instrumentRequest = baseIsReadyToPayRequest()
             val request = IsReadyToPayRequest.fromJson(instrumentRequest.toString())
             client.isReadyToPay(request).await()
         } catch (_: Exception) {

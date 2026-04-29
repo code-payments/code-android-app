@@ -28,10 +28,14 @@ import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.solana.keys.base58
 import com.getcode.utils.base64
 import com.getcode.vendor.Base58
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
 import dagger.hilt.android.scopes.ActivityRetainedScoped
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.Serializable
@@ -58,6 +62,13 @@ class CoinbaseOnRampController @Inject constructor(
 
     private val _state = MutableStateFlow<CoinbaseOnRampState>(CoinbaseOnRampState.Idle)
     val state: StateFlow<CoinbaseOnRampState> = _state.asStateFlow()
+
+    private val _pendingNavigation = MutableSharedFlow<AppRoute>(extraBufferCapacity = 1)
+    val pendingNavigation: SharedFlow<AppRoute> = _pendingNavigation.asSharedFlow()
+
+    fun emitPendingNavigation(route: AppRoute) {
+        _pendingNavigation.tryEmit(route)
+    }
 
     fun startPayment(order: OnrampOrder, token: Token, amount: VerifiedFiat) {
         _state.value = CoinbaseOnRampState.Paying(order, token, amount)
@@ -131,7 +142,7 @@ class CoinbaseOnRampController @Inject constructor(
                 ).getOrThrow()
             }
             .onSuccess { swapId ->
-                _state.update { CoinbaseOnRampState.Completed(swapId) }
+                _state.update { CoinbaseOnRampState.Completed(swapId, current.token) }
             }
             .onFailure {
                 reset()
@@ -151,8 +162,7 @@ class CoinbaseOnRampController @Inject constructor(
 
         val owner = userManager.accountCluster
             ?: return Result.failure(Throwable("Owner not found"))
-        val userRef = userManager.accountId?.base64
-            ?: return Result.failure(Throwable("User ID not found"))
+        val userRef = owner.authorityPublicKey.base58()
         val usdfSwapAccounts = Token.usdf.timelockSwapAccounts(owner.authorityPublicKey)
 
         val destination = usdfSwapAccounts.pda.publicKey.base58()
@@ -197,8 +207,7 @@ class CoinbaseOnRampController @Inject constructor(
 
         val owner = userManager.accountCluster
             ?: return Result.failure(Throwable("Owner not found"))
-        val userRef = userManager.accountId?.base64
-            ?: return Result.failure(Throwable("User ID not found"))
+        val userRef = owner.authorityPublicKey.base58()
         val usdfSwapAccounts = Token.usdf.timelockSwapAccounts(owner.authorityPublicKey)
 
         val destination = usdfSwapAccounts.pda.publicKey.base58()

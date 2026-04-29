@@ -64,8 +64,7 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         getByName("debug") {
-            applicationIdSuffix = ".dev"
-            resValue("string", "applicationId", "${appNamespace}.dev")
+            resValue("string", "applicationId", appNamespace)
             signingConfig = signingConfigs.getByName("contributors")
 
             val debugMinifyEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_MINIFY", "false").toBooleanStrictOrNull() ?: false
@@ -78,7 +77,6 @@ android {
                     "proguard-rules.pro"
                 )
             }
-
         }
     }
 

@@ -141,14 +141,8 @@ internal fun App(
                                 LocalScrimController provides scrimController,
                                 LocalSharedTransitionScope provides this,
                             ) {
-                                ExternalWalletOnRampHandler(
-                                    controller = LocalExternalWalletOnRampController.current,
-                                    navigator = codeNavigator,
-                                ) {
-                                    CoinbaseOnRampHandler(
-                                        controller = LocalCoinbaseOnRampController.current,
-                                        navigator = codeNavigator,
-                                    ) {
+                                ExternalWalletOnRampHandler(navigator = codeNavigator) {
+                                    CoinbaseOnRampHandler {
                                         AppNavHost(
                                             navigator = codeNavigator,
                                             resultStateRegistry = resultStateRegistry,

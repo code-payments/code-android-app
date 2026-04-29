@@ -24,11 +24,17 @@ internal object CoinbaseOnRampScripts {
         (function () {
             function postMessage(e) {
                 try {
-                    var data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+                    var raw = (e && typeof e.data !== "undefined") ? e.data : e;
+                    var data = typeof raw === "string" ? JSON.parse(raw) : raw;
                     if (data && data.eventName) {
                         AndroidBridge.onEvent(JSON.stringify(data));
                     }
-                } catch (err) {}
+                } catch (err) {
+                    AndroidBridge.onEvent(JSON.stringify({
+                        eventName: "debug.bridge_parse_error",
+                        data: { error: err.message, rawType: typeof e, hasData: typeof e === "object" && "data" in e }
+                    }));
+                }
             }
 
             window.androidWebView = { postMessage };
@@ -198,6 +204,19 @@ internal class CoinbaseOnRampEventHandler(
                         tag = "CoinbaseOnRamp",
                         message = "GPay auto-click complete",
                         metadata = { "total_elapsed_ms" to startMark.elapsedNow().inWholeMilliseconds },
+                    )
+                }
+                "debug.bridge_parse_error" -> {
+                    val data = obj.optJSONObject("data")
+                    trace(
+                        tag = "CoinbaseOnRamp",
+                        message = "Bridge parse error",
+                        type = TraceType.Error,
+                        metadata = {
+                            "error" to (data?.optString("error") ?: "unknown")
+                            "rawType" to (data?.optString("rawType") ?: "unknown")
+                            "hasData" to (data?.optBoolean("hasData", false) ?: false)
+                        },
                     )
                 }
             }
