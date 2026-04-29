@@ -110,7 +110,7 @@ internal class GrabBillTransactor(
             .getOrNull()
             ?: run {
                 onStep("pollForGiveRequest")
-                return@timedTraceSuspend logAndFail(GrabTransactorError.Other(message = "No give request found for rendezvous"))
+                return@timedTraceSuspend logAndFail(GrabTransactorError.GiveRequestNotFound())
             }
         onStep("pollForGiveRequest")
 
@@ -179,6 +179,10 @@ sealed class GrabTransactorError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
+    data class GiveRequestNotFound(
+        override val message: String? = "No give request found for rendezvous",
+    ) : GrabTransactorError(message)
+
     data class Other(
         override val message: String? = null,
         override val cause: Throwable? = null
