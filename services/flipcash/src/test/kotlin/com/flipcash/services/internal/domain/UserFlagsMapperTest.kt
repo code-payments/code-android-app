@@ -96,7 +96,7 @@ class UserFlagsMapperTest {
     @Test
     fun `UNKNOWN preferred provider maps to null`() {
         val proto = userFlags {
-            preferredOnRampProvider = FlipcashAccountService.UserFlags.OnRampProvider.UNKNOWN
+            preferredOnRampProvider = FlipcashAccountService.UserFlags.OnRampProvider.UNKNOWN_ON_RAMP_PROVIDER
         }
 
         val result = mapper.map(proto)
