@@ -832,7 +832,6 @@ class RealSessionController @Inject constructor(
                     error = it
                 )
                 scannedRendezvous.remove(payload.rendezvous.publicKey)
-                ErrorUtils.handleError(it)
             }
         )
     }

@@ -12,6 +12,7 @@ import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.accounts.AccountResponse
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.repositories.AccountRepository
+import com.getcode.utils.ErrorUtils
 import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
@@ -31,6 +32,7 @@ internal class InternalAccountRepository @Inject constructor(
     ): Result<ID> {
         val intent = IntentCreateAccount.createUserAccount(ownerForMint, mint)
         return transactionService.submitIntent(scope, intent, ownerForMint.authority.keyPair)
+            .onFailure { ErrorUtils.handleError(it) }
             .map { it.id.bytes }
     }
 

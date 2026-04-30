@@ -1,6 +1,5 @@
 package com.getcode.opencode.internal.bidi
 
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import io.grpc.Status
@@ -17,7 +16,7 @@ suspend fun <Request, Response, StreamRef : BidirectionalStreamReference<*, *>, 
     streamRef: StreamRef,
     apiCall: (Flow<Request>) -> Flow<Response>,
     initialRequest: () -> Request,
-    onError: (Throwable) -> Unit = { ErrorUtils.handleError(it) },
+    onError: (Throwable) -> Unit = { trace(message = "Stream error: ${it.message}", type = TraceType.Error) },
     reconnectOnUnavailable: Boolean = false,
     reconnectOnDeadlineExceeded: Boolean = false,
     reconnectOnCancelled: Boolean = false,

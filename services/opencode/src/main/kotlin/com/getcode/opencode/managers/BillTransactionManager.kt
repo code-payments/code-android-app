@@ -19,7 +19,6 @@ import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.providers.TokenMetadataProvider
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.timedTraceSuspend
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -223,7 +222,6 @@ class BillTransactionManager @Inject constructor(
                     onFunded(amount)
                     transactionController.updateLimits(owner, force = true)
                 }.onFailure {
-                    ErrorUtils.handleError(it)
                     onError(it)
                     transactor.dispose()
                 }
