@@ -254,9 +254,14 @@ class BillTransactionManager @Inject constructor(
                 mnemonicManager = mnemonicManager,
                 giftCardManager = giftCardManager,
                 accountClusterFactory = accountClusterFactory,
-            ).apply {
-                with(owner, entropy)
-            }
+            )
+
+            runCatching { transactor.with(owner, entropy) }
+                .onFailure {
+                    onError(it)
+                    transactor.dispose()
+                    return@launch
+                }
 
             receiveTransactor = transactor
 
