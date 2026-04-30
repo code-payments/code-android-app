@@ -236,7 +236,7 @@ internal class CoinbaseOnRampEventHandler(
     }
 }
 
-sealed class CoinbaseOnRampWebError(val data: String? = null): Exception() {
+sealed class CoinbaseOnRampWebError(val data: String? = null): Throwable() {
     class Unknown(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
     class MissingTransactionUuid(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
     class GuestCardNotDebit(data: String? = null) : CoinbaseOnRampWebError(data)
