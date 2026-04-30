@@ -175,3 +175,61 @@ class CoinbaseOnRampControllerTest {
 
     // endregion
 }
+
+class CoinbaseOnRampApiErrorParseTest {
+
+    @Test
+    fun `parse real Coinbase error response with errorType`() {
+        val body = """{"correlationId":"9f42a272080a4bc3-IAD","errorLink":"https://docs.cdp.coinbase.com/api-reference/v2/errors","errorType":"guest_region_forbidden"}"""
+        val error = CoinbaseOnRampApiError.parse(body)
+        assertIs<CoinbaseOnRampApiError.GuestRegionForbidden>(error)
+        assertEquals("9f42a272080a4bc3-IAD", error.correlationId)
+        assertEquals("https://docs.cdp.coinbase.com/api-reference/v2/errors", error.errorLink)
+    }
+
+    @Test
+    fun `parse all known error types`() {
+        val expected = mapOf(
+            "invalid_request" to CoinbaseOnRampApiError.InvalidRequest::class,
+            "network_not_tradable" to CoinbaseOnRampApiError.NetworkNotTradable::class,
+            "guest_permission_denied" to CoinbaseOnRampApiError.GuestPermissionDenied::class,
+            "guest_region_forbidden" to CoinbaseOnRampApiError.GuestRegionForbidden::class,
+            "guest_transaction_limit" to CoinbaseOnRampApiError.GuestTransactionLimit::class,
+            "guest_transaction_count" to CoinbaseOnRampApiError.GuestTransactionCount::class,
+            "phone_number_verification_expired" to CoinbaseOnRampApiError.PhoneNumberVerificationExpired::class,
+        )
+        for ((errorType, expectedClass) in expected) {
+            val body = """{"errorType":"$errorType","correlationId":"abc"}"""
+            val error = CoinbaseOnRampApiError.parse(body)
+            assertTrue(expectedClass.isInstance(error), "Failed for errorType: $errorType")
+        }
+    }
+
+    @Test
+    fun `parse unknown error type returns Unknown`() {
+        val body = """{"errorType":"some_future_error","correlationId":"abc"}"""
+        val error = CoinbaseOnRampApiError.parse(body)
+        assertIs<CoinbaseOnRampApiError.Unknown>(error)
+        assertEquals("some_future_error", error.errorType)
+    }
+
+    @Test
+    fun `parse with message field`() {
+        val body = """{"errorType":"guest_transaction_limit","message":"limit exceeded","correlationId":"abc"}"""
+        val error = CoinbaseOnRampApiError.parse(body)
+        assertIs<CoinbaseOnRampApiError.GuestTransactionLimit>(error)
+        assertEquals("limit exceeded", error.message)
+    }
+
+    @Test
+    fun `parse invalid JSON returns null`() {
+        val error = CoinbaseOnRampApiError.parse("not json")
+        assertEquals(null, error)
+    }
+
+    @Test
+    fun `parse empty JSON object returns Unknown`() {
+        val error = CoinbaseOnRampApiError.parse("{}")
+        assertIs<CoinbaseOnRampApiError.Unknown>(error)
+    }
+}

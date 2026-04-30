@@ -277,12 +277,17 @@ class CoinbaseOnRampController @Inject constructor(
                 }.onFailure { error ->
                     if (error is HttpException) {
                         val errorBody = error.response()?.errorBody()?.string()
+                        val coinbaseError = errorBody?.let { CoinbaseOnRampApiError.parse(it) }
                         trace(
                             message = "Coinbase order lookup HTTP ${error.code()}",
                             tag = "OnRamp",
                             metadata = {
                                 "orderId" to orderId
-                                "responseBody" to errorBody.orEmpty()
+                                "httpCode" to error.code().toString()
+                                "errorType" to (coinbaseError?.let { it::class.simpleName } ?: "unknown")
+                                "correlationId" to coinbaseError?.correlationId
+                                "responseBody" to errorBody
+                                "errorLink" to coinbaseError?.errorLink
                             },
                             error = error,
                         )
@@ -381,19 +386,21 @@ class CoinbaseOnRampController @Inject constructor(
             onFailure = { error ->
                 if (error is HttpException) {
                     val errorBody = error.response()?.errorBody()?.string()
+                    val coinbaseError = errorBody?.let { CoinbaseOnRampApiError.parse(it) }
                     trace(
                         message = "Coinbase OnRamp HTTP ${error.code()}",
                         tag = "OnRamp",
-                        metadata = { "responseBody" to errorBody.orEmpty() },
+                        metadata = {
+                            "httpCode" to error.code().toString()
+                            "errorType" to (coinbaseError?.let { it::class.simpleName } ?: "unknown")
+                            "correlationId" to coinbaseError?.correlationId.orEmpty()
+                            "responseBody" to errorBody.orEmpty()
+                        },
                         error = error,
                     )
-                    if (errorBody != null) {
-                        val coinbaseError = runCatching { json.decodeFromString<CoinbaseOnRampApiError>(errorBody) }
-                            .getOrNull()
-                        if (coinbaseError != null) {
-                            ErrorUtils.handleError(coinbaseError)
-                            return Result.failure(Throwable(coinbaseError.message))
-                        }
+                    if (coinbaseError != null) {
+                        ErrorUtils.handleError(coinbaseError)
+                        return Result.failure(coinbaseError)
                     }
                 }
 
@@ -422,11 +429,63 @@ sealed class OnRampAuthError(
         OnRampAuthError("Phone verification required from Coinbase")
 }
 
+sealed class CoinbaseOnRampApiError(
+    val correlationId: String?,
+    val errorLink: String?,
+    override val message: String?,
+) : Throwable(message = message), NotifiableError {
+
+    class InvalidRequest(correlationId: String?, errorLink: String?, message: String?) :
+        CoinbaseOnRampApiError(correlationId, errorLink, message)
+
+    class NetworkNotTradable(correlationId: String?, errorLink: String?, message: String?) :
+        CoinbaseOnRampApiError(correlationId, errorLink, message)
+
+    class GuestPermissionDenied(correlationId: String?, errorLink: String?, message: String?) :
+        CoinbaseOnRampApiError(correlationId, errorLink, message)
+
+    class GuestRegionForbidden(correlationId: String?, errorLink: String?, message: String?) :
+        CoinbaseOnRampApiError(correlationId, errorLink, message)
+
+    class GuestTransactionLimit(correlationId: String?, errorLink: String?, message: String?) :
+        CoinbaseOnRampApiError(correlationId, errorLink, message)
+
+    class GuestTransactionCount(correlationId: String?, errorLink: String?, message: String?) :
+        CoinbaseOnRampApiError(correlationId, errorLink, message)
+
+    class PhoneNumberVerificationExpired(correlationId: String?, errorLink: String?, message: String?) :
+        CoinbaseOnRampApiError(correlationId, errorLink, message)
+
+    class Unknown(val errorType: String?, correlationId: String?, errorLink: String?, message: String?) :
+        CoinbaseOnRampApiError(correlationId, errorLink, message ?: "Unknown Coinbase error: $errorType")
+
+    companion object {
+        fun parse(body: String): CoinbaseOnRampApiError? {
+            val dto = runCatching { json.decodeFromString<CoinbaseErrorDto>(body) }.getOrNull()
+                ?: return null
+            val type = dto.errorType ?: dto.code
+            val msg = dto.message ?: dto.errorLink
+            return when (type) {
+                "invalid_request" -> InvalidRequest(dto.correlationId, dto.errorLink, msg)
+                "network_not_tradable" -> NetworkNotTradable(dto.correlationId, dto.errorLink, msg)
+                "guest_permission_denied" -> GuestPermissionDenied(dto.correlationId, dto.errorLink, msg)
+                "guest_region_forbidden" -> GuestRegionForbidden(dto.correlationId, dto.errorLink, msg)
+                "guest_transaction_limit" -> GuestTransactionLimit(dto.correlationId, dto.errorLink, msg)
+                "guest_transaction_count" -> GuestTransactionCount(dto.correlationId, dto.errorLink, msg)
+                "phone_number_verification_expired" -> PhoneNumberVerificationExpired(dto.correlationId, dto.errorLink, msg)
+                else -> Unknown(type, dto.correlationId, dto.errorLink, msg)
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalSerializationApi::class)
 @JsonIgnoreUnknownKeys
 @Serializable
-data class CoinbaseOnRampApiError(
+private data class CoinbaseErrorDto(
     val correlationId: String? = null,
-    val code: String,
-    override val message: String,
-) : Throwable(message = message), NotifiableError
+    val errorType: String? = null,
+    val errorLink: String? = null,
+    val code: String? = null,
+    val message: String? = null,
+)
