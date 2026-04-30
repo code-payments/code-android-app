@@ -74,9 +74,23 @@ tasks.register("clean", Delete::class) {
 
 tasks.register("flipcashTestDebug") {
     description = "Run testDebug for all Flipcash modules"
-    subprojects.filter {
-        it.path.startsWith(":apps:flipcash")
-            || it.path == ":services:flipcash"
-            || it.path == ":services:opencode"
-    }.forEach { dependsOn("${it.path}:testDebug") }
+}
+
+subprojects.filter {
+    it.path.startsWith(":apps:flipcash")
+        || it.path == ":services:flipcash"
+        || it.path == ":services:opencode"
+}.forEach { sub ->
+    sub.afterEvaluate {
+        val taskName = when {
+            sub.plugins.hasPlugin("com.android.library") || sub.plugins.hasPlugin("com.android.application") -> "testDebugUnitTest"
+            sub.plugins.hasPlugin("org.jetbrains.kotlin.jvm") -> "test"
+            else -> null
+        }
+        if (taskName != null) {
+            rootProject.tasks.named("flipcashTestDebug").configure {
+                dependsOn(tasks.named(taskName))
+            }
+        }
+    }
 }
