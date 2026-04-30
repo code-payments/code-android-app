@@ -5,15 +5,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
@@ -33,18 +32,25 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.core.noRippleClickable
-import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
     val appUpdater = LocalAppUpdater.current
-    val composeScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        viewModel.eventFlow
+            .filterIsInstance<Event.CheckForUpdate>()
+            .onEach { appUpdater.checkForUpdate() }
+            .launchIn(this)
+    }
 
     CodeScaffold(
         topBar = {
@@ -63,7 +69,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                         .fillMaxWidth()
                         .align(Alignment.Center)
                         .noRippleClickable {
-                            composeScope.launch { appUpdater.checkForUpdate() }
+                            viewModel.dispatchEvent(Event.OnVersionInfoClicked)
                         }
                         .navigationBarsPadding()
                         .padding(bottom = CodeTheme.dimens.grid.x3),

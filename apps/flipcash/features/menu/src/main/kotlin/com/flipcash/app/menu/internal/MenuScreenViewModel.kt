@@ -1,24 +1,18 @@
 package com.flipcash.app.menu.internal
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
-import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.updates.ReleaseStage
 import com.flipcash.app.updates.ReleaseStageProvider
-import com.flipcash.app.updates.TrackInfo
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.menu.BuildConfig
 import com.flipcash.features.menu.R
-import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
@@ -28,7 +22,9 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.manager.BottomBarAction
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
@@ -37,7 +33,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -77,7 +72,8 @@ internal class MenuScreenViewModel @Inject constructor(
     )
 
     sealed interface Event {
-        data object OnLogoTapped: Event
+        data object OnVersionInfoClicked: Event
+        data object CheckForUpdate: Event
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean): Event
         data class OnFeatureFlagsUpdated(val flags: List<BetaFeature>): Event
         data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
@@ -123,11 +119,18 @@ internal class MenuScreenViewModel @Inject constructor(
         }
 
         eventFlow
-            .filterIsInstance<Event.OnLogoTapped>()
+            .filterIsInstance<Event.OnVersionInfoClicked>()
             .map { stateFlow.value.logoTapCount }
             .filter { it > TAP_THRESHOLD }
             .filterNot { stateFlow.value.unlockedBetaFeaturesManually }
             .onEach { featureFlags.enableBetaFeatures() }
+            .launchIn(viewModelScope)
+
+        @OptIn(FlowPreview::class)
+        eventFlow
+            .filterIsInstance<Event.OnVersionInfoClicked>()
+            .debounce(500)
+            .onEach { dispatchEvent(Event.CheckForUpdate) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -210,7 +213,7 @@ internal class MenuScreenViewModel @Inject constructor(
 
         private val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                Event.OnLogoTapped -> { state ->
+                Event.OnVersionInfoClicked -> { state ->
                     state.copy(logoTapCount = state.logoTapCount + 1)
                 }
 
@@ -244,6 +247,7 @@ internal class MenuScreenViewModel @Inject constructor(
                     )
                 }
 
+                Event.CheckForUpdate,
                 Event.OnLogOutClicked,
                 Event.OnSwitchAccountsClicked,
                 is Event.OpenScreen,
