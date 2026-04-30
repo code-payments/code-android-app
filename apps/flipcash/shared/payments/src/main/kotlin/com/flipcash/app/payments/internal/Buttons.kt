@@ -48,7 +48,7 @@ internal fun purchaseOptions(
                         PaymentAction.Pay -> R.drawable.ic_pay_with_google_pay
                     },
                     width = 150.sp,
-                    height = 24.sp,
+                    height = 20.sp,
                     tintIcon = false,
                     onClick = { onClick(PurchaseMethod.CoinbaseOnRamp) }
                 )
