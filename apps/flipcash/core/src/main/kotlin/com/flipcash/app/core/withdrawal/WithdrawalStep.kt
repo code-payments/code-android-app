@@ -26,8 +26,4 @@ sealed interface WithdrawalStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data object Confirmation : WithdrawalStep
-
-    @Parcelize
-    @Serializable
-    data class Processing(val swapId: SwapId): WithdrawalStep
 }

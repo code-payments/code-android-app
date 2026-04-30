@@ -77,9 +77,6 @@ private fun WithdrawalConfirmationScreenContent(
                 ),
                 destination = state.destinationState.textFieldState.text.toString(),
                 fee = state.feeInEntryCurrency,
-                onLearnMoreClicked = {
-                    dispatchEvent(WithdrawalViewModel.Event.OnLearnAboutFee)
-                }
             )
         }
     }
@@ -90,7 +87,6 @@ private fun TransferInfo(
     tokenWithBalance: TokenWithBalance,
     fee: Fiat?,
     destination: String,
-    onLearnMoreClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -101,7 +97,6 @@ private fun TransferInfo(
         TransactionReceipt(
             tokenWithBalance = tokenWithBalance,
             fee = fee,
-            onLearnMoreClicked = onLearnMoreClicked
         )
 
         Image(

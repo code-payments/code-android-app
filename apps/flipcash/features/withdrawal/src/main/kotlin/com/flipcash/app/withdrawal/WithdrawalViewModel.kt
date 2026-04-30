@@ -21,23 +21,20 @@ import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
-import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Currency
-import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.financial.plus
 import com.getcode.opencode.model.financial.toFiat
-import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
-import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
@@ -89,7 +86,6 @@ internal class WithdrawalViewModel @Inject constructor(
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
-
     private val numberInputHelper = NumberInputHelper()
 
     internal data class State(
@@ -109,9 +105,16 @@ internal class WithdrawalViewModel @Inject constructor(
 
         val feeInEntryCurrency: Fiat?
             get() {
-                val fee = destinationState.availability?.feeAmount ?: return null
+                val fee = feeAmount ?: return null
                 val rate = entryRate ?: return fee
                 return fee.convertingTo(rate)
+            }
+
+        val minimumWithdrawalAmount: Fiat
+            get() {
+                val amount = amountEntryState.selectedAmount.localFiat.nativeAmount
+                val baseline = (feeInEntryCurrency ?: 0.00.toFiat(amount.currencyCode))
+                return baseline + baseline.smallestUnit
             }
 
         val netTransferAmount: Fiat
@@ -121,16 +124,35 @@ internal class WithdrawalViewModel @Inject constructor(
                 return amount - fee
             }
 
-        val isError: Boolean
+        val error: EnteredAmountError
             get() {
-                if (amountEntryState.amountAnimatedModel.amountData.isEmpty()) return false
+                if (amountEntryState.amountAnimatedModel.amountData.isEmpty()) return EnteredAmountError.None
+
                 val enteredAmount = Fiat(
                     fiat = amountEntryState.amountAnimatedModel.amountData.amount,
                     currencyCode = tokenBalance.currencyCode
                 )
+                if (!enteredAmount.valueNonZero()) return EnteredAmountError.None
 
-                return !enteredAmount.valueLessThanOrEqualTo(tokenBalance)
+                if (enteredAmount.valueGreaterThan(tokenBalance)) {
+                    return EnteredAmountError.InsufficientFunds
+                }
+
+                val fee = feeInEntryCurrency ?: 0.toFiat(tokenBalance.currencyCode)
+
+                if (enteredAmount.valueLessThanOrEqualTo(fee)) {
+                    return EnteredAmountError.TooLow
+                }
+
+                return EnteredAmountError.None
             }
+    }
+
+    enum class EnteredAmountError {
+        None,
+        InsufficientFunds,
+        TooLow,
+        ;
     }
 
     internal sealed interface Event {
@@ -144,6 +166,7 @@ internal class WithdrawalViewModel @Inject constructor(
         data object OnBackspace : Event
         data class OnEnteredNumberChanged(val backspace: Boolean = false) : Event
         data class OnAmountChanged(val amountAnimatedModel: AmountAnimatedInputUiModel) : Event
+        data class OnFeeChanged(val fee: Fiat?): Event
         data class OnCurrencyChanged(val currency: Currency) : Event
         data object OnAmountConfirmed : Event
         data class OnEntryRateUpdated(val rate: Rate) : Event
@@ -179,31 +202,29 @@ internal class WithdrawalViewModel @Inject constructor(
         data object OnWithdrawalConfirmed : Event
         data object ProceedWithWithdrawalViaSwapper : Event
         data object ProceedWithWithdrawal : Event
-        data class OnUsdcWithdrawalProcessing(val swapId: SwapId) : Event
         data object OnWithdrawSuccessful : Event
     }
 
     val checkBalanceLimit: () -> Boolean = {
-        val amount =
-            stateFlow.value.amountEntryState.amountAnimatedModel.amountData.amount
-        val conversionRate =
-            exchange.rateToUsd(
-                stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD
-            ) ?: Rate.ignore
-        val enteredInUsdc = Fiat(
-            fiat = amount,
-            currencyCode = stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD
-        ).convertingTo(conversionRate)
-        val tokenBalance = stateFlow.value.token?.balance ?: Fiat.Zero
-
-        val isOverBalance = enteredInUsdc > tokenBalance.rounded()
-        if (isOverBalance || conversionRate == Rate.ignore) {
+        val isOverBalance = stateFlow.value.error == EnteredAmountError.InsufficientFunds
+        if (isOverBalance) {
             BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_insufficientFunds),
-                message = resources.getString(R.string.error_description_insufficientFunds)
+                message = resources.getString(R.string.error_description_withdrawInsufficientFunds)
             )
         }
         isOverBalance
+    }
+
+    val checkMinimumExceeded: () -> Boolean = {
+        val isUnderMinimum = stateFlow.value.error == EnteredAmountError.TooLow
+        if (isUnderMinimum) {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_withdrawalTooSmall),
+                message = resources.getString(R.string.error_description_withdrawalTooSmall)
+            )
+        }
+        isUnderMinimum
     }
 
     init {
@@ -236,6 +257,11 @@ internal class WithdrawalViewModel @Inject constructor(
             }.onEach {
                 dispatchEvent(Event.OnCurrencyChanged(it))
             }.launchIn(viewModelScope)
+
+        userFlags.resolvedFlags
+            .map { it.withdrawalFeeAmount.effectiveValue }
+            .onEach { fee -> dispatchEvent(Event.OnFeeChanged(fee)) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnCurrencyChanged>()
@@ -299,6 +325,7 @@ internal class WithdrawalViewModel @Inject constructor(
             .filterIsInstance<Event.OnAmountConfirmed>()
             .map { stateFlow.value.amountEntryState.amountAnimatedModel }
             .filterNot { checkBalanceLimit() }
+            .filterNot { checkMinimumExceeded() }
             .onEach { data ->
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = true))
                 val rate = exchange.entryRate
@@ -365,11 +392,7 @@ internal class WithdrawalViewModel @Inject constructor(
                     dispatchEvent(Event.OnAvailabilityChecked(null))
                 },
                 onSuccess = { availability ->
-                    // this is a USDF => USDC swap so there's an associated fee provided by user flags
-                    val requiredFee =
-                        userFlags.resolvedFlags.value.withdrawalFeeAmount.effectiveValue
-                    val updatedAvailability = availability.copy(feeAmount = requiredFee)
-                    dispatchEvent(Event.OnAvailabilityChecked(updatedAvailability))
+                    dispatchEvent(Event.OnAvailabilityChecked(availability))
                 }
             )
             .launchIn(viewModelScope)
@@ -435,7 +458,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 val withdrawalChecks = stateFlow.value.destinationState.availability
                 val rawDestination = withdrawalChecks?.destination
                 val resolvedDestination = withdrawalChecks?.resolvedDestination
-                val feeInUsd = withdrawalChecks?.feeAmount
+                val feeInUsd = stateFlow.value.feeAmount
 
                 val owner = userManager.accountCluster
                 if (token == null || resolvedDestination == null || owner == null || rawDestination == null) {
@@ -531,7 +554,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 val withdrawalChecks = stateFlow.value.destinationState.availability
                 val rawDestination = withdrawalChecks?.destination
                 val resolvedDestination = withdrawalChecks?.resolvedDestination
-                val feeInUsd = withdrawalChecks?.feeAmount
+                val feeInUsd = stateFlow.value.feeAmount
 
                 val owner = userManager.accountCluster
                 if (token == null || resolvedDestination == null || owner == null || rawDestination == null) {
@@ -584,46 +607,12 @@ internal class WithdrawalViewModel @Inject constructor(
                     )
                 } ?: LocalFiat.fromUsd(0.toFiat(), rate = amount.localFiat.rate)
 
-                trace("amount=${amount.localFiat.underlyingTokenAmount.currencyCode}, fee=${fee.underlyingTokenAmount.currencyCode}")
                 transactionController.withdrawUsdf(
                     amount = amount,
                     owner = owner,
                     destination = resolvedDestination,
                     destinationOwner = rawDestination,
                     fee = fee,
-                )
-            }.onResult(
-                onSuccess = { swapId ->
-                    dispatchEvent(Event.OnUsdcWithdrawalProcessing(swapId))
-                },
-                onError = {
-                    analytics.transfer(
-                        event = Analytics.Transfer.Withdrawal,
-                        amount = stateFlow.value.amountEntryState.selectedAmount.localFiat,
-                        successful = false,
-                        error = it,
-                    )
-                    dispatchEvent(Event.UpdateWithdrawalState(loading = false))
-                    BottomBarManager.showError(
-                        title = resources.getString(R.string.error_title_failedWithdrawal),
-                        message = resources.getString(R.string.error_description_failedWithdrawal)
-                    )
-                }
-            )
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnUsdcWithdrawalProcessing>()
-            .map { it.swapId }
-            .mapNotNull { swapId ->
-                val owner = userManager.accountCluster ?: return@mapNotNull null
-                owner to swapId
-            }
-            .map { (owner, swapId) ->
-                transactionController.pollSwapForState(
-                    swapId = swapId,
-                    owner = owner,
-                    targetState = SwapState.FINALIZED
                 )
             }.onResult(
                 onSuccess = {
@@ -641,15 +630,20 @@ internal class WithdrawalViewModel @Inject constructor(
                     }
                 },
                 onError = {
-                    dispatchEvent(
-                        Event.UpdateWithdrawalState(
-                            loading = false,
-                            success = false,
-                            error = true
-                        )
+                    analytics.transfer(
+                        event = Analytics.Transfer.Withdrawal,
+                        amount = stateFlow.value.amountEntryState.selectedAmount.localFiat,
+                        successful = false,
+                        error = it,
+                    )
+                    dispatchEvent(Event.UpdateWithdrawalState(loading = false))
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_failedWithdrawal),
+                        message = resources.getString(R.string.error_description_failedWithdrawal)
                     )
                 }
-            ).launchIn(viewModelScope)
+            )
+            .launchIn(viewModelScope)
     }
 
     override fun onCleared() {
@@ -671,9 +665,12 @@ internal class WithdrawalViewModel @Inject constructor(
                     )
                 }
 
+                is Event.OnFeeChanged -> { state ->
+                    state.copy(feeAmount = event.fee)
+                }
+
                 Event.ProceedWithWithdrawal,
                 Event.ProceedWithWithdrawalViaSwapper,
-                is Event.OnUsdcWithdrawalProcessing,
                 Event.OnLearnAboutFee,
                 Event.OnWithdrawalTooSmall,
                 Event.ConfirmWithdrawal,

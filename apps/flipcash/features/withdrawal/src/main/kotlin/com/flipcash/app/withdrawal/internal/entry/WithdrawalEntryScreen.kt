@@ -57,15 +57,15 @@ private fun WithdrawalEntryScreenContent(
             currencyFlag = entryState.currencyModel.selected?.resId,
             prefix = entryState.currencyModel.selected?.symbol.orEmpty(),
             placeholder = "0",
-            hint = if (state.isError) {
-                stringResource(R.string.subtitle_giveCashHintLimitExceeded, state.tokenBalance.formatted())
-            } else {
-                stringResource(R.string.subtitle_giveCashHint, state.tokenBalance.formatted())
+            hint = when (state.error) {
+                WithdrawalViewModel.EnteredAmountError.InsufficientFunds -> stringResource(R.string.subtitle_withdrawHintLimitExceeded, state.tokenBalance.formatted())
+                WithdrawalViewModel.EnteredAmountError.TooLow -> stringResource(R.string.subtitle_withdrawHintMinimumNotMet, state.minimumWithdrawalAmount.formatted())
+                WithdrawalViewModel.EnteredAmountError.None -> stringResource(R.string.subtitle_withdrawHint, state.tokenBalance.formatted())
             },
             decimalPlaces = entryState.currencyModel.fractionUnits,
             isClickable = true,
             onAmountClicked = onOpenRegionSelection,
-            isError = state.isError,
+            isError = state.error != WithdrawalViewModel.EnteredAmountError.None,
             onNumberPressed = { dispatchEvent(WithdrawalViewModel.Event.OnNumberPressed(it)) },
             onBackspace = { dispatchEvent(WithdrawalViewModel.Event.OnBackspace) },
             onDecimal = { dispatchEvent(WithdrawalViewModel.Event.OnDecimalPressed) }

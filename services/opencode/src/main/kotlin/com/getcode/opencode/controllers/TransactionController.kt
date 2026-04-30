@@ -146,7 +146,7 @@ class TransactionController @Inject constructor(
 
         return submitIntent(scope, intent, owner.authority.keyPair)
             .onSuccess {
-                eventBus.send(Events.FetchBalance())
+                refreshAccountState()
             }
     }
 

@@ -12,7 +12,6 @@ import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.withdrawal.internal.screens.UsdcWithdrawalInformationScreen
-import com.flipcash.app.withdrawal.internal.screens.UsdcWithdrawalProcessingScreen
 import com.flipcash.app.withdrawal.internal.screens.WithdrawalConfirmationScreen
 import com.flipcash.app.withdrawal.internal.screens.WithdrawalDestinationScreen
 import com.flipcash.app.withdrawal.internal.screens.WithdrawalEntryScreen
@@ -78,9 +77,6 @@ private fun withdrawalEntryProvider(
     }
     annotatedEntry<WithdrawalStep.Confirmation> {
         WithdrawalConfirmationScreen(mint = mint)
-    }
-    annotatedEntry<WithdrawalStep.Processing> {
-        UsdcWithdrawalProcessingScreen()
     }
 }
 
