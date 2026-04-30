@@ -142,6 +142,13 @@ emit "old_prod" "${OLD_PROD:-null}"
 emit "new_prod" "${NEW_PROD:-null}"
 emit "new_prod_name" "${NEW_PROD_NAME:-null}"
 
+# --- detect whether any track changed ---
+if diff -q <(jq -S .tracks "$MANIFEST_PATH") <(echo "$EXISTING" | jq -S '.tracks // {}') >/dev/null 2>&1; then
+  emit "manifest_changed" "false"
+else
+  emit "manifest_changed" "true"
+fi
+
 # --- decide whether to bump patch ---
 PROD_CHANGED=false
 if in_list "production" "$TRACKS" && [ "${OLD_PROD:-null}" != "${NEW_PROD:-null}" ]; then
