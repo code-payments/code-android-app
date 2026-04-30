@@ -4,6 +4,7 @@ import android.content.ClipboardManager
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.withdrawal.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
@@ -40,6 +41,7 @@ class WithdrawalViewModelErrorTest {
     private val activityFeedCoordinator = mockk<ActivityFeedCoordinator>(relaxed = true)
     private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
+    private val userFlags = mockk<UserFlagsCoordinator>(relaxed = true)
 
     private lateinit var dispatchers: TestDispatchers
 
@@ -62,6 +64,7 @@ class WithdrawalViewModelErrorTest {
             exchange = exchange,
             verifiedFiatCalculator = verifiedFiatCalculator,
             userManager = userManager,
+            userFlags = userFlags,
             transactionController = transactionController,
             clipboardManager = clipboardManager,
             activityFeedCoordinator = activityFeedCoordinator,
