@@ -136,6 +136,7 @@ internal class CoinbaseOnRampEventHandler(
     private val onCancel: () -> Unit,
     private val onAutoClickGPay: () -> Unit,
 ) {
+    private var errorReported = false
     fun handleEvent(eventJson: String) {
         trace(tag = "CoinbaseOnRamp", message = eventJson)
         try {
@@ -160,10 +161,19 @@ internal class CoinbaseOnRampEventHandler(
                     val errorCode = data?.optString("errorCode") ?: ""
                     val error = CoinbaseOnRampWebError.fromErrorCode(errorCode, data?.toString())
 
+                    // Only pass `error` on the first error event so that
+                    // trace() → ErrorUtils.handleError reports to Bugsnag once.
+                    // The Coinbase SDK often fires multiple error events
+                    // (commit_error, session_error, polling_error) for a single
+                    // failure; subsequent events are still logged but without
+                    // triggering a duplicate Bugsnag report.
+                    val isFirstError = !errorReported
+                    errorReported = true
+
                     trace(
                         tag = "CoinbaseOnRamp",
-                        message = "Error during coinbase buy module",
-                        error = error,
+                        message = "Error during coinbase buy module ($eventName)",
+                        error = if (isFirstError) error else null,
                         type = TraceType.Error,
                         metadata = if (errorCode == "ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND" && data != null) {
                             {
