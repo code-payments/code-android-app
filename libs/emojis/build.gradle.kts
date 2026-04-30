@@ -41,28 +41,25 @@ tasks.register("generateEmojiList") {
         "Fetches Unicode emoji list and generates categorized Kotlin source file if needed"
     group = "emoji"
 
-    outputs.file(outputFile) // Task generates this file
+    outputs.dir(outputDir)
+    // Skip generation if output already exists (cached emoji-test.txt and keywords are inputs)
+    onlyIf { !outputFile.exists() }
 
     doLast {
         try {
-            println("Executing generateEmojiList task")
             outputDir.mkdirs()
             if (!emojiFile.exists()) {
-                println("Downloading emoji-test.txt from $emojiUrl")
+                println("Downloading emoji-test.txt")
                 URL(emojiUrl).openStream().use { input ->
                     Files.copy(input, emojiFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
                 }
-            } else {
-                println("Using existing emoji-test.txt")
             }
 
             if (!keywordsFile.exists()) {
-                println("Downloading CLDR annotations from $emojiKeywordsUrl")
+                println("Downloading CLDR annotations")
                 URL(emojiKeywordsUrl).openStream().use { input ->
                     Files.copy(input, keywordsFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
                 }
-            } else {
-                println("Using existing CLDR annotations")
             }
 
             val json = Json { ignoreUnknownKeys = true }
@@ -87,20 +84,16 @@ tasks.register("generateEmojiList") {
                         }
                         emojiCategories.getOrPut(currentGroup) { mutableMapOf() }
                         emojiCategoriesNoSkinTones.getOrPut(currentGroup) { mutableMapOf() }
-                        println("Group: $currentGroup")
                     }
 
                     line.startsWith("# subgroup:") -> {
                         currentSubgroup = line.removePrefix("# subgroup:").trim()
                         emojiCategories[currentGroup]?.getOrPut(currentSubgroup) { mutableListOf() }
                         emojiCategoriesNoSkinTones[currentGroup]?.getOrPut(currentSubgroup) { mutableListOf() }
-                        println("Subgroup: $currentSubgroup")
                     }
 
                     line.isNotBlank() && !line.startsWith("#") -> {
                         val parts = line.split(";").map { it.trim() }
-                        println("Line: $line")
-                        println("Parts: $parts")
                         if (parts.size > 1 && parts[1].contains("fully-qualified")) {
                             val codePoints = parts[0].split(" ").map { it.toInt(16) }
                             val unicode = codePoints.map { codePoint ->
@@ -125,16 +118,12 @@ tasks.register("generateEmojiList") {
                                 "keywords" to allKeywords
                             )
                             emojiCategories[currentGroup]?.get(currentSubgroup)?.add(emojiEntry)
-                            println("Added fully-qualified emoji: $unicode - $name")
 
                             val hasSkinTone = codePoints.any { it in 0x1F3FB..0x1F3FF }
                             if (!hasSkinTone) {
                                 emojiCategoriesNoSkinTones[currentGroup]?.get(currentSubgroup)
                                     ?.add(emojiEntry)
-                                println("Added to no-skin-tones: $unicode - $name")
                             }
-                        } else {
-                            println("Skipped non-fully-qualified: ${parts[0]} - Status: ${parts[1]}")
                         }
                     }
                 }
@@ -198,7 +187,6 @@ tasks.register("generateEmojiList") {
                 appendLine("}")
             }.trimIndent()
             mainFile.writeText(mainCode)
-            println("Generated Emojis.kt at ${mainFile.absolutePath}")
 
             // Generate separate files for each subgroup
             emojiCategories.forEach { (group, subgroups) ->
@@ -235,9 +223,10 @@ tasks.register("generateEmojiList") {
                         appendLine("}")
                     }.trimIndent()
                     subgroupFile.writeText(subgroupCode)
-                    println("Generated ${safeGroupName}${safeSubgroupName}Emojis.kt at ${subgroupFile.absolutePath}")
                 }
             }
+            val totalEmojis = emojiCategories.values.sumOf { it.values.sumOf { e -> e.size } }
+            println("Generated $totalEmojis emojis across ${emojiCategories.size} categories")
         } catch (e: Exception) {
             println("Error in generateEmojiList: ${e.message}")
             throw e
