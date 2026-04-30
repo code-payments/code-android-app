@@ -30,6 +30,12 @@ private val outputDir = File(projectDir, "src/main/kotlin/com/getcode/libs/emoji
 private val outputFile = File(outputDir, "Emojis.kt")
 
 // Define the task to fetch and generate emoji data
+afterEvaluate {
+    tasks.matching { it.name.matches(Regex("compile.*Kotlin")) }.configureEach {
+        dependsOn("generateEmojiList")
+    }
+}
+
 tasks.register("generateEmojiList") {
     description =
         "Fetches Unicode emoji list and generates categorized Kotlin source file if needed"
