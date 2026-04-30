@@ -569,5 +569,17 @@ class FiatTests {
         assertEquals("~ $10.00 USD", result)
     }
 
+    @Test
+    fun `formatted negative value includes minus sign`() {
+        val fiat = Fiat(fiat = 3.0) - Fiat(fiat = 10.0)
+        assertEquals("-$7.00", fiat.formatted())
+    }
+
+    @Test
+    fun `formatted negative value without prefix`() {
+        val fiat = Fiat(fiat = 3.0) - Fiat(fiat = 10.0)
+        assertEquals("-7.00", fiat.formatted(showPrefix = false))
+    }
+
     // endregion
 }

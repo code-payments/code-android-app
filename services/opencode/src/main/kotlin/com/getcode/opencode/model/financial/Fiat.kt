@@ -114,7 +114,7 @@ data class Fiat(
 
             positivePrefix = fullPrefix
             positiveSuffix = suffix?.let { " $it" }.orEmpty()
-            negativePrefix = fullPrefix
+            negativePrefix = "-$fullPrefix"
             negativeSuffix = suffix?.let { " $it" }.orEmpty()
             isGroupingUsed = includeCommas
         }
