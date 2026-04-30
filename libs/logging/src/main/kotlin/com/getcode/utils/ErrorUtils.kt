@@ -37,6 +37,7 @@ object ErrorUtils {
     fun handleError(throwable: Throwable) {
         if (throwable is CancellationException) return
         if (isNetworkError(throwable)) return
+        if (isGmsTransientError(throwable)) return
 
         val throwableCause: Throwable =
             if (throwable.cause != null && (throwable is UndeliverableException || throwable is OnErrorNotImplementedException || throwable is CodeServerError))
@@ -76,6 +77,11 @@ object ErrorUtils {
                 throwable.cause is TimeoutException ||
                 throwable is UnknownHostException ||
                 throwable.cause is UnknownHostException
+
+    private fun isGmsTransientError(throwable: Throwable): Boolean {
+        fun check(t: Throwable?) = t is java.io.IOException && t.message == "SERVICE_NOT_AVAILABLE"
+        return check(throwable) || check(throwable.cause)
+    }
 
     val ignoredGrpcStatusCodes = setOf(
         // Transport/transient
