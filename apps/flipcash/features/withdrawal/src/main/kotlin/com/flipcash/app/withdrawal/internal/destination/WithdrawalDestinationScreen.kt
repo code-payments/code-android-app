@@ -53,7 +53,8 @@ private fun WithdrawalDestinationScreenContent(
     CodeScaffold(
         bottomBar = {
             CodeButton(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .navigationBarsPadding()
                     .imePadding()
                     .padding(horizontal = CodeTheme.dimens.inset)
@@ -70,17 +71,22 @@ private fun WithdrawalDestinationScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = CodeTheme.dimens.inset,),
+                .padding(horizontal = CodeTheme.dimens.inset),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
             Text(
-                text = stringResource(R.string.subtitle_whereWithdrawTo, state.token?.displayName.orEmpty()),
+                text = stringResource(
+                    R.string.subtitle_whereWithdrawTo,
+                    state.token?.displayName.orEmpty()
+                ),
                 style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textSecondary
             )
 
             Column(
-                modifier = Modifier.fillMaxWidth().padding(top = CodeTheme.dimens.grid.x1),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = CodeTheme.dimens.grid.x1),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
             ) {
                 TextInput(
@@ -91,8 +97,21 @@ private fun WithdrawalDestinationScreenContent(
                     placeholder = stringResource(R.string.title_enterAddress),
                     placeholderStyle = CodeTheme.typography.textMedium,
                     maxLines = 1,
-                    contentPadding = PaddingValues(CodeTheme.dimens.grid.x2),
-                    colors = inputColors(placeholderColor = CodeTheme.colors.textSecondary,),
+                    leadingIcon = {
+                        Image(
+                            modifier = Modifier.padding(start = CodeTheme.dimens.grid.x3),
+                            painter = painterResource(R.drawable.ic_solana_logo),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(CodeTheme.colors.textSecondary),
+                        )
+                    },
+                    contentPadding = PaddingValues(
+                        start = CodeTheme.dimens.grid.x1,
+                        top = CodeTheme.dimens.grid.x2,
+                        bottom = CodeTheme.dimens.grid.x2,
+                        end = CodeTheme.dimens.grid.x3,
+                    ),
+                    colors = inputColors(placeholderColor = CodeTheme.colors.textSecondary),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 )
 

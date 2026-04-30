@@ -128,8 +128,8 @@
     <string name="error_title_failedToDeleteAccount">Something went wrong</string>
     <string name="error_description_failedToDeleteAccount">We were unable to delete your Flipcash account. Please try again</string>
 
-    <string name="subtitle_howToDeposit">Deposit funds into your wallet by sending USDC on Solana to your deposit address below</string>
-    <string name="subtitle_howToDepositToken">Deposit funds into your wallet by sending %1$s on Solana to your deposit address below</string>
+    <string name="subtitle_howToDeposit">Deposit funds into your wallet by sending USDC to your deposit address below</string>
+    <string name="subtitle_howToDepositToken">Deposit funds into your wallet by sending %1$s to your deposit address below</string>
 
     <string name="title_clipboardLabelDepositAddress">Deposit Address</string>
     <string name="title_clipboardLabelPublicKey">Public Key</string>
@@ -145,7 +145,7 @@
     <string name="title_shareDownloadLink">Get the Flipcash App</string>
     <string name="title_shareCashLink">Send %1$s</string>
 
-    <string name="title_enterAddress">Enter address</string>
+    <string name="title_enterAddress">Enter Solana address</string>
     <string name="subtitle_whereWithdrawTo">Where would you like to withdraw your %1$s to?</string>
     <string name="subtitle_withdrawHint">Enter up to %1$s</string>
     <string name="subtitle_withdrawHintLimitExceeded">You can only give up to %1$s</string>
@@ -624,4 +624,5 @@
     <string name="title_withdrawUsdfAsUsdc">Withdraw as USDC</string>
     <string name="description_withdrawUsdfAsUsdc">Your USDF will be converted 1:1 to Solana USDC on withdrawal</string>
     <string name="displayName_solanaUsdc">Solana USDC</string>
+    <string name="displayName_usdc">USDC</string>
 </resources>

@@ -1,0 +1,33 @@
+<!--
+  ~ Copyright (C) 2026 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="18dp"
+    android:height="14dp"
+    android:viewportWidth="18"
+    android:viewportHeight="14">
+  <path
+      android:pathData="M17.291,10.346C17.547,10.346 17.675,10.656 17.494,10.837L14.723,13.608C14.615,13.716 14.469,13.776 14.316,13.776H0.288C0.231,13.777 0.176,13.76 0.128,13.728C0.081,13.697 0.044,13.652 0.022,13.599C0,13.547 -0.006,13.489 0.005,13.433C0.017,13.378 0.044,13.326 0.084,13.286L2.855,10.515C2.963,10.407 3.11,10.347 3.263,10.346H17.291Z"
+      android:fillColor="#ffffff"
+      android:fillAlpha="0.5"/>
+  <path
+      android:pathData="M14.316,5.14C14.469,5.14 14.614,5.201 14.722,5.308L17.494,8.08C17.675,8.261 17.547,8.571 17.291,8.571H3.263C3.108,8.571 2.962,8.509 2.855,8.402L0.084,5.63C0.044,5.59 0.017,5.539 0.005,5.483C-0.006,5.427 0,5.37 0.022,5.317C0.044,5.265 0.081,5.22 0.128,5.188C0.176,5.157 0.231,5.14 0.288,5.14H14.316Z"
+      android:fillColor="#ffffff"
+      android:fillAlpha="0.5"/>
+  <path
+      android:pathData="M17.291,0C17.547,0 17.675,0.309 17.494,0.491L14.723,3.262C14.615,3.369 14.469,3.43 14.316,3.43H0.288C0.231,3.43 0.176,3.413 0.128,3.382C0.081,3.35 0.044,3.305 0.022,3.253C0,3.2 -0.006,3.143 0.005,3.087C0.017,3.031 0.044,2.98 0.084,2.939L2.855,0.168L2.856,0.169C2.966,0.062 3.113,0 3.263,0H17.291Z"
+      android:fillColor="#ffffff"
+      android:fillAlpha="0.5"/>
+</vector>

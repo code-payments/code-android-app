@@ -1,27 +1,28 @@
 package com.flipcash.app.deposit.internal
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.core.transfers.TransferDirection
 import com.flipcash.features.deposit.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
@@ -39,14 +40,20 @@ internal fun DepositScreen(viewModel: DepositViewModel) {
 }
 
 @Composable
-private fun DepositScreenContent(state: DepositViewModel.State, dispatchEvent: (DepositViewModel.Event) -> Unit) {
+private fun DepositScreenContent(
+    state: DepositViewModel.State,
+    dispatchEvent: (DepositViewModel.Event) -> Unit
+) {
     CodeScaffold(
         topBar = {
             Text(
                 modifier = Modifier
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .fillMaxWidth(),
-                text = stringResource(R.string.subtitle_howToDepositToken, state.tokenName.orEmpty()),
+                text = stringResource(
+                    R.string.subtitle_howToDepositToken,
+                    state.tokenName.orEmpty()
+                ),
                 color = CodeTheme.colors.textSecondary,
                 style = CodeTheme.typography.textSmall,
             )
@@ -89,14 +96,26 @@ private fun DepositScreenContent(state: DepositViewModel.State, dispatchEvent: (
                 .height(CodeTheme.dimens.grid.x10)
                 .background(White05)
                 .rememberedClickable { dispatchEvent(DepositViewModel.Event.CopyAddress) }
-                .padding(CodeTheme.dimens.grid.x2),
+                .padding(
+                    start = CodeTheme.dimens.grid.x3,
+                    top = CodeTheme.dimens.grid.x2,
+                    bottom = CodeTheme.dimens.grid.x2,
+                    end = CodeTheme.dimens.grid.x3,
+                ),
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            Image(
+                painter = painterResource(R.drawable.ic_solana_logo),
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(CodeTheme.colors.textSecondary),
+            )
             Text(
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
                     .weight(1f),
                 text = state.depositAddress,
-                color = White,
+                color = CodeTheme.colors.textMain,
                 style = CodeTheme.typography.textMedium.copy(textAlign = TextAlign.Center),
                 overflow = TextOverflow.MiddleEllipsis,
                 maxLines = 1
