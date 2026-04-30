@@ -28,6 +28,8 @@ import com.getcode.solana.rpc.RpcConfig
 import com.getcode.solana.rpc.RpcException
 import com.getcode.solana.rpc.SolanaConnection
 import com.getcode.solana.rpc.doesAccountExist
+import com.getcode.solana.rpc.getBalance
+import com.getcode.solana.rpc.getTokenAccountBalance
 import com.getcode.solana.rpc.sendTransaction
 import com.getcode.solana.rpc.simulateTransaction
 import com.getcode.solana.transactions.inspect
@@ -156,6 +158,19 @@ class ExternalWalletOnRampController @Inject constructor(
         val amount = _amount.value ?: return
         val fee = _feeAmount.value ?: LocalFiat.Zero
 
+        val sender = PublicKey(state.connection.publicKey.bytes)
+        val balanceCheck = checkExternalWalletBalances(
+            sender = sender,
+            requiredUsdcQuarks = amount.localFiat.underlyingTokenAmount.quarks,
+        )
+        if (balanceCheck.isFailure) {
+            val throwable = balanceCheck.exceptionOrNull() ?: return
+            val error = throwable as? DeeplinkOnRampError
+                ?: DeeplinkOnRampError.FailedToCreateTransaction(message = throwable.message, cause = throwable)
+            fail(error, state)
+            return
+        }
+
         createUsdcToUsdfSwapTransaction(state, amount.localFiat)
             .onFailure { fail(DeeplinkOnRampError.FailedToCreateTransaction(message = it.message, cause = it), state) }
             .fold(
@@ -253,6 +268,8 @@ class ExternalWalletOnRampController @Inject constructor(
                         )
                     }.onFailure { error ->
                         val code = (error as? RpcException)?.code?.toLong()
+                        val errorMessage = error.message.orEmpty()
+                        val programErrorMatch = PROGRAM_ERROR_REGEX.find(errorMessage)
                         trace(
                             message = "Unexpected error sending solana transaction",
                             type = TraceType.Error,
@@ -260,7 +277,11 @@ class ExternalWalletOnRampController @Inject constructor(
                                 if (error is RpcException) {
                                     "code" to error.code
                                 }
-                                "message" to error.message
+                                "message" to errorMessage
+                                if (programErrorMatch != null) {
+                                    "instructionIndex" to programErrorMatch.groupValues[1]
+                                    "programError" to "0x${programErrorMatch.groupValues[2]}"
+                                }
                             }
                         )
                         ErrorUtils.handleError(error)
@@ -376,6 +397,39 @@ class ExternalWalletOnRampController @Inject constructor(
             )
         } catch (e: Exception) {
             fail(DeeplinkOnRampError.DecryptionError(e.message, cause = e), currentState)
+        }
+    }
+
+    private suspend fun checkExternalWalletBalances(
+        sender: PublicKey,
+        requiredUsdcQuarks: Long,
+    ): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            val solBalance = driver.getBalance(sender).getOrElse { return@withContext Result.failure(it) }
+            if (solBalance < MINIMUM_SOL_LAMPORTS) {
+                return@withContext Result.failure(
+                    DeeplinkOnRampError.InsufficientSol(
+                        requiredLamports = MINIMUM_SOL_LAMPORTS,
+                        actualLamports = solBalance,
+                    )
+                )
+            }
+
+            val usdcAta = PublicKey.deriveAssociatedAccount(
+                owner = PublicKey(sender.base58()),
+                mint = PublicKey(Mint.usdc.base58()),
+            )
+            val usdcBalance = driver.getTokenAccountBalance(usdcAta.publicKey).getOrElse { return@withContext Result.failure(it) }
+            if (usdcBalance < requiredUsdcQuarks) {
+                return@withContext Result.failure(
+                    DeeplinkOnRampError.InsufficientUsdc(
+                        requiredQuarks = requiredUsdcQuarks,
+                        actualQuarks = usdcBalance,
+                    )
+                )
+            }
+
+            Result.success(Unit)
         }
     }
 
@@ -518,6 +572,12 @@ class ExternalWalletOnRampController @Inject constructor(
         )
     }
 }
+
+// ~0.0065 SOL: covers up to 3 ATA rent exemptions + priority fee + base fee
+private const val MINIMUM_SOL_LAMPORTS = 6_500_000L
+
+private val PROGRAM_ERROR_REGEX =
+    Regex("""Error processing Instruction (\d+): custom program error: 0x([0-9a-fA-F]+)""")
 
 private fun firstSignature(base58: String): Signature? {
     return SolanaTransaction.fromList(Base58.decode(base58).toList())?.identifier

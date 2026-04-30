@@ -336,6 +336,8 @@ private val DeeplinkOnRampError.isAlert: Boolean
         DeeplinkError.Disconnected,
         DeeplinkError.TransactionRejected,
     ) || this is DeeplinkOnRampError.FailedToSendTransaction
+        || this is DeeplinkOnRampError.InsufficientSol
+        || this is DeeplinkOnRampError.InsufficientUsdc
         || (this is DeeplinkOnRampError.FailedToSimulateTransaction && cause?.isNetworkError() == true)
         || (this is DeeplinkOnRampError.FailedToCreateTransaction && cause?.isNetworkError() == true)
 
@@ -354,6 +356,8 @@ private fun DeeplinkOnRampError.messaging(resources: Resources, provider: String
     is DeeplinkOnRampError.FailedToGenerateDeeplink -> resources.getString(R.string.error_title_deeplinkOnRampFailedToCreateDeeplink) to resources.getString(R.string.error_description_deeplinkOnRampFailedToCreateDeeplink)
     is DeeplinkOnRampError.FailedToSendTransaction -> resources.getString(R.string.error_title_deeplinkOnRampFailedToSendTransaction) to resources.getString(R.string.error_description_deeplinkOnRampFailedToSendTransaction).format(provider)
     is DeeplinkOnRampError.FailedToSubmitBuyToServer -> resources.getString(R.string.error_title_deeplinkOnRampExternalFundBuy) to resources.getString(R.string.error_description_deeplinkOnRampExternalFundBuy).format(provider)
+    is DeeplinkOnRampError.InsufficientSol -> resources.getString(R.string.error_title_deeplinkOnRampInsufficientSol) to resources.getString(R.string.error_description_deeplinkOnRampInsufficientSol, provider)
+    is DeeplinkOnRampError.InsufficientUsdc -> resources.getString(R.string.error_title_deeplinkOnRampInsufficientUsdc) to resources.getString(R.string.error_description_deeplinkOnRampInsufficientUsdc, provider)
     is DeeplinkOnRampError.WalletProvidedError -> when (this.error) {
         DeeplinkError.Disconnected -> resources.getString(R.string.error_title_deeplinkOnRampDisconnected) to resources.getString(R.string.error_description_deeplinkOnRampDisconnected).format(provider)
         DeeplinkError.Unauthorized -> resources.getString(R.string.error_title_deeplinkOnRampUnauthorized) to resources.getString(R.string.error_description_deeplinkOnRampUnauthorized)

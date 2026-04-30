@@ -238,6 +238,8 @@
     <string name="error_title_deeplinkOnRampMethodNotFound">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampInternalError">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampExternalFundBuy">Something Went Wrong</string>
+    <string name="error_title_deeplinkOnRampInsufficientSol">Something Went Wrong</string>
+    <string name="error_title_deeplinkOnRampInsufficientUsdc">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampUnknown">Something Went Wrong</string>
 
     <string name="error_description_deeplinkOnRampDecryption">Response from %1$s failed. Please try again</string>
@@ -255,6 +257,8 @@
     <string name="error_description_deeplinkOnRampMethodNotFound">%1$s did not recognize the request</string>
     <string name="error_description_deeplinkOnRampInternalError">Something went wrong within %1$s. Please try again</string>
     <string name="error_description_deeplinkOnRampExternalFundBuy">Failed to fulfill buy request via %1$s. Please try again</string>
+    <string name="error_description_deeplinkOnRampInsufficientSol">Your %1$s wallet doesn\'t have enough SOL to cover the transaction fees. Please add SOL and try again.</string>
+    <string name="error_description_deeplinkOnRampInsufficientUsdc">Your %1$s wallet doesn\'t have enough USDC for this purchase. Please add more USDC and try again.</string>
     <string name="error_description_deeplinkOnRampUnknown">Please try again</string>
 
     <string name="title_verifyPhoneNumber">Verify Phone Number</string>

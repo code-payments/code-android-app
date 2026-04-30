@@ -41,6 +41,16 @@ sealed class DeeplinkOnRampError(
         override val cause: Throwable? = null
     ) : DeeplinkOnRampError(message = message, cause = cause)
 
+    class InsufficientSol(
+        val requiredLamports: Long,
+        val actualLamports: Long,
+    ) : DeeplinkOnRampError(message = "Insufficient SOL: required $requiredLamports lamports, have $actualLamports")
+
+    class InsufficientUsdc(
+        val requiredQuarks: Long,
+        val actualQuarks: Long,
+    ) : DeeplinkOnRampError(message = "Insufficient USDC: required $requiredQuarks quarks, have $actualQuarks")
+
     class WalletProvidedError(
         val error: DeeplinkError,
         override val message: String?,
