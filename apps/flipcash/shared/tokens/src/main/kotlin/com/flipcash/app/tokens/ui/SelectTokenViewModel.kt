@@ -146,9 +146,7 @@ class SelectTokenViewModel @Inject constructor(
                             else item.balance.nativeAmount
                         })
                         .filter {
-                            val baselineAmount = 0.01.toFiat(rate.currency)
-                            val hasBalance = it.balance.nativeAmount.valueNonZero() &&
-                                    it.balance.nativeAmount.valueGreaterThanOrEqualTo(baselineAmount)
+                            val hasBalance = it.balance.nativeAmount.hasDisplayableValue
                             when (purpose) {
                                 // show all tokens we have accounts for as deposit targets
                                 TokenPurpose.Deposit -> true

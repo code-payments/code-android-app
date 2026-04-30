@@ -154,6 +154,13 @@ data class Fiat(
 
     fun valueNonZero(): Boolean = toDouble() != 0.0
 
+    /** Whether this value would format as non-zero in its currency. */
+    val hasDisplayableValue: Boolean
+        get() {
+            val minimum = BigDecimal.ONE.movePointLeft(currencyCode.fractionDigits)
+            return BigDecimal.valueOf(decimalValue) >= minimum
+        }
+
     fun valueLessThan(other: Fiat): Boolean = toDouble() < other.toDouble()
     fun valueGreaterThan(other: Fiat): Boolean = toDouble() > other.toDouble()
     fun valueGreaterThanOrEqualTo(other: Fiat): Boolean = toDouble() >= other.toDouble()
