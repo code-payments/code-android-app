@@ -118,6 +118,7 @@ internal fun TransactionReceipt(
                     }
                 },
                 formattedBalance = { amount ->
+                    println("amount=$amount")
                     amount.convertingToUsdIfNeeded(exchange.entryRate)
                         .estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2)
                 },
@@ -174,16 +175,12 @@ private fun LineItems(
                     append(" ")
                     appendInlineContent("icon")
                 },
-                amount = "-${fee.formatted()}",
+                amount = fee.formatted(),
                 inlineContentMap = inlineContentMap
             )
 
             val netAmount = remember(transferAmount) {
-                if (transferAmount.isNegative) {
-                    "-${transferAmount.formatted()}"
-                } else {
-                    transferAmount.formatted()
-                }
+                transferAmount.formatted()
             }
 
             ReceiptLineItem(

@@ -49,7 +49,7 @@ fun CurrencyAppreciationLabel(
                 extraPrefix = when {
                     isZero -> null
                     hasAppreciation -> "+"
-                    else -> "-"
+                    else -> null
                 },
             ),
             style = CodeTheme.typography.textSmall,
