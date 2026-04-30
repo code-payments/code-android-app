@@ -1,5 +1,6 @@
 package com.getcode.ui.biometrics
 
+import android.os.SystemClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ProvidableCompositionLocal
@@ -14,6 +15,8 @@ import com.getcode.libs.biometrics.Biometrics
 import com.getcode.libs.biometrics.BiometricsError
 import com.getcode.libs.biometrics.BiometricsException
 import com.getcode.ui.components.OnLifecycleEvent
+
+private const val BIOMETRICS_COOLDOWN_MS = 30_000L
 
 data class BiometricsState(
     val checking: Boolean = false,
@@ -58,6 +61,10 @@ fun rememberBiometricsState(
         mutableStateOf(false)
     }
 
+    var lastAuthTimestamp by remember {
+        mutableStateOf(0L)
+    }
+
     LaunchedEffect(checkBiometrics, requireBiometrics, canAuthenticate) {
         if (checkBiometrics && requireBiometrics == true && canAuthenticate) {
             Biometrics.prompt(context)
@@ -72,6 +79,7 @@ fun rememberBiometricsState(
                 .onSuccess {
                     biometricsPassed = true
                     checkBiometrics = false
+                    lastAuthTimestamp = SystemClock.elapsedRealtime()
                 }
         } else if (!canAuthenticate && requireBiometrics == false) {
             // If biometrics aren't supported and they're not required, consider it passed
@@ -90,7 +98,12 @@ fun rememberBiometricsState(
 
             Lifecycle.Event.ON_RESUME -> {
                 if (requireBiometrics == true && stopped) {
-                    checkBiometrics = true
+                    val elapsed = SystemClock.elapsedRealtime() - lastAuthTimestamp
+                    if (elapsed <= BIOMETRICS_COOLDOWN_MS) {
+                        biometricsPassed = true
+                    } else {
+                        checkBiometrics = true
+                    }
                 }
             }
 
