@@ -61,10 +61,12 @@ object OpenCodeModule {
     @Singleton
     internal fun providesExchange(
         currencyController: CurrencyController,
+        verifiedStateManager: VerifiedProtoManager,
         resources: ResourceHelper,
         locale: LocaleHelper,
     ): Exchange = OpenCodeExchange(
         currencyController = currencyController,
+        verifiedStateManager = verifiedStateManager,
         resources = resources,
         locale = locale,
     )

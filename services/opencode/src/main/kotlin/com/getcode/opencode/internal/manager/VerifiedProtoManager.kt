@@ -3,8 +3,11 @@ package com.getcode.opencode.internal.manager
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -52,6 +55,44 @@ class VerifiedProtoManager @Inject constructor() {
     fun saveReserveStates(reserveStates: List<CurrencyService.VerifiedLaunchpadCurrencyReserveState>) {
         val incoming = reserveStates.associateBy { it.reserveState.mint.toMint() }
         this.reserveStates.update { it + incoming }
+    }
+
+    /**
+     * Derives [Rate] objects directly from the cached verified exchange rate protos.
+     * This is the single source of truth for exchange rates — consumers should use
+     * this instead of maintaining separate rate caches.
+     */
+    fun observeRates(): Flow<Map<CurrencyCode, Rate>> = exchangeData.map { map ->
+        map.mapValues { (_, proto) ->
+            Rate(
+                fx = proto.exchangeRate.exchangeRate,
+                currency = CurrencyCode.tryValueOf(proto.exchangeRate.currencyCode)
+                    ?: CurrencyCode.USD
+            )
+        }
+    }
+
+    /**
+     * Returns the current [Rate] for the given [currencyCode] directly from the
+     * verified proto cache, or null if not available.
+     */
+    fun rateFor(currencyCode: CurrencyCode): Rate? {
+        val proto = exchangeData.value[currencyCode] ?: return null
+        return Rate(
+            fx = proto.exchangeRate.exchangeRate,
+            currency = CurrencyCode.tryValueOf(proto.exchangeRate.currencyCode)
+                ?: CurrencyCode.USD
+        )
+    }
+
+    fun rates(): Map<CurrencyCode, Rate> {
+        return exchangeData.value.mapValues { (_, proto) ->
+            Rate(
+                fx = proto.exchangeRate.exchangeRate,
+                currency = CurrencyCode.tryValueOf(proto.exchangeRate.currencyCode)
+                    ?: CurrencyCode.USD
+            )
+        }
     }
 
     fun reset() {
