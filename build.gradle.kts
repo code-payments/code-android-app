@@ -71,3 +71,12 @@ dependencies {
 tasks.register("clean", Delete::class) {
     delete(rootProject.layout.buildDirectory)
 }
+
+tasks.register("flipcashTestDebug") {
+    description = "Run testDebug for all Flipcash modules"
+    subprojects.filter {
+        it.path.startsWith(":apps:flipcash")
+            || it.path == ":services:flipcash"
+            || it.path == ":services:opencode"
+    }.forEach { dependsOn("${it.path}:testDebug") }
+}

@@ -17,7 +17,9 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 apply("com.android.library")
                 apply("org.jetbrains.kotlin.android")
                 apply("org.jetbrains.kotlin.plugin.serialization")
-                apply("org.jetbrains.kotlinx.kover")
+                if (!providers.gradleProperty("skipCoverage").orNull.toBoolean()) {
+                    apply("org.jetbrains.kotlinx.kover")
+                }
             }
 
             extensions.configure<LibraryExtension> {

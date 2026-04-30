@@ -34,13 +34,12 @@ on:
           - halted
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
 
       - name: Setup Java env
@@ -50,6 +49,14 @@ jobs:
           distribution: 'corretto'
           cache: 'gradle'
 
+      - name: Gradle build cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches/build-cache-1
+          key: gradle-build-cache-${{ hashFiles('**/*.gradle.kts', 'gradle.properties') }}
+          restore-keys: |
+            gradle-build-cache-
+
       - name: Setup Ruby env
         uses: ruby/setup-ruby@v1
         with:
@@ -58,18 +65,63 @@ jobs:
 
       - name: Decode Google Services JSON file
         uses: timheuer/base64-to-file@v1
-        id: google_services_json_file
         with:
           fileName: google-services.json
           fileDir: ./apps/flipcash/app/src
           encodedString: ${{ secrets.FLIPCASH2_GOOGLE_SERVICES }}
 
-      - name: Decode Service Account Key JSON file
-        uses: timheuer/base64-to-file@v1
-        id: service_account_json_file
+      - name: Setup BugSnag API Key
+        run: echo BUGSNAG_API_KEY=\"${{ secrets.FLIPCASH_BUGSNAG_API_KEY }}\" > ./local.properties
+
+      - name: Setup Google Cloud Project Number
+        run: echo GOOGLE_CLOUD_PROJECT_NUMBER=${{ secrets.GOOGLE_CLOUD_PROJECT_NUMBER }} >> ./local.properties
+
+      - name: Setup Mixpanel API Key
+        run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCASH_MIXPANEL_API_KEY }}\" >> ./local.properties
+
+      - name: Setup Coinbase OnRamp API Key
+        run: echo COINBASE_ONRAMP_API_KEY=${{ secrets.COINBASE_ONRAMP_API_KEY }} >> ./local.properties
+
+      - name: Run tests
+        run: bundle exec fastlane android flipcash_tests
+        env:
+          SKIP_COVERAGE: "true"
+
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
         with:
-          fileName: serviceAccount.json
-          encodedString: ${{ secrets.FLIPCASH_SERVICE_ACCOUNT_KEY_JSON }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Java env
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+          cache: 'gradle'
+
+      - name: Gradle build cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches/build-cache-1
+          key: gradle-build-cache-${{ hashFiles('**/*.gradle.kts', 'gradle.properties') }}
+          restore-keys: |
+            gradle-build-cache-
+
+      - name: Setup Ruby env
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7.2
+          bundler-cache: true
+
+      - name: Decode Google Services JSON file
+        uses: timheuer/base64-to-file@v1
+        with:
+          fileName: google-services.json
+          fileDir: ./apps/flipcash/app/src
+          encodedString: ${{ secrets.FLIPCASH2_GOOGLE_SERVICES }}
 
       - name: Decode Upload Key Store file into location 1
         uses: timheuer/base64-to-file@v1
@@ -98,20 +150,60 @@ jobs:
       - name: Setup Coinbase OnRamp API Key
         run: echo COINBASE_ONRAMP_API_KEY=${{ secrets.COINBASE_ONRAMP_API_KEY }} >> ./local.properties
 
-      - name: Run tests
-        run: bundle exec fastlane android flipcash_tests
-
-      - name: Build & deploy Android release
-        run: bundle exec fastlane android deploy_flipcash
+      - name: Build release
+        run: bundle exec fastlane android build_flipcash
         env:
           STORE_FILE: ${{ steps.signing_key.outputs.filePath }}
           STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS}}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            apps/flipcash/app/build/outputs/bundle/release
+            apps/flipcash/app/build/outputs/apk/release
+            apps/flipcash/app/build/outputs/mapping/release/mapping.txt
+
+  deploy:
+    needs: [test, build-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Ruby env
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7.2
+          bundler-cache: true
+
+      - name: Decode Service Account Key JSON file
+        uses: timheuer/base64-to-file@v1
+        id: service_account_json_file
+        with:
+          fileName: serviceAccount.json
+          encodedString: ${{ secrets.FLIPCASH_SERVICE_ACCOUNT_KEY_JSON }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: apps/flipcash/app/build/outputs
+
+      - name: Upload to Play Store
+        run: bundle exec fastlane android upload_flipcash
+        env:
           SERVICE_ACCOUNT_KEY_JSON: ${{ steps.service_account_json_file.outputs.filePath }}
           PACKAGE_NAME: com.flipcash.app.android
           PLAYSTORE_TRACK: ${{ github.event.inputs.track }}
           RELEASE_STATUS: ${{ github.event.inputs.release_status }}
+          AAB_PATH: apps/flipcash/app/build/outputs/bundle/release/app-release.aab
+          MAPPING_PATH: apps/flipcash/app/build/outputs/mapping/release/mapping.txt
 
       - name: Update release manifest
         id: manifest

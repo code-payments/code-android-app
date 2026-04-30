@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Java env
         uses: actions/setup-java@v3
@@ -25,6 +25,14 @@ jobs:
           java-version: '21'
           distribution: 'corretto'
           cache: 'gradle'
+
+      - name: Gradle build cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches/build-cache-1
+          key: gradle-build-cache-${{ hashFiles('**/*.gradle.kts', 'gradle.properties') }}
+          restore-keys: |
+            gradle-build-cache-
 
       - name: Setup Ruby env
         uses: ruby/setup-ruby@v1
@@ -55,3 +63,5 @@ jobs:
 
       - name: Run Flipcash tests
         run: bundle exec fastlane android flipcash_tests
+        env:
+          SKIP_COVERAGE: "true"
