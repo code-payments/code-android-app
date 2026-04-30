@@ -1,7 +1,6 @@
 package com.getcode.opencode.inject
 
 import android.content.Context
-import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.CurrencyController
@@ -101,11 +100,7 @@ object OpenCodeModule {
             .userAgent(config.userAgent)
             .keepAliveWithoutCalls(false)
             .idleTimeout(5, TimeUnit.MINUTES) // drop idle connections
-            .apply {
-                if (BuildConfig.DEBUG) {
-                    this.intercept(LoggingClientInterceptor())
-                }
-            }
+            .intercept(LoggingClientInterceptor())
             .build()
             .also { observeChannelState("opencode", it) }
     }
@@ -123,11 +118,7 @@ object OpenCodeModule {
             .context(context)
             .userAgent(config.userAgent)
             .keepAliveWithoutCalls(true)
-            .apply {
-                if (BuildConfig.DEBUG) {
-                    this.intercept(LoggingClientInterceptor())
-                }
-            }
+            .intercept(LoggingClientInterceptor())
             .build()
             .also { observeChannelState("opencode-stream", it) }
     }

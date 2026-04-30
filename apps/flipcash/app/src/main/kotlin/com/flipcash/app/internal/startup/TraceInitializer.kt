@@ -7,6 +7,7 @@ import com.bugsnag.android.Configuration
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.internal.debug.FlipcashDebugTree
 import com.flipcash.app.internal.debug.FlipcashErrorCallback
+import com.flipcash.app.updates.ReleaseStage
 import com.flipcash.app.updates.ReleaseStageProvider
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceManager
@@ -32,6 +33,7 @@ class TraceInitializer: Initializer<Unit> {
 
         if (BuildConfig.DEBUG) {
             Timber.plant(FlipcashDebugTree)
+            TraceManager.includeRpcBodies = true
         } else {
             CoroutineScope(Dispatchers.IO).launch {
                 val entryPoint = EntryPointAccessors.fromApplication(context, TraceEntryPoint::class.java)
@@ -39,12 +41,15 @@ class TraceInitializer: Initializer<Unit> {
                 val versionCode = BuildConfig.VERSION_CODE
 
                 val initialStage = stageProvider.loadCachedStage(versionCode)
+                if (initialStage == ReleaseStage.Internal) {
+                    TraceManager.includeRpcBodies = true
+                }
 
                 val config = Configuration.load(context).apply {
-                    releaseStage = initialStage.name
+                    releaseStage = initialStage?.name ?: "Unknown"
                     addOnError(FlipcashErrorCallback)
                     addOnSend { event ->
-                        event.app.releaseStage = stageProvider.resolvedStage.name
+                        event.app.releaseStage = stageProvider.resolvedStage?.name ?: "Unknown"
                         true
                     }
                 }
@@ -57,6 +62,9 @@ class TraceInitializer: Initializer<Unit> {
                 }
 
                 stageProvider.fetchAndCache(versionCode)
+                if (stageProvider.resolvedStage == ReleaseStage.Internal) {
+                    TraceManager.includeRpcBodies = true
+                }
             }
         }
     }

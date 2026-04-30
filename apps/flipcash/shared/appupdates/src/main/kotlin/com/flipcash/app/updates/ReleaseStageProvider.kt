@@ -1,8 +1,8 @@
 package com.flipcash.app.updates
 
 interface ReleaseStageProvider {
-    val resolvedStage: ReleaseStage
-    suspend fun loadCachedStage(versionCode: Int): ReleaseStage
+    val resolvedStage: ReleaseStage?
+    suspend fun loadCachedStage(versionCode: Int): ReleaseStage?
     suspend fun fetchAndCache(versionCode: Int)
 }
 

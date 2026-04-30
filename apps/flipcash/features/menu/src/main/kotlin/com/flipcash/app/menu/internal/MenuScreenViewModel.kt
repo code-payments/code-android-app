@@ -113,8 +113,8 @@ internal class MenuScreenViewModel @Inject constructor(
         viewModelScope.launch {
             val resolvedStage = releaseStageProvider.resolvedStage
             val label = when {
-                BuildConfig.DEBUG -> "debug"
-                resolvedStage == ReleaseStage.Production -> null // omit for production builds
+                BuildConfig.DEBUG -> "development"
+                resolvedStage == null || resolvedStage == ReleaseStage.Production -> null
                 else -> resolvedStage.name.lowercase()
             }
 

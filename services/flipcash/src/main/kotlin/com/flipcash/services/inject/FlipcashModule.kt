@@ -37,7 +37,6 @@ import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.repository.PushRepository
 import com.flipcash.services.repository.SettingsRepository
 import com.flipcash.services.repository.ThirdPartyRepository
-import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
 import com.getcode.opencode.utils.logging.LoggingClientInterceptor
 import dagger.Module
@@ -90,11 +89,7 @@ internal object FlipcashModule {
             .keepAliveTime(config.keepAlive.inWholeMilliseconds, TimeUnit.MILLISECONDS)
             .keepAliveTimeout(config.keepAliveTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
             .keepAliveWithoutCalls(true)
-            .apply {
-                if (BuildConfig.DEBUG) {
-                    this.intercept(LoggingClientInterceptor())
-                }
-            }
+            .intercept(LoggingClientInterceptor())
             .build()
             .also { observeChannelState("flipcash", it) }
     }

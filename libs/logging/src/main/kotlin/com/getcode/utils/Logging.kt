@@ -62,6 +62,10 @@ object TraceManager {
     var initialized: Boolean = false
         private set
 
+    /** When `true`, RPC request/response body lines are written to the log file. */
+    @Volatile
+    var includeRpcBodies: Boolean = false
+
     val plugins: MutableList<TraceLogPlugin> = mutableListOf()
     private val breadcrumbSinks = mutableListOf<BreadcrumbSink>()
     private var _userId: String? = null
@@ -138,6 +142,7 @@ object TraceManager {
         breadcrumbSinks.clear()
         _userId = null
         onUserIdChanged = null
+        includeRpcBodies = false
     }
 }
 

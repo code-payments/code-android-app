@@ -82,15 +82,20 @@ private fun DeviceLogsScreenContent(
     // each new composition's state becomes visible to the running effect.
     val currentState by rememberUpdatedState(state)
 
-    // Auto-scroll to the bottom as new lines arrive, unless the user is paused.
-    // Keying only on listState keeps the in-flight animateScrollToItem from being
-    // cancelled every time a new line arrives.
+    // With reverseLayout the bottom of the list is index 0. Auto-scroll to
+    // the newest line only when the user is already near the bottom.
+    val isAtBottom by remember {
+        derivedStateOf { listState.firstVisibleItemIndex <= 2 }
+    }
+
     LaunchedEffect(listState) {
-        snapshotFlow { currentState.visibleLines.size to currentState.isPaused }
-            .filter { (size, paused) -> size > 0 && !paused }
+        snapshotFlow {
+            Triple(currentState.visibleLines.size, currentState.isPaused, isAtBottom)
+        }
             .distinctUntilChanged { old, new -> old.first == new.first }
-            .collect { (size, _) ->
-                listState.animateScrollToItem(size - 1)
+            .filter { (size, isPaused, atBottom) -> size > 0 && !isPaused && atBottom }
+            .collect {
+                listState.animateScrollToItem(0)
             }
     }
 
@@ -182,8 +187,7 @@ private fun LogList(
                 .fillMaxSize()
                 .verticalScrollStateGradient(listState),
             state = listState,
-            // Bottom padding leaves room for the floating pause pill so the last log line
-            // can scroll above it rather than being obscured.
+            reverseLayout = true,
             contentPadding = PaddingValues(
                 top = contentPadding.calculateTopPadding() + CodeTheme.dimens.grid.x2,
                 bottom = contentPadding.calculateBottomPadding(),
@@ -192,7 +196,7 @@ private fun LogList(
             ),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            items(lines) { line ->
+            items(lines.asReversed()) { line ->
                 LogLine(line = line, filter = filter)
             }
         }

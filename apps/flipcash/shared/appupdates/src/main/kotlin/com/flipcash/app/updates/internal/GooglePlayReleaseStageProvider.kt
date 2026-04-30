@@ -27,10 +27,10 @@ internal class GooglePlayReleaseStageProvider(private val context: Context) : Re
     private val json = Json { ignoreUnknownKeys = true }
 
     @Volatile
-    override var resolvedStage: ReleaseStage = ReleaseStage.Production
+    override var resolvedStage: ReleaseStage? = null
         private set
 
-    override suspend fun loadCachedStage(versionCode: Int): ReleaseStage {
+    override suspend fun loadCachedStage(versionCode: Int): ReleaseStage? {
         val cached = context.releaseStageDataStore.data
             .map { prefs -> prefs[MANIFEST_KEY] }
             .firstOrNull()
