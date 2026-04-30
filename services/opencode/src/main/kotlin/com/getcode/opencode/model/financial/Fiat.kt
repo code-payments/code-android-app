@@ -154,12 +154,16 @@ data class Fiat(
 
     fun valueNonZero(): Boolean = toDouble() != 0.0
 
+    /** The smallest displayable unit for this currency (e.g. $0.01 USD, ¥1 JPY). */
+    val smallestUnit: Fiat
+        get() {
+            val step = BigDecimal.ONE.movePointLeft(currencyCode.fractionDigits).toDouble()
+            return Fiat(fiat = step, currencyCode = currencyCode)
+        }
+
     /** Whether this value would format as non-zero in its currency. */
     val hasDisplayableValue: Boolean
-        get() {
-            val minimum = BigDecimal.ONE.movePointLeft(currencyCode.fractionDigits)
-            return BigDecimal.valueOf(decimalValue) >= minimum
-        }
+        get() = this >= smallestUnit
 
     fun valueLessThan(other: Fiat): Boolean = toDouble() < other.toDouble()
     fun valueGreaterThan(other: Fiat): Boolean = toDouble() > other.toDouble()
