@@ -221,6 +221,8 @@ jobs:
           git add .well-known/release-manifest.json
           git diff --cached --quiet && echo "No changes to commit" && exit 0
           git commit -m "build: update release manifest"
+          git clean -fd
+          git checkout -- .
           git pull --rebase https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git code/cash
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git HEAD:code/cash
 
