@@ -1,12 +1,11 @@
-package com.getcode.opencode.internal.solana.model
+package com.getcode.opencode.model.transactions
 
+import com.getcode.opencode.internal.solana.model.Vault
 import com.getcode.opencode.internal.solana.vmAuthority
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.serializer.PublicKeyAsStringSerializer
-import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
-
 
 @Serializable(with = PublicKeyAsStringSerializer::class)
 class LiquidityPool(
