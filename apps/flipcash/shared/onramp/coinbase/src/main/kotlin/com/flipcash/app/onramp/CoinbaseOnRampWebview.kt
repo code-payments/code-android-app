@@ -57,7 +57,19 @@ private fun WebView.configureForCoinbaseOnRamp(
     onCancel: () -> Unit,
 ): () -> Unit {
     val startMark = TimeSource.Monotonic.markNow()
-    trace(tag = "CoinbaseOnRamp", message = "WebView configured")
+    val webViewVersion = WebViewCompat.getCurrentWebViewPackage(context)?.versionName.orEmpty()
+    val gmsVersion = runCatching {
+        context.packageManager.getPackageInfo("com.google.android.gms", 0).versionName
+    }.getOrNull().orEmpty()
+
+    trace(
+        tag = "CoinbaseOnRamp",
+        message = "WebView configured",
+        metadata = {
+            "webViewVersion" to webViewVersion
+            "gmsVersion" to gmsVersion
+        },
+    )
 
     val autoClickTriggered = AtomicBoolean(false)
     val terminalEventReceived = AtomicBoolean(false)
@@ -73,7 +85,14 @@ private fun WebView.configureForCoinbaseOnRamp(
 
     val timeoutAction = Runnable {
         if (terminalEventReceived.compareAndSet(false, true)) {
-            trace(tag = "CoinbaseOnRamp", message = "WebView timeout fired")
+            trace(
+                tag = "CoinbaseOnRamp",
+                message = "WebView timeout fired",
+                metadata = {
+                    "webViewVersion" to webViewVersion
+                    "gmsVersion" to gmsVersion
+                },
+            )
             onPaymentFailure(CoinbaseOnRampWebError.WebViewTimeout())
         }
     }
@@ -118,6 +137,8 @@ private fun WebView.configureForCoinbaseOnRamp(
 
     val eventHandler = CoinbaseOnRampEventHandler(
         startMark = startMark,
+        webViewVersion = webViewVersion,
+        gmsVersion = gmsVersion,
         onPaymentSuccess = wrappedOnPaymentSuccess,
         onPaymentFailure = wrappedOnPaymentFailure,
         onCancel = wrappedOnCancel,
@@ -196,4 +217,4 @@ private fun WebView.configureForCoinbaseOnRamp(
 }
 
 private const val INITIAL_TIMEOUT_MS = 30_000L
-private const val INTER_EVENT_TIMEOUT_MS = 15_000L
+private const val INTER_EVENT_TIMEOUT_MS = 22_000L

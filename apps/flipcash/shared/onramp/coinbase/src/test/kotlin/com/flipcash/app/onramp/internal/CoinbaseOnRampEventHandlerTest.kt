@@ -25,6 +25,8 @@ class CoinbaseOnRampEventHandlerTest {
 
     private val handler = CoinbaseOnRampEventHandler(
         startMark = TimeSource.Monotonic.markNow(),
+        webViewVersion = "1.0.0",
+        gmsVersion = "24.0.0",
         onPaymentSuccess = { successCount++ },
         onPaymentFailure = { lastError = it },
         onCancel = { cancelCount++ },

@@ -131,6 +131,8 @@ internal object CoinbaseOnRampScripts {
 
 internal class CoinbaseOnRampEventHandler(
     private val startMark: TimeMark,
+    private val webViewVersion: String,
+    private val gmsVersion: String,
     private val onPaymentSuccess: () -> Unit,
     private val onPaymentFailure: (CoinbaseOnRampWebError) -> Unit,
     private val onCancel: () -> Unit,
@@ -178,8 +180,10 @@ internal class CoinbaseOnRampEventHandler(
                         message = "Error during coinbase buy module ($eventName)",
                         error = if (isFirstError) error else null,
                         type = TraceType.Error,
-                        metadata = if (errorCode == "ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND" && data != null) {
-                            {
+                        metadata = {
+                            "webViewVersion" to webViewVersion
+                            "gmsVersion" to gmsVersion
+                            if (errorCode == "ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND" && data != null) {
                                 "buttons" to data.optInt("buttons", -1)
                                 "gpayElements" to data.optInt("gpayElements", -1)
                                 "iframes" to data.optInt("iframes", -1)
@@ -190,8 +194,6 @@ internal class CoinbaseOnRampEventHandler(
                                 "viewport" to data.optString("viewport", "")
                                 "paymentRequest" to data.optString("paymentRequest", "")
                             }
-                        } else {
-                            {}
                         },
                     )
 
