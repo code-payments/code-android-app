@@ -10,10 +10,12 @@ fun ComposeWebView(
     url: String,
     modifier: Modifier = Modifier,
     factoryExtension: WebView.() -> Unit = { },
+    onRelease: (WebView) -> Unit = { },
 ) {
     AndroidView(
         modifier = modifier,
         factory = { WebView(it).apply(factoryExtension) },
-        update = { it.loadUrl(url) }
+        update = { it.loadUrl(url) },
+        onRelease = onRelease,
     )
 }

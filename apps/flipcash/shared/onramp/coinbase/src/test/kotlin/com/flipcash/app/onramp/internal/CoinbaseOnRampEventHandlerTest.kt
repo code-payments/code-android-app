@@ -6,6 +6,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.time.TimeSource
+import com.getcode.utils.NotifiableError
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -17,6 +19,8 @@ class CoinbaseOnRampEventHandlerTest {
     private var successCount = 0
     private var cancelCount = 0
     private var autoClickCount = 0
+    private var heartbeatCount = 0
+    private var pauseWatchdogCount = 0
     private var lastError: CoinbaseOnRampWebError? = null
 
     private val handler = CoinbaseOnRampEventHandler(
@@ -25,6 +29,8 @@ class CoinbaseOnRampEventHandlerTest {
         onPaymentFailure = { lastError = it },
         onCancel = { cancelCount++ },
         onAutoClickGPay = { autoClickCount++ },
+        onHeartbeat = { heartbeatCount++ },
+        onPauseWatchdog = { pauseWatchdogCount++ },
     )
 
     // --- Event routing ---
@@ -131,6 +137,50 @@ class CoinbaseOnRampEventHandlerTest {
         assertEquals(0, successCount)
         assertTrue(lastError == null)
     }
+
+    // --- Heartbeat / watchdog ---
+
+    @Test
+    fun heartbeatFiredForStandardEvents() {
+        val events = listOf(
+            """{"eventName":"onramp_api.load_success"}""",
+            """{"eventName":"onramp_api.polling_success"}""",
+            """{"eventName":"onramp_api.cancel"}""",
+            """{"eventName":"onramp_api.commit_success"}""",
+            """{"eventName":"onramp_api.payment_authorized"}""",
+            """{"eventName":"timing.gpay_button_clicked"}""",
+        )
+        events.forEachIndexed { index, event ->
+            handler.handleEvent(event)
+            assertEquals(index + 1, heartbeatCount, "heartbeat not fired for: $event")
+        }
+        assertEquals(0, pauseWatchdogCount)
+    }
+
+    @Test
+    fun pendingPaymentAuthPausesWatchdog() {
+        handler.handleEvent("""{"eventName":"onramp_api.pending_payment_auth"}""")
+        assertEquals(0, heartbeatCount)
+        assertEquals(1, pauseWatchdogCount)
+    }
+
+    @Test
+    fun heartbeatNotFiredOnMalformedJson() {
+        handler.handleEvent("not json")
+        assertEquals(0, heartbeatCount)
+        assertEquals(0, pauseWatchdogCount)
+    }
+
+    @Test
+    fun heartbeatResumesAfterPendingPaymentAuth() {
+        handler.handleEvent("""{"eventName":"onramp_api.pending_payment_auth"}""")
+        assertEquals(1, pauseWatchdogCount)
+        assertEquals(0, heartbeatCount)
+
+        handler.handleEvent("""{"eventName":"onramp_api.payment_authorized"}""")
+        assertEquals(1, heartbeatCount)
+        assertEquals(1, pauseWatchdogCount)
+    }
 }
 
 class CoinbaseOnRampWebErrorTest {
@@ -168,5 +218,12 @@ class CoinbaseOnRampWebErrorTest {
     @Test
     fun fromErrorCodeCaseSensitive() {
         assertIs<CoinbaseOnRampWebError.Unknown>(CoinbaseOnRampWebError.fromErrorCode("error_code_internal"))
+    }
+
+    @Test
+    fun webViewTimeoutImplementsNotifiableError() {
+        val error = CoinbaseOnRampWebError.WebViewTimeout()
+        assertIs<NotifiableError>(error)
+        assertIs<Throwable>(error)
     }
 }

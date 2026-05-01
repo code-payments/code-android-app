@@ -135,12 +135,15 @@ internal class CoinbaseOnRampEventHandler(
     private val onPaymentFailure: (CoinbaseOnRampWebError) -> Unit,
     private val onCancel: () -> Unit,
     private val onAutoClickGPay: () -> Unit,
+    private val onHeartbeat: () -> Unit = {},
+    private val onPauseWatchdog: () -> Unit = {},
 ) {
     private var errorReported = false
     fun handleEvent(eventJson: String) {
         trace(tag = "CoinbaseOnRamp", message = eventJson)
         try {
             val obj = JSONObject(eventJson)
+            var pauseWatchdog = false
             when (val eventName = obj.optString("eventName")) {
                 "onramp_api.load_success" -> {
                     trace(
@@ -197,6 +200,13 @@ internal class CoinbaseOnRampEventHandler(
                 // cancel: no-op per spec — GPay button re-shows automatically
                 "onramp_api.cancel" -> onCancel()
 
+                // User is authenticating (bank login, 2FA, etc.) — pause the
+                // watchdog so the inter-event timeout doesn't false-fire while
+                // the user is interacting with the payment sheet.
+                "onramp_api.pending_payment_auth" -> {
+                    pauseWatchdog = true
+                }
+
                 "timing.gpay_button_clicked" -> {
                     trace(
                         tag = "CoinbaseOnRamp",
@@ -230,6 +240,12 @@ internal class CoinbaseOnRampEventHandler(
                     )
                 }
             }
+
+            if (pauseWatchdog) {
+                onPauseWatchdog()
+            } else {
+                onHeartbeat()
+            }
         } catch (e: Exception) {
             trace(tag = "CoinbaseOnRamp", message = "Error parsing event", error = e)
         }
@@ -248,6 +264,7 @@ sealed class CoinbaseOnRampWebError(val data: String? = null): Throwable() {
     class GuestGooglePayNotReady(data: String? = null) : CoinbaseOnRampWebError(data)
     class Internal(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
     class GooglePayButtonNotFound(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
+    class WebViewTimeout(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
 
     companion object {
         fun fromErrorCode(errorCode: String, data: String? = null): CoinbaseOnRampWebError {

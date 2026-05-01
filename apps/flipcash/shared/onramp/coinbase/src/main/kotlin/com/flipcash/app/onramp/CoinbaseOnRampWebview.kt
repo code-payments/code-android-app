@@ -33,18 +33,20 @@ fun CoinbaseOnRampWebview(
     onPaymentFailure: (CoinbaseOnRampWebError) -> Unit,
     onCancel: () -> Unit,
 ) {
+    var cleanup: (() -> Unit)? = null
     ComposeWebView(
         modifier = Modifier
             .fillMaxSize()
             .alpha(0f),
         url = paymentLinkUrl,
         factoryExtension = {
-            configureForCoinbaseOnRamp(
+            cleanup = configureForCoinbaseOnRamp(
                 onPaymentSuccess = { onPaymentSuccess(orderId) },
                 onPaymentFailure = onPaymentFailure,
                 onCancel = onCancel,
             )
-        }
+        },
+        onRelease = { cleanup?.invoke() },
     )
 }
 
@@ -53,12 +55,60 @@ private fun WebView.configureForCoinbaseOnRamp(
     onPaymentSuccess: () -> Unit,
     onPaymentFailure: (CoinbaseOnRampWebError) -> Unit,
     onCancel: () -> Unit,
-) {
+): () -> Unit {
     val startMark = TimeSource.Monotonic.markNow()
     trace(tag = "CoinbaseOnRamp", message = "WebView configured")
 
     val autoClickTriggered = AtomicBoolean(false)
+    val terminalEventReceived = AtomicBoolean(false)
     var messageListenerInstalled = false
+
+    var initialTimeoutRunnable: Runnable? = null
+    var interEventTimeoutRunnable: Runnable? = null
+
+    fun cancelAllTimeouts() {
+        initialTimeoutRunnable?.let { removeCallbacks(it) }
+        interEventTimeoutRunnable?.let { removeCallbacks(it) }
+    }
+
+    val timeoutAction = Runnable {
+        if (terminalEventReceived.compareAndSet(false, true)) {
+            trace(tag = "CoinbaseOnRamp", message = "WebView timeout fired")
+            onPaymentFailure(CoinbaseOnRampWebError.WebViewTimeout())
+        }
+    }
+
+    fun scheduleInterEventTimeout() {
+        val runnable = Runnable { timeoutAction.run() }
+        interEventTimeoutRunnable = runnable
+        postDelayed(runnable, INTER_EVENT_TIMEOUT_MS)
+    }
+
+    val wrappedOnPaymentSuccess: () -> Unit = {
+        terminalEventReceived.set(true)
+        post { cancelAllTimeouts() }
+        onPaymentSuccess()
+    }
+
+    val wrappedOnPaymentFailure: (CoinbaseOnRampWebError) -> Unit = { error ->
+        terminalEventReceived.set(true)
+        post { cancelAllTimeouts() }
+        onPaymentFailure(error)
+    }
+
+    val wrappedOnCancel: () -> Unit = {
+        terminalEventReceived.set(true)
+        post { cancelAllTimeouts() }
+        onCancel()
+    }
+
+    val heartbeat: () -> Unit = {
+        post { cancelAllTimeouts(); scheduleInterEventTimeout() }
+    }
+
+    val pauseWatchdog: () -> Unit = {
+        post { cancelAllTimeouts() }
+    }
 
     settings.javaScriptEnabled = true
     settings.domStorageEnabled = true
@@ -68,9 +118,11 @@ private fun WebView.configureForCoinbaseOnRamp(
 
     val eventHandler = CoinbaseOnRampEventHandler(
         startMark = startMark,
-        onPaymentSuccess = onPaymentSuccess,
-        onPaymentFailure = onPaymentFailure,
-        onCancel = onCancel,
+        onPaymentSuccess = wrappedOnPaymentSuccess,
+        onPaymentFailure = wrappedOnPaymentFailure,
+        onCancel = wrappedOnCancel,
+        onHeartbeat = heartbeat,
+        onPauseWatchdog = pauseWatchdog,
         onAutoClickGPay = {
             if (autoClickTriggered.compareAndSet(false, true)) {
                 post {
@@ -100,6 +152,12 @@ private fun WebView.configureForCoinbaseOnRamp(
             )
             view?.evaluateJavascript(CoinbaseOnRampScripts.MESSAGE_BRIDGE, null)
 
+            // Start the initial timeout — if no postMessage event arrives within
+            // INITIAL_TIMEOUT_MS after page load, the WebView is considered dead.
+            val runnable = Runnable { timeoutAction.run() }
+            initialTimeoutRunnable = runnable
+            view?.postDelayed(runnable, INITIAL_TIMEOUT_MS)
+
             // Fallback: if load_success already fired before the bridge was installed,
             // trigger auto-click after a delay to give the bridge a chance first.
             view?.postDelayed({
@@ -116,7 +174,7 @@ private fun WebView.configureForCoinbaseOnRamp(
             error: WebResourceError?
         ) {
             if (request?.isForMainFrame == true) {
-                onPaymentFailure(CoinbaseOnRampWebError.GuestGooglePayError())
+                wrappedOnPaymentFailure(CoinbaseOnRampWebError.GuestGooglePayError())
             }
         }
     }
@@ -133,4 +191,9 @@ private fun WebView.configureForCoinbaseOnRamp(
         )
         CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
     }
+
+    return { cancelAllTimeouts() }
 }
+
+private const val INITIAL_TIMEOUT_MS = 30_000L
+private const val INTER_EVENT_TIMEOUT_MS = 15_000L

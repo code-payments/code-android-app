@@ -133,7 +133,8 @@ private fun showOnRampFailure(resources: Resources, error: CoinbaseOnRampWebErro
         }
 
         is CoinbaseOnRampWebError.Internal,
-        is CoinbaseOnRampWebError.GooglePayButtonNotFound -> {
+        is CoinbaseOnRampWebError.GooglePayButtonNotFound,
+        is CoinbaseOnRampWebError.WebViewTimeout -> {
             BottomBarManager.showError(
                 title = resources.getString(R.string.error_title_onrampInternal),
                 message = resources.getString(R.string.error_description_onrampInternal),
