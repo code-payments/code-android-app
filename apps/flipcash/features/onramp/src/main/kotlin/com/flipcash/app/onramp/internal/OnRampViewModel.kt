@@ -167,8 +167,14 @@ internal class OnRampViewModel @Inject constructor(
             .onEach { s ->
                 when (s) {
                     is CoinbaseOnRampState.Completed -> dispatchEvent(Event.UpdateOrderLookupState(success = true))
-                    is CoinbaseOnRampState.Failed -> dispatchEvent(Event.UpdateOrderLookupState())
-                    CoinbaseOnRampState.Idle -> dispatchEvent(Event.UpdateOrderLookupState())
+                    is CoinbaseOnRampState.Failed -> {
+                        dispatchEvent(Event.UpdateConfirmingAmountState())
+                        dispatchEvent(Event.UpdateOrderLookupState())
+                    }
+                    CoinbaseOnRampState.Idle -> {
+                        dispatchEvent(Event.UpdateConfirmingAmountState())
+                        dispatchEvent(Event.UpdateOrderLookupState())
+                    }
                     is CoinbaseOnRampState.Paying -> dispatchEvent(Event.UpdateOrderLookupState(loading = true))
                     is CoinbaseOnRampState.Processing -> dispatchEvent(Event.UpdateOrderLookupState(loading = true))
                 }
