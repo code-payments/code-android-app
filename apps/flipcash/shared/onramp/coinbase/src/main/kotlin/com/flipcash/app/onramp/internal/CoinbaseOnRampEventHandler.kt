@@ -141,11 +141,11 @@ internal class CoinbaseOnRampEventHandler(
     private val onPauseWatchdog: () -> Unit = {},
 ) {
     private var errorReported = false
+    private var watchdogPaused = false
     fun handleEvent(eventJson: String) {
         trace(tag = "CoinbaseOnRamp", message = eventJson)
         try {
             val obj = JSONObject(eventJson)
-            var pauseWatchdog = false
             when (val eventName = obj.optString("eventName")) {
                 "onramp_api.load_success" -> {
                     trace(
@@ -156,7 +156,10 @@ internal class CoinbaseOnRampEventHandler(
                     onAutoClickGPay()
                 }
                 "onramp_api.commit_success" -> Unit // explicitly skipped to only dispatch one onPaymentSuccess
-                "onramp_api.polling_success" -> onPaymentSuccess()
+                "onramp_api.polling_success" -> {
+                    watchdogPaused = false
+                    onPaymentSuccess()
+                }
 
                 "onramp_api.commit_error",
                 "onramp_api.load_error",
@@ -174,6 +177,7 @@ internal class CoinbaseOnRampEventHandler(
                     // triggering a duplicate Bugsnag report.
                     val isFirstError = !errorReported
                     errorReported = true
+                    watchdogPaused = false
 
                     trace(
                         tag = "CoinbaseOnRamp",
@@ -200,13 +204,20 @@ internal class CoinbaseOnRampEventHandler(
                     onPaymentFailure(error)
                 }
                 // cancel: no-op per spec — GPay button re-shows automatically
-                "onramp_api.cancel" -> onCancel()
+                "onramp_api.cancel" -> {
+                    watchdogPaused = false
+                    onCancel()
+                }
 
                 // User is authenticating (bank login, 2FA, etc.) — pause the
                 // watchdog so the inter-event timeout doesn't false-fire while
                 // the user is interacting with the payment sheet.
                 "onramp_api.pending_payment_auth" -> {
-                    pauseWatchdog = true
+                    watchdogPaused = true
+                }
+
+                "onramp_api.payment_authorized" -> {
+                    watchdogPaused = false
                 }
 
                 "timing.gpay_button_clicked" -> {
@@ -243,7 +254,7 @@ internal class CoinbaseOnRampEventHandler(
                 }
             }
 
-            if (pauseWatchdog) {
+            if (watchdogPaused) {
                 onPauseWatchdog()
             } else {
                 onHeartbeat()

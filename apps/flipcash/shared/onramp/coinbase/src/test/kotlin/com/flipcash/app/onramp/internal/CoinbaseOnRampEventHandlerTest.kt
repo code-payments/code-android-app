@@ -179,9 +179,22 @@ class CoinbaseOnRampEventHandlerTest {
         assertEquals(1, pauseWatchdogCount)
         assertEquals(0, heartbeatCount)
 
+        // Timing event arrives while paused — should stay paused
+        handler.handleEvent("""{"eventName":"timing.gpay_button_clicked"}""")
+        assertEquals(2, pauseWatchdogCount)
+        assertEquals(0, heartbeatCount)
+
         handler.handleEvent("""{"eventName":"onramp_api.payment_authorized"}""")
         assertEquals(1, heartbeatCount)
-        assertEquals(1, pauseWatchdogCount)
+        assertEquals(2, pauseWatchdogCount)
+    }
+
+    @Test
+    fun timingEventsStayPausedDuringAuth() {
+        handler.handleEvent("""{"eventName":"onramp_api.pending_payment_auth"}""")
+        handler.handleEvent("""{"eventName":"timing.gpay_button_clicked"}""")
+        assertEquals(0, heartbeatCount)
+        assertEquals(2, pauseWatchdogCount)
     }
 }
 
