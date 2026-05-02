@@ -81,6 +81,7 @@ internal fun TokenDetailsSection(
             text = state.token.dataOrNull?.description.orEmpty(),
             style = CodeTheme.typography.textMedium,
             color = CodeTheme.colors.textSecondary,
+            isExpandable = !state.minimalUi,
             isExpanded = state.descriptionExpanded,
             contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset)
         ) {

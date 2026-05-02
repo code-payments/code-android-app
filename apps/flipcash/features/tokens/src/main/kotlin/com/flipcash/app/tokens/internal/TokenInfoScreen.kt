@@ -1,5 +1,6 @@
 package com.flipcash.app.tokens.internal
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -134,20 +135,28 @@ private fun TokenInfoScreen(
                     }
                     is Loadable.Loaded -> {
                         item {
-                            TokenBalance(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = CodeTheme.dimens.inset),
-                                balance = state.balance.nativeAmount,
-                                appreciation = state.appreciation?.nativeAmount?.takeIf { state.showAppreciation },
-                                onClick = {
-                                    dispatch(
-                                        TokenInfoViewModel.Event.OpenScreen(
-                                            AppRoute.Main.RegionSelection(kind = RegionSelectionKind.Balance)
-                                        )
+                            AnimatedContent(
+                                targetState = !state.minimalUi
+                            ) { holds ->
+                                if (holds) {
+                                    TokenBalance(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = CodeTheme.dimens.inset),
+                                        balance = state.balance.nativeAmount,
+                                        appreciation = state.appreciation?.nativeAmount?.takeIf { state.showAppreciation },
+                                        onClick = {
+                                            dispatch(
+                                                TokenInfoViewModel.Event.OpenScreen(
+                                                    AppRoute.Main.RegionSelection(kind = RegionSelectionKind.Balance)
+                                                )
+                                            )
+                                        }
                                     )
+                                } else {
+                                    Spacer(Modifier.height(CodeTheme.dimens.grid.x10))
                                 }
-                            )
+                            }
                         }
 
                         if (!state.isCashReserve && state.showTransactionHistory) {

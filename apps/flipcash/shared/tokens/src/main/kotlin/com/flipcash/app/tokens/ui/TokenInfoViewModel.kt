@@ -71,7 +71,15 @@ class TokenInfoViewModel @Inject constructor(
         val descriptionExpanded: Boolean = false,
         val historicalMarketCapData: Map<Period, Loadable<List<MarketCapPoint>>> = emptyMap(),
         val selectedPeriod: Period = Period.All,
+        val hideBalanceWhenUnowned: Boolean = false,
     ) {
+        val minimalUi: Boolean
+            get() {
+                if (!hideBalanceWhenUnowned) return false
+                if (balance.nativeAmount.hasDisplayableValue) return false
+                return true
+            }
+
         val canSell: Boolean
             get() = balance.underlyingTokenAmount.valueNonZero()
 
@@ -91,6 +99,7 @@ class TokenInfoViewModel @Inject constructor(
             val data: Loadable<List<MarketCapPoint>>
         ) : Event
 
+        data class HideBalanceWhenUnowned(val enabled: Boolean): Event
         data class OnMarketCapPeriodSelected(val period: Period) : Event
         data class OnBalanceUpdated(val balance: LocalFiat) : Event
         data class OnAppreciatedEnabled(val enabled: Boolean) : Event
@@ -108,6 +117,11 @@ class TokenInfoViewModel @Inject constructor(
         features.observe(FeatureFlag.MarketCapChart)
             .onEach {
                 dispatchEvent(Event.MarketCapChartEnabled(it))
+            }.launchIn(viewModelScope)
+
+        features.observe(FeatureFlag.HideUnownedTokenBalances)
+            .onEach {
+                dispatchEvent(Event.HideBalanceWhenUnowned(it))
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -315,6 +329,7 @@ class TokenInfoViewModel @Inject constructor(
                 is Event.MarketCapChartEnabled -> { state -> state.copy(marketCapChartEnabled = event.enabled) }
                 is Event.OnMintProvided -> { state -> state.copy(mint = event.mint) }
                 is Event.OnTokenChanged -> { state -> state.copy(token = event.token) }
+                is Event.HideBalanceWhenUnowned -> { state -> state.copy(hideBalanceWhenUnowned = event.enabled) }
                 is Event.OnMarketCapChanged -> { state -> state.copy(marketCap = event.mcap) }
                 is Event.OnBalanceUpdated -> { state -> state.copy(balance = event.balance) }
                 is Event.OnAppreciationUpdated -> { state -> state.copy(appreciation = event.amount) }

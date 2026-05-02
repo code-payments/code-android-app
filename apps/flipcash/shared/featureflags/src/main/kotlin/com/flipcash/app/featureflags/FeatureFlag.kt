@@ -135,6 +135,15 @@ sealed interface FeatureFlag {
         override val persistLogOut: Boolean = false
     }
 
+    @FeatureFlagMarker
+    data object HideUnownedTokenBalances: FeatureFlag {
+        override val key: String = "hide_unowned_balances_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
     companion object {
         val entries: List<FeatureFlag>
             get() = FeatureFlagEntries.entries
@@ -162,6 +171,7 @@ val FeatureFlag.title: String
         FeatureFlag.TokenDiscovery -> "Token Discovery"
         FeatureFlag.CurrencyCreator -> "Currency Creator"
         FeatureFlag.BillTextures -> "Bill Textures"
+        FeatureFlag.HideUnownedTokenBalances -> "Hide Balance for Unowned Tokens In Info"
     }
 
 val FeatureFlag.message: String
@@ -180,6 +190,7 @@ val FeatureFlag.message: String
         FeatureFlag.TokenDiscovery -> "When enabled, you'll gain access to leaderboards for tokens and discovery"
         FeatureFlag.CurrencyCreator -> "When enabled, you'll gain access to create new currencies"
         FeatureFlag.BillTextures -> "When enabled, you'll gain the ability to select textures for bills during currency creation"
+        FeatureFlag.HideUnownedTokenBalances -> "When enabled, the balance header will be hidden for tokens you don't hold in Currency Info"
     }
 
 

@@ -218,6 +218,13 @@ class TokenCoordinator @Inject constructor(
 
     // endregion
 
+    // region Public API - Account check
+    fun holds(mint: Mint): Boolean {
+        return accountController.hasAccountFor(mint)
+    }
+
+    // endregion
+
     // region Public API — Token Metadata (implements TokenMetadataProvider)
 
     /**
