@@ -149,7 +149,7 @@ class RealSessionController @Inject constructor(
                         stopPolling()
                         _state.update { SessionState() }
                     }
-                    authState.canAccessAuthenticatedApis -> {
+                    authState.isAtLeastRegistered -> {
                         onAppInForeground()
                     }
                 }
@@ -186,6 +186,17 @@ class RealSessionController @Inject constructor(
         tokenCoordinator.tokens
             .onEach { tokens ->
                 _state.update { it.copy(tokens = tokens) }
+            }.launchIn(scope)
+
+        // Retry updateUserFlags when network is restored
+        networkObserver.state
+            .map { it.connected }
+            .distinctUntilChanged()
+            .filter { connected -> connected }
+            .onEach {
+                if (userManager.authState.isAtLeastRegistered) {
+                    updateUserFlags()
+                }
             }.launchIn(scope)
     }
 
@@ -256,10 +267,15 @@ class RealSessionController @Inject constructor(
     }
 
     private fun updateUserFlags() {
-        if (userManager.authState.canAccessAuthenticatedApis) {
+        if (userManager.authState.isAtLeastRegistered) {
             scope.launch {
                 accountController.getUserFlags()
-                    .onSuccess { userManager.set(it) }
+                    .onSuccess { flags ->
+                        userManager.set(flags)
+                        if (flags.isRegistered && !userManager.authState.canAccessAuthenticatedApis) {
+                            userManager.set(authState = AuthState.LoggedInWithUser)
+                        }
+                    }
             }
         }
     }
