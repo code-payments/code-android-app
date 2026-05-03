@@ -123,6 +123,8 @@ sealed class SubmitIntentError(
         }), NotifiableError
     data class StaleState(private val reasons: List<String>) :
         SubmitIntentError(message = reasons.joinToString()), NotifiableError {
+        val isRaceCondition: Boolean
+            get() = reasons.any { it.startsWith("race detected:") }
         val isGiftCardAlreadyClaimed: Boolean
             get() = reasons.any { it.contains("gift card balance has already been claimed") }
     }

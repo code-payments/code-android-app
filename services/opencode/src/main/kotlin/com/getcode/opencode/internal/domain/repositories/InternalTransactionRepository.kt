@@ -18,8 +18,10 @@ import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.network.retryableOrThrow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.Instant
+import kotlin.time.Duration.Companion.seconds
 import javax.inject.Inject
 
 internal class InternalTransactionRepository @Inject constructor(
@@ -29,13 +31,17 @@ internal class InternalTransactionRepository @Inject constructor(
         scope: CoroutineScope,
         intent: IntentType,
         owner: Ed25519.KeyPair
-    ): Result<IntentType> = service.submitIntent(scope, intent, owner)
-        .onFailure {
-            // Expected race: pre-claim check passes but the gift card is claimed
-            // before the intent is submitted. Not a bug — skip Bugsnag reporting.
-            if (it is SubmitIntentError.StaleState && it.isGiftCardAlreadyClaimed) return@onFailure
-            ErrorUtils.handleError(it)
+    ): Result<IntentType> = runCatching {
+        retryableOrThrow(
+            maxRetries = 3,
+            delayDuration = 1.seconds,
+            retryIf = { it is SubmitIntentError.StaleState && it.isRaceCondition },
+        ) {
+            service.submitIntent(scope, intent, owner).getOrThrow()
         }
+    }.onFailure {
+        ErrorUtils.handleError(it)
+    }
 
     override suspend fun getIntentMetadata(
         intentId: PublicKey,

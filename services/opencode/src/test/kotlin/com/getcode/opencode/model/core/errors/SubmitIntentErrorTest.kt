@@ -172,6 +172,30 @@ class SubmitIntentErrorTest {
     }
 
     @Test
+    fun staleStateWithRaceDetectedIsRaceCondition() {
+        val error = SubmitIntentError.typed(
+            buildError(
+                SubmitIntentResponse.Error.Code.STALE_STATE,
+                reasonStrings = listOf("race detected: cached balance version is stale")
+            )
+        )
+        assertIs<SubmitIntentError.StaleState>(error)
+        assertTrue(error.isRaceCondition)
+    }
+
+    @Test
+    fun staleStateWithOtherReasonIsNotRaceCondition() {
+        val error = SubmitIntentError.typed(
+            buildError(
+                SubmitIntentResponse.Error.Code.STALE_STATE,
+                reasonStrings = listOf("intent already exists")
+            )
+        )
+        assertIs<SubmitIntentError.StaleState>(error)
+        assertFalse(error.isRaceCondition)
+    }
+
+    @Test
     fun otherWrausesCause() {
         val cause = RuntimeException("root cause")
         val error = SubmitIntentError.Other(cause)

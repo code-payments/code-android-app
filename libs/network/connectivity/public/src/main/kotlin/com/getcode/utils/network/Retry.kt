@@ -10,7 +10,7 @@ import kotlin.time.TimeSource
 suspend fun <T> retryable(
     maxRetries: Int = 3,
     delayDuration: Duration = 2.seconds,
-    retryIf: (Exception) -> Boolean = { true },
+    retryIf: (Throwable) -> Boolean = { true },
     onRetry: (Int) -> Unit = { currentAttempt ->
         trace(
             message = "Retrying call",
@@ -34,7 +34,7 @@ suspend fun <T> retryable(
     while (currentAttempt < maxRetries) {
         val result = try {
             call()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             if (!retryIf(e)) throw e
             trace(
                 message = "Attempt $currentAttempt failed with exception: ${e.message}",
@@ -66,7 +66,7 @@ suspend fun <T> retryable(
 suspend fun <T> retryableOrThrow(
     maxRetries: Int = 3,
     delayDuration: Duration = 2.seconds,
-    retryIf: (Exception) -> Boolean = { true },
+    retryIf: (Throwable) -> Boolean = { true },
     onRetry: (Int) -> Unit = { currentAttempt ->
         trace(
             message = "Retrying call",
@@ -85,13 +85,13 @@ suspend fun <T> retryableOrThrow(
     call: suspend () -> T,
 ): T {
     var currentAttempt = 0
-    var lastException: Exception? = null
+    var lastException: Throwable? = null
     val startTime = TimeSource.Monotonic.markNow()
 
     while (currentAttempt < maxRetries) {
         try {
             return call()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             if (!retryIf(e)) throw e
             lastException = e
             trace(
