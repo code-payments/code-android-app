@@ -494,7 +494,7 @@
     <string name="action_retry">Retry</string>
     <string name="error_unableToLoadChartData">Unable To Load</string>
 
-    <string name="title_discoverCurrencies">Currencies</string>
+    <string name="title_discoverCurrencies">Discover Currencies</string>
     <string name="action_discoverCurrencies">Discover Currencies</string>
     <string name="title_discoverPopular">Popular</string>
     <string name="title_discoverNew">New</string>
@@ -508,6 +508,7 @@
     <string name="subtitle_discoverEmptyNew">No currencies have been created in the last week</string>
     <string name="subtitle_discoverEmptyPopular">No popular currencies right now</string>
     <string name="action_createYourOwnCurrency">Create Your Own Currency</string>
+    <string name="subtitle_createYourOwnCurrency">Create a currency in minutes and immediately use it as cash</string>
     <string name="prompt_title_notYetAvailable">Not Yet Available</string>
     <string name="prompt_message_currencyCreateNotYetAvailable">Check back soon</string>
 
@@ -632,4 +633,6 @@
     <string name="label_lessFee">Less fee</string>
     <string name="label_netAmount">Net amount</string>
     <string name="label_amountInToken">Amount in %1$s</string>
+
+    <string name="title_leaderboard">Leaderboard</string>
 </resources>
