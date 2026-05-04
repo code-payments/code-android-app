@@ -119,7 +119,6 @@ private fun BalanceScreenContent(
                                 contentPadding = PaddingValues(),
                                 text = stringResource(R.string.action_discoverCurrencies),
                                 shape = CircleShape,
-                                buttonState = ButtonState.Filled
                             )
                         }
                     }
@@ -144,6 +143,7 @@ private fun BalanceScreenContent(
                             .padding(bottom = CodeTheme.dimens.grid.x3)
                             .navigationBarsPadding(),
                         text = stringResource(R.string.action_discoverCurrencies),
+                        buttonState = ButtonState.Filled10,
                         onClick = {
                             dispatchEvent(
                                 BalanceViewModel.Event.OpenScreen(AppRoute.Token.Discovery)
