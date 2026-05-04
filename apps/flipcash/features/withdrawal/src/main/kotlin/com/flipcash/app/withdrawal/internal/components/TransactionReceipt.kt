@@ -95,7 +95,7 @@ internal fun TransactionReceipt(
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 iconOverride = { icon ->
                     if (tokenWithBalance.token.address == Mint.usdf) {
-                        painterResource(R.drawable.ic_usdc_on_solana)
+                        painterResource(R.drawable.ic_usdc)
                     } else {
                         icon
                     }
@@ -134,7 +134,7 @@ private fun LineItems(
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
                 label = AnnotatedString("Less fee"),
-                amount = fee.formatted(),
+                amount = fee.formatted(extraPrefix = "-"),
             )
 
             val netAmount = remember(transferAmount) {
