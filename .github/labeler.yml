@@ -83,6 +83,12 @@
           - "apps/flipcash/shared/push/**"
           - "libs/messaging/**"
 
+"area: deeplinks":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/flipcash/shared/router/**"
+          - "apps/flipcash/shared/onramp/deeplinks/**"
+
 "area: build-system":
   - changed-files:
       - any-glob-to-any-file:
