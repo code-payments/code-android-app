@@ -21,15 +21,6 @@ fun MenuScreen() {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<MenuScreenViewModel.Event.OnLoggedOutCompletely>()
-            .onEach {
-                navigator.hide()
-                navigator.replaceAll(AppRoute.Onboarding.Login()) }
-            .launchIn(this)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
             .filterIsInstance<MenuScreenViewModel.Event.OpenScreen>()
             .map { it.screen }
             .onEach { navigator.push(it) }
