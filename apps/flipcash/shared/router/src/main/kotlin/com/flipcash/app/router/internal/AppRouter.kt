@@ -119,9 +119,9 @@ internal class AppRouter(
     }
 }
 
-private fun DeepLink.isLogin(): Boolean = login.contains(pathSegments[0])
-private fun DeepLink.isCashLink(): Boolean = cashLink.contains(pathSegments[0])
-private fun DeepLink.isToken(): Boolean = token.contains(pathSegments[0])
+private fun DeepLink.isLogin(): Boolean = login.contains(pathSegments.getOrNull(0))
+private fun DeepLink.isCashLink(): Boolean = cashLink.contains(pathSegments.getOrNull(0))
+private fun DeepLink.isToken(): Boolean = token.contains(pathSegments.getOrNull(0))
 
 private fun DeepLink.isExternalWalletConnection(): Boolean = external.contains(pathSegments.getOrNull(0))
         && pathSegments.getOrNull(2) == "connected"
@@ -129,7 +129,7 @@ private fun DeepLink.isExternalWalletConnection(): Boolean = external.contains(p
 private fun DeepLink.isExternalWalletSignedTransaction(): Boolean = external.contains(pathSegments.getOrNull(0))
         && pathSegments.getOrNull(2) == "signed"
 
-private fun DeepLink.isEmailVerification(): Boolean = verification.contains(pathSegments[0])
+private fun DeepLink.isEmailVerification(): Boolean = verification.contains(pathSegments.getOrNull(0))
         && data.toUri().getQueryParameter("email") != null
 
 private fun DeepLink.handleLoginLink(): DeeplinkType.Login? {
@@ -152,13 +152,13 @@ private fun DeepLink.handleCashLink(): DeeplinkType.CashLink? {
 
 private fun DeepLink.handleTokenLink(): DeeplinkType.TokenInfo? {
     val uri = data.toUri()
-    val mint = uri.pathSegments[1]
+    val mint = uri.pathSegments.getOrNull(1) ?: return null
     return DeeplinkType.TokenInfo(Mint(mint))
 }
 
 private fun DeepLink.handleWalletConnect(): DeeplinkType.ExternalWalletConnection? {
     val uri = data.toUri()
-    val wallet = uri.pathSegments[1] ?: return null
+    val wallet = uri.pathSegments.getOrNull(1) ?: return null
     val origin = uri.getQueryParameter("origin")
 
     val phantomOrigin = OnRampDeeplinkOrigin.fromString(origin) ?: return null
