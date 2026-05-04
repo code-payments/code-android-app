@@ -635,4 +635,6 @@
     <string name="label_amountInToken">Amount in %1$s</string>
 
     <string name="title_leaderboard">Leaderboard</string>
+
+    <string name="action_discover">Discover</string>
 </resources>
