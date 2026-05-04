@@ -4,10 +4,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Icon
@@ -24,6 +25,9 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
@@ -47,37 +51,51 @@ fun CurrencyCreatorUpsellCard(
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             val density = LocalDensity.current
-            var imageWidth by remember { mutableStateOf(0.dp) }
+            var imageHeight by remember { mutableStateOf(0.dp) }
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .defaultMinSize(minHeight = imageHeight)
                     .padding(
                         start = CodeTheme.dimens.grid.x3,
                         top = CodeTheme.dimens.grid.x3,
+                        bottom = CodeTheme.dimens.grid.x3,
                     ),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
-                ) {
-                    Text(
-                        text = stringResource(R.string.action_createYourOwnCurrency),
-                        style = CodeTheme.typography.screenTitle,
-                        color = CodeTheme.colors.textMain,
-                    )
-                    Icon(
-                        modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x4),
-                        imageVector = Icons.AutoMirrored.Default.ArrowForward,
-                        contentDescription = null,
-                        tint = CodeTheme.colors.textMain,
-                    )
+                val arrowId = "arrow"
+                val arrowSize = with(LocalDensity.current) {
+                    CodeTheme.dimens.staticGrid.x4.toSp()
                 }
+                val titleText = buildAnnotatedString {
+                    append(stringResource(R.string.action_createYourOwnCurrency))
+                    append(" ")
+                    appendInlineContent(arrowId)
+                }
+                Text(
+                    text = titleText,
+                    style = CodeTheme.typography.screenTitle,
+                    color = CodeTheme.colors.textMain,
+                    inlineContent = mapOf(
+                        arrowId to InlineTextContent(
+                            Placeholder(
+                                width = arrowSize,
+                                height = arrowSize,
+                                placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Default.ArrowForward,
+                                contentDescription = null,
+                                tint = CodeTheme.colors.textMain,
+                            )
+                        }
+                    )
+                )
 
                 Text(
-                    modifier = Modifier.padding(end = imageWidth),
+                    modifier = Modifier.fillMaxWidth(0.65f),
                     text = stringResource(R.string.subtitle_createYourOwnCurrency),
                     style = CodeTheme.typography.textSmall,
                     color = CodeTheme.colors.textSecondary,
@@ -88,7 +106,7 @@ fun CurrencyCreatorUpsellCard(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .onSizeChanged { size ->
-                        imageWidth = with(density) { size.width.toDp() }
+                        imageHeight = with(density) { size.height.toDp() }
                     },
                 painter = painterResource(R.drawable.ic_bill_previews),
                 contentDescription = null,
