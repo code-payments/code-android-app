@@ -12,6 +12,7 @@ import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.UserFlags
+import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -214,5 +215,43 @@ class AuthManagerTest {
 
         val secondRead = authManager.consumePendingSwitchEntropy()
         assertNull(secondRead)
+    }
+
+    @Test
+    fun `login retries getUserFlags on failure then succeeds`() = runTest {
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        val accountMetadata: AccountMetadata = mockk(relaxed = true)
+        val testId = listOf<Byte>(1, 2, 3)
+        every { accountMetadata.id } returns testId
+
+        coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
+
+        val flags = UserFlags.Default.copy(isRegistered = true)
+        coEvery { accountController.getUserFlags() } returnsMany listOf(
+            Result.failure(RuntimeException("transient failure")),
+            Result.success(flags)
+        )
+
+        val result = authManager.login(entropyB64 = entropy)
+
+        assertTrue(result.isSuccess)
+        verify { userManager.set(flags) }
+        verify { userManager.set(authState = AuthState.LoggedInWithUser) }
+    }
+
+    @Test
+    fun `login falls back to Registered after all retries exhausted`() = runTest {
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        val accountMetadata: AccountMetadata = mockk(relaxed = true)
+        val testId = listOf<Byte>(1, 2, 3)
+        every { accountMetadata.id } returns testId
+
+        coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
+        coEvery { accountController.getUserFlags() } returns Result.failure(RuntimeException("persistent failure"))
+
+        val result = authManager.login(entropyB64 = entropy)
+
+        assertTrue(result.isSuccess)
+        verify { userManager.set(authState = AuthState.Registered()) }
     }
 }
