@@ -74,6 +74,7 @@ private fun WithdrawalConfirmationScreenContent(
                 tokenWithBalance = TokenWithBalance(
                     state.token!!.token,
                     balance = state.amountEntryState.selectedAmount.localFiat.nativeAmount,
+                    displayName = state.token.displayName
                 ),
                 destination = state.destinationState.textFieldState.text.toString(),
                 fee = state.feeInEntryCurrency,

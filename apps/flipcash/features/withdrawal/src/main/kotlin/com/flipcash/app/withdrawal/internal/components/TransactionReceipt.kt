@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
@@ -126,14 +126,14 @@ private fun LineItems(
     ) {
         ReceiptLineItem(
             modifier = Modifier.fillMaxWidth(),
-            label = AnnotatedString("Withdrawal amount"),
+            label = AnnotatedString(stringResource(R.string.label_withdrawalAmount)),
             amount = tokenWithBalance.balance.formatted()
         )
 
         if (fee != null) {
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
-                label = AnnotatedString("Less fee"),
+                label = AnnotatedString(stringResource(R.string.label_lessFee)),
                 amount = fee.formatted(extraPrefix = "-"),
             )
 
@@ -143,20 +143,20 @@ private fun LineItems(
 
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
-                label = AnnotatedString("Net amount"),
+                label = AnnotatedString(stringResource(R.string.label_netAmount)),
                 amount = netAmount
             )
         }
 
-        if (tokenWithBalance.token.address != Mint.usdf) {
-            val exchange = LocalExchange.current
-            ReceiptLineItem(
-                modifier = Modifier.fillMaxWidth(),
-                label = AnnotatedString("Amount in ${tokenWithBalance.displayName}"),
-                amount = transferAmount.convertingToUsdIfNeeded(exchange.entryRate)
-                    .estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2),
-            )
-        }
+        val exchange = LocalExchange.current
+        ReceiptLineItem(
+            modifier = Modifier.fillMaxWidth(),
+            label = AnnotatedString(
+                stringResource(R.string.label_amountInToken, tokenWithBalance.displayName)
+            ),
+            amount = transferAmount.convertingToUsdIfNeeded(exchange.entryRate)
+                .estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2),
+        )
     }
 }
 
