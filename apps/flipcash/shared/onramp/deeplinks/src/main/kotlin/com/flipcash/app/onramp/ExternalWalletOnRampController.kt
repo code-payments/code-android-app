@@ -5,15 +5,18 @@ import com.flipcash.app.core.encryption.boxOpen
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.onramp.deeplinks.ExternalWalletConnection
 import com.flipcash.app.core.onramp.deeplinks.ExternallySignedTransaction
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.internal.model.thirdparty.UsdcLiquidtyPool
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
-import com.getcode.opencode.internal.solana.model.LiquidityPool
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.transactions.FundSwapPool
+import com.getcode.opencode.model.transactions.LiquidityPool
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.TransactionBuilder
@@ -29,6 +32,7 @@ import com.getcode.solana.rpc.RpcException
 import com.getcode.solana.rpc.SolanaConnection
 import com.getcode.solana.rpc.doesAccountExist
 import com.getcode.solana.rpc.getBalance
+import com.getcode.solana.rpc.getAccountData
 import com.getcode.solana.rpc.getTokenAccountBalance
 import com.getcode.solana.rpc.sendTransaction
 import com.getcode.solana.rpc.simulateTransaction
@@ -52,6 +56,8 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -59,6 +65,7 @@ import javax.inject.Inject
 @ActivityRetainedScoped
 class ExternalWalletOnRampController @Inject constructor(
     private val userManager: UserManager,
+    private val userFlags: UserFlagsCoordinator,
     private val transactionController: TransactionOperations,
     private val rpcConfig: RpcConfig,
 ) {
@@ -445,11 +452,25 @@ class ExternalWalletOnRampController @Inject constructor(
 
                 val swapId = SwapId.generate()
                 val recentBlockhash = connection.getLatestBlockhash()
+
+                val liquidityPool = userFlags.resolvedFlags.value.usdcOnRampLiquidityPool.effectiveValue
+                val swapPool = when (liquidityPool) {
+                    UsdcLiquidtyPool.CoinbaseStableSwapper -> {
+                        val poolAddress = FundSwapPool.CoinbaseStableSwapper.poolAddress
+                        val poolData = driver.getAccountData(poolAddress).getOrThrow()
+                        FundSwapPool.CoinbaseStableSwapper.fromAccountData(poolData)
+                    }
+                    UsdcLiquidtyPool.Unknown,
+                    UsdcLiquidtyPool.Flipcash -> FundSwapPool.Usdf(LiquidityPool.usdf)
+                }
+
+                trace("Building USDC -> USDF fund swap using $liquidityPool LP")
+
                 val transaction = TransactionBuilder.usdcFundSwap(
                     owner = owner.authorityPublicKey,
                     sender = sender,
                     amount = amount.underlyingTokenAmount.quarks,
-                    pool = LiquidityPool.usdf,
+                    pool = swapPool,
                     blockhash = Hash(recentBlockhash),
                     swapId = swapId,
                 )
