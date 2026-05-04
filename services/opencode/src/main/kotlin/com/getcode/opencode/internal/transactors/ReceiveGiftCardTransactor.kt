@@ -14,6 +14,7 @@ import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.providers.TokenMetadataProvider
+import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
 import com.getcode.utils.timedTraceSuspend
@@ -146,9 +147,13 @@ internal class ReceiveGiftCardTransactor(
                     onStep("intent")
                     Result.success(token to amount)
                 },
-                onFailure = {
+                onFailure = { error ->
                     onStep("intent")
-                    logAndFail(it)
+                    if (error is SubmitIntentError.StaleState && error.isGiftCardAlreadyClaimed) {
+                        Result.failure(error)
+                    } else {
+                        logAndFail(error)
+                    }
                 }
             )
         }

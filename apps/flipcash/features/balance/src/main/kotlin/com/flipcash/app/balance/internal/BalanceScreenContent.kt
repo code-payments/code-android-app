@@ -58,22 +58,23 @@ private fun BalanceScreenContent(
     dispatchEvent: (BalanceViewModel.Event) -> Unit
 ) {
     Column {
-        BalanceHeader(
-            modifier = Modifier
-                .fillMaxWidth(),
-            balance = tokenState.totalBalance,
-            appreciation = tokenState.aggregateAppreciation,
-        ) {
-            dispatchEvent(BalanceViewModel.Event.OpenCurrencySelection)
-        }
-
-        Spacer(modifier = Modifier.padding(CodeTheme.dimens.grid.x2))
-
         val tokens = remember(tokenState.tokens) { tokenState.tokens }
 
         TokenList(
             modifier = Modifier.weight(1f),
             itemModifier = { Modifier.animateItem(fadeInSpec = null) },
+            header = {
+                BalanceHeader(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    balance = tokenState.totalBalance,
+                    appreciation = tokenState.aggregateAppreciation,
+                ) {
+                    dispatchEvent(BalanceViewModel.Event.OpenCurrencySelection)
+                }
+
+                Spacer(modifier = Modifier.padding(CodeTheme.dimens.grid.x2))
+            },
             emptyState = {
                 Box(
                     modifier = Modifier

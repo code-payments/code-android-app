@@ -19,6 +19,7 @@ import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceManager
 import com.getcode.utils.TraceType
+import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -117,7 +118,12 @@ class AuthManager @Inject constructor(
     suspend fun presentCredentialStorage(): Result<Unit> {
         return credentialManager.presentSaveOption()
             .onSuccess {
-                accountController.getUserFlags().onSuccess { userManager.set(it) }
+                accountController.getUserFlags().onSuccess { flags ->
+                    userManager.set(flags)
+                    if (flags.isRegistered) {
+                        userManager.set(AuthState.LoggedInWithUser)
+                    }
+                }
             }.map { Unit }
     }
 
@@ -125,9 +131,10 @@ class AuthManager @Inject constructor(
         return credentialManager.onAccountPurchased()
             .fold(
                 onSuccess = {
-                    userManager.set(AuthState.LoggedInWithUser)
-                    accountController.getUserFlags()
+                    val flagsResult = accountController.getUserFlags()
                         .onSuccess { userManager.set(it) }
+                    userManager.set(AuthState.LoggedInWithUser)
+                    flagsResult
                 },
                 onFailure = { Result.failure(it) }
             ).onSuccess { savePrefs() }.map { Unit }
@@ -159,14 +166,17 @@ class AuthManager @Inject constructor(
 
                 coroutineScope {
                     launch {
-                        accountController.getUserFlags()
-                            .onSuccess { flags ->
-                                userManager.set(flags)
-                                userManager.set(if (flags.isRegistered) AuthState.LoggedInWithUser else AuthState.Registered())
-                            }.onFailure {
-                                taggedTrace("Failed to get user flags", type = TraceType.Error, cause = it)
-                                userManager.set(authState = AuthState.Registered())
-                            }
+                        val flags = retryable(maxRetries = 3) {
+                            accountController.getUserFlags().getOrNull()
+                        }
+
+                        if (flags != null) {
+                            userManager.set(flags)
+                            userManager.set(if (flags.isRegistered) AuthState.LoggedInWithUser else AuthState.Registered())
+                        } else {
+                            taggedTrace("Failed to get user flags after retries", type = TraceType.Error)
+                            userManager.set(authState = AuthState.Registered())
+                        }
                     }
                     launch { savePrefs() }
                 }

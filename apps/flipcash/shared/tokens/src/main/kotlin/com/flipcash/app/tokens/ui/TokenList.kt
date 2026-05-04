@@ -43,6 +43,7 @@ fun TokenList(
     pinFooter: Boolean = false,
     emptyState: (@Composable LazyItemScope.() -> Unit)? = null,
     reserves: (@Composable LazyItemScope.(mint: Mint, cashReserves: LocalFiat) -> Unit)? = null,
+    header: (@Composable () -> Unit)? = null,
     footer: (@Composable (isPinned: Boolean) -> Unit)? = null,
     onTokenSelected: (Token) -> Unit = { },
 ) {
@@ -81,6 +82,11 @@ fun TokenList(
                     emptyState()
                 }
             } else {
+                header?.let { content ->
+                    item {
+                        content()
+                    }
+                }
                 items(
                     items = filteredTokens.orEmpty(),
                     key = { item -> item.token.address.base58() }) { item ->

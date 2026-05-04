@@ -7,7 +7,7 @@ sealed class LoginError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
-    class InvalidTimestamp : LoginError("Invalid timestamp"), NotifiableError
+    class InvalidTimestamp : LoginError("Invalid timestamp")
     class Denied : LoginError("Denied")
     class Unrecognized : LoginError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : LoginError(message = cause?.message, cause = cause), NotifiableError

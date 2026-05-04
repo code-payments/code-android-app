@@ -1,0 +1,100 @@
+"area: payments":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/flipcash/shared/payments/**"
+          - "apps/flipcash/features/cash/**"
+          - "apps/flipcash/features/transactions/**"
+          - "apps/flipcash/features/withdrawal/**"
+          - "apps/flipcash/shared/transfers/**"
+          - "apps/flipcash/shared/bills/**"
+          - "apps/flipcash/shared/google-play-billing/**"
+          - "definitions/**/micropayment/**"
+
+"area: crypto":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "libs/crypto/**"
+          - "libs/encryption/**"
+          - "services/opencode/**/solana/**"
+
+"area: intents":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "services/code/**/intents/**"
+          - "services/flipchat/**/intents/**"
+          - "services/opencode/**/intents/**"
+
+"area: auth":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/flipcash/features/login/**"
+          - "apps/flipcash/shared/authentication/**"
+          - "apps/flipcash/shared/accesskey/**"
+          - "apps/flipcash/shared/session/**"
+          - "apps/flipcash/features/contact-verification/**"
+          - "apps/flipcash/shared/phone/**"
+
+"area: tokens":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/flipcash/features/tokens/**"
+          - "apps/flipcash/shared/tokens/**"
+          - "apps/flipcash/core/**/tokens/**"
+
+"area: ui":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "ui/**"
+          - "apps/flipcash/shared/theme/**"
+          - "apps/flipcash/features/bill-customization/**"
+
+"area: network":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "libs/network/**"
+          - "services/code/**"
+          - "services/flipcash/**"
+          - "services/flipcash-compose/**"
+          - "services/opencode/**"
+          - "services/opencode-compose/**"
+          - "definitions/**"
+
+"area: onramp":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/flipcash/features/onramp/**"
+          - "apps/flipcash/features/deposit/**"
+          - "apps/flipcash/features/purchase/**"
+          - "apps/flipcash/shared/onramp/**"
+
+"area: scanner":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/flipcash/features/scanner/**"
+          - "ui/scanner/**"
+          - "vendor/**/scanner/**"
+          - "libs/code-detection/**"
+          - "libs/quickresponse/**"
+
+"area: notifications":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/flipcash/shared/notifications/**"
+          - "apps/flipcash/shared/push/**"
+          - "libs/messaging/**"
+
+"area: deeplinks":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/flipcash/shared/router/**"
+          - "apps/flipcash/shared/onramp/deeplinks/**"
+
+"area: build-system":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "build-logic/**"
+          - "build.gradle.kts"
+          - "settings.gradle.kts"
+          - "gradle/**"
+          - "gradle.properties"
+          - "*.versions.toml"
