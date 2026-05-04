@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -134,7 +135,6 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
                 canCopy = controller.canCopy,
                 onUndo = { controller.dispatchEvent(Event.Undo) },
                 onCopy = { controller.dispatchEvent(Event.Copy) },
-                onBack = { controller.cancel() },
                 onDone = { controller.cancel() },
             )
         }
@@ -165,7 +165,6 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
 @Composable
 private fun TopBar(
     modifier: Modifier = Modifier,
-    onBack: () -> Unit,
     canUndo: Boolean,
     canCopy: Boolean,
     onUndo: () -> Unit,
@@ -180,12 +179,12 @@ private fun TopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AppBarDefaults.UpNavigation { onBack() }
-
         Row(
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Spacer(Modifier.weight(1f))
+
             val undoAlpha by animateFloatAsState(
                 targetValue = if (canUndo) 1f else ContentAlpha.disabled,
             )
