@@ -101,6 +101,14 @@ internal fun ScannerNavigationBar(
                 }
             }
         )
+
+        BottomBarAction(
+            modifier = Modifier.weight(1f),
+            label = stringResource(R.string.action_discover),
+            painter = painterResource(R.drawable.ic_coins),
+            badgeCount = 0,
+            onClick = { onAction(ScannerDecorItem.Discover) }
+        )
     }
 }
 
