@@ -172,6 +172,24 @@ class SubmitIntentErrorTest {
     }
 
     @Test
+    fun deniedWithUnexpectedOwnerAccountReasonIsUnexpectedOwnerAccount() {
+        val error = SubmitIntentError.Denied(listOf("unexpected owner account"))
+        assertTrue(error.isUnexpectedOwnerAccount)
+    }
+
+    @Test
+    fun deniedWithOtherReasonIsNotUnexpectedOwnerAccount() {
+        val error = SubmitIntentError.Denied(listOf("some other reason"))
+        assertFalse(error.isUnexpectedOwnerAccount)
+    }
+
+    @Test
+    fun deniedWithNoReasonsIsNotUnexpectedOwnerAccount() {
+        val error = SubmitIntentError.Denied(emptyList())
+        assertFalse(error.isUnexpectedOwnerAccount)
+    }
+
+    @Test
     fun otherWrausesCause() {
         val cause = RuntimeException("root cause")
         val error = SubmitIntentError.Other(cause)

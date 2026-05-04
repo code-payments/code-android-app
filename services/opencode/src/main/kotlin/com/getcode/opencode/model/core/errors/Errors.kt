@@ -128,7 +128,10 @@ sealed class SubmitIntentError(
     }
 
     data class Denied(private val reasons: List<String>) :
-        SubmitIntentError(message = reasons.joinToString())
+        SubmitIntentError(message = reasons.joinToString()) {
+        val isUnexpectedOwnerAccount: Boolean
+            get() = reasons.any { it.contains("unexpected owner account") }
+    }
 
     class Unrecognized : SubmitIntentError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : SubmitIntentError(message = cause?.message, cause = cause), NotifiableError
