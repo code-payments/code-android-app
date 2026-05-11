@@ -32,7 +32,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Code"
+rootProject.name = "Flipcash"
 
 include(
     // app containers
@@ -153,7 +153,6 @@ include(
     ":libs:permissions:public",
 
     ":libs:quickresponse",
-    ":libs:requests",
     ":libs:search",
 
     ":libs:vibrator:bindings",
@@ -161,14 +160,12 @@ include(
     ":libs:vibrator:public",
 
     // Services definition for app and lib access
-    ":services:legacy-shared",
     ":services:opencode",
     ":services:opencode-compose",
     ":services:flipcash",
     ":services:flipcash-compose",
 
     // common UI
-    ":ui:analytics",
     ":ui:biometrics",
     ":ui:core",
     ":ui:components",
