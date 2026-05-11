@@ -95,7 +95,6 @@ internal fun Scanner() {
             CodeScanner(
                 scanningEnabled = previewing == true,
                 cameraGesturesEnabled = true,
-                invertedDragZoomEnabled = true,
                 onPreviewStateChanged = {
                     cameraAvailable = true
                     previewing = it

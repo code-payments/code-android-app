@@ -11,23 +11,23 @@ import androidx.camera.core.CameraInfo
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.MeteringPoint
 import androidx.compose.ui.geometry.Offset
-import com.getcode.ui.utils.AnimationUtils
 import java.util.concurrent.TimeUnit
+import kotlin.math.pow
 
 internal class CameraGestureController(
     context: Context,
-    invertedDragEnabled: Boolean,
     private val gesturesEnabled: Boolean,
     private val cameraControl: CameraControl,
     private val cameraInfo: CameraInfo,
     onTap: (Offset) -> MeteringPoint,
 ) {
     private val handler = Handler(Looper.getMainLooper())
-    private var shouldIgnoreScroll = false
-    private var resetIgnore: Runnable? = null
     private var initialZoomRatio = 0f
     private var initialZoomLevel = -1f
-    private var accumulatedDelta = 0f
+    private var gestureZoomFactor = 1f
+    private var cumulativeScale = 1f
+    private var appliedZoom = 1f
+    private var isPinching = false
 
     private val maxZoom: Float
         get() = maxZoomOrNull ?: 1f
@@ -48,40 +48,38 @@ internal class CameraGestureController(
         context,
         object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
             override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
-                shouldIgnoreScroll = true
-                resetIgnore?.let { handler.removeCallbacks(it) }
+                isPinching = true
+                gestureZoomFactor = currentZoom
+                appliedZoom = currentZoom
+                cumulativeScale = 1f
                 return true
             }
 
             override fun onScale(detector: ScaleGestureDetector): Boolean {
-                val delta = detector.scaleFactor
-                val newZoomRatio = currentZoom * delta
-
-                // Clamp the new zoom ratio between the minimum and maximum zoom ratio
-                val clampedZoomRatio = newZoomRatio.coerceIn(
+                cumulativeScale *= detector.scaleFactor
+                val amplified = cumulativeScale.toDouble().pow(1.3).toFloat()
+                val targetZoom = (gestureZoomFactor * amplified).coerceIn(
                     minZoom,
-                    maxZoomOrNull ?: currentZoom
+                    minOf(maxZoom, 20f)
                 )
-
-                // Apply the zoom to the camera control
-                cameraControl.setZoomRatio(clampedZoomRatio)
+                // Lerp toward target to smooth lens-switch transitions
+                appliedZoom += (targetZoom - appliedZoom) * 0.4f
+                cameraControl.setZoomRatio(appliedZoom)
                 return true
             }
 
             override fun onScaleEnd(detector: ScaleGestureDetector) {
                 initialZoomRatio = currentZoom
-                resetIgnore = Runnable { shouldIgnoreScroll = false }
-                resetIgnore?.let { handler.postDelayed(it, 500) }
+                cumulativeScale = 1f
             }
         })
 
-    // Gesture detector for tap and drag-to-zoom
+    // Gesture detector for tap-to-focus
     private val gestureDetector = GestureDetector(
         context,
         object : GestureDetector.OnGestureListener {
             override fun onDown(e: MotionEvent): Boolean {
                 initialZoomRatio = currentZoom
-                accumulatedDelta = 0f
                 return true
             }
 
@@ -100,27 +98,7 @@ internal class CameraGestureController(
                 e2: MotionEvent,
                 distanceX: Float,
                 distanceY: Float
-            ): Boolean {
-                if (!shouldIgnoreScroll) {
-                    accumulatedDelta = if (invertedDragEnabled) {
-                        accumulatedDelta + distanceY * 0.5f
-                    } else {
-                        accumulatedDelta - distanceY * 0.5f
-                    }
-
-                    val zoomDelta = AnimationUtils.ease(
-                        value = accumulatedDelta,
-                        fromRange = 0f..250f,
-                        toRange = 0f..10f,
-                        easeIn = true,
-                        easeOut = false
-                    )
-
-                    val newZoom = (initialZoomRatio + zoomDelta).coerceIn(minZoom, maxZoom)
-                    cameraControl.setZoomRatio(newZoom)
-                }
-                return true
-            }
+            ): Boolean = false
 
             override fun onShowPress(e: MotionEvent) {}
             override fun onLongPress(e: MotionEvent) {}
@@ -129,9 +107,7 @@ internal class CameraGestureController(
                 e2: MotionEvent,
                 velocityX: Float,
                 velocityY: Float
-            ): Boolean {
-                return false
-            }
+            ): Boolean = false
         }
     )
 
@@ -145,8 +121,11 @@ internal class CameraGestureController(
             gestureDetector.onTouchEvent(event)
 
             if (event.action == MotionEvent.ACTION_UP) {
-                animateZoomReset(cameraInfo, cameraControl)
-                initialZoomRatio = currentZoom
+                if (isPinching) {
+                    animateZoomReset(cameraInfo, cameraControl)
+                    initialZoomRatio = currentZoom
+                    isPinching = false
+                }
             }
         }
     }

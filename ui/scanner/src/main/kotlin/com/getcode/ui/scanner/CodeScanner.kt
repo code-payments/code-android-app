@@ -59,7 +59,6 @@ import java.util.concurrent.Executors
 fun CodeScanner(
     scanningEnabled: Boolean,
     cameraGesturesEnabled: Boolean,
-    invertedDragZoomEnabled: Boolean,
     modifier: Modifier = Modifier,
     onPreviewStateChanged: (Boolean) -> Unit,
     onCodeScanned: (CodeScanResult) -> Unit,
@@ -164,14 +163,13 @@ fun CodeScanner(
         }
     }
 
-    LaunchedEffect(camera, cameraGesturesEnabled, invertedDragZoomEnabled) {
+    LaunchedEffect(camera, cameraGesturesEnabled) {
         camera?.let {
             gestureController = CameraGestureController(
                 context = context,
                 cameraControl = it.cameraControl,
                 cameraInfo = it.cameraInfo,
                 gesturesEnabled = cameraGesturesEnabled,
-                invertedDragEnabled = invertedDragZoomEnabled
             ) { touchedAt ->
                 autoFocusPoint = touchedAt
                 previewView.meteringPointFactory.createPoint(touchedAt.x, touchedAt.y)
