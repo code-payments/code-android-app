@@ -202,6 +202,7 @@ internal fun TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientPa
             TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT -> SwapFundingSource.SubmitIntent(PublicKey(fundingId).bytes)
             TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET -> SwapFundingSource.ExternalWallet(
                 fundingId.toByteArray().toList())
+            TransactionService.FundingSource.FUNDING_SOURCE_COINBASE_ONRAMP -> SwapFundingSource.CoinbaseOnramp(fundingId.toByteArray().toList())
             TransactionService.FundingSource.UNRECOGNIZED -> SwapFundingSource.Unknown
         }
     )
@@ -219,6 +220,7 @@ internal fun TransactionService.StatefulSwapRequest.Initiate.CoinbaseStableSwapp
             TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT -> SwapFundingSource.SubmitIntent(PublicKey(fundingId).bytes)
             TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET -> SwapFundingSource.ExternalWallet(
                 fundingId.toByteArray().toList())
+            TransactionService.FundingSource.FUNDING_SOURCE_COINBASE_ONRAMP -> SwapFundingSource.CoinbaseOnramp(fundingId.toByteArray().toList())
             TransactionService.FundingSource.UNRECOGNIZED -> SwapFundingSource.Unknown
         },
         destinationOwner = destinationOwner.toPublicKey(),

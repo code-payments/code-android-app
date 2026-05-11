@@ -296,6 +296,11 @@ internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwa
                             setFundingId(source.id.base58)
                         }
 
+                        is SwapFundingSource.CoinbaseOnramp -> {
+                            setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_COINBASE_ONRAMP)
+                            setFundingId(source.orderId)
+                        }
+
                         SwapFundingSource.Unknown -> Unit
                     }
                 }
