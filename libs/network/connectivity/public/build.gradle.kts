@@ -14,6 +14,9 @@ dependencies {
     implementation(libs.bundles.kotlinx.serialization)
     implementation(libs.bundles.hilt)
 
+    testImplementation(kotlin("test"))
+    testImplementation(libs.kotlinx.coroutines.test)
+
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)

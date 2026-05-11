@@ -1,5 +1,6 @@
 package com.flipcash.app.core.extensions
 
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.AppRoute
 import com.getcode.navigation.core.CodeNavigator
@@ -39,10 +40,12 @@ fun CodeNavigator.navigateTo(routes: List<NavKey>, options: NavOptions = NavOpti
         // The callback is invoked by ModalBottomSheetScene after the dismiss
         // animation completes and the old entry is removed from the backstack.
         pendingSheetDismiss = {
-            sheetGeneration++
-            resolved.forEachIndexed { index, route ->
-                val navOptions = if (index == 0) options else NavOptions()
-                navigate(route, navOptions)
+            Snapshot.withMutableSnapshot {
+                sheetGeneration++
+                resolved.forEachIndexed { index, route ->
+                    val navOptions = if (index == 0) options else NavOptions()
+                    navigate(route, navOptions)
+                }
             }
         }
     } else {

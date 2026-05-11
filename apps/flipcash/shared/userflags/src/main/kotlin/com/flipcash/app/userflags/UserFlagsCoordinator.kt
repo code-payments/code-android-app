@@ -13,6 +13,7 @@ import com.flipcash.services.models.UserFlags
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.financial.Fiat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
@@ -57,6 +58,16 @@ class UserFlagsCoordinator @Inject constructor(
     }
 
     private val scope = CoroutineScope(SupervisorJob() + dispatchers.IO)
+
+    init {
+        // Delete the backing file before DataStore reads it to avoid a race
+        // where stale overrides restored from backup are briefly visible.
+        val marker = File(context.noBackupFilesDir, "user-flag-overrides-initialized")
+        if (!marker.exists()) {
+            context.preferencesDataStoreFile("user-flag-overrides").delete()
+            marker.createNewFile()
+        }
+    }
 
     private val dataStore = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },

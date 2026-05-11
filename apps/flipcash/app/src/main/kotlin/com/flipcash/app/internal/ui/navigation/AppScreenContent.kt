@@ -30,6 +30,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
+import com.flipcash.app.discovery.TokenDiscoverySheet
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.lab.LabsScreen
 import com.flipcash.app.lab.StandaloneLabsScreen
@@ -99,6 +100,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
     annotatedEntry<AppRoute.Sheets.Menu> { MenuScreen() }
     annotatedEntry<AppRoute.Sheets.Lab> { StandaloneLabsScreen() }
+    annotatedEntry<AppRoute.Sheets.TokenDiscovery> { TokenDiscoverySheet() }
 
     // Tokens
     annotatedEntry<AppRoute.Token.Info> { key ->

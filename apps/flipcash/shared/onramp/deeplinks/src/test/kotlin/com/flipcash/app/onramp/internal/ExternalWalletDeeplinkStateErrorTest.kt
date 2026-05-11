@@ -7,6 +7,7 @@ import com.flipcash.app.onramp.DeeplinkError
 import com.flipcash.app.onramp.DeeplinkOnRampError
 import com.flipcash.app.onramp.ExternalWalletOnRampController
 import com.flipcash.app.onramp.ExternalWalletOnRampState
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.solana.rpc.RpcConfig
@@ -30,6 +31,8 @@ class ExternalWalletDeeplinkStateErrorTest {
     private val networkDriver = mockk<HttpNetworkDriver>(relaxed = true)
     private val rpcConfig = RpcConfig(networkDriver = networkDriver, rpcUrl = "https://localhost")
 
+    private val userFlags = mockk<UserFlagsCoordinator>(relaxed = true)
+
     private lateinit var controller: ExternalWalletOnRampController
 
     @Before
@@ -38,6 +41,7 @@ class ExternalWalletDeeplinkStateErrorTest {
         every { Box.keypair() } returns mockk<BoxKeyPair>(relaxed = true)
         controller = ExternalWalletOnRampController(
             userManager = userManager,
+            userFlags = userFlags,
             transactionController = transactionController,
             rpcConfig = rpcConfig,
         )

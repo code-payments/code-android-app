@@ -47,7 +47,7 @@
 
     <string name="error_title_insufficientFunds">Insufficient Funds</string>
     <string name="error_description_insufficientFunds">You do not have enough funds to complete this transaction. You can deposit more funds in Settings</string>
-    <string name="error_description_withdrawInsufficientFunds">You do not have enough funds to complete this withdrawal.\nPlease try a smaller amount</string>
+    <string name="error_description_withdrawInsufficientFunds">You do not have enough funds to complete this withdrawal. Please try a smaller amount</string>
 
     <string name="subtitle_giveCashHint">Enter up to %1$s</string>
     <string name="subtitle_giveCashHintLimitExceeded">You can only give up to %1$s</string>
@@ -163,7 +163,7 @@
     <string name="prompt_description_learnAboutWithdrawalFee">The account you\'re trying to withdraw to requires a one time account creation fee. This fee will be deducted from the amount you\'re withdrawing</string>
     <string name="error_title_withdrawalTooSmall">Withdrawal Amount Too Small</string>
     <string name="error_description_withdrawalTooSmall">Your withdrawal amount is too small to cover the fee.\nPlease try a different amount</string>
-    <string name="success_description_withdrawalComplete">If you have any issues please contact support@flipcash.com</string>
+    <string name="success_description_withdrawalComplete">Your withdrawal has been processed. It may take a few minutes for your funds to show up in your destination wallet</string>
 
     <string name="title_requireBiometrics">Require Biometrics</string>
     <string name="description_requireBiometricsNoneEnrolled">No biometrics currently enrolled</string>
@@ -222,7 +222,7 @@
     <string name="title_tapAboveToAddCashToWallet">Tap above to Add Cash to your wallet</string>
     <string name="title_tapBelowToAddCashWallet">You don\'t have any cash yet.\nTap below to add cash to your wallet</string>
     <string name="title_noBalanceYet">No Balance Yet</string>
-    <string name="description_noBalanceYet">Get another Flipcash user to give you some cash to get a balance</string>
+    <string name="description_noBalanceYet">Buy a currency to get started, or get another Flipcash user to give you some cash</string>
     <string name="description_noBalanceYetDiscover">Buy your first currency to get started</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="title_success">Success</string>
@@ -373,7 +373,7 @@
     <string name="title_noTransactionHistory">No Activity</string>
     <string name="description_noTransactionHistory">Your recent activity will appear here when you send or receive money</string>
 
-    <string name="title_billCustomizer">Bill Creator</string>
+    <string name="title_billCustomizer">Bill Designer</string>
     <string name="title_createYourCurrency">Create Your Currency</string>
     <string name="subtitle_currencyCreatorInfo">Launch your own currency in minutes.\nReady to use right away.</string>
     <string name="title_currencyCreatorStepName">Name</string>
@@ -494,7 +494,7 @@
     <string name="action_retry">Retry</string>
     <string name="error_unableToLoadChartData">Unable To Load</string>
 
-    <string name="title_discoverCurrencies">Currencies</string>
+    <string name="title_discoverCurrencies">Discover Currencies</string>
     <string name="action_discoverCurrencies">Discover Currencies</string>
     <string name="title_discoverPopular">Popular</string>
     <string name="title_discoverNew">New</string>
@@ -508,6 +508,7 @@
     <string name="subtitle_discoverEmptyNew">No currencies have been created in the last week</string>
     <string name="subtitle_discoverEmptyPopular">No popular currencies right now</string>
     <string name="action_createYourOwnCurrency">Create Your Own Currency</string>
+    <string name="subtitle_createYourOwnCurrency">Create a currency in minutes and immediately use it as cash</string>
     <string name="prompt_title_notYetAvailable">Not Yet Available</string>
     <string name="prompt_message_currencyCreateNotYetAvailable">Check back soon</string>
 
@@ -571,6 +572,9 @@
     <string name="error_title_onrampTimeout">Payment Timed Out</string>
     <string name="error_description_onrampTimeout">The payment session took too long to respond. Please try again.</string>
 
+    <string name="error_title_onrampPaymentSheetTimeout">Purchase Timed Out</string>
+    <string name="error_description_onrampPaymentSheetTimeout">Purchases must be authorized within 60 seconds</string>
+
     <string name="error_title_onrampTransactionSendFailed">Something Went Wrong</string>
     <string name="error_description_onrampTransactionSendFailed">We are working with the Coinbase team to resolve the issue. Your card will be refunded in the meantime. Please try again later</string>
 
@@ -628,4 +632,12 @@
     <string name="description_withdrawUsdfAsUsdc">Your USDF will be converted 1:1 to Solana USDC on withdrawal</string>
     <string name="displayName_solanaUsdc">Solana USDC</string>
     <string name="displayName_usdc">USDC</string>
+    <string name="label_withdrawalAmount">Withdrawal amount</string>
+    <string name="label_lessFee">Less fee</string>
+    <string name="label_netAmount">Net amount</string>
+    <string name="label_amountInToken">Amount in %1$s</string>
+
+    <string name="title_leaderboard">Leaderboard</string>
+
+    <string name="action_discover">Discover</string>
 </resources>

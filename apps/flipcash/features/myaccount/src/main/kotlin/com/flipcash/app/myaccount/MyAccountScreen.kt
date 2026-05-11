@@ -51,6 +51,15 @@ fun MyAccountScreen() {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
+            .filterIsInstance<MyAccountScreenViewModel.Event.OnLoggedOutCompletely>()
+            .onEach {
+                navigator.hide()
+                navigator.replaceAll(AppRoute.Onboarding.Login()) }
+            .launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
             .filterIsInstance<MyAccountScreenViewModel.Event.OnAccountDeleted>()
             .onEach {
                 navigator.hide()

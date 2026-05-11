@@ -37,6 +37,14 @@ internal data object VerifyPhone : FullMenuItem<MyAccountScreenViewModel.Event>(
     override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnVerifyPhoneClicked
 }
 
+internal data object LogOut : FullMenuItem<MyAccountScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = painterResource(R.drawable.ic_menu_logout)
+    override val name: String
+        @Composable get() = stringResource(R.string.action_logout)
+    override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnLogOutClicked
+}
+
 internal data object DeleteAccount: FullMenuItem<MyAccountScreenViewModel.Event>() {
     override val icon: Painter
         @Composable get() = rememberVectorPainter(ImageVector.Delete)

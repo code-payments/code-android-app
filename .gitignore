@@ -18,7 +18,11 @@ apps/flipcash/app/dapp_publishing/node_modules/**
 apps/flipcash/app/dapp_publishing/.asset-manifest.json
 ## Fastlane
 fastlane/report.xml
+
 *.env.*
+.env
+.env.local
+
 .claude/worktrees/
 .claude/settings.local.json
 

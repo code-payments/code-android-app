@@ -10,6 +10,7 @@ import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.providers.TokenMetadataProvider
+import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
 import com.getcode.utils.timedTraceSuspend
@@ -132,7 +133,22 @@ internal class GrabBillTransactor(
             accountController.createUserAccount(
                 ownerForMint = tokenizedCluster,
                 mint = token.address
-            ).onFailure {
+            ).recoverCatching { error ->
+                if (error is SubmitIntentError.Denied && error.isUnexpectedOwnerAccount) {
+                    // Safety net: PR #660 mitigates the upstream cause (getUserFlags
+                    // failure preventing account bootstrap), but if the core account
+                    // still isn't set up we recover here by triggering the normal
+                    // bootstrap path before retrying.
+                    accountController.refreshAccountState()
+                    // Retry the original non-core mint account
+                    accountController.createUserAccount(
+                        ownerForMint = tokenizedCluster,
+                        mint = token.address
+                    ).getOrThrow()
+                } else {
+                    throw error
+                }
+            }.onFailure {
                 onStep("createUserAccount (needed=true)")
                 return@timedTraceSuspend handleGrabError(it)
             }

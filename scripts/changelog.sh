@@ -40,7 +40,7 @@ parse_cc() {
   CC_DESC="$rest"
 }
 
-declare -a FEATS FIXES REFACTORS CHORES BUILDS OTHERS
+FEATS=() FIXES=() IMPROVEMENTS=() CHORES=() BUILDS=() OTHERS=()
 
 while IFS= read -r line; do
   hash="${line%% *}"
@@ -48,12 +48,14 @@ while IFS= read -r line; do
   msg="${line#* }"
 
   case "$msg" in
-    feat*:*)    parse_cc "$msg"; bucket=FEATS;;
-    fix*:*)     parse_cc "$msg"; bucket=FIXES;;
-    refactor*:*) parse_cc "$msg"; bucket=REFACTORS;;
-    chore*:*)   parse_cc "$msg"; bucket=CHORES;;
-    build*:*)   parse_cc "$msg"; bucket=BUILDS;;
-    *)          CC_SCOPE=""; CC_DESC="$msg"; bucket=OTHERS;;
+    feat*:*)     parse_cc "$msg"; bucket=FEATS;;
+    fix*:*)      parse_cc "$msg"; bucket=FIXES;;
+    refactor*:*) parse_cc "$msg"; bucket=IMPROVEMENTS;;
+    style*:*)    parse_cc "$msg"; bucket=IMPROVEMENTS;;
+    perf*:*)     parse_cc "$msg"; bucket=IMPROVEMENTS;;
+    chore*:*)    parse_cc "$msg"; bucket=CHORES;;
+    build*:*)    parse_cc "$msg"; bucket=BUILDS;;
+    *)           CC_SCOPE=""; CC_DESC="$msg"; bucket=OTHERS;;
   esac
 
   if [ -n "$CC_SCOPE" ]; then
@@ -63,12 +65,12 @@ while IFS= read -r line; do
   fi
 
   case "$bucket" in
-    FEATS)     FEATS+=("$entry");;
-    FIXES)     FIXES+=("$entry");;
-    REFACTORS) REFACTORS+=("$entry");;
-    CHORES)    CHORES+=("$entry");;
-    BUILDS)    BUILDS+=("$entry");;
-    OTHERS)    OTHERS+=("$entry");;
+    FEATS)        FEATS+=("$entry");;
+    FIXES)        FIXES+=("$entry");;
+    IMPROVEMENTS) IMPROVEMENTS+=("$entry");;
+    CHORES)       CHORES+=("$entry");;
+    BUILDS)       BUILDS+=("$entry");;
+    OTHERS)       OTHERS+=("$entry");;
   esac
 done <<< "$COMMITS"
 
@@ -80,7 +82,7 @@ echo ""
 section() {
   local title="$1"; shift
   local -n items="$1"
-  if [ ${#items[@]} -gt 0 ]; then
+  if [ "${#items[@]}" -gt 0 ]; then
     echo "### $title"
     echo ""
     printf '%s\n' "${items[@]}"
@@ -90,7 +92,7 @@ section() {
 
 section "Features" FEATS
 section "Bug Fixes" FIXES
-section "Refactors" REFACTORS
+section "Improvements" IMPROVEMENTS
 section "Chores" CHORES
 section "Build" BUILDS
 section "Other" OTHERS

@@ -115,7 +115,7 @@ data class CodeNavigator(
                             if (backStack.isNotEmpty()) backStack.removeAt(backStack.lastIndex)
                         }
                         if (route is Sheet) {
-                            backStack.removeAll { it == route }
+                            backStack.removeAll { it is Sheet && it.toString() == route.toString() }
                         }
                         backStack.add(route)
                     }
@@ -126,10 +126,10 @@ data class CodeNavigator(
                     if (route is Sheet || currentRouteKey != route) {
                         // Sheet routes must be unique on the backstack —
                         // SaveableStateProvider uses contentKey (toString()) and
-                        // crashes on duplicates. Remove any existing instance
-                        // before pushing the new one.
+                        // crashes on duplicates. Remove any entry whose contentKey
+                        // (toString()) matches before pushing the new one.
                         if (route is Sheet) {
-                            backStack.removeAll { it == route }
+                            backStack.removeAll { it is Sheet && it.toString() == route.toString() }
                         }
                         backStack.add(route)
                     }
@@ -139,7 +139,7 @@ data class CodeNavigator(
                 Snapshot.withMutableSnapshot {
                     if (route is Sheet || currentRouteKey != route) {
                         if (route is Sheet) {
-                            backStack.removeAll { it == route }
+                            backStack.removeAll { it is Sheet && it.toString() == route.toString() }
                         }
                         backStack.add(route)
                         val lastIndex = backStack.lastIndex - 1

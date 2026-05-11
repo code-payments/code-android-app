@@ -67,6 +67,8 @@ import kotlinx.coroutines.delay
 internal fun BillContainer(
     modifier: Modifier = Modifier,
     isPaused: Boolean,
+    isPinching: Boolean = false,
+    zoomRatio: Float = 1f,
     scannerView: @Composable () -> Unit,
     onAction: (ScannerDecorItem) -> Unit
 ) {
@@ -199,6 +201,8 @@ internal fun BillContainer(
                 state = updatedState,
                 billState = updatedBillState,
                 isPaused = isPaused,
+                isPinching = isPinching,
+                zoomRatio = zoomRatio,
                 onAction = onAction
             )
         }

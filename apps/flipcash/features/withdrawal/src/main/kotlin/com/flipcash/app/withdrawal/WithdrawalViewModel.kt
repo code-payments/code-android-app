@@ -106,7 +106,7 @@ internal class WithdrawalViewModel @Inject constructor(
         val feeInEntryCurrency: Fiat?
             get() {
                 val fee = feeAmount ?: return null
-                val rate = entryRate ?: return fee
+                val rate = entryRate ?: return null
                 return fee.convertingTo(rate)
             }
 
@@ -120,7 +120,7 @@ internal class WithdrawalViewModel @Inject constructor(
         val netTransferAmount: Fiat
             get() {
                 val amount = amountEntryState.selectedAmount.localFiat.nativeAmount
-                val fee = feeInEntryCurrency ?: 0.toFiat(amount.currencyCode)
+                val fee = feeInEntryCurrency ?: 0.00.toFiat(amount.currencyCode)
                 return amount - fee
             }
 
@@ -138,7 +138,7 @@ internal class WithdrawalViewModel @Inject constructor(
                     return EnteredAmountError.InsufficientFunds
                 }
 
-                val fee = feeInEntryCurrency ?: 0.toFiat(tokenBalance.currencyCode)
+                val fee = feeInEntryCurrency ?: 0.00.toFiat(tokenBalance.currencyCode)
 
                 if (enteredAmount.valueLessThanOrEqualTo(fee)) {
                     return EnteredAmountError.TooLow
@@ -229,6 +229,7 @@ internal class WithdrawalViewModel @Inject constructor(
 
     init {
         numberInputHelper.reset()
+        dispatchEvent(Event.OnEntryRateUpdated(exchange.entryRate))
 
         stateFlow
             .mapNotNull { it.selectedTokenAddress }
@@ -605,7 +606,7 @@ internal class WithdrawalViewModel @Inject constructor(
                         usdf = it,
                         rate = amount.localFiat.rate
                     )
-                } ?: LocalFiat.fromUsd(0.toFiat(), rate = amount.localFiat.rate)
+                } ?: LocalFiat.fromUsd(0.00.toFiat(), rate = amount.localFiat.rate)
 
                 transactionController.withdrawUsdf(
                     amount = amount,

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.discovery.internal.TokenDiscoveryViewModel
+import com.flipcash.app.tokens.ui.CurrencyCreatorUpsellCard
 import com.flipcash.features.discovery.R
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.DiscoverCategory
@@ -103,6 +104,13 @@ internal fun TokenLeaderboard(
 
             is Loadable.Loaded -> {
                 val results = tokens.data
+                // currency creator upsell card
+                item {
+                    CurrencyCreatorUpsellCard(modifier = Modifier.fillParentMaxWidth()) {
+                        dispatch(TokenDiscoveryViewModel.Event.CreateCurrency)
+                    }
+                }
+
                 if (results.isEmpty()) {
                     item {
                         Box(
@@ -135,6 +143,19 @@ internal fun TokenLeaderboard(
                         }
                     }
                 } else {
+                    // leaderboard header
+                    item {
+                        Text(
+                            modifier = Modifier.padding(
+                                top = CodeTheme.dimens.inset,
+                                bottom = CodeTheme.dimens.grid.x1,
+                            ),
+                            text = stringResource(R.string.title_leaderboard),
+                            style = CodeTheme.typography.textLarge,
+                            color = CodeTheme.colors.textMain,
+                        )
+                    }
+
                     itemsIndexed(
                         items = tokens.data,
                         key = { _, t -> t.address.base58() },
