@@ -64,9 +64,13 @@ object ErrorUtils {
             ignoredErrors.none { it.isInstance(throwable) } &&
             ignoredErrors.none { it.isInstance(throwableCause) }
         ) {
-            val isNotifiable = throwable is NotifiableError
-                || throwableCause is NotifiableError
-                || throwableCause !is CodeServerError
+            val isNotifiable = when {
+                throwable is ConditionallyNotifiable -> throwable.isNotifiable
+                throwableCause is ConditionallyNotifiable -> throwableCause.isNotifiable
+                else -> throwable is NotifiableError
+                    || throwableCause is NotifiableError
+                    || throwableCause !is CodeServerError
+            }
 
             reporters.forEach { it.report(throwable, throwableCause, isNotifiable) }
         }
