@@ -52,7 +52,7 @@ sealed interface SwapStartKind {
             get() = when (fundingSource) {
                 is SwapFundingSource.ExternalWallet -> fundingSource.transactionSignature
                 is SwapFundingSource.SubmitIntent -> fundingSource.id
-                is SwapFundingSource.CoinbaseOnramp -> fundingSource.orderId
+                is SwapFundingSource.CoinbaseOnramp -> fundingSource.orderId.toByteArray().toList()
                 SwapFundingSource.Unknown -> throw IllegalArgumentException("Invalid funding source")
             }
     }
