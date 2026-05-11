@@ -1,4 +1,4 @@
-import com.android.build.gradle.LibraryExtension
+import com.android.build.api.dsl.LibraryExtension
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -15,7 +15,6 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
         with(target) {
             with(pluginManager) {
                 apply("com.android.library")
-                apply("org.jetbrains.kotlin.android")
                 apply("org.jetbrains.kotlin.plugin.serialization")
                 if (!providers.gradleProperty("skipCoverage").orNull.toBoolean()) {
                     apply("org.jetbrains.kotlinx.kover")
@@ -60,6 +59,9 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
             dependencies {
                 "implementation"(libs.findLibrary("timber").get())
                 "implementation"(libs.findLibrary("kotlinx-coroutines-core").get())
+                // AGP's built-in Kotlin no longer auto-selects the kotlin-test
+                // JUnit variant, so provide it explicitly for all library modules.
+                "testImplementation"(libs.findLibrary("kotlin-test-junit").get())
             }
         }
     }

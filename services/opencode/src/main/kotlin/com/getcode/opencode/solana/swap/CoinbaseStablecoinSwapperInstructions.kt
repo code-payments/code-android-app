@@ -1,11 +1,7 @@
 package com.getcode.opencode.solana.swap
 
-import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
-import com.getcode.opencode.internal.solana.extensions.deriveCoinbasePoolAddress
-import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseTokenVaultAddress
-import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseVaultTokenAccountAddress
-import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseWhitelistAddress
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
+import com.getcode.opencode.internal.solana.model.CoinbaseSwapAccounts
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram_CreateIdempotent
 import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram_Swap
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetComputeUnitLimit
@@ -63,17 +59,12 @@ internal fun buildStablecoinSwapperInstructions(
     val fromTimelockAccounts = fromMintMetadata.timelockSwapAccounts(authority)
 
     // Derive CoinbaseStableSwapper PDAs
-    val pool = PublicKey.deriveCoinbasePoolAddress().publicKey
-    val inVault = PublicKey.deriveCoinbaseTokenVaultAddress(pool, fromMintMetadata.address).publicKey
-    val outVault = PublicKey.deriveCoinbaseTokenVaultAddress(pool, toMintMetadata.address).publicKey
-    val inVaultTokenAccount = PublicKey.deriveCoinbaseVaultTokenAccountAddress(inVault).publicKey
-    val outVaultTokenAccount = PublicKey.deriveCoinbaseVaultTokenAccountAddress(outVault).publicKey
-    val whitelist = PublicKey.deriveCoinbaseWhitelistAddress().publicKey
+    val swapAccounts = CoinbaseSwapAccounts.derive(fromMintMetadata.address, toMintMetadata.address)
 
-    val feeRecipientFromMintAta = PublicKey.deriveAssociatedAccount(
-        owner = serverParameters.poolFeeRecipient,
-        mint = fromMintMetadata.address,
-    ).publicKey
+    val feeRecipientFromMintAta = swapAccounts.feeRecipientTokenAccount(
+        feeRecipient = serverParameters.poolFeeRecipient,
+        fromMint = fromMintMetadata.address,
+    )
 
     // 5. AssociatedTokenAccount::CreateIdempotent (open swap authority's from_mint ATA)
     val createSwapAuthorityFromMintAta = AssociatedTokenProgram_CreateIdempotent(
@@ -127,11 +118,11 @@ internal fun buildStablecoinSwapperInstructions(
         // 8. CoinbaseStableSwapper::Swap (from_mint swap authority ATA -> to_mint destination owner ATA)
         add(
             CoinbaseStableSwapperProgram_Swap(
-                pool = pool,
-                inVault = inVault,
-                outVault = outVault,
-                inVaultTokenAccount = inVaultTokenAccount,
-                outVaultTokenAccount = outVaultTokenAccount,
+                pool = swapAccounts.pool,
+                inVault = swapAccounts.inVault,
+                outVault = swapAccounts.outVault,
+                inVaultTokenAccount = swapAccounts.inVaultTokenAccount,
+                outVaultTokenAccount = swapAccounts.outVaultTokenAccount,
                 userFromTokenAccount = createSwapAuthorityFromMintAta.address,
                 toTokenAccount = createDestinationOwnerToMintAta.address,
                 feeRecipientTokenAccount = feeRecipientFromMintAta,
@@ -139,7 +130,7 @@ internal fun buildStablecoinSwapperInstructions(
                 fromMint = fromMintMetadata.address,
                 toMint = toMintMetadata.address,
                 user = swapAuthority,
-                whitelist = whitelist,
+                whitelist = swapAccounts.whitelist,
                 amountIn = amount,
                 minAmountOut = minOutput,
             ).instruction()

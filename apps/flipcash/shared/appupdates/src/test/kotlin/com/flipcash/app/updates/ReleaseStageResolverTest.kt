@@ -44,14 +44,26 @@ class ReleaseStageResolverTest {
     }
 
     @Test
-    fun `internal takes priority over alpha when same versionCode`() {
-        val result = resolveStage(manifest(internal = 100, alpha = 100, production = 90), versionCode = 100)
-        assertEquals(ReleaseStage.Internal, result)
+    fun `production takes priority over internal when same versionCode`() {
+        val result = resolveStage(manifest(internal = 100, production = 100), versionCode = 100)
+        assertEquals(ReleaseStage.Production, result)
     }
 
     @Test
-    fun `alpha takes priority over beta when same versionCode`() {
+    fun `production takes priority over all tracks when same versionCode`() {
+        val result = resolveStage(manifest(internal = 100, alpha = 100, beta = 100, production = 100), versionCode = 100)
+        assertEquals(ReleaseStage.Production, result)
+    }
+
+    @Test
+    fun `beta takes priority over alpha when same versionCode`() {
         val result = resolveStage(manifest(alpha = 100, beta = 100, production = 90), versionCode = 100)
+        assertEquals(ReleaseStage.Beta, result)
+    }
+
+    @Test
+    fun `alpha takes priority over internal when same versionCode`() {
+        val result = resolveStage(manifest(internal = 100, alpha = 100, production = 90), versionCode = 100)
         assertEquals(ReleaseStage.Alpha, result)
     }
 

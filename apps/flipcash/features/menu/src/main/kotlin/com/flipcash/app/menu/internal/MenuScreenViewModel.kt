@@ -46,7 +46,6 @@ private val FullMenuList = buildList {
 
 @HiltViewModel
 internal class MenuScreenViewModel @Inject constructor(
-    private val resources: ResourceHelper,
     userManager: UserManager,
     userFlags: UserFlagsCoordinator,
     authManager: AuthManager,
@@ -81,8 +80,6 @@ internal class MenuScreenViewModel @Inject constructor(
         data class OnStaffUserDetermined(val staff: Boolean) : Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object OnSwitchAccountsClicked : Event
-        data object OnLogOutClicked : Event
-        data object OnLoggedOutCompletely : Event
         data class OnSwitchAccountTo(val entropy: String): Event
     }
 
@@ -149,33 +146,6 @@ internal class MenuScreenViewModel @Inject constructor(
                 onError = { },
                 onSuccess = { dispatchEvent(Event.OnSwitchAccountTo(it)) }
             ).launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnLogOutClicked>()
-            .onEach {
-                BottomBarManager.showAlert(
-                    title = resources.getString(R.string.prompt_title_logout),
-                    message = resources.getString(R.string.prompt_description_logout),
-                    actions = listOf(
-                        BottomBarAction(resources.getString(R.string.action_logout)) {
-                            viewModelScope.launch {
-                                delay(150) // wait for dismiss
-                                authManager.logout()
-                                    .onSuccess {
-                                        dispatchEvent(Event.OnLoggedOutCompletely)
-                                    }
-                                    .onFailure {
-                                        BottomBarManager.showError(
-                                            title = resources.getString(R.string.error_title_failedToLogOut),
-                                            message = resources.getString(R.string.error_description_failedToLogOut),
-                                        )
-                                    }
-                            }
-                        },
-                    ),
-                    showCancel = true,
-                )
-            }.launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -248,10 +218,8 @@ internal class MenuScreenViewModel @Inject constructor(
                 }
 
                 Event.CheckForUpdate,
-                Event.OnLogOutClicked,
                 Event.OnSwitchAccountsClicked,
                 is Event.OpenScreen,
-                Event.OnLoggedOutCompletely,
                 is Event.OnSwitchAccountTo -> { state -> state }
 
                 is Event.OnFeatureFlagsUpdated -> { state ->

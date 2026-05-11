@@ -9,6 +9,7 @@ import com.getcode.opencode.model.core.errors.SubmitIntentError.Signature
 import com.getcode.opencode.model.core.errors.SubmitIntentError.StaleState
 import com.getcode.opencode.model.core.errors.SubmitIntentError.Unrecognized
 import com.getcode.utils.CodeServerError
+import com.getcode.utils.ConditionallyNotifiable
 import com.getcode.utils.NotifiableError
 
 sealed class CodeAccountCheckError(
@@ -122,13 +123,34 @@ sealed class SubmitIntentError(
             if (details.isNotEmpty()) append(": ${details.joinToString()}")
         }), NotifiableError
     data class StaleState(private val reasons: List<String>) :
-        SubmitIntentError(message = reasons.joinToString()), NotifiableError {
+        SubmitIntentError(message = reasons.joinToString()), ConditionallyNotifiable {
+        val isRaceCondition: Boolean
+            get() = reasons.any { it.startsWith("race detected:") }
         val isGiftCardAlreadyClaimed: Boolean
             get() = reasons.any { it.contains("gift card balance has already been claimed") }
+        val isGiftCardExpired: Boolean
+            get() = reasons.any { it.contains("gift card is expired") }
+        val isPoolAlreadyDistributed: Boolean
+            get() = reasons.any { it.contains("pool balance has already been distributed") }
+        val isIntentAlreadyExists: Boolean
+            get() = reasons.any { it.contains("intent already exists") }
+
+        val isExpected: Boolean
+            get() = isRaceCondition
+                || isGiftCardAlreadyClaimed
+                || isGiftCardExpired
+                || isPoolAlreadyDistributed
+                || isIntentAlreadyExists
+
+        override val isNotifiable: Boolean
+            get() = !isExpected
     }
 
     data class Denied(private val reasons: List<String>) :
-        SubmitIntentError(message = reasons.joinToString())
+        SubmitIntentError(message = reasons.joinToString()) {
+        val isUnexpectedOwnerAccount: Boolean
+            get() = reasons.any { it.contains("unexpected owner account") }
+    }
 
     class Unrecognized : SubmitIntentError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : SubmitIntentError(message = cause?.message, cause = cause), NotifiableError

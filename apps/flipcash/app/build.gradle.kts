@@ -4,7 +4,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.parcelize")
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.plugin.serialization")
@@ -14,9 +13,15 @@ plugins {
     alias(libs.plugins.firebase.perf)
     alias(libs.plugins.bugsnag.gradle)
     alias(libs.plugins.secrets)
-    alias(libs.plugins.versioning)
     id("org.jetbrains.kotlin.plugin.compose")
     alias(libs.plugins.kover)
+}
+
+fun gitVersionCode(): Int {
+    val result = providers.exec {
+        commandLine("git", "rev-list", "--count", "HEAD")
+    }.standardOutput.asText.get().trim()
+    return result.toInt().also { println("VersionCode $it") }
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
@@ -28,7 +33,7 @@ android {
     compileSdk = Android.compileSdkVersion
 
     defaultConfig {
-        versionCode = Packaging.Flipcash.versionCode ?: versioning.getVersionCode()
+        versionCode = Packaging.Flipcash.versionCode ?: gitVersionCode()
         versionName = Packaging.Flipcash.versionName
         applicationId = appNamespace
         minSdk = Android.minSdkVersion
@@ -54,6 +59,7 @@ android {
     buildFeatures {
         buildConfig = true
         compose = true
+        resValues = true
     }
 
     buildTypes {
@@ -99,11 +105,6 @@ configurations.all {
     // for error reporting. Without the Crashlytics Gradle plugin the SDK crashes
     // at startup due to a missing build ID resource.
     exclude(group = "com.google.firebase", module = "firebase-crashlytics")
-}
-
-versioning {
-    excludeBuildTypes = "debug"
-    keepOriginalBundleFile = true
 }
 
 bugsnag {

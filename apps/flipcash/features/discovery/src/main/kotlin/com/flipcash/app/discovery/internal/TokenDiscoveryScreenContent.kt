@@ -60,39 +60,7 @@ private fun TokenDiscoveryScreenContent(
     dispatch: (TokenDiscoveryViewModel.Event) -> Unit
 ) {
     val listState = rememberLazyListState()
-    CodeScaffold(
-        bottomBar = {
-            if (state.createEnabled) {
-                Box {
-                    var buttonHeight by remember { mutableStateOf(0.dp) }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(buttonHeight)
-                            .drawWithGradient(
-                                color = CodeTheme.colors.background,
-                                startY = { 0f },
-                                endY = { size.height * 0.38f }
-                            )
-                    )
-                    CodeButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .measured { buttonHeight = it.height }
-                            .navigationBarsPadding()
-                            .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(
-                                top = CodeTheme.dimens.grid.x9,
-                                bottom = CodeTheme.dimens.grid.x3
-                            ),
-                        text = stringResource(R.string.action_createYourOwnCurrency),
-                    ) {
-                        dispatch(TokenDiscoveryViewModel.Event.CreateCurrency)
-                    }
-                }
-            }
-        },
-    ) { padding ->
+    CodeScaffold { padding ->
         AnimatedContent(
             targetState = state.tokens,
             transitionSpec = { fadeIn(tween()) togetherWith fadeOut(tween()) },

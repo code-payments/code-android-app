@@ -4,7 +4,6 @@ import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
-import com.getcode.opencode.internal.domain.mapping.MintMapper
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.transactors.AccountClusterFactory
 import com.getcode.opencode.internal.transactors.BillPresentationData
@@ -26,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import java.util.Timer
 import java.util.TimerTask
@@ -112,6 +112,10 @@ class BillTransactionManager @Inject constructor(
 
             present(transactor.presentationData)
             presentBillForGive(onTimeout)
+
+            // If cancelAwaitForGrab() fired between present() and here,
+            // bail out before start() reads fields that dispose() may have nulled.
+            ensureActive()
 
             transactor.start()
                 .onSuccess {

@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 internal class InternalFeatureFlagController @Inject constructor(
@@ -49,6 +50,15 @@ internal class InternalFeatureFlagController @Inject constructor(
         FeatureFlag.entries
             .filter { it.launched }
             .onEach { reset(it) }
+
+        // Clear beta flags restored from backup on fresh install.
+        // noBackupFilesDir is never included in Auto Backup, so the marker
+        // file won't exist after a restore — triggering a full reset.
+        val marker = File(context.noBackupFilesDir, "beta-flags-initialized")
+        if (!marker.exists()) {
+            reset()
+            marker.createNewFile()
+        }
     }
 
     override fun enableBetaFeatures() {

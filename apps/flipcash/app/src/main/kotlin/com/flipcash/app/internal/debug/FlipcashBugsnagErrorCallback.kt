@@ -19,8 +19,6 @@ internal val FlipcashErrorCallback = OnErrorCallback onError@{ event ->
         return@onError false
     }
 
-    if (!event.isUnhandled) return@onError true
-
     // Attach recent logs
     val logFile = TraceManager.getLogFile(includeHeader = false)
     if (logFile != null && logFile.exists()) {
