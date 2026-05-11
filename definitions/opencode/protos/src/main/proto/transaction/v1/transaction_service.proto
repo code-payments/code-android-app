@@ -381,7 +381,7 @@ message StatefulSwapRequest {
 
             // Where "amount" of "from_mint" will be sent from to the VM swap PDA
             FundingSource funding_source = 5 [(validate.rules).enum = {
-                in: [1, 2] // FUNDING_SOURCE_SUBMIT_INTENT, FUNDING_SOURCE_EXTERNAL_WALLET
+                in: [1, 2, 3] // FUNDING_SOURCE_SUBMIT_INTENT, FUNDING_SOURCE_EXTERNAL_WALLET, FUNDING_SOURCE_COINBASE_ONRAMP
             }];
 
 
@@ -390,6 +390,7 @@ message StatefulSwapRequest {
             //
             // For FUNDING_SOURCE_SUBMIT_INTENT, this value is the base58 encoded intent ID.
             // For FUNDING_SOURCE_EXTERNAL_WALLET, this value is the base58 encoded transaction signature.
+            // For FUNDING_SOURCE_COINBASE_ONRAMP, this value is the order ID
             string funding_id = 6 [(validate.rules).string = {
                 min_len: 32,
                 max_len: 88,
@@ -1462,4 +1463,5 @@ enum FundingSource {
     FUNDING_SOURCE_UNKNOWN         = 0;
     FUNDING_SOURCE_SUBMIT_INTENT   = 1;
     FUNDING_SOURCE_EXTERNAL_WALLET = 2;
+    FUNDING_SOURCE_COINBASE_ONRAMP = 3;
 }

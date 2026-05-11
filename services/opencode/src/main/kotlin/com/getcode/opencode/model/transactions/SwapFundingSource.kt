@@ -20,4 +20,12 @@ sealed class SwapFundingSource {
      * wallet to complete the transaction.
      */
     data class ExternalWallet(val transactionSignature: List<Byte>): SwapFundingSource()
+
+    /**
+     * Represents a funding source where the user pays via a Coinbase onramp.
+     * @param orderId The Coinbase onramp order ID.
+     */
+    data class CoinbaseOnramp(val orderId: List<Byte>): SwapFundingSource() {
+        constructor(orderId: String): this(orderId.toByteArray().toList())
+    }
 }
