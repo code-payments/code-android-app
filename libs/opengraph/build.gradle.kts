@@ -7,7 +7,7 @@ android {
 }
 
 dependencies {
-    implementation("org.jsoup:jsoup:1.16.1")
+    implementation("org.jsoup:jsoup:1.22.2")
     implementation(project(":libs:encryption:utils"))
 
     implementation(libs.bundles.kotlinx.serialization)
