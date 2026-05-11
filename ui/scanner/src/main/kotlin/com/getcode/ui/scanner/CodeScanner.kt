@@ -11,7 +11,6 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -19,8 +18,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -28,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -60,6 +60,7 @@ fun CodeScanner(
     scanningEnabled: Boolean,
     cameraGesturesEnabled: Boolean,
     modifier: Modifier = Modifier,
+    onPinchStateChanged: (Boolean, Float) -> Unit,
     onPreviewStateChanged: (Boolean) -> Unit,
     onCodeScanned: (CodeScanResult) -> Unit,
     onError: (Throwable) -> Unit = { },
@@ -97,6 +98,8 @@ fun CodeScanner(
     var camera by remember { mutableStateOf<Camera?>(null) }
     var autoFocusPoint by remember { mutableStateOf(Offset.Unspecified) }
     var gestureController by remember { mutableStateOf<CameraGestureController?>(null) }
+    var isPinching by remember { mutableStateOf(false) }
+    var zoomRatio by remember { mutableFloatStateOf(1f) }
 
     val codeAnalyzer = rememberMultiCodeAnalyzer(
         onCodeScanned = onCodeScanned,
@@ -170,6 +173,7 @@ fun CodeScanner(
                 cameraControl = it.cameraControl,
                 cameraInfo = it.cameraInfo,
                 gesturesEnabled = cameraGesturesEnabled,
+                onPinchStateChanged = onPinchStateChanged,
             ) { touchedAt ->
                 autoFocusPoint = touchedAt
                 previewView.meteringPointFactory.createPoint(touchedAt.x, touchedAt.y)
@@ -279,4 +283,4 @@ suspend fun bindWithRetry(
     throw NoCamerasAvailableException()
 }
 
-class NoCamerasAvailableException: Throwable()
+class NoCamerasAvailableException : Throwable()

@@ -19,6 +19,7 @@ internal class CameraGestureController(
     private val gesturesEnabled: Boolean,
     private val cameraControl: CameraControl,
     private val cameraInfo: CameraInfo,
+    private val onPinchStateChanged: (isPinching: Boolean, zoomRatio: Float) -> Unit = { _, _ -> },
     onTap: (Offset) -> MeteringPoint,
 ) {
     private val handler = Handler(Looper.getMainLooper())
@@ -52,6 +53,7 @@ internal class CameraGestureController(
                 gestureZoomFactor = currentZoom
                 appliedZoom = currentZoom
                 cumulativeScale = 1f
+                onPinchStateChanged(true, currentZoom)
                 return true
             }
 
@@ -65,6 +67,7 @@ internal class CameraGestureController(
                 // Lerp toward target to smooth lens-switch transitions
                 appliedZoom += (targetZoom - appliedZoom) * 0.4f
                 cameraControl.setZoomRatio(appliedZoom)
+                onPinchStateChanged(true, appliedZoom)
                 return true
             }
 
@@ -122,6 +125,7 @@ internal class CameraGestureController(
 
             if (event.action == MotionEvent.ACTION_UP) {
                 if (isPinching) {
+                    onPinchStateChanged(false, currentZoom)
                     animateZoomReset(cameraInfo, cameraControl)
                     initialZoomRatio = currentZoom
                     isPinching = false

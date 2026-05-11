@@ -6,6 +6,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -59,6 +60,9 @@ internal fun Scanner() {
 
     val vibrator = LocalVibrator.current
 
+    var isPinching by remember { mutableStateOf(false) }
+    var zoomRatio by remember { mutableFloatStateOf(1f) }
+
     LaunchedEffect(biometricsState, previewing) {
         if (previewing == true) {
             focusManager.clearFocus()
@@ -74,6 +78,8 @@ internal fun Scanner() {
     @SuppressLint("LocalContextGetResourceValueCall")
     BillContainer(
         isPaused = isPaused,
+        isPinching = isPinching,
+        zoomRatio = zoomRatio,
         onAction = {
             when (it) {
                 ScannerDecorItem.Give -> {
@@ -95,6 +101,10 @@ internal fun Scanner() {
             CodeScanner(
                 scanningEnabled = previewing == true,
                 cameraGesturesEnabled = true,
+                onPinchStateChanged = { pinching, zoom ->
+                    isPinching = pinching
+                    zoomRatio = zoom
+                },
                 onPreviewStateChanged = {
                     cameraAvailable = true
                     previewing = it
