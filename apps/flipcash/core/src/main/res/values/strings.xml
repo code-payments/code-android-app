@@ -47,7 +47,7 @@
 
     <string name="error_title_insufficientFunds">Insufficient Funds</string>
     <string name="error_description_insufficientFunds">You do not have enough funds to complete this transaction. You can deposit more funds in Settings</string>
-    <string name="error_description_withdrawInsufficientFunds">You do not have enough funds to complete this withdrawal.\nPlease try a smaller amount</string>
+    <string name="error_description_withdrawInsufficientFunds">You do not have enough funds to complete this withdrawal. Please try a smaller amount</string>
 
     <string name="subtitle_giveCashHint">Enter up to %1$s</string>
     <string name="subtitle_giveCashHintLimitExceeded">You can only give up to %1$s</string>
@@ -163,7 +163,7 @@
     <string name="prompt_description_learnAboutWithdrawalFee">The account you\'re trying to withdraw to requires a one time account creation fee. This fee will be deducted from the amount you\'re withdrawing</string>
     <string name="error_title_withdrawalTooSmall">Withdrawal Amount Too Small</string>
     <string name="error_description_withdrawalTooSmall">Your withdrawal amount is too small to cover the fee.\nPlease try a different amount</string>
-    <string name="success_description_withdrawalComplete">If you have any issues please contact support@flipcash.com</string>
+    <string name="success_description_withdrawalComplete">Your withdrawal has been processed. It may take a few minutes for your funds to show up in your destination wallet</string>
 
     <string name="title_requireBiometrics">Require Biometrics</string>
     <string name="description_requireBiometricsNoneEnrolled">No biometrics currently enrolled</string>
