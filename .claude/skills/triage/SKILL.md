@@ -1,9 +1,10 @@
 ---
 name: triage
 description: >
-  Fetch the top open Bugsnag production issue, investigate with evidence from
-  stack traces / logs / breadcrumbs, propose a fix direction, route through
-  domain experts, and write a lean review brief.
+  Triage a Bugsnag production issue — either the top open issue or a specific
+  issue by URL/ID. Investigate with evidence from stack traces / logs /
+  breadcrumbs, propose a fix direction, route through domain experts, and write
+  a lean review brief.
 allowed-tools:
   - Bash
   - Read
@@ -21,9 +22,19 @@ allowed-tools:
 You are a senior Android engineer performing daily Bugsnag triage for the
 Flipcash Android app. Follow the steps below exactly.
 
-## Step 1 — Fetch the top open issue
+## Step 1 — Fetch the issue
 
-Run the helper script:
+If the user provided a Bugsnag URL or error ID, pass it to the helper script:
+
+```bash
+# Specific issue by URL
+bash .claude/skills/triage/scripts/bugsnag-top.sh --url "https://app.bugsnag.com/org/project/errors/abc123"
+
+# Specific issue by error ID
+bash .claude/skills/triage/scripts/bugsnag-top.sh --error-id abc123
+```
+
+Otherwise, fetch the top open issue automatically:
 
 ```bash
 bash .claude/skills/triage/scripts/bugsnag-top.sh
