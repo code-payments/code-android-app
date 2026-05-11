@@ -9,6 +9,8 @@
 #   ./bugsnag-top.sh --all              # top open error, production, all versions
 #   ./bugsnag-top.sh --since 2026-05-01T00:00:00Z  # custom since filter
 #   ./bugsnag-top.sh --severity error   # filter by severity
+#   ./bugsnag-top.sh --error-id <id>    # fetch a specific error by ID
+#   ./bugsnag-top.sh --url <bugsnag_url>  # fetch a specific error by Bugsnag URL
 
 set -euo pipefail
 
@@ -63,6 +65,7 @@ RELEASE_STAGE="production"
 SEVERITY=""
 SINCE=""
 ALL_VERSIONS=false
+EXPLICIT_ERROR_ID=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -70,6 +73,17 @@ while [[ $# -gt 0 ]]; do
     --severity)   SEVERITY="$2"; shift 2 ;;
     --all)        ALL_VERSIONS=true; shift ;;
     --since)      SINCE="$2"; shift 2 ;;
+    --error-id)   EXPLICIT_ERROR_ID="$2"; shift 2 ;;
+    --url)
+      # Extract error ID from a Bugsnag dashboard URL
+      # e.g. https://app.bugsnag.com/org/project/errors/abc123def456
+      EXPLICIT_ERROR_ID=$(echo "$2" | grep -oE '/errors/([a-f0-9]+)' | sed 's|/errors/||')
+      if [[ -z "$EXPLICIT_ERROR_ID" ]]; then
+        echo "ERROR: Could not extract error ID from URL: $2" >&2
+        exit 1
+      fi
+      shift 2
+      ;;
     *)            echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -112,29 +126,48 @@ api() {
   return 1
 }
 
-# ── Fetch top open error ──────────────────────────────────────────────
-FILTERS="filters[error.status][]=open&filters[app.release_stage][]=${RELEASE_STAGE}"
-if [[ -n "$SEVERITY" ]]; then
-  FILTERS="${FILTERS}&filters[event.severity][]=${SEVERITY}"
-fi
-if [[ -n "$SINCE" ]]; then
-  FILTERS="${FILTERS}&filters[event.since][]=${SINCE}"
-fi
+# ── Fetch error ───────────────────────────────────────────────────────
+if [[ -n "$EXPLICIT_ERROR_ID" ]]; then
+  # Fetch a specific error by ID
+  ERROR_URL="${API_BASE}/projects/${PROJECT_ID}/errors/${EXPLICIT_ERROR_ID}"
+  ERROR_JSON=$(api "$ERROR_URL")
 
-ERRORS_URL="${API_BASE}/projects/${PROJECT_ID}/errors?${FILTERS}&sort=events&direction=desc&per_page=1"
-ERRORS_JSON=$(api "$ERRORS_URL")
+  if [[ -z "$ERROR_JSON" ]] || ! echo "$ERROR_JSON" | jq -e '.id' >/dev/null 2>&1; then
+    echo "ERROR: Could not fetch error ${EXPLICIT_ERROR_ID}" >&2
+    exit 1
+  fi
 
-if [[ -z "$ERRORS_JSON" ]] || ! echo "$ERRORS_JSON" | jq -e '.[0]' >/dev/null 2>&1; then
-  echo "No open errors found for release_stage=${RELEASE_STAGE}" >&2
-  exit 1
+  ERROR_ID="$EXPLICIT_ERROR_ID"
+  TITLE=$(echo "$ERROR_JSON" | jq -r '(.error_class // "") + ": " + (.message // "")')
+  SEVERITY_VAL=$(echo "$ERROR_JSON" | jq -r '.severity')
+  EVENTS=$(echo "$ERROR_JSON" | jq -r '.events')
+  USERS=$(echo "$ERROR_JSON" | jq -r '.users')
+  FIRST_SEEN=$(echo "$ERROR_JSON" | jq -r '.first_seen')
+else
+  # Fetch top open error
+  FILTERS="filters[error.status][]=open&filters[app.release_stage][]=${RELEASE_STAGE}"
+  if [[ -n "$SEVERITY" ]]; then
+    FILTERS="${FILTERS}&filters[event.severity][]=${SEVERITY}"
+  fi
+  if [[ -n "$SINCE" ]]; then
+    FILTERS="${FILTERS}&filters[event.since][]=${SINCE}"
+  fi
+
+  ERRORS_URL="${API_BASE}/projects/${PROJECT_ID}/errors?${FILTERS}&sort=events&direction=desc&per_page=1"
+  ERRORS_JSON=$(api "$ERRORS_URL")
+
+  if [[ -z "$ERRORS_JSON" ]] || ! echo "$ERRORS_JSON" | jq -e '.[0]' >/dev/null 2>&1; then
+    echo "No open errors found for release_stage=${RELEASE_STAGE}" >&2
+    exit 1
+  fi
+
+  ERROR_ID=$(echo "$ERRORS_JSON" | jq -r '.[0].id')
+  TITLE=$(echo "$ERRORS_JSON" | jq -r '.[0] | (.error_class // "") + ": " + (.message // "")')
+  SEVERITY_VAL=$(echo "$ERRORS_JSON" | jq -r '.[0].severity')
+  EVENTS=$(echo "$ERRORS_JSON" | jq -r '.[0].events')
+  USERS=$(echo "$ERRORS_JSON" | jq -r '.[0].users')
+  FIRST_SEEN=$(echo "$ERRORS_JSON" | jq -r '.[0].first_seen')
 fi
-
-ERROR_ID=$(echo "$ERRORS_JSON" | jq -r '.[0].id')
-TITLE=$(echo "$ERRORS_JSON" | jq -r '.[0] | (.error_class // "") + ": " + (.message // "")')
-SEVERITY_VAL=$(echo "$ERRORS_JSON" | jq -r '.[0].severity')
-EVENTS=$(echo "$ERRORS_JSON" | jq -r '.[0].events')
-USERS=$(echo "$ERRORS_JSON" | jq -r '.[0].users')
-FIRST_SEEN=$(echo "$ERRORS_JSON" | jq -r '.[0].first_seen')
 
 # ── Fetch latest event for this error ─────────────────────────────────
 EVENTS_URL="${API_BASE}/projects/${PROJECT_ID}/errors/${ERROR_ID}/events?sort=timestamp&direction=desc&per_page=1"
