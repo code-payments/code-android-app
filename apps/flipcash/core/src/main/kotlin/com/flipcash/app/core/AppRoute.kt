@@ -111,6 +111,10 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object Menu : Sheets
         @Serializable
         data object Lab : Sheets
+
+        @Serializable
+        data object TokenDiscovery: Sheets
+
         @Serializable
         data object ShareApp : Sheets
     }

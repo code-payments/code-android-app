@@ -18,7 +18,6 @@ buildscript {
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
-    alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.parcelize) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.kotlin.ksp) apply false
@@ -29,7 +28,6 @@ plugins {
     alias(libs.plugins.bugsnag.android) apply false
     alias(libs.plugins.bugsnag.gradle) apply false
     alias(libs.plugins.secrets) apply false
-    alias(libs.plugins.versioning) apply false
     alias(libs.plugins.navigation.safeargs) apply false
     alias(libs.plugins.protobuf) apply false
     alias(libs.plugins.androidx.room) apply false

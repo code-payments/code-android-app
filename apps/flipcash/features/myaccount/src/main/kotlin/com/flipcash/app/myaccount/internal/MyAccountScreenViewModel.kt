@@ -31,6 +31,7 @@ private val FullMenuList = buildList {
     add(AccessKey)
     add(VerifyPhone)
     add(VerifyEmail)
+    add(LogOut)
     add(DeleteAccount)
 }
 
@@ -68,13 +69,15 @@ internal class MyAccountScreenViewModel @Inject constructor(
         data class ToggleAccountInfo(val show: Boolean) : Event
         data object OnAccessKeyClicked : Event
         data object OnViewAccessKey : Event
-        data object OnVerifyEmailClicked: Event
-        data object OnVerifyPhoneClicked: Event
+        data object OnVerifyEmailClicked : Event
+        data object OnVerifyPhoneClicked : Event
         data object OnDeleteAccountClicked : Event
         data object OnAccountDeleted : Event
         data object CopyPublicKey : Event
         data object CopyAccountId : Event
         data object CopyPushToken : Event
+        data object OnLogOutClicked : Event
+        data object OnLoggedOutCompletely : Event
     }
 
     init {
@@ -179,6 +182,33 @@ internal class MyAccountScreenViewModel @Inject constructor(
                     ),
                 )
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnLogOutClicked>()
+            .onEach {
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_logout),
+                    message = resources.getString(R.string.prompt_description_logout),
+                    actions = listOf(
+                        BottomBarAction(resources.getString(R.string.action_logout)) {
+                            viewModelScope.launch {
+                                delay(150) // wait for dismiss
+                                authManager.logout()
+                                    .onSuccess {
+                                        dispatchEvent(Event.OnLoggedOutCompletely)
+                                    }
+                                    .onFailure {
+                                        BottomBarManager.showError(
+                                            title = resources.getString(R.string.error_title_failedToLogOut),
+                                            message = resources.getString(R.string.error_description_failedToLogOut),
+                                        )
+                                    }
+                            }
+                        },
+                    ),
+                    showCancel = true,
+                )
+            }.launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -202,6 +232,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
                     )
                 }
 
+                Event.OnLogOutClicked,
+                Event.OnLoggedOutCompletely,
                 Event.OnVerifyPhoneClicked,
                 Event.OnVerifyEmailClicked,
                 Event.OnViewAccessKey,
@@ -214,7 +246,10 @@ internal class MyAccountScreenViewModel @Inject constructor(
                 Event.OnAccessKeyClicked -> { state -> state }
 
                 is Event.OnBetaFeaturesUnlocked -> { state ->
-                    state.copy(isBetaEnabled = event.unlocked, items = buildItemList(event.unlocked))
+                    state.copy(
+                        isBetaEnabled = event.unlocked,
+                        items = buildItemList(event.unlocked)
+                    )
                 }
 
                 is Event.ToggleAccountInfo -> { state ->

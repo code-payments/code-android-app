@@ -18,6 +18,7 @@ val BrandToggleUncheckedTrackColor = Color(0xFF201D2F)
 
 val White = Color(0xffffffff)
 val White50 = Color(0x80FFFFFF)
+val White40 = Color(0x66FFFFFF)
 val White10 = Color(0x1AFFFFFF)
 val White20 = Color(0x33FFFFFF)
 val White05 = Color(0x0CFFFFFF)

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude
+        domain="file"
+        path="datastore/beta-flags.preferences_pb" />
+    <exclude
+        domain="file"
+        path="datastore/user-flag-overrides.preferences_pb" />
+    <exclude
+        domain="file"
+        path="datastore/release-stage.preferences_pb" />
+</full-backup-content>

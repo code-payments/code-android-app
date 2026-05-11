@@ -25,6 +25,7 @@ import com.flipcash.features.withdrawal.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White40
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -74,6 +75,7 @@ private fun WithdrawalConfirmationScreenContent(
                 tokenWithBalance = TokenWithBalance(
                     state.token!!.token,
                     balance = state.amountEntryState.selectedAmount.localFiat.nativeAmount,
+                    displayName = state.token.displayName
                 ),
                 destination = state.destinationState.textFieldState.text.toString(),
                 fee = state.feeInEntryCurrency,
@@ -101,7 +103,7 @@ private fun TransferInfo(
 
         Image(
             imageVector = Icons.Default.ArrowDownward,
-            colorFilter = ColorFilter.tint(CodeTheme.colors.border),
+            colorFilter = ColorFilter.tint(White40),
             contentDescription = ""
         )
 

@@ -4,10 +4,12 @@ import com.getcode.solana.keys.PublicKey
 import com.solana.networking.Rpc20Driver
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import org.sol4k.Connection
+import android.util.Base64
 
 class SolanaConnection(rpcUrl: String,) {
     private val connection = Connection(rpcUrl)
@@ -90,6 +92,30 @@ suspend fun Rpc20Driver.doesAccountExist(publicKey: PublicKey): Result<Unit> {
     }
 
     return Result.success(Unit)
+}
+
+/**
+ * Returns the raw account data for the given public key, base64-decoded.
+ */
+suspend fun Rpc20Driver.getAccountData(publicKey: PublicKey): Result<ByteArray> {
+    val response = makeRequest(
+        request = GetAccountInfo(publicKey),
+        resultSerializer = JsonElement.serializer()
+    )
+    val error = response.error
+    if (error != null) {
+        return Result.failure(RpcException(error.code, error.message))
+    }
+
+    val value = response.result?.jsonObject?.get("value")?.takeIf { it !is JsonNull }
+        ?: return Result.failure(Throwable("Account not found"))
+
+    val dataArray = value.jsonObject["data"]?.jsonArray
+        ?: return Result.failure(Throwable("Missing account data"))
+
+    val base64String = dataArray[0].jsonPrimitive.content
+    val decoded = Base64.decode(base64String, Base64.NO_WRAP)
+    return Result.success(decoded)
 }
 
 /**

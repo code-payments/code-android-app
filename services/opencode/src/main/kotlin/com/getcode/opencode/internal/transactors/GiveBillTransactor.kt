@@ -21,6 +21,7 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.isActive
 import kotlin.time.Duration
 
 /**
@@ -112,6 +113,10 @@ internal class GiveBillTransactor(
      * @return the confirmed [TransactionMetadata.SendPublicPayment] on success.
      */
     suspend fun start(): Result<TransactionMetadata.SendPublicPayment> {
+        if (!scope.isActive) {
+            return logAndFail(GiveTransactorError.Other(message = "Transactor was disposed"))
+        }
+
         val ownerKey = owner
             ?: return logAndFail(GiveTransactorError.Other(message = "No owner key. Did you call with() first?"))
         val desiredToken = token
@@ -212,13 +217,13 @@ internal class GiveBillTransactor(
 
     /** Cancels the coroutine scope and clears all held state. */
     fun dispose() {
+        scope.cancel()
         owner = null
         presentationData = BillPresentationData(emptyList(), emptyList())
         rendezvousKey = null
         receivingAccount = null
         token = null
         providedVerifiedState = null
-        scope.cancel()
     }
 
     sealed class GiveTransactorError(
