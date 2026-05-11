@@ -20,8 +20,6 @@
 "area: intents":
   - changed-files:
       - any-glob-to-any-file:
-          - "services/code/**/intents/**"
-          - "services/flipchat/**/intents/**"
           - "services/opencode/**/intents/**"
 
 "area: auth":
@@ -52,7 +50,6 @@
   - changed-files:
       - any-glob-to-any-file:
           - "libs/network/**"
-          - "services/code/**"
           - "services/flipcash/**"
           - "services/flipcash-compose/**"
           - "services/opencode/**"

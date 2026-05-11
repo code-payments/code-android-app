@@ -24,21 +24,10 @@ sealed class Packaging(
 
     val versionCode: Int? = versionCodeOverride
 
-    object Code : Packaging(
-        majorVersion = 2,
-        minorVersion = 1,
-        patchVersion = 14,
-    )
-
     object Flipcash : Packaging(
         majorVersion = 2026, // release year
         minorVersion = 5, // release month
         patchVersion = 3, // cycle in minor version
     )
 
-    object Flipchat : Packaging(
-        majorVersion = 1,
-        minorVersion = 0,
-        patchVersion = 10,
-    )
 }
