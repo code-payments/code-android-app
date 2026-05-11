@@ -1,12 +1,12 @@
 package com.getcode.opencode.solana
 
-import com.getcode.opencode.internal.solana.model.LiquidityPool
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapDirection
 import com.getcode.opencode.model.transactions.SwapResponseServerParameters
 import com.getcode.opencode.model.financial.MintMetadata
+import com.getcode.opencode.model.transactions.FundSwapPool
 import com.getcode.opencode.solana.swap.buildExistingCurrencyBuyInstructions
 import com.getcode.opencode.solana.swap.buildNewCurrencyBuyInstructions
 import com.getcode.opencode.solana.swap.buildSellInstructions
@@ -179,7 +179,7 @@ object TransactionBuilder {
      * @param owner The public key of the wallet owner whose USDF swap PDA will receive the funds.
      * @param sender The public key of the account paying for and signing the transaction.
      * @param amount The amount of USDC to swap into USDF (in quarks).
-     * @param pool The USDF liquidity pool containing vault addresses for the swap.
+     * @param pool The pool to use for the swap — either USDF liquidity pool or CoinbaseStableSwapper.
      * @param swapId A unique identifier for this swap, included as a memo in the transaction.
      * @param blockhash A recent blockhash for the transaction, or null.
      * @return A constructed [SolanaTransaction] (V0) ready to be signed and submitted to the network.
@@ -188,7 +188,7 @@ object TransactionBuilder {
         owner: PublicKey,
         sender: PublicKey,
         amount: Long,
-        pool: LiquidityPool,
+        pool: FundSwapPool,
         swapId: SwapId,
         blockhash: Hash?,
     ): SolanaTransaction {

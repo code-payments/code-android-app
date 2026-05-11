@@ -226,5 +226,55 @@ class NavigateToTest {
         }
     }
 
+    @Test
+    fun `navigate deduplicates identical sheet that was not removed by onBack`() {
+        // Reproduces the production crash: a stale Sheet(Wallet,[]) remains on the
+        // backstack after onBack removed the wrong entry during a dismiss animation.
+        // A subsequent navigate for the same Sheet must not produce a duplicate.
+        val navigator = createNavigator(
+            AppRoute.Main.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
+        )
+
+        // Simulate: something pushed on top during dismiss, onBack removed that
+        // instead of the sheet, so the old sheet is still here.
+        // Now navigate to the same sheet again.
+        navigator.navigate(
+            AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
+            NavOptions(debugRouting = false),
+        )
+
+        val sheets = navigator.backStack.filterIsInstance<AppRoute.Main.Sheet>()
+        assertEquals(1, sheets.size, "Expected exactly one Sheet on the backstack")
+    }
+
+    @Test
+    fun `double navigateTo with pending dismiss does not produce duplicate sheets`() {
+        val navigator = createNavigator(
+            AppRoute.Main.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
+        )
+
+        // First navigate sets pendingSheetDismiss
+        navigator.navigateTo(listOf(AppRoute.Sheets.Menu), options = quietOptions)
+        assertNotNull(navigator.pendingSheetDismiss)
+
+        // Second navigate overwrites pendingSheetDismiss
+        navigator.navigateTo(listOf(AppRoute.Sheets.Menu), options = quietOptions)
+
+        // Simulate: onBack removes old sheet, then callback fires
+        navigator.backStack.removeAt(navigator.backStack.lastIndex)
+        navigator.pendingSheetDismiss!!.invoke()
+
+        // Simulate a stale callback also firing navigate for the same sheet
+        navigator.navigate(
+            AppRoute.Main.Sheet(AppRoute.Sheets.Menu),
+            NavOptions(debugRouting = false),
+        )
+
+        val sheets = navigator.backStack.filterIsInstance<AppRoute.Main.Sheet>()
+        assertEquals(1, sheets.size, "Expected exactly one Sheet on the backstack")
+    }
+
     // endregion
 }

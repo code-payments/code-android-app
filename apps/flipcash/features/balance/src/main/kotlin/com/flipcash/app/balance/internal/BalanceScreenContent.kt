@@ -58,22 +58,23 @@ private fun BalanceScreenContent(
     dispatchEvent: (BalanceViewModel.Event) -> Unit
 ) {
     Column {
-        BalanceHeader(
-            modifier = Modifier
-                .fillMaxWidth(),
-            balance = tokenState.totalBalance,
-            appreciation = tokenState.aggregateAppreciation,
-        ) {
-            dispatchEvent(BalanceViewModel.Event.OpenCurrencySelection)
-        }
-
-        Spacer(modifier = Modifier.padding(CodeTheme.dimens.grid.x2))
-
         val tokens = remember(tokenState.tokens) { tokenState.tokens }
 
         TokenList(
             modifier = Modifier.weight(1f),
             itemModifier = { Modifier.animateItem(fadeInSpec = null) },
+            header = {
+                BalanceHeader(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    balance = tokenState.totalBalance,
+                    appreciation = tokenState.aggregateAppreciation,
+                ) {
+                    dispatchEvent(BalanceViewModel.Event.OpenCurrencySelection)
+                }
+
+                Spacer(modifier = Modifier.padding(CodeTheme.dimens.grid.x2))
+            },
             emptyState = {
                 Box(
                     modifier = Modifier
@@ -118,7 +119,6 @@ private fun BalanceScreenContent(
                                 contentPadding = PaddingValues(),
                                 text = stringResource(R.string.action_discoverCurrencies),
                                 shape = CircleShape,
-                                buttonState = ButtonState.Filled
                             )
                         }
                     }
@@ -143,6 +143,7 @@ private fun BalanceScreenContent(
                             .padding(bottom = CodeTheme.dimens.grid.x3)
                             .navigationBarsPadding(),
                         text = stringResource(R.string.action_discoverCurrencies),
+                        buttonState = ButtonState.Filled10,
                         onClick = {
                             dispatchEvent(
                                 BalanceViewModel.Event.OpenScreen(AppRoute.Token.Discovery)

@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraSmall
 import com.getcode.ui.core.rememberedClickable
 
 @Composable
@@ -24,16 +25,16 @@ fun TileButton(
     text: String,
     icon: Painter,
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.grid.x4),
+    contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.grid.x6),
     onClick: () -> Unit,
 ) {
     Box(
         modifier = modifier
             .background(
                 color = CodeTheme.colors.surfaceVariant,
-                shape = CodeTheme.shapes.large,
+                shape = CodeTheme.shapes.extraSmall,
             )
-            .clip(CodeTheme.shapes.large)
+            .clip(CodeTheme.shapes.extraSmall)
             .rememberedClickable(onClick = onClick)
             .padding(contentPadding),
         contentAlignment = Alignment.Center,

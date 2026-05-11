@@ -117,35 +117,6 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                     }
                 }
             },
-            footer = {
-                CodeButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = CodeTheme.dimens.grid.x3)
-                        .padding(horizontal = CodeTheme.dimens.grid.x3),
-                    onClick = { viewModel.dispatchEvent(Event.OnLogOutClicked) },
-                    buttonState = ButtonState.Subtle,
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1, Alignment.CenterHorizontally),
-                    ) {
-                        Image(
-                            painter = painterResource(R.drawable.ic_menu_logout),
-                            colorFilter = ColorFilter.tint(CodeTheme.colors.textSecondary),
-                            contentDescription = null,
-                        )
-
-                        Text(
-                            modifier = Modifier.padding(start = CodeTheme.dimens.grid.x1),
-                            text = stringResource(R.string.action_logout),
-                            style = CodeTheme.typography.textMedium,
-                            color = CodeTheme.colors.textSecondary,
-                        )
-                    }
-                }
-            },
             contentPadding = PaddingValues(top = CodeTheme.dimens.grid.x3),
             onItemClick = {
                 viewModel.dispatchEvent(it.action)

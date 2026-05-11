@@ -241,4 +241,10 @@ class CoinbaseOnRampWebErrorTest {
         assertIs<NotifiableError>(error)
         assertIs<Throwable>(error)
     }
+
+    @Test
+    fun paymentSheetTimeoutIsNotNotifiable() {
+        val error = CoinbaseOnRampWebError.PaymentSheetTimeout()
+        assertFalse(error is NotifiableError)
+    }
 }
