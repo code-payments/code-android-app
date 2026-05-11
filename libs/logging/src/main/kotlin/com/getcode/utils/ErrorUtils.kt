@@ -67,9 +67,7 @@ object ErrorUtils {
             val isNotifiable = when {
                 throwable is ConditionallyNotifiable -> throwable.isNotifiable
                 throwableCause is ConditionallyNotifiable -> throwableCause.isNotifiable
-                else -> throwable is NotifiableError
-                    || throwableCause is NotifiableError
-                    || throwableCause !is CodeServerError
+                else -> throwableCause !is CodeServerError
             }
 
             reporters.forEach { it.report(throwable, throwableCause, isNotifiable) }
