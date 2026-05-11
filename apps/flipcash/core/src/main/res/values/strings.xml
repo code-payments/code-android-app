@@ -572,6 +572,9 @@
     <string name="error_title_onrampTimeout">Payment Timed Out</string>
     <string name="error_description_onrampTimeout">The payment session took too long to respond. Please try again.</string>
 
+    <string name="error_title_onrampPaymentSheetTimeout">Purchase Timed Out</string>
+    <string name="error_description_onrampPaymentSheetTimeout">Purchases must be authorized within 60 seconds</string>
+
     <string name="error_title_onrampTransactionSendFailed">Something Went Wrong</string>
     <string name="error_description_onrampTransactionSendFailed">We are working with the Coinbase team to resolve the issue. Your card will be refunded in the meantime. Please try again later</string>
 

@@ -140,5 +140,12 @@ private fun showOnRampFailure(resources: Resources, error: CoinbaseOnRampWebErro
                 message = resources.getString(R.string.error_description_onrampInternal),
             )
         }
+
+        is CoinbaseOnRampWebError.PaymentSheetTimeout -> {
+            BottomBarManager.showInfo(
+                title = resources.getString(R.string.error_title_onrampPaymentSheetTimeout),
+                message = resources.getString(R.string.error_description_onrampPaymentSheetTimeout),
+            )
+        }
     }
 }

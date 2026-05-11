@@ -278,6 +278,7 @@ sealed class CoinbaseOnRampWebError(val data: String? = null): Throwable() {
     class Internal(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
     class GooglePayButtonNotFound(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
     class WebViewTimeout(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
+    class PaymentSheetTimeout(data: String? = null) : CoinbaseOnRampWebError(data)
 
     companion object {
         fun fromErrorCode(errorCode: String, data: String? = null): CoinbaseOnRampWebError {
