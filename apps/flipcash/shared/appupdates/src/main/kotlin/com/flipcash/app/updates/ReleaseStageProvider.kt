@@ -9,10 +9,10 @@ interface ReleaseStageProvider {
 internal fun resolveStage(manifest: ReleaseManifest, versionCode: Int): ReleaseStage {
     val tracks = manifest.tracks
     return when (versionCode) {
-        tracks.internal?.versionCode -> ReleaseStage.Internal
-        tracks.alpha?.versionCode -> ReleaseStage.Alpha
-        tracks.beta?.versionCode -> ReleaseStage.Beta
         tracks.production?.versionCode -> ReleaseStage.Production
+        tracks.beta?.versionCode -> ReleaseStage.Beta
+        tracks.alpha?.versionCode -> ReleaseStage.Alpha
+        tracks.internal?.versionCode -> ReleaseStage.Internal
         else -> {
             val prodCode = tracks.production?.versionCode
             if (prodCode != null && versionCode > prodCode) ReleaseStage.Internal else ReleaseStage.Production

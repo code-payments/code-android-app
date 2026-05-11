@@ -11,6 +11,7 @@ import com.flipcash.app.updates.resolveStage
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
+import java.io.File
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import timber.log.Timber
@@ -31,6 +32,14 @@ internal class GooglePlayReleaseStageProvider(private val context: Context) : Re
         private set
 
     override suspend fun loadCachedStage(versionCode: Int): ReleaseStage? {
+        // Clear cached manifest restored from backup on fresh install.
+        val marker = File(context.noBackupFilesDir, "release-stage-initialized")
+        if (!marker.exists()) {
+            context.releaseStageDataStore.edit { it.clear() }
+            marker.createNewFile()
+            return null
+        }
+
         val cached = context.releaseStageDataStore.data
             .map { prefs -> prefs[MANIFEST_KEY] }
             .firstOrNull()

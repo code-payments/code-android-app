@@ -75,11 +75,3 @@ internal data object Labs : StaffMenuItem<MenuScreenViewModel.Event>() {
         AppRoute.Menu.Lab
     )
 }
-
-internal data object LogOut : FullMenuItem<MenuScreenViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_menu_logout)
-    override val name: String
-        @Composable get() = stringResource(R.string.action_logout)
-    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnLogOutClicked
-}

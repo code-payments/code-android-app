@@ -130,12 +130,17 @@ class UserManager @Inject constructor(
     }
 
     fun set(authState: AuthState) {
+        val previous = _state.value.authState
         _state.update { it.copy(authState = authState) }
 
         when (authState) {
             is AuthState.LoggedIn -> {
                 accountCluster?.let { owner ->
                     eventBus.send(Events.UpdateLimits(owner = owner, force = true))
+                    // Fire OnLoggedIn only on transition INTO LoggedInWithUser
+                    if (authState is AuthState.LoggedInWithUser && previous !is AuthState.LoggedInWithUser) {
+                        eventBus.send(Events.OnLoggedIn(owner))
+                    }
                 }
             }
 
@@ -148,10 +153,6 @@ class UserManager @Inject constructor(
             it.copy(
                 flags = userFlags,
             )
-        }
-
-        if (userFlags?.isRegistered == true) {
-            accountCluster?.let { eventBus.send(Events.OnLoggedIn(accountCluster!!)) }
         }
     }
 

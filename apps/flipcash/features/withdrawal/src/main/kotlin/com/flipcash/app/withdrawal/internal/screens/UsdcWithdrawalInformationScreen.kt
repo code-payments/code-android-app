@@ -4,18 +4,15 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.ArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.flipcash.core.R
@@ -75,28 +71,13 @@ internal fun UsdcWithdrawalInformationScreen() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x11),
             ) {
-                Row(
+                Box(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(
-                        space = CodeTheme.dimens.grid.x3,
-                        alignment = Alignment.CenterHorizontally
-                    ),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Image(
-                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x20),
-                        painter = painterResource(R.drawable.ic_flipcash_badge),
+                        painter = painterResource(R.drawable.ic_withdraw_usdf_as_usdc),
                         contentDescription = null,
-                    )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Default.ArrowForward,
-                        tint = White20,
-                        contentDescription = null
-                    )
-                    Image(
-                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x20),
-                        painter = painterResource(id = R.drawable.ic_usdc_on_solana),
-                        contentDescription = null
                     )
                 }
 

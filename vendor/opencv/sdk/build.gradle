@@ -110,8 +110,6 @@ android {
         minSdkVersion Android.minSdkVersion
         targetSdkVersion Android.targetSdkVersion
 
-        versionCode openCVersionCode
-        versionName openCVersionName
 
         externalNativeBuild {
             cmake {
@@ -142,7 +140,7 @@ android {
                 doNotStrip '**/*.so'  // controlled by OpenCV CMake scripts
             }
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.txt'
         }
     }
 

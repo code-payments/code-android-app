@@ -1,6 +1,8 @@
 package com.flipcash.app.onramp
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Intent
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
@@ -77,10 +79,12 @@ private fun WebView.configureForCoinbaseOnRamp(
 
     var initialTimeoutRunnable: Runnable? = null
     var interEventTimeoutRunnable: Runnable? = null
+    var paymentSheetTimeoutRunnable: Runnable? = null
 
     fun cancelAllTimeouts() {
         initialTimeoutRunnable?.let { removeCallbacks(it) }
         interEventTimeoutRunnable?.let { removeCallbacks(it) }
+        paymentSheetTimeoutRunnable?.let { removeCallbacks(it) }
     }
 
     val timeoutAction = Runnable {
@@ -125,8 +129,30 @@ private fun WebView.configureForCoinbaseOnRamp(
         post { cancelAllTimeouts(); scheduleInterEventTimeout() }
     }
 
+    val paymentSheetTimeoutAction = Runnable {
+        if (terminalEventReceived.compareAndSet(false, true)) {
+            trace(tag = "CoinbaseOnRamp", message = "Payment sheet timeout fired (60s)")
+            cancelAllTimeouts()
+            // The Google Pay sheet is a GMS Activity sitting on top of ours
+            // in the task stack. Relaunching our Activity with CLEAR_TOP
+            // finishes everything above it, dismissing the sheet.
+            (context as? Activity)?.let { activity ->
+                val intent = Intent(activity, activity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                }
+                activity.startActivity(intent)
+            }
+            onPaymentFailure(CoinbaseOnRampWebError.PaymentSheetTimeout())
+        }
+    }
+
     val pauseWatchdog: () -> Unit = {
-        post { cancelAllTimeouts() }
+        post {
+            cancelAllTimeouts()
+            val runnable = Runnable { paymentSheetTimeoutAction.run() }
+            paymentSheetTimeoutRunnable = runnable
+            postDelayed(runnable, PAYMENT_SHEET_TIMEOUT_MS)
+        }
     }
 
     settings.javaScriptEnabled = true
@@ -213,8 +239,13 @@ private fun WebView.configureForCoinbaseOnRamp(
         CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
     }
 
-    return { cancelAllTimeouts() }
+    return {
+        cancelAllTimeouts()
+        (parent as? android.view.ViewGroup)?.removeView(this@configureForCoinbaseOnRamp)
+        destroy()
+    }
 }
 
 private const val INITIAL_TIMEOUT_MS = 30_000L
 private const val INTER_EVENT_TIMEOUT_MS = 22_000L
+private const val PAYMENT_SHEET_TIMEOUT_MS = 60_000L

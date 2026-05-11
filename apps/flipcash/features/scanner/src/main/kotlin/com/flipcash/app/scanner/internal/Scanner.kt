@@ -6,6 +6,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -13,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.Lifecycle
 import com.flipcash.app.analytics.rememberAnalytics
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.scanner.internal.bills.BillContainer
 import com.flipcash.app.session.LocalSessionController
@@ -33,6 +35,7 @@ import dev.theolm.rinku.DeepLink
 import timber.log.Timber
 import com.flipcash.app.core.extensions.navigateTo
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.getcode.manager.BottomBarAction
 
 @Composable
 internal fun Scanner() {
@@ -59,6 +62,9 @@ internal fun Scanner() {
 
     val vibrator = LocalVibrator.current
 
+    var isPinching by remember { mutableStateOf(false) }
+    var zoomRatio by remember { mutableFloatStateOf(1f) }
+
     LaunchedEffect(biometricsState, previewing) {
         if (previewing == true) {
             focusManager.clearFocus()
@@ -74,15 +80,25 @@ internal fun Scanner() {
     @SuppressLint("LocalContextGetResourceValueCall")
     BillContainer(
         isPaused = isPaused,
+        isPinching = isPinching,
+        zoomRatio = zoomRatio,
         onAction = {
             when (it) {
                 ScannerDecorItem.Give -> {
                     // only allow navigation to give when there is something to give
                     val hasBalance = state.giveableBalance.orZero().isPositive
                     if (!hasBalance) {
-                        BottomBarManager.showAlert(
+                        BottomBarManager.showInfo(
                             title = context.getString(R.string.title_noBalanceYet),
                             message = context.getString(R.string.description_noBalanceYet),
+                            actions = listOf(
+                                BottomBarAction(
+                                    text = context.getString(R.string.action_discoverCurrencies)
+                                ) {
+                                    navigator.navigateTo(AppRoute.Sheets.TokenDiscovery)
+                                },
+                            ),
+                            showCancel = true,
                         )
                         return@BillContainer
                     }
@@ -95,7 +111,10 @@ internal fun Scanner() {
             CodeScanner(
                 scanningEnabled = previewing == true,
                 cameraGesturesEnabled = true,
-                invertedDragZoomEnabled = true,
+                onPinchStateChanged = { pinching, zoom ->
+                    isPinching = pinching
+                    zoomRatio = zoom
+                },
                 onPreviewStateChanged = {
                     cameraAvailable = true
                     previewing = it

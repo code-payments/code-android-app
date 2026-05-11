@@ -5,6 +5,7 @@ import com.flipcash.app.core.onramp.deeplinks.ExternalWalletConnection
 import com.flipcash.app.onramp.DeeplinkOnRampError
 import com.flipcash.app.onramp.ExternalWalletOnRampController
 import com.flipcash.app.onramp.ExternalWalletOnRampState
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.controllers.TransactionOperations
@@ -31,6 +32,7 @@ import kotlin.test.assertTrue
 class ExternalWalletBalanceCheckTest {
 
     private val userManager = mockk<UserManager>(relaxed = true)
+    private val userFlags = mockk<UserFlagsCoordinator>(relaxed = true)
     private val transactionController = mockk<TransactionOperations>(relaxed = true)
     private val networkDriver = mockk<HttpNetworkDriver>()
     private val rpcConfig = RpcConfig(networkDriver = networkDriver, rpcUrl = "https://localhost")
@@ -45,6 +47,7 @@ class ExternalWalletBalanceCheckTest {
         every { Box.keypair() } returns mockk<BoxKeyPair>(relaxed = true)
         controller = ExternalWalletOnRampController(
             userManager = userManager,
+            userFlags = userFlags,
             transactionController = transactionController,
             rpcConfig = rpcConfig,
         )

@@ -135,7 +135,7 @@ private fun formatFieldValue(fieldName: String, value: Any): String? = when (val
         if (value.serializedSize == 0) null else formatProto(value)
     }
     is ByteString -> {
-        if (value.isEmpty) null else value.toByteArray().toHex().masked()
+        if (value.isEmpty) null else "<${value.size()} bytes>"
     }
     is List<*> -> {
         if (value.isEmpty()) null

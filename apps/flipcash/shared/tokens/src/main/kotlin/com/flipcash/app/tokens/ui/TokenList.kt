@@ -1,11 +1,9 @@
 package com.flipcash.app.tokens.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -19,6 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import com.flipcash.app.core.ui.TokenBalanceRow
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -43,6 +43,7 @@ fun TokenList(
     pinFooter: Boolean = false,
     emptyState: (@Composable LazyItemScope.() -> Unit)? = null,
     reserves: (@Composable LazyItemScope.(mint: Mint, cashReserves: LocalFiat) -> Unit)? = null,
+    header: (@Composable () -> Unit)? = null,
     footer: (@Composable (isPinned: Boolean) -> Unit)? = null,
     onTokenSelected: (Token) -> Unit = { },
 ) {
@@ -81,6 +82,11 @@ fun TokenList(
                     emptyState()
                 }
             } else {
+                header?.let { content ->
+                    item {
+                        content()
+                    }
+                }
                 items(
                     items = filteredTokens.orEmpty(),
                     key = { item -> item.token.address.base58() }) { item ->
@@ -124,7 +130,21 @@ fun TokenList(
 
         // Pinned overlay — visible while footer list item is off-screen or partially visible
         if (footer != null && !footerSettled && pinFooter) {
-            Box(modifier = Modifier.align(Alignment.BottomCenter)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0f to Color.Transparent,
+                                0.3f to CodeTheme.colors.background,
+                                1f to CodeTheme.colors.background,
+                            )
+                        )
+                    )
+                    .padding(top = CodeTheme.dimens.grid.x6)
+            ) {
                 footer(true)
             }
         }
