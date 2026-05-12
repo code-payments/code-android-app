@@ -18,10 +18,11 @@ data class SwapRequest(
     val swapId: SwapId,
     val verifiedState: VerifiedState,
 ) {
-    val fundingIntentId = when (kind) {
-        is SwapStartKind.Reserve -> kind.fundingIntentId
-        is SwapStartKind.Stablecoin -> kind.fundingIntentId
-    }
+    val fundingIntentId: List<Byte>
+        get() = when (kind) {
+            is SwapStartKind.Reserve -> kind.fundingIntentId
+            is SwapStartKind.Stablecoin -> kind.fundingIntentId
+        }
 
     val totalTransferAmount: LocalFiat
         get() {
@@ -52,7 +53,9 @@ sealed interface SwapStartKind {
             get() = when (fundingSource) {
                 is SwapFundingSource.ExternalWallet -> fundingSource.transactionSignature
                 is SwapFundingSource.SubmitIntent -> fundingSource.id
-                is SwapFundingSource.CoinbaseOnramp -> fundingSource.orderId
+                is SwapFundingSource.CoinbaseOnramp -> throw IllegalArgumentException(
+                    "Coinbase onramp does not use a funding intent"
+                )
                 SwapFundingSource.Unknown -> throw IllegalArgumentException("Invalid funding source")
             }
     }

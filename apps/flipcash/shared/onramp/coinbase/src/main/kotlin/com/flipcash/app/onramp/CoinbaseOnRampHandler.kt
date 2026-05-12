@@ -37,19 +37,6 @@ fun CoinbaseOnRampHandler(
             )
         }
 
-        is CoinbaseOnRampState.Processing -> {
-            LaunchedEffect(current) {
-                delay(400) // let the system payment sheet finish its dismiss animation
-                controller.processPayment()
-                    .onFailure {
-                        BottomBarManager.showError(
-                            title = "Something Went Wrong",
-                            message = "Failed to complete purchase. Please try again",
-                        )
-                    }
-            }
-        }
-
         is CoinbaseOnRampState.Completed -> {
             LaunchedEffect(current) {
                 controller.emitPendingNavigation(
