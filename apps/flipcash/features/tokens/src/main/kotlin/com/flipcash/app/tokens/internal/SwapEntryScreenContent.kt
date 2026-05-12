@@ -55,7 +55,12 @@ internal fun SwapEntryScreenContent(
             currencyFlag = entryState.currencyModel.selected?.resId,
             prefix = entryState.currencyModel.selected?.symbol.orEmpty(),
             placeholder = "0",
-            hint = if (state.isError) {
+            hint = if (state.isBelowMinimum) {
+                stringResource(
+                    R.string.subtitle_buyHintBelowMinimum,
+                    state.minimumBuyAmount?.formatted().orEmpty()
+                )
+            } else if (state.isError) {
                 when (state.purpose) {
                     is SwapPurpose.BalanceIncrease -> stringResource(
                         R.string.subtitle_buyHintLimitExceeded,

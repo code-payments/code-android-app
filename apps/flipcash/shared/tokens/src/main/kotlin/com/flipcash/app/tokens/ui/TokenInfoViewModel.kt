@@ -11,7 +11,7 @@ import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
-import com.flipcash.app.payments.PurchaseMethodMetadata
+
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.tokens.TokenCoordinator
@@ -266,38 +266,21 @@ class TokenInfoViewModel @Inject constructor(
             .filterIsInstance<Event.OpenPurchaseMethods>()
             .mapNotNull {
                 val mint = stateFlow.value.mint ?: return@mapNotNull null
-                PurchaseMethodMetadata(mint, purchaseAmount = it.shortFall)
+                SwapPurpose.Buy(mint) to it.shortFall
             }
-            .onEach { metadata ->
-                purchaseMethodController.present(metadata)
+            .onEach { (purpose, shortfall) ->
+                dispatchEvent(Event.OpenScreen(AppRoute.Token.Swap(
+                    purpose = purpose,
+                    shortfall = shortfall,
+                )))
             }
             .launchIn(viewModelScope)
 
         purchaseMethodController.selections
-            .onEach { (method, metadata) ->
-                when (method) {
-                    PurchaseMethod.CoinbaseOnRamp -> {
-                        val mint = metadata.mint ?: return@onEach
-                        analytics.buttonTapped(Button.TokenBuyWithCoinbase)
-                        dispatchEvent(Event.OpenScreen(AppRoute.Token.OnRamp(mint)))
-                    }
-                    is PurchaseMethod.CashReserves -> {
-                        val mint = metadata.mint ?: return@onEach
-                        analytics.buttonTapped(Button.TokenBuyWithReserves)
-                        dispatchEvent(
-                            Event.OpenScreen(
-                                AppRoute.Token.Swap(
-                                    purpose = SwapPurpose.Buy(mint),
-                                    shortfall = metadata.purchaseAmount
-                                )
-                            )
-                        )
-                    }
-                    PurchaseMethod.PhantomWallet -> {
-                        analytics.buttonTapped(Button.TokenBuyWithPhantom)
-                        dispatchEvent(Event.ConnectPhantomWallet)
-                    }
-                }
+            .filter { (method, _) -> method is PurchaseMethod.PhantomWallet }
+            .onEach { (_, _) ->
+                analytics.buttonTapped(Button.TokenBuyWithPhantom)
+                dispatchEvent(Event.ConnectPhantomWallet)
             }
             .launchIn(viewModelScope)
 

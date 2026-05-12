@@ -137,7 +137,7 @@ sealed interface AppRoute : NavKey, Parcelable {
             val shortfall: Fiat? = null,
         ) : Token, FlowRouteWithResult<SwapResult> {
             override val initialStack: List<NavKey>
-                get() = listOf(SwapStep.Entry(purpose))
+                get() = listOf(SwapStep.Entry(purpose, initialAmount = shortfall))
         }
 
         @Serializable
@@ -148,9 +148,6 @@ sealed interface AppRoute : NavKey, Parcelable {
             val awaitExternalWallet: Boolean = false,
             val isFundingShortfall: Boolean = false,
         ) : Token, NonDismissableRoute, NonDraggableRoute
-
-        @Serializable
-        data class OnRamp(val mint: Mint) : Token
 
         @Serializable
         data object Discovery: AppRoute
@@ -209,7 +206,7 @@ private fun buildVerificationInitialStack(
     emailVerificationCode: String?,
 ): List<NavKey> {
     if (includePhone && includeEmail) {
-        return listOf(VerificationStep.Intro(origin is AppRoute.Token.OnRamp))
+        return listOf(VerificationStep.Intro(origin is AppRoute.Token.Swap))
     }
     if (includePhone) {
         return listOf(VerificationStep.PhoneEntry)

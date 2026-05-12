@@ -1,13 +1,11 @@
 package com.flipcash.app.core.verification.email
 
 import com.flipcash.app.core.AppRoute
-import com.getcode.ed25519.Ed25519
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.utils.base64
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
-import com.getcode.utils.base58
-import com.getcode.utils.decodeBase58
 import com.getcode.utils.decodeBase64
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -24,7 +22,10 @@ sealed class EmailDeeplinkOrigin {
             is OnRamp -> {
                 val amountString = amount?.let { Json.encodeToString(Fiat.Companion.serializer(), it) }
                 when (source) {
-                    is AppRoute.Token.OnRamp -> "onramp|amountentry|${source.mint.base58()}"
+                    is AppRoute.Token.Swap -> {
+                        val mint = (source.purpose as? SwapPurpose.Buy)?.mint
+                        "onramp|amountentry|${mint?.base58()}"
+                    }
                     else -> "onramp|null|$amountString"
                 }
             }
@@ -36,12 +37,8 @@ sealed class EmailDeeplinkOrigin {
     companion object {
         fun fromRoute(route: AppRoute?): EmailDeeplinkOrigin? {
             return when (route) {
-                is AppRoute.Token.OnRamp -> {
-                    OnRamp(route)
-                }
-
+                is AppRoute.Token.Swap -> OnRamp(route)
                 is AppRoute.Menu.MyAccount -> MyAccount
-
                 else -> null
             }
         }
@@ -53,18 +50,10 @@ sealed class EmailDeeplinkOrigin {
                     val source = when (splits[1]) {
                         "menu" -> AppRoute.Sheets.Menu
                         "amountentry" -> {
-                            println("deeplink origin amountentry")
-                            val mint = splits.getOrNull(2)?.let {
-                                println("deeplink mint = $it")
-                                Mint(it)
-                            }
+                            val mint = splits.getOrNull(2)?.let { Mint(it) }
+                                ?: return null
 
-                            if (mint == null) {
-                                println("deeplink mint is null")
-                                return null
-                            }
-
-                            AppRoute.Token.OnRamp(mint)
+                            AppRoute.Token.Swap(SwapPurpose.Buy(mint))
                         }
                         else -> null
                     }

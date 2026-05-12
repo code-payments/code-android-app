@@ -432,7 +432,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.LaunchToken>()
             .map { event ->
-                println("customizations=${stateFlow.value.customizations}")
                 val request = TokenCreateRequest(
                     name = ModerationAttestation.Text(
                         text = stateFlow.value.nameFieldState.text.trim().toString(),

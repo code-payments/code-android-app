@@ -176,7 +176,6 @@ dependencies {
     implementation(project(":apps:flipcash:features:backupkey"))
     implementation(project(":apps:flipcash:features:shareapp"))
     implementation(project(":apps:flipcash:features:withdrawal"))
-    implementation(project(":apps:flipcash:features:onramp"))
     implementation(project(":apps:flipcash:features:contact-verification"))
     implementation(project(":apps:flipcash:features:tokens"))
     implementation(project(":apps:flipcash:features:transactions"))

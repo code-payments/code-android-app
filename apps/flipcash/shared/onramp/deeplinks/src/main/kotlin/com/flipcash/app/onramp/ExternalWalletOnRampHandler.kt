@@ -135,7 +135,11 @@ fun ExternalWalletOnRampHandler(
                             // Amount is always pre-set from CurrencyCreator; no-op for safety
                         }
                         else -> {
-                            navigator.push(AppRoute.Token.OnRamp(controller.tokenToPurchase.value!!.address))
+                            navigator.push(
+                                AppRoute.Token.Swap(
+                                    SwapPurpose.FundWithWallet(controller.tokenToPurchase.value!!.address)
+                                )
+                            )
                         }
                     }
                 }

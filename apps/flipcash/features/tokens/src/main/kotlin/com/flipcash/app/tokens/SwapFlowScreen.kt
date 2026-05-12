@@ -52,7 +52,7 @@ fun SwapFlowScreen(
 
 private fun swapEntryProvider(): (NavKey) -> NavEntry<NavKey> = entryProvider {
     flowAnnotatedEntry<SwapStep.Entry> { step ->
-        SwapEntryContent(step.purpose)
+        SwapEntryContent(step.purpose, step.initialAmount)
     }
     annotatedEntry<SwapStep.SellReceipt> { SellReceiptContent() }
     annotatedEntry<SwapStep.Processing> { step ->

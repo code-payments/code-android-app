@@ -40,7 +40,6 @@ import com.flipcash.app.login.router.LoginRouter
 import com.flipcash.app.login.seed.SeedInputScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.MyAccountScreen
-import com.flipcash.app.onramp.OnRampCustomAmountScreen
 import com.flipcash.app.permissions.NotificationPermissionRationaleScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
@@ -113,7 +112,6 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Token.TxProcessing> { key ->
         TokenTxProcessingScreen(key.swapId, key.swapPurpose, key.amount, key.awaitExternalWallet, key.isFundingShortfall)
     }
-    annotatedEntry<AppRoute.Token.OnRamp> { key -> OnRampCustomAmountScreen(key.mint) }
     annotatedEntry<AppRoute.Token.Discovery> { TokenDiscoveryScreen() }
     annotatedEntry<AppRoute.Token.CurrencyCreator> { key ->
         CurrencyCreatorFlowScreen(route = key, resultStateRegistry = resultStateRegistry)

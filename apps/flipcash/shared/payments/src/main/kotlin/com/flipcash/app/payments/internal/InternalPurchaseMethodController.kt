@@ -2,6 +2,7 @@ package com.flipcash.app.payments.internal
 
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
 import com.flipcash.app.payments.PurchaseMethodSelection
@@ -81,6 +82,12 @@ class InternalPurchaseMethodController @Inject constructor(
             .onEach { provider ->
                 _state.update { it.copy(preferredProvider = provider) }
             }.launchIn(scope)
+    }
+
+    override fun select(method: PurchaseMethod, metadata: PurchaseMethodMetadata) {
+        scope.launch {
+            _selections.emit(PurchaseMethodSelection(method, metadata))
+        }
     }
 
     override fun present(metadata: PurchaseMethodMetadata) {

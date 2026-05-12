@@ -439,6 +439,7 @@
     <string name="title_amountToBuy">Amount to Buy</string>
     <string name="title_amountToSell">Amount to Sell</string>
     <string name="subtitle_buySellCashHint">Enter up to %1$s</string>
+    <string name="subtitle_buyHintBelowMinimum">You must buy at least %1$s</string>
     <string name="subtitle_buyHintLimitExceeded">You can only buy up to %1$s</string>
     <string name="subtitle_sellHintLimitExceeded">You can only sell up to %1$s</string>
     <string name="action_buy">Buy</string>
