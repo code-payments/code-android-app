@@ -41,7 +41,14 @@ class PhoneUtils @Inject constructor(
         countryCodesMap = countryLocales.map { it }.associateBy { it.phoneCode }
         val isoCountry = Locale.getDefault().country
         defaultCountryLocale =
-            countryLocales.find { it.countryCode == isoCountry } ?: countryLocales.first()
+            countryLocales.find { it.countryCode == isoCountry }
+                ?: countryLocales.firstOrNull()
+                ?: CountryLocale(
+                    name = Locale(Locale.getDefault().language, isoCountry).displayCountry,
+                    phoneCode = phoneNumberUtil.getCountryCodeForRegion(isoCountry),
+                    countryCode = isoCountry,
+                    resId = null
+                )
     }
 
 
