@@ -176,7 +176,6 @@ internal class OnRampViewModel @Inject constructor(
                         dispatchEvent(Event.UpdateOrderLookupState())
                     }
                     is CoinbaseOnRampState.Paying -> dispatchEvent(Event.UpdateOrderLookupState(loading = true))
-                    is CoinbaseOnRampState.Processing -> dispatchEvent(Event.UpdateOrderLookupState(loading = true))
                 }
             }
             .launchIn(viewModelScope)

@@ -25,8 +25,6 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.solana.keys.base58
-import com.getcode.utils.network.pollUntil
-import com.getcode.vendor.Base58
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
 import com.getcode.utils.CodeServerError
@@ -46,9 +44,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 import retrofit2.HttpException
-import java.security.SecureRandom
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.seconds
 
 typealias OrderWithPaymentLink = Pair<String, OnRampPurchaseResponse.PaymentLink>
 
@@ -79,15 +75,15 @@ class CoinbaseOnRampController @Inject constructor(
         _pendingNavigation.tryEmit(route)
     }
 
-    fun startPayment(order: OnrampOrder, token: Token, amount: VerifiedFiat) {
-        _state.value = CoinbaseOnRampState.Paying(order, token, amount)
+    fun startPayment(order: OnrampOrder, token: Token, amount: VerifiedFiat, swapId: SwapId) {
+        _state.value = CoinbaseOnRampState.Paying(order, token, amount, swapId)
     }
 
     fun onPaymentSuccess(orderId: String) {
         val current = _state.value
         if (current is CoinbaseOnRampState.Paying) {
             _state.update {
-                CoinbaseOnRampState.Processing(orderId, current.token, current.amount)
+                CoinbaseOnRampState.Completed(current.swapId, current.token, current.amount)
             }
         }
     }
@@ -118,56 +114,20 @@ class CoinbaseOnRampController @Inject constructor(
         }
 
         return placeOrderInclusiveOfFees(amount)
-            .map { (orderId, paymentLink) ->
-                val order = OnrampOrder(orderId, paymentLink.url)
-                startPayment(order, token, verifiedFiat)
-            }
-    }
-
-    suspend fun processPayment(): Result<SwapId> {
-        val current = _state.value
-        if (current !is CoinbaseOnRampState.Processing) {
-            return Result.failure(IllegalStateException("Not in Processing state"))
-        }
-
-        return pollUntil(
-                call = { lookupOrder(current.orderId).getOrThrow() },
-                required = { order -> order.txHash != null },
-                maxAttempts = 100,
-                interval = 3.seconds,
-                tag = "CoinbaseOrderPoller",
-            ).mapCatching { order ->
-                order.txHash ?: throw IllegalStateException("No hash provided from provider")
-            }.mapCatching { txHash ->
+            .mapCatching { (orderId, paymentLink) ->
                 val owner = userManager.accountCluster
                     ?: throw IllegalStateException("No account cluster")
 
-                transactionController.buy(
+                val swapId = transactionController.buy(
                     owner = owner,
-                    amount = current.amount,
-                    of = current.token,
-                    source = SwapFundingSource.ExternalWallet(
-                        transactionSignature = runCatching { Base58.decode(txHash) }
-                            .getOrElse { ByteArray(64).also { SecureRandom().nextBytes(it) } }
-                            .toList()
-                    ),
+                    amount = verifiedFiat,
+                    of = token,
+                    source = SwapFundingSource.CoinbaseOnramp(orderId = orderId),
                     fund = { Result.success(Unit) }
                 ).getOrThrow()
-            }
-            .onSuccess { swapId ->
-                _state.update { CoinbaseOnRampState.Completed(swapId,  current.token, current.amount) }
-            }
-            .onFailure { error ->
-                trace(
-                    message = "Payment processing failed",
-                    tag = "OnRamp",
-                    metadata = {
-                        "orderId" to current.orderId
-                        "errorType" to error::class.simpleName.orEmpty()
-                    },
-                    error = error,
-                )
-                reset()
+
+                val order = OnrampOrder(orderId, paymentLink.url)
+                startPayment(order, token, verifiedFiat, swapId)
             }
     }
 
