@@ -41,7 +41,6 @@ fun TokenInfoScreen(
     fromDeeplink: Boolean,
 ) {
     val navigator = LocalCodeNavigator.current
-    val externalWalletOnRampController = LocalExternalWalletOnRampController.current
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -54,15 +53,11 @@ fun TokenInfoScreen(
             isInModal = true,
             title = {
                 state.token.dataOrNull?.let { token ->
-                    if (state.isCashReserve) {
-                        AppBarDefaults.Title(text = stringResource(R.string.title_cashReserves))
-                    } else {
-                        TokenIconWithName(
-                            token = token,
-                            imageSize = CodeTheme.dimens.staticGrid.x5,
-                            spacing = CodeTheme.dimens.grid.x1,
-                        )
-                    }
+                    TokenIconWithName(
+                        token = token,
+                        imageSize = CodeTheme.dimens.staticGrid.x5,
+                        spacing = CodeTheme.dimens.grid.x1,
+                    )
                 }
             },
             titleAlignment = Alignment.CenterHorizontally,

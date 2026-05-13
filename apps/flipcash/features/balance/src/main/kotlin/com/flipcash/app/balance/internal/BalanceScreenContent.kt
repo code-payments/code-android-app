@@ -63,6 +63,7 @@ private fun BalanceScreenContent(
         TokenList(
             modifier = Modifier.weight(1f),
             itemModifier = { Modifier.animateItem(fadeInSpec = null) },
+            includeReserves = true,
             header = {
                 BalanceHeader(
                     modifier = Modifier
@@ -122,15 +123,6 @@ private fun BalanceScreenContent(
                             )
                         }
                     }
-                }
-            },
-            reserves = { mint, reserves ->
-                CashReservesRow(reserves) {
-                    dispatchEvent(
-                        BalanceViewModel.Event.OpenScreen(
-                            AppRoute.Token.Info(mint)
-                        )
-                    )
                 }
             },
             pinFooter = true,

@@ -12,6 +12,9 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -55,7 +58,15 @@ internal class DepositViewModel @Inject constructor(
             .mapNotNull { tokenController.getTokenMetadata(it.mint) }
             .onResult(
                 onSuccess = { result ->
-                    val address = userManager.accountCluster?.depositAddressFor(result.token)?.base58()
+                    val address = if (result.token.address == Mint.usdf) {
+                        val usdfSwapAccounts = userManager.accountCluster?.let {
+                            Token.usdf.timelockSwapAccounts(it.authorityPublicKey)
+                        }
+                        usdfSwapAccounts?.pda?.publicKey?.base58()
+                    } else {
+                        userManager.accountCluster?.depositAddressFor(result.token)?.base58()
+                    }
+
                     if (address == null) {
                         BottomBarManager.showError(
                             title = resources.getString(R.string.error_title_tokenNotFound),
@@ -65,7 +76,12 @@ internal class DepositViewModel @Inject constructor(
                         }
                         return@onResult
                     }
-                    dispatchEvent(Event.OnTokenChanged(address, result.token.name))
+                    val tokenName = if (result.token.address == Mint.usdf) {
+                        resources.getString(R.string.displayName_usdc)
+                    } else {
+                        result.token.name
+                    }
+                    dispatchEvent(Event.OnTokenChanged(address, tokenName))
                 },
                 onError = {
                     BottomBarManager.showError(

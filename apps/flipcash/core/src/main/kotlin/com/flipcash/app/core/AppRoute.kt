@@ -2,6 +2,8 @@ package com.flipcash.app.core
 
 import android.os.Parcelable
 import androidx.navigation3.runtime.NavKey
+import com.flipcash.app.core.deposit.DepositResult
+import com.flipcash.app.core.deposit.DepositStep
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
@@ -168,6 +170,15 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Serializable
     @Parcelize
     sealed interface Transfers : AppRoute {
+        @Serializable
+        data class Deposit(val mint: Mint): Transfers, FlowRouteWithResult<DepositResult> {
+            override val initialStack: List<NavKey>
+                get() = if (mint == Mint.usdf) {
+                    listOf(DepositStep.UsdcInformational)
+                } else {
+                    listOf(DepositStep.Destination(mint))
+                }
+        }
 
         @Serializable
         data class Withdrawal(val mint: Mint) : Transfers, FlowRouteWithResult<WithdrawalResult> {

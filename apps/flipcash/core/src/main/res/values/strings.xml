@@ -64,6 +64,7 @@
     <string name="subtitle_currentValueOfAllCurrencies">The current value of your currencies</string>
     <string name="subtitle_ofUsdStablecoins">of US dollar stablecoins</string>
     <string name="action_depositFunds">Deposit</string>
+    <string name="title_deposit">Deposit</string>
     <string name="title_depositFunds">Deposit Funds</string>
 
     <string name="title_withdraw">Withdraw</string>
@@ -646,6 +647,9 @@
     <string name="title_leaderboard">Leaderboard</string>
 
     <string name="action_discover">Discover</string>
+
+    <string name="title_depositUsdcAsUsdf">Deposit USDC</string>
+    <string name="description_depositUsdcAsUsdf">Your Solana USDC will be converted 1:1 to USD on Flipcash (USDF)</string>
 
     <string name="title_buyWithPhantom">Buy With Phantom</string>
     <string name="description_buyWithPhantom">Purchase using Solana USDC in Phantom. Simply connect your wallet and confirm the transaction</string>
