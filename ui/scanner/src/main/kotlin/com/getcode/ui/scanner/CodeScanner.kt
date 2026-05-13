@@ -145,7 +145,7 @@ fun CodeScanner(
                 ProcessCameraProvider.getInstance(context).get().unbindAll()
             }
             camera = null
-        } else if (event == Lifecycle.Event.ON_RESUME) {
+        } else if (event == Lifecycle.Event.ON_START || event == Lifecycle.Event.ON_RESUME) {
             scope.launch {
                 if (camera == null) {
                     if (!biometricsState.isAwaitingAuthentication) {
