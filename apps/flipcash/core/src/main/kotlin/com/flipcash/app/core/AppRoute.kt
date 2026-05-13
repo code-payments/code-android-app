@@ -141,6 +141,12 @@ sealed interface AppRoute : NavKey, Parcelable {
         }
 
         @Serializable
+        data object PhantomConnectInfo: Token
+
+        @Serializable
+        data object PhantomConfirmTransaction: Token
+
+        @Serializable
         data class TxProcessing(
             val swapId: SwapId,
             val swapPurpose: SwapPurpose? = null,

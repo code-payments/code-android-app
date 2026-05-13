@@ -6,30 +6,26 @@ import androidx.core.text.trimmedLength
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.data.Loadable
+import com.flipcash.app.core.extensions.flatMapResult
+import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.core.tokens.CurrencyCreatorDraft
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.currencycreator.CurrencyCreatorCoordinator
 import com.flipcash.app.currencycreator.internal.components.CurrencyCreatorTopBarController
 import com.flipcash.app.onramp.ExternalWalletOnRampController
 import com.flipcash.app.onramp.ExternalWalletOnRampState
-import com.flipcash.app.core.tokens.CurrencyCreatorDraft
-import com.flipcash.app.tokens.BalancePoller
-import com.flipcash.app.userflags.UserFlagsCoordinator
-import com.flipcash.libs.coroutines.DispatcherProvider
-import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.financial.toFiat
-import com.getcode.opencode.model.ui.TokenBillCustomizations
-import com.flipcash.app.core.data.Loadable
-import com.flipcash.app.core.extensions.flatMapResult
-import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.payments.PaymentAction
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
+import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.currencycreator.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ModerationController
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.models.ImageModerationError
 import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.TextModerationError
@@ -37,7 +33,6 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.TransactionController
-import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
@@ -45,25 +40,28 @@ import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.core.errors.GetMintsError
 import com.getcode.opencode.model.core.errors.LaunchTokenError
 import com.getcode.opencode.model.core.errors.ValidationException
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenCreateRequest
 import com.getcode.opencode.model.financial.fromLaunch
-import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.orZero
 import com.getcode.opencode.model.financial.plus
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.transactions.SwapFundingSource
+import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -497,6 +495,10 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
                         PurchaseMethod.CoinbaseOnRamp -> {
                             dispatchEvent(Event.PurchaseWithGooglePay(ctx))
+                        }
+
+                        PurchaseMethod.OtherWallet -> {
+                            // TODO:
                         }
                     }
                 },

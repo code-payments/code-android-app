@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -16,6 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
+import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.ui.AmountWithKeypad
 import com.flipcash.app.tokens.ui.SwapViewModel
@@ -24,6 +26,8 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import kotlin.collections.emptyMap
+import kotlin.to
 
 @Composable
 internal fun SwapEntryScreenContent(
@@ -81,7 +85,7 @@ internal fun SwapEntryScreenContent(
                 )
             },
             decimalPlaces = entryState.currencyModel.fractionUnits,
-            isClickable = state.purpose !is SwapPurpose.FundWithWallet,
+            isClickable = (state.purpose as? SwapPurpose.Buy)?.fundingSource != FundingSource.Phantom,
             onAmountClicked = {
                 navigator.push(
                     AppRoute.Main.RegionSelection(
@@ -102,14 +106,10 @@ internal fun SwapEntryScreenContent(
         )
 
         Box(modifier = Modifier.fillMaxWidth()) {
-            val (text, inlineContent) = when (state.purpose) {
-                is SwapPurpose.Buy -> AnnotatedString(stringResource(R.string.action_buy)) to emptyMap()
-                is SwapPurpose.FundWithWallet -> buildPhantomButtonLabel(
-                    prefix = stringResource(R.string.label_confirmIn),
-                    isEnabled = state.canTransact
-                )
-                is SwapPurpose.Sell -> AnnotatedString(stringResource(R.string.action_next)) to emptyMap()
-                else -> AnnotatedString("") to emptyMap()
+            val text = when (state.purpose) {
+                is SwapPurpose.Buy -> AnnotatedString(stringResource(R.string.action_buy))
+                is SwapPurpose.Sell -> AnnotatedString(stringResource(R.string.action_next))
+                else -> AnnotatedString("")
             }
 
             CodeButton(
@@ -123,7 +123,6 @@ internal fun SwapEntryScreenContent(
                 isLoading = state.buyProgress.loading,
                 isSuccess = state.buyProgress.success,
                 text = text,
-                inlineContent = inlineContent,
             ) {
                 dispatchEvent(SwapViewModel.Event.OnAmountConfirmed)
             }

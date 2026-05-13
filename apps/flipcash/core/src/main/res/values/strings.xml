@@ -332,12 +332,14 @@
     <string name="title_onrampProviderBackpack">Backpack Wallet</string>
     <string name="title_onrampProviderPhantom">Phantom Wallet</string>
     <string name="title_onrampProviderSolflare">Solflare Wallet</string>
+    <string name="title_onrampProviderOtherWallet">Other Wallet</string>
 
     <string name="action_addCashWithGooglePay">Add Cash with Google Pay</string>
     <string name="action_addCashWithDebitCard">Add Cash with Debit Card</string>
     <string name="action_addCashWithCreditCard">Add Cash with Credit Card</string>
     <string name="label_confirmIn">Confirm In</string>
     <string name="label_phantom">Phantom</string>
+
     <string name="label_solflare">Solflare</string>
     <string name="label_backpack">Backpack</string>
 
@@ -519,6 +521,9 @@
     <string name="title_settingsSectionAccount">Account</string>
     <string name="title_userFlags">User Flags</string>
 
+    <string name="title_purchase">Purchase</string>
+    <string name="action_connectYourPhantomWallet">Connect Your Phantom Wallet</string>
+
     <string name="error_title_onrampAmountTooLow">$5 Minimum Purchase</string>
     <string name="error_description_onrampAmountTooLow">Please enter an amount of $5 or higher</string>
 
@@ -641,4 +646,13 @@
     <string name="title_leaderboard">Leaderboard</string>
 
     <string name="action_discover">Discover</string>
+
+    <string name="title_buyWithPhantom">Buy With Phantom</string>
+    <string name="description_buyWithPhantom">Purchase using Solana USDC in Phantom. Simply connect your wallet and confirm the transaction</string>
+
+    <string name="title_confirmation">Confirmation</string>
+    <string name="title_buyWithPhantomConnected">Connected</string>
+    <string name="description_buyWithPhantomConnected">Confirm the transaction in Phantom to continue</string>
+
+    <string name="title_depositToken">Deposit %1$s</string>
 </resources>

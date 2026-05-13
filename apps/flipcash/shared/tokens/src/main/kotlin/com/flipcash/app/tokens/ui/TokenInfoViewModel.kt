@@ -1,7 +1,6 @@
 package com.flipcash.app.tokens.ui
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
@@ -9,7 +8,6 @@ import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 
 import com.flipcash.app.shareable.ShareSheetController
@@ -50,8 +48,6 @@ class TokenInfoViewModel @Inject constructor(
     private val exchange: Exchange,
     private val shareController: ShareSheetController,
     private val resources: ResourceHelper,
-    private val analytics: FlipcashAnalyticsService,
-    private val purchaseMethodController: PurchaseMethodController,
     features: FeatureFlagController,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel2<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
@@ -98,9 +94,8 @@ class TokenInfoViewModel @Inject constructor(
         data class OnAppreciationUpdated(val amount: LocalFiat?) : Event
         data class ExpandDescription(val expand: Boolean) : Event
         data object Share : Event
-        data class OpenPurchaseMethods(val shortFall: Fiat? = null) : Event
+        data class OnBuy(val shortFall: Fiat? = null) : Event
         data class OpenScreen(val screen: AppRoute) : Event
-        data object ConnectPhantomWallet : Event
         data object Exit : Event
     }
 
@@ -178,7 +173,7 @@ class TokenInfoViewModel @Inject constructor(
             .map { it.shortFall }
             .filterNotNull()
             .onEach {
-                 dispatchEvent(Event.OpenPurchaseMethods(it))
+                 dispatchEvent(Event.OnBuy(it))
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -263,7 +258,7 @@ class TokenInfoViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.OpenPurchaseMethods>()
+            .filterIsInstance<Event.OnBuy>()
             .mapNotNull {
                 val mint = stateFlow.value.mint ?: return@mapNotNull null
                 SwapPurpose.Buy(mint) to it.shortFall
@@ -273,14 +268,6 @@ class TokenInfoViewModel @Inject constructor(
                     purpose = purpose,
                     shortfall = shortfall,
                 )))
-            }
-            .launchIn(viewModelScope)
-
-        purchaseMethodController.selections
-            .filter { (method, _) -> method is PurchaseMethod.PhantomWallet }
-            .onEach { (_, _) ->
-                analytics.buttonTapped(Button.TokenBuyWithPhantom)
-                dispatchEvent(Event.ConnectPhantomWallet)
             }
             .launchIn(viewModelScope)
 
@@ -313,8 +300,7 @@ class TokenInfoViewModel @Inject constructor(
 
                 is Event.OnMarketCapPeriodSelected -> { state -> state.copy(selectedPeriod = event.period) }
                 is Event.OpenScreen -> { state -> state }
-                is Event.ConnectPhantomWallet -> { state -> state }
-                is Event.OpenPurchaseMethods -> { state -> state }
+                is Event.OnBuy -> { state -> state }
                 is Event.LoadHistoricalDataForPeriod -> { state -> state }
                 is Event.Share -> { state -> state }
                 is Event.Exit -> { state -> state }

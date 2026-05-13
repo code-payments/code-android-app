@@ -115,25 +115,5 @@ fun TokenInfoScreen(
                     navigator.push(it)
                 }.launchIn(this)
         }
-
-        val animationScale by rememberAnimationScale()
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<TokenInfoViewModel.Event.ConnectPhantomWallet>()
-                .onEach { delay(300.scaled(animationScale)) }
-                .onEach {
-                    externalWalletOnRampController.start(AppRoute.Token.Info(mint), OnRampProvider.Phantom)
-                }.launchIn(this)
-        }
-
-        // Navigate to pending routes from ExternalWalletOnRampHandler using the
-        // sheet's inner navigator (which the handler can't access directly).
-        LaunchedEffect(Unit) {
-            externalWalletOnRampController.pendingNavigation.collect { nav ->
-                if (nav is AppRoute.Token.Swap) {
-                    navigator.push(nav)
-                }
-            }
-        }
     }
 }

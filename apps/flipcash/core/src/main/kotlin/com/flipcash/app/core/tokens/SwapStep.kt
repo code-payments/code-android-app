@@ -21,6 +21,13 @@ sealed interface SwapStep : FlowStep, Parcelable {
 
     @Parcelize
     @Serializable
+    data object PhantomConnect: SwapStep
+
+    @Parcelize
+    @Serializable
+    data object PhantomConfirmTransaction: SwapStep
+    @Parcelize
+    @Serializable
     data class Processing(
         val swapId: SwapId,
         val awaitExternalWallet: Boolean = false,

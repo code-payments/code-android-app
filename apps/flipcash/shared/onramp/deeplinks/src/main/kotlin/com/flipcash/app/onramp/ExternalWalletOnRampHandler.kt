@@ -13,6 +13,7 @@ import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.android.extensions.canNativelyHandle
+import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.onramp.internal.buildConnectDeeplink
 import com.flipcash.app.onramp.internal.buildTransactionDeeplink
@@ -50,6 +51,8 @@ fun ExternalWalletOnRampHandler(
             ?: (state as? ExternalWalletOnRampState.Failed)?.origin
 
         if (origin is AppRoute.Token.Info || origin is AppRoute.Token.CurrencyCreator) {
+            controller.requestFlowExit()
+            controller.reset()
             return
         }
 
@@ -92,7 +95,7 @@ fun ExternalWalletOnRampHandler(
                     if (current.origin is AppRoute.Token.Info) {
                         controller.emitPendingNavigation(
                             AppRoute.Token.Swap(
-                                SwapPurpose.FundWithWallet(current.origin.mint),
+                                SwapPurpose.Buy(current.origin.mint, FundingSource.Phantom),
                                 shortfall = current.origin.shortfall
                             )
                         )
@@ -137,7 +140,7 @@ fun ExternalWalletOnRampHandler(
                         else -> {
                             navigator.push(
                                 AppRoute.Token.Swap(
-                                    SwapPurpose.FundWithWallet(controller.tokenToPurchase.value!!.address)
+                                    SwapPurpose.Buy(controller.tokenToPurchase.value!!.address, FundingSource.Phantom)
                                 )
                             )
                         }

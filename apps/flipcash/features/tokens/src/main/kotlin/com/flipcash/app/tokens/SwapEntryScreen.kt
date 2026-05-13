@@ -23,13 +23,16 @@ import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.core.rememberAnimationScale
+import com.getcode.ui.core.scaled
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun SwapEntryContent(
+internal fun SwapEntryScreen(
     purpose: SwapPurpose,
     initialAmount: Fiat? = null,
 ) {
@@ -116,6 +119,12 @@ internal fun SwapEntryContent(
         }
     }
 
+    LaunchedEffect(Unit) {
+        externalWalletOnRampController.flowExitRequests.collect {
+            flowNavigator.exitCanceled()
+        }
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.OnVerificationNeeded>()
@@ -128,6 +137,16 @@ internal fun SwapEntryContent(
                         includeEmail = email,
                     )
                 )
+            }.launchIn(this)
+    }
+
+    val animationScale by rememberAnimationScale()
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.PhantomSelected>()
+            .onEach { delay(300.scaled(animationScale)) }
+            .onEach {
+                flowNavigator.navigateTo(SwapStep.PhantomConnect)
             }.launchIn(this)
     }
 

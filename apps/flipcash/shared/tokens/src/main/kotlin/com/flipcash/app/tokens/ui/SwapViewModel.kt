@@ -7,6 +7,8 @@ import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.to
+import com.flipcash.app.core.money.formatted
+import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.onramp.CoinbaseOnRampController
@@ -127,13 +129,6 @@ class SwapViewModel @Inject constructor(
                 is SwapPurpose.Buy -> amountEntryState.maxToAdd?.let {
                     Fiat(it.first, it.second).formatted()
                 }.orEmpty()
-                is SwapPurpose.FundWithWallet -> amountEntryState.maxToAdd?.let {
-                    Fiat(
-                        it.first,
-                        it.second
-                    ).formatted()
-                }.orEmpty()
-
                 is SwapPurpose.Sell -> tokenBalance.formatted()
                 null -> ""
             }
@@ -171,17 +166,6 @@ class SwapViewModel @Inject constructor(
                         } ?: SendLimit.Zero
                         sendLimit.maxPerDay.toFiat(enteredAmount.currencyCode)
                     }
-                    is SwapPurpose.FundWithWallet -> {
-                        val sendLimit =
-                            enteredAmount.currencyCode.let {
-                                amountEntryState.limits?.sendLimitFor(
-                                    it
-                                )
-                            } ?: SendLimit.Zero
-
-                        sendLimit.maxPerDay.toFiat(enteredAmount.currencyCode)
-                    }
-
                     is SwapPurpose.Sell -> tokenBalance
                     null -> Fiat.Zero
                 }
@@ -222,6 +206,8 @@ class SwapViewModel @Inject constructor(
 
         data class OnCurrencyChanged(val currency: Currency) : Event
 
+        data object PhantomSelected: Event
+        data object ConfirmPhantomTransaction : Event
         data object OnAmountConfirmed : Event
 
         data object OnSellConfirmed : Event
@@ -322,18 +308,11 @@ class SwapViewModel @Inject constructor(
         eventFlow.filterIsInstance<Event.OnPurposeChanged>()
             .map { it.purpose }
             .flatMapLatest { purpose ->
-                val mint = when (purpose) {
-                    is SwapPurpose.Buy -> purpose.mint
-                    is SwapPurpose.FundWithWallet -> purpose.mint
-                    is SwapPurpose.Sell -> purpose.mint
-                }
+                val mint = purpose.mint
 
                 combine(
                     tokenCoordinator.tokenBalances,
-                    when (purpose) {
-                        is SwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
-                        else -> exchange.observeEntryRate()
-                    },
+                    exchange.observeEntryRate(),
                 ) { tokens, rate ->
                     var token = tokens.find { it.token.address == mint }
                     if (token == null) {
@@ -370,17 +349,13 @@ class SwapViewModel @Inject constructor(
             .flatMapLatest { purpose ->
                 val tokenAddress = when (purpose) {
                     is SwapPurpose.Buy -> Mint.usdf
-                    is SwapPurpose.FundWithWallet -> Mint.usdf
                     is SwapPurpose.Sell -> purpose.mint
                 }
 
                 combine(
                     tokenCoordinator.tokens,
                     tokenCoordinator.balanceForToken(tokenAddress),
-                    when (purpose) {
-                        is SwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
-                        else -> exchange.observeEntryRate()
-                    },
+                    exchange.observeEntryRate(),
                 ) { tokens, balance, rate ->
                     val token = tokens.find { it.address == tokenAddress } ?: return@combine null
                     TokenWithLocalizedBalance(
@@ -399,10 +374,7 @@ class SwapViewModel @Inject constructor(
 
         combine(
             tokenCoordinator.observeReservesBalance(),
-            when (stateFlow.value.purpose) {
-                is SwapPurpose.FundWithWallet -> flowOf(exchange.rateForUsd())
-                else -> exchange.observeEntryRate()
-            },
+            exchange.observeEntryRate(),
         ) { balance, rate ->
             LocalFiat(
                 usdf = balance,
@@ -543,7 +515,7 @@ class SwapViewModel @Inject constructor(
                             dispatchEvent(Event.ProceedWithPurchase(amountFiat))
                         } else {
                             // Insufficient reserves — check available purchase methods
-                            val mint = (purpose as? SwapPurpose.Buy)?.mint ?: return@onEach
+                            val mint = purpose.mint
                             val metadata = PurchaseMethodMetadata(
                                 mint = mint,
                                 purchaseAmount = Fiat(data.amountData.amount, rate.currency),
@@ -556,32 +528,6 @@ class SwapViewModel @Inject constructor(
                                 purchaseMethodController.present(metadata)
                             }
                         }
-                    }
-
-                    is SwapPurpose.FundWithWallet -> {
-                        val rate = exchange.rateForUsd()
-                        // funding through external wallet — no balance cap,
-                        // funds come from the external wallet not reserves
-                        val amountFiat = verifiedFiatCalculator.compute(
-                            amount = Fiat(data.amountData.amount, rate.currency),
-                            token = Token.usdf,
-                            rate = rate,
-                        ).getOrElse {
-                            BottomBarManager.showAlert(
-                                title = resources.getString(R.string.error_title_staleRates),
-                                message = resources.getString(R.string.error_description_staleRates),
-                            )
-                            return@onEach
-                        }
-
-                        dispatchEvent(Event.OnAmountAccepted(amountFiat, netTransferAmount = amountFiat.localFiat.nativeAmount))
-                        dispatchEvent(Event.UpdateBuyState(loading = true))
-                        dispatchEvent(
-                            Event.CreateAndSendTransactionToWallet(
-                                token = stateFlow.value.tokenWithBalance!!.token,
-                                amount = amountFiat
-                            )
-                        )
                     }
 
                     is SwapPurpose.Sell -> {
@@ -605,6 +551,32 @@ class SwapViewModel @Inject constructor(
                         dispatchEvent(Event.ShowSellReceipt)
                     }
                 }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ConfirmPhantomTransaction>()
+            .onEach {
+                val data = stateFlow.value.amountEntryState.amountAnimatedModel
+                val rate = exchange.rateForUsd()
+                val amountFiat = verifiedFiatCalculator.compute(
+                    amount = Fiat(data.amountData.amount, rate.currency),
+                    token = Token.usdf,
+                    rate = rate,
+                ).getOrElse {
+                    BottomBarManager.showAlert(
+                        title = resources.getString(R.string.error_title_staleRates),
+                        message = resources.getString(R.string.error_description_staleRates),
+                    )
+                    return@onEach
+                }
+                dispatchEvent(Event.OnAmountAccepted(amountFiat, netTransferAmount = amountFiat.localFiat.nativeAmount))
+                dispatchEvent(Event.UpdateBuyState(loading = true))
+                dispatchEvent(
+                    Event.CreateAndSendTransactionToWallet(
+                        token = stateFlow.value.tokenWithBalance!!.token,
+                        amount = amountFiat
+                    )
+                )
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -821,17 +793,23 @@ class SwapViewModel @Inject constructor(
                         dispatchEvent(Event.OnAmountConfirmed)
                     }
                     PurchaseMethod.PhantomWallet -> {
-                        dispatchEvent(Event.Exit)
+                        analytics.buttonTapped(Button.TokenBuyWithPhantom)
+                        dispatchEvent(Event.PhantomSelected)
+                    }
+
+                    PurchaseMethod.OtherWallet -> {
+                        // TODO:
                     }
                 }
             }.launchIn(viewModelScope)
     }
 
     private fun trackTransaction(token: Token, error: Throwable? = null) {
-        val purpose = stateFlow.value.purpose
-        val method = when (purpose) {
-            is SwapPurpose.Buy -> Analytics.SwapMethod.Buy.Reserves
-            is SwapPurpose.FundWithWallet -> Analytics.SwapMethod.Buy.Phantom
+        val method = when (val purpose = stateFlow.value.purpose) {
+            is SwapPurpose.Buy -> when (purpose.fundingSource) {
+                FundingSource.Phantom -> Analytics.SwapMethod.Buy.Phantom
+                else -> Analytics.SwapMethod.Buy.Reserves
+            }
             else -> Analytics.SwapMethod.Sell
         }
 
@@ -954,6 +932,16 @@ class SwapViewModel @Inject constructor(
                     )
                 }
 
+                Event.PhantomSelected -> { state ->
+                    val purpose = state.purpose
+                    if (purpose is SwapPurpose.Buy) {
+                        state.copy(purpose = purpose.copy(fundingSource = FundingSource.Phantom))
+                    } else {
+                        state
+                    }
+                }
+
+                Event.ConfirmPhantomTransaction,
                 Event.OnAmountConfirmed,
                 Event.OnBackspace,
                 Event.OnDecimalPressed,
