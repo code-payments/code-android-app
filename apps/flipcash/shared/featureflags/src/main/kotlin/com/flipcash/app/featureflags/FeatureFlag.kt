@@ -102,8 +102,8 @@ sealed interface FeatureFlag {
     @FeatureFlagMarker
     data object CoinbaseOnRamp: FeatureFlag {
         override val key: String = "coinbase_onramp_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
         override val visible: Boolean = true
         override val persistLogOut: Boolean = false
     }
