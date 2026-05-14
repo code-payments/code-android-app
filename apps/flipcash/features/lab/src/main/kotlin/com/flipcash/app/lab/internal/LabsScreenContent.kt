@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.navigateTo
+import com.flipcash.app.featureflags.FlagOption
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.featureflags.message
 import com.flipcash.app.featureflags.title
@@ -35,6 +36,7 @@ import com.getcode.ui.components.ListItem
 import com.getcode.ui.components.SettingsSwitchRow
 import com.getcode.ui.components.text.SectionHeader
 import com.getcode.ui.core.verticalScrollStateGradient
+import com.getcode.ui.theme.CodeSegmentedControl
 import com.getcode.ui.utils.sheetResignmentBehavior
 
 @Composable
@@ -59,12 +61,24 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
             SectionHeader(stringResource(R.string.title_settingsSectionFeatures))
         }
         items(betaFlags, key = { it.flag.key }) { feature ->
-            SettingsSwitchRow(
-                title = feature.flag.title,
-                subtitle = feature.flag.message,
-                checked = feature.enabled
-            ) {
-                betaFlagsController.set(feature.flag, !feature.enabled)
+            if (feature.flag.isOptionFlag) {
+                SettingsOptionRow(
+                    title = feature.flag.title,
+                    subtitle = feature.flag.message,
+                    options = feature.flag.options,
+                    selectedOption = feature.selectedOption ?: feature.flag.defaultOption,
+                    onOptionSelected = { optionKey ->
+                        betaFlagsController.setOption(feature.flag, optionKey)
+                    },
+                )
+            } else {
+                SettingsSwitchRow(
+                    title = feature.flag.title,
+                    subtitle = feature.flag.message,
+                    checked = feature.enabled
+                ) {
+                    betaFlagsController.set(feature.flag, !feature.enabled)
+                }
             }
 
             HorizontalDivider(
@@ -132,5 +146,47 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SettingsOptionRow(
+    title: String,
+    subtitle: String?,
+    options: List<FlagOption>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = CodeTheme.dimens.grid.x3)
+            .padding(vertical = CodeTheme.dimens.grid.x3),
+    ) {
+        Text(
+            text = title,
+            color = CodeTheme.colors.textMain,
+            style = CodeTheme.typography.textMedium,
+        )
+        if (!subtitle.isNullOrEmpty()) {
+            Text(
+                text = subtitle,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
+        CodeSegmentedControl(
+            options = options,
+            selected = options.find { it.key == selectedOption },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = CodeTheme.dimens.grid.x2),
+            mapper = { option ->
+                Text(text = option.label)
+            },
+            onSelectionChanged = { option ->
+                onOptionSelected(option.key)
+            },
+        )
     }
 }

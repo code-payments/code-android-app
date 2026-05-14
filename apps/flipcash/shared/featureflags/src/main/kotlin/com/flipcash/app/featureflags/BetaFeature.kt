@@ -1,6 +1,7 @@
 package com.flipcash.app.featureflags
 
 data class BetaFeature(
-    val flag: FeatureFlag,
+    val flag: FeatureFlag<*>,
     val enabled: Boolean,
+    val selectedOption: String? = null,
 )

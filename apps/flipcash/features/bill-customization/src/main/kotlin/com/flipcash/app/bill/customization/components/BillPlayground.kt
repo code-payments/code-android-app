@@ -217,7 +217,7 @@ internal fun Modifier.presenceBorder(
 )
 
 private object PreviewFeatureFlagController : FeatureFlagController by NoOpFeatureFlagController {
-    override fun observe(flag: FeatureFlag): StateFlow<Boolean> = MutableStateFlow(true)
+    override fun observe(flag: FeatureFlag<*>): StateFlow<Boolean> = MutableStateFlow(true)
 }
 
 @Composable
