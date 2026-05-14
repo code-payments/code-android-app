@@ -55,7 +55,19 @@ Use the Agent tool with `model: "haiku"`. Pass the raw changelog output with thi
 > - If no user-facing changes, output: Bug fixes and performance improvements.
 > - Output ONLY the section markdown, no title or fences
 
-### 3. Assemble final notes
+### 3. Generate App Store "What's New"
+
+Using the same changelog, write a short "What's New" blurb suitable for the Google Play Store listing. Rules:
+- 3–5 bullet lines max, plain dashes (`- `)
+- Lead with the most impactful user-facing features
+- End with "Bug fixes and performance improvements" if there are fixes/chores
+- No markdown bold, no sections headers — just a flat list
+- Keep each line under ~60 characters
+- If there are no notable user-facing changes, output only: `- Bug fixes and performance improvements`
+
+You can derive this yourself from the changelog without a subagent call.
+
+### 4. Assemble final notes
 
 Combine the agent's output with the changelog compare link:
 
@@ -67,11 +79,11 @@ Combine the agent's output with the changelog compare link:
 
 The release title/name is the version number without the `fcash/` prefix (e.g., `2026.4.11`).
 
-### 4. Review gate
+### 5. Review gate
 
-Show the assembled release notes to the user for approval. Do NOT create the release until the user explicitly confirms.
+Show the assembled GitHub release notes **and** the App Store "What's New" to the user for approval. Do NOT create the release until the user explicitly confirms.
 
-### 5. Publish
+### 6. Publish
 
 After user confirms, create the release:
 ```bash
