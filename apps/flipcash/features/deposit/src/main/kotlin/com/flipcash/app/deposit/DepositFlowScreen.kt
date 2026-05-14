@@ -10,6 +10,8 @@ import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.deposit.DepositResult
 import com.flipcash.app.core.deposit.DepositStep
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.deposit.internal.DepositViewModel
 import com.flipcash.app.deposit.internal.UsdcDepositInformationScreen
 import com.flipcash.app.theme.FlipcashThemeWrapper
@@ -31,8 +33,16 @@ fun DepositFlowScreen(
     resultStateRegistry: NavResultStateRegistry,
 ) {
     val outerNavigator = LocalCodeNavigator.current
+    val featureFlags = LocalFeatureFlags.current
 
-    val initialStack = route.rememberInitialStack<DepositStep>()
+    val initialStack = route.rememberInitialStack<DepositStep> { steps ->
+        val directDeposit = featureFlags.observe(FeatureFlag.DepositUsdc).value
+        if (!directDeposit && route.mint == Mint.usdf) {
+            listOf(DepositStep.Destination(route.mint))
+        } else {
+            steps
+        }
+    }
 
     FlowHost(
         initialStack = initialStack,

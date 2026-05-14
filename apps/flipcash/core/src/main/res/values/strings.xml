@@ -639,6 +639,7 @@
     <string name="description_withdrawUsdfAsUsdc">Your USDF will be converted 1:1 to Solana USDC on withdrawal</string>
     <string name="displayName_solanaUsdc">Solana USDC</string>
     <string name="displayName_usdc">USDC</string>
+    <string name="displayName_usdf">USDF</string>
     <string name="label_withdrawalAmount">Withdrawal amount</string>
     <string name="label_lessFee">Less fee</string>
     <string name="label_netAmount">Net amount</string>
