@@ -274,6 +274,7 @@ sealed class CoinbaseOnRampWebError(val data: String? = null): Throwable() {
     class GuestTransactionSendFailed(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
     class GuestTransactionAvsValidationFailed(data: String? = null) : CoinbaseOnRampWebError(data)
     class GuestTransactionTransactionFailed(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
+    class GuestRegionMismatch(data: String? = null) : CoinbaseOnRampWebError(data)
     class GuestGooglePayNotReady(data: String? = null) : CoinbaseOnRampWebError(data)
     class Internal(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
     class GooglePayButtonNotFound(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
@@ -290,6 +291,7 @@ sealed class CoinbaseOnRampWebError(val data: String? = null): Throwable() {
                 "ERROR_CODE_GUEST_TRANSACTION_SEND_FAILED" -> GuestTransactionSendFailed(data)
                 "ERROR_CODE_GUEST_TRANSACTION_AVS_VALIDATION_FAILED" -> GuestTransactionAvsValidationFailed(data)
                 "ERROR_CODE_GUEST_TRANSACTION_TRANSACTION_FAILED" -> GuestTransactionTransactionFailed(data)
+                "ERROR_CODE_GUEST_REGION_MISMATCH" -> GuestRegionMismatch(data)
                 "ERROR_CODE_GUEST_GOOGLE_PAY_NOT_READY" -> GuestGooglePayNotReady(data)
                 "ERROR_CODE_INTERNAL" -> Internal(data)
                 "ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND" -> GooglePayButtonNotFound(data)
