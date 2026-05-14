@@ -1,5 +1,6 @@
 package com.flipcash.app.featureflags
 
+import com.flipcash.app.featureflags.model.BackgroundResetTimeout
 import com.flipcash.app.ksp.annotations.FeatureFlagMarker
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
