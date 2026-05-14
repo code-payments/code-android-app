@@ -16,7 +16,7 @@ import com.getcode.libs.biometrics.BiometricsError
 import com.getcode.libs.biometrics.BiometricsException
 import com.getcode.ui.components.OnLifecycleEvent
 
-private const val BIOMETRICS_COOLDOWN_MS = 30_000L
+private const val BIOMETRICS_COOLDOWN_MS = 90_000L
 
 data class BiometricsState(
     val checking: Boolean = false,
