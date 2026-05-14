@@ -210,6 +210,7 @@ class CoinbaseOnRampWebErrorTest {
             "ERROR_CODE_GUEST_TRANSACTION_SEND_FAILED" to CoinbaseOnRampWebError.GuestTransactionSendFailed::class,
             "ERROR_CODE_GUEST_TRANSACTION_AVS_VALIDATION_FAILED" to CoinbaseOnRampWebError.GuestTransactionAvsValidationFailed::class,
             "ERROR_CODE_GUEST_TRANSACTION_TRANSACTION_FAILED" to CoinbaseOnRampWebError.GuestTransactionTransactionFailed::class,
+            "ERROR_CODE_GUEST_REGION_MISMATCH" to CoinbaseOnRampWebError.GuestRegionMismatch::class,
             "ERROR_CODE_INTERNAL" to CoinbaseOnRampWebError.Internal::class,
             "ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND" to CoinbaseOnRampWebError.GooglePayButtonNotFound::class,
         )
@@ -240,6 +241,12 @@ class CoinbaseOnRampWebErrorTest {
         val error = CoinbaseOnRampWebError.WebViewTimeout()
         assertIs<NotifiableError>(error)
         assertIs<Throwable>(error)
+    }
+
+    @Test
+    fun guestRegionMismatchIsNotNotifiable() {
+        val error = CoinbaseOnRampWebError.GuestRegionMismatch()
+        assertFalse(error is NotifiableError)
     }
 
     @Test
