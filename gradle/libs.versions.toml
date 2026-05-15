@@ -99,7 +99,7 @@ screenshot = "0.0.1-alpha14"
 secrets-gradle-plugin = "2.0.1"
 firebase-perf-plugin = "2.0.2"
 uiToolingPreview = "1.11.0"
-uiTooling = "1.11.0"
+uiTooling = "1.11.1"
 
 [libraries]
 # Desugaring
