@@ -18,6 +18,7 @@ import kotlinx.serialization.Serializable
 enum class FundingSource {
     Flexible,
     Phantom,
+    Coinbase,
 }
 
 @Serializable

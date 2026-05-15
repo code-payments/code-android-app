@@ -23,7 +23,7 @@ class FeatureFlagProcessor(
                 import com.flipcash.app.featureflags.FeatureFlag.*
                 
                 object FeatureFlagEntries {
-                    val entries: List<FeatureFlag> = listOf(
+                    val entries: List<FeatureFlag<*>> = listOf(
                         ${featureFlags.joinToString(",\n                        ") { it.substringAfterLast(".") }}
                     )
                 }

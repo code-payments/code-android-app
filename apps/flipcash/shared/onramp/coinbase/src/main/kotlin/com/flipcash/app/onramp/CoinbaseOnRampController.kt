@@ -46,6 +46,12 @@ import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 import retrofit2.HttpException
 import javax.inject.Inject
 
+sealed class PurchaseGate : Throwable() {
+    data class WebViewWarning(val channel: WebViewChannel) : PurchaseGate()
+    data object GooglePayNotSupported : PurchaseGate()
+    data object GooglePayNoPaymentMethod : PurchaseGate()
+}
+
 typealias OrderWithPaymentLink = Pair<String, OnRampPurchaseResponse.PaymentLink>
 
 private val json = Json {
@@ -63,6 +69,7 @@ class CoinbaseOnRampController @Inject constructor(
     private val featureFlags: FeatureFlagController,
     private val transactionController: TransactionOperations,
     private val googlePayReadiness: GooglePayReadiness,
+    private val webViewChannelDetector: WebViewChannelDetector,
 ) {
 
     private val _state = MutableStateFlow<CoinbaseOnRampState>(CoinbaseOnRampState.Idle)
@@ -100,20 +107,30 @@ class CoinbaseOnRampController @Inject constructor(
         _state.update { CoinbaseOnRampState.Idle }
     }
 
-    suspend fun placeOrderAndStartPayment(
-        amount: Fiat,
-        token: Token,
-        verifiedFiat: VerifiedFiat,
-    ): Result<Unit> {
+    suspend fun checkPurchaseGates(): Result<Unit> {
         when (googlePayReadiness.check()) {
-            GooglePayReadiness.Status.NotSupported ->
-                return Result.failure(OnRampPaymentError.GooglePayNotSupported())
-            GooglePayReadiness.Status.NoPaymentMethod ->
-                return Result.failure(OnRampPaymentError.GooglePayNoPaymentMethod())
+            GooglePayReadiness.Status.NotSupported -> return Result.failure(PurchaseGate.GooglePayNotSupported)
+            GooglePayReadiness.Status.NoPaymentMethod -> return Result.failure(PurchaseGate.GooglePayNoPaymentMethod)
             GooglePayReadiness.Status.Ready -> Unit
         }
 
-        return placeOrderInclusiveOfFees(amount)
+        webViewChannelDetector.detect()?.let { channel ->
+            trace(
+                tag = "CoinbaseOnRamp",
+                message = "Non-stable WebView detected at purchase gate",
+                metadata = { "channel" to channel.name },
+            )
+            return Result.failure(PurchaseGate.WebViewWarning(channel))
+        }
+
+        return Result.success(Unit)
+    }
+
+    suspend fun placeOrderAndStartPayment(
+        token: Token,
+        verifiedFiat: VerifiedFiat,
+    ): Result<Unit> {
+        return placeOrderInclusiveOfFees(verifiedFiat.localFiat.underlyingTokenAmount)
             .mapCatching { (orderId, paymentLink) ->
                 val owner = userManager.accountCluster
                     ?: throw IllegalStateException("No account cluster")
@@ -376,6 +393,8 @@ sealed class OnRampPaymentError(
 ) : CodeServerError(message) {
     class GooglePayNotSupported : OnRampPaymentError("Google Pay is not available on this device")
     class GooglePayNoPaymentMethod : OnRampPaymentError("No payment method enrolled in Google Pay")
+    class NonStableWebViewChannel(val channel: WebViewChannel) :
+        OnRampPaymentError("Non-stable WebView channel detected: ${channel.name}")
 }
 
 sealed class OnRampAuthError(
