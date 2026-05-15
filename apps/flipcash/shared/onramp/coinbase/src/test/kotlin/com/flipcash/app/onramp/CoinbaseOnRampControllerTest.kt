@@ -12,6 +12,8 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -38,6 +40,8 @@ class CoinbaseOnRampControllerTest {
     private val userManager = mockk<UserManager>(relaxed = true)
     private val exchange = mockk<Exchange>(relaxed = true)
     private val featureFlags = mockk<FeatureFlagController>(relaxed = true)
+    private val googlePayReadiness = mockk<GooglePayReadiness>(relaxed = true)
+    private val webViewChannelDetector = mockk<WebViewChannelDetector>(relaxed = true)
 
     private val onRampApiEndpoint = OnRampApiConfig(
         scheme = "https",
@@ -58,6 +62,8 @@ class CoinbaseOnRampControllerTest {
         every { Token.usdf } returns fakeToken
         every { fakeToken.timelockSwapAccounts(any()) } returns mockk(relaxed = true)
 
+        every { webViewChannelDetector.detect() } returns null
+
         controller = CoinbaseOnRampController(
             jwtProvider = jwtProvider,
             onRampApiEndpoint = onRampApiEndpoint,
@@ -66,7 +72,8 @@ class CoinbaseOnRampControllerTest {
             exchange = exchange,
             featureFlags = featureFlags,
             transactionController = mockk(relaxed = true),
-            googlePayReadiness = mockk(relaxed = true),
+            googlePayReadiness = googlePayReadiness,
+            webViewChannelDetector = webViewChannelDetector,
         )
     }
 
@@ -171,6 +178,76 @@ class CoinbaseOnRampControllerTest {
         assertIs<OnRampAuthError.VerificationRequired>(error)
         assertTrue(error.phone)
         assertTrue(error.email)
+    }
+
+    // endregion
+
+    // region checkPurchaseGates
+
+    @Test
+    fun `checkPurchaseGates succeeds when stable WebView and GPay ready`() = runTest {
+        coEvery { googlePayReadiness.check() } returns GooglePayReadiness.Status.Ready
+        every { webViewChannelDetector.detect() } returns null
+
+        assertTrue(controller.checkPurchaseGates().isSuccess)
+    }
+
+    @Test
+    fun `checkPurchaseGates fails with GooglePayNotSupported when GPay unavailable`() = runTest {
+        coEvery { googlePayReadiness.check() } returns GooglePayReadiness.Status.NotSupported
+
+        val result = controller.checkPurchaseGates()
+        assertTrue(result.isFailure)
+        assertIs<PurchaseGate.GooglePayNotSupported>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `checkPurchaseGates fails with GooglePayNoPaymentMethod when no instrument enrolled`() = runTest {
+        coEvery { googlePayReadiness.check() } returns GooglePayReadiness.Status.NoPaymentMethod
+
+        val result = controller.checkPurchaseGates()
+        assertTrue(result.isFailure)
+        assertIs<PurchaseGate.GooglePayNoPaymentMethod>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `checkPurchaseGates fails with WebViewWarning for non-stable channel`() = runTest {
+        coEvery { googlePayReadiness.check() } returns GooglePayReadiness.Status.Ready
+        every { webViewChannelDetector.detect() } returns WebViewChannel.Beta
+
+        val result = controller.checkPurchaseGates()
+        assertTrue(result.isFailure)
+        val gate = result.exceptionOrNull()
+        assertIs<PurchaseGate.WebViewWarning>(gate)
+        assertEquals(WebViewChannel.Beta, gate.channel)
+    }
+
+    @Test
+    fun `checkPurchaseGates prioritizes GPay block over WebView warning`() = runTest {
+        coEvery { googlePayReadiness.check() } returns GooglePayReadiness.Status.NotSupported
+        every { webViewChannelDetector.detect() } returns WebViewChannel.Beta
+
+        val result = controller.checkPurchaseGates()
+        assertTrue(result.isFailure)
+        assertIs<PurchaseGate.GooglePayNotSupported>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `placeOrderAndStartPayment does not invoke gate checks`() = runTest {
+        stubValidUser()
+
+        // placeOrderAndStartPayment will fail downstream (no JWT mock), but we only
+        // care that it never calls detect() or check()
+        runCatching {
+            controller.placeOrderAndStartPayment(
+                amount = Fiat(10, CurrencyCode.USD),
+                token = Token.usdf,
+                verifiedFiat = mockk(relaxed = true),
+            )
+        }
+
+        coVerify(exactly = 0) { googlePayReadiness.check() }
+        coVerify(exactly = 0) { webViewChannelDetector.detect() }
     }
 
     // endregion
