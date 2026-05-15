@@ -64,6 +64,7 @@
     <string name="subtitle_currentValueOfAllCurrencies">The current value of your currencies</string>
     <string name="subtitle_ofUsdStablecoins">of US dollar stablecoins</string>
     <string name="action_depositFunds">Deposit</string>
+    <string name="title_deposit">Deposit</string>
     <string name="title_depositFunds">Deposit Funds</string>
 
     <string name="title_withdraw">Withdraw</string>
@@ -332,12 +333,14 @@
     <string name="title_onrampProviderBackpack">Backpack Wallet</string>
     <string name="title_onrampProviderPhantom">Phantom Wallet</string>
     <string name="title_onrampProviderSolflare">Solflare Wallet</string>
+    <string name="title_onrampProviderOtherWallet">Other Wallet</string>
 
     <string name="action_addCashWithGooglePay">Add Cash with Google Pay</string>
     <string name="action_addCashWithDebitCard">Add Cash with Debit Card</string>
     <string name="action_addCashWithCreditCard">Add Cash with Credit Card</string>
     <string name="label_confirmIn">Confirm In</string>
     <string name="label_phantom">Phantom</string>
+
     <string name="label_solflare">Solflare</string>
     <string name="label_backpack">Backpack</string>
 
@@ -439,6 +442,7 @@
     <string name="title_amountToBuy">Amount to Buy</string>
     <string name="title_amountToSell">Amount to Sell</string>
     <string name="subtitle_buySellCashHint">Enter up to %1$s</string>
+    <string name="subtitle_buyHintBelowMinimum">You must buy at least %1$s</string>
     <string name="subtitle_buyHintLimitExceeded">You can only buy up to %1$s</string>
     <string name="subtitle_sellHintLimitExceeded">You can only sell up to %1$s</string>
     <string name="action_buy">Buy</string>
@@ -518,6 +522,9 @@
     <string name="title_settingsSectionAccount">Account</string>
     <string name="title_userFlags">User Flags</string>
 
+    <string name="title_purchase">Purchase</string>
+    <string name="action_connectYourPhantomWallet">Connect Your Phantom Wallet</string>
+
     <string name="error_title_onrampAmountTooLow">$5 Minimum Purchase</string>
     <string name="error_description_onrampAmountTooLow">Please enter an amount of $5 or higher</string>
 
@@ -587,6 +594,10 @@
     <string name="error_title_onrampGooglePayNotReady">Google Pay Not Ready</string>
     <string name="error_description_onrampGooglePayNotReady">Please add a payment method to Google Pay and try again</string>
 
+    <string name="error_title_onrampNonStableWebView">Unsupported WebView</string>
+    <string name="error_description_onrampNonStableWebView">Your device is using a %1$s version of Android System WebView, which may cause issues with purchases. Google recommends switching to the stable channel before continuing with your purchase</string>
+    <string name="action_continueAnyway">Continue Anyway</string>
+
     <string name="error_title_onrampUnknownFailure">Something Went Wrong</string>
     <string name="error_description_onrampUnknownFailure">Please contact support@flipcash.com</string>
 
@@ -632,6 +643,7 @@
     <string name="description_withdrawUsdfAsUsdc">Your USDF will be converted 1:1 to Solana USDC on withdrawal</string>
     <string name="displayName_solanaUsdc">Solana USDC</string>
     <string name="displayName_usdc">USDC</string>
+    <string name="displayName_usdf">USDF</string>
     <string name="label_withdrawalAmount">Withdrawal amount</string>
     <string name="label_lessFee">Less fee</string>
     <string name="label_netAmount">Net amount</string>
@@ -640,4 +652,16 @@
     <string name="title_leaderboard">Leaderboard</string>
 
     <string name="action_discover">Discover</string>
+
+    <string name="title_depositUsdcAsUsdf">Deposit USDC</string>
+    <string name="description_depositUsdcAsUsdf">Your Solana USDC will be converted 1:1 to USD on Flipcash (USDF)</string>
+
+    <string name="title_buyWithPhantom">Buy With Phantom</string>
+    <string name="description_buyWithPhantom">Purchase using Solana USDC in Phantom. Simply connect your wallet and confirm the transaction</string>
+
+    <string name="title_confirmation">Confirmation</string>
+    <string name="title_buyWithPhantomConnected">Connected</string>
+    <string name="description_buyWithPhantomConnected">Confirm the transaction in Phantom to continue</string>
+
+    <string name="title_depositToken">Deposit %1$s</string>
 </resources>

@@ -28,7 +28,8 @@ import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.currency.RegionSelectionScreen
-import com.flipcash.app.deposit.DepositScreen
+import com.flipcash.app.deposit.DepositDestinationScreen
+import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.discovery.TokenDiscoverySheet
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
@@ -40,7 +41,6 @@ import com.flipcash.app.login.router.LoginRouter
 import com.flipcash.app.login.seed.SeedInputScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.MyAccountScreen
-import com.flipcash.app.onramp.OnRampCustomAmountScreen
 import com.flipcash.app.permissions.NotificationPermissionRationaleScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
@@ -113,7 +113,6 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Token.TxProcessing> { key ->
         TokenTxProcessingScreen(key.swapId, key.swapPurpose, key.amount, key.awaitExternalWallet, key.isFundingShortfall)
     }
-    annotatedEntry<AppRoute.Token.OnRamp> { key -> OnRampCustomAmountScreen(key.mint) }
     annotatedEntry<AppRoute.Token.Discovery> { TokenDiscoveryScreen() }
     annotatedEntry<AppRoute.Token.CurrencyCreator> { key ->
         CurrencyCreatorFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
@@ -128,13 +127,15 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Menu.AppSettings> { AppSettingsScreen() }
     annotatedEntry<AppRoute.Menu.Lab> { LabsScreen() }
     annotatedEntry<AppRoute.Menu.MyAccount> { MyAccountScreen() }
-    annotatedEntry<AppRoute.Menu.Deposit> { key -> DepositScreen(key.mint) }
     annotatedEntry<AppRoute.Menu.BackupKey> { BackupKeyScreen() }
     annotatedEntry<AppRoute.Menu.AdvancedFeatures> { AdvancedFeaturesScreen() }
     annotatedEntry<AppRoute.Menu.DeviceLogs> { DeviceLogsScreen() }
 
     annotatedEntry<AppRoute.UserFlags> { UserFlagsScreen() }
     // Transfers
+    annotatedEntry<AppRoute.Transfers.Deposit> { key ->
+        DepositFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
+    }
     annotatedEntry<AppRoute.Transfers.Withdrawal> { key ->
         WithdrawalFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }

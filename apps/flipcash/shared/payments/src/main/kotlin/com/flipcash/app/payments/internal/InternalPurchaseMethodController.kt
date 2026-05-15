@@ -2,6 +2,7 @@ package com.flipcash.app.payments.internal
 
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
 import com.flipcash.app.payments.PurchaseMethodSelection
@@ -17,6 +18,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.util.resources.ResourceHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -83,12 +85,20 @@ class InternalPurchaseMethodController @Inject constructor(
             }.launchIn(scope)
     }
 
+    override fun select(method: PurchaseMethod, metadata: PurchaseMethodMetadata) {
+        scope.launch {
+            _selections.emit(PurchaseMethodSelection(method, metadata))
+        }
+    }
+
     override fun present(metadata: PurchaseMethodMetadata) {
+        _state.update { it.copy(canUseOtherWallets = metadata.canUseOtherWallets) }
         BottomBarManager.showMessage(
             title = resources.getString(R.string.prompt_title_selectPurchaseMethod),
             actions = purchaseOptions(_state.value, metadata, resources) { method ->
                 scope.launch {
                     val selection = PurchaseMethodSelection(method, metadata)
+                    delay(300)
                     _selections.emit(selection)
                 }
             },

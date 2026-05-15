@@ -34,7 +34,7 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 
 @Composable
-internal fun DepositScreen(viewModel: DepositViewModel) {
+internal fun DepositDestinationScreen(viewModel: DepositViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     DepositScreenContent(state, viewModel::dispatchEvent)
 }

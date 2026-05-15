@@ -6,6 +6,7 @@ import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.navigation.Key
 import com.flipcash.app.core.navigation.fragments
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.app.router.Router
 import com.flipcash.app.router.internal.AppRouter.Companion.cashLink
@@ -70,12 +71,14 @@ internal class AppRouter(
         val origin = EmailDeeplinkOrigin.deserialize(type.origin.orEmpty())
         val routes: List<AppRoute> = when (origin) {
             is EmailDeeplinkOrigin.OnRamp -> when (val source = origin.source) {
-                is AppRoute.Token.OnRamp -> {
+                is AppRoute.Token.Swap -> {
+                    val mint = (source.purpose as? SwapPurpose.Buy)?.mint
+                        ?: return DeeplinkAction.None
                     listOf(
-                        AppRoute.Token.Info(source.mint),
-                        AppRoute.Token.OnRamp(source.mint),
+                        AppRoute.Token.Info(mint),
+                        AppRoute.Token.Swap(SwapPurpose.Buy(mint)),
                     ) + AppRoute.Verification(
-                        origin = AppRoute.Token.OnRamp(source.mint),
+                        origin = AppRoute.Token.Swap(SwapPurpose.Buy(mint)),
                         includePhone = false,
                         email = type.email,
                         emailVerificationCode = type.code

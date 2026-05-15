@@ -150,6 +150,15 @@ sealed interface FeatureFlag<T: Any> {
     }
 
     @FeatureFlagMarker
+    data object DepositUsdc: FeatureFlag<Boolean> {
+        override val key: String = "deposit_usdc_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
+    @FeatureFlagMarker
     data object BackgroundReset : FeatureFlag<BackgroundResetTimeout> {
         override val key: String = "idle_reset"
         override val default = BackgroundResetTimeout.FiveMinutes
@@ -187,6 +196,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.TokenDiscovery -> "Token Discovery"
         FeatureFlag.CurrencyCreator -> "Currency Creator"
         FeatureFlag.BillTextures -> "Bill Textures"
+        FeatureFlag.DepositUsdc -> "Deposit USDC"
         FeatureFlag.BackgroundReset -> "Background Reset"
     }
 
@@ -206,6 +216,7 @@ val FeatureFlag<*>.message: String
         FeatureFlag.TokenDiscovery -> "When enabled, you'll gain access to leaderboards for tokens and discovery"
         FeatureFlag.CurrencyCreator -> "When enabled, you'll gain access to create new currencies"
         FeatureFlag.BillTextures -> "When enabled, you'll gain the ability to select textures for bills during currency creation"
+        FeatureFlag.DepositUsdc -> "When enabled, you'll gain the ability to deposit USDC directly from any external wallet app instead of purchasing a currency first and sell"
         FeatureFlag.BackgroundReset -> "Automatically returns the app to the camera screen after a period of inactivity with the app in the background"
     }
 

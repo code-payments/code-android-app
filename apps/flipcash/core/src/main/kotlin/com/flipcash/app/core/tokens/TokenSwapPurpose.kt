@@ -15,11 +15,21 @@ import kotlinx.serialization.Serializable
  * @see Sell Represents a liquidation intent (e.g., swapping a specific token back to base currency).
  */
 @Serializable
+enum class FundingSource {
+    Flexible,
+    Phantom,
+    Coinbase,
+}
+
+@Serializable
 @Parcelize
 sealed interface SwapPurpose : Parcelable {
+    val mint: Mint
     sealed interface BalanceIncrease
     sealed interface BalanceDecrease
-    @Serializable data class Buy(val mint: Mint) : SwapPurpose, BalanceIncrease
-    @Serializable data class FundWithWallet(val mint: Mint): SwapPurpose, BalanceIncrease
-    @Serializable data class Sell(val mint: Mint) : SwapPurpose, BalanceDecrease
+    @Serializable data class Buy(
+        override val mint: Mint,
+        val fundingSource: FundingSource = FundingSource.Flexible,
+    ) : SwapPurpose, BalanceIncrease
+    @Serializable data class Sell(override val  mint: Mint) : SwapPurpose, BalanceDecrease
 }

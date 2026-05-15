@@ -34,7 +34,7 @@ import kotlinx.coroutines.flow.onEach
  * Flow-aware swap processing content, used inside `SwapFlowScreen`.
  */
 @Composable
-internal fun SwapProcessingContent(
+internal fun SwapProcessingScreen(
     swapId: SwapId,
     awaitExternalWallet: Boolean = false,
 ) {

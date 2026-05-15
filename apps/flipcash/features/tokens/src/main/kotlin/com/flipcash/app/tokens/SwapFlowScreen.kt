@@ -52,10 +52,16 @@ fun SwapFlowScreen(
 
 private fun swapEntryProvider(): (NavKey) -> NavEntry<NavKey> = entryProvider {
     flowAnnotatedEntry<SwapStep.Entry> { step ->
-        SwapEntryContent(step.purpose)
+        SwapEntryScreen(step.purpose, step.initialAmount)
     }
-    annotatedEntry<SwapStep.SellReceipt> { SellReceiptContent() }
+    annotatedEntry<SwapStep.SellReceipt> { SellReceiptScreen() }
+    annotatedEntry<SwapStep.PhantomConnect> {
+        PhantomConnectConfirmationScreen()
+    }
+    annotatedEntry<SwapStep.PhantomConfirmTransaction> {
+        PhantomTransactionConfirmationScreen()
+    }
     annotatedEntry<SwapStep.Processing> { step ->
-        SwapProcessingContent(step.swapId, step.awaitExternalWallet)
+        SwapProcessingScreen(step.swapId, step.awaitExternalWallet)
     }
 }

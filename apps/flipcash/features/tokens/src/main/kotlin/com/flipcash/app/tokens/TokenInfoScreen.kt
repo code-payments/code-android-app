@@ -41,7 +41,6 @@ fun TokenInfoScreen(
     fromDeeplink: Boolean,
 ) {
     val navigator = LocalCodeNavigator.current
-    val externalWalletOnRampController = LocalExternalWalletOnRampController.current
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -54,15 +53,11 @@ fun TokenInfoScreen(
             isInModal = true,
             title = {
                 state.token.dataOrNull?.let { token ->
-                    if (state.isCashReserve) {
-                        AppBarDefaults.Title(text = stringResource(R.string.title_cashReserves))
-                    } else {
-                        TokenIconWithName(
-                            token = token,
-                            imageSize = CodeTheme.dimens.staticGrid.x5,
-                            spacing = CodeTheme.dimens.grid.x1,
-                        )
-                    }
+                    TokenIconWithName(
+                        token = token,
+                        imageSize = CodeTheme.dimens.staticGrid.x5,
+                        spacing = CodeTheme.dimens.grid.x1,
+                    )
                 }
             },
             titleAlignment = Alignment.CenterHorizontally,
@@ -114,26 +109,6 @@ fun TokenInfoScreen(
                 .onEach {
                     navigator.push(it)
                 }.launchIn(this)
-        }
-
-        val animationScale by rememberAnimationScale()
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<TokenInfoViewModel.Event.ConnectPhantomWallet>()
-                .onEach { delay(300.scaled(animationScale)) }
-                .onEach {
-                    externalWalletOnRampController.start(AppRoute.Token.Info(mint), OnRampProvider.Phantom)
-                }.launchIn(this)
-        }
-
-        // Navigate to pending routes from ExternalWalletOnRampHandler using the
-        // sheet's inner navigator (which the handler can't access directly).
-        LaunchedEffect(Unit) {
-            externalWalletOnRampController.pendingNavigation.collect { nav ->
-                if (nav is AppRoute.Token.Swap) {
-                    navigator.push(nav)
-                }
-            }
         }
     }
 }
