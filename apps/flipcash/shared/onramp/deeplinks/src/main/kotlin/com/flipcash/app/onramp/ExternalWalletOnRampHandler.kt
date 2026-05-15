@@ -5,19 +5,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.android.IntentUtils
-import com.flipcash.app.core.android.extensions.canNativelyHandle
 import com.flipcash.app.core.tokens.SwapPurpose
-import com.flipcash.app.onramp.internal.buildConnectDeeplink
-import com.flipcash.app.onramp.internal.buildTransactionDeeplink
-import com.flipcash.app.onramp.internal.curvePublicKey
-import com.flipcash.app.onramp.internal.packageName
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.shared.onramp.deeplinks.R
 import com.getcode.manager.BottomBarAction
@@ -41,8 +33,6 @@ fun ExternalWalletOnRampHandler(
     val state by controller.state.collectAsStateWithLifecycle()
     val amount by controller.amount.collectAsStateWithLifecycle()
 
-    val uriHandler = LocalUriHandler.current
-    val context = LocalContext.current
     val resources = LocalResources.current
 
     fun close(exit: Boolean) {
@@ -78,38 +68,17 @@ fun ExternalWalletOnRampHandler(
             is ExternalWalletOnRampState.Idle -> Unit
 
             is ExternalWalletOnRampState.Started -> {
-                val uri = buildConnectDeeplink(
-                    provider = current.provider,
-                    curvePublicKey = controller.keyPair.curvePublicKey,
-                    origin = current.origin,
-                )
-                trace(
-                    tag = TAG,
-                    message = "wallet connect uri: $uri",
-                    type = TraceType.Process
-                )
-                if (uri?.canNativelyHandle(context) == true) {
-                    if (current.origin is AppRoute.Token.Info) {
-                        controller.emitPendingNavigation(
-                            AppRoute.Token.Swap(
-                                SwapPurpose.FundWithWallet(current.origin.mint),
-                                shortfall = current.origin.shortfall
-                            )
-                        )
-                    }
-
-                    analytics.connectWallet(current.provider)
-                    uriHandler.openUri(uri.toString())
-                    controller.transitionTo(
-                        ExternalWalletOnRampState.Connecting(
-                            origin = current.origin,
-                            provider = current.provider,
+                if (current.origin is AppRoute.Token.Info) {
+                    controller.emitPendingNavigation(
+                        AppRoute.Token.Swap(
+                            SwapPurpose.FundWithWallet(current.origin.mint),
+                            shortfall = current.origin.shortfall
                         )
                     )
-                } else {
-                    context.startActivity(IntentUtils.appStoreListing(current.provider.packageName))
-                    controller.reset()
                 }
+
+                analytics.connectWallet(current.provider)
+                composeScope.launch { controller.connectAndSign(current.origin) }
             }
 
             is ExternalWalletOnRampState.Connecting -> Unit
@@ -142,32 +111,6 @@ fun ExternalWalletOnRampHandler(
             }
 
             is ExternalWalletOnRampState.Signing -> {
-                val uri = buildTransactionDeeplink(
-                    provider = current.provider,
-                    curvePublicKey = controller.keyPair.curvePublicKey,
-                    encryptionPublicKey = current.encryptionPublicKey,
-                    unsignedTransaction = current.unsignedTransaction,
-                    session = current.connection.session,
-                    secretKey = controller.keyPair.secretKey.map { it.toByte() },
-                    origin = current.origin,
-                )
-                if (uri == null) {
-                    controller.transitionTo(
-                        ExternalWalletOnRampState.Failed(
-                            error = DeeplinkOnRampError.FailedToGenerateDeeplink(),
-                            origin = current.origin,
-                            provider = current.provider,
-                        )
-                    )
-                    return@LaunchedEffect
-                }
-
-                trace(
-                    tag = TAG,
-                    message = "wallet transact uri: $uri",
-                    type = TraceType.Process
-                )
-
                 val swapId = current.swapId
                 if (current.origin is AppRoute.Token.Info && swapId != null) {
                     controller.emitPendingNavigation(
@@ -178,7 +121,12 @@ fun ExternalWalletOnRampHandler(
                 }
 
                 analytics.amountSelectedForWalletTransfer(current.provider, current.amount.localFiat.underlyingTokenAmount)
-                uriHandler.openUri(uri.toString())
+
+                // When amount was deferred (Token.Info / CurrencyCreator), connectAndSign()
+                // returned early after connect. Drive the sign + send steps now.
+                if (current.origin is AppRoute.Token.Info || current.origin is AppRoute.Token.CurrencyCreator) {
+                    composeScope.launch { controller.signAndSend() }
+                }
             }
 
             is ExternalWalletOnRampState.Signed -> {
@@ -267,9 +215,7 @@ fun ExternalWalletOnRampHandler(
                 val (title, message) = error.messaging(
                     resources = resources,
                     provider = when (current.provider) {
-                        OnRampProvider.Backpack -> resources.getString(R.string.label_backpack)
                         OnRampProvider.Phantom -> resources.getString(R.string.label_phantom)
-                        OnRampProvider.Solflare -> resources.getString(R.string.label_solflare)
                         null -> ""
                     }
                 )
@@ -349,11 +295,8 @@ private typealias Title = String
 private typealias Message = String
 
 private fun DeeplinkOnRampError.messaging(resources: Resources, provider: String): Pair<Title, Message> = when (this) {
-    is DeeplinkOnRampError.DecryptionError -> resources.getString(R.string.error_title_deeplinkOnRampDecryption) to resources.getString(R.string.error_description_deeplinkOnRampDecryption).format(provider)
-    is DeeplinkOnRampError.DeserializationError -> resources.getString(R.string.error_title_deeplinkOnRampDeserialization) to resources.getString(R.string.error_description_deeplinkOnRampDeserialization).format(provider)
     is DeeplinkOnRampError.FailedToCreateTransaction -> resources.getString(R.string.error_title_deeplinkOnRampFailedToCreateTransaction) to resources.getString(R.string.error_description_deeplinkOnRampFailedToCreateTransaction)
     is DeeplinkOnRampError.FailedToSimulateTransaction -> resources.getString(R.string.error_title_deeplinkOnRampFailedToSimulateTransaction) to resources.getString(R.string.error_description_deeplinkOnRampFailedToSimulateTransaction)
-    is DeeplinkOnRampError.FailedToGenerateDeeplink -> resources.getString(R.string.error_title_deeplinkOnRampFailedToCreateDeeplink) to resources.getString(R.string.error_description_deeplinkOnRampFailedToCreateDeeplink)
     is DeeplinkOnRampError.FailedToSendTransaction -> resources.getString(R.string.error_title_deeplinkOnRampFailedToSendTransaction) to resources.getString(R.string.error_description_deeplinkOnRampFailedToSendTransaction).format(provider)
     is DeeplinkOnRampError.FailedToSubmitBuyToServer -> resources.getString(R.string.error_title_deeplinkOnRampExternalFundBuy) to resources.getString(R.string.error_description_deeplinkOnRampExternalFundBuy).format(provider)
     is DeeplinkOnRampError.InsufficientSol -> resources.getString(R.string.error_title_deeplinkOnRampInsufficientSol) to resources.getString(R.string.error_description_deeplinkOnRampInsufficientSol, provider)

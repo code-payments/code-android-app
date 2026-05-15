@@ -47,7 +47,6 @@ import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOve
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.onramp.CoinbaseOnRampHandler
 import com.flipcash.app.onramp.ExternalWalletOnRampHandler
-import com.flipcash.app.onramp.LocalExternalWalletOnRampController
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashTheme
@@ -238,7 +237,6 @@ internal fun App(
                                 }
 
                                 val emailCodeChannel = LocalEmailCodeChannel.current
-                                val externalWalletController = LocalExternalWalletOnRampController.current
                                 LaunchedEffect(deepLink) {
                                     val link = deepLink ?: return@LaunchedEffect
 
@@ -266,10 +264,6 @@ internal fun App(
                                                 codeNavigator.navigateTo(action.routes)
                                             }
                                         }
-
-                                        is DeeplinkAction.ExternalWallet -> externalWalletController.handleWalletDeeplink(
-                                            action.type
-                                        )
 
                                         is DeeplinkAction.Login -> viewModel.handleLoginEntropy(
                                             action.entropy,

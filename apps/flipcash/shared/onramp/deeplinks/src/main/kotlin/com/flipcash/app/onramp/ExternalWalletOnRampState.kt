@@ -26,14 +26,12 @@ sealed interface ExternalWalletOnRampState {
         val origin: AppRoute,
         val provider: OnRampProvider.UsesDeeplinks,
         val connection: ExternalWalletConnection,
-        val encryptionPublicKey: List<Byte>,
     ) : ExternalWalletOnRampState
 
     data class Signing(
         val origin: AppRoute,
         val provider: OnRampProvider.UsesDeeplinks,
         val connection: ExternalWalletConnection,
-        val encryptionPublicKey: List<Byte>,
         val unsignedTransaction: List<Byte>,
         val amount: VerifiedFiat,
         val fee: LocalFiat,

@@ -6,9 +6,6 @@ sealed class DeeplinkOnRampError(
     override val cause: Throwable? = null,
 ) : Throwable(message) {
 
-    class FailedToGenerateDeeplink(
-        override val message: String? = null
-    ) : DeeplinkOnRampError(message = message)
     class FailedToCreateTransaction(
         override val message: String?,
         override val cause: Throwable? = null
@@ -30,16 +27,6 @@ sealed class DeeplinkOnRampError(
         override val message: String?,
         override val cause: Throwable? = null
     ): DeeplinkOnRampError(message = message, cause = cause)
-
-    class DecryptionError(
-        override val message: String?,
-        override val cause: Throwable? = null
-    ) : DeeplinkOnRampError(message = message, cause = cause)
-
-    class DeserializationError(
-        override val message: String?,
-        override val cause: Throwable? = null
-    ) : DeeplinkOnRampError(message = message, cause = cause)
 
     class InsufficientSol(
         val requiredLamports: Long,
@@ -73,4 +60,3 @@ enum class DeeplinkError(val code: Long) {
         fun fromCode(code: String?) = fromCode(code?.toLongOrNull())
     }
 }
-

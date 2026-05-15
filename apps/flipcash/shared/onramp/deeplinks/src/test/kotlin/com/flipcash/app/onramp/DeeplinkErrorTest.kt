@@ -80,7 +80,6 @@ class DeeplinkErrorTest {
                 message = "disconnected"
             ),
             DeeplinkOnRampError.FailedToCreateTransaction(message = "fail"),
-            DeeplinkOnRampError.DecryptionError(message = "fail"),
         )
 
         errors.forEach { error ->

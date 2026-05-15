@@ -89,6 +89,7 @@ bugsnag-gradle-plugin = "1.1.0"
 rinku = "1.6.0"
 haze = "1.7.2"
 cloudy = "0.5.0"
+phantom-connect-kmp = "2.0.2"
 vico = "2.4.1"
 
 androidxTestRules = "1.7.0"
@@ -267,6 +268,8 @@ cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
 fingerprint-pro = { module = "com.fingerprint.android:pro", version = "2.4.0" }
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "haze" }
+phantom-connect = { module = "dev.bmcreations:phantom-connect", version.ref = "phantom-connect-kmp" }
+phantom-connect-wallet = { module = "dev.bmcreations:phantom-connect-wallet", version.ref = "phantom-connect-kmp" }
 rinku = { module = "dev.theolm:rinku", version.ref = "rinku" }
 rinku-compose = { module = "dev.theolm:rinku-compose-ext", version.ref = "rinku" }
 event-bus = { module = "io.github.hoc081098:channel-event-bus", version.ref = "event-bus" }

@@ -16,6 +16,7 @@ import com.flipcash.app.currency.PreferredCurrencyController
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
+import dev.bmcreations.phantom.connect.PhantomSdk
 import dagger.hilt.android.HiltAndroidApp
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import javax.inject.Inject
@@ -48,6 +49,7 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
             ErrorUtils.handleError(it)
         }
 
+        PhantomSdk.init(this)
         authManager.init()
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)

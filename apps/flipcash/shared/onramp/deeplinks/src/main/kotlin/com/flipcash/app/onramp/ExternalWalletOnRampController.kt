@@ -1,10 +1,8 @@
 package com.flipcash.app.onramp
 
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.encryption.boxOpen
-import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.onramp.deeplinks.ExternalWalletConnection
-import com.flipcash.app.core.onramp.deeplinks.ExternallySignedTransaction
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.UsdcLiquidtyPool
@@ -42,12 +40,14 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.base64
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
-import com.ionspin.kotlin.crypto.box.Box
-import com.ionspin.kotlin.crypto.box.BoxKeyPair
 import com.solana.networking.Rpc20Driver
 import com.solana.transaction.Message
 import com.solana.transaction.toUnsignedTransaction
 import dagger.hilt.android.scopes.ActivityRetainedScoped
+import dev.bmcreations.phantom.connect.WalletConnectorResult
+import dev.bmcreations.phantom.connect.WalletSignResult
+import dev.bmcreations.phantom.connect.wallet.PhantomWalletConnector
+import dev.bmcreations.phantom.connect.wallet.PhantomWalletException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -56,10 +56,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 @ActivityRetainedScoped
@@ -68,9 +65,8 @@ class ExternalWalletOnRampController @Inject constructor(
     private val userFlags: UserFlagsCoordinator,
     private val transactionController: TransactionOperations,
     private val rpcConfig: RpcConfig,
+    private val phantomConnector: PhantomWalletConnector,
 ) {
-    val keyPair: BoxKeyPair = Box.keypair()
-
     private val _state = MutableStateFlow<ExternalWalletOnRampState>(ExternalWalletOnRampState.Idle)
     val state: StateFlow<ExternalWalletOnRampState> = _state.asStateFlow()
 
@@ -118,45 +114,111 @@ class ExternalWalletOnRampController @Inject constructor(
         _state.value = state
     }
 
-    fun handleWalletDeeplink(type: DeeplinkType) {
+    suspend fun connectAndSign(origin: AppRoute) {
         val currentState = _state.value
-        when (type) {
-            is DeeplinkType.ExternalWalletConnection -> {
-                val result = type.result
-                val error = type.error
-                if (result != null) {
-                    decryptConnection(result.encryptionPublicKey, result.encryptedData, result.nonce, currentState)
-                } else {
-                    val resolvedError = DeeplinkError.fromCode(error?.errorCode)
-                    val message = error?.errorMessage ?: "Something went wrong"
+        val provider = currentState.provider ?: return
+
+        phantomConnector.beginCeremony()
+        try {
+            // 1. Connect
+            transitionTo(
+                ExternalWalletOnRampState.Connecting(origin = origin, provider = provider)
+            )
+
+            when (val connectResult = phantomConnector.connect()) {
+                is WalletConnectorResult.Connected -> {
+                    val publicKey = PublicKey(Base58.decode(connectResult.publicKeyBase58).toList())
+                    val walletConnection = ExternalWalletConnection(
+                        publicKey = publicKey,
+                        session = connectResult.publicKeyBase58,
+                    )
                     transitionTo(
-                        ExternalWalletOnRampState.Failed(
-                            error = DeeplinkOnRampError.WalletProvidedError(resolvedError, message = message),
-                            origin = currentState.origin,
-                            provider = currentState.provider,
+                        ExternalWalletOnRampState.Connected(
+                            origin = origin,
+                            provider = provider,
+                            connection = walletConnection,
                         )
                     )
                 }
-            }
-            is DeeplinkType.ExternalWalletSignedTransaction -> {
-                val result = type.result
-                val error = type.error
-                if (result != null) {
-                    decryptSigning(result.encryptedData, result.nonce, currentState)
-                } else {
-                    val resolvedError = DeeplinkError.fromCode(error?.errorCode)
-                    val message = error?.errorMessage ?: "Something went wrong"
-                    transitionTo(
-                        ExternalWalletOnRampState.Failed(
-                            error = DeeplinkOnRampError.WalletProvidedError(resolvedError, message = message),
-                            origin = currentState.origin,
-                            provider = currentState.provider,
-                        )
+
+                is WalletConnectorResult.Cancelled -> {
+                    fail(
+                        DeeplinkOnRampError.WalletProvidedError(
+                            DeeplinkError.UserRejectedRequest,
+                            message = connectResult.reason ?: "User cancelled connection"
+                        ),
+                        currentState
                     )
+                    return
+                }
+
+                is WalletConnectorResult.Error -> {
+                    fail(mapConnectorError(connectResult.cause), currentState)
+                    return
                 }
             }
-            else -> {}
+
+            // 2. Build transaction (waits for amount if needed)
+            val amount = _amount.value
+            if (amount != null) {
+                when (origin) {
+                    is AppRoute.Token.Info,
+                    is AppRoute.Token.CurrencyCreator -> createAndValidateSwapTransaction()
+                    else -> createAndValidateDepositTransaction()
+                }
+            } else {
+                // Amount not yet set — handler will navigate to amount entry.
+                // connectAndSign returns here; the handler re-triggers tx building
+                // once amount is set via the Connected state observation.
+                return
+            }
+
+            // 3. Sign + Send
+            signAndSend()
+        } catch (e: Exception) {
+            fail(
+                DeeplinkOnRampError.FailedToCreateTransaction(message = e.message, cause = e),
+                _state.value
+            )
+        } finally {
+            phantomConnector.endCeremony()
         }
+    }
+
+    suspend fun signAndSend() {
+        val signingState = _state.value
+        if (signingState !is ExternalWalletOnRampState.Signing) return
+
+        val txBase58 = Base58.encode(signingState.unsignedTransaction.toByteArray())
+
+        when (val signResult = phantomConnector.signTransaction(txBase58)) {
+            is WalletSignResult.Success -> {
+                val signedTxBase58 = signResult.signature
+                val signature = firstSignature(signedTxBase58)
+                    ?: error("Could not extract signature from signed transaction")
+
+                transitionTo(
+                    ExternalWalletOnRampState.Signed(
+                        origin = signingState.origin,
+                        provider = signingState.provider,
+                        connection = signingState.connection,
+                        signedTransaction = signedTxBase58,
+                        signature = signature,
+                        amount = signingState.amount,
+                        fee = signingState.fee,
+                        token = signingState.token,
+                        swapId = signingState.swapId,
+                    )
+                )
+            }
+
+            is WalletSignResult.Error -> {
+                fail(mapConnectorError(signResult.cause), signingState)
+                return
+            }
+        }
+
+        sendTransaction()
     }
 
     suspend fun createAndValidateSwapTransaction() {
@@ -199,7 +261,6 @@ class ExternalWalletOnRampController @Inject constructor(
                         origin = state.origin,
                         provider = state.provider,
                         connection = state.connection,
-                        encryptionPublicKey = state.encryptionPublicKey,
                         unsignedTransaction = transaction.encode().toList(),
                         amount = amount,
                         fee = fee,
@@ -237,7 +298,6 @@ class ExternalWalletOnRampController @Inject constructor(
                         origin = state.origin,
                         provider = state.provider,
                         connection = state.connection,
-                        encryptionPublicKey = state.encryptionPublicKey,
                         unsignedTransaction = transaction.serialize().toList(),
                         amount = amount,
                         fee = fee,
@@ -318,92 +378,6 @@ class ExternalWalletOnRampController @Inject constructor(
             } else {
                 sendIt()
             }
-        }
-    }
-
-    private fun decryptConnection(
-        encryptionPublicKey: List<Byte>,
-        encryptedData: List<Byte>,
-        nonce: List<Byte>,
-        currentState: ExternalWalletOnRampState,
-    ) {
-        try {
-            val data = encryptedData.boxOpen(
-                privateKey = keyPair.secretKey.map { it.toByte() },
-                publicKey = encryptionPublicKey,
-                nonce = nonce,
-            ).map { String(it.toByteArray()) }
-                .fold(
-                    onSuccess = {
-                        runCatching { Json.decodeFromString<ExternalWalletConnection>(it) }
-                            .onFailure { error ->
-                                fail(
-                                    DeeplinkOnRampError.DeserializationError(error.message, cause = error),
-                                    currentState
-                                )
-                            }
-                    },
-                    onFailure = {
-                        Result.failure(it)
-                    }
-                ).getOrThrow()
-
-            transitionTo(
-                ExternalWalletOnRampState.Connected(
-                    origin = currentState.origin ?: error("Origin is null"),
-                    provider = currentState.provider ?: error("Provider is null"),
-                    connection = data,
-                    encryptionPublicKey = encryptionPublicKey,
-                )
-            )
-        } catch (e: Exception) {
-            fail(DeeplinkOnRampError.DecryptionError(e.message, cause = e), currentState)
-        }
-    }
-
-    private fun decryptSigning(
-        encryptedData: List<Byte>,
-        nonce: List<Byte>,
-        currentState: ExternalWalletOnRampState,
-    ) {
-        val signing = currentState as? ExternalWalletOnRampState.Signing ?: return
-        try {
-            val data = encryptedData.boxOpen(
-                privateKey = keyPair.secretKey.map { it.toByte() },
-                publicKey = signing.encryptionPublicKey,
-                nonce = nonce,
-            ).map { String(it.toByteArray()) }
-                .fold(
-                    onSuccess = {
-                        runCatching { Json.decodeFromString<ExternallySignedTransaction>(it) }
-                            .onFailure { error ->
-                                fail(
-                                    DeeplinkOnRampError.DeserializationError(error.message, cause = error),
-                                    currentState
-                                )
-                            }
-                    },
-                    onFailure = { Result.failure(it) }
-                ).getOrThrow()
-
-            val signature = firstSignature(data.serializedTransaction)
-                ?: error("Could not extract signature from signed transaction")
-
-            transitionTo(
-                ExternalWalletOnRampState.Signed(
-                    origin = signing.origin,
-                    provider = signing.provider,
-                    connection = signing.connection,
-                    signedTransaction = data.serializedTransaction,
-                    signature = signature,
-                    amount = signing.amount,
-                    fee = signing.fee,
-                    token = signing.token,
-                    swapId = signing.swapId,
-                )
-            )
-        } catch (e: Exception) {
-            fail(DeeplinkOnRampError.DecryptionError(e.message, cause = e), currentState)
         }
     }
 
@@ -591,6 +565,14 @@ class ExternalWalletOnRampController @Inject constructor(
                 provider = currentState.provider,
             )
         )
+    }
+
+    private fun mapConnectorError(cause: Throwable): DeeplinkOnRampError {
+        if (cause is PhantomWalletException) {
+            val deeplinkError = DeeplinkError.fromCode(cause.code.toLong())
+            return DeeplinkOnRampError.WalletProvidedError(deeplinkError, message = cause.message)
+        }
+        return DeeplinkOnRampError.FailedToCreateTransaction(message = cause.message, cause = cause)
     }
 }
 

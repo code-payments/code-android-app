@@ -14,17 +14,12 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.rpc.RpcConfig
-import com.ionspin.kotlin.crypto.box.Box
-import com.ionspin.kotlin.crypto.box.BoxKeyPair
 import com.solana.networking.HttpNetworkDriver
 import com.solana.networking.HttpRequest
+import dev.bmcreations.phantom.connect.wallet.PhantomWalletConnector
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.unmockkObject
 import kotlinx.coroutines.test.runTest
-import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertTrue
@@ -36,6 +31,7 @@ class ExternalWalletBalanceCheckTest {
     private val transactionController = mockk<TransactionOperations>(relaxed = true)
     private val networkDriver = mockk<HttpNetworkDriver>()
     private val rpcConfig = RpcConfig(networkDriver = networkDriver, rpcUrl = "https://localhost")
+    private val phantomConnector = mockk<PhantomWalletConnector>(relaxed = true)
 
     private lateinit var controller: ExternalWalletOnRampController
 
@@ -43,19 +39,13 @@ class ExternalWalletBalanceCheckTest {
 
     @Before
     fun setUp() {
-        mockkObject(Box)
-        every { Box.keypair() } returns mockk<BoxKeyPair>(relaxed = true)
         controller = ExternalWalletOnRampController(
             userManager = userManager,
             userFlags = userFlags,
             transactionController = transactionController,
             rpcConfig = rpcConfig,
+            phantomConnector = phantomConnector,
         )
-    }
-
-    @After
-    fun tearDown() {
-        unmockkObject(Box)
     }
 
     private fun putControllerInConnectedState(requiredQuarks: Long = 10_000_000L) {
@@ -67,7 +57,6 @@ class ExternalWalletBalanceCheckTest {
                     publicKey = testPublicKey,
                     session = "test-session",
                 ),
-                encryptionPublicKey = List(32) { 0.toByte() },
             )
         )
         controller.setAmount(

@@ -9,12 +9,9 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.ButtonColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -36,9 +33,7 @@ fun buildExternalWalletButtonLabel(
     colors: ButtonColors = ButtonState.Filled.colors(),
 ): AnnotatedButtonLabel {
     val (title, icon) = when (provider) {
-        OnRampProvider.Backpack -> stringResource(R.string.label_backpack) to painterResource(R.drawable.ic_backpack_wallet)
         OnRampProvider.Phantom -> stringResource(R.string.label_phantom) to painterResource(R.drawable.ic_phantom_wallet)
-        OnRampProvider.Solflare -> stringResource(R.string.label_solflare) to painterResource(R.drawable.ic_solflare_wallet)
     }
 
     val currentIsEnabled by rememberUpdatedState(isEnabled)

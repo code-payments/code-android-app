@@ -28,16 +28,6 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:host="phantom.app" />
         </intent>
-
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:host="backpack.app" />
-        </intent>
-
-        <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:host="solflare.com" />
-        </intent>
     </queries>
 
     <application
@@ -82,8 +72,6 @@
                 <data android:pathPattern="/login.*" />
                 <data android:pathPattern="/token.*" />
                 <data android:pathPattern="/verify.*" />
-                <data android:pathPattern="/external/.*/connected" />
-                <data android:pathPattern="/external/.*/signed" />
             </intent-filter>
 
             <!-- send.flipcash.com App Links -->
@@ -160,29 +148,6 @@
                     android:scheme="https" />
             </intent-filter>
 
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="app.flipcash.com"
-                    android:pathPattern="/external/.*/connected"
-                    android:scheme="https" />
-            </intent-filter>
-
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="app.flipcash.com"
-                    android:pathPattern="/external/.*/signed"
-                    android:scheme="https" />
-            </intent-filter>
 
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -229,6 +194,19 @@
                     android:host="send.flipcash.com"
                     android:pathPattern="/c/.*"
                     android:scheme="codewallet" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="dev.bmcreations.phantom.connect.wallet.PhantomWalletCallbackActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="codewallet" android:host="phantom-wallet-callback" />
             </intent-filter>
         </activity>
 
