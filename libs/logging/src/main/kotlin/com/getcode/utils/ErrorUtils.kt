@@ -80,10 +80,11 @@ object ErrorUtils {
                 throwable is UnknownHostException ||
                 throwable.cause is UnknownHostException
 
-    private fun isGmsTransientError(throwable: Throwable): Boolean {
-        fun check(t: Throwable?) = t is java.io.IOException && t.message == "SERVICE_NOT_AVAILABLE"
-        return check(throwable) || check(throwable.cause)
-    }
+    private val gmsTransientMessages = setOf("SERVICE_NOT_AVAILABLE", "FIS_AUTH_ERROR")
+
+    private fun isGmsTransientError(throwable: Throwable): Boolean =
+        generateSequence(throwable) { it.cause }
+            .any { it is java.io.IOException && it.message in gmsTransientMessages }
 
     val ignoredGrpcStatusCodes = setOf(
         // Transport/transient
