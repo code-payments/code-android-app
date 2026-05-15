@@ -240,7 +240,6 @@ class CoinbaseOnRampControllerTest {
         // care that it never calls detect() or check()
         runCatching {
             controller.placeOrderAndStartPayment(
-                amount = Fiat(10, CurrencyCode.USD),
                 token = Token.usdf,
                 verifiedFiat = mockk(relaxed = true),
             )

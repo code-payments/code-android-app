@@ -3,6 +3,7 @@ package com.flipcash.app.cash.internal
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.cash.R
@@ -338,12 +339,12 @@ internal class CashScreenViewModel @Inject constructor(
             .filterIsInstance<Event.AddCashToWallet>()
             .map { it.amount }
             .onEach { shortfall ->
-                // route to buy the token
-                println("shortfall=$shortfall")
+                // route directly to the swap amount screen, skipping token info
+                val mint = stateFlow.value.selectedTokenAddress!!
                 dispatchEvent(
                     Event.OpenScreen(
-                        AppRoute.Token.Info(
-                            mint = stateFlow.value.selectedTokenAddress!!,
+                        AppRoute.Token.Swap(
+                            purpose = SwapPurpose.Buy(mint),
                             shortfall = shortfall,
                         ),
                     )

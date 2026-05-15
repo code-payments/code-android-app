@@ -77,6 +77,9 @@ class ExternalWalletOnRampController @Inject constructor(
     private val _pendingNavigation = MutableSharedFlow<AppRoute>(extraBufferCapacity = 1)
     val pendingNavigation: SharedFlow<AppRoute> = _pendingNavigation.asSharedFlow()
 
+    private val _flowExitRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val flowExitRequests: SharedFlow<Unit> = _flowExitRequests.asSharedFlow()
+
     private val _amount = MutableStateFlow<VerifiedFiat?>(null)
     val amount: StateFlow<VerifiedFiat?> = _amount.asStateFlow()
 
@@ -105,6 +108,10 @@ class ExternalWalletOnRampController @Inject constructor(
 
     fun emitPendingNavigation(route: AppRoute) {
         _pendingNavigation.tryEmit(route)
+    }
+
+    fun requestFlowExit() {
+        _flowExitRequests.tryEmit(Unit)
     }
 
     fun reset() {

@@ -71,12 +71,21 @@ internal fun purchaseOptions(
 
         add(
             buildButtonAction(
-                prefix = resources.getString(R.string.label_solanaUsdc),
+                prefix = null,
                 suffix = resources.getString(R.string.label_phantom),
                 iconRes = R.drawable.ic_phantom_wallet,
                 onClick = { onClick(PurchaseMethod.PhantomWallet) }
             )
         )
+
+        if (state.canUseOtherWallets) {
+            add(
+                BottomBarAction(
+                    text = resources.getString(R.string.title_onrampProviderOtherWallet),
+                    onClick = { onClick(PurchaseMethod.OtherWallet) }
+                )
+            )
+        }
 
         add(
             BottomBarAction(

@@ -127,11 +127,10 @@ class CoinbaseOnRampController @Inject constructor(
     }
 
     suspend fun placeOrderAndStartPayment(
-        amount: Fiat,
         token: Token,
         verifiedFiat: VerifiedFiat,
     ): Result<Unit> {
-        return placeOrderInclusiveOfFees(amount)
+        return placeOrderInclusiveOfFees(verifiedFiat.localFiat.underlyingTokenAmount)
             .mapCatching { (orderId, paymentLink) ->
                 val owner = userManager.accountCluster
                     ?: throw IllegalStateException("No account cluster")

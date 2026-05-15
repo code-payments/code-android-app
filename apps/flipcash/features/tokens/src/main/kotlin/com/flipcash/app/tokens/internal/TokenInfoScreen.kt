@@ -29,9 +29,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.Button
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
@@ -42,7 +40,6 @@ import com.flipcash.app.tokens.internal.components.info.MarketCapSection
 import com.flipcash.app.tokens.internal.components.info.TokenBalance
 import com.flipcash.app.tokens.internal.components.info.TokenDetailsSection
 import com.flipcash.features.tokens.R
-import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.drawWithGradient
@@ -291,7 +288,7 @@ private fun BottomBarButtons(
                     buttonState = ButtonState.Filled,
                     text = stringResource(R.string.action_buy),
                 ) {
-                    dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(shortfall))
+                    dispatch(TokenInfoViewModel.Event.OnBuy(shortfall))
                 }
 
                 if (canGive) {

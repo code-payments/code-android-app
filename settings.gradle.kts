@@ -94,7 +94,6 @@ include(
     ":apps:flipcash:features:backupkey",
     ":apps:flipcash:features:shareapp",
     ":apps:flipcash:features:withdrawal",
-    ":apps:flipcash:features:onramp",
     ":apps:flipcash:features:contact-verification",
     ":apps:flipcash:features:tokens",
     ":apps:flipcash:features:transactions",

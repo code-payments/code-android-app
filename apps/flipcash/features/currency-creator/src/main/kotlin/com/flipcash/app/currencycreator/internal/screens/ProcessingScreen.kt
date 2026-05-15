@@ -6,15 +6,14 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.core.ui.processing.FlowProcessingScreen
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.currencycreator.internal.CurrencyCreatorViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.flow.flowSharedViewModel
@@ -24,7 +23,6 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.view.LoadingSuccessState
-import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.minutes
 
 @Composable
