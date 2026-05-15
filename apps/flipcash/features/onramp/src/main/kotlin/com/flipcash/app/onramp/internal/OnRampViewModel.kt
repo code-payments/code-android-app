@@ -9,11 +9,12 @@ import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.onramp.CoinbaseOnRampState
 import com.flipcash.app.onramp.OnRampAuthError
 import com.flipcash.app.onramp.CoinbaseOnRampController
-import com.flipcash.app.onramp.OnRampPaymentError
+import com.flipcash.app.onramp.PurchaseGate
 import com.flipcash.features.onramp.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionOperations
@@ -39,6 +40,7 @@ import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -83,7 +85,7 @@ internal class OnRampViewModel @Inject constructor(
     tokenController: TokenController,
     transactionController: TransactionOperations,
     dispatchers: DispatcherProvider,
-    analytics: FlipcashAnalyticsService,
+    private val analytics: FlipcashAnalyticsService,
 ) : BaseViewModel2<OnRampViewModel.State, OnRampViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -139,7 +141,7 @@ internal class OnRampViewModel @Inject constructor(
         data class UpdateOrderLookupState(
             val loading: Boolean = false,
             val success: Boolean = false
-        ): Event
+        ) : Event
 
         data class OnAmountAccepted(val amount: VerifiedFiat) : Event
 
@@ -169,16 +171,21 @@ internal class OnRampViewModel @Inject constructor(
         onRampController.state
             .onEach { s ->
                 when (s) {
-                    is CoinbaseOnRampState.Completed -> dispatchEvent(Event.UpdateOrderLookupState(success = true))
+                    is CoinbaseOnRampState.Completed ->
+                        dispatchEvent(Event.UpdateOrderLookupState(success = true))
+
                     is CoinbaseOnRampState.Failed -> {
                         dispatchEvent(Event.UpdateConfirmingAmountState())
                         dispatchEvent(Event.UpdateOrderLookupState())
                     }
+
                     CoinbaseOnRampState.Idle -> {
                         dispatchEvent(Event.UpdateConfirmingAmountState())
                         dispatchEvent(Event.UpdateOrderLookupState())
                     }
-                    is CoinbaseOnRampState.Paying -> dispatchEvent(Event.UpdateOrderLookupState(loading = true))
+
+                    is CoinbaseOnRampState.Paying ->
+                        dispatchEvent(Event.UpdateOrderLookupState(loading = true))
                 }
             }
             .launchIn(viewModelScope)
@@ -343,62 +350,7 @@ internal class OnRampViewModel @Inject constructor(
                                     return@onEach
                                 }
 
-                                onRampController.placeOrderAndStartPayment(
-                                    amount = selectedAmount.localFiat.underlyingTokenAmount,
-                                    token = token,
-                                    verifiedFiat = selectedAmount,
-                                ).onSuccess {
-                                    analytics.buy(
-                                        method = Analytics.PurchaseMethod.Coinbase,
-                                        amount = selectedAmount.localFiat.nativeAmount,
-                                        mint = token.address,
-                                    )
-                                }.onFailure { error ->
-                                    dispatchEvent(Event.UpdateConfirmingAmountState())
-
-                                    when (error) {
-                                        is OnRampAuthError.CoinbasePhoneVerificationRequired -> {
-                                            dispatchEvent(Event.OnVerificationNeeded(phone = true))
-                                        }
-
-                                        is OnRampAuthError.VerificationRequired -> {
-                                            dispatchEvent(
-                                                Event.OnVerificationNeeded(
-                                                    phone = error.phone,
-                                                    email = error.email
-                                                )
-                                            )
-                                        }
-
-                                        is OnRampPaymentError.GooglePayNotSupported -> {
-                                            BottomBarManager.showAlert(
-                                                title = resources.getString(R.string.error_title_onrampGooglePayNotSupported),
-                                                message = resources.getString(R.string.error_description_onrampGooglePayNotSupported),
-                                            )
-                                        }
-
-                                        is OnRampPaymentError.GooglePayNoPaymentMethod -> {
-                                            BottomBarManager.showAlert(
-                                                title = resources.getString(R.string.error_title_onrampGooglePayNotReady),
-                                                message = resources.getString(R.string.error_description_onrampGooglePayNotReady),
-                                            )
-                                        }
-
-                                        else -> {
-                                            analytics.buy(
-                                                method = Analytics.PurchaseMethod.Coinbase,
-                                                amount = selectedAmount.localFiat.nativeAmount,
-                                                mint = token.address,
-                                                error = error
-                                            )
-
-                                            BottomBarManager.showError(
-                                                title = "Something Went Wrong",
-                                                message = error.message ?: "Please try again",
-                                            )
-                                        }
-                                    }
-                                }
+                                executeCoinbasePurchase(selectedAmount, token)
                             }
 
                             else -> Unit
@@ -410,6 +362,109 @@ internal class OnRampViewModel @Inject constructor(
                     }
                 }
             }.launchIn(viewModelScope)
+    }
+
+    private suspend fun executeCoinbasePurchase(
+        selectedAmount: VerifiedFiat,
+        token: Token,
+    ) {
+        onRampController.checkPurchaseGates()
+            .fold(
+                onSuccess = { proceedWithCoinbasePurchase(selectedAmount, token) },
+                onFailure = { gate ->
+                    when (gate) {
+                        is PurchaseGate.GooglePayNotSupported -> {
+                            dispatchEvent(Event.UpdateConfirmingAmountState())
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_onrampGooglePayNotSupported),
+                                message = resources.getString(R.string.error_description_onrampGooglePayNotSupported),
+                            )
+                        }
+
+                        is PurchaseGate.GooglePayNoPaymentMethod -> {
+                            dispatchEvent(Event.UpdateConfirmingAmountState())
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_onrampGooglePayNotReady),
+                                message = resources.getString(R.string.error_description_onrampGooglePayNotReady),
+                            )
+                        }
+
+                        is PurchaseGate.WebViewWarning -> {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_onrampNonStableWebView),
+                                message = resources.getString(
+                                    R.string.error_description_onrampNonStableWebView,
+                                    gate.channel.name,
+                                ),
+                                actions = listOf(
+                                    BottomBarAction(
+                                        text = resources.getString(R.string.action_cancel),
+                                        style = BottomBarManager.BottomBarButtonStyle.Filled,
+                                    ) {
+                                        dispatchEvent(Event.UpdateConfirmingAmountState())
+                                    },
+                                    BottomBarAction(
+                                        text = resources.getString(R.string.action_continueAnyway),
+                                        style = BottomBarManager.BottomBarButtonStyle.Text,
+                                    ) {
+                                        viewModelScope.launch {
+                                            proceedWithCoinbasePurchase(selectedAmount, token)
+                                        }
+                                    },
+                                ),
+                            )
+                        }
+                    }
+                },
+            )
+    }
+
+    private suspend fun proceedWithCoinbasePurchase(
+        selectedAmount: VerifiedFiat,
+        token: Token,
+    ) {
+        onRampController.placeOrderAndStartPayment(
+            amount = selectedAmount.localFiat.underlyingTokenAmount,
+            token = token,
+            verifiedFiat = selectedAmount,
+        ).onSuccess {
+            analytics.buy(
+                method = Analytics.PurchaseMethod.Coinbase,
+                amount = selectedAmount.localFiat.nativeAmount,
+                mint = token.address,
+            )
+        }.onFailure { error ->
+            dispatchEvent(Event.UpdateConfirmingAmountState())
+
+            when (error) {
+                is OnRampAuthError.CoinbasePhoneVerificationRequired -> {
+                    dispatchEvent(Event.OnVerificationNeeded(phone = true))
+                }
+
+                is OnRampAuthError.VerificationRequired -> {
+                    dispatchEvent(
+                        Event.OnVerificationNeeded(
+                            phone = error.phone,
+                            email = error.email
+                        )
+                    )
+                }
+
+                else -> {
+                    analytics.buy(
+                        method = Analytics.PurchaseMethod.Coinbase,
+                        amount = selectedAmount.localFiat.nativeAmount,
+                        mint = token.address,
+                        error = error
+                    )
+
+                    BottomBarManager.showError(
+                        title = "Something Went Wrong",
+                        message = error.message ?: "Please try again",
+                    )
+                }
+            }
+        }
     }
 
     override fun onCleared() {
