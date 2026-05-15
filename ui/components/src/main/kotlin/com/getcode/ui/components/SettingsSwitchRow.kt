@@ -51,6 +51,12 @@ fun SettingsSwitchRow(
             label = "content color"
         )
 
+        val subtitleColor by animateColorAsState(
+            if (enabled) CodeTheme.colors.textSecondary
+            else CodeTheme.colors.textSecondary.copy(ContentAlpha.disabled),
+            label = "subtitle color"
+        )
+
         if (icon != null) {
             Image(
                 modifier = Modifier
@@ -70,14 +76,13 @@ fun SettingsSwitchRow(
             Text(
                 text = title,
                 color = contentColor,
-                style = CodeTheme.typography.textLarge,
+                style = CodeTheme.typography.textMedium,
             )
             if (!subtitle.isNullOrEmpty()) {
                 Text(
                     text = subtitle,
                     style = CodeTheme.typography.textSmall,
-                    color = CodeTheme.colors.textSecondary
-                        .copy(alpha = if (enabled) 1f else ContentAlpha.disabled)
+                    color = subtitleColor,
                 )
             }
         }
@@ -86,51 +91,6 @@ fun SettingsSwitchRow(
             enabled = enabled,
             checked = checked,
             onCheckedChange = null,
-        )
-    }
-}
-
-@Composable
-fun SettingsRow(
-    modifier: Modifier = Modifier,
-    title: String,
-    icon: Painter?,
-    onClick: () -> Unit
-) {
-    Column(modifier = Modifier.rememberedClickable { onClick() }.then(modifier)) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = CodeTheme.dimens.inset)
-                .padding(vertical = CodeTheme.dimens.grid.x5)
-                .fillMaxWidth()
-                .wrapContentHeight(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val imageMod = Modifier
-                .padding(end = CodeTheme.dimens.inset)
-                .height(CodeTheme.dimens.staticGrid.x5)
-                .width(CodeTheme.dimens.staticGrid.x5)
-
-            if (icon != null) {
-                Image(
-                    modifier = imageMod,
-                    painter = icon,
-                    colorFilter = ColorFilter.tint(Color.White),
-                    contentDescription = ""
-                )
-            } else {
-                Spacer(modifier = imageMod)
-            }
-            Text(
-                modifier = Modifier.align(Alignment.CenterVertically),
-                text = title,
-                style = CodeTheme.typography.textLarge,
-            )
-        }
-
-        Divider(
-            color = CodeTheme.colors.divider,
-            thickness = 0.5.dp
         )
     }
 }

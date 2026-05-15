@@ -15,6 +15,12 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import javax.inject.Singleton
 
+private val json = Json {
+    encodeDefaults = true
+    ignoreUnknownKeys = true
+    ignoreUnknownKeys = true
+}
+
 @Module
 @InstallIn(SingletonComponent::class)
 object CoinbaseModule {
@@ -23,10 +29,9 @@ object CoinbaseModule {
     @Provides
     fun providesOnRampApiConfig(): OnRampApiConfig = OnRampApiConfig(
         scheme = "https",
-        host = "api.developer.coinbase.com/",
-        path = "onramp/v2/onramp/order",
+        host = "api.cdp.coinbase.com/platform/",
+        path = "v2/onramp/orders",
         method = "POST",
-        useSandbox = true // for now
     )
 
     @Singleton
@@ -55,7 +60,7 @@ object CoinbaseModule {
         .baseUrl(apiConfig.baseUrl)
         .client(okHttpClient)
         .addConverterFactory(
-            Json.asConverterFactory(
+            json.asConverterFactory(
                 "application/json; charset=UTF8".toMediaType()
             )
         )

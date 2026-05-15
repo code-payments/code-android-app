@@ -8,6 +8,7 @@ import androidx.work.WorkerParameters
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.user.UserManager
+import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.managers.BillTransactionManager
 import com.getcode.opencode.managers.GiftCardManager
 import com.getcode.opencode.model.accounts.GiftCardAccount
@@ -41,6 +42,7 @@ internal class GiftCardFundingWorker @AssistedInject constructor(
     private val transactionManager: BillTransactionManager,
     private val giftCardManager: GiftCardManager,
     private val tokenCoordinator: TokenCoordinator,
+    private val verifiedStateManager: VerifiedProtoManager,
 ) : CoroutineWorker(appContext, workerParams) {
     internal companion object {
         fun tagFor(giftCard: GiftCardAccount) = "gift_card_funding-${giftCard.entropy}"
@@ -128,11 +130,19 @@ internal class GiftCardFundingWorker @AssistedInject constructor(
     ): kotlin.Result<LocalFiat> = suspendCancellableCoroutine { cont ->
         authenticateIfNeeded {
             try {
+                val verifiedState = verifiedStateManager.getVerifiedStateFor(
+                    amount.rate.currency, token.address
+                )
+                if (verifiedState == null) {
+                    cont.resume(kotlin.Result.failure(IllegalStateException("No verified state found")))
+                    return@authenticateIfNeeded
+                }
                 transactionManager.fundGiftCard(
                     giftCard = giftCard,
                     amount = amount,
                     token = token,
                     owner = userManager.accountCluster!!,
+                    verifiedState = verifiedState,
                     onFunded = {
                         trace(
                             tag = "GiftCardFundingWorker",

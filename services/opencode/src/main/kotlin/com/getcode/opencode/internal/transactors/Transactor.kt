@@ -5,6 +5,10 @@ import com.getcode.utils.MetadataBuilder
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 
+/**
+ * Base class for bill/gift-card transactors. Provides a common [logAndFail]
+ * helper that traces the error and wraps it in a failed [Result].
+ */
 abstract class Transactor<E: CodeServerError>(
     protected val tag: String
 ) {

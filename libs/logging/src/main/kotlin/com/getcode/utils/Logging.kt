@@ -1,100 +1,164 @@
 package com.getcode.utils
 
 import android.annotation.SuppressLint
-import com.bugsnag.android.BreadcrumbType
-import com.bugsnag.android.Bugsnag
-import com.getcode.libs.logging.BuildConfig
-import com.google.firebase.crashlytics.CustomKeysAndValues
-import com.google.firebase.crashlytics.FirebaseCrashlytics
+import android.content.Context
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import timber.log.Timber
+import java.io.File
 import kotlin.time.Duration
 import kotlin.time.TimeSource
 import kotlin.time.measureTime
 
+/**
+ * Categorizes trace events for routing through Timber and [BreadcrumbSink]s.
+ *
+ * Each type maps to a Timber log level and is forwarded to all registered
+ * breadcrumb sinks, except [Silent] which is only written to the local log file.
+ */
 sealed interface TraceType {
-    /**
-     * This is not forwarded to logging services
-     */
-
+    /** Local-only; not forwarded to external logging services. */
     data object Silent : TraceType
 
-    /**
-     * An error event
-     */
+    /** An error event. */
     data object Error: TraceType
 
-    /**
-     * A log message
-     */
+    /** A general log message. */
     data object Log : TraceType
 
-    /**
-     * A navigation event, such as a window opening or closing
-     */
+    /** A navigation event, such as a screen opening or closing. */
     data object Navigation : TraceType
 
-    /**
-     * A background process such as a database query
-     */
+    /** A background process such as a database query. */
     data object Process : TraceType
 
-    /**
-     * A network request
-     */
+    /** A network request. */
     data object Network : TraceType
 
-    /**
-     * A change in application state, such as launch or memory warning
-     */
+    /** A change in application state, such as launch or memory warning. */
     data object StateChange : TraceType
 
-    /**
-     * A user action, such as tapping a button
-     */
+    /** A user action, such as tapping a button. */
     data object User : TraceType
 }
 
-private fun TraceType.toBugsnagBreadcrumbType(): BreadcrumbType? {
-    return when (this) {
-        TraceType.Silent -> null
-        TraceType.Error -> BreadcrumbType.ERROR
-        TraceType.Log -> BreadcrumbType.LOG
-        TraceType.Navigation -> BreadcrumbType.NAVIGATION
-        TraceType.Network -> BreadcrumbType.REQUEST
-        TraceType.Process -> BreadcrumbType.PROCESS
-        TraceType.StateChange -> BreadcrumbType.STATE
-        TraceType.User -> BreadcrumbType.USER
-    }
-}
-
+/**
+ * Central coordinator for the tracing/logging subsystem.
+ *
+ * Must be [initialized][initialize] before any [trace] calls will produce output.
+ * Calls to [trace] made before initialization are silently dropped so that
+ * modules which log during early startup don't crash.
+ *
+ * Supports two extension points:
+ * - [TraceLogPlugin]s — transform log messages before they reach Timber (e.g. PII masking).
+ * - [BreadcrumbSink]s — forward structured breadcrumbs to external services (e.g. Bugsnag).
+ */
 object TraceManager {
-    private val productionTraceTree = object: Timber.Tree() {
-        override fun log(
-            priority: Int,
-            tag: String?,
-            message: String,
-            t: Throwable?
-        ) {
-            println("[TRACE] $tag $message")
-            t?.printStackTrace()
+    private var fileTree: FileTree? = null
+
+    /** `true` after [initialize] has been called. [trace] is a no-op until then. */
+    var initialized: Boolean = false
+        private set
+
+    /** When `true`, RPC request/response body lines are written to the log file. */
+    @Volatile
+    var includeRpcBodies: Boolean = false
+
+    val plugins: MutableList<TraceLogPlugin> = mutableListOf()
+    private val breadcrumbSinks = mutableListOf<BreadcrumbSink>()
+    private var _userId: String? = null
+    private var onUserIdChanged: ((String?) -> Unit)? = null
+
+    /** The current user identifier, forwarded to error reporters when set. */
+    var userId: String?
+        get() = _userId
+        set(value) {
+            _userId = value
+            onUserIdChanged?.invoke(value)
         }
 
+    /** Register a listener invoked whenever [userId] changes. */
+    fun setOnUserIdChanged(listener: ((String?) -> Unit)?) {
+        onUserIdChanged = listener
     }
-    fun enableProductionTraces(enable: Boolean) {
-        if (!BuildConfig.DEBUG) {
-            if (enable) {
-                if (!Timber.forest().contains(productionTraceTree)) {
-                    Timber.plant(productionTraceTree)
-                }
-            } else {
-                if (Timber.forest().contains(productionTraceTree)) {
-                    Timber.uproot(productionTraceTree)
-                }
-            }
-        }
+
+    fun addPlugin(plugin: TraceLogPlugin) {
+        plugins.add(plugin)
+    }
+
+    fun removePlugin(plugin: TraceLogPlugin) {
+        plugins.remove(plugin)
+    }
+
+    fun addSink(sink: BreadcrumbSink) { breadcrumbSinks.add(sink) }
+    fun removeSink(sink: BreadcrumbSink) { breadcrumbSinks.remove(sink) }
+    fun sinks(): List<BreadcrumbSink> = breadcrumbSinks
+
+    /**
+     * Bootstraps Timber with a [FileTree], plants default plugins
+     * ([PiiMaskingPlugin], [RpcBodyFilterPlugin]), and marks the manager
+     * as [initialized]. Safe to call multiple times; subsequent calls are no-ops.
+     */
+    fun initialize(context: Context) {
+        if (initialized) return
+        val tree = FileTree(context, plugins = { plugins })
+        fileTree = tree
+        addPlugin(PiiMaskingPlugin())
+        addPlugin(RpcBodyFilterPlugin())
+        Timber.plant(tree)
+        initialized = true
+    }
+
+    /** Returns the current log file, or `null` if not yet initialized. */
+    fun getLogFile(includeHeader: Boolean = true): File? = fileTree?.getLogFile(includeHeader)
+
+    /**
+     * Hot stream of processed log lines for live in-app viewers. Emits only
+     * after [initialize] has been called; before initialization, returns an
+     * empty [SharedFlow] that will never emit.
+     */
+    val logStream: SharedFlow<String>
+        get() = fileTree?.logStream ?: EmptyLogStream
+
+    private val EmptyLogStream: SharedFlow<String> = MutableSharedFlow<String>(
+        replay = 0,
+        extraBufferCapacity = 0,
+        onBufferOverflow = BufferOverflow.SUSPEND,
+    ).asSharedFlow()
+
+    fun clearLogs() {
+        fileTree?.clearLogs()
+    }
+
+    /** Tears down all state. Intended for tests only. */
+    @androidx.annotation.VisibleForTesting
+    internal fun reset() {
+        fileTree?.let { Timber.uproot(it) }
+        fileTree = null
+        initialized = false
+        plugins.clear()
+        breadcrumbSinks.clear()
+        _userId = null
+        onUserIdChanged = null
+        includeRpcBodies = false
     }
 }
 
+/**
+ * Primary logging entry point. Writes [message] to Timber and forwards a
+ * breadcrumb to every registered [BreadcrumbSink].
+ *
+ * No-op if [TraceManager] has not been [initialized][TraceManager.initialize],
+ * so callers in early startup paths don't need their own guard.
+ *
+ * @param message Human-readable description of the event.
+ * @param tag Optional tag rendered as `[tag]` prefix in the log line.
+ * @param metadata Builder for structured key-value pairs appended to the log line.
+ * @param error If non-null, forwarded to [ErrorUtils.handleError] after logging.
+ * @param type Categorization that determines the Timber log level.
+ */
 @SuppressLint("TimberExceptionLogging")
 fun trace(
     message: String,
@@ -103,54 +167,54 @@ fun trace(
     error: Throwable? = null,
     type: TraceType = if (error != null) TraceType.Error else TraceType.Log,
 ) {
+    if (!TraceManager.initialized) return
+
     val tagBlock = tag?.let { "[$it] " }
     val tree = if (tagBlock == null) Timber else Timber.tag(tagBlock)
 
-    when (type) {
-        TraceType.Error -> tree.e(message)
-        TraceType.Log -> tree.d(message)
-        TraceType.Navigation -> tree.d(message)
-        TraceType.Network -> tree.i(message)
-        TraceType.Process -> tree.d(message)
-        TraceType.Silent -> tree.d(message)
-        TraceType.StateChange -> tree.d(message)
-        TraceType.User -> tree.d(message)
-    }
-
     val metadataMap = metadata { metadata() }
 
-    val breadcrumb = if (tag != null) {
-        "$tagBlock $message"
+    val logMessage = if (metadataMap.isNotEmpty()) {
+        val metaString = metadataMap.entries.joinToString(", ") { "${it.key}=${it.value}" }
+        "$message | $metaString"
     } else {
         message
     }
 
-    if (Bugsnag.isStarted()) {
-        val breadcrumbType = type.toBugsnagBreadcrumbType()
-        if (breadcrumbType != null) {
-            Bugsnag.leaveBreadcrumb(
-                breadcrumb,
-                metadataMap,
-                breadcrumbType
-            )
-        }
+    when (type) {
+        TraceType.Error -> tree.e(logMessage)
+        TraceType.Log -> tree.d(logMessage)
+        TraceType.Navigation -> tree.d(logMessage)
+        TraceType.Network -> tree.i(logMessage)
+        TraceType.Process -> tree.d(logMessage)
+        TraceType.Silent -> tree.d(logMessage)
+        TraceType.StateChange -> tree.d(logMessage)
+        TraceType.User -> tree.d(logMessage)
     }
 
-    if (FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled) {
-        FirebaseCrashlytics.getInstance().log(breadcrumb)
-        FirebaseCrashlytics.getInstance().setCustomKeys(
-            CustomKeysAndValues.Builder()
-                .apply {
-                    metadataMap.entries.onEach {
-                        putString(it.key, it.value.toString())
-                    }
-                }.build()
+    val rawBreadcrumb = if (tag != null) "$tagBlock $message" else message
+    val sinks = TraceManager.sinks()
+    if (sinks.isNotEmpty()) {
+        val (maskedBreadcrumb, maskedMetadata) = applyPluginsForBreadcrumb(
+            rawBreadcrumb, metadataMap, TraceManager.plugins
         )
+        sinks.forEach { sink ->
+            sink.record(maskedBreadcrumb, maskedMetadata, type)
+        }
     }
 
     error?.let(ErrorUtils::handleError)
 }
 
+/**
+ * Executes [block], measures its wall-clock duration, and emits a [trace]
+ * with the duration appended to [metadata].
+ *
+ * The block always runs even if [TraceManager] is not initialized; only
+ * the trace output is gated.
+ *
+ * @param onComplete Called after tracing with the block's result and measured duration.
+ */
 fun <T> timedTrace(
     message: String,
     tag: String? = null,
@@ -176,6 +240,13 @@ fun <T> timedTrace(
     return result
 }
 
+/**
+ * Suspend variant of [timedTrace] that additionally tracks named steps.
+ *
+ * Call the `onStep` lambda inside [block] to record intermediate durations;
+ * each step's elapsed time (relative to the previous step) is appended to
+ * the metadata alongside the total duration.
+ */
 suspend fun <T> timedTraceSuspend(
     message: String,
     tag: String? = null,
@@ -214,6 +285,17 @@ suspend fun <T> timedTraceSuspend(
     return result
 }
 
+/**
+ * DSL builder for structured key-value metadata attached to [trace] calls.
+ *
+ * ```
+ * trace("payment sent", metadata = {
+ *     "amount" to 5.00
+ *     "token"  to "JFY"
+ *     "currency" to "USD"
+ * })
+ * ```
+ */
 class MetadataBuilder {
     private val map = mutableMapOf<String, Any>()
 
@@ -224,8 +306,25 @@ class MetadataBuilder {
     fun build(): Map<String, Any> = map
 }
 
-fun metadata(block: MetadataBuilder.() -> Unit): Map<String, Any> {
+/** Convenience factory that builds a metadata map from [block]. */
+private fun metadata(block: MetadataBuilder.() -> Unit): Map<String, Any> {
     val builder = MetadataBuilder()
     builder.block()
     return builder.build()
+}
+
+private fun applyPluginsForBreadcrumb(
+    message: String,
+    metadata: Map<String, Any>,
+    plugins: List<TraceLogPlugin>,
+): Pair<String, Map<String, Any>> {
+    val maskedMessage = plugins.fold(message) { acc, plugin ->
+        plugin.process(acc) ?: acc
+    }
+    val maskedMetadata = metadata.mapValues { (_, value) ->
+        plugins.fold(value.toString()) { acc, plugin ->
+            plugin.process(acc) ?: acc
+        }
+    }
+    return maskedMessage to maskedMetadata
 }

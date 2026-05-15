@@ -10,8 +10,8 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
-import kotlinx.datetime.Instant
 import javax.inject.Inject
+import kotlin.time.Instant
 
 class MessageEntityToFeedMessageMapper @Inject constructor() : Mapper<MessageEntity, ActivityFeedMessage> {
     override fun map(from: MessageEntity): ActivityFeedMessage {

@@ -56,7 +56,7 @@ data class OpenCodePayload(
         const val OFFSET_QUARKS = 2
         const val OFFSET_NONCE = 10
 
-        val Empty = OpenCodePayload(PayloadKind.Unknown, Fiat.Zero)
+        val Empty by lazy { OpenCodePayload(PayloadKind.Unknown, Fiat.Zero) }
 
         fun fromList(list: List<Byte>): OpenCodePayload {
             val kind = PayloadKind.entries.find { it.value == list[0].toInt() } ?: PayloadKind.Cash

@@ -6,13 +6,11 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.extensions.fromCode
-import com.getcode.opencode.internal.model.LiveMintDataResponse
+import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
-import com.getcode.solana.keys.Signature
-import com.getcode.util.format
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
@@ -24,21 +22,19 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Instant
-import java.util.Date
 import javax.inject.Inject
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.minutes
 
 internal class OpenCodeExchange @Inject constructor(
     private val currencyController: CurrencyController,
+    private val verifiedStateManager: VerifiedProtoManager,
     private val resources: ResourceHelper,
     private val locale: LocaleHelper,
 ) : Exchange, DefaultLifecycleObserver {
 
+    private var ratesCollectionJob: Job? = null
     private var exchangeRatesStream: Job? = null
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -71,7 +67,7 @@ internal class OpenCodeExchange @Inject constructor(
 
     override suspend fun setPreferredBalanceCurrency(currencyCode: CurrencyCode) {
         balanceCurrency = currencyCode
-        rates.rateFor(currencyCode)?.let {
+        verifiedStateManager.rateFor(currencyCode)?.let {
             _balanceRate.value = it
         } ?: run {
             _balanceRate.value = Rate.oneToOne.copy(currency = currencyCode)
@@ -90,25 +86,22 @@ internal class OpenCodeExchange @Inject constructor(
 
     override suspend fun setPreferredEntryCurrency(currencyCode: CurrencyCode) {
         entryCurrency = currencyCode
-        rates.rateFor(currencyCode)?.let {
+        verifiedStateManager.rateFor(currencyCode)?.let {
             _entryRate.value = it
         } ?: run {
             _entryRate.value = Rate.oneToOne.copy(currency = currencyCode)
         }
     }
 
+    override fun resetEntryToBalance() {
+        scope.launch { setPreferredEntryCurrency(balanceRate.currency) }
+    }
+
     private var balanceCurrency: CurrencyCode? = null
     private var entryCurrency: CurrencyCode? = null
 
-    private val _rates = MutableStateFlow(emptyMap<CurrencyCode, Rate>())
-    private var rates = RatesBox(0, emptyMap())
-        set(value) {
-            field = value
-            _rates.value = value.rates
-        }
-
-    override fun rates() = rates.rates
-    override fun observeRates(): Flow<Map<CurrencyCode, Rate>> = _rates
+    override fun rates() = verifiedStateManager.rates()
+    override fun observeRates(): Flow<Map<CurrencyCode, Rate>> = verifiedStateManager.observeRates()
 
     override suspend fun getCurrenciesWithRates(rates: Map<CurrencyCode, Rate>): List<Currency> =
         withContext(Dispatchers.Default) {
@@ -146,14 +139,15 @@ internal class OpenCodeExchange @Inject constructor(
 
     private fun stopStreamingRates() {
         exchangeRatesStream?.cancel()
+        ratesCollectionJob?.cancel()
     }
 
-    override fun rateFor(currencyCode: CurrencyCode): Rate? = rates.rateFor(currencyCode)
+    override fun rateFor(currencyCode: CurrencyCode): Rate? = verifiedStateManager.rateFor(currencyCode)
 
-    override fun rateForUsd(): Rate = rates.rateForUsd()
+    override fun rateForUsd(): Rate = verifiedStateManager.rateFor(CurrencyCode.USD) ?: Rate.oneToOne
 
     override fun rateToUsd(from: CurrencyCode): Rate? {
-        val fromRate = rates.rateFor(from) ?: return null
+        val fromRate = verifiedStateManager.rateFor(from) ?: return null
 
         return Rate(
             fx = 1 / fromRate.fx,
@@ -163,35 +157,31 @@ internal class OpenCodeExchange @Inject constructor(
 
     private fun streamRates() {
         stopStreamingRates()
+        // Start the stream so CurrencyService populates VerifiedProtoManager
         exchangeRatesStream = scope.launch {
             currencyController.streamLiveMintData(this, mints, tag = "exchange")
-                .filterIsInstance<LiveMintDataResponse.ExchangeRates>()
-                .collect { exchangeData ->
+                .collect { /* stream is consumed to keep it alive; rates are saved to VerifiedProtoManager by CurrencyService */ }
+        }
+        // Observe rates from VerifiedProtoManager (single source of truth)
+        ratesCollectionJob = scope.launch {
+            verifiedStateManager.observeRates()
+                .distinctUntilChanged()
+                .collect { rates ->
+                    if (rates.isEmpty()) return@collect
                     trace(tag = "Exchange", message = "Rates updated")
-                    val associatedRates = exchangeData.rates.associateBy { it.rate.currency }
-                    rates = RatesBox(
-                        dateMillis = Clock.System.now().toEpochMilliseconds(),
-                        rates = associatedRates.mapValues { it.value.rate },
-                    )
-                    updateRates()
+                    updateRates(rates)
                 }
         }
     }
 
-    private fun updateRates() {
-        if (rates.isEmpty) {
-            return
-        }
-
-        val balanceRate = balanceCurrency?.let { rates.rateFor(it) }
+    private fun updateRates(rates: Map<CurrencyCode, Rate>) {
+        val balanceRate = balanceCurrency?.let { rates[it] }
         val balanceChanged = _balanceRate.value != balanceRate
         if (balanceChanged) {
             _balanceRate.value = if (balanceRate != null) {
                 trace(
                     tag = "Background",
-                    message = "Updated the local currency: $balanceCurrency, " +
-                            "Staleness ${(System.currentTimeMillis() - rates.dateMillis).minutes} mins, " +
-                            "Date: ${Date(rates.dateMillis)}",
+                    message = "Updated the local currency: $balanceCurrency",
                     type = TraceType.Process
                 )
                 balanceRate
@@ -201,20 +191,17 @@ internal class OpenCodeExchange @Inject constructor(
                     message = "local:: Rate for $balanceCurrency not found. Defaulting to USD.",
                     type = TraceType.Process
                 )
-                rates.rateForUsd()
+                rates[CurrencyCode.USD] ?: Rate.oneToOne
             }
         }
 
-
-        val entryRate = entryCurrency?.let { rates.rateFor(it) }
+        val entryRate = entryCurrency?.let { rates[it] }
         val entryChanged = _entryRate.value != entryRate
         if (entryChanged) {
             _entryRate.value = if (entryRate != null) {
                 trace(
                     tag = "Background",
-                    message = "Updated the entry currency: $entryCurrency, " +
-                            "Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, " +
-                            "Date: ${Date(rates.dateMillis)}",
+                    message = "Updated the entry currency: $entryCurrency",
                     type = TraceType.Process
                 )
                 entryRate
@@ -224,7 +211,7 @@ internal class OpenCodeExchange @Inject constructor(
                     message = "entry:: Rate for $entryCurrency not found. Defaulting to USD.",
                     type = TraceType.Process
                 )
-                rates.rateForUsd()
+                rates[CurrencyCode.USD] ?: Rate.oneToOne
             }
         }
 
@@ -233,36 +220,7 @@ internal class OpenCodeExchange @Inject constructor(
                 tag = "Background",
                 message = "Updated rates",
                 type = TraceType.Process,
-                metadata = {
-                    "date" to Instant.fromEpochMilliseconds(rates.dateMillis)
-                        .format("yyyy-MM-dd HH:mm:ss")
-                }
             )
         }
-    }
-}
-
-private data class RatesBox(
-    val dateMillis: Long,
-    val rates: Map<CurrencyCode, Rate>,
-) {
-    constructor(dateMillis: Long, rates: List<Rate>) : this(
-        dateMillis,
-        rates.associateBy { it.currency },
-    )
-
-
-    val isEmpty: Boolean
-        get() = rates.isEmpty()
-
-    fun rateFor(currencyCode: CurrencyCode): Rate? = rates[currencyCode]
-
-    fun rateFor(currency: Currency): Rate? {
-        val currencyCode = CurrencyCode.tryValueOf(currency.code)
-        return currencyCode?.let { rates[it] }
-    }
-
-    fun rateForUsd(): Rate {
-        return rates[CurrencyCode.USD] ?: Rate.oneToOne
     }
 }

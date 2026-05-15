@@ -29,4 +29,6 @@
 
     <string name="action_showMore">Show More</string>
     <string name="action_showLess">Show Less</string>
+
+    <string name="subtitle_beta">Beta</string>
 </resources>

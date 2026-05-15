@@ -18,9 +18,11 @@ import com.getcode.opencode.model.core.errors.GetIntentMetadataError
 import com.getcode.opencode.model.core.errors.GetLimitsError
 import com.getcode.opencode.model.core.errors.VoidGiftCardError
 import com.getcode.opencode.model.core.errors.WithdrawalAvailabilityError
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.transactions.SwapDirection
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapRequest
@@ -28,6 +30,7 @@ import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.solana.intents.IntentType
+import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
@@ -80,7 +83,7 @@ internal class TransactionService @Inject constructor(
                 }
             },
             onFailure = { error ->
-                Result.failure(GetIntentMetadataError.Other(cause = error))
+                Result.failure(error.toValidationOrElse { GetIntentMetadataError.Other(cause = it) })
             }
         )
     }
@@ -112,7 +115,7 @@ internal class TransactionService @Inject constructor(
                 }
             },
             onFailure = { error ->
-                Result.failure(GetLimitsError.Other(cause = error))
+                Result.failure(error.toValidationOrElse { GetLimitsError.Other(cause = it) })
             }
         )
     }
@@ -138,7 +141,7 @@ internal class TransactionService @Inject constructor(
                 Result.success(availability)
             },
             onFailure = { error ->
-                Result.failure(WithdrawalAvailabilityError.Other(cause = error))
+                Result.failure(error.toValidationOrElse { WithdrawalAvailabilityError.Other(cause = it) })
             }
         )
     }
@@ -161,7 +164,7 @@ internal class TransactionService @Inject constructor(
                 }
             },
             onFailure = { error ->
-                Result.failure(VoidGiftCardError.Other(cause = error))
+                Result.failure(error.toValidationOrElse { VoidGiftCardError.Other(cause = it) })
             }
         )
     }
@@ -170,23 +173,36 @@ internal class TransactionService @Inject constructor(
         scope: CoroutineScope,
         swapId: SwapId?,
         amount: LocalFiat,
+        feeAmount: LocalFiat?,
         of: Token,
         owner: AccountCluster,
         verifiedState: VerifiedState,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         fund: (suspend (SwapRequest) -> Result<Unit>)?,
     ): Result<SwapId> {
+        // For a freshly-launched stub Token (launchpadMetadata == null && address != USDF), the
+        // Solana program requires authority == buyer == swapAuthority for the atomic 11-instruction
+        // swap that initializes the currency + pool + VM. The server infers new-vs-existing from
+        // owner == swapAuthority in the Initiate request, so we must use the owner's keypair here.
+        // Otherwise the server returns RESERVE_EXISTING_CURRENCY params, and the client crashes at
+        // ExistingCurrencyBuyInstructions ("Target mint has no launchpad metadata").
+        val isFreshlyLaunchedStub =
+            of.launchpadMetadata == null && of.address != Mint.usdf
+        val swapAuthority =
+            if (isFreshlyLaunchedStub) owner.authority.keyPair else Ed25519.createKeyPair()
+
+        val netAmount = amount - (feeAmount ?: LocalFiat.Zero)
         val request = SwapRequest(
             owner = owner,
-            swapAuthority = Ed25519.createKeyPair(),
-            kind = SwapStartKind.CurrencyCreator(
+            swapAuthority = swapAuthority,
+            kind = SwapStartKind.Reserve(
                 fromMint = Mint.usdf,
                 toMint = of.address,
-                amount = amount.underlyingTokenAmount.quarks,
                 fundingSource = source,
             ),
             direction = SwapDirection.Buy(of),
-            amount = amount,
+            swapAmount = netAmount,
+            feeAmount = feeAmount,
             swapId = swapId ?: SwapId.generate(),
             verifiedState = verifiedState,
         )
@@ -209,18 +225,47 @@ internal class TransactionService @Inject constructor(
             owner = tokenCluster,
             swapId = SwapId.generate(),
             swapAuthority = Ed25519.createKeyPair(),
-            kind = SwapStartKind.CurrencyCreator(
+            kind = SwapStartKind.Reserve(
                 fromMint = of.address,
                 toMint = Mint.usdf,
-                amount = amount.underlyingTokenAmount.quarks,
                 fundingSource = source,
             ),
             direction = SwapDirection.Sell(of),
-            amount = amount,
+            swapAmount = amount,
+            feeAmount = null,
             verifiedState = verifiedState,
         )
 
         return swap(scope, request, tokenCluster)
+    }
+
+    suspend fun withdrawUsdf(
+        scope: CoroutineScope,
+        amount: LocalFiat,
+        fee: LocalFiat?,
+        owner: AccountCluster,
+        destinationOwner: PublicKey,
+        verifiedState: VerifiedState,
+    ): Result<SwapId> {
+
+        val netAmount = amount - (fee ?: LocalFiat.Zero)
+        val request = SwapRequest(
+            owner = owner,
+            swapId = SwapId.generate(),
+            swapAuthority = Ed25519.createKeyPair(),
+            kind = SwapStartKind.Stablecoin(
+                fromMint = Mint.usdf,
+                toMint = Mint.usdc,
+                fundingSource = SwapFundingSource.SubmitIntent(),
+                destinationOwner = destinationOwner
+            ),
+            direction = SwapDirection.WithdrawUsdc,
+            swapAmount = netAmount,
+            feeAmount = fee,
+            verifiedState = verifiedState,
+        )
+
+        return swap(scope, request, owner)
     }
 
     private suspend fun swap(

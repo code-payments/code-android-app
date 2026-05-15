@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.network.services
 
 import com.flipcash.services.internal.network.api.PushApi
+import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.flipcash.services.models.AddTokenError
 import com.flipcash.services.models.DeleteTokenError
@@ -28,7 +29,7 @@ internal class PushService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(AddTokenError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { AddTokenError.Other(cause = it) })
             }
         )
     }
@@ -48,7 +49,7 @@ internal class PushService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(DeleteTokenError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { DeleteTokenError.Other(cause = it) })
             }
         )
     }

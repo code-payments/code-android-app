@@ -3,9 +3,9 @@
     <string name="action_createNewAccount">Create a New Account</string>
     <string name="title_enterAccessKeyWords">Enter Access Key</string>
     <string name="error_title_timelockUnlocked">Access Key No Longer Usable in Flipcash</string>
-    <string name="title_cantFindYourAccessKey">Can\’t Find Your Access Key?</string>
+    <string name="title_cantFindYourAccessKey">Can\'t Find Your Access Key?</string>
     <string name="action_openPhotos">Open Photos</string>
-    <string name="description_cantFindYourAccessKey">Go to your photos app and search ‘Flipcash’</string>
+    <string name="description_cantFindYourAccessKey">Go to your photos app and search \'Flipcash\'</string>
     <string name="error_description_timelockUnlocked">Your Access Key has initiated an unlock. As a result, you will no longer be able to use this Access Key in Flipcash</string>
     <string name="prompt_title_notFlipcashAccount">Not a Flipcash Account</string>
     <string name="prompt_description_notFlipcashAccount">Only accounts created through Flipcash are currently supported</string>
@@ -47,6 +47,8 @@
 
     <string name="error_title_insufficientFunds">Insufficient Funds</string>
     <string name="error_description_insufficientFunds">You do not have enough funds to complete this transaction. You can deposit more funds in Settings</string>
+    <string name="error_description_withdrawInsufficientFunds">You do not have enough funds to complete this withdrawal. Please try a smaller amount</string>
+
     <string name="subtitle_giveCashHint">Enter up to %1$s</string>
     <string name="subtitle_giveCashHintLimitExceeded">You can only give up to %1$s</string>
 
@@ -61,7 +63,7 @@
     <string name="subtitle_balanceIsHeldInUsdStablecoins">Your balance is held in US dollar stablecoins</string>
     <string name="subtitle_currentValueOfAllCurrencies">The current value of your currencies</string>
     <string name="subtitle_ofUsdStablecoins">of US dollar stablecoins</string>
-    <string name="action_depositFunds">Deposit Funds</string>
+    <string name="action_depositFunds">Deposit</string>
     <string name="title_depositFunds">Deposit Funds</string>
 
     <string name="title_withdraw">Withdraw</string>
@@ -73,7 +75,22 @@
     <string name="error_description_selectCredential">Failed to restore selected account. Please try again</string>
 
     <string name="permissions_description_camera">Your camera is used to grab Digital Cash. Please allow access to the camera to proceed</string>
-    <string name="permissions_description_push">Please allow Push Notifications to get notified when you receive cash</string>
+    <string name="permissions_title_push">Push Notifications Required</string>
+    <string name="permissions_description_push">Push notifications are used to update you on changes in your balance</string>
+
+    <string name="permissions_title_push_rationale">Are You Sure?</string>
+    <string name="permissions_description_push_rationale">You won\'t be notified of changes to your balance if you don\'t enable notifications</string>
+
+    <string name="title_allowNotifications">Allow Notifications</string>
+
+
+    <string name="notification_preview_title">You Bought $20.00</string>
+    <string name="notification_preview_body">$20.00 has been added to your wallet</string>
+
+    <string name="error_title_ignoredPushPermissions">Are You Sure?</string>
+    <string name="error_description_ignoredPushPermissions">You won\'t receive updates when your balance changes</string>
+    <string name="action_okAllow">Ok Allow</string>
+    <string name="action_imSure">I\'m Sure</string>
 
     <string name="subtitle_allowCameraAccess">Start your camera to grab cash</string>
     <string name="action_allowCameraAccess">Start Camera</string>
@@ -89,17 +106,17 @@
     <string name="action_nevermind">Nevermind</string>
 
     <string name="subtitle_ofUsdSuffix">of USD</string>
+    <string name="subtitle_usdSuffix">USD</string>
 
     <string name="error_title_alreadyCollected">Cash Already Collected</string>
     <string name="error_description_alreadyCollected">This cash has already been collected, or was cancelled by the sender</string>
 
     <string name="error_description_failedToCollect">Something went wrong. The cash could not be collected</string>
 
-    <string name="subtitle_appVersionInfoFooter">Version %1$s • Build %2$s</string>
+    <string name="subtitle_appVersionInfoFooter">Version %1$s • Build %2$s%3$s</string>
 
     <string name="title_labsAreEmpty">Nothing Cooking in the Lab Right Now</string>
     <string name="subtitle_labsAreEmpty">Check back in the next app update.</string>
-    <string name="subtitle_beta">Beta</string>
 
     <string name="prompt_title_deleteAccount">Permanently Delete Account?</string>
     <string name="prompt_description_deleteAccount">This will permanently delete your Flipcash account</string>
@@ -111,8 +128,8 @@
     <string name="error_title_failedToDeleteAccount">Something went wrong</string>
     <string name="error_description_failedToDeleteAccount">We were unable to delete your Flipcash account. Please try again</string>
 
-    <string name="subtitle_howToDeposit">Deposit funds into your wallet by sending USDC on Solana to your deposit address below</string>
-    <string name="subtitle_howToDepositToken">Deposit funds into your wallet by sending %1$s on Solana to your deposit address below</string>
+    <string name="subtitle_howToDeposit">Deposit funds into your wallet by sending USDC to your deposit address below</string>
+    <string name="subtitle_howToDepositToken">Deposit funds into your wallet by sending %1$s to your deposit address below</string>
 
     <string name="title_clipboardLabelDepositAddress">Deposit Address</string>
     <string name="title_clipboardLabelPublicKey">Public Key</string>
@@ -128,10 +145,13 @@
     <string name="title_shareDownloadLink">Get the Flipcash App</string>
     <string name="title_shareCashLink">Send %1$s</string>
 
-    <string name="title_enterAddress">Enter address</string>
+    <string name="title_enterAddress">Enter Solana address</string>
     <string name="subtitle_whereWithdrawTo">Where would you like to withdraw your %1$s to?</string>
+    <string name="subtitle_withdrawHint">Enter up to %1$s</string>
+    <string name="subtitle_withdrawHintLimitExceeded">You can only give up to %1$s</string>
+    <string name="subtitle_withdrawHintMinimumNotMet">Minimum withdrawal %1$s</string>
 
-    <string name="error_title_destinationAccountNotInitialized">Destination Account Not Initialized\nPlease make sure the address you’re withdrawing to has been initialized by your wallet provider. A quick way to do this is to make sure there is already some USDC in the address you’re trying to withdraw to</string>
+    <string name="error_title_destinationAccountNotInitialized">Destination Account Not Initialized\nPlease make sure the address you\'re withdrawing to has been initialized by your wallet provider. A quick way to do this is to make sure there is already some USDC in the address you\'re trying to withdraw to</string>
     <string name="error_title_invalidAddress">Invalid address</string>
 
     <string name="action_withdraw">Withdraw</string>
@@ -140,9 +160,9 @@
 
     <string name="prompt_description_confirmWithdrawal">Withdrawals are irreversible and cannot be undone once initiated</string>
     <string name="prompt_title_learnAboutWithdrawalFee">What Is This Fee?</string>
-    <string name="prompt_description_learnAboutWithdrawalFee">The account you’re trying to withdraw to requires a one time account creation fee. This fee will be deducted from the amount you’re withdrawing</string>
+    <string name="prompt_description_learnAboutWithdrawalFee">The account you\'re trying to withdraw to requires a one time account creation fee. This fee will be deducted from the amount you\'re withdrawing</string>
     <string name="error_title_withdrawalTooSmall">Withdrawal Amount Too Small</string>
-    <string name="error_description_withdrawalTooSmall">Your withdrawal amount is too small to cover the one time fee. Please try a different amount</string>
+    <string name="error_description_withdrawalTooSmall">Your withdrawal amount is too small to cover the fee.\nPlease try a different amount</string>
     <string name="success_description_withdrawalComplete">Your withdrawal has been processed. It may take a few minutes for your funds to show up in your destination wallet</string>
 
     <string name="title_requireBiometrics">Require Biometrics</string>
@@ -179,7 +199,7 @@
     <string name="error_description_paymentFailed">This payment request could not be paid at this time. Please try again later.</string>
 
     <string name="error_title_paymentFailedDueToInsufficientFunds">Insufficient Balance</string>
-    <string name="error_description_paymentFailedDueToInsufficientFunds">You don\’t have enough funds to complete this payment</string>
+    <string name="error_description_paymentFailedDueToInsufficientFunds">You don\'t have enough funds to complete this payment</string>
 
     <plurals name="subtitle_personCount">
         <item quantity="zero">0 people</item>
@@ -200,9 +220,10 @@
     <string name="title_addCashToWallet">Add cash to your Flipcash wallet</string>
     <string name="action_addMoreCash">Add More Cash</string>
     <string name="title_tapAboveToAddCashToWallet">Tap above to Add Cash to your wallet</string>
-    <string name="title_tapBelowToAddCashWallet">You don’t have any cash yet.\nTap below to add cash to your wallet</string>
+    <string name="title_tapBelowToAddCashWallet">You don\'t have any cash yet.\nTap below to add cash to your wallet</string>
     <string name="title_noBalanceYet">No Balance Yet</string>
-    <string name="description_noBalanceYet">Get another Flipcash user to give you some cash to get a balance</string>
+    <string name="description_noBalanceYet">Buy a currency to get started, or get another Flipcash user to give you some cash</string>
+    <string name="description_noBalanceYetDiscover">Buy your first currency to get started</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="title_success">Success</string>
 
@@ -221,6 +242,8 @@
     <string name="error_title_deeplinkOnRampMethodNotFound">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampInternalError">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampExternalFundBuy">Something Went Wrong</string>
+    <string name="error_title_deeplinkOnRampInsufficientSol">Something Went Wrong</string>
+    <string name="error_title_deeplinkOnRampInsufficientUsdc">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampUnknown">Something Went Wrong</string>
 
     <string name="error_description_deeplinkOnRampDecryption">Response from %1$s failed. Please try again</string>
@@ -238,6 +261,8 @@
     <string name="error_description_deeplinkOnRampMethodNotFound">%1$s did not recognize the request</string>
     <string name="error_description_deeplinkOnRampInternalError">Something went wrong within %1$s. Please try again</string>
     <string name="error_description_deeplinkOnRampExternalFundBuy">Failed to fulfill buy request via %1$s. Please try again</string>
+    <string name="error_description_deeplinkOnRampInsufficientSol">Your %1$s wallet doesn\'t have enough SOL to cover the transaction fees. Please add SOL and try again.</string>
+    <string name="error_description_deeplinkOnRampInsufficientUsdc">Your %1$s wallet doesn\'t have enough USDC for this purchase. Please add more USDC and try again.</string>
     <string name="error_description_deeplinkOnRampUnknown">Please try again</string>
 
     <string name="title_verifyPhoneNumber">Verify Phone Number</string>
@@ -284,7 +309,8 @@
     <string name="action_unlinkEmail">Unlink Email</string>
 
     <string name="title_verificationFlow">Verify Your Phone Number And Email To Continue</string>
-    <string name="subtitle_verificationFlowForOnramp">This will allow you to add funds from your debit card</string>"
+    <string name="subtitle_verificationFlowForOnramp">This will allow you to add funds from your debit card</string>
+    "
 
     <string name="title_email">Email</string>
     <string name="action_openMail">Open Mail</string>
@@ -339,15 +365,55 @@
 
     <string name="action_give">Give</string>
     <string name="title_transactionHistory">Transaction History</string>
-    <string name="action_viewTransactionHistory">View Transaction History</string>
-    <string name="subtitle_marketCap">Market Cap</string>
+    <string name="action_viewTransactionHistory">Transaction History</string>
+    <string name="subtitle_circulatingValue">Circulating Value</string>
     <string name="subtitle_currencyInfo">Currency Info</string>
     <string name="title_shareToken">Check out %1$s on Flipcash</string>
 
     <string name="title_noTransactionHistory">No Activity</string>
     <string name="description_noTransactionHistory">Your recent activity will appear here when you send or receive money</string>
 
-    <string name="title_billCustomizer">Bill Creator</string>
+    <string name="title_billCustomizer">Bill Designer</string>
+    <string name="title_createYourCurrency">Create Your Currency</string>
+    <string name="subtitle_currencyCreatorInfo">Launch your own currency in minutes.\nReady to use right away.</string>
+    <string name="title_currencyCreatorStepName">Name</string>
+    <string name="subtitle_currencyCreatorStepName">Pick a name for your currency</string>
+    <string name="title_currencyCreatorStepIcon">Icon</string>
+    <string name="subtitle_currencyCreatorStepIcon">Choose an image</string>
+    <string name="title_currencyCreatorStepDescription">Description</string>
+    <string name="subtitle_currencyCreatorStepDescription">Describe your currency</string>
+    <string name="title_currencyCreatorStepDesign">Cash Design</string>
+    <string name="subtitle_currencyCreatorStepDesign">Customize the look</string>
+    <string name="title_currencyCreatorStepPurchase">Pay %1$s Fee</string>
+    <string name="subtitle_currencyCreatorStepPurchase">Pay to create your currency</string>
+    <string name="title_currencyCreatorStepPurchaseFreeGift">Limited Time: Get %1$s Free</string>
+    <string name="subtitle_currencyCreatorStepPurchaseFreeGift">Get the first %1$s of your currency</string>
+    <string name="action_getStarted">Get Started</string>
+    <string name="title_currencyCreatorNameSelection">What do you want to call your currency?</string>
+    <string name="hint_currencyName">Currency Name</string>
+    <string name="action_next">Next</string>
+    <string name="title_currencyCreatorIconSelection">Upload Currency Icon</string>
+    <string name="subtitle_currencyCreatorIconSelection">Choose an image that represents your currency.\nIt will be displayed as a circular icon.</string>
+    <string name="subtitle_currencyCreatorIconRecommended">500x500 Recommended</string>
+    <string name="title_currencyCreatorDescription">Provide a description for your currency</string>
+    <string name="hint_description">Description</string>
+    <string name="label_characters">characters</string>
+    <string name="label_remaining">remaining</string>
+    <string name="placeholder_currencyName">Currency Name</string>
+    <string name="placeholder_currencyTicker">$BadBoys</string>
+    <string name="action_buyFirstToCreate">Pay %1$s to Create</string>
+    <string name="title_creatingCurrency">Creating %1$s</string>
+    <string name="title_currencyIsLive">%1$s Is Live</string>
+    <string name="subtitle_currencyIsLive">Your currency is ready to receive and use</string>
+    <string name="action_done">Done</string>
+
+    <string name="title_deviceLogs">Application Logs</string>
+    <string name="action_clearLogs">Clear</string>
+    <string name="action_shareLogs">Share</string>
+    <string name="hint_filterLogs">Filter logs</string>
+    <string name="label_streamLive">Live</string>
+    <string name="label_streamPaused">Paused</string>
+    <string name="label_pausedBacklog">Paused • %1$d new</string>
 
     <string name="error_title_CashReturnedToWallet">Something Went Wrong</string>
     <string name="error_description_CashReturnedToWallet">The cash was returned to your wallet</string>
@@ -367,7 +433,7 @@
     <string name="label_blendModeColorDodge">Color Dodge</string>
     <string name="label_blendModePlusLighter">Plus Lighter</string>
 
-    <string name="title_cashReserves">USD Reserves</string>
+    <string name="title_cashReserves">USDF</string>
     <string name="action_buyMore">Buy More</string>
 
     <string name="title_amountToBuy">Amount to Buy</string>
@@ -399,10 +465,15 @@
     <string name="label_marketCapYear">this year</string>
 
     <string name="prompt_title_selectPurchaseMethod">Select Purchase Method</string>
-    <string name="action_useCashReservesWithBalance">USD Reserves (%1$s)</string>
+    <string name="action_useCashReservesWithBalance">USDF (%1$s)</string>
+    <string name="action_debitCardWithPrefix">Debit Card with</string>
+    <string name="action_paySuffix">Pay</string>
 
     <string name="error_title_buySellFailed">Something Went Wrong</string>
     <string name="error_description_buySellFailed">Please try again</string>
+
+    <string name="error_title_sellFailedDueToBeingTooLow">Amount Too Low</string>
+    <string name="error_description_sellFailedDueToBeingTooLow">The amount you entered is too small to cover the required transaction fee. Please enter a larger amount</string>
 
     <string name="label_fromCurrencyAppreciation">from currency appreciation</string>
     <string name="label_fromCurrencyDepreciation">from currency depreciation</string>
@@ -417,7 +488,160 @@
 
     <string name="label_social_website">Website</string>
     <string name="label_social_x">\@%1$s</string>
+    <string name="label_social_tg">Telegram</string>
+    <string name="label_social_discord">Discord</string>
 
     <string name="action_retry">Retry</string>
     <string name="error_unableToLoadChartData">Unable To Load</string>
+
+    <string name="title_discoverCurrencies">Discover Currencies</string>
+    <string name="action_discoverCurrencies">Discover Currencies</string>
+    <string name="title_discoverPopular">Popular</string>
+    <string name="title_discoverNew">New</string>
+    <string name="label_holders">Holders</string>
+    <string name="label_holdersWithCount">%1$s Holders</string>
+    <string name="title_discoverFailedToLoad">Couldn\'t Load Currencies</string>
+    <string name="subtitle_discoverFailedToLoad">Check your connection and try again</string>
+    <string name="title_discoverEmptyPopular">No Popular Currencies</string>
+    <string name="title_discoverEmptyNew">No New Currencies</string>
+    <string name="error_discoverFailedToLoad">Check your connection and try again</string>
+    <string name="subtitle_discoverEmptyNew">No currencies have been created in the last week</string>
+    <string name="subtitle_discoverEmptyPopular">No popular currencies right now</string>
+    <string name="action_createYourOwnCurrency">Create Your Own Currency</string>
+    <string name="subtitle_createYourOwnCurrency">Create a currency in minutes and immediately use it as cash</string>
+    <string name="prompt_title_notYetAvailable">Not Yet Available</string>
+    <string name="prompt_message_currencyCreateNotYetAvailable">Check back soon</string>
+
+    <string name="title_settingsSectionFeatures">Features</string>
+    <string name="title_settingsSectionDeveloper">Developer</string>
+    <string name="subtitle_settingsUserFlags">User Flags</string>
+    <string name="title_settingsSectionAccount">Account</string>
+    <string name="title_userFlags">User Flags</string>
+
+    <string name="error_title_onrampAmountTooLow">$5 Minimum Purchase</string>
+    <string name="error_description_onrampAmountTooLow">Please enter an amount of $5 or higher</string>
+
+    <string name="error_title_onrampInvalidCard">Debit Cards Only</string>
+    <string name="error_description_onrampInvalidCard">The transaction was declined. Please make sure you are using a debit card and the billing address is correct</string>
+
+    <string name="error_title_onrampTransactionLimit">Weekly Limit Exceeded</string>
+    <string name="error_description_onrampTransactionLimit">You can only add up to $1,000 per week</string>
+
+    <string name="error_title_onrampTransactionCount">Maximum Purchases Reached</string>
+    <string name="error_description_onrampTransactionCount">Each user is limited to 15 purchases total</string>
+
+    <string name="error_title_onrampCardRiskDeclined">Something Went Wrong</string>
+    <string name="error_description_onrampCardRiskDeclined">Please contact support@flipcash.com</string>
+
+    <string name="error_title_onrampCardPermissionDenied">Something Went Wrong</string>
+    <string name="error_description_onrampCardPermissionDenied">Please contact support@flipcash.com</string>
+
+    <string name="error_title_onrampRegionMismatch">Your Region Isn\'t Supported</string>
+    <string name="error_description_onrampRegionMismatch">This feature isn\'t currently available in your region</string>
+
+    <string name="error_title_onrampNetworkNotTradable">Your Region Isn\'t Supported</string>
+    <string name="error_description_onrampNetworkNotTradable">This feature isn\'t currently available in your region</string>
+
+    <string name="error_title_onrampRegionForbidden">Your Region Isn\'t Supported</string>
+    <string name="error_description_onrampRegionForbidden">This feature isn\'t currently available in your region</string>
+
+    <string name="error_title_onrampCardSoftDeclined">Card Declined</string>
+    <string name="error_description_onrampCardSoftDeclined">Your purchase was declined by your bank. Please contact your bank or try again with a different card</string>
+
+    <string name="error_title_onrampCardHardDeclined">Card Declined</string>
+    <string name="error_description_onrampCardHardDeclined">Your purchase was declined by your bank. Please contact your bank or try again with a different card</string>
+
+    <string name="error_title_onrampTransactionBuyFailed">Card Declined</string>
+    <string name="error_description_onrampTransactionBuyFailed">Your purchase was declined by your bank. Please contact your bank or try again with a different card</string>
+
+    <string name="error_title_onrampCardInsufficientBalance">Insufficient Funds</string>
+    <string name="error_description_onrampCardInsufficientBalance">Please make sure you have enough funds in the account tied to your debit card and try again</string>
+
+    <string name="error_title_onrampCardPrepaidDeclined">Card Not Supported</string>
+    <string name="error_description_onrampCardPrepaidDeclined">Prepaid debit cards are not supported. Please try again with another debit card</string>
+
+    <string name="error_title_onrampTransactionAvsValidationFailed">Billing Address Invalid</string>
+    <string name="error_description_onrampTransactionAvsValidationFailed">Please check that your billing address is correct and try again</string>
+
+    <string name="error_title_onrampTransactionFailed">Something Went Wrong</string>
+    <string name="error_description_onrampTransactionFailed">The Coinbase team has been notified and is investigating the issue. Your funds will arrive once resolved. We appreciate your patience</string>
+
+    <string name="error_title_onrampInternal">Something Went Wrong</string>
+    <string name="error_description_onrampInternal">Please try again. We appreciate your patience</string>
+
+    <string name="error_title_onrampTimeout">Payment Timed Out</string>
+    <string name="error_description_onrampTimeout">The payment session took too long to respond. Please try again.</string>
+
+    <string name="error_title_onrampPaymentSheetTimeout">Purchase Timed Out</string>
+    <string name="error_description_onrampPaymentSheetTimeout">Purchases must be authorized within 60 seconds</string>
+
+    <string name="error_title_onrampTransactionSendFailed">Something Went Wrong</string>
+    <string name="error_description_onrampTransactionSendFailed">We are working with the Coinbase team to resolve the issue. Your card will be refunded in the meantime. Please try again later</string>
+
+    <string name="error_title_onrampInvalidRequest">Something Went Wrong</string>
+    <string name="error_description_onrampInvalidRequest">We are working with the Coinbase team to resolve the issue. Your card will be refunded in the meantime. Please try again later</string>
+
+    <string name="error_title_onrampGooglePayNotSupported">Google Pay Not Available</string>
+    <string name="error_description_onrampGooglePayNotSupported">Google Pay is not available on this device. Please try on a device with Google Pay support</string>
+
+    <string name="error_title_onrampGooglePayNotReady">Google Pay Not Ready</string>
+    <string name="error_description_onrampGooglePayNotReady">Please add a payment method to Google Pay and try again</string>
+
+    <string name="error_title_onrampNonStableWebView">Unsupported WebView</string>
+    <string name="error_description_onrampNonStableWebView">Your device is using a %1$s version of Android System WebView, which may cause issues with purchases. Google recommends switching to the stable channel before continuing with your purchase</string>
+    <string name="action_continueAnyway">Continue Anyway</string>
+
+    <string name="error_title_onrampUnknownFailure">Something Went Wrong</string>
+    <string name="error_description_onrampUnknownFailure">Please contact support@flipcash.com</string>
+
+    <string name="error_title_moderationFailed">Something Went Wrong</string>
+    <string name="error_description_moderationFailed">Please try again</string>
+
+    <string name="error_title_nameCheckFailed">Something Went Wrong</string>
+    <string name="error_description_nameCheckFailed">Please try again</string>
+
+    <string name="error_title_nameNotAllowed">This Name is Not Allowed</string>
+    <string name="error_description_nameNotAllowed">Try a different currency name</string>
+
+    <string name="error_title_nameAlreadyTaken">This Name is Taken</string>
+    <string name="error_description_nameAlreadyTaken">Try a different currency name</string>
+
+    <string name="error_title_imageNotAllowed">This Image is Not Allowed</string>
+    <string name="error_description_imageNotAllowed">Try a different image</string>
+
+    <string name="error_title_imageNotSupported">This Image is Not Supported</string>
+    <string name="error_description_imageNotSupported">Try a different image format</string>
+
+    <string name="error_title_descriptionNotAllowed">This Description is Not Allowed</string>
+    <string name="error_description_descriptionNotAllowed">Try a different currency description</string>
+
+    <string name="error_title_launchTokenFailed">Something Went Wrong</string>
+    <string name="error_description_launchTokenFailed">Please try again</string>
+
+    <string name="error_title_buyNewCurrencyFailed">Purchase failed</string>
+    <string name="error_description_buyNewCurrencyFailed">We couldn\'t complete your initial purchase. Your currency is on hold for the next 30 minutes.</string>
+
+    <string name="subtitle_processingYourNewCurrencyTransaction">This transaction typically takes a few minutes. You may leave the app while it completes</string>
+    <string name="action_receiveNewCurrency">Get the First %1$s of Your Currency Free</string>
+
+    <string name="error_title_noInternet">Something Went Wrong</string>
+    <string name="error_description_noInternet">Please check your internet connection or try again later.</string>
+
+    <string name="error_title_staleRates">Rate Unavailable</string>
+    <string name="error_description_staleRates">Couldn\'t get a fresh rate. Please try again.</string>
+
+    <string name="title_settings">Settings</string>
+
+    <string name="title_withdrawUsdfAsUsdc">Withdraw as USDC</string>
+    <string name="description_withdrawUsdfAsUsdc">Your USDF will be converted 1:1 to Solana USDC on withdrawal</string>
+    <string name="displayName_solanaUsdc">Solana USDC</string>
+    <string name="displayName_usdc">USDC</string>
+    <string name="label_withdrawalAmount">Withdrawal amount</string>
+    <string name="label_lessFee">Less fee</string>
+    <string name="label_netAmount">Net amount</string>
+    <string name="label_amountInToken">Amount in %1$s</string>
+
+    <string name="title_leaderboard">Leaderboard</string>
+
+    <string name="action_discover">Discover</string>
 </resources>

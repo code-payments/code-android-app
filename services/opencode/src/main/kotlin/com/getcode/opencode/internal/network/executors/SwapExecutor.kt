@@ -30,6 +30,18 @@ import kotlin.coroutines.resume
 typealias OcpSwapStreamReference = BidirectionalStreamReference<SwapRequest, TransactionService.StatefulSwapResponse>
 
 
+/**
+ * [SwapExecutor] is responsible for orchestrating the execution of token swaps through a
+ * bidirectional gRPC stream.
+ *
+ * It manages the lifecycle of the swap process, including:
+ * 1. Establishing a stateful connection via [TransactionApi.swap].
+ * 2. Handling server-provided parameters and signing required transactions.
+ * 3. Managing stream state and cleanup through [OcpSwapStreamReference].
+ * 4. Mapping server-side responses and errors into [SwapResult].
+ *
+ * @property api The [TransactionApi] used to communicate with the swap service.
+ */
 internal class SwapExecutor(
     private val api: TransactionApi,
 ) {
@@ -48,15 +60,26 @@ internal class SwapExecutor(
 
         streamReference.retain()
 
-        val metadata = VerifiedSwapMetadata(
-            id = request.swapId,
-            fromMint = request.direction.sourceMint.address,
-            toMint = request.direction.destinationMint.address,
-            amount = request.amount.underlyingTokenAmount,
-            fundingSource = when (request.kind) {
-                is SwapStartKind.CurrencyCreator -> request.kind.fundingSource
-            },
-        )
+        val metadata = when (request.kind) {
+            is SwapStartKind.Reserve -> VerifiedSwapMetadata.Reserve(
+                id = request.swapId,
+                fromMint = request.direction.sourceMint.address,
+                toMint = request.direction.destinationMint.address,
+                swapAmount = request.swapAmount.underlyingTokenAmount,
+                feeAmount = request.feeAmount?.underlyingTokenAmount,
+                fundingSource = request.kind.fundingSource
+            )
+
+            is SwapStartKind.Stablecoin -> VerifiedSwapMetadata.StableCoin(
+                id = request.swapId,
+                fromMint = request.direction.sourceMint.address,
+                toMint = request.direction.destinationMint.address,
+                swapAmount = request.swapAmount.underlyingTokenAmount,
+                feeAmount = request.feeAmount?.underlyingTokenAmount,
+                fundingSource = request.kind.fundingSource,
+                destinationOwner = request.kind.destinationOwner
+            )
+        }
 
         val intent = IntentSwap(request = request, metadata = metadata)
 
@@ -157,8 +180,16 @@ private fun handleServerParameters(
     try {
         val params = when (serverParameters?.kindCase) {
             null -> null
-            TransactionService.StatefulSwapResponse.ServerParameters.KindCase.CURRENCY_CREATOR -> {
-                serverParameters.currencyCreator.toProps()
+            TransactionService.StatefulSwapResponse.ServerParameters.KindCase.RESERVE_EXISTING_CURRENCY -> {
+                serverParameters.reserveExistingCurrency.toProps()
+            }
+
+            TransactionService.StatefulSwapResponse.ServerParameters.KindCase.RESERVE_NEW_CURRENCY -> {
+                serverParameters.reserveNewCurrency.toProps()
+            }
+
+            TransactionService.StatefulSwapResponse.ServerParameters.KindCase.STABLECOIN -> {
+                serverParameters.stablecoin.toProps()
             }
 
             TransactionService.StatefulSwapResponse.ServerParameters.KindCase.KIND_NOT_SET -> null

@@ -2,6 +2,9 @@ package com.getcode.opencode.model.financial
 
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class FiatTests {
 
@@ -175,4 +178,408 @@ class FiatTests {
         )
         assertEquals("$9,223,372,036,854.78", fiat.formatted())
     }
+
+    // region Arithmetic operators
+
+    @Test
+    fun `plus adds two Fiat values with same currency`() {
+        val a = Fiat(fiat = 10.50)
+        val b = Fiat(fiat = 5.25)
+        val result = a + b
+        assertEquals(15.75, result.decimalValue, 0.001)
+        assertEquals(CurrencyCode.USD, result.currencyCode)
+    }
+
+    @Test
+    fun `plus with zero returns original`() {
+        val a = Fiat(fiat = 10.50)
+        val result = a + Fiat.Zero
+        // Adding zero should return the original instance
+        assertTrue(result === a)
+    }
+
+    @Test
+    fun `plus throws on currency mismatch`() {
+        val usd = Fiat(fiat = 10.0, currencyCode = CurrencyCode.USD)
+        val eur = Fiat(fiat = 5.0, currencyCode = CurrencyCode.EUR)
+        assertFailsWith<IllegalArgumentException> {
+            usd + eur
+        }
+    }
+
+    @Test
+    fun `minus subtracts two Fiat values`() {
+        val a = Fiat(fiat = 10.50)
+        val b = Fiat(fiat = 3.25)
+        val result = a - b
+        assertEquals(7.25, result.decimalValue, 0.001)
+    }
+
+    @Test
+    fun `minus with zero returns original`() {
+        val a = Fiat(fiat = 10.50)
+        val result = a - Fiat.Zero
+        assertTrue(result === a)
+    }
+
+    @Test
+    fun `minus can produce negative value`() {
+        val a = Fiat(fiat = 3.0)
+        val b = Fiat(fiat = 10.0)
+        val result = a - b
+        assertTrue(result.isNegative)
+        assertEquals(-7.0, result.decimalValue, 0.001)
+    }
+
+    @Test
+    fun `minus throws on currency mismatch`() {
+        val usd = Fiat(fiat = 10.0, currencyCode = CurrencyCode.USD)
+        val cad = Fiat(fiat = 5.0, currencyCode = CurrencyCode.CAD)
+        assertFailsWith<IllegalArgumentException> {
+            usd - cad
+        }
+    }
+
+    @Test
+    fun `times Int multiplies quarks`() {
+        val fiat = Fiat(fiat = 5.0)
+        val result = fiat * 3
+        assertEquals(15.0, result.decimalValue, 0.001)
+        assertEquals(CurrencyCode.USD, result.currencyCode)
+    }
+
+    @Test
+    fun `times Int by zero produces zero quarks`() {
+        val fiat = Fiat(fiat = 5.0)
+        val result = fiat * 0
+        assertEquals(0L, result.quarks)
+    }
+
+    @Test
+    fun `times Double multiplies quarks with rounding`() {
+        val fiat = Fiat(fiat = 10.0)
+        val result = fiat * 1.5
+        assertEquals(15.0, result.decimalValue, 0.001)
+    }
+
+    @Test
+    fun `times Double fractional multiplier`() {
+        val fiat = Fiat(fiat = 7.0)
+        val result = fiat * 0.1
+        assertEquals(0.7, result.decimalValue, 0.001)
+    }
+
+    @Test
+    fun `div divides quarks`() {
+        val fiat = Fiat(fiat = 10.0)
+        val result = fiat / 4
+        assertEquals(2.5, result.decimalValue, 0.001)
+    }
+
+    @Test
+    fun `div integer division truncates`() {
+        // 10 quarks / 3 = 3 quarks (integer division)
+        val fiat = Fiat(quarks = 10L)
+        val result = fiat / 3
+        assertEquals(3L, result.quarks)
+    }
+
+    @Test
+    fun `sum of Fiat list accumulates values`() {
+        val items = listOf(
+            Fiat(fiat = 1.0),
+            Fiat(fiat = 2.0),
+            Fiat(fiat = 3.0),
+        )
+        val result = items.sum()
+        assertEquals(6.0, result.decimalValue, 0.001)
+    }
+
+    @Test
+    fun `sum of empty list returns Zero`() {
+        val result = emptyList<Fiat>().sum()
+        assertEquals(Fiat.Zero, result)
+    }
+
+    // endregion
+
+    // region Currency conversion
+
+    @Test
+    fun `convertingTo applies rate and changes currency`() {
+        val usd = Fiat(fiat = 100.0, currencyCode = CurrencyCode.USD)
+        val cadRate = Rate(fx = 1.35, currency = CurrencyCode.CAD)
+
+        val result = usd.convertingTo(cadRate)
+
+        assertEquals(CurrencyCode.CAD, result.currencyCode)
+        assertEquals(135.0, result.decimalValue, 0.01)
+    }
+
+    @Test
+    fun `convertingTo with rate of 1 preserves value`() {
+        val usd = Fiat(fiat = 50.0, currencyCode = CurrencyCode.USD)
+        val result = usd.convertingTo(Rate.oneToOne)
+        assertEquals(50.0, result.decimalValue, 0.001)
+    }
+
+    @Test
+    fun `convertingTo with fractional rate`() {
+        val usd = Fiat(fiat = 100.0, currencyCode = CurrencyCode.USD)
+        val gbpRate = Rate(fx = 0.79, currency = CurrencyCode.GBP)
+
+        val result = usd.convertingTo(gbpRate)
+
+        assertEquals(CurrencyCode.GBP, result.currencyCode)
+        assertEquals(79.0, result.decimalValue, 0.01)
+    }
+
+    @Test
+    fun `convertingToUsdIfNeeded returns self when already USD`() {
+        val usd = Fiat(fiat = 50.0, currencyCode = CurrencyCode.USD)
+        val usdRate = Rate(fx = 1.0, currency = CurrencyCode.USD)
+
+        val result = usd.convertingToUsdIfNeeded(usdRate)
+
+        assertTrue(result === usd)
+    }
+
+    @Test
+    fun `convertingToUsdIfNeeded converts non-USD using inverse rate`() {
+        // If we have CAD 135 and rate is 1.35 CAD/USD,
+        // then converting to USD should give us 100
+        val cad = Fiat(fiat = 135.0, currencyCode = CurrencyCode.CAD)
+        val cadRate = Rate(fx = 1.35, currency = CurrencyCode.CAD)
+
+        val result = cad.convertingToUsdIfNeeded(cadRate)
+
+        assertEquals(CurrencyCode.USD, result.currencyCode)
+        assertEquals(100.0, result.decimalValue, 0.01)
+    }
+
+    // endregion
+
+    // region Comparison operators
+
+    @Test
+    fun `compareTo returns negative when less`() {
+        val small = Fiat(fiat = 5.0)
+        val large = Fiat(fiat = 10.0)
+        assertTrue(small < large)
+    }
+
+    @Test
+    fun `compareTo returns positive when greater`() {
+        val small = Fiat(fiat = 5.0)
+        val large = Fiat(fiat = 10.0)
+        assertTrue(large > small)
+    }
+
+    @Test
+    fun `compareTo returns zero for equal values`() {
+        val a = Fiat(fiat = 5.0)
+        val b = Fiat(fiat = 5.0)
+        assertEquals(0, a.compareTo(b))
+    }
+
+    @Test
+    fun `less than or equal for equal values`() {
+        val a = Fiat(fiat = 5.0)
+        val b = Fiat(fiat = 5.0)
+        assertTrue(a <= b)
+        assertTrue(b <= a)
+    }
+
+    @Test
+    fun `greater than or equal for equal values`() {
+        val a = Fiat(fiat = 5.0)
+        val b = Fiat(fiat = 5.0)
+        assertTrue(a >= b)
+    }
+
+    @Test
+    fun `valueLessThan compares formatted double values`() {
+        val small = Fiat(fiat = 1.0)
+        val large = Fiat(fiat = 2.0)
+        assertTrue(small.valueLessThan(large))
+        assertFalse(large.valueLessThan(small))
+    }
+
+    @Test
+    fun `valueGreaterThan compares formatted double values`() {
+        val small = Fiat(fiat = 1.0)
+        val large = Fiat(fiat = 2.0)
+        assertTrue(large.valueGreaterThan(small))
+        assertFalse(small.valueGreaterThan(large))
+    }
+
+    @Test
+    fun `valueGreaterThanOrEqualTo for equal values`() {
+        val a = Fiat(fiat = 5.0)
+        val b = Fiat(fiat = 5.0)
+        assertTrue(a.valueGreaterThanOrEqualTo(b))
+    }
+
+    @Test
+    fun `valueLessThanOrEqualTo for equal values`() {
+        val a = Fiat(fiat = 5.0)
+        val b = Fiat(fiat = 5.0)
+        assertTrue(a.valueLessThanOrEqualTo(b))
+    }
+
+    @Test
+    fun `min returns smaller Fiat`() {
+        val small = Fiat(fiat = 3.0)
+        val large = Fiat(fiat = 7.0)
+        assertEquals(small, min(small, large))
+        assertEquals(small, min(large, small))
+    }
+
+    @Test
+    fun `max returns larger Fiat`() {
+        val small = Fiat(fiat = 3.0)
+        val large = Fiat(fiat = 7.0)
+        assertEquals(large, max(small, large))
+        assertEquals(large, max(large, small))
+    }
+
+    // endregion
+
+    // region Properties and helpers
+
+    @Test
+    fun `isPositive returns true for positive quarks`() {
+        assertTrue(Fiat(fiat = 1.0).isPositive)
+    }
+
+    @Test
+    fun `isPositive returns false for zero`() {
+        assertFalse(Fiat.Zero.isPositive)
+    }
+
+    @Test
+    fun `isNegative returns true for negative quarks`() {
+        val negative = Fiat(fiat = 0.0) - Fiat(fiat = 5.0)
+        assertTrue(negative.isNegative)
+    }
+
+    @Test
+    fun `isNegative returns false for positive value`() {
+        assertFalse(Fiat(fiat = 1.0).isNegative)
+    }
+
+    @Test
+    fun `valueNonZero returns true for non-zero`() {
+        assertTrue(Fiat(fiat = 0.01).valueNonZero())
+    }
+
+    @Test
+    fun `valueNonZero returns false for zero`() {
+        assertFalse(Fiat.Zero.valueNonZero())
+    }
+
+    @Test
+    fun `orZero returns self when non-null`() {
+        val fiat = Fiat(fiat = 5.0)
+        assertEquals(fiat, fiat.orZero())
+    }
+
+    @Test
+    fun `orZero returns Zero when null`() {
+        val fiat: Fiat? = null
+        assertEquals(Fiat.Zero, fiat.orZero())
+    }
+
+    @Test
+    fun `toFiat Int extension`() {
+        val fiat = 5.toFiat()
+        assertEquals(5.0, fiat.decimalValue, 0.001)
+        assertEquals(CurrencyCode.USD, fiat.currencyCode)
+    }
+
+    @Test
+    fun `toFiat Long extension creates from quarks`() {
+        // Long maps to the primary constructor (quarks), so 5_000_000L quarks = 5.0
+        val fiat = 5_000_000L.toFiat(CurrencyCode.EUR)
+        assertEquals(5.0, fiat.decimalValue, 0.001)
+        assertEquals(CurrencyCode.EUR, fiat.currencyCode)
+    }
+
+    @Test
+    fun `toFiat Double extension`() {
+        val fiat = 5.5.toFiat()
+        assertEquals(5.5, fiat.decimalValue, 0.001)
+    }
+
+    @Test
+    fun `toFiat throws for unsupported Number type`() {
+        assertFailsWith<IllegalArgumentException> {
+            5.0f.toFiat()
+        }
+    }
+
+    @Test
+    fun `rounded applies rounding to specified decimal places`() {
+        val fiat = Fiat(fiat = 1.2345)
+        val rounded = fiat.rounded(2)
+        assertEquals(1.23, rounded.decimalValue, 0.001)
+    }
+
+    @Test
+    fun `rounded half-up rounding`() {
+        val fiat = Fiat(fiat = 1.235)
+        val rounded = fiat.rounded(2)
+        assertEquals(1.24, rounded.decimalValue, 0.001)
+    }
+
+    @Test
+    fun `string constructor parses amount`() {
+        val fiat = Fiat(stringAmount = "123.45")
+        assertEquals(123.45, fiat.decimalValue, 0.001)
+    }
+
+    @Test
+    fun `Fiat constructor from Int`() {
+        val fiat = Fiat(fiat = 42)
+        assertEquals(42.0, fiat.decimalValue, 0.001)
+    }
+
+    @Test
+    fun `decimalValue reflects quarks divided by multiplier`() {
+        val fiat = Fiat(quarks = 5_000_000L)
+        assertEquals(5.0, fiat.decimalValue, 0.001)
+    }
+
+    // tokenBalance and estimatedTokenAmountIn tests skipped — MintMetadata.usdf
+    // requires Ed25519 JNI which is unavailable in JVM unit tests
+
+    @Test
+    fun `estimatedTokenAmountIn for null token uses fallback supply of 0`() {
+        val fiat = Fiat(fiat = 10.0)
+        // null token should not crash; uses 0 supply and null decimals
+        val result = fiat.estimatedTokenAmountIn(null)
+        // With null token and 0 supply, should produce some result string
+        assertTrue(result.isNotEmpty())
+    }
+
+    @Test
+    fun `formatted with extraPrefix and suffix`() {
+        val fiat = Fiat(fiat = 10.0)
+        val result = fiat.formatted(extraPrefix = "~", suffix = "USD")
+        assertEquals("~ $10.00 USD", result)
+    }
+
+    @Test
+    fun `formatted negative value includes minus sign`() {
+        val fiat = Fiat(fiat = 3.0) - Fiat(fiat = 10.0)
+        assertEquals("-$7.00", fiat.formatted())
+    }
+
+    @Test
+    fun `formatted negative value without prefix`() {
+        val fiat = Fiat(fiat = 3.0) - Fiat(fiat = 10.0)
+        assertEquals("-7.00", fiat.formatted(showPrefix = false))
+    }
+
+    // endregion
 }

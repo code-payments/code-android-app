@@ -672,4 +672,171 @@ Java_com_kik_scan_RemoteKikCode_destroyNative(
     delete kik_code_to_delete;
 }
 
+// --- Helper to extract native pointer from KikCode subclass instances ---
+static KikCode* getNativePtr(JNIEnv *env, jobject thiz) {
+    jclass kikcode_class = env->FindClass("com/kik/scan/KikCode");
+    if (kikcode_class == nullptr) return nullptr;
+    jfieldID native_ptr_field = env->GetFieldID(kikcode_class, "nativePtr", "J");
+    if (native_ptr_field == nullptr) return nullptr;
+    jlong native_ptr = env->GetLongField(thiz, native_ptr_field);
+    if (native_ptr == 0) return nullptr;
+    return reinterpret_cast<KikCode*>(native_ptr);
+}
+
+// --- UsernameKikCode JNI ---
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_kik_scan_UsernameKikCode_username(
+        JNIEnv *env,
+        jobject thiz) {
+    auto* kik_code = getNativePtr(env, thiz);
+    if (kik_code == nullptr) return nullptr;
+    auto* username_code = static_cast<UsernameKikCode*>(kik_code);
+    std::string username = username_code->username();
+    return env->NewStringUTF(username.c_str());
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_kik_scan_UsernameKikCode_nonce(
+        JNIEnv *env,
+        jobject thiz) {
+    auto* kik_code = getNativePtr(env, thiz);
+    if (kik_code == nullptr) return 0;
+    auto* username_code = static_cast<UsernameKikCode*>(kik_code);
+    return static_cast<jint>(username_code->nonce());
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_kik_scan_UsernameKikCode_type(
+        JNIEnv *env,
+        jobject thiz) {
+    auto* kik_code = getNativePtr(env, thiz);
+    if (kik_code == nullptr) return 0;
+    return static_cast<jint>(kik_code->type());
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_kik_scan_UsernameKikCode_colour(
+        JNIEnv *env,
+        jobject thiz) {
+    auto* kik_code = getNativePtr(env, thiz);
+    if (kik_code == nullptr) return 0;
+    return static_cast<jint>(kik_code->colour());
+}
+
+extern "C"
+JNIEXPORT jbyteArray JNICALL
+Java_com_kik_scan_UsernameKikCode_encode(
+        JNIEnv *env,
+        jobject thiz) {
+    auto* kik_code = getNativePtr(env, thiz);
+    if (kik_code == nullptr) return nullptr;
+
+    unsigned char output_buffer[KIK_CODE_ALL_BYTE_COUNT] = {0};
+    try {
+        kik_code->encode(output_buffer);
+    } catch (const std::exception& e) {
+        return nullptr;
+    }
+
+    jbyteArray result = env->NewByteArray(KIK_CODE_ALL_BYTE_COUNT);
+    if (result == nullptr) return nullptr;
+    env->SetByteArrayRegion(result, 0, KIK_CODE_ALL_BYTE_COUNT, reinterpret_cast<const jbyte*>(output_buffer));
+    return result;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_kik_scan_UsernameKikCode_destroyNative(
+        JNIEnv *env,
+        jobject thiz,
+        jlong native_ptr) {
+    if (native_ptr == 0) return;
+    delete reinterpret_cast<KikCode*>(native_ptr);
+}
+
+// --- GroupKikCode JNI ---
+
+extern "C"
+JNIEXPORT jbyteArray JNICALL
+Java_com_kik_scan_GroupKikCode_inviteCode(
+        JNIEnv *env,
+        jobject thiz) {
+    auto* kik_code = getNativePtr(env, thiz);
+    if (kik_code == nullptr) return nullptr;
+    auto* group_code = static_cast<GroupKikCode*>(kik_code);
+    std::string invite_code = group_code->inviteCode();
+
+    jbyteArray result = env->NewByteArray(invite_code.length());
+    if (result == nullptr) return nullptr;
+    env->SetByteArrayRegion(result, 0, invite_code.length(), reinterpret_cast<const jbyte*>(invite_code.c_str()));
+    return result;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_kik_scan_GroupKikCode_type(
+        JNIEnv *env,
+        jobject thiz) {
+    auto* kik_code = getNativePtr(env, thiz);
+    if (kik_code == nullptr) return 0;
+    return static_cast<jint>(kik_code->type());
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_kik_scan_GroupKikCode_colour(
+        JNIEnv *env,
+        jobject thiz) {
+    auto* kik_code = getNativePtr(env, thiz);
+    if (kik_code == nullptr) return 0;
+    return static_cast<jint>(kik_code->colour());
+}
+
+extern "C"
+JNIEXPORT jbyteArray JNICALL
+Java_com_kik_scan_GroupKikCode_encode(
+        JNIEnv *env,
+        jobject thiz) {
+    auto* kik_code = getNativePtr(env, thiz);
+    if (kik_code == nullptr) return nullptr;
+
+    unsigned char output_buffer[KIK_CODE_ALL_BYTE_COUNT] = {0};
+    try {
+        kik_code->encode(output_buffer);
+    } catch (const std::exception& e) {
+        return nullptr;
+    }
+
+    jbyteArray result = env->NewByteArray(KIK_CODE_ALL_BYTE_COUNT);
+    if (result == nullptr) return nullptr;
+    env->SetByteArrayRegion(result, 0, KIK_CODE_ALL_BYTE_COUNT, reinterpret_cast<const jbyte*>(output_buffer));
+    return result;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_kik_scan_GroupKikCode_destroyNative(
+        JNIEnv *env,
+        jobject thiz,
+        jlong native_ptr) {
+    if (native_ptr == 0) return;
+    delete reinterpret_cast<KikCode*>(native_ptr);
+}
+
+// --- RemoteKikCode (missing type) ---
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_kik_scan_RemoteKikCode_type(
+        JNIEnv *env,
+        jobject thiz) {
+    auto* kik_code = getNativePtr(env, thiz);
+    if (kik_code == nullptr) return 0;
+    return static_cast<jint>(kik_code->type());
+}
 

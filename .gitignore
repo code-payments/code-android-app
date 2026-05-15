@@ -18,8 +18,24 @@ apps/flipcash/app/dapp_publishing/node_modules/**
 apps/flipcash/app/dapp_publishing/.asset-manifest.json
 ## Fastlane
 fastlane/report.xml
+
 *.env.*
-.claude/
+.env
+.env.local
+
+.claude/worktrees/
+.claude/settings.local.json
+
+# Bundler (Ruby gems installed during CI)
+.bundle/
+vendor/bundle/
+
+# Signing keys decoded during CI
+key/
+apps/flipcash/app/key/
+
+# Service account keys
+serviceAccount.json
 
 # Maestro screenshot test artifacts
 maestro/screenshots/results/

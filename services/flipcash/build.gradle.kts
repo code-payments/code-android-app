@@ -37,6 +37,7 @@ dependencies {
     implementation(libs.grpc.okhttp)
     implementation(libs.grpc.kotlin)
     implementation(libs.grpc.protobuf.lite)
+    implementation(libs.protobuf.validate.runtime)
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
@@ -46,7 +47,6 @@ dependencies {
     implementation(libs.mixpanel)
 
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.installations)
     implementation(libs.firebase.messaging)
 
@@ -68,7 +68,8 @@ dependencies {
     ksp(libs.hilt.android.compiler)
     ksp(libs.hilt.compiler)
 
-    implementation(libs.bugsnag)
-
     implementation(libs.event.bus)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
 }

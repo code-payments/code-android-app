@@ -19,10 +19,10 @@ object AnimationUtils {
 
     val animationBillEnterGrabbed = scaleIn(
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = 1500f
+            dampingRatio = 0.4f,
+            stiffness = 9400f
         ),
-        initialScale = 0.5f
+        initialScale = 0.65f
     )
 
     val animationBillExitReturned = slideOutVertically(

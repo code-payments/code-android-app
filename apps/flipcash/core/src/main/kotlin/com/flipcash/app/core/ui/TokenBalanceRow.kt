@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,12 +15,11 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
@@ -29,6 +27,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.text.AnimatedNumberText
 import com.getcode.ui.core.addIf
 
 data class TokenBalanceRowSizing(
@@ -54,6 +53,7 @@ fun TokenBalanceRow(
     showFlag: Boolean = false,
     showLogo: Boolean = true,
     isSelected: Boolean? = null,
+    iconOverride: @Composable ((Any?) -> Any?) = { it },
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
     sizing: TokenBalanceRowSizing = rememberTokenBalanceRowSizing(),
@@ -65,6 +65,7 @@ fun TokenBalanceRow(
         token = token,
         displayName = displayName,
         balance = balance.nativeAmount,
+        iconOverride = iconOverride,
         formattedBalance = formattedBalance,
         isSelected = isSelected,
         modifier = modifier,
@@ -86,6 +87,7 @@ fun TokenBalanceRow(
     showLogo: Boolean = true,
     showFlag: Boolean = false,
     isSelected: Boolean? = null,
+    iconOverride: @Composable ((Any?) -> Any?) = { it },
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
     sizing: TokenBalanceRowSizing = rememberTokenBalanceRowSizing(),
@@ -103,6 +105,7 @@ fun TokenBalanceRow(
         isSelected = isSelected,
         modifier = modifier,
         sizing = sizing,
+        iconOverride = iconOverride,
         formattedBalance = formattedBalance,
         horizontalArrangement = horizontalArrangement,
         contentPadding = contentPadding,
@@ -121,6 +124,7 @@ fun TokenBalanceRow(
     showLogo: Boolean = true,
     showFlag: Boolean = false,
     isSelected: Boolean? = null,
+    iconOverride: @Composable ((Any?) -> Any?) = { it },
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
     sizing: TokenBalanceRowSizing = rememberTokenBalanceRowSizing(),
@@ -144,6 +148,7 @@ fun TokenBalanceRow(
             showLogo && showName -> {
                 TokenIconWithName(
                     token = token,
+                    iconOverride = iconOverride,
                     displayName = { displayName },
                     imageSize = sizing.iconSize,
                     textStyle = sizing.nameTextStyle,
@@ -153,10 +158,17 @@ fun TokenBalanceRow(
             }
 
             showLogo && !showName -> {
-                TokenIcon(
-                    token = token,
-                    modifier = Modifier.size(sizing.iconSize)
-                )
+                when (val image = iconOverride(token.imageUrl)) {
+                    is Painter -> Image(
+                        painter = image,
+                        contentDescription = null,
+                        modifier = Modifier.size(sizing.iconSize),
+                    )
+                    else -> TokenIcon(
+                        image = image,
+                        modifier = Modifier.size(sizing.iconSize)
+                    )
+                }
             }
 
             showName -> {
@@ -187,8 +199,8 @@ fun TokenBalanceRow(
                 }
             }
 
-            Text(
-                text = formattedBalance(balance),
+            AnimatedNumberText(
+                value = formattedBalance(balance),
                 style = sizing.balanceTextStyle,
                 color = CodeTheme.colors.textMain,
             )

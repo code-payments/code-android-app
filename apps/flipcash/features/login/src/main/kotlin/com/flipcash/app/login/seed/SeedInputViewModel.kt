@@ -2,15 +2,18 @@ package com.flipcash.app.login.seed
 
 import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.auth.internal.credentials.SelectCredentialError
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.userflags.ResolvedFlag
+import com.flipcash.app.userflags.ResolvedUserFlags
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.login.R
 import com.flipcash.services.controllers.AccountController
-import com.flipcash.services.internal.model.account.UserFlags
+import com.flipcash.services.models.UserFlags
 import com.flipcash.services.user.UserManager
 import com.getcode.crypt.MnemonicPhrase
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.opencode.managers.MnemonicManager
@@ -41,6 +44,7 @@ class SeedInputViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val accountController: AccountController,
     private val userManager: UserManager,
+    private val userFlags: UserFlagsCoordinator,
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
 ) : BaseViewModel(resources) {
@@ -94,7 +98,7 @@ class SeedInputViewModel @Inject constructor(
             authManager.login(entropyB64, isFromSelection = isRestore)
                 .onFailure {
                     if (it is AuthManager.AuthManagerException.TimelockUnlockedException) {
-                        BottomBarManager.showError(
+                        BottomBarManager.showAlert(
                             getString(R.string.error_title_timelockUnlocked),
                             getString(R.string.error_description_timelockUnlocked)
                         )
@@ -105,11 +109,12 @@ class SeedInputViewModel @Inject constructor(
                     setState(isLoading = false, isSuccess = false, isContinueEnabled = true)
                 }
                 .onSuccess {
-                    val userFlags = userManager.userFlags
-                    if (userFlags == null) {
+                    val resolvedFlags = userFlags.resolvedFlags.value
+                    // check if we have server backed flags
+                    if (resolvedFlags.minimumVersion.serverValue == null) {
                         accountController.getUserFlags()
                             .onSuccess {
-                                postLoginNavigation(navigator, it)
+                                postLoginNavigation(navigator, userFlags.resolvedFlags.value)
                             }.onFailure {
                                 setState(isLoading = false, isSuccess = false, isContinueEnabled = false)
                                 BottomBarManager.showError(
@@ -118,7 +123,7 @@ class SeedInputViewModel @Inject constructor(
                                 )
                             }
                     } else {
-                        postLoginNavigation(navigator, userFlags)
+                        postLoginNavigation(navigator, resolvedFlags)
                     }
                 }
         }
@@ -126,16 +131,16 @@ class SeedInputViewModel @Inject constructor(
 
     private suspend fun postLoginNavigation(
         navigator: CodeNavigator,
-        flags: UserFlags,
+        flags: ResolvedUserFlags?,
     ) {
         setState(isLoading = false, isSuccess = true, isContinueEnabled = false)
         delay(1.seconds)
         when {
-            !flags.isRegistered && flags.requiresIapForRegistration -> {
-                navigator.push(ScreenRegistry.get(AppRoute.Onboarding.Purchase(true)))
+            flags?.isRegistered?.effectiveValue == true && flags.requiresIapForRegistration.effectiveValue -> {
+                navigator.push(AppRoute.Onboarding.Purchase(true))
             }
 
-            else -> navigator.replaceAll(ScreenRegistry.get(AppRoute.Main.Scanner()))
+            else -> navigator.replaceAll(AppRoute.Main.Scanner)
         }
     }
 
@@ -184,16 +189,20 @@ class SeedInputViewModel @Inject constructor(
     }
 
     private fun showError(navigator: CodeNavigator) {
-        BottomBarManager.showMessage(
-            BottomBarManager.BottomBarMessage(
-                title = resources.getString(R.string.prompt_title_notFlipcashAccount),
-                subtitle = resources.getString(R.string.prompt_description_notFlipcashAccount),
-                positiveText = resources.getString(R.string.action_createNewFlipcashAccount),
-                tertiaryText = resources.getString(R.string.action_tryDifferentFlipcashAccount),
-                onPositive = {
-                    navigator.replaceAll(ScreenRegistry.get(AppRoute.Onboarding.Login()))
-                }
-            )
+        BottomBarManager.showAlert(
+            title = resources.getString(R.string.prompt_title_notFlipcashAccount),
+            message = resources.getString(R.string.prompt_description_notFlipcashAccount),
+            actions = listOf(
+                BottomBarAction(
+                    resources.getString(R.string.action_createNewFlipcashAccount)
+                ) {
+                    navigator.replaceAll(AppRoute.Onboarding.Login())
+                },
+                BottomBarAction(
+                    resources.getString(R.string.action_tryDifferentFlipcashAccount),
+                    style = BottomBarManager.BottomBarButtonStyle.Text
+                )
+            ),
         )
     }
 }

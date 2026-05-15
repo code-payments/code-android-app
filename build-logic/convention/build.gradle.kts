@@ -20,6 +20,7 @@ dependencies {
     compileOnly(libs.hilt.gradle.plugin)
     compileOnly(libs.compose.compiler.gradle.plugin)
     compileOnly(libs.kotlin.serialization.gradle.plugin)
+    compileOnly(libs.kover.gradle.plugin)
 }
 
 gradlePlugin {
@@ -35,6 +36,10 @@ gradlePlugin {
         register("androidFeature") {
             id = "flipcash.android.feature"
             implementationClass = "AndroidFeatureConventionPlugin"
+        }
+        register("androidEd25519Shadow") {
+            id = "flipcash.android.ed25519.shadow"
+            implementationClass = "AndroidEd25519ShadowConventionPlugin"
         }
     }
 }

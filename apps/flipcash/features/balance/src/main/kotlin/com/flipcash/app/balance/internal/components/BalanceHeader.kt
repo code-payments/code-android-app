@@ -1,12 +1,10 @@
 package com.flipcash.app.balance.internal.components
 
-import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.flipcash.app.core.ui.CurrencyAppreciationLabel
@@ -35,24 +33,19 @@ internal fun BalanceHeader(
                 CodeCircularProgressIndicator()
             }
         } else {
-            key(balance.nativeAmount) {
-                Crossfade(balance.nativeAmount) { amount ->
-                    AmountArea(
-                        amountText = amount.formatted(),
-                        isAltCaption = false,
-                        isAltCaptionKinIcon = false,
-                        currencyResId = exchange.getFlagByCurrency(amount.currencyCode.name),
-                        isClickable = true,
-                        textStyle = CodeTheme.typography.displayLarge,
-                        onClick = onClick
-                    )
-                }
-            }
+            AmountArea(
+                amountText = balance.nativeAmount.formatted(),
+                isAltCaption = false,
+                isAltCaptionKinIcon = false,
+                currencyResId = exchange.getFlagByCurrency(balance.nativeAmount.currencyCode.name),
+                isClickable = true,
+                animateDigits = true,
+                textStyle = CodeTheme.typography.displayLarge,
+                onClick = onClick
+            )
 
             if (appreciation != null) {
-                Crossfade(appreciation.nativeAmount) { amount ->
-                    CurrencyAppreciationLabel(amount)
-                }
+                CurrencyAppreciationLabel(appreciation.nativeAmount)
             }
         }
     }

@@ -2,9 +2,11 @@ package com.getcode.opencode.internal.domain.mapping
 
 import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.codeinc.opencode.gen.currency.v1.billCustomizationOrNull
+import com.codeinc.opencode.gen.currency.v1.holderMetricsOrNull
 import com.codeinc.opencode.gen.currency.v1.launchpadMetadataOrNull
 import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.mapper.Mapper
+import com.getcode.opencode.model.financial.HolderMetrics
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
@@ -19,6 +21,7 @@ internal class MintMapper @Inject constructor(
     private val launchpadMetadataMapper: LaunchpadMetadataMapper,
     private val socialLinkMapper: SocialLinkMapper,
     private val customizationMapper: BillCustomizationMapper,
+    private val holderMetricsMapper: HolderMetricsMapper,
 ) : Mapper<CurrencyService.Mint, MintMetadata> {
     override fun map(from: CurrencyService.Mint): MintMetadata {
         val mint = from.address.toMint()
@@ -50,7 +53,8 @@ internal class MintMapper @Inject constructor(
             vmMetadata = vmMetadata,
             launchpadMetadata = launchpadMetadata,
             socialLinks = from.socialLinksList.mapNotNull(socialLinkMapper::map),
-            billCustomizations = customizationMapper.map(from.billCustomizationOrNull)
+            billCustomizations = customizationMapper.map(from.billCustomizationOrNull),
+            holderMetrics = from.holderMetricsOrNull?.let { holderMetricsMapper.map(it) } ?: HolderMetrics.None,
         )
     }
 }

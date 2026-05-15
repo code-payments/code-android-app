@@ -114,7 +114,7 @@ data class Fiat(
 
             positivePrefix = fullPrefix
             positiveSuffix = suffix?.let { " $it" }.orEmpty()
-            negativePrefix = fullPrefix
+            negativePrefix = "-$fullPrefix"
             negativeSuffix = suffix?.let { " $it" }.orEmpty()
             isGroupingUsed = includeCommas
         }
@@ -141,7 +141,7 @@ data class Fiat(
 
     fun convertingToUsdIfNeeded(rate: Rate): Fiat {
         return if (rate.currency != CurrencyCode.USD) {
-            convertingTo(Rate(1 / rate.fx, rate.currency))
+            convertingTo(Rate(1 / rate.fx, CurrencyCode.USD))
         } else {
             this
         }
@@ -150,12 +150,20 @@ data class Fiat(
     // Comparable implementation
     override fun compareTo(other: Fiat): Int = this.quarks.compareTo(other.quarks)
 
-    fun toDouble() = formatted(
-        showPrefix = false,
-        includeCommas = false
-    ).toLocaleAwareDoubleOrNull() ?: 0.0
+    fun toDouble() = decimalValue.roundTo(currencyCode.fractionDigits, ROUNDING_MODE)
 
     fun valueNonZero(): Boolean = toDouble() != 0.0
+
+    /** The smallest displayable unit for this currency (e.g. $0.01 USD, ¥1 JPY). */
+    val smallestUnit: Fiat
+        get() {
+            val step = BigDecimal.ONE.movePointLeft(currencyCode.fractionDigits).toDouble()
+            return Fiat(fiat = step, currencyCode = currencyCode)
+        }
+
+    /** Whether this value would format as non-zero in its currency. */
+    val hasDisplayableValue: Boolean
+        get() = this >= smallestUnit
 
     fun valueLessThan(other: Fiat): Boolean = toDouble() < other.toDouble()
     fun valueGreaterThan(other: Fiat): Boolean = toDouble() > other.toDouble()
@@ -206,7 +214,8 @@ data class Fiat(
 
         fun tokenBalance(
             quarks: Long,
-            token: Token
+            token: Token,
+            supplyOverride: Long? = null,
         ): Fiat {
             if (token.address == Mint.usdf) {
                 return Fiat(quarks, CurrencyCode.USD)
@@ -217,7 +226,7 @@ data class Fiat(
                     Estimator.sell(
                         amountInQuarks = quarks,
                         marketState = MarketState.FromSupply(
-                            token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,
+                            supplyOverride ?: token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0,
                         ),
                         mintDecimals = token.decimals,
                         outputDecimals = 6, // The desired value here is USDF which is 6

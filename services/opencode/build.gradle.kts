@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.flipcash.android.library)
+    alias(libs.plugins.flipcash.android.ed25519.shadow)
     id("com.google.devtools.ksp")
     id("dagger.hilt.android.plugin")
     id("org.jetbrains.kotlin.plugin.parcelize")
@@ -22,6 +23,7 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
 }
 
 dependencies {
@@ -44,6 +46,8 @@ dependencies {
 
     api(project(":vendor:kik:scanner"))
 
+    implementation(libs.protobuf.validate.runtime)
+
     implementation(libs.javax.inject)
 
     implementation(libs.kotlinx.serialization.json)
@@ -60,7 +64,6 @@ dependencies {
     implementation(libs.mixpanel)
 
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.installations)
     implementation(libs.firebase.perf)
     implementation(libs.firebase.messaging)
@@ -87,9 +90,9 @@ dependencies {
     ksp(libs.hilt.android.compiler)
     ksp(libs.hilt.compiler)
 
-    implementation(libs.bugsnag)
-
     implementation(libs.event.bus)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(testFixtures(project(":libs:currency-math")))
 }

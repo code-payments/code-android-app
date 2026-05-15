@@ -11,6 +11,7 @@ interface Exchange {
     val entryRate: Rate
     fun observeEntryRate(): Flow<Rate>
     suspend fun setPreferredEntryCurrency(currencyCode: CurrencyCode)
+    fun resetEntryToBalance()
     val balanceRate: Rate
     fun observeBalanceRate(): Flow<Rate>
     suspend fun setPreferredBalanceCurrency(currencyCode: CurrencyCode)

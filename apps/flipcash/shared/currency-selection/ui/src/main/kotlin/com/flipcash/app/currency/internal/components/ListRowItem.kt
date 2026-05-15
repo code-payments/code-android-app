@@ -115,7 +115,8 @@ internal fun ListRowItem(
                     ) {
                         Text(
                             text = item.currency.name,
-                            style = CodeTheme.typography.textMedium
+                            style = CodeTheme.typography.textMedium,
+                            color = CodeTheme.colors.textMain,
                         )
                     }
                 }

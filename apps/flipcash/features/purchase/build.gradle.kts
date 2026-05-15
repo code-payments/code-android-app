@@ -7,8 +7,6 @@ android {
 }
 
 dependencies {
-    implementation(libs.compose.activities)
-
     implementation(project(":apps:flipcash:shared:authentication"))
     implementation(project(":apps:flipcash:shared:google-play-billing"))
     implementation(project(":libs:datetime"))

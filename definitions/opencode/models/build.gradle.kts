@@ -1,8 +1,10 @@
+import dev.bmcreations.protovalidate.gradle.ProtoVariant
 import org.apache.tools.ant.taskdefs.condition.Os
 
 plugins {
     alias(libs.plugins.flipcash.android.library)
-    id("com.google.protobuf")
+    alias(libs.plugins.protobuf)
+    alias(libs.plugins.protobuf.validate)
 }
 
 val archSuffix = if (Os.isFamily(Os.FAMILY_MAC)) ":osx-x86_64" else ""
@@ -63,4 +65,8 @@ protobuf {
             }
         }
     }
+}
+
+protovalidate {
+    variant.set(ProtoVariant.PGV)
 }

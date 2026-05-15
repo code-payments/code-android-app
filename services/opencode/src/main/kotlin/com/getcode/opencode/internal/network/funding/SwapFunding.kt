@@ -4,6 +4,8 @@ import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.api.intents.IntentFundSwap
 import com.getcode.opencode.internal.network.executors.IntentExecutor
 import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.plus
 import com.getcode.opencode.model.transactions.SwapRequest
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.solana.keys.PublicKey
@@ -21,7 +23,7 @@ internal class SwapFunding @Inject constructor(
         val fundingIntent = IntentFundSwap.create(
             intentId = PublicKey(request.fundingIntentId),
             sourceCluster = request.owner,
-            amount = request.amount,
+            amount = request.totalTransferAmount,
             fromMint = request.direction.sourceMint,
             verifiedState = request.verifiedState,
         )

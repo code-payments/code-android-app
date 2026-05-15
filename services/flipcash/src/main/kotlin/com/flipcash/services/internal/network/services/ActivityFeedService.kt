@@ -3,6 +3,7 @@ package com.flipcash.services.internal.network.services
 import com.codeinc.flipcash.gen.activity.v1.ActivityFeedService
 import com.codeinc.flipcash.gen.activity.v1.Model
 import com.flipcash.services.internal.network.api.ActivityFeedApi
+import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.flipcash.services.models.ActivityFeedType
 import com.flipcash.services.models.GetActivityFeedMessagesError
@@ -31,7 +32,7 @@ internal class ActivityFeedService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(GetActivityFeedMessagesError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { GetActivityFeedMessagesError.Other(cause = it) })
             }
         )
     }
@@ -53,7 +54,7 @@ internal class ActivityFeedService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(GetActivityFeedMessagesError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { GetActivityFeedMessagesError.Other(cause = it) })
             }
         )
     }
@@ -75,7 +76,7 @@ internal class ActivityFeedService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(GetActivityFeedMessagesError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { GetActivityFeedMessagesError.Other(cause = it) })
             }
         )
     }

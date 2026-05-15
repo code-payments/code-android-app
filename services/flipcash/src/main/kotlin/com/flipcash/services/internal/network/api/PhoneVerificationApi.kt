@@ -9,6 +9,8 @@ import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.ContactMethod
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
+import com.codeinc.flipcash.gen.phone.v1.validate
+import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -39,6 +41,8 @@ internal class PhoneVerificationApi @Inject constructor(
             .apply { setAuth(authenticate(owner)) }
             .build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.sendVerificationCode(request)
         }
@@ -58,6 +62,8 @@ internal class PhoneVerificationApi @Inject constructor(
             .apply { setAuth(authenticate(owner)) }
             .build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.checkVerificationCode(request)
         }
@@ -74,6 +80,8 @@ internal class PhoneVerificationApi @Inject constructor(
             .setPhoneNumber(Model.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
             .apply { setAuth(authenticate(owner)) }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.unlink(request)

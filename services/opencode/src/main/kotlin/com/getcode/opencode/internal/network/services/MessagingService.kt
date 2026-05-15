@@ -13,8 +13,10 @@ import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.internal.network.extensions.openMessageStreamRequest
 import com.getcode.opencode.internal.network.extensions.toPublicKey
 import com.getcode.opencode.model.core.errors.AckMessagesError
+import com.getcode.opencode.model.core.errors.DiscoverTokensError
 import com.getcode.opencode.model.core.errors.PollMessagesError
 import com.getcode.opencode.model.core.errors.SendMessageError
+import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -155,7 +157,7 @@ internal class MessagingService @Inject constructor(
                     }
                 },
                 onFailure = { error ->
-                    Result.failure(PollMessagesError.Other(cause = error))
+                    Result.failure(error.toValidationOrElse { PollMessagesError.Other(cause = it) })
                 }
             )
     }
@@ -184,7 +186,7 @@ internal class MessagingService @Inject constructor(
                     }
                 },
                 onFailure = { error ->
-                    Result.failure(SendMessageError.Other(cause = error))
+                    Result.failure(error.toValidationOrElse { SendMessageError.Other(cause = it) })
                 }
             )
     }

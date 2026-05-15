@@ -12,6 +12,7 @@ android {
 }
 
 dependencies {
+    testImplementation(kotlin("test"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:encryption:ed25519"))
     implementation(project(":libs:encryption:utils"))
@@ -37,6 +38,7 @@ dependencies {
     debugApi(libs.compose.ui.tools)
     api(libs.compose.ui.tools.preview)
     implementation(libs.compose.material)
+    api(libs.compose.material3)
     implementation(libs.compose.material.icons.extended)
     implementation(libs.compose.accompanist)
     implementation(libs.compose.paging)

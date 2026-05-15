@@ -11,13 +11,13 @@ dependencies {
     implementation(project(":libs:logging"))
     debugImplementation(libs.compose.ui.tools)
     implementation(libs.compose.ui.tools.preview)
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.javax.inject)
+    implementation(libs.bundles.kotlinx.serialization)
+    implementation(libs.bundles.hilt)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.kotlinx.coroutines.test)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)
-    implementation(libs.hilt.android)
-
-    implementation(libs.bugsnag)
 }

@@ -75,41 +75,40 @@ internal class HomeViewModel @Inject constructor(
         entropy: String,
         onSwitchAccount: () -> Unit,
         onDismissed: () -> Unit) {
-        BottomBarManager.showMessage(
-            BottomBarManager.BottomBarMessage(
-                title = resources.getString(R.string.title_logoutAndLoginConfirmation),
-                subtitle = resources.getString(R.string.subtitle_logoutAndLoginConfirmation),
-                isDismissible = false,
-                showCancel = true,
-                showScrim = true,
-                actions = buildList {
-                    add(
-                        BottomBarAction(
-                            text = resources.getString(R.string.action_logIn),
-                            onClick = {
-                                viewModelScope.launch {
-                                    delay(150) // wait for dismiss
-                                    authManager.logoutAndSwitchAccount(entropy)
-                                        .onSuccess {
-                                            onSwitchAccount()
-                                        }
-                                        .onFailure {
-                                            BottomBarManager.showError(
-                                                title = resources.getString(R.string.error_title_failedToLogOut),
-                                                message = resources.getString(R.string.error_description_failedToLogOut),
-                                            )
-                                        }
-                                }
+        BottomBarManager.showAlert(
+            title = resources.getString(R.string.title_logoutAndLoginConfirmation),
+            message = resources.getString(R.string.subtitle_logoutAndLoginConfirmation),
+            actions = buildList {
+                add(
+                    BottomBarAction(
+                        text = resources.getString(R.string.action_logIn),
+                        onClick = {
+                            viewModelScope.launch {
+                                delay(150) // wait for dismiss
+                                authManager.logoutAndSwitchAccount(entropy)
+                                    .onSuccess {
+                                        onSwitchAccount()
+                                    }
+                                    .onFailure {
+                                        BottomBarManager.showError(
+                                            title = resources.getString(R.string.error_title_failedToLogOut),
+                                            message = resources.getString(R.string.error_description_failedToLogOut),
+                                        )
+                                    }
                             }
-                        )
+                        }
                     )
-                },
-                onClose = {
-                    loginRequest = null
-                    onDismissed()
-                }
-            )
+                )
+            },
+            onDismiss = {
+                loginRequest = null
+                onDismissed()
+            }
         )
+    }
+
+    fun consumePendingSwitchEntropy(): String? {
+        return authManager.consumePendingSwitchEntropy()
     }
 
     suspend fun logout(): Result<Unit> {

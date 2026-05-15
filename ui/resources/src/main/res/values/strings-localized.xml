@@ -311,7 +311,7 @@
   <string name="subtitle_youWithdrew">You withdrew</string>
   <string name="success_description_withdrawalComplete">Your funds have been successfully withdrawn.</string>
   <string name="success_description_xConnected">You can now request tips.</string>
-  <string name="success_title_withdrawalComplete">Withrawal Successful</string>
+  <string name="success_title_withdrawalComplete">Withdrawal Successful</string>
   <string name="success_title_xConnected">X Account Connected</string>
   <string name="title_accessExpired">Access Expired</string>
   <string name="title_accessKey">Access Key</string>

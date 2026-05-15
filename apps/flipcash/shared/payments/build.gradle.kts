@@ -7,8 +7,8 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.localbroadcastmanager)
-
-    implementation(project(":apps:flipcash:shared:activityfeed"))
+    implementation(project(":apps:flipcash:shared:featureflags"))
+    implementation(project(":apps:flipcash:shared:tokens:core"))
+    implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":libs:messaging"))
 }

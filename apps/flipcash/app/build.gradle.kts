@@ -1,23 +1,27 @@
 import com.bugsnag.gradle.dsl.debug
 import com.bugsnag.gradle.dsl.release
-import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.parcelize")
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.plugin.serialization")
     alias(libs.plugins.navigation.safeargs)
     id("dagger.hilt.android.plugin")
     alias(libs.plugins.google.services)
-    alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.firebase.perf)
     alias(libs.plugins.bugsnag.gradle)
     alias(libs.plugins.secrets)
-    alias(libs.plugins.versioning)
     id("org.jetbrains.kotlin.plugin.compose")
+    alias(libs.plugins.kover)
+}
+
+fun gitVersionCode(): Int {
+    val result = providers.exec {
+        commandLine("git", "rev-list", "--count", "HEAD")
+    }.standardOutput.asText.get().trim()
+    return result.toInt().also { println("VersionCode $it") }
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
@@ -29,7 +33,7 @@ android {
     compileSdk = Android.compileSdkVersion
 
     defaultConfig {
-        versionCode = Packaging.Flipcash.versionCode ?: versioning.getVersionCode()
+        versionCode = Packaging.Flipcash.versionCode ?: gitVersionCode()
         versionName = Packaging.Flipcash.versionName
         applicationId = appNamespace
         minSdk = Android.minSdkVersion
@@ -55,6 +59,7 @@ android {
     buildFeatures {
         buildConfig = true
         compose = true
+        resValues = true
     }
 
     buildTypes {
@@ -63,14 +68,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-
-            configure<CrashlyticsExtension> {
-                mappingFileUploadEnabled = true
-            }
         }
         getByName("debug") {
-            applicationIdSuffix = ".dev"
-            resValue("string", "applicationId", "${appNamespace}.dev")
+            resValue("string", "applicationId", appNamespace)
             signingConfig = signingConfigs.getByName("contributors")
 
             val debugMinifyEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_MINIFY", "false").toBooleanStrictOrNull() ?: false
@@ -82,10 +82,6 @@ android {
                     getDefaultProguardFile("proguard-android-optimize.txt"),
                     "proguard-rules.pro"
                 )
-            }
-
-            configure<CrashlyticsExtension> {
-                mappingFileUploadEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_CRASHLYTICS_UPLOAD", "false").toBooleanStrictOrNull() ?: false
             }
         }
     }
@@ -105,11 +101,10 @@ configurations.all {
     // protobuf-javalite 4.x already includes well-known types, making
     // Firebase's protolite-well-known-types redundant and conflicting.
     exclude(group = "com.google.firebase", module = "protolite-well-known-types")
-}
-
-versioning {
-    excludeBuildTypes = "debug"
-    keepOriginalBundleFile = true
+    // Crashlytics SDK is pulled transitively via firebase-bom but we use Bugsnag
+    // for error reporting. Without the Crashlytics Gradle plugin the SDK crashes
+    // at startup due to a missing build ID resource.
+    exclude(group = "com.google.firebase", module = "firebase-crashlytics")
 }
 
 bugsnag {
@@ -156,7 +151,6 @@ dependencies {
     implementation(project(":apps:flipcash:shared:currency-selection:core"))
     implementation(project(":apps:flipcash:shared:currency-selection:ui"))
     implementation(project(":apps:flipcash:shared:notifications"))
-    implementation(project(":apps:flipcash:shared:onramp:common"))
     implementation(project(":apps:flipcash:shared:onramp:coinbase"))
     implementation(project(":apps:flipcash:shared:onramp:deeplinks"))
     implementation(project(":apps:flipcash:shared:payments"))
@@ -174,6 +168,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:menu"))
     implementation(project(":apps:flipcash:features:lab"))
     implementation(project(":apps:flipcash:features:advanced"))
+    implementation(project(":apps:flipcash:features:device-logs"))
     implementation(project(":apps:flipcash:features:appsettings"))
     implementation(project(":apps:flipcash:features:appupdates"))
     implementation(project(":apps:flipcash:features:deposit"))
@@ -181,12 +176,14 @@ dependencies {
     implementation(project(":apps:flipcash:features:backupkey"))
     implementation(project(":apps:flipcash:features:shareapp"))
     implementation(project(":apps:flipcash:features:withdrawal"))
-    implementation(project(":apps:flipcash:features:payments"))
     implementation(project(":apps:flipcash:features:onramp"))
     implementation(project(":apps:flipcash:features:contact-verification"))
     implementation(project(":apps:flipcash:features:tokens"))
     implementation(project(":apps:flipcash:features:transactions"))
     implementation(project(":apps:flipcash:features:bill-customization"))
+    implementation(project(":apps:flipcash:features:currency-creator"))
+    implementation(project(":apps:flipcash:features:discovery"))
+    implementation(project(":apps:flipcash:features:userflags"))
 
     implementation(project(":libs:crypto:solana"))
     implementation(project(":libs:datetime"))
@@ -200,6 +197,7 @@ dependencies {
     implementation(project(":libs:quickresponse"))
     implementation(project(":ui:biometrics"))
     implementation(project(":ui:components"))
+    implementation(project(":ui:navigation"))
     implementation(project(":ui:scanner"))
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
@@ -245,12 +243,13 @@ dependencies {
 
     implementation(libs.androidx.browser)
 
+    implementation(libs.androidx.camerax.lifecycle)
+
     implementation(libs.slf4j)
     implementation(libs.grpc.android)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
-    implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.messaging)
 
     implementation(libs.mixpanel)

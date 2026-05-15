@@ -68,7 +68,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun BottomBarContainer(barMessages: BarMessages) {
+fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.BottomBarMessage) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val bottomBarMessage by barMessages.bottomBar.collectAsState()
     val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
@@ -76,15 +76,17 @@ fun BottomBarContainer(barMessages: BarMessages) {
     val animationScale by rememberAnimationScale()
     val onClose: suspend (selection: SelectedBottomBarAction, fromTimeout: Boolean) -> Unit =
         { selection, fromTimeout ->
-            bottomBarMessageDismissId = bottomBarMessage?.id ?: 0
+            val dismissingMessage = bottomBarMessage
+            bottomBarMessageDismissId = dismissingMessage?.id ?: 0
+            // Remove message immediately so other screens don't re-show it
+            BottomBarManager.setMessageShown(bottomBarMessageDismissId)
             bottomBarVisibleState.targetState = false
 
             delay(300.scaled(animationScale))
-            BottomBarManager.setMessageShown(bottomBarMessageDismissId)
             if (fromTimeout) {
-                bottomBarMessage?.onTimeout?.invoke()
+                dismissingMessage?.onTimeout?.invoke()
             } else {
-                bottomBarMessage?.onClose?.invoke(selection)
+                dismissingMessage?.onClose?.invoke(selection)
             }
         }
 
@@ -175,6 +177,7 @@ fun BottomBarContainer(barMessages: BarMessages) {
             }
             BottomBarView(
                 bottomBarMessage = bottomBarMessage,
+                onShown = onShown,
                 onClose = closeWith,
                 onBackPressed = { closeWith(SelectedBottomBarAction(-1)) }
             )
@@ -187,10 +190,15 @@ fun BottomBarContainer(barMessages: BarMessages) {
 @Composable
 fun BottomBarView(
     bottomBarMessage: BottomBarManager.BottomBarMessage?,
+    onShown: (BottomBarManager.BottomBarMessage) -> Unit,
     onClose: (selection: SelectedBottomBarAction) -> Unit,
     onBackPressed: () -> Unit
 ) {
     bottomBarMessage ?: return
+
+    LaunchedEffect(bottomBarMessage.id) {
+        onShown(bottomBarMessage)
+    }
 
     BackHandler(enabled = bottomBarMessage.isDismissible) {
         onBackPressed()
@@ -308,6 +316,7 @@ fun BottomBarView(
                             action.onClick()
                             onClose(SelectedBottomBarAction(index.takeIf { action.isUser } ?: -1))
                         },
+                        enabled = action.enabled,
                         textColor = when (bottomBarMessage.type) {
                             BottomBarManager.BottomBarMessageType.ERROR,
                             BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> when (action.style) {

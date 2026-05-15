@@ -1,6 +1,5 @@
 package com.flipcash.app.backupkey.internal
 
-import android.Manifest
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
@@ -33,6 +32,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -51,14 +51,12 @@ import com.getcode.ui.core.measured
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.util.permissions.PermissionResult
-import com.getcode.util.permissions.getPermissionLauncher
-import com.getcode.util.permissions.rememberPermissionHandler
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.seconds
+import com.getcode.util.permissions.rememberStoragePermission
 
 @Composable
 internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val dataState by viewModel.uiFlow.collectAsState()
 
     var isExportSeedRequested by remember { mutableStateOf(false) }
@@ -69,13 +67,13 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
         isStoragePermissionGranted = result == PermissionResult.Granted
 
         if (!isStoragePermissionGranted) {
-            BottomBarManager.showError(
-                title = context.getString(R.string.error_title_failedToSave),
-                message = context.getString(R.string.error_description_failedToSave),
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_failedToSave),
+                message = resources.getString(R.string.error_description_failedToSave),
                 actions = listOf(
                     BottomBarAction.Ok,
                     BottomBarAction(
-                        text = context.getString(R.string.action_openSettings),
+                        text = resources.getString(R.string.action_openSettings),
                         style = BottomBarManager.BottomBarButtonStyle.Filled50,
                         onClick = { context.launchAppSettings() }
                     )
@@ -84,9 +82,7 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
         }
     }
 
-    val launcher =
-        getPermissionLauncher(Manifest.permission.WRITE_EXTERNAL_STORAGE, onPermissionResult)
-    val permissionChecker = rememberPermissionHandler()
+    val storage = rememberStoragePermission { onPermissionResult(it) }
 
     LaunchedEffect(isExportSeedRequested, isStoragePermissionGranted) {
         if (isExportSeedRequested && isStoragePermissionGranted) {
@@ -103,11 +99,7 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
         if (Build.VERSION.SDK_INT > 29) {
             isStoragePermissionGranted = true
         } else {
-            permissionChecker.request(
-                permission = Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                onPermissionResult = onPermissionResult,
-                launcher = launcher
-            )
+            storage.launch()
         }
     }
 

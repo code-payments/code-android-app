@@ -7,12 +7,14 @@ android {
 }
 
 dependencies {
-    implementation(libs.compose.activities)
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.mockito.kotlin)
+    testImplementation(project(":libs:test-utils"))
 
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
 
     implementation(project(":apps:flipcash:shared:analytics"))
-    implementation(project(":apps:flipcash:shared:navigation-flow"))
     implementation(project(":apps:flipcash:shared:phone"))
     implementation(project(":libs:messaging"))
 }

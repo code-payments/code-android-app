@@ -9,6 +9,5 @@ android {
 dependencies {
     api(project(":libs:vibrator:public"))
 
-    implementation(libs.javax.inject)
-    implementation(libs.hilt.android)
+    implementation(libs.bundles.hilt)
 }

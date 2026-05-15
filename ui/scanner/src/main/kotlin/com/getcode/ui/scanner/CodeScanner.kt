@@ -18,8 +18,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -27,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -58,8 +59,8 @@ import java.util.concurrent.Executors
 fun CodeScanner(
     scanningEnabled: Boolean,
     cameraGesturesEnabled: Boolean,
-    invertedDragZoomEnabled: Boolean,
     modifier: Modifier = Modifier,
+    onPinchStateChanged: (Boolean, Float) -> Unit,
     onPreviewStateChanged: (Boolean) -> Unit,
     onCodeScanned: (CodeScanResult) -> Unit,
     onError: (Throwable) -> Unit = { },
@@ -68,7 +69,9 @@ fun CodeScanner(
     val context = LocalContext.current
 
     val previewView = remember(context) {
-        PreviewView(context)
+        PreviewView(context).apply {
+            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+        }
     }
 
     val preview = remember {
@@ -95,6 +98,8 @@ fun CodeScanner(
     var camera by remember { mutableStateOf<Camera?>(null) }
     var autoFocusPoint by remember { mutableStateOf(Offset.Unspecified) }
     var gestureController by remember { mutableStateOf<CameraGestureController?>(null) }
+    var isPinching by remember { mutableStateOf(false) }
+    var zoomRatio by remember { mutableFloatStateOf(1f) }
 
     val codeAnalyzer = rememberMultiCodeAnalyzer(
         onCodeScanned = onCodeScanned,
@@ -123,14 +128,24 @@ fun CodeScanner(
         }
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            // Synchronously unbind camera before the PreviewView leaves composition
+            // to prevent RenderNode animator from firing on a detached surface.
+            runCatching {
+                ProcessCameraProvider.getInstance(context).get().unbindAll()
+            }
+            camera = null
+        }
+    }
+
     OnLifecycleEvent { _, event ->
         if (event == Lifecycle.Event.ON_STOP) {
-            scope.launch {
-                val cameraProvider = context.getCameraProvider()
-                cameraProvider.unbindAll()
-                camera = null
+            runCatching {
+                ProcessCameraProvider.getInstance(context).get().unbindAll()
             }
-        } else if (event == Lifecycle.Event.ON_RESUME) {
+            camera = null
+        } else if (event == Lifecycle.Event.ON_START || event == Lifecycle.Event.ON_RESUME) {
             scope.launch {
                 if (camera == null) {
                     if (!biometricsState.isAwaitingAuthentication) {
@@ -151,14 +166,14 @@ fun CodeScanner(
         }
     }
 
-    LaunchedEffect(camera, cameraGesturesEnabled, invertedDragZoomEnabled) {
+    LaunchedEffect(camera, cameraGesturesEnabled) {
         camera?.let {
             gestureController = CameraGestureController(
                 context = context,
                 cameraControl = it.cameraControl,
                 cameraInfo = it.cameraInfo,
                 gesturesEnabled = cameraGesturesEnabled,
-                invertedDragEnabled = invertedDragZoomEnabled
+                onPinchStateChanged = onPinchStateChanged,
             ) { touchedAt ->
                 autoFocusPoint = touchedAt
                 previewView.meteringPointFactory.createPoint(touchedAt.x, touchedAt.y)
@@ -268,4 +283,4 @@ suspend fun bindWithRetry(
     throw NoCamerasAvailableException()
 }
 
-class NoCamerasAvailableException: Throwable()
+class NoCamerasAvailableException : Throwable()

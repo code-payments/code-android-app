@@ -36,13 +36,14 @@ import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.money.RegionSelectionKind
-import com.flipcash.app.core.tokens.TokenSwapPurpose
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.app.tokens.internal.components.info.MarketCapSection
 import com.flipcash.app.tokens.internal.components.info.TokenBalance
 import com.flipcash.app.tokens.internal.components.info.TokenDetailsSection
 import com.flipcash.features.tokens.R
 import com.getcode.libs.analytics.LocalAnalytics
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.measured
@@ -56,21 +57,21 @@ import com.getcode.ui.utils.calculateStartPadding
 import com.getcode.ui.utils.sheetResignmentBehavior
 
 @Composable
-internal fun TokenInfoScreen(viewModel: TokenInfoViewModel, isForNeededFunds: Boolean) {
+internal fun TokenInfoScreen(viewModel: TokenInfoViewModel, shortfall: Fiat?) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    TokenInfoScreen(isForNeededFunds, state, viewModel::dispatchEvent)
+    TokenInfoScreen(shortfall, state, viewModel::dispatchEvent)
 }
 
 @Composable
 private fun TokenInfoScreen(
-    isForNeededFunds: Boolean,
+    shortfall: Fiat?,
     state: TokenInfoViewModel.State,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
     val listState = rememberLazyListState()
 
     CodeScaffold(
-        bottomBar = { BottomBar(isForNeededFunds, state, dispatch) }
+        bottomBar = { BottomBar(shortfall, state, dispatch) }
     ) { innerPadding ->
         Box(
             modifier = Modifier.verticalScrollStateGradient(
@@ -178,7 +179,7 @@ private fun TokenInfoScreen(
 
                         // currency info
                         item {
-                            if (state.isCashReserve && state.cashReservesEnabled) {
+                            if (state.isCashReserve) {
                                 Text(
                                     modifier = Modifier
                                         .fillParentMaxWidth()
@@ -232,7 +233,7 @@ private fun TokenInfoScreen(
 
 @Composable
 private fun BottomBar(
-    isForNeededFunds: Boolean,
+    shortfall: Fiat?,
     state: TokenInfoViewModel.State,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
@@ -258,7 +259,7 @@ private fun BottomBar(
                     top = CodeTheme.dimens.grid.x9,
                     bottom = CodeTheme.dimens.grid.x3
                 ),
-            isForNeededFunds = isForNeededFunds,
+            shortfall = shortfall,
             state = state,
             dispatch = dispatch
         )
@@ -267,7 +268,7 @@ private fun BottomBar(
 
 @Composable
 private fun BottomBarButtons(
-    isForNeededFunds: Boolean,
+    shortfall: Fiat?,
     state: TokenInfoViewModel.State,
     modifier: Modifier = Modifier,
     dispatch: (TokenInfoViewModel.Event) -> Unit
@@ -284,45 +285,44 @@ private fun BottomBarButtons(
             ) {
                 if (state.isCashReserve) return@Row
                 val canGive = state.balance.nativeAmount.isPositive
+
+                CodeButton(
+                    modifier = Modifier.weight(1f),
+                    buttonState = ButtonState.Filled,
+                    text = stringResource(R.string.action_buy),
+                ) {
+                    dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(shortfall))
+                }
+
                 if (canGive) {
                     CodeButton(
                         modifier = Modifier.weight(1f),
-                        buttonState = ButtonState.Filled,
+                        buttonState = ButtonState.Filled20,
                         text = stringResource(R.string.action_give),
                     ) {
                         dispatch(
                             TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.Main.Give(mint = loadable.data.address, fromTokenInfo = true)
+                                AppRoute.Sheets.Give(mint = loadable.data.address, fromTokenInfo = true)
                             )
                         )
                     }
                 }
 
-                if (state.cashReservesEnabled) {
+                if (state.canSell) {
                     CodeButton(
-                        modifier = Modifier.weight(1f),
-                        buttonState = if (canGive) ButtonState.Filled20 else ButtonState.Filled,
-                        text = stringResource(R.string.action_buy),
+                        modifier = Modifier
+                            .weight(1f),
+                        buttonState = ButtonState.Filled20,
+                        text = stringResource(R.string.action_sell),
                     ) {
-                        dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(forNeededFunds = isForNeededFunds))
-                    }
-
-                    if (state.canSell) {
-                        CodeButton(
-                            modifier = Modifier
-                                .weight(1f),
-                            buttonState = ButtonState.Filled20,
-                            text = stringResource(R.string.action_sell),
-                        ) {
-                            analytics.buttonTapped(Button.TokenSell)
-                            dispatch(
-                                TokenInfoViewModel.Event.OpenScreen(
-                                    AppRoute.Token.SwapTransact(
-                                        purpose = TokenSwapPurpose.Sell(loadable.data.address),
-                                    )
+                        analytics.buttonTapped(Button.TokenSell)
+                        dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(
+                                AppRoute.Token.Swap(
+                                    purpose = SwapPurpose.Sell(loadable.data.address),
                                 )
                             )
-                        }
+                        )
                     }
                 }
             }

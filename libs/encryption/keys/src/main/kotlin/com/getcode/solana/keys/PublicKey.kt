@@ -28,6 +28,8 @@ open class PublicKey(bytes: List<Byte>) : Key32(bytes), Parcelable {
             return PublicKey(byteString.toByteArray().toList())
         }
 
+        val ZERO: PublicKey = PublicKey(zero.bytes)
+
         @JvmField
         val CREATOR: Parcelable.Creator<PublicKey> =
             object : Parcelable.Creator<PublicKey> {
@@ -38,8 +40,7 @@ open class PublicKey(bytes: List<Byte>) : Key32(bytes), Parcelable {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-
-        other as PublicKey
+        if (other !is PublicKey) return false
         return size == other.size && bytes == other.bytes
     }
 

@@ -6,6 +6,8 @@ import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.codeinc.opencode.gen.transaction.v1.clientExchangeDataOrNull
 import com.codeinc.opencode.gen.transaction.v1.destinationOrNull
+import com.codeinc.opencode.gen.transaction.v1.feeDestinationOrNull
+import com.codeinc.opencode.gen.transaction.v1.poolFeeRecipientOrNull
 import com.getcode.opencode.internal.extensions.toHash
 import com.getcode.opencode.internal.extensions.toMint
 import com.getcode.opencode.internal.extensions.toPublicKey
@@ -18,7 +20,6 @@ import com.getcode.opencode.model.financial.Distribution
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LaunchpadMetadata
 import com.getcode.opencode.model.financial.VmMetadata
-import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.messaging.MessageKind
 import com.getcode.opencode.model.transactions.AddressLookupTable
 import com.getcode.opencode.model.transactions.ExchangeData
@@ -130,8 +131,8 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
     }
 }
 
-internal fun TransactionService.StatefulSwapResponse.ServerParameters.CurrencyCreator.toProps(): SwapResponseServerParameters {
-    return SwapResponseServerParameters(
+internal fun TransactionService.StatefulSwapResponse.ServerParameters.ReserveExistingCurrencyServerParameters.toProps(): SwapResponseServerParameters {
+    return SwapResponseServerParameters.ExistingCurrency(
         payer = payer.toPublicKey(),
         nonce = nonce.toPublicKey(),
         blockhash = blockhash.toPublicKey(),
@@ -148,19 +149,81 @@ internal fun TransactionService.StatefulSwapResponse.ServerParameters.CurrencyCr
     )
 }
 
-internal fun TransactionService.StatefulSwapRequest.Initiate.CurrencyCreator.toMetadata(): VerifiedSwapMetadata {
-    return VerifiedSwapMetadata(
+internal fun TransactionService.StatefulSwapResponse.ServerParameters.ReserveNewCurrencyServerParameter.toProps(): SwapResponseServerParameters {
+    return SwapResponseServerParameters.NewCurrency(
+        payer = payer.toPublicKey(),
+        nonce = nonce.toPublicKey(),
+        blockhash = blockhash.toPublicKey(),
+        alts = altsList.map { table ->
+            val address = table.address.toPublicKey()
+            val entries = table.entriesList.map { it.toPublicKey() }
+            AddressLookupTable(address, entries)
+        },
+        computeUnitLimit = computeUnitLimit,
+        computeUnitPrice = computeUnitPrice,
+        memoValue = memoValue,
+        authority = authority.toPublicKey(),
+        name = name,
+        symbol = symbol,
+        seed = seed.toPublicKey(),
+        sellFeeBps = sellFeeBps,
+        vmLockDurationInDays = vmLockDurationInDays,
+        feeDestination = feeDestination.toPublicKey(),
+    )
+}
+
+internal fun TransactionService.StatefulSwapResponse.ServerParameters.CoinbaseStableSwapperServerParameter.toProps(): SwapResponseServerParameters {
+    return SwapResponseServerParameters.Stablecoin(
+        payer = payer.toPublicKey(),
+        nonce = nonce.toPublicKey(),
+        blockhash = blockhash.toPublicKey(),
+        alts = altsList.map { table ->
+            val address = table.address.toPublicKey()
+            val entries = table.entriesList.map { it.toPublicKey() }
+            AddressLookupTable(address, entries)
+        },
+        computeUnitLimit = computeUnitLimit,
+        computeUnitPrice = computeUnitPrice,
+        memoValue = memoValue,
+        feeDestination = feeDestination.toPublicKey(),
+        poolFeeRecipient = poolFeeRecipient.toPublicKey(),
+    )
+}
+
+internal fun TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.toMetadata(): VerifiedSwapMetadata.Reserve {
+    return VerifiedSwapMetadata.Reserve(
         id = id.toSwapId(),
         fromMint = fromMint.toPublicKey(),
         toMint = toMint.toPublicKey(),
-        amount = Fiat(quarks = amount),
+        swapAmount = Fiat(quarks = swapAmount),
+        feeAmount = Fiat(quarks = feeAmount),
         fundingSource = when (fundingSource) {
             TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN -> SwapFundingSource.Unknown
             TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT -> SwapFundingSource.SubmitIntent(PublicKey(fundingId).bytes)
             TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET -> SwapFundingSource.ExternalWallet(
                 fundingId.toByteArray().toList())
+            TransactionService.FundingSource.FUNDING_SOURCE_COINBASE_ONRAMP -> SwapFundingSource.CoinbaseOnramp(fundingId)
             TransactionService.FundingSource.UNRECOGNIZED -> SwapFundingSource.Unknown
         }
+    )
+}
+
+internal fun TransactionService.StatefulSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.toMetadata(): VerifiedSwapMetadata.StableCoin {
+    return VerifiedSwapMetadata.StableCoin(
+        id = id.toSwapId(),
+        fromMint = fromMint.toPublicKey(),
+        toMint = toMint.toPublicKey(),
+        swapAmount = Fiat(quarks = swapAmount),
+        feeAmount = Fiat(quarks = feeAmount),
+        fundingSource = when (fundingSource) {
+            TransactionService.FundingSource.FUNDING_SOURCE_UNKNOWN -> SwapFundingSource.Unknown
+            TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT -> SwapFundingSource.SubmitIntent(PublicKey(fundingId).bytes)
+            TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET -> SwapFundingSource.ExternalWallet(
+                fundingId.toByteArray().toList())
+            TransactionService.FundingSource.FUNDING_SOURCE_COINBASE_ONRAMP -> SwapFundingSource.CoinbaseOnramp(fundingId)
+            TransactionService.FundingSource.UNRECOGNIZED -> SwapFundingSource.Unknown
+        },
+        destinationOwner = destinationOwner.toPublicKey(),
     )
 }
 

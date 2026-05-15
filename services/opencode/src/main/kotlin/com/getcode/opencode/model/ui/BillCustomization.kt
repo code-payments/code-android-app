@@ -2,8 +2,10 @@ package com.getcode.opencode.model.ui
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.Serializable
 
 @Parcelize
+@Serializable
 data class TokenBillCustomizations(
     val background: BillBackground,
     val texture: BillTexture?,
@@ -30,6 +32,7 @@ data class TokenBillCustomizations(
 }
 
 @Parcelize
+@Serializable
 data class BillTexture(
     val index: Int,
     val blendMode: BlendMode,
@@ -37,7 +40,9 @@ data class BillTexture(
 ) : Parcelable
 
 @Parcelize
+@Serializable
 sealed interface BillBackground : Parcelable {
+    @Serializable
     data class Solid(val colorHex: String) : BillBackground {
         companion object {
             fun from(colorInt: Int): Solid {
@@ -46,6 +51,7 @@ sealed interface BillBackground : Parcelable {
         }
     }
 
+    @Serializable
     data class Gradient(val colors: List<String>) : BillBackground {
         companion object {
             fun from(colorInts: List<Int>): Gradient {
@@ -55,6 +61,7 @@ sealed interface BillBackground : Parcelable {
     }
 }
 
+@Serializable
 enum class BlendMode {
     Normal,
     Lighten,

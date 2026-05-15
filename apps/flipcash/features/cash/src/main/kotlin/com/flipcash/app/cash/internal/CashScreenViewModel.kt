@@ -1,22 +1,18 @@
 package com.flipcash.app.cash.internal
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.ui.CurrencyHolder
-import com.flipcash.app.onramp.ConfirmationEvent
-import com.flipcash.app.onramp.OnRampAmount
-import com.flipcash.app.onramp.OnRampAmountController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.cash.R
-import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.flipcash.services.internal.model.thirdparty.OnRampType
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
+import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -32,8 +28,10 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -51,16 +49,18 @@ import kotlin.math.min
 internal class CashScreenViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val exchange: Exchange,
+    private val verifiedFiatCalculator: VerifiedFiatCalculator,
     tokenCoordinator: TokenCoordinator,
-    transactionController: TransactionController,
-    onrampController: OnRampAmountController,
-    analytics: FlipcashAnalyticsService,
+    transactionController: TransactionOperations,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<CashScreenViewModel.State, CashScreenViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
 
     private val numberInputHelper = NumberInputHelper()
+    private val tokenInitialized = CompletableDeferred<Mint?>()
 
     internal data class State(
         val selectedTokenAddress: Mint? = null,
@@ -70,7 +70,6 @@ internal class CashScreenViewModel @Inject constructor(
         val limits: Limits? = null,
         val maxForGive: Pair<Double, CurrencyCode>? = null,
         val generatingBill: LoadingSuccessState = LoadingSuccessState(),
-        val preferredOnRampProvider: OnRampProvider? = null,
     ) {
         val canGive: Boolean
             get() = (amountAnimatedModel.amountData.amount) > 0.00
@@ -98,6 +97,7 @@ internal class CashScreenViewModel @Inject constructor(
     }
 
     sealed interface Event {
+        data class InitializeToken(val mint: Mint?) : Event
         data class OnTokenSelected(val address: Mint) : Event
         data class OnTokenUpdated(val token: TokenWithLocalizedBalance) : Event
         data class OnNumberPressed(val number: Int) : Event
@@ -111,10 +111,8 @@ internal class CashScreenViewModel @Inject constructor(
         data object OnGive : Event
         data class PresentBill(val bill: Bill.Cash) : Event
 
-        data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider?) : Event
 
         data class AddCashToWallet(val amount: Fiat) : Event
-        data class OpenOnRampAmountModal(val amount: Fiat) : Event
         data class UpdateLoadingState(val loading: Boolean = false, val success: Boolean = false) :
             Event
 
@@ -133,11 +131,9 @@ internal class CashScreenViewModel @Inject constructor(
 
         val isOverBalance = enteredAmount.valueGreaterThan(tokenBalance)
         if (isOverBalance) {
-            BottomBarManager.showMessage(
+            BottomBarManager.showAlert(
                 resources.getString(R.string.error_title_youNeedMoreCash),
                 resources.getString(R.string.error_description_youNeedMoreCash),
-                type = BottomBarManager.BottomBarMessageType.ERROR,
-                showScrim = true,
                 showCancel = false,
                 actions = listOf(
                     BottomBarAction(
@@ -147,15 +143,19 @@ internal class CashScreenViewModel @Inject constructor(
                         viewModelScope.launch {
                             val rate = exchange.entryRate
                             val (token, balance) = stateFlow.value.token!!
-                            val amountFiat = LocalFiat.valueExchangeIn(
+                            val amountFiat = verifiedFiatCalculator.compute(
                                 amount =  Fiat(amount, rate.currency),
                                 token = token,
-                                balance = balance.underlyingTokenAmount,
                                 rate = rate,
-                            )
+                            ).getOrElse {
+                                BottomBarManager.showAlert(
+                                    title = resources.getString(R.string.error_title_staleRates),
+                                    message = resources.getString(R.string.error_description_staleRates),
+                                )
+                                return@launch
+                            }
 
-                            val neededAmount = amountFiat.nativeAmount - tokenBalance
-
+                            val neededAmount = amountFiat.localFiat.nativeAmount - tokenBalance
                             dispatchEvent(Event.AddCashToWallet(neededAmount))
                         }
                     },
@@ -175,7 +175,7 @@ internal class CashScreenViewModel @Inject constructor(
             currency.code?.let { stateFlow.value.limits?.sendLimitFor(it) } ?: SendLimit.Zero
         val isOverLimit = amount > sendLimit.nextTransaction
         if (isOverLimit) {
-            BottomBarManager.showError(
+            BottomBarManager.showAlert(
                 resources.getString(R.string.error_title_sendLimitReached),
                 resources.getString(R.string.error_description_sendLimitReached)
             )
@@ -186,10 +186,24 @@ internal class CashScreenViewModel @Inject constructor(
     init {
         numberInputHelper.reset()
 
-        tokenCoordinator.observeSelectedTokenMint()
-            .distinctUntilChanged()
-            .onEach { dispatchEvent(Event.OnTokenSelected(it)) }
-            .launchIn(viewModelScope)
+        eventFlow
+            .filterIsInstance<Event.InitializeToken>()
+            .take(1)
+            .onEach { event ->
+                if (event.mint != null) {
+                    dispatchEvent(Event.OnTokenSelected(event.mint))
+                }
+                tokenInitialized.complete(event.mint)
+            }.launchIn(viewModelScope)
+
+        viewModelScope.launch {
+            val navMint = tokenInitialized.await()
+            tokenCoordinator.observeSelectedTokenMint()
+                .distinctUntilChanged()
+                .let { if (navMint != null) it.drop(1) else it }
+                .onEach { dispatchEvent(Event.OnTokenSelected(it)) }
+                .launchIn(viewModelScope)
+        }
 
         stateFlow
             .mapNotNull { it.selectedTokenAddress }
@@ -296,16 +310,24 @@ internal class CashScreenViewModel @Inject constructor(
                 val (token, balance) = stateFlow.value.token!!
                 val rate = exchange.entryRate
 
-                val amountFiat = LocalFiat.valueExchangeIn(
+                val result = verifiedFiatCalculator.compute(
                     amount = Fiat(data.amountData.amount, rate.currency),
                     token = token,
                     balance = balance.underlyingTokenAmount,
                     rate = rate,
-                )
+                ).getOrElse {
+                    dispatchEvent(Event.UpdateLoadingState(loading = false))
+                    BottomBarManager.showAlert(
+                        title = resources.getString(R.string.error_title_staleRates),
+                        message = resources.getString(R.string.error_description_staleRates),
+                    )
+                    return@onEach
+                }
 
                 val bill = Bill.Cash(
                     token = stateFlow.value.token!!.token,
-                    amount = amountFiat
+                    amount = result.localFiat,
+                    verifiedState = result.verifiedState,
                 )
 
                 dispatchEvent(Event.UpdateLoadingState(loading = false, success = true))
@@ -315,42 +337,22 @@ internal class CashScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.AddCashToWallet>()
             .map { it.amount }
-            .onEach { amount ->
-                val provider = stateFlow.value.preferredOnRampProvider
-                if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
-                    analytics.openOnramp(Analytics.OnrampSource.Give)
-                    // has coinbase provider supporting google pay - pop selection for quick add
-                    dispatchEvent(Event.OpenOnRampAmountModal(amount))
-                } else {
-                    // route to buy the token
-                    dispatchEvent(
-                        Event.OpenScreen(
-                            AppRoute.Token.Info(
-                                mint = stateFlow.value.selectedTokenAddress!!,
-                                forNeededFunds = true
-                            ),
-                        )
+            .onEach { shortfall ->
+                // route to buy the token
+                println("shortfall=$shortfall")
+                dispatchEvent(
+                    Event.OpenScreen(
+                        AppRoute.Token.Info(
+                            mint = stateFlow.value.selectedTokenAddress!!,
+                            shortfall = shortfall,
+                        ),
                     )
-                }
+                )
             }.launchIn(viewModelScope)
+    }
 
-        eventFlow
-            .filterIsInstance<Event.OpenOnRampAmountModal>()
-            .map { onrampController.requestAmountSelection(OnRampProvider.Coinbase(OnRampType.Virtual)) }
-            .flatMapLatest {
-                onrampController.confirmationEvents.take(1)
-            }.onEach { event ->
-                when (event) {
-                    is ConfirmationEvent.OnConfirmationSuccess -> {
-                        when (event.amount) {
-                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.AmountEntry))
-                            is OnRampAmount.Predefined -> Unit
-                        }
-                    }
-
-                    ConfirmationEvent.Cancelled -> Unit
-                }
-            }.launchIn(viewModelScope)
+    override fun onCleared() {
+        exchange.resetEntryToBalance()
     }
 
     internal companion object {
@@ -370,11 +372,7 @@ internal class CashScreenViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OnPreferredOnRampProviderChanged -> { state ->
-                    state.copy(preferredOnRampProvider = event.provider)
-                }
-
-                is Event.OpenOnRampAmountModal -> { state -> state }
+                is Event.InitializeToken -> { state -> state }
 
                 is Event.OpenScreen -> { state -> state }
 

@@ -49,6 +49,7 @@ interface TransactionRepository {
         scope: CoroutineScope,
         owner: AccountCluster,
         amount: LocalFiat,
+        feeAmount: LocalFiat? = null,
         of: Token,
         swapId: SwapId? = null,
         verifiedState: VerifiedState,
@@ -61,6 +62,15 @@ interface TransactionRepository {
         owner: AccountCluster,
         amount: LocalFiat,
         of: Token,
+        verifiedState: VerifiedState,
+    ): Result<SwapId>
+
+    suspend fun withdrawUsdf(
+        scope: CoroutineScope,
+        amount: LocalFiat,
+        fee: LocalFiat,
+        owner: AccountCluster,
+        destinationOwner: PublicKey,
         verifiedState: VerifiedState,
     ): Result<SwapId>
 }

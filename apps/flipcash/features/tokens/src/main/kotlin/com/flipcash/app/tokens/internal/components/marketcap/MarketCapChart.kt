@@ -82,17 +82,23 @@ internal fun MarketCapChart(
         mutableStateOf<List<MarketCapPoint>>(emptyList())
     }
 
-    LaunchedEffect(data) {
+    // Track the period that corresponds to the current historicalData so we
+    // don't collapse stale data with a new period (which produces an
+    // intermediate curve that causes Vico to animate from the bottom).
+    var dataPeriod by remember { mutableStateOf(selectedPeriod) }
+
+    LaunchedEffect(data, selectedPeriod) {
         if (data.isNotEmpty()) {
             historicalData = data
+            dataPeriod = selectedPeriod
         }
     }
 
     val modelProducer = remember { CartesianChartModelProducer() }
 
-    val windowedData by remember(historicalData, selectedPeriod) {
+    val windowedData by remember(historicalData, dataPeriod) {
         derivedStateOf {
-            historicalData.collapse(selectedPeriod, currentValue = currentValue)
+            historicalData.collapse(dataPeriod, currentValue = currentValue)
         }
     }
 

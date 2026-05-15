@@ -12,7 +12,6 @@ dependencies {
     implementation(project(":libs:vibrator:impl"))
     api(project(":libs:vibrator:public"))
 
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.android.compiler)
-    ksp(libs.hilt.compiler)
+    implementation(libs.bundles.hilt)
+    ksp(libs.bundles.hilt.compiler)
 }

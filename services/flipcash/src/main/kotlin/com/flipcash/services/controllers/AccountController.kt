@@ -1,6 +1,6 @@
 package com.flipcash.services.controllers
 
-import com.flipcash.services.internal.model.account.UserFlags
+import com.flipcash.services.models.UserFlags
 import com.flipcash.services.repository.AccountRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID

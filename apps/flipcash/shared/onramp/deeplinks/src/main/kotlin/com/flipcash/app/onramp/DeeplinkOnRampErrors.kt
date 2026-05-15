@@ -9,11 +9,15 @@ sealed class DeeplinkOnRampError(
     class FailedToGenerateDeeplink(
         override val message: String? = null
     ) : DeeplinkOnRampError(message = message)
-    class FailedToCreateTransaction(override val message: String?) :
-        DeeplinkOnRampError(message = message)
+    class FailedToCreateTransaction(
+        override val message: String?,
+        override val cause: Throwable? = null
+    ) : DeeplinkOnRampError(message = message, cause = cause)
 
-    class FailedToSimulateTransaction(override val message: String?) :
-        DeeplinkOnRampError(message = message)
+    class FailedToSimulateTransaction(
+        override val message: String?,
+        override val cause: Throwable? = null
+    ) : DeeplinkOnRampError(message = message, cause = cause)
 
     class FailedToSendTransaction(
         override val code: Long = -99,
@@ -36,6 +40,16 @@ sealed class DeeplinkOnRampError(
         override val message: String?,
         override val cause: Throwable? = null
     ) : DeeplinkOnRampError(message = message, cause = cause)
+
+    class InsufficientSol(
+        val requiredLamports: Long,
+        val actualLamports: Long,
+    ) : DeeplinkOnRampError(message = "Insufficient SOL: required $requiredLamports lamports, have $actualLamports")
+
+    class InsufficientUsdc(
+        val requiredQuarks: Long,
+        val actualQuarks: Long,
+    ) : DeeplinkOnRampError(message = "Insufficient USDC: required $requiredQuarks quarks, have $actualQuarks")
 
     class WalletProvidedError(
         val error: DeeplinkError,

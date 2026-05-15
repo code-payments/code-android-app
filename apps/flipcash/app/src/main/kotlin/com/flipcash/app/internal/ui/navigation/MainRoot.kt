@@ -1,6 +1,5 @@
 package com.flipcash.app.internal.ui.navigation
 
-import android.os.Parcelable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -21,20 +20,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
-import cafe.adriel.voyager.core.registry.ScreenRegistry
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.core.screen.ScreenKey
-import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
+import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.android.R
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.navigation.DeeplinkAction
+import com.flipcash.app.core.extensions.navigateTo
+import com.flipcash.app.core.extensions.resolveRoutes
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
-import com.flipcash.services.internal.model.account.UserFlags
+import com.flipcash.services.models.UserFlags
 import com.flipcash.services.user.AuthState
-import com.getcode.navigation.screens.AppScreen
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.utils.trace
@@ -44,149 +42,194 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.parcelize.IgnoredOnParcel
-import kotlinx.parcelize.Parcelize
 import kotlin.time.Duration.Companion.seconds
 
-@Parcelize
-internal class MainRoot(private val deepLink: () -> DeepLink?) : AppScreen, Parcelable {
-
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
-
-    @IgnoredOnParcel
-    override val testTag: String = "root_screen"
-
-    @Composable
-    override fun ScreenContent() {
-        val navigator = LocalNavigator.currentOrThrow
-        val userManager = LocalUserManager.currentOrThrow
-        var showLoading by remember { mutableStateOf(false) }
-        val router = LocalRouter.currentOrThrow
-        var showLogo by remember { mutableStateOf(false) }
-        Box(
+@Composable
+internal fun MainRoot(deepLink: () -> DeepLink?) {
+    val navigator = LocalCodeNavigator.current
+    val userManager = LocalUserManager.current!!
+    var showLoading by remember { mutableStateOf(false) }
+    val router = LocalRouter.current!!
+    var showLogo by remember { mutableStateOf(true) }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(CodeTheme.colors.brand),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .background(CodeTheme.colors.brand),
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth(0.65f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth(0.65f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    if (showLogo) {
-                        Image(
-                            painter = painterResource(R.drawable.ic_flipcash_logo_w_name),
-                            contentDescription = null,
-                        )
-                    }
+                if (showLogo) {
+                    Image(
+                        painter = painterResource(R.drawable.ic_flipcash_logo_w_name),
+                        contentDescription = null,
+                    )
                 }
-
-                Spacer(modifier = Modifier.requiredHeight(CodeTheme.dimens.inset))
-                val loadingAlpha by animateFloatAsState(
-                    if (showLoading) 1f else 0f,
-                    label = "loading visibility"
-                )
-                CodeCircularProgressIndicator(
-                    modifier = Modifier.alpha(loadingAlpha)
-                )
             }
-        }
 
-
-        LaunchedEffect(userManager) {
-            userManager.state
-                .map { it.authState to it.flags }
-                .distinctUntilChanged()
-                .onEach { (state, flags) ->
-                    trace(
-                        tag = "AuthStateRouter",
-                        message = "Handling auth state change during app launch => $state",
-                        metadata = {
-                            "state" to state
-                        }
-                    )
-                    val screens = buildNavGraphForLaunch(
-                        state = state,
-                        userFlags = flags,
-                        router = router
-                    )
-
-                    when (state) {
-                        AuthState.LoggedInAwaitingUser -> {
-                            delay(1.5.seconds)
-                            showLoading = true
-                            showLogo = true
-                        }
-
-                        AuthState.LoggedInWithUser -> {
-                            showLogo = false
-                        }
-
-                        else -> {
-                            showLogo = true
-                        }
-                    }
-
-                    if (screens != null) {
-                        navigator.replaceAll(screens)
-                    }
-                }.launchIn(this)
+            Spacer(modifier = Modifier.requiredHeight(CodeTheme.dimens.inset))
+            val loadingAlpha by animateFloatAsState(
+                if (showLoading) 1f else 0f,
+                label = "loading visibility"
+            )
+            CodeCircularProgressIndicator(
+                modifier = Modifier.alpha(loadingAlpha)
+            )
         }
     }
 
-    private suspend fun buildNavGraphForLaunch(
-        state: AuthState,
-        userFlags: UserFlags?,
-        router: Router,
-    ): List<Screen>? {
-        return when (state) {
-            is AuthState.Registered -> {
-                if (state.seenAccessKey) {
-                    buildList {
-                        if (userFlags?.requiresIapForRegistration == true) {
-                            addAll(
-                                listOf(
-                                    ScreenRegistry.get(AppRoute.Onboarding.Login()),
-                                    ScreenRegistry.get(AppRoute.Onboarding.AccessKey),
-                                    ScreenRegistry.get(AppRoute.Onboarding.Purchase())
-                                )
-                            )
-                        } else {
-                            listOf(ScreenRegistry.get(AppRoute.Main.Scanner()))
+
+    LaunchedEffect(userManager) {
+        userManager.state
+            .map { it.authState to it.flags }
+            .distinctUntilChanged()
+            .onEach { (state, flags) ->
+                trace(
+                    tag = "AuthStateRouter",
+                    message = "Handling auth state change during app launch => $state",
+                    metadata = {
+                        "state" to state
+                    }
+                )
+                val launch = buildNavGraphForLaunch(
+                    state = state,
+                    userFlags = flags,
+                    router = router,
+                    deepLink = deepLink
+                )
+
+                when (state) {
+                    AuthState.LoggedInAwaitingUser -> {
+                        delay(0.5.seconds)
+                        showLoading = true
+                    }
+
+                    AuthState.LoggedInWithUser -> {
+                        showLogo = false
+                    }
+
+                    else -> Unit
+                }
+
+                if (launch != null) {
+                    val current = navigator.backStack.toList()
+                    val target = launch.resolvedBackStack()
+
+                    // Skip if the current stack already matches or extends the target.
+                    // This prevents blowing away screens the user has navigated into
+                    // (e.g. a verification code screen) when auth/flags re-emit.
+                    if (!current.startsWith(target)) {
+                        navigator.replaceAll(launch.baseRoutes)
+                        if (launch.deeplinkRoutes.isNotEmpty()) {
+                            navigator.navigateTo(launch.deeplinkRoutes)
                         }
                     }
-                } else {
-                    listOf(
-                        ScreenRegistry.get(AppRoute.Onboarding.Login()),
-                        ScreenRegistry.get(AppRoute.Onboarding.AccessKey)
-                    )
                 }
-            }
-
-            AuthState.LoggedInWithUser -> {
-                val screens = router.processDestination(deepLink())
-
-                screens.ifEmpty {
-                    listOf(ScreenRegistry.get(AppRoute.Main.Scanner()))
-                }
-            }
-
-            AuthState.LoggedOut,
-            AuthState.Unknown -> {
-                val screens = router.processDestination(deepLink())
-                screens.ifEmpty {
-                    listOf(ScreenRegistry.get(AppRoute.Onboarding.Login()))
-                }
-            }
-
-            AuthState.LoggedInAwaitingUser -> null
-        }
+            }.launchIn(this)
     }
 }
 
+/**
+ * Result of building the initial nav graph.
+ *
+ * [baseRoutes] are set via replaceAll (root backstack).
+ * [deeplinkRoutes] are applied via navigateTo, which handles sheet wrapping
+ * so deeplinks targeting screens inside sheets render correctly.
+ */
+private data class LaunchNavGraph(
+    val baseRoutes: List<NavKey>,
+    val deeplinkRoutes: List<AppRoute> = emptyList(),
+) {
+    /**
+     * Predict the final backstack that [baseRoutes] + [navigateTo(deeplinkRoutes)] will produce.
+     * Uses the shared [resolveRoutes] to apply the same sheet-wrapping as [navigateTo]
+     * so we can compare against the current backstack and skip redundant navigation.
+     */
+    fun resolvedBackStack(): List<NavKey> {
+        if (deeplinkRoutes.isEmpty()) return baseRoutes
+        return baseRoutes + resolveRoutes(deeplinkRoutes)
+    }
+}
+
+/**
+ * Returns true if [this] list starts with [prefix] (element-wise structural equality).
+ * An exact match also returns true (prefix == full list).
+ *
+ * This lets us detect when the user has navigated *deeper* than the launch target
+ * (e.g. opened a sheet, pushed a verification screen) so we don't blow away their
+ * backstack on a harmless auth/flags re-emission.
+ */
+private fun List<NavKey>.startsWith(prefix: List<NavKey>): Boolean {
+    if (size < prefix.size) return false
+    return prefix.indices.all { i -> this[i]::class == prefix[i]::class }
+}
+
+private fun buildNavGraphForLaunch(
+    state: AuthState,
+    userFlags: UserFlags?,
+    router: Router,
+    deepLink: () -> DeepLink?,
+): LaunchNavGraph? {
+    return when (state) {
+        is AuthState.Registered -> {
+            if (state.seenAccessKey) {
+                val routes = if (userFlags?.requiresIapForRegistration == true) {
+                    listOf(
+                        AppRoute.Onboarding.Login(),
+                        AppRoute.Onboarding.AccessKey,
+                        AppRoute.Onboarding.Purchase()
+                    )
+                } else {
+                    listOf(AppRoute.Main.Scanner)
+                }
+                LaunchNavGraph(routes)
+            } else {
+                LaunchNavGraph(
+                    listOf(
+                        AppRoute.Onboarding.Login(),
+                        AppRoute.Onboarding.AccessKey
+                    )
+                )
+            }
+        }
+
+        AuthState.LoggedInWithUser -> {
+            val link = deepLink()
+            if (link != null) {
+                when (val action = router.dispatch(link)) {
+                    is DeeplinkAction.Navigate -> LaunchNavGraph(
+                        baseRoutes = listOf(AppRoute.Main.Scanner),
+                        deeplinkRoutes = action.routes,
+                    )
+                    // ExternalWallet/Login/OpenCashLink can't be handled on cold start
+                    // (encryption state lost, no session yet) — fall through to Scanner
+                    else -> LaunchNavGraph(listOf(AppRoute.Main.Scanner))
+                }
+            } else {
+                LaunchNavGraph(listOf(AppRoute.Main.Scanner))
+            }
+        }
+
+        AuthState.LoggedOut,
+        AuthState.Unknown -> {
+            val link = deepLink()
+            if (link != null) {
+                when (val action = router.dispatch(link)) {
+                    is DeeplinkAction.Navigate -> LaunchNavGraph(action.routes)
+                    else -> LaunchNavGraph(listOf(AppRoute.Onboarding.Login()))
+                }
+            } else {
+                LaunchNavGraph(listOf(AppRoute.Onboarding.Login()))
+            }
+        }
+
+        AuthState.LoggedInAwaitingUser -> null
+    }
+}

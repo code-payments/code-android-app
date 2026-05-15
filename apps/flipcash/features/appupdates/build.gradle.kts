@@ -7,8 +7,6 @@ android {
 }
 
 dependencies {
-    implementation(libs.compose.animation)
-
     implementation(project(":apps:flipcash:shared:appupdates"))
     implementation(project(":ui:biometrics"))
 }

@@ -1,14 +1,14 @@
 package com.flipcash.app.auth
 
 import androidx.core.app.NotificationManagerCompat
-import com.bugsnag.android.Bugsnag
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
-import com.flipcash.app.auth.internal.extensions.token
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
+import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.user.AuthState
@@ -17,13 +17,13 @@ import com.flipcash.shared.authentication.BuildConfig
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.model.core.ID
+import com.getcode.utils.TraceManager
 import com.getcode.utils.TraceType
+import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
-import com.google.firebase.Firebase
-import com.google.firebase.messaging.FirebaseMessaging
-import com.google.firebase.messaging.messaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -35,13 +35,22 @@ class AuthManager @Inject constructor(
     private val notificationManager: NotificationManagerCompat,
     private val accountController: AccountController,
     private val pushController: PushController,
+    private val pushTokenProvider: PushTokenProvider,
     private val tokenCoordinator: TokenCoordinator,
     private val persistence: PersistenceProvider,
     private val featureFlagController: FeatureFlagController,
     private val appSettings: AppSettingsCoordinator,
+    private val userFlags: UserFlagsCoordinator,
 //    private val analytics: AnalyticsService,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
+
+    /**
+     * Entropy for the account being switched to. Set before logout so App.kt's
+     * auth guard can navigate to Login(entropy) instead of seedless Login().
+     */
+    var pendingSwitchEntropy: String? = null
+        private set
 
     companion object {
         private const val TAG = "AuthManager"
@@ -109,7 +118,12 @@ class AuthManager @Inject constructor(
     suspend fun presentCredentialStorage(): Result<Unit> {
         return credentialManager.presentSaveOption()
             .onSuccess {
-                accountController.getUserFlags().onSuccess { userManager.set(it) }
+                accountController.getUserFlags().onSuccess { flags ->
+                    userManager.set(flags)
+                    if (flags.isRegistered) {
+                        userManager.set(AuthState.LoggedInWithUser)
+                    }
+                }
             }.map { Unit }
     }
 
@@ -117,12 +131,13 @@ class AuthManager @Inject constructor(
         return credentialManager.onAccountPurchased()
             .fold(
                 onSuccess = {
-                    userManager.set(AuthState.LoggedInWithUser)
-                    accountController.getUserFlags()
+                    val flagsResult = accountController.getUserFlags()
                         .onSuccess { userManager.set(it) }
+                    userManager.set(AuthState.LoggedInWithUser)
+                    flagsResult
                 },
                 onFailure = { Result.failure(it) }
-            ).map { Unit }
+            ).onSuccess { savePrefs() }.map { Unit }
     }
 
     suspend fun login(
@@ -146,18 +161,25 @@ class AuthManager @Inject constructor(
         return credentialManager.login(entropyB64, isFromSelection)
             .onSuccess { account ->
                 persistence.openDatabase(entropyB64)
+                userManager.establish(entropyB64)
                 userManager.set(accountId = account.id)
 
-                accountController.getUserFlags()
-                    .onSuccess { flags ->
-                        userManager.set(flags)
-                        userManager.set(if (flags.isRegistered) AuthState.LoggedInWithUser else AuthState.Registered())
-                    }.onFailure {
-                        taggedTrace("Failed to get user flags", type = TraceType.Error, cause = it)
-                        userManager.set(authState = AuthState.Registered())
-                    }
+                coroutineScope {
+                    launch {
+                        val flags = retryable(maxRetries = 3) {
+                            accountController.getUserFlags().getOrNull()
+                        }
 
-                savePrefs()
+                        if (flags != null) {
+                            userManager.set(flags)
+                            userManager.set(if (flags.isRegistered) AuthState.LoggedInWithUser else AuthState.Registered())
+                        } else {
+                            taggedTrace("Failed to get user flags after retries", type = TraceType.Error)
+                            userManager.set(authState = AuthState.Registered())
+                        }
+                    }
+                    launch { savePrefs() }
+                }
             }.onFailure {
                 logout()
                 resetStateForUser()
@@ -174,13 +196,18 @@ class AuthManager @Inject constructor(
         return logout()
     }
 
+    suspend fun logoutAndSwitchAccount(entropy: String): Result<String> {
+        pendingSwitchEntropy = entropy
+        return logout().map { entropy }
+    }
+
+    fun consumePendingSwitchEntropy(): String? {
+        return pendingSwitchEntropy.also { pendingSwitchEntropy = null }
+    }
+
     suspend fun logout(): Result<Unit> {
         return credentialManager.logout()
             .onSuccess { resetStateForUser() }
-    }
-
-    suspend fun logoutAndSwitchAccount(entropy: String): Result<String> {
-        return logout().map { entropy }
     }
 
     private fun loginAnalytics() {
@@ -192,15 +219,20 @@ class AuthManager @Inject constructor(
     }
 
     private suspend fun resetStateForUser() {
-        FirebaseMessaging.getInstance().deleteToken()
-        pushController.deleteTokens()
+        // Fire-and-forget slow network operations to avoid blocking navigation
+        launch {
+            pushTokenProvider.deleteToken()
+            pushController.deleteTokens()
+        }
         notificationManager.cancelAll()
         userManager.clear()
         tokenCoordinator.reset()
         persistence.close()
         featureFlagController.reset()
         appSettings.reset()
-        if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
+        userFlags.clearAll()
+
+        if (!BuildConfig.DEBUG) TraceManager.userId = null
     }
 
     private suspend fun savePrefs() {
@@ -208,7 +240,7 @@ class AuthManager @Inject constructor(
     }
 
     private suspend fun updateFcmToken() {
-        val pushToken = Firebase.messaging.token() ?: return
+        val pushToken = pushTokenProvider.getToken() ?: return
         pushController.addToken(pushToken)
             .onSuccess {
                 userManager.set(pushToken = pushToken)

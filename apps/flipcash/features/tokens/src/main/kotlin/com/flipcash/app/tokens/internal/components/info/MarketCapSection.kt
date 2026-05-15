@@ -137,7 +137,7 @@ internal fun MarketCapSection(
     ) {
         Text(
             modifier = Modifier.padding(start = contentPadding.calculateStartPadding()),
-            text = stringResource(R.string.subtitle_marketCap),
+            text = stringResource(R.string.subtitle_circulatingValue),
             style = CodeTheme.typography.textMedium,
             color = CodeTheme.colors.textSecondary,
         )
@@ -292,7 +292,7 @@ private fun MarketCapChangeLabel(
                 horizontal = CodeTheme.dimens.grid.x1
             ),
         text = change.formatted(
-            extraPrefix = if (change.decimalValue >= 0) "+" else "-",
+            extraPrefix = if (change.decimalValue >= 0) "+" else null,
             suffix = when (period) {
                 Period.All -> stringResource(R.string.label_marketCapAllTime)
                 Period.Day -> stringResource(R.string.label_marketCapDay)

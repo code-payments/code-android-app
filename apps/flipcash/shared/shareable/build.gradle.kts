@@ -7,7 +7,7 @@ android {
 }
 
 dependencies {
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
 
     implementation(libs.androidx.localbroadcastmanager)
 

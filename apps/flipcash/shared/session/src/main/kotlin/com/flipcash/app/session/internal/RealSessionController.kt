@@ -31,11 +31,13 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.TokenUpdater
 import com.flipcash.core.R
 import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.controllers.SettingsController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
@@ -64,7 +66,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -105,6 +106,7 @@ class RealSessionController @Inject constructor(
     private val billController: BillController,
     private val userManager: UserManager,
     private val accountController: AccountController,
+    private val settingsController: SettingsController,
     private val feedCoordinator: ActivityFeedCoordinator,
     private val transactionController: TransactionController,
     private val networkObserver: NetworkConnectivityListener,
@@ -137,24 +139,25 @@ class RealSessionController @Inject constructor(
     private val giftCardClaimInProgress = MutableStateFlow<String?>(null)
 
     init {
-        // reset state on logouts
+        // handle auth state transitions: cleanup on logout, start polling on login
         userManager.state
             .map { it.authState }
-            .filterIsInstance<AuthState.LoggedOut>()
-            .onEach {
-                _state.update { SessionState() }
+            .distinctUntilChanged()
+            .onEach { authState ->
+                when {
+                    authState is AuthState.LoggedOut -> {
+                        stopPolling()
+                        _state.update { SessionState() }
+                    }
+                    authState.isAtLeastRegistered -> {
+                        onAppInForeground()
+                    }
+                }
             }.launchIn(scope)
 
         userManager.state
             .map { it.isTimelockUnlocked }
             .onEach { _state.update { it.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) } }
-            .launchIn(scope)
-
-        userManager.state
-            .mapNotNull { it.authState }
-            .filter { it.canAccessAuthenticatedApis }
-            .distinctUntilChanged()
-            .onEach { onAppInForeground() }
             .launchIn(scope)
 
         userManager.state
@@ -184,6 +187,17 @@ class RealSessionController @Inject constructor(
             .onEach { tokens ->
                 _state.update { it.copy(tokens = tokens) }
             }.launchIn(scope)
+
+        // Retry updateUserFlags when network is restored
+        networkObserver.state
+            .map { it.connected }
+            .distinctUntilChanged()
+            .filter { connected -> connected }
+            .onEach {
+                if (userManager.authState.isAtLeastRegistered) {
+                    updateUserFlags()
+                }
+            }.launchIn(scope)
     }
 
     /**
@@ -205,6 +219,7 @@ class RealSessionController @Inject constructor(
         )
         startPolling()
         updateUserFlags()
+        updateSettings()
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
         shareSheetController.checkForShare()
@@ -239,7 +254,7 @@ class RealSessionController @Inject constructor(
 
     private fun startPolling() {
         if (userManager.authState.canAccessAuthenticatedApis) {
-            tokenUpdater.poll(scope = scope, frequency = 20.seconds, startIn = 0.seconds)
+            tokenUpdater.poll(scope = scope, frequency = 20.seconds, startIn = 2.seconds)
             activityFeedUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
             profileUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 0.seconds)
         }
@@ -248,12 +263,27 @@ class RealSessionController @Inject constructor(
     private fun stopPolling() {
         tokenUpdater.stop()
         activityFeedUpdater.stop()
+        profileUpdater.stop()
     }
 
     private fun updateUserFlags() {
-        if (userManager.authState.canAccessAuthenticatedApis) {
+        if (userManager.authState.isAtLeastRegistered) {
             scope.launch {
                 accountController.getUserFlags()
+                    .onSuccess { flags ->
+                        userManager.set(flags)
+                        if (flags.isRegistered && !userManager.authState.canAccessAuthenticatedApis) {
+                            userManager.set(authState = AuthState.LoggedInWithUser)
+                        }
+                    }
+            }
+        }
+    }
+
+    private fun updateSettings() {
+        if (userManager.authState.canAccessAuthenticatedApis) {
+            scope.launch {
+                settingsController.update()
             }
         }
     }
@@ -276,10 +306,6 @@ class RealSessionController @Inject constructor(
 
     override fun onCameraScanning(scanning: Boolean) {
         _state.update { it.copy(isCameraUp = scanning) }
-    }
-
-    override fun onCameraPermissionResult(result: PermissionResult) {
-        _state.update { it.copy(isCameraPermissionGranted = result == PermissionResult.Granted) }
     }
 
     override fun showBill(bill: Bill) {
@@ -320,13 +346,22 @@ class RealSessionController @Inject constructor(
                                         action = {
                                             billController.cancelAwaitForGrab()
 
-                                            shareGiftCard(bill.amount, bill.token, owner) {
+                                            shareGiftCard(
+                                                amount = bill.amount,
+                                                token = bill.token,
+                                                owner = owner,
+                                                verifiedState = bill.verifiedState!!
+                                            ) {
                                                 trace(
                                                     tag = "Session",
                                                     message = "Cash link not sent. Restarting awaiting grab",
                                                     type = TraceType.User,
                                                 )
-                                                awaitBillGrab(bill, owner)
+                                                // Use the state-enriched bill which carries the
+                                                // nonce from the first presentation, so the
+                                                // restarted give reuses the same rendezvous.
+                                                val currentBill = billController.state.value.bill ?: bill
+                                                awaitBillGrab(currentBill, owner)
                                             }
                                         }
                                     ),
@@ -345,10 +380,12 @@ class RealSessionController @Inject constructor(
     }
 
     private fun awaitBillGrab(bill: Bill, owner: AccountCluster) {
+        analytics.transferStart(Analytics.Transfer.Initiate.GiveBillStart)
         billController.awaitGrab(
             amount = bill.amount,
             token = bill.token,
             verifiedState = (bill as? Bill.Cash)?.verifiedState,
+            nonce = (bill as? Bill.Cash)?.nonce?.takeIf { it.isNotEmpty() },
             owner = owner,
             onGrabbed = { amount ->
                 tokenCoordinator.subtract(bill.token, amount)
@@ -374,7 +411,7 @@ class RealSessionController @Inject constructor(
                     message = resources.getString(R.string.error_description_CashReturnedToWallet)
                 )
             },
-            present = { data ->
+            present = { (data, nonce) ->
                 if (!bill.didReceive) {
                     trace(
                         tag = "Session",
@@ -389,7 +426,7 @@ class RealSessionController @Inject constructor(
                         type = TraceType.User,
                     )
                 }
-                presentBillToUser(data, bill)
+                presentBillToUser(data, nonce, bill)
             },
         )
     }
@@ -398,6 +435,7 @@ class RealSessionController @Inject constructor(
         amount: LocalFiat,
         token: Token,
         owner: AccountCluster,
+        verifiedState: VerifiedState,
         restartBillGrabber: () -> Unit
     ) {
         val giftCard = GiftCardAccount.create(token)
@@ -413,7 +451,13 @@ class RealSessionController @Inject constructor(
                     is ShareResult.ActionTaken -> {
                         scope.launch action@{
                             // immediately fund the gift card
-                            val fundingResult = initiateGiftCardFunding(giftCard, owner, amount, token)
+                            val fundingResult = initiateGiftCardFunding(
+                                giftCard = giftCard,
+                                owner = owner,
+                                amount = amount,
+                                token = token,
+                                verifiedState = verifiedState
+                            )
                             if (fundingResult.isFailure) {
                                 return@action
                             }
@@ -459,9 +503,9 @@ class RealSessionController @Inject constructor(
 
         when (confirmResult) {
             ShareConfirmationResult.Cancelled -> {
-                BottomBarManager.showMessage(
+                BottomBarManager.showAlert(
                     title = "Are You Sure?",
-                    subtitle = "Anyone you sent the link to won’t be able to collect the cash",
+                    message = "Anyone you sent the link to won’t be able to collect the cash",
                     actions = listOf(
                         BottomBarAction(
                             text = "Yes",
@@ -551,12 +595,14 @@ class RealSessionController @Inject constructor(
         owner: AccountCluster,
         amount: LocalFiat,
         token: Token,
+        verifiedState: VerifiedState,
     ): Result<LocalFiat> = suspendCancellableCoroutine { cont ->
         billController.fundGiftCard(
             giftCard = giftCard,
             amount = amount,
             token = token,
             owner = owner,
+            verifiedState = verifiedState,
             onFunded = {
                 tokenCoordinator.subtract(token, amount)
                 shareSheetController.reset()
@@ -681,7 +727,6 @@ class RealSessionController @Inject constructor(
                 tokenCoordinator.add(token, amount)
                 giftCardClaimInProgress.value = null
                 analytics.transfer(Analytics.Transfer.ClaimedCashLink, amount = amount)
-                toastController.enqueue(amount, isDeposit = true)
                 showBill(
                     bill = Bill.Cash(
                         amount = amount,
@@ -706,9 +751,9 @@ class RealSessionController @Inject constructor(
                 when (cause) {
                     is ReceiveGiftTransactorError.UsersGiftCard -> {
                         // present confirmation to claim (cancel) own gift card
-                        BottomBarManager.showMessage(
+                        BottomBarManager.showAlert(
                             title = resources.getString(R.string.prompt_title_collectOwnCash),
-                            subtitle = resources.getString(R.string.prompt_description_collectOwnCash),
+                            message = resources.getString(R.string.prompt_description_collectOwnCash),
                             isDismissible = false,
                             showScrim = false,
                             actions = buildList {
@@ -737,14 +782,14 @@ class RealSessionController @Inject constructor(
                     }
 
                     is ReceiveGiftTransactorError.AlreadyClaimed -> {
-                        BottomBarManager.showError(
+                        BottomBarManager.showAlert(
                             resources.getString(R.string.error_title_alreadyCollected),
                             resources.getString(R.string.error_description_alreadyCollected)
                         )
                     }
 
                     is ReceiveGiftTransactorError.Expired -> {
-                        BottomBarManager.showError(
+                        BottomBarManager.showAlert(
                             resources.getString(R.string.error_title_linkExpired),
                             resources.getString(R.string.error_description_linkExpired)
                         )
@@ -770,6 +815,7 @@ class RealSessionController @Inject constructor(
         )
         val owner = userManager.accountCluster ?: return
 
+        analytics.transferStart(Analytics.Transfer.Initiate.GrabBillStart)
         billController.attemptGrab(
             owner = owner,
             payload = payload,
@@ -791,7 +837,6 @@ class RealSessionController @Inject constructor(
 
                 analytics.transfer(Analytics.Transfer.GrabBill(grabTime), amount)
                 BottomBarManager.clear()
-                toastController.enqueue(amount, isDeposit = true)
                 checkPendingItemsInFeed()
                 bringActivityFeedCurrent()
             },
@@ -803,12 +848,11 @@ class RealSessionController @Inject constructor(
                     error = it
                 )
                 scannedRendezvous.remove(payload.rendezvous.publicKey)
-                ErrorUtils.handleError(it)
             }
         )
     }
 
-    private fun presentBillToUser(data: List<Byte>, bill: Bill) {
+    private fun presentBillToUser(data: List<Byte>, nonce: List<Byte>, bill: Bill) {
         if (billController.state.value.bill != null) return
 
         billController.update {
@@ -820,6 +864,7 @@ class RealSessionController @Inject constructor(
                     confirmationDelay = bill.confirmationDelay,
                     token = bill.token,
                     verifiedState = (bill as? Bill.Cash)?.verifiedState,
+                    nonce = nonce,
                 ),
                 valuation = PaymentValuation(bill.amount.nativeAmount),
             )
@@ -831,6 +876,8 @@ class RealSessionController @Inject constructor(
         _state.update { it.copy(billResult = style) }
 
         if (bill.didReceive) {
+            // enqueue toast
+            toastController.enqueue(bill.amount, isDeposit = true)
             // shorter punch than standard
             vibrator.vibrate(duration = 50)
         }
@@ -846,5 +893,4 @@ class RealSessionController @Inject constructor(
     }
 }
 
-private val AIRDROP_INITIAL_DELAY = 1.seconds
 private val CASH_LINK_CONFIRMATION_DELAY = 500.milliseconds

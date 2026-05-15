@@ -8,5 +8,6 @@ android {
 
 dependencies {
     implementation(project(":apps:flipcash:shared:featureflags"))
+    implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":libs:messaging"))
 }

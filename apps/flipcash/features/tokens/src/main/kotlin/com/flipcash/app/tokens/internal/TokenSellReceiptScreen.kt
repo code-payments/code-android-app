@@ -22,7 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.ui.ReceiptLineItem
 import com.flipcash.app.core.ui.TokenBalanceRow
 import com.flipcash.app.core.ui.rememberTokenBalanceRowSizing
-import com.flipcash.app.tokens.ui.BuySellSwapTokenViewModel
+import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.TokenWithBalance
@@ -35,15 +35,15 @@ import com.getcode.ui.theme.CodeScaffold
 import kotlin.math.roundToInt
 
 @Composable
-internal fun TokenSellReceiptScreen(viewModel: BuySellSwapTokenViewModel) {
+internal fun TokenSellReceiptScreen(viewModel: SwapViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     TokenSellReceiptScreen(state, viewModel::dispatchEvent)
 }
 
 @Composable
 private fun TokenSellReceiptScreen(
-    state: BuySellSwapTokenViewModel.State,
-    dispatchEvent: (BuySellSwapTokenViewModel.Event) -> Unit,
+    state: SwapViewModel.State,
+    dispatchEvent: (SwapViewModel.Event) -> Unit,
 ) {
     CodeScaffold(
         bottomBar = {
@@ -75,7 +75,7 @@ private fun TokenSellReceiptScreen(
                     isLoading = state.sellProgress.loading,
                     isSuccess = state.sellProgress.success,
                 ) {
-                    dispatchEvent(BuySellSwapTokenViewModel.Event.OnSellConfirmed)
+                    dispatchEvent(SwapViewModel.Event.OnSellConfirmed)
                 }
             }
         }
@@ -144,7 +144,7 @@ private fun SellReceipt(
                     modifier = Modifier.fillMaxWidth(),
                     label = stringResource(R.string.label_percentFee, feePercentage.roundToInt()),
                     amount = feeAmount.formatted(
-                        extraPrefix = if (feeAmount.decimalValue != 1.0) "~" else null,
+                        extraPrefix = if (feeAmount.decimalValue < 0.01) "~" else null,
                     ),
                 )
             }

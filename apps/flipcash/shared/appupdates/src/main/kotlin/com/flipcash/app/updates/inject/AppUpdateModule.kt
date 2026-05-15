@@ -4,6 +4,7 @@ import android.content.Context
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.updates.AppUpdateController
 import com.flipcash.app.updates.internal.GooglePlayAppUpdateController
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.user.UserManager
 import dagger.Module
 import dagger.Provides
@@ -21,6 +22,6 @@ object AppUpdateModule {
     fun provideInAppUpdateManager(
         @ActivityContext context: Context,
         versionInfo: VersionInfo,
-        userManager: UserManager,
-    ): AppUpdateController = GooglePlayAppUpdateController(context, versionInfo, userManager)
+        userFlagsCoordinator: UserFlagsCoordinator,
+    ): AppUpdateController = GooglePlayAppUpdateController(context, versionInfo, userFlagsCoordinator)
 }

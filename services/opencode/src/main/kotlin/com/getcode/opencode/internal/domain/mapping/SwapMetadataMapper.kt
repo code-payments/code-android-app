@@ -11,8 +11,11 @@ import javax.inject.Inject
 internal class SwapMetadataMapper @Inject constructor(): Mapper<TransactionService.SwapMetadata, SwapMetadata?> {
     override fun map(from: TransactionService.SwapMetadata): SwapMetadata? {
         val verifiedMetadata = when (from.verifiedMetadata.kindCase) {
-            TransactionService.VerifiedSwapMetadata.KindCase.CURRENCY_CREATOR -> {
-                from.verifiedMetadata.currencyCreator.clientParameters.toMetadata()
+            TransactionService.VerifiedSwapMetadata.KindCase.RESERVE -> {
+                from.verifiedMetadata.reserve.clientParameters.toMetadata()
+            }
+            TransactionService.VerifiedSwapMetadata.KindCase.STABLECOIN -> {
+                from.verifiedMetadata.stablecoin.clientParameters.toMetadata()
             }
             TransactionService.VerifiedSwapMetadata.KindCase.KIND_NOT_SET -> null
         }

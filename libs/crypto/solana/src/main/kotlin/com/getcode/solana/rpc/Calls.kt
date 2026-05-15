@@ -4,12 +4,65 @@ import com.getcode.solana.keys.PublicKey
 import com.solana.networking.Rpc20Driver
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import org.sol4k.Connection
+import android.util.Base64
 
 class SolanaConnection(rpcUrl: String,) {
     private val connection = Connection(rpcUrl)
     fun getLatestBlockhash(): String = connection.getLatestBlockhash()
+}
+
+/**
+ * Returns the SOL balance (in lamports) for the given public key.
+ */
+suspend fun Rpc20Driver.getBalance(publicKey: PublicKey): Result<Long> {
+    val response = makeRequest(
+        request = GetBalance(publicKey),
+        resultSerializer = JsonElement.serializer()
+    )
+    val error = response.error
+    if (error != null) {
+        return Result.failure(RpcException(error.code, error.message))
+    }
+
+    val lamports = response.result
+        ?.jsonObject?.get("value")
+        ?.jsonPrimitive?.long
+        ?: return Result.failure(Throwable("Missing balance value"))
+
+    return Result.success(lamports)
+}
+
+/**
+ * Returns the token balance (raw amount) for the given token account.
+ * Returns 0 if the account does not exist.
+ */
+suspend fun Rpc20Driver.getTokenAccountBalance(tokenAccount: PublicKey): Result<Long> {
+    val response = makeRequest(
+        request = GetTokenAccountBalance(tokenAccount),
+        resultSerializer = JsonElement.serializer()
+    )
+    val error = response.error
+    if (error != null) {
+        // Account not found — treat as zero balance
+        if (error.code == -32602 || error.code == -32600) {
+            return Result.success(0L)
+        }
+        return Result.failure(RpcException(error.code, error.message))
+    }
+
+    val amount = response.result
+        ?.jsonObject?.get("value")
+        ?.jsonObject?.get("amount")
+        ?.jsonPrimitive?.content
+        ?.toLongOrNull()
+        ?: return Result.success(0L)
+
+    return Result.success(amount)
 }
 
 /**
@@ -39,6 +92,30 @@ suspend fun Rpc20Driver.doesAccountExist(publicKey: PublicKey): Result<Unit> {
     }
 
     return Result.success(Unit)
+}
+
+/**
+ * Returns the raw account data for the given public key, base64-decoded.
+ */
+suspend fun Rpc20Driver.getAccountData(publicKey: PublicKey): Result<ByteArray> {
+    val response = makeRequest(
+        request = GetAccountInfo(publicKey),
+        resultSerializer = JsonElement.serializer()
+    )
+    val error = response.error
+    if (error != null) {
+        return Result.failure(RpcException(error.code, error.message))
+    }
+
+    val value = response.result?.jsonObject?.get("value")?.takeIf { it !is JsonNull }
+        ?: return Result.failure(Throwable("Account not found"))
+
+    val dataArray = value.jsonObject["data"]?.jsonArray
+        ?: return Result.failure(Throwable("Missing account data"))
+
+    val base64String = dataArray[0].jsonPrimitive.content
+    val decoded = Base64.decode(base64String, Base64.NO_WRAP)
+    return Result.success(decoded)
 }
 
 /**

@@ -1,20 +1,13 @@
 package com.flipcash.app.withdrawal.internal.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.foundation.text.appendInlineContent
-import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
@@ -22,17 +15,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.ui.ReceiptLineItem
@@ -48,7 +34,9 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdf
+import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.bolded
@@ -60,8 +48,8 @@ internal fun TransactionReceipt(
     tokenWithBalance: TokenWithBalance,
     fee: Fiat?,
     modifier: Modifier = Modifier,
-    onLearnMoreClicked: () -> Unit
 ) {
+    val exchange = LocalExchange.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -81,7 +69,7 @@ internal fun TransactionReceipt(
     ) {
         val netTransferAmount by remember(tokenWithBalance, fee) {
             derivedStateOf {
-                tokenWithBalance.balance - (fee ?: Fiat.Zero)
+                tokenWithBalance.balance - (fee ?: 0.toFiat(tokenWithBalance.balance.currencyCode))
             }
         }
 
@@ -89,7 +77,6 @@ internal fun TransactionReceipt(
             tokenWithBalance = tokenWithBalance,
             transferAmount = netTransferAmount,
             fee = fee,
-            onLearnMoreClicked = onLearnMoreClicked,
         )
 
         Column(
@@ -106,8 +93,16 @@ internal fun TransactionReceipt(
                 tokenWithBalance = tokenWithBalance.copy(balance = netTransferAmount),
                 showName = false,
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                iconOverride = { icon ->
+                    if (tokenWithBalance.token.address == Mint.usdf) {
+                        painterResource(R.drawable.ic_usdc)
+                    } else {
+                        icon
+                    }
+                },
                 formattedBalance = { amount ->
-                    amount.estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2)
+                    amount.convertingToUsdIfNeeded(exchange.entryRate)
+                        .estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2)
                 },
                 sizing = rememberTokenBalanceRowSizing(
                     balanceTextStyle = CodeTheme.typography.displayMedium.bolded(),
@@ -124,7 +119,6 @@ private fun LineItems(
     transferAmount: Fiat,
     fee: Fiat?,
     modifier: Modifier = Modifier,
-    onLearnMoreClicked: () -> Unit,
 ) {
     Column(
         modifier = modifier,
@@ -132,59 +126,36 @@ private fun LineItems(
     ) {
         ReceiptLineItem(
             modifier = Modifier.fillMaxWidth(),
-            label = AnnotatedString("Withdrawal amount"),
+            label = AnnotatedString(stringResource(R.string.label_withdrawalAmount)),
             amount = tokenWithBalance.balance.formatted()
         )
 
         if (fee != null) {
-            val inlineContentMap = mapOf(
-                "icon" to InlineTextContent(
-                    Placeholder(
-                        width = CodeTheme.typography.textSmall.fontSize,
-                        height = CodeTheme.typography.textSmall.fontSize,
-                        placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
-                    )
-                ) {
-                    Image(
-                        imageVector = Icons.Outlined.Info,
-                        modifier = Modifier.fillMaxSize(),
-                        contentDescription = "",
-                        colorFilter = ColorFilter.tint(CodeTheme.colors.textSecondary)
-                    )
-                }
-            )
             ReceiptLineItem(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onLearnMoreClicked),
-                label = buildAnnotatedString {
-                    withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
-                        append("Less one time fee")
-                    }
-                    append(" ")
-                    appendInlineContent("icon")
-                },
-                amount = "-${fee.formatted()}",
-                inlineContentMap = inlineContentMap
+                modifier = Modifier.fillMaxWidth(),
+                label = AnnotatedString(stringResource(R.string.label_lessFee)),
+                amount = fee.formatted(extraPrefix = "-"),
             )
 
             val netAmount = remember(transferAmount) {
-                if (transferAmount.isNegative) {
-                    "-${transferAmount.formatted()}"
-                } else {
-                    transferAmount.formatted()
-                }
+                transferAmount.formatted()
             }
 
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
-                label = AnnotatedString("Net amount"),
+                label = AnnotatedString(stringResource(R.string.label_netAmount)),
                 amount = netAmount
             )
         }
 
+        val exchange = LocalExchange.current
         ReceiptLineItem(
             modifier = Modifier.fillMaxWidth(),
-            label = AnnotatedString("Amount in ${tokenWithBalance.token.name}"),
-            amount = transferAmount.estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2),
+            label = AnnotatedString(
+                stringResource(R.string.label_amountInToken, tokenWithBalance.displayName)
+            ),
+            amount = transferAmount.convertingToUsdIfNeeded(exchange.entryRate)
+                .estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2),
         )
     }
 }
@@ -199,7 +170,8 @@ private val rates = mapOf(
     CurrencyCode.USD to cadToUsdRate,
 )
 
-private val fee = Fiat(0.50, CurrencyCode.USD)
+private val feeUsd = Fiat(0.50, CurrencyCode.USD)
+private val feeCad = feeUsd.convertingTo(usdToCadRate)
 
 @Preview
 @Composable
@@ -217,10 +189,8 @@ private fun Preview_CadWithdrawalWithFeeReceipt() {
                     token = Token.usdf,
                     balance = fiveCad
                 ),
-                fee = fee,
-            ) {
-
-            }
+                fee = feeCad,
+            )
         }
     }
 }
@@ -242,9 +212,7 @@ private fun Preview_CadWithdrawalWithNoFeeReceipt() {
                     balance = fiveCad
                 ),
                 fee = null,
-            ) {
-
-            }
+            )
         }
     }
 }
@@ -265,10 +233,8 @@ private fun Preview_UsdWithdrawalWithFeeReceipt() {
                     token = Token.usdf,
                     balance = fiveUsd
                 ),
-                fee = fee,
-            ) {
-
-            }
+                fee = feeUsd,
+            )
         }
     }
 }
@@ -290,9 +256,7 @@ private fun Preview_UsdWithdrawalWithNoFeeReceipt() {
                     balance = fiveUsd
                 ),
                 fee = null,
-            ) {
-
-            }
+            )
         }
     }
 }
@@ -313,10 +277,8 @@ private fun Preview_CadWithdrawalWithFeeButTooSmallReceipt() {
                     token = Token.usdf,
                     balance = halfDollarCad
                 ),
-                fee = fee,
-            ) {
-
-            }
+                fee = feeCad,
+            )
         }
     }
 }

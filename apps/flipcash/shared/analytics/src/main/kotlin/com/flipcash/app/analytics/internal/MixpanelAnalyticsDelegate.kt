@@ -56,6 +56,10 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(name = action.value)
     }
 
+    override fun transferStart(event: Analytics.Transfer.Initiate) {
+        track(event.toAnalyticsEvent())
+    }
+
     override fun transfer(
         event: Analytics.Transfer,
         amount: LocalFiat?,
@@ -210,6 +214,10 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
 
     override fun deeplinkRouted(type: DeeplinkType, error: Throwable?) {
         track(AnalyticsEvent.DeeplinkEvent.Routed(type, error))
+    }
+
+    override fun displayedErrorModal(title: String, message: String, screen: String?, callSite: String?) {
+        track(AnalyticsEvent.ErrorModalDisplayed(title, message, screen, callSite))
     }
 
     // region Internal

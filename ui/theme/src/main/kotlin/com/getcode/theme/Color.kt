@@ -18,6 +18,7 @@ val BrandToggleUncheckedTrackColor = Color(0xFF201D2F)
 
 val White = Color(0xffffffff)
 val White50 = Color(0x80FFFFFF)
+val White40 = Color(0x66FFFFFF)
 val White10 = Color(0x1AFFFFFF)
 val White20 = Color(0x33FFFFFF)
 val White05 = Color(0x0CFFFFFF)
@@ -43,6 +44,7 @@ val BetaIndicator = Color(0xFFFEF383)
 
 val TextMain = White
 val TextSecondary = BrandLight
+val TextTertiary = BrandMuted
 val TextError = Alert
 
 val SystemGreen = Color(0xFF04C759)

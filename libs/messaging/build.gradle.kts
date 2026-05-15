@@ -10,5 +10,4 @@ dependencies {
     api(libs.kotlin.stdlib)
     api(libs.kotlinx.coroutines.core)
     api(libs.timber)
-    implementation(libs.bugsnag)
 }

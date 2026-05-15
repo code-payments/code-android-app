@@ -7,8 +7,10 @@ internal class VirtualMachineProgram {
 
     enum class Command(val value: Byte) {
         unknown(0),
+        initVm(1),
         transferForSwap(17),
         closeSwapAccountIfEmpty(19),
+        transferForSwapWithFee(20),
         ;
     }
 

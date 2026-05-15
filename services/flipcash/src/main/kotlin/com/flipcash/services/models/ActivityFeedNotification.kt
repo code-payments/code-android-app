@@ -53,9 +53,6 @@ sealed interface NotificationMetadata {
     data object Unknown : NotificationMetadata
 
     @Serializable
-    data object WelcomeBonus : NotificationMetadata
-
-    @Serializable
     data object GaveCrypto : NotificationMetadata
 
     /**

@@ -11,6 +11,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -25,9 +26,17 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -36,6 +45,7 @@ import com.flipcash.app.bill.customization.models.ColorStore
 import com.flipcash.features.bill.playground.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.rememberedClickable
+import com.getcode.ui.core.rememberedLongClickable
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalAnimatableApi::class)
 @Composable
@@ -44,8 +54,13 @@ internal fun ColorSlots(
     maxSlots: Int,
     selectedColors: List<ColorStore>,
     modifier: Modifier = Modifier,
+    onShowingPaste: () -> Unit,
+    onPasteConfiguration: () -> Unit,
     dispatchEvent: (ColorEvent) -> Unit,
 ) {
+    val toolbar = LocalTextToolbar.current
+    var contentRect by remember { mutableStateOf(Rect.Zero) }
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
@@ -74,6 +89,7 @@ internal fun ColorSlots(
             modifier = Modifier
                 .weight(1f)
                 .height(CodeTheme.dimens.grid.x10)
+                .onPlaced { contentRect = it.boundsInWindow() },
         ) {
             Row(
                 modifier = Modifier
@@ -103,6 +119,16 @@ internal fun ColorSlots(
                                 .width(animatedWidth),
                             store = s,
                             selected = selectedSlot == slot,
+                            onLongClick = {
+                                toolbar.showMenu(
+                                    rect = contentRect,
+                                    onPasteRequested = {
+                                        onPasteConfiguration()
+                                        toolbar.hide()
+                                    }
+                                )
+                                onShowingPaste()
+                            }
                         ) {
                             dispatchEvent(ColorEvent.SelectSlot(slot))
                         }
@@ -136,6 +162,7 @@ private fun ColorSlot(
     store: ColorStore?,
     selected: Boolean,
     modifier: Modifier = Modifier,
+    onLongClick: () -> Unit,
     onClick: () -> Unit,
 ) {
 
@@ -156,7 +183,7 @@ private fun ColorSlot(
             .fillMaxHeight()
             .presenceBorder(borderWidth, borderColor)
             .background(color = store?.color ?: Color.Transparent, shape = CodeTheme.shapes.small)
-            .rememberedClickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     )
 }
 

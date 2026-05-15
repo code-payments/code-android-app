@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package flipcash.event.v1;
+
+option go_package = "github.com/code-payments/flipcash2-protobuf-api/generated/go/event/v1;eventpb";
+option java_package = "com.codeinc.flipcash.gen.events.v1";
+option objc_class_prefix = "FPBEventV1";
+
+import "common/v1/common.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+message EventId {
+    bytes id = 1 [(validate.rules).bytes = {
+        min_len: 16
+        max_len: 16
+    }];
+}
+
+ // todo: define additional events
+message Event {
+    EventId id = 1 [(validate.rules).message.required = true];
+
+    google.protobuf.Timestamp ts = 2 [(validate.rules).timestamp.required = true];;
+
+    oneof type {
+        option (validate.required) = true;
+
+        TestEvent test = 3;
+    }
+}
+
+message EventBatch {
+    repeated Event events = 1 [(validate.rules).repeated = {
+        min_items: 1
+        max_items: 1024 // Arbitrary
+    }];
+}
+
+message UserEvent {
+    common.v1.UserId user_id = 1 [(validate.rules).message.required = true];
+
+    Event event = 2 [(validate.rules).message.required = true];
+}
+
+message UserEventBatch {
+    repeated UserEvent events = 1 [(validate.rules).repeated = {
+        min_items: 1
+        max_items: 1024 // Arbitrary
+    }];
+}
+
+message TestEvent {
+    repeated string hops = 1;
+
+    uint64 nonce = 2;
+}
+
+message ServerPing {
+    // Timestamp the ping was sent on the stream, for client to get a sense
+    // of potential network latency
+    google.protobuf.Timestamp timestamp = 1 [(validate.rules).timestamp.required = true];
+
+    // The delay server will apply before sending the next ping
+    google.protobuf.Duration ping_delay = 2 [(validate.rules).duration.required = true];
+}
+
+message ClientPong {
+    // Timestamp the Pong was sent on the stream, for server to get a sense
+    // of potential network latency
+    google.protobuf.Timestamp timestamp = 1 [(validate.rules).timestamp.required = true];
+}

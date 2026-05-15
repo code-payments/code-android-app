@@ -1,30 +1,45 @@
 syntax = "proto3";
+
 package flipcash.activity.v1;
+
 option go_package = "github.com/code-payments/flipcash2-protobuf-api/generated/go/activity/v1;activitypb";
 option java_package = "com.codeinc.flipcash.gen.activity.v1";
 option objc_class_prefix = "FCPBActivityV1";
+
 import "common/v1/common.proto";
 import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 // The ID of the notification
 message NotificationId {
-    bytes value = 1 ;
+    bytes value = 1 [(validate.rules).bytes = {
+        min_len: 32
+        max_len: 32
+    }];
 }
+
 // Notification is a message that is displayed in an activity feed
 message Notification {
     // The ID of this notification
-    NotificationId id = 1;
+    NotificationId id = 1 [(validate.rules).message.required = true];
+
     // The localized title text for the notification
-    string localized_text = 2 ;
+    string localized_text = 2 [(validate.rules).string = {
+        min_len: 1
+        max_len: 256
+    }];
+
     // If a payment applies, the amount that was paid
     common.v1.CryptoPaymentAmount payment_amount = 3;
+
     // The timestamp of this notification
-    google.protobuf.Timestamp ts = 4;
+    google.protobuf.Timestamp ts = 4 [(validate.rules).timestamp.required = true];
+
     // The state of this notification
-    NotificationState state = 5;
+    NotificationState state = 5 [(validate.rules).enum.not_in = 0];
+
     // Additional metadata for this notification specific to the notification
     oneof additional_metadata {
-        WelcomeBonusNotificationMetadata      welcome_bonus      = 6;
         GaveCryptoNotificationMetadata        gave_crypto        = 7;
         ReceivedCryptoNotificationMetadata    received_crypto    = 8;
         WithdrewCryptoNotificationMetadata    withdrew_crypto    = 9;
@@ -33,33 +48,46 @@ message Notification {
         BoughtCryptoNotificationMetadata      bought_crypto      = 12;
         SoldCryptoNotificationMetadata        sold_crypto        = 13;
     }
+
+    reserved 6; // Deprecated WelcomeBonusNotificationMetadata
 }
-message WelcomeBonusNotificationMetadata {
-}
+
 message GaveCryptoNotificationMetadata {
 }
+
 message ReceivedCryptoNotificationMetadata {
 }
+
 message WithdrewCryptoNotificationMetadata {
+    SwapState swap_state = 1 [(validate.rules).enum.not_in = 0];
 }
+
 message SentCryptoNotificationMetadata {
     // The vault of the gift card account that was created for the cash link
-    common.v1.PublicKey vault = 1;
+    common.v1.PublicKey vault = 1 [(validate.rules).message.required = true];
+
     // Whether the cancel action can be initiated by the user
     bool can_initiate_cancel_action = 2;
 }
+
 message DepositedCryptoNotificationMetadata {
 }
+
 message BoughtCryptoNotificationMetadata {
+    SwapState swap_state = 1 [(validate.rules).enum.not_in = 0];
 }
+
 message SoldCryptoNotificationMetadata {
+    SwapState swap_state = 1 [(validate.rules).enum.not_in = 0];
 }
+
 // ActivityFeedType enables multiple activity feeds, where notifications may be
 // split across different parts of the app
 enum ActivityFeedType {
     UNKNOWN             = 0;
     TRANSACTION_HISTORY = 1; // Activity feed displayed under the Balance tab
 }
+
 // NotificationState determines the mutability of a notification, and whether
 // client should attempt to refetch state.
 enum NotificationState {
@@ -68,4 +96,12 @@ enum NotificationState {
     NOTIFICATION_STATE_PENDING   = 1;
     // Notification state will not change
     NOTIFICATION_STATE_COMPLETED = 2;
+}
+
+enum SwapState {
+    SWAP_STATE_UNKNOWN   = 0;
+    SWAP_STATE_PENDING   = 1;
+    SWAP_STATE_SUCCEEDED = 2;
+    SWAP_STATE_FAILED    = 3;
+    SWAP_STATE_NONE      = 4;
 }

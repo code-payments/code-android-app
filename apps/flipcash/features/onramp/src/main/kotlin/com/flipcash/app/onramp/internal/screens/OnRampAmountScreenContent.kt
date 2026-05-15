@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.onramp.ui.buildExternalWalletButtonLabel
@@ -35,6 +34,7 @@ internal fun OnRampAmountScreen(
     OnRampAmountScreenContent(
         state = state.amountEntryState,
         provider = state.selectedProvider,
+        canChangeCurrency = state.canChangeCurrency,
         dispatchEvent = viewModel::dispatchEvent,
     )
 }
@@ -42,6 +42,7 @@ internal fun OnRampAmountScreen(
 @Composable
 private fun OnRampAmountScreenContent(
     state: AmountEntryState,
+    canChangeCurrency: Boolean,
     provider: OnRampProvider.ThirdParty?,
     dispatchEvent: (OnRampViewModel.Event) -> Unit,
 ) {
@@ -64,13 +65,11 @@ private fun OnRampAmountScreenContent(
                 stringResource(R.string.subtitle_onrampPurchaseHint, state.maxAvailableToAdd)
             },
             decimalPlaces = state.currencyModel.fractionUnits,
-            isClickable = provider !is OnRampProvider.Phantom,
+            isClickable = canChangeCurrency,
             onAmountClicked = {
                 navigator.push(
-                    ScreenRegistry.get(
-                        AppRoute.Main.RegionSelection(
-                            kind = RegionSelectionKind.Entry
-                        )
+                    AppRoute.Main.RegionSelection(
+                        kind = RegionSelectionKind.Entry
                     )
                 )
             },
@@ -98,13 +97,7 @@ private fun ConfirmationButton(
     dispatchEvent: (OnRampViewModel.Event) -> Unit
 ) {
     val (buttonText, assets) = when (provider) {
-        is OnRampProvider.Coinbase -> when (provider.type) {
-            // https://developers.google.com/pay/api/android/guides/brand-guidelines#using-pay-in-text
-            OnRampType.Virtual -> AnnotatedString(stringResource(R.string.action_addCashWithGooglePay)) to emptyMap()
-            OnRampType.PhysicalDebit -> AnnotatedString(stringResource(R.string.action_addCashWithDebitCard)) to emptyMap()
-            OnRampType.PhysicalCredit -> AnnotatedString(stringResource(R.string.action_addCashWithCreditCard)) to emptyMap()
-        }
-
+        is OnRampProvider.Coinbase -> AnnotatedString(stringResource(R.string.action_buy)) to emptyMap()
         is OnRampProvider.UsesDeeplinks -> {
             buildExternalWalletButtonLabel(
                 prefix = stringResource(R.string.label_confirmIn),

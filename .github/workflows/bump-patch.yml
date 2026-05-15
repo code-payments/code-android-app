@@ -1,0 +1,64 @@
+name: Update release manifest and bump patch
+
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Track to record in the manifest'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+      force_bump:
+        description: 'Force patch version bump regardless of track changes'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  release:
+    name: Update manifest and bump patch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@master
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: "code/cash"
+
+      - name: Decode Service Account Key JSON file
+        uses: timheuer/base64-to-file@v1
+        id: service_account_json_file
+        with:
+          fileName: serviceAccount.json
+          encodedString: ${{ secrets.FLIPCASH_SERVICE_ACCOUNT_KEY_JSON }}
+
+      - name: Update release manifest
+        id: manifest
+        env:
+          SERVICE_ACCOUNT_KEY_JSON: ${{ steps.service_account_json_file.outputs.filePath }}
+          TRACKS: ${{ github.event.inputs.track }}
+          FORCE_BUMP: ${{ github.event.inputs.force_bump }}
+        run: bash scripts/update-release-manifest.sh
+
+      - name: Commit & Push changes
+        if: steps.manifest.outputs.manifest_changed == 'true' || steps.manifest.outputs.prod_changed == 'true' || steps.manifest.outputs.forced == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          COMMIT_MSG="${{ steps.manifest.outputs.prod_changed == 'true'
+            && format('build: release Flipcash {0} ({1}), bump to {2}', steps.manifest.outputs.new_prod_name, steps.manifest.outputs.new_prod, steps.manifest.outputs.version)
+            || (steps.manifest.outputs.forced == 'true'
+              && format('build: bump Flipcash to {0}', steps.manifest.outputs.version)
+              || 'build: update release manifest') }}"
+          git commit -m "$COMMIT_MSG"
+          git pull --rebase https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git code/cash
+          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git HEAD:code/cash

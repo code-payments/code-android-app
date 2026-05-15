@@ -2,6 +2,7 @@ package com.getcode.opencode.model.financial
 
 import android.os.Parcelable
 import com.flipcash.libs.currency.math.Estimator
+import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
 import com.getcode.opencode.internal.solana.extensions.deriveVmOmnibusAddress
 import com.getcode.opencode.internal.solana.vmAuthority
@@ -11,6 +12,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 data class TokenWithBalance(
@@ -62,7 +64,77 @@ val MintMetadata.Companion.usdf: Token
         launchpadMetadata = null,
         socialLinks = emptyList(),
         billCustomizations = null,
+        holderMetrics = HolderMetrics.None,
     )
+
+val MintMetadata.Companion.usdc: Token
+    get() = MintMetadata(
+        address = Mint.usdc,
+        decimals = 6,
+        name = "USDC",
+        symbol = "USDC",
+        description = "",
+        createdAt = Instant.parse("2018-05-15T05:00:00Z"),
+        imageUrl = "",
+        vmMetadata = VmMetadata(
+            authority = vmAuthority,
+            vm = PublicKey.deriveVirtualMachineAccount(
+                mint = Mint.usdc,
+                authority = vmAuthority,
+                lockout = TimelockDerivedAccounts.lockoutInDays.toUByte()
+            ).publicKey,
+            lockDurationInDays = TimelockDerivedAccounts.lockoutInDays.toInt()
+        ),
+        launchpadMetadata = null,
+        socialLinks = emptyList(),
+        billCustomizations = null,
+        holderMetrics = HolderMetrics.None,
+    )
+
+/**
+ * Builds a local [Token] stub for a currency that was just launched via
+ * [com.getcode.opencode.controllers.CurrencyController.launchToken] but whose
+ * on-chain [LaunchpadMetadata] has not yet been propagated by the server.
+ *
+ * The returned stub is only intended to flow into
+ * [com.getcode.opencode.controllers.TransactionController.buy] so the atomic
+ * new-currency buy swap can execute. Its null [com.codeinc.opencode.gen.currency.v1.launchpadMetadata] — together
+ * with an address that isn't [Mint.usdf] — is also the signal inside
+ * `TransactionController.buy` to skip the pre-flight `createUserAccount` call
+ * (the atomic swap itself creates the VM and the VM deposit ATA).
+ *
+ * All on-chain values that actually drive transaction bytes (sellFeeBps,
+ * vmLockDurationInDays) still come from
+ * [com.getcode.opencode.model.transactions.SwapResponseServerParameters.NewCurrency] inside
+ * `buildNewCurrencyBuyInstructions` — this stub never drives those.
+ */
+fun MintMetadata.Companion.fromLaunch(
+    mint: Mint,
+    request: TokenCreateRequest,
+    owner: PublicKey,
+    lockDurationInDays: Int = TimelockDerivedAccounts.lockoutInDays.toInt(),
+): Token = MintMetadata(
+    address = mint,
+    decimals = 10,
+    name = request.name.text,
+    symbol = request.symbol?.text ?: "",
+    description = request.description?.text.orEmpty(),
+    createdAt = Clock.System.now(),
+    imageUrl = "",
+    vmMetadata = VmMetadata(
+        authority = owner,
+        vm = PublicKey.deriveVirtualMachineAccount(
+            mint = mint,
+            authority = owner,
+            lockout = lockDurationInDays.toUByte(),
+        ).publicKey,
+        lockDurationInDays = lockDurationInDays,
+    ),
+    launchpadMetadata = null,
+    billCustomizations = request.bill,
+    socialLinks = emptyList(),
+    holderMetrics = HolderMetrics.None,
+)
 
 /**
  * Represents metadata associated with a token account.
@@ -92,6 +164,7 @@ data class MintMetadata(
     val launchpadMetadata: LaunchpadMetadata?,
     val billCustomizations: TokenBillCustomizations?,
     val socialLinks: List<SocialLink>,
+    val holderMetrics: HolderMetrics,
 ) : Parcelable {
     fun marketCap(): Fiat? {
         val launchpad = launchpadMetadata ?: return null
@@ -169,4 +242,36 @@ sealed interface SocialLink : Parcelable {
         @IgnoredOnParcel
         override val uri: String = "https://x.com/$username"
     }
+
+    @Parcelize
+    data class Telegram(val username: String) : SocialLink {
+        @IgnoredOnParcel
+        override val uri: String = "https://t.me/$username"
+    }
+
+    @Parcelize
+    data class Discord(val inviteCode: String) : SocialLink {
+        @IgnoredOnParcel
+        override val uri: String = "https://discord.gg/$inviteCode"
+    }
+}
+
+@Parcelize
+data class HolderMetrics(
+    val currentHolders: Long,
+    val holderDeltas: List<HolderDelta>,
+) : Parcelable {
+    companion object {
+        val None = HolderMetrics(0, emptyList())
+    }
+
+    fun deltaForWindow(window: WindowedRange): Long {
+        return holderDeltas.firstOrNull { it.range == window }?.delta ?: 0
+    }
+
+    @Parcelize
+    data class HolderDelta(
+        val range: WindowedRange,
+        val delta: Long,
+    ) : Parcelable
 }

@@ -8,6 +8,8 @@ import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.ContactMethod
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
+import com.codeinc.flipcash.gen.email.v1.validate
+import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -38,6 +40,8 @@ internal class EmailVerificationApi @Inject constructor(
             .apply { setAuth(authenticate(owner)) }
             .build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.sendVerificationCode(request)
         }
@@ -57,6 +61,8 @@ internal class EmailVerificationApi @Inject constructor(
             .apply { setAuth(authenticate(owner)) }
             .build()
 
+        request.validate().orThrow()
+
         return withContext(Dispatchers.IO) {
             api.checkVerificationCode(request)
         }
@@ -70,6 +76,8 @@ internal class EmailVerificationApi @Inject constructor(
             .setEmailAddress(Model.EmailAddress.newBuilder().setValue(request.emailAddress).build())
             .apply { setAuth(authenticate(owner)) }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.unlink(request)

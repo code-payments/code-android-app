@@ -60,7 +60,6 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                 null -> NotificationState.UNKNOWN
             },
             metadata = when (from.additionalMetadataCase) {
-                Model.Notification.AdditionalMetadataCase.WELCOME_BONUS -> NotificationMetadata.WelcomeBonus
                 Model.Notification.AdditionalMetadataCase.GAVE_CRYPTO -> NotificationMetadata.GaveCrypto
                 Model.Notification.AdditionalMetadataCase.RECEIVED_CRYPTO -> NotificationMetadata.ReceivedCrypto
                 Model.Notification.AdditionalMetadataCase.WITHDREW_CRYPTO -> NotificationMetadata.WithdrewCrypto

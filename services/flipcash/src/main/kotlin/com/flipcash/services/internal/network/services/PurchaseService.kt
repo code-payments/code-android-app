@@ -4,6 +4,7 @@ import com.codeinc.flipcash.gen.iap.v1.IapService
 import com.flipcash.services.internal.model.billing.IapMetadata
 import com.flipcash.services.internal.model.billing.Receipt
 import com.flipcash.services.internal.network.api.PurchaseApi
+import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.flipcash.services.models.PurchaseAckError
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -27,7 +28,7 @@ internal class PurchaseService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(PurchaseAckError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { PurchaseAckError.Other(cause = it) })
             }
         )
     }

@@ -4,17 +4,15 @@ import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.extensions.setText
-import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.features.myaccount.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.solana.keys.base58
-import com.getcode.solana.keys.base64
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.base58
 import com.getcode.utils.base64
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,6 +31,7 @@ private val FullMenuList = buildList {
     add(AccessKey)
     add(VerifyPhone)
     add(VerifyEmail)
+    add(LogOut)
     add(DeleteAccount)
 }
 
@@ -43,9 +42,11 @@ internal class MyAccountScreenViewModel @Inject constructor(
     resources: ResourceHelper,
     authManager: AuthManager,
     clipboardManager: ClipboardManager,
+    dispatchers: DispatcherProvider,
 ) : BaseViewModel2<MyAccountScreenViewModel.State, MyAccountScreenViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     internal data class State(
         val isBetaEnabled: Boolean = false,
@@ -68,13 +69,15 @@ internal class MyAccountScreenViewModel @Inject constructor(
         data class ToggleAccountInfo(val show: Boolean) : Event
         data object OnAccessKeyClicked : Event
         data object OnViewAccessKey : Event
-        data object OnVerifyEmailClicked: Event
-        data object OnVerifyPhoneClicked: Event
+        data object OnVerifyEmailClicked : Event
+        data object OnVerifyPhoneClicked : Event
         data object OnDeleteAccountClicked : Event
         data object OnAccountDeleted : Event
         data object CopyPublicKey : Event
         data object CopyAccountId : Event
         data object CopyPushToken : Event
+        data object OnLogOutClicked : Event
+        data object OnLoggedOutCompletely : Event
     }
 
     init {
@@ -111,14 +114,11 @@ internal class MyAccountScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnDeleteAccountClicked>()
             .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.prompt_title_deleteAccount),
-                        showScrim = true,
-                        subtitle = resources.getString(R.string.prompt_description_deleteAccount),
-                        positiveText = resources.getString(R.string.action_deleteAccount),
-                        tertiaryText = resources.getString(R.string.action_cancel),
-                        onPositive = {
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_deleteAccount),
+                    message = resources.getString(R.string.prompt_description_deleteAccount),
+                    actions = listOf(
+                        BottomBarAction(resources.getString(R.string.action_deleteAccount)) {
                             viewModelScope.launch {
                                 delay(150) // wait for dismiss
                                 authManager.deleteAndLogout()
@@ -131,7 +131,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
                                     }
                             }
                         }
-                    )
+                    ),
+                    showCancel = true,
                 )
             }.launchIn(viewModelScope)
 
@@ -168,19 +169,44 @@ internal class MyAccountScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnAccessKeyClicked>()
             .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.prompt_title_viewAccessKey),
-                        subtitle = resources.getString(R.string.prompt_description_viewAccessKey),
-                        showScrim = true,
-                        showCancel = true,
-                        actions = listOf(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_viewAccessKey),
-                                onClick = { dispatchEvent(Event.OnViewAccessKey) }
-                            )
-                        ),
-                    )
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_viewAccessKey),
+                    message = resources.getString(R.string.prompt_description_viewAccessKey),
+                    showScrim = true,
+                    showCancel = true,
+                    actions = listOf(
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_viewAccessKey),
+                            onClick = { dispatchEvent(Event.OnViewAccessKey) }
+                        )
+                    ),
+                )
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnLogOutClicked>()
+            .onEach {
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_logout),
+                    message = resources.getString(R.string.prompt_description_logout),
+                    actions = listOf(
+                        BottomBarAction(resources.getString(R.string.action_logout)) {
+                            viewModelScope.launch {
+                                delay(150) // wait for dismiss
+                                authManager.logout()
+                                    .onSuccess {
+                                        dispatchEvent(Event.OnLoggedOutCompletely)
+                                    }
+                                    .onFailure {
+                                        BottomBarManager.showError(
+                                            title = resources.getString(R.string.error_title_failedToLogOut),
+                                            message = resources.getString(R.string.error_description_failedToLogOut),
+                                        )
+                                    }
+                            }
+                        },
+                    ),
+                    showCancel = true,
                 )
             }.launchIn(viewModelScope)
     }
@@ -206,6 +232,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
                     )
                 }
 
+                Event.OnLogOutClicked,
+                Event.OnLoggedOutCompletely,
                 Event.OnVerifyPhoneClicked,
                 Event.OnVerifyEmailClicked,
                 Event.OnViewAccessKey,
@@ -218,7 +246,10 @@ internal class MyAccountScreenViewModel @Inject constructor(
                 Event.OnAccessKeyClicked -> { state -> state }
 
                 is Event.OnBetaFeaturesUnlocked -> { state ->
-                    state.copy(isBetaEnabled = event.unlocked, items = buildItemList(event.unlocked))
+                    state.copy(
+                        isBetaEnabled = event.unlocked,
+                        items = buildItemList(event.unlocked)
+                    )
                 }
 
                 is Event.ToggleAccountInfo -> { state ->

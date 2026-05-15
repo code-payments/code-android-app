@@ -7,7 +7,6 @@ import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.inject.OpenCodeModule
-import com.getcode.util.locale.AndroidLocale
 import dagger.hilt.android.EntryPointAccessors
 
 object ControllerFactory {
@@ -37,7 +36,6 @@ object ControllerFactory {
             swapRepository = RepositoryFactory.createSwapRepository(context, config),
             accountController = createAccountController(context, config),
             eventBus = module.providesEventBus(),
-            verifiedStateManager = ManagerFactory.createVerifiedStateManager(),
         )
     }
     fun createCurrencyController(context: Context, config: ProtocolConfig): CurrencyController {

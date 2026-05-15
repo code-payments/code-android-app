@@ -6,6 +6,9 @@ plugins {
 
 android {
     namespace = "${Gradle.codeNamespace}.libs.currency.math"
+    testFixtures {
+        enable = true
+    }
 }
 
 dependencies {
@@ -13,9 +16,9 @@ dependencies {
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)
 
-    implementation(libs.javax.inject)
-    implementation(libs.hilt.android)
-    implementation(libs.bugsnag)
+    implementation(libs.bundles.hilt)
+
+    testFixturesImplementation(libs.kotlinx.coroutines.core)
 
     testImplementation(kotlin("test"))
 }

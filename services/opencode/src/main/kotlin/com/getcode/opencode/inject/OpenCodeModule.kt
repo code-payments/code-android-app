@@ -1,13 +1,14 @@
 package com.getcode.opencode.inject
 
 import android.content.Context
-import com.getcode.libs.logging.BuildConfig
 import com.getcode.opencode.ProtocolConfig
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.annotations.OpenCodeManagedStreamingChannel
 import com.getcode.opencode.internal.annotations.OpenCodeProtocol
@@ -18,6 +19,7 @@ import com.getcode.opencode.internal.domain.repositories.InternalMessagingReposi
 import com.getcode.opencode.internal.domain.repositories.InternalSwapRepository
 import com.getcode.opencode.internal.domain.repositories.InternalTransactionRepository
 import com.getcode.opencode.internal.exchange.OpenCodeExchange
+import com.getcode.opencode.internal.exchange.RealVerifiedFiatCalculator
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.network.pollers.SwapPoller
 import com.getcode.opencode.internal.network.services.AccountService
@@ -41,6 +43,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
+import io.grpc.ConnectivityState
 import io.grpc.ManagedChannel
 import io.grpc.android.AndroidChannelBuilder
 import io.grpc.okhttp.OkHttpChannelBuilder
@@ -56,10 +61,12 @@ object OpenCodeModule {
     @Singleton
     internal fun providesExchange(
         currencyController: CurrencyController,
+        verifiedStateManager: VerifiedProtoManager,
         resources: ResourceHelper,
         locale: LocaleHelper,
     ): Exchange = OpenCodeExchange(
         currencyController = currencyController,
+        verifiedStateManager = verifiedStateManager,
         resources = resources,
         locale = locale,
     )
@@ -95,12 +102,9 @@ object OpenCodeModule {
             .userAgent(config.userAgent)
             .keepAliveWithoutCalls(false)
             .idleTimeout(5, TimeUnit.MINUTES) // drop idle connections
-            .apply {
-                if (BuildConfig.DEBUG) {
-                    this.intercept(LoggingClientInterceptor())
-                }
-            }
+            .intercept(LoggingClientInterceptor())
             .build()
+            .also { observeChannelState("opencode", it) }
     }
 
     @Singleton
@@ -116,12 +120,23 @@ object OpenCodeModule {
             .context(context)
             .userAgent(config.userAgent)
             .keepAliveWithoutCalls(true)
-            .apply {
-                if (BuildConfig.DEBUG) {
-                    this.intercept(LoggingClientInterceptor())
-                }
-            }
+            .intercept(LoggingClientInterceptor())
             .build()
+            .also { observeChannelState("opencode-stream", it) }
+    }
+
+    private fun observeChannelState(name: String, channel: ManagedChannel) {
+        val state = channel.getState(false)
+        trace(
+            tag = "gRPC",
+            message = "$name => $state",
+            type = TraceType.StateChange,
+        )
+        if (state != ConnectivityState.SHUTDOWN) {
+            channel.notifyWhenStateChanged(state) {
+                observeChannelState(name, channel)
+            }
+        }
     }
 
     @Provides
@@ -167,4 +182,12 @@ object OpenCodeModule {
     @Provides
     @Singleton
     internal fun providesEventBus(): ChannelEventBus = ChannelEventBus()
+
+    @Provides
+    @Singleton
+    fun bindTransactionOperations(impl: TransactionController): TransactionOperations = impl
+
+    @Provides
+    @Singleton
+    internal fun bindVerifiedFiatCalculator(impl: RealVerifiedFiatCalculator): VerifiedFiatCalculator = impl
 }
