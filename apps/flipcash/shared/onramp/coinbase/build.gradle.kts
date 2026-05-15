@@ -14,6 +14,7 @@ dependencies {
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.robolectric)
 
+    implementation(libs.androidx.webkit)
     implementation(libs.androidx.localbroadcastmanager)
     implementation(libs.bundles.kotlinx.serialization)
 
