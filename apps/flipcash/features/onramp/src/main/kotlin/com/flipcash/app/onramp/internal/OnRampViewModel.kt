@@ -1,6 +1,8 @@
 package com.flipcash.app.onramp.internal
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.Analytics
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.extensions.mapResult
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.CurrencyHolder
@@ -81,6 +83,7 @@ internal class OnRampViewModel @Inject constructor(
     tokenController: TokenController,
     transactionController: TransactionOperations,
     dispatchers: DispatcherProvider,
+    analytics: FlipcashAnalyticsService,
 ) : BaseViewModel2<OnRampViewModel.State, OnRampViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -344,8 +347,15 @@ internal class OnRampViewModel @Inject constructor(
                                     amount = selectedAmount.localFiat.underlyingTokenAmount,
                                     token = token,
                                     verifiedFiat = selectedAmount,
-                                ).onFailure { error ->
+                                ).onSuccess {
+                                    analytics.buy(
+                                        method = Analytics.PurchaseMethod.Coinbase,
+                                        amount = selectedAmount.localFiat.nativeAmount,
+                                        mint = token.address,
+                                    )
+                                }.onFailure { error ->
                                     dispatchEvent(Event.UpdateConfirmingAmountState())
+
                                     when (error) {
                                         is OnRampAuthError.CoinbasePhoneVerificationRequired -> {
                                             dispatchEvent(Event.OnVerificationNeeded(phone = true))
@@ -375,6 +385,13 @@ internal class OnRampViewModel @Inject constructor(
                                         }
 
                                         else -> {
+                                            analytics.buy(
+                                                method = Analytics.PurchaseMethod.Coinbase,
+                                                amount = selectedAmount.localFiat.nativeAmount,
+                                                mint = token.address,
+                                                error = error
+                                            )
+
                                             BottomBarManager.showError(
                                                 title = "Something Went Wrong",
                                                 message = error.message ?: "Please try again",
