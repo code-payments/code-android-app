@@ -593,6 +593,10 @@
     <string name="error_title_onrampGooglePayNotReady">Google Pay Not Ready</string>
     <string name="error_description_onrampGooglePayNotReady">Please add a payment method to Google Pay and try again</string>
 
+    <string name="error_title_onrampNonStableWebView">Unsupported WebView</string>
+    <string name="error_description_onrampNonStableWebView">Your device is using a %1$s version of Android System WebView, which may cause issues with purchases. Google recommends switching to the stable channel before continuing with your purchase</string>
+    <string name="action_continueAnyway">Continue Anyway</string>
+
     <string name="error_title_onrampUnknownFailure">Something Went Wrong</string>
     <string name="error_description_onrampUnknownFailure">Please contact support@flipcash.com</string>
 

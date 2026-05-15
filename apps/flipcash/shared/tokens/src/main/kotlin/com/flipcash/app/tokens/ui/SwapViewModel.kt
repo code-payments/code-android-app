@@ -14,7 +14,8 @@ import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.onramp.CoinbaseOnRampState
 import com.flipcash.app.onramp.OnRampAuthError
-import com.flipcash.app.onramp.OnRampPaymentError
+import com.flipcash.app.onramp.PurchaseGate
+import com.getcode.manager.BottomBarAction
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
@@ -83,7 +84,7 @@ class SwapViewModel @Inject constructor(
     private val exchange: Exchange,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     transactionController: TransactionOperations,
-    resources: ResourceHelper,
+    private val resources: ResourceHelper,
     private val tokenCoordinator: TokenCoordinator,
     feedCoordinator: ActivityFeedCoordinator,
     private val analytics: FlipcashAnalyticsService,
@@ -206,6 +207,7 @@ class SwapViewModel @Inject constructor(
 
         data class OnCurrencyChanged(val currency: Currency) : Event
 
+        data object CoinbaseSelected: Event
         data object PhantomSelected: Event
         data object ConfirmPhantomTransaction : Event
         data object OnAmountConfirmed : Event
@@ -735,8 +737,8 @@ class SwapViewModel @Inject constructor(
             .onEach { (method, metadata) ->
                 when (method) {
                     PurchaseMethod.CoinbaseOnRamp -> {
-                        analytics.buttonTapped(Button.TokenBuyWithReserves)
-                        val rate = exchange.entryRate
+                        analytics.buttonTapped(Button.TokenBuyWithCoinbase)
+                        dispatchEvent(Event.CoinbaseSelected)
                         val amount = metadata.purchaseAmount ?: return@onEach
 
                         if (amount < minimumCoinbasePurchaseAmount) {
@@ -747,6 +749,7 @@ class SwapViewModel @Inject constructor(
                             return@onEach
                         }
 
+                        val rate = exchange.entryRate
                         val amountFiat = verifiedFiatCalculator.compute(
                             amount = amount,
                             token = Token.usdf,
@@ -760,34 +763,9 @@ class SwapViewModel @Inject constructor(
                         }
 
                         dispatchEvent(Event.UpdateBuyState(loading = true))
-
                         val token = stateFlow.value.tokenWithBalance?.token ?: return@onEach
-                        coinbaseOnRampController.placeOrderAndStartPayment(
-                            amount = amountFiat.localFiat.underlyingTokenAmount,
-                            token = token,
-                            verifiedFiat = amountFiat,
-                        ).onFailure { error ->
-                            dispatchEvent(Event.UpdateBuyState())
-                            when (error) {
-                                is OnRampAuthError.VerificationRequired ->
-                                    dispatchEvent(Event.OnVerificationNeeded(error.phone, error.email))
-                                is OnRampPaymentError.GooglePayNotSupported ->
-                                    BottomBarManager.showAlert(
-                                        title = resources.getString(R.string.error_title_onrampGooglePayNotSupported),
-                                        message = resources.getString(R.string.error_description_onrampGooglePayNotSupported),
-                                    )
-                                is OnRampPaymentError.GooglePayNoPaymentMethod ->
-                                    BottomBarManager.showAlert(
-                                        title = resources.getString(R.string.error_title_onrampGooglePayNotReady),
-                                        message = resources.getString(R.string.error_description_onrampGooglePayNotReady),
-                                    )
-                                else ->
-                                    BottomBarManager.showError(
-                                        title = resources.getString(R.string.error_title_buySellFailed),
-                                        message = resources.getString(R.string.error_description_buySellFailed),
-                                    )
-                            }
-                        }
+
+                        executeCoinbasePurchase(amountFiat, token)
                     }
                     is PurchaseMethod.CashReserves -> {
                         dispatchEvent(Event.OnAmountConfirmed)
@@ -804,10 +782,91 @@ class SwapViewModel @Inject constructor(
             }.launchIn(viewModelScope)
     }
 
+    private suspend fun executeCoinbasePurchase(
+        amountFiat: VerifiedFiat,
+        token: Token,
+    ) {
+        coinbaseOnRampController.checkPurchaseGates()
+            .fold(
+                onSuccess = { proceedWithCoinbasePurchase(amountFiat, token) },
+                onFailure = { gate ->
+                    dispatchEvent(Event.UpdateBuyState())
+                    when (gate) {
+                        is PurchaseGate.GooglePayNotSupported -> {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_onrampGooglePayNotSupported),
+                                message = resources.getString(R.string.error_description_onrampGooglePayNotSupported),
+                            )
+                        }
+                        is PurchaseGate.GooglePayNoPaymentMethod -> {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_onrampGooglePayNotReady),
+                                message = resources.getString(R.string.error_description_onrampGooglePayNotReady),
+                            )
+                        }
+                        is PurchaseGate.WebViewWarning -> {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_onrampNonStableWebView),
+                                message = resources.getString(
+                                    R.string.error_description_onrampNonStableWebView,
+                                    gate.channel.name,
+                                ),
+                                actions = listOf(
+                                    BottomBarAction(
+                                        text = resources.getString(R.string.action_cancel),
+                                        style = BottomBarManager.BottomBarButtonStyle.Filled,
+                                    ) { /* dismiss — loading already cleared */ },
+                                    BottomBarAction(
+                                        text = resources.getString(R.string.action_continueAnyway),
+                                        style = BottomBarManager.BottomBarButtonStyle.Text,
+                                    ) {
+                                        viewModelScope.launch {
+                                            dispatchEvent(Event.UpdateBuyState(loading = true))
+                                            proceedWithCoinbasePurchase(amountFiat, token)
+                                        }
+                                    },
+                                ),
+                            )
+                        }
+                    }
+                },
+            )
+    }
+
+    private suspend fun proceedWithCoinbasePurchase(
+        amountFiat: VerifiedFiat,
+        token: Token,
+    ) {
+        coinbaseOnRampController.placeOrderAndStartPayment(
+            token = token,
+            verifiedFiat = amountFiat,
+        ).onSuccess {
+            trackTransaction(token)
+        }.onFailure { error ->
+            dispatchEvent(Event.UpdateBuyState())
+            when (error) {
+                is OnRampAuthError.CoinbasePhoneVerificationRequired ->
+                    dispatchEvent(Event.OnVerificationNeeded(phone = true, email = false))
+
+                is OnRampAuthError.VerificationRequired ->
+                    dispatchEvent(Event.OnVerificationNeeded(error.phone, error.email))
+
+                else -> {
+                    trackTransaction(token, error = error)
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_buySellFailed),
+                        message = resources.getString(R.string.error_description_buySellFailed),
+                    )
+                }
+            }
+        }
+    }
+
     private fun trackTransaction(token: Token, error: Throwable? = null) {
         val method = when (val purpose = stateFlow.value.purpose) {
             is SwapPurpose.Buy -> when (purpose.fundingSource) {
                 FundingSource.Phantom -> Analytics.SwapMethod.Buy.Phantom
+                FundingSource.Coinbase -> Analytics.SwapMethod.Buy.Coinbase
                 else -> Analytics.SwapMethod.Buy.Reserves
             }
             else -> Analytics.SwapMethod.Sell
@@ -930,6 +989,15 @@ class SwapViewModel @Inject constructor(
                             maxToAdd = event.max to event.currencyCode
                         ),
                     )
+                }
+
+                Event.CoinbaseSelected -> { state ->
+                    val purpose = state.purpose
+                    if (purpose is SwapPurpose.Buy) {
+                        state.copy(purpose = purpose.copy(fundingSource = FundingSource.Coinbase))
+                    } else {
+                        state
+                    }
                 }
 
                 Event.PhantomSelected -> { state ->

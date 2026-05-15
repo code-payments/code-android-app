@@ -15,9 +15,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -32,45 +34,50 @@ import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.bill.customization.BillPlaygroundScaffold
-import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
+import com.flipcash.app.core.LocalUserManager
+import com.flipcash.app.core.extensions.navigateTo
 import com.flipcash.app.core.navigation.DeeplinkAction
+import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.LocalFeatureFlags
+import com.flipcash.app.featureflags.model.BackgroundResetTimeout
 import com.flipcash.app.internal.ui.navigation.appEntryProvider
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.onramp.CoinbaseOnRampHandler
 import com.flipcash.app.onramp.ExternalWalletOnRampHandler
 import com.flipcash.app.onramp.LocalExternalWalletOnRampController
-import com.flipcash.app.onramp.LocalCoinbaseOnRampController
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashTheme
 import com.flipcash.features.shareapp.R
 import com.flipcash.services.user.AuthState
+import com.getcode.animation.LocalSharedTransitionScope
 import com.getcode.libs.biometrics.BiometricsError
 import com.getcode.libs.qr.rememberQrBitmapPainter
 import com.getcode.navigation.AppNavHost
+import com.getcode.navigation.Sheet
+import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.core.rememberCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.results.rememberNavResultStateRegistry
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
+import com.getcode.navigation.scrim.LocalScrimController
+import com.getcode.navigation.scrim.ScrimController
+import com.getcode.navigation.scrim.ScrimOverlay
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.biometrics.rememberBiometricsState
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.bars.rememberBarManager
 import com.getcode.ui.core.RestrictionType
-import com.flipcash.app.core.extensions.navigateTo
-import com.getcode.animation.LocalSharedTransitionScope
-import com.getcode.navigation.scrim.LocalScrimController
-import com.getcode.navigation.scrim.ScrimController
-import com.getcode.navigation.scrim.ScrimOverlay
 import dev.bmcreations.tipkit.TipScaffold
 import dev.bmcreations.tipkit.engines.TipsEngine
 import dev.theolm.rinku.DeepLink
 import dev.theolm.rinku.compose.ext.DeepLinkListener
+import kotlinx.coroutines.flow.first
 
 @Composable
 internal fun App(
@@ -96,6 +103,7 @@ internal fun App(
     }
 
     var deepLink by remember { mutableStateOf<DeepLink?>(null) }
+    var deeplinkHandled by remember { mutableStateOf(false) }
     val userManager = LocalUserManager.current!!
     DeepLinkListener {
         analytics.deeplinkOpened(it.data)
@@ -239,7 +247,9 @@ internal fun App(
                                         return@LaunchedEffect
                                     }
 
-                                    when (val action = router.dispatch(link)) {
+                                    val action = router.dispatch(link)
+                                    deeplinkHandled = action != DeeplinkAction.None
+                                    when (action) {
                                         is DeeplinkAction.Navigate -> {
                                             // If a verification code targets a screen already open,
                                             // deliver via side-channel and skip navigation.
@@ -323,6 +333,13 @@ internal fun App(
                                         else -> Unit
                                     }
                                 }
+
+                                BackgroundResetEffect(
+                                    navigator = codeNavigator,
+                                    deepLink = { deepLink },
+                                    deeplinkHandled = { deeplinkHandled },
+                                    onReset = { deeplinkHandled = false },
+                                )
                             }
                         }
                     }
@@ -330,4 +347,52 @@ internal fun App(
             }
         }
     }
+
+@Composable
+private fun BackgroundResetEffect(
+    navigator: CodeNavigator,
+    deepLink: () -> DeepLink?,
+    deeplinkHandled: () -> Boolean,
+    onReset: () -> Unit,
+) {
+    val featureFlags = LocalFeatureFlags.current
+    val option by featureFlags.getOption(FeatureFlag.BackgroundReset)
+        .collectAsStateWithLifecycle()
+
+    var pendingReset by remember { mutableStateOf(false) }
+    var backgroundedAt by remember { mutableLongStateOf(0L) }
+
+    OnLifecycleEvent { _, event ->
+        when (event) {
+            Lifecycle.Event.ON_STOP -> {
+                backgroundedAt = System.currentTimeMillis()
+            }
+            Lifecycle.Event.ON_RESUME -> {
+                val timeout = runCatching { BackgroundResetTimeout.valueOf(option) }
+                    .getOrNull()
+                    ?.duration
+
+                if (timeout != null && backgroundedAt > 0L) {
+                    val elapsed = System.currentTimeMillis() - backgroundedAt
+                    if (elapsed >= timeout.inWholeMilliseconds) {
+                        pendingReset = true
+                    }
+                }
+                backgroundedAt = 0L
+            }
+            else -> Unit
+        }
+    }
+
+    LaunchedEffect(pendingReset) {
+        if (!pendingReset) return@LaunchedEffect
+        // Wait for any pending deeplink to be consumed before deciding
+        snapshotFlow { deepLink() }.first { it == null }
+        if (!deeplinkHandled()) {
+            navigator.popUntil { it !is Sheet }
+        }
+        onReset()
+        pendingReset = false
+    }
+}
 

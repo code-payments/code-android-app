@@ -63,7 +63,7 @@ internal data object SwitchAccount : StaffMenuItem<MenuScreenViewModel.Event>() 
     override val name: String
         @Composable get() = stringResource(R.string.title_switchAccounts)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnSwitchAccountsClicked
-    override val featureFlag: FeatureFlag = FeatureFlag.CredentialManager
+    override val featureFlag: FeatureFlag<*> = FeatureFlag.CredentialManager
 }
 
 internal data object Labs : StaffMenuItem<MenuScreenViewModel.Event>() {

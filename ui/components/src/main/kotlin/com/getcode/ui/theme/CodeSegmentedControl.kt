@@ -5,6 +5,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRowScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White10
 import com.getcode.ui.components.SegmentedControl
@@ -25,6 +26,8 @@ fun <T> CodeSegmentedControl(
         modifier = modifier,
         colors = SegmentedButtonDefaults.colors(
             activeBorderColor = White10,
+            activeContentColor = CodeTheme.colors.textMain,
+            inactiveContentColor = CodeTheme.colors.textSecondary,
             activeContainerColor = White10,
             inactiveContainerColor = White05,
             inactiveBorderColor = White05,

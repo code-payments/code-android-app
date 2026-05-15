@@ -18,19 +18,19 @@ sealed interface MenuItem<T> {
 
     val isStaffOnly: Boolean
 
-    val featureFlag: FeatureFlag?
+    val featureFlag: FeatureFlag<*>?
 }
 
 abstract class FullMenuItem<T>(
     override val id: Any = UUID.randomUUID().toString(),
     override val isStaffOnly: Boolean = false,
-    override val featureFlag: FeatureFlag? = null
+    override val featureFlag: FeatureFlag<*>? = null
 ) : MenuItem<T>
 
 
 abstract class StaffMenuItem<T>(
     override val id: Any = UUID.randomUUID().toString(),
     override val isStaffOnly: Boolean = true,
-    override val featureFlag: FeatureFlag? = null
+    override val featureFlag: FeatureFlag<*>? = null
 ) : MenuItem<T>
 
