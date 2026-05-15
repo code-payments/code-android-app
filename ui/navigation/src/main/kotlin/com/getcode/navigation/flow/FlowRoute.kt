@@ -39,3 +39,17 @@ inline fun <reified S : FlowStep> FlowRoute.rememberInitialStack(): List<S> {
         initialStack as List<S>
     }
 }
+
+/**
+ * Remembers the [FlowRoute.initialStack] cast to the concrete [FlowStep] type,
+ * applying [transform] to modify the stack before it is remembered.
+ */
+@Composable
+inline fun <reified S : FlowStep> FlowRoute.rememberInitialStack(
+    noinline transform: (List<S>) -> List<S>,
+): List<S> {
+    return remember(this) {
+        @Suppress("UNCHECKED_CAST")
+        transform(initialStack as List<S>)
+    }
+}

@@ -12,6 +12,11 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -19,6 +24,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
@@ -29,6 +35,7 @@ internal class DepositViewModel @Inject constructor(
     clipboardManager: ClipboardManager,
     resources: ResourceHelper,
     dispatchers: DispatcherProvider,
+    featureFlags: FeatureFlagController,
 ) : BaseViewModel2<DepositViewModel.State, DepositViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -55,17 +62,37 @@ internal class DepositViewModel @Inject constructor(
             .mapNotNull { tokenController.getTokenMetadata(it.mint) }
             .onResult(
                 onSuccess = { result ->
-                    val address = userManager.accountCluster?.depositAddressFor(result.token)?.base58()
-                    if (address == null) {
-                        BottomBarManager.showError(
-                            title = resources.getString(R.string.error_title_tokenNotFound),
-                            message = resources.getString(R.string.error_description_tokenNotFound),
-                        ) {
-                            dispatchEvent(Event.Exit)
+                    viewModelScope.launch {
+                        val directDeposit = featureFlags.get(FeatureFlag.DepositUsdc)
+                        val address = if (result.token.address == Mint.usdf && directDeposit) {
+                            val usdfSwapAccounts = userManager.accountCluster?.let {
+                                Token.usdf.timelockSwapAccounts(it.authorityPublicKey)
+                            }
+                            usdfSwapAccounts?.ata?.publicKey?.base58()
+                        } else {
+                            userManager.accountCluster?.depositAddressFor(result.token)?.base58()
                         }
-                        return@onResult
+
+                        if (address == null) {
+                            BottomBarManager.showError(
+                                title = resources.getString(R.string.error_title_tokenNotFound),
+                                message = resources.getString(R.string.error_description_tokenNotFound),
+                            ) {
+                                dispatchEvent(Event.Exit)
+                            }
+                            return@launch
+                        }
+                        val tokenName = when {
+                            directDeposit && result.token.address == Mint.usdf -> {
+                                resources.getString(R.string.displayName_usdc)
+                            }
+                            result.token.address == Mint.usdf -> {
+                                resources.getString(R.string.displayName_usdf)
+                            }
+                            else -> result.token.name
+                        }
+                        dispatchEvent(Event.OnTokenChanged(address, tokenName))
                     }
-                    dispatchEvent(Event.OnTokenChanged(address, result.token.name))
                 },
                 onError = {
                     BottomBarManager.showError(

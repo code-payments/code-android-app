@@ -132,19 +132,11 @@ class SelectTokenViewModel @Inject constructor(
 
                             TokenWithLocalizedBalance(
                                 token = it.token,
-                                displayName = if (it.token.address == Mint.usdf) {
-                                    resources.getString(R.string.title_cashReserves)
-                                } else {
-                                    it.token.name
-                                },
                                 balance = balance,
                                 appreciation = appreciation
                             )
                         }
-                        .sortedWith(compareByDescending { item ->
-                            if (item.isReserves) Fiat.MIN_VALUE
-                            else item.balance.nativeAmount
-                        })
+                        .sortedWith(compareByDescending { item -> item.balance.nativeAmount })
                         .filter {
                             val hasBalance = it.balance.nativeAmount.hasDisplayableValue
                             when (purpose) {

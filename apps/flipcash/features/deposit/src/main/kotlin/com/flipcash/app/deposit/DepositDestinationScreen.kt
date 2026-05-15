@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.deposit.internal.DepositScreen
+import com.flipcash.app.deposit.internal.DepositDestinationScreen
 import com.flipcash.app.deposit.internal.DepositViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -18,7 +18,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.AppBarWithTitle
 
 @Composable
-fun DepositScreen(mint: Mint) {
+fun DepositDestinationScreen(mint: Mint) {
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<DepositViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
@@ -33,7 +33,7 @@ fun DepositScreen(mint: Mint) {
             backButton = true,
             onBackIconClicked = { navigator.pop() },
         )
-        DepositScreen(viewModel)
+        DepositDestinationScreen(viewModel)
     }
 
     LaunchedEffect(viewModel, mint) {

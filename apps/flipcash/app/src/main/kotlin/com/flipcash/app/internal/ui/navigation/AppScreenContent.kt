@@ -28,7 +28,8 @@ import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.currency.RegionSelectionScreen
-import com.flipcash.app.deposit.DepositScreen
+import com.flipcash.app.deposit.DepositDestinationScreen
+import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.discovery.TokenDiscoverySheet
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
@@ -126,13 +127,15 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Menu.AppSettings> { AppSettingsScreen() }
     annotatedEntry<AppRoute.Menu.Lab> { LabsScreen() }
     annotatedEntry<AppRoute.Menu.MyAccount> { MyAccountScreen() }
-    annotatedEntry<AppRoute.Menu.Deposit> { key -> DepositScreen(key.mint) }
     annotatedEntry<AppRoute.Menu.BackupKey> { BackupKeyScreen() }
     annotatedEntry<AppRoute.Menu.AdvancedFeatures> { AdvancedFeaturesScreen() }
     annotatedEntry<AppRoute.Menu.DeviceLogs> { DeviceLogsScreen() }
 
     annotatedEntry<AppRoute.UserFlags> { UserFlagsScreen() }
     // Transfers
+    annotatedEntry<AppRoute.Transfers.Deposit> { key ->
+        DepositFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
+    }
     annotatedEntry<AppRoute.Transfers.Withdrawal> { key ->
         WithdrawalFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
