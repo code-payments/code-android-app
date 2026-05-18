@@ -8,6 +8,7 @@ import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.executors.IntentExecutor
+import com.getcode.opencode.internal.network.executors.StatelessSwapExecutor
 import com.getcode.opencode.internal.network.executors.SwapExecutor
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.internal.network.extensions.toModel
@@ -18,21 +19,24 @@ import com.getcode.opencode.model.core.errors.GetIntentMetadataError
 import com.getcode.opencode.model.core.errors.GetLimitsError
 import com.getcode.opencode.model.core.errors.VoidGiftCardError
 import com.getcode.opencode.model.core.errors.WithdrawalAvailabilityError
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.transactions.StatelessSwapResult
+import com.getcode.opencode.model.transactions.StatelessSwapServerParameters
 import com.getcode.opencode.model.transactions.SwapDirection
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapRequest
 import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
+import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.base58
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -208,7 +212,7 @@ internal class TransactionService @Inject constructor(
         )
 
         val fundedWith = fund ?: { swapFunding.fund(scope, owner, it).map { Unit } }
-        return swap(scope, request, owner, fundedWith)
+        return statefulSwap(scope, request, owner, fundedWith)
     }
 
     suspend fun sell(
@@ -236,7 +240,7 @@ internal class TransactionService @Inject constructor(
             verifiedState = verifiedState,
         )
 
-        return swap(scope, request, tokenCluster)
+        return statefulSwap(scope, request, tokenCluster)
     }
 
     suspend fun withdrawUsdf(
@@ -265,10 +269,31 @@ internal class TransactionService @Inject constructor(
             verifiedState = verifiedState,
         )
 
-        return swap(scope, request, owner)
+        return statefulSwap(scope, request, owner)
     }
 
-    private suspend fun swap(
+    private suspend fun statelessSwap(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        fromMint: Mint,
+        toMint: Mint,
+        amount: Long,
+        waitForFinalization: Boolean = false,
+        buildAndSign: (StatelessSwapServerParameters) -> Pair<SolanaTransaction, List<Signature>>,
+    ): StatelessSwapResult {
+        val executor = StatelessSwapExecutor(api)
+        return executor.execute(
+            scope = scope,
+            owner = owner.authority.keyPair,
+            fromMint = fromMint,
+            toMint = toMint,
+            amount = amount,
+            waitForFinalization = waitForFinalization,
+            buildAndSign = buildAndSign,
+        )
+    }
+
+    private suspend fun statefulSwap(
         scope: CoroutineScope,
         request: SwapRequest,
         owner: AccountCluster,

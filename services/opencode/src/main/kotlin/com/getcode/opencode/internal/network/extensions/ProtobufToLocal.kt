@@ -25,6 +25,8 @@ import com.getcode.opencode.model.transactions.AddressLookupTable
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapResponseServerParameters
+import com.getcode.opencode.model.transactions.StatelessSwapServerParameters
+import com.getcode.opencode.model.transactions.StatelessSwapSuccessCode
 import com.getcode.opencode.model.transactions.SwapSuccessCode
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.VerifiedSwapMetadata
@@ -231,6 +233,30 @@ internal fun TransactionService.StatefulSwapResponse.Success.toCode(): SwapSucce
     return when (this.code) {
         TransactionService.StatefulSwapResponse.Success.Code.OK -> SwapSuccessCode.Ok
         TransactionService.StatefulSwapResponse.Success.Code.UNRECOGNIZED -> null
+    }
+}
+
+internal fun TransactionService.StatelessSwapResponse.ServerParameters.CoinbaseStableSwapperServerParameter.toProps(): StatelessSwapServerParameters {
+    return StatelessSwapServerParameters(
+        payer = payer.toPublicKey(),
+        blockhash = blockhash.toHash(),
+        alts = altsList.map { table ->
+            val address = table.address.toPublicKey()
+            val entries = table.entriesList.map { it.toPublicKey() }
+            AddressLookupTable(address, entries)
+        },
+        computeUnitLimit = computeUnitLimit,
+        computeUnitPrice = computeUnitPrice,
+        memoValue = memoValue,
+        poolFeeRecipient = poolFeeRecipient.toPublicKey(),
+    )
+}
+
+internal fun TransactionService.StatelessSwapResponse.Success.toCode(): StatelessSwapSuccessCode? {
+    return when (this.code) {
+        TransactionService.StatelessSwapResponse.Success.Code.SUBMITTED -> StatelessSwapSuccessCode.Submitted
+        TransactionService.StatelessSwapResponse.Success.Code.FINALIZED -> StatelessSwapSuccessCode.Finalized
+        TransactionService.StatelessSwapResponse.Success.Code.UNRECOGNIZED -> null
     }
 }
 
