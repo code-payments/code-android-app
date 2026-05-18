@@ -15,7 +15,7 @@ import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram
 import com.getcode.opencode.model.financial.HolderMetrics
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.VmMetadata
-import com.getcode.opencode.model.transactions.SwapResponseServerParameters
+import com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlin.test.Test
@@ -73,7 +73,7 @@ class CoinbaseStablecoinSwapperInstructionsTest {
     private val fromMintMetadata = mintMetadata(fromMintAddress, fromVmAuthority, fromVm)
     private val toMintMetadata = mintMetadata(toMintAddress, toVmAuthority, toVm)
 
-    private val serverParameters = SwapResponseServerParameters.Stablecoin(
+    private val serverParameters = StatefulSwapResponseServerParameters.Stablecoin(
         payer = payer,
         nonce = nonce,
         blockhash = blockhash,

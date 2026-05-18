@@ -4,12 +4,12 @@ import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStreamForResult
 import com.getcode.opencode.internal.network.api.TransactionApi
-import com.getcode.opencode.internal.network.api.intents.IntentSwap
+import com.getcode.opencode.internal.network.api.intents.IntentStatefulSwap
 import com.getcode.opencode.internal.network.extensions.toCode
 import com.getcode.opencode.internal.network.extensions.toProps
 import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.opencode.model.core.errors.SwapError
-import com.getcode.opencode.model.transactions.SwapRequest
+import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.SwapResult
 import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.VerifiedSwapMetadata
@@ -27,7 +27,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.resume
 
-typealias OcpSwapStreamReference = BidirectionalStreamReference<SwapRequest, TransactionService.StatefulSwapResponse>
+typealias OcpSwapStreamReference = BidirectionalStreamReference<StatefulSwapRequest, TransactionService.StatefulSwapResponse>
 
 
 /**
@@ -49,7 +49,7 @@ internal class SwapExecutor(
 
     suspend fun execute(
         scope: CoroutineScope,
-        request: SwapRequest,
+        request: StatefulSwapRequest,
     ): SwapResult = suspendCancellableCoroutine { cont ->
         trace(
             tag = "Swap",
@@ -81,7 +81,7 @@ internal class SwapExecutor(
             )
         }
 
-        val intent = IntentSwap(request = request, metadata = metadata)
+        val intent = IntentStatefulSwap(request = request, metadata = metadata)
 
         scope.launch {
             try {
@@ -120,7 +120,7 @@ internal class SwapExecutor(
 
     private suspend fun openSwapStream(
         streamRef: OcpSwapStreamReference,
-        intent: IntentSwap,
+        intent: IntentStatefulSwap,
     ): SwapResult = openBidirectionalStreamForResult(
         streamRef = streamRef,
         apiCall = api::swap,
@@ -172,7 +172,7 @@ internal class SwapExecutor(
 }
 
 private fun handleServerParameters(
-    intent: IntentSwap,
+    intent: IntentStatefulSwap,
     serverParameters: TransactionService.StatefulSwapResponse.ServerParameters?,
     requestChannel: (TransactionService.StatefulSwapRequest) -> Unit,
     onResult: (SwapResult) -> Unit,
@@ -217,7 +217,7 @@ private fun handleServerParameters(
 }
 
 private fun handleErrors(
-    intent: IntentSwap,
+    intent: IntentStatefulSwap,
     errorDetails: List<TransactionService.ErrorDetails>
 ): List<String> {
     val errors = mutableListOf<String>()

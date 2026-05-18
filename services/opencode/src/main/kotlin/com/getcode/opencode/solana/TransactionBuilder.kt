@@ -4,7 +4,7 @@ import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapDirection
-import com.getcode.opencode.model.transactions.SwapResponseServerParameters
+import com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.transactions.FundSwapPool
 import com.getcode.opencode.solana.swap.buildExistingCurrencyBuyInstructions
@@ -34,7 +34,7 @@ object TransactionBuilder {
      * @return A constructed [SolanaTransaction] (V0) ready to be signed and submitted to the network.
      */
     fun swap(
-        response: SwapResponseServerParameters.ExistingCurrency,
+        response: StatefulSwapResponseServerParameters.ExistingCurrency,
         authority: PublicKey,
         swapAuthority: PublicKey,
         direction: SwapDirection,
@@ -97,7 +97,7 @@ object TransactionBuilder {
      * @return A constructed [SolanaTransaction] (V0) ready to be signed and submitted to the network.
      */
     fun stablecoinSwap(
-        response: SwapResponseServerParameters.Stablecoin,
+        response: StatefulSwapResponseServerParameters.Stablecoin,
         authority: PublicKey,
         swapAuthority: PublicKey,
         destinationOwner: PublicKey,
@@ -144,7 +144,7 @@ object TransactionBuilder {
      * @return A constructed [SolanaTransaction] (V0) ready to be signed and submitted to the network.
      */
     fun buyNewCurrency(
-        response: SwapResponseServerParameters.NewCurrency,
+        response: StatefulSwapResponseServerParameters.NewCurrency,
         authority: PublicKey,
         coreMintMetadata: MintMetadata,
         amount: Long,

@@ -8,6 +8,7 @@ import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.executors.IntentExecutor
+import com.getcode.opencode.internal.network.api.intents.IntentStatelessSwap
 import com.getcode.opencode.internal.network.executors.StatelessSwapExecutor
 import com.getcode.opencode.internal.network.executors.SwapExecutor
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
@@ -23,20 +24,18 @@ import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.transactions.StatelessSwapRequest
 import com.getcode.opencode.model.transactions.StatelessSwapResult
-import com.getcode.opencode.model.transactions.StatelessSwapServerParameters
 import com.getcode.opencode.model.transactions.SwapDirection
 import com.getcode.opencode.model.transactions.SwapFundingSource
-import com.getcode.opencode.model.transactions.SwapRequest
+import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
-import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.base58
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -182,7 +181,7 @@ internal class TransactionService @Inject constructor(
         owner: AccountCluster,
         verifiedState: VerifiedState,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
-        fund: (suspend (SwapRequest) -> Result<Unit>)?,
+        fund: (suspend (StatefulSwapRequest) -> Result<Unit>)?,
     ): Result<SwapId> {
         // For a freshly-launched stub Token (launchpadMetadata == null && address != USDF), the
         // Solana program requires authority == buyer == swapAuthority for the atomic 11-instruction
@@ -196,7 +195,7 @@ internal class TransactionService @Inject constructor(
             if (isFreshlyLaunchedStub) owner.authority.keyPair else Ed25519.createKeyPair()
 
         val netAmount = amount - (feeAmount ?: LocalFiat.Zero)
-        val request = SwapRequest(
+        val request = StatefulSwapRequest(
             owner = owner,
             swapAuthority = swapAuthority,
             kind = SwapStartKind.Reserve(
@@ -225,7 +224,7 @@ internal class TransactionService @Inject constructor(
     ): Result<SwapId> {
         val tokenCluster = owner.withTimelockForToken(of)
 
-        val request = SwapRequest(
+        val request = StatefulSwapRequest(
             owner = tokenCluster,
             swapId = SwapId.generate(),
             swapAuthority = Ed25519.createKeyPair(),
@@ -253,7 +252,7 @@ internal class TransactionService @Inject constructor(
     ): Result<SwapId> {
 
         val netAmount = amount - (fee ?: LocalFiat.Zero)
-        val request = SwapRequest(
+        val request = StatefulSwapRequest(
             owner = owner,
             swapId = SwapId.generate(),
             swapAuthority = Ed25519.createKeyPair(),
@@ -274,30 +273,17 @@ internal class TransactionService @Inject constructor(
 
     private suspend fun statelessSwap(
         scope: CoroutineScope,
-        owner: AccountCluster,
-        fromMint: Mint,
-        toMint: Mint,
-        amount: Long,
-        waitForFinalization: Boolean = false,
-        buildAndSign: (StatelessSwapServerParameters) -> Pair<SolanaTransaction, List<Signature>>,
+        request: StatelessSwapRequest,
     ): StatelessSwapResult {
         val executor = StatelessSwapExecutor(api)
-        return executor.execute(
-            scope = scope,
-            owner = owner.authority.keyPair,
-            fromMint = fromMint,
-            toMint = toMint,
-            amount = amount,
-            waitForFinalization = waitForFinalization,
-            buildAndSign = buildAndSign,
-        )
+        return executor.execute(scope, request)
     }
 
     private suspend fun statefulSwap(
         scope: CoroutineScope,
-        request: SwapRequest,
+        request: StatefulSwapRequest,
         owner: AccountCluster,
-        fund: suspend (SwapRequest) -> Result<Unit> = { swapFunding.fund(scope, owner, it).map { Unit } },
+        fund: suspend (StatefulSwapRequest) -> Result<Unit> = { swapFunding.fund(scope, owner, it).map { Unit } },
     ): Result<SwapId> {
         val executor = SwapExecutor(api)
         return executor.execute(scope, request)

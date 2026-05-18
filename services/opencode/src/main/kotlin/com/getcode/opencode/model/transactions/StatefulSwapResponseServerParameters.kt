@@ -2,7 +2,7 @@ package com.getcode.opencode.model.transactions
 
 import com.getcode.solana.keys.PublicKey
 
-sealed interface SwapResponseServerParameters {
+sealed interface StatefulSwapResponseServerParameters {
     /**
      * Subisdizer account that will be paying for the swap
      */
@@ -120,7 +120,7 @@ sealed interface SwapResponseServerParameters {
          * The memory index where the destination virtual Timelock account lives
          */
         val memoryIndex: Int,
-    ): SwapResponseServerParameters
+    ): StatefulSwapResponseServerParameters
 
     /**
      * Server parameters when executing stateful buy flows against the
@@ -204,7 +204,7 @@ sealed interface SwapResponseServerParameters {
          * Destination account where fee should be paid
          */
         val feeDestination: PublicKey,
-    ): SwapResponseServerParameters
+    ): StatefulSwapResponseServerParameters
 
     /**
      * Server parameters when executing stateful swap flows against the
@@ -263,5 +263,5 @@ sealed interface SwapResponseServerParameters {
          * CoinbaseStableSwapper::Swap instruction.
          */
         val poolFeeRecipient: PublicKey,
-    ): SwapResponseServerParameters
+    ): StatefulSwapResponseServerParameters
 }

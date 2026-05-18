@@ -105,7 +105,7 @@ val MintMetadata.Companion.usdc: Token
  *
  * All on-chain values that actually drive transaction bytes (sellFeeBps,
  * vmLockDurationInDays) still come from
- * [com.getcode.opencode.model.transactions.SwapResponseServerParameters.NewCurrency] inside
+ * [com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters.NewCurrency] inside
  * `buildNewCurrencyBuyInstructions` — this stub never drives those.
  */
 fun MintMetadata.Companion.fromLaunch(

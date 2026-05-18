@@ -6,7 +6,7 @@ import com.getcode.opencode.internal.network.executors.IntentExecutor
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.plus
-import com.getcode.opencode.model.transactions.SwapRequest
+import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.CoroutineScope
@@ -18,7 +18,7 @@ internal class SwapFunding @Inject constructor(
     suspend fun fund(
         scope: CoroutineScope,
         owner: AccountCluster,
-        request: SwapRequest,
+        request: StatefulSwapRequest,
     ): Result<IntentType> {
         val fundingIntent = IntentFundSwap.create(
             intentId = PublicKey(request.fundingIntentId),

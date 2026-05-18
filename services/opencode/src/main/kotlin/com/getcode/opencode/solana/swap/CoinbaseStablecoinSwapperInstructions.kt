@@ -11,7 +11,7 @@ import com.getcode.opencode.internal.solana.programs.SystemProgram_AdvanceNonce
 import com.getcode.opencode.internal.solana.programs.TokenProgram_CloseAccount
 import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram_TransferForSwapWithFee
 import com.getcode.opencode.model.financial.MintMetadata
-import com.getcode.opencode.model.transactions.SwapResponseServerParameters
+import com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters
 import com.getcode.opencode.solana.Instruction
 import com.getcode.solana.keys.PublicKey
 
@@ -44,7 +44,7 @@ import com.getcode.solana.keys.PublicKey
  * @return A list of [Instruction]s to execute the stablecoin swap.
  */
 internal fun buildStablecoinSwapperInstructions(
-    serverParameters: SwapResponseServerParameters.Stablecoin,
+    serverParameters: StatefulSwapResponseServerParameters.Stablecoin,
     nonce: PublicKey,
     authority: PublicKey,
     swapAuthority: PublicKey,

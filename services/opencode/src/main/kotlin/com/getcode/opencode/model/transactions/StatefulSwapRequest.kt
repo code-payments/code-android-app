@@ -8,7 +8,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.plus
 import com.getcode.solana.keys.PublicKey
 
-data class SwapRequest(
+data class StatefulSwapRequest(
     val owner: AccountCluster,
     val swapAuthority: KeyPair,
     val kind: SwapStartKind,

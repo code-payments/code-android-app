@@ -24,7 +24,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapMetadata
-import com.getcode.opencode.model.transactions.SwapRequest
+import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
@@ -269,7 +269,7 @@ class TransactionController @Inject constructor(
         swapId: SwapId?,
         of: Token,
         source: SwapFundingSource,
-        fund: (suspend (SwapRequest) -> Result<Unit>)?,
+        fund: (suspend (StatefulSwapRequest) -> Result<Unit>)?,
     ): Result<SwapId> {
         trace("Starting ${amount.localFiat.nativeAmount.formatted()} buy of ${of.symbol}")
         val tokenizedOwner = owner.withTimelockForToken(of)

@@ -10,47 +10,47 @@ import com.getcode.opencode.internal.network.extensions.stablecoinParams
 import com.getcode.opencode.internal.network.extensions.verifiedMetadata
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
-import com.getcode.opencode.model.transactions.SwapRequest
-import com.getcode.opencode.model.transactions.SwapResponseServerParameters
+import com.getcode.opencode.model.transactions.StatefulSwapRequest
+import com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters
 import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.VerifiedSwapMetadata
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.TransactionBuilder
 import com.getcode.solana.keys.Signature
 
-internal class IntentSwap(
-    val request: SwapRequest,
+internal class IntentStatefulSwap(
+    val request: StatefulSwapRequest,
     val metadata: VerifiedSwapMetadata,
 ){
-    var parameters: SwapResponseServerParameters? = null
+    var parameters: StatefulSwapResponseServerParameters? = null
 
-    fun sign(parameters: SwapResponseServerParameters): List<Signature> {
+    fun sign(parameters: StatefulSwapResponseServerParameters): List<Signature> {
         val transaction = transaction(parameters)
         return when (parameters) {
-            is SwapResponseServerParameters.ExistingCurrency -> {
+            is StatefulSwapResponseServerParameters.ExistingCurrency -> {
                 transaction.signatures(request.owner.authority.keyPair, request.swapAuthority)
             }
-            is SwapResponseServerParameters.NewCurrency -> {
+            is StatefulSwapResponseServerParameters.NewCurrency -> {
                 // For new currency, owner == swapAuthority, so only 1 unique signature needed
                 transaction.signatures(request.owner.authority.keyPair)
             }
 
-            is SwapResponseServerParameters.Stablecoin -> {
+            is StatefulSwapResponseServerParameters.Stablecoin -> {
                 transaction.signatures(request.owner.authority.keyPair, request.swapAuthority)
             }
         }
     }
 
-    fun transaction(parameters: SwapResponseServerParameters): SolanaTransaction {
+    fun transaction(parameters: StatefulSwapResponseServerParameters): SolanaTransaction {
         return when (parameters) {
-            is SwapResponseServerParameters.ExistingCurrency -> TransactionBuilder.swap(
+            is StatefulSwapResponseServerParameters.ExistingCurrency -> TransactionBuilder.swap(
                 response = parameters,
                 authority = request.owner.authorityPublicKey,
                 swapAuthority = request.swapAuthority.toPublicKey(),
                 direction = request.direction,
                 amount = request.swapAmount.underlyingTokenAmount.quarks,
             )
-            is SwapResponseServerParameters.NewCurrency -> TransactionBuilder.buyNewCurrency(
+            is StatefulSwapResponseServerParameters.NewCurrency -> TransactionBuilder.buyNewCurrency(
                 response = parameters,
                 authority = request.owner.authorityPublicKey,
                 coreMintMetadata = Token.usdf,
@@ -58,7 +58,7 @@ internal class IntentSwap(
                 feeAmount = request.feeAmount?.underlyingTokenAmount?.quarks,
             )
 
-            is SwapResponseServerParameters.Stablecoin -> TransactionBuilder.stablecoinSwap(
+            is StatefulSwapResponseServerParameters.Stablecoin -> TransactionBuilder.stablecoinSwap(
                 response = parameters,
                 authority = request.owner.authorityPublicKey,
                 swapAuthority = request.swapAuthority.toPublicKey(),
