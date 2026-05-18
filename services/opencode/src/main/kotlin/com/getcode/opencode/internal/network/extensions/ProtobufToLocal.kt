@@ -6,8 +6,6 @@ import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.codeinc.opencode.gen.transaction.v1.clientExchangeDataOrNull
 import com.codeinc.opencode.gen.transaction.v1.destinationOrNull
-import com.codeinc.opencode.gen.transaction.v1.feeDestinationOrNull
-import com.codeinc.opencode.gen.transaction.v1.poolFeeRecipientOrNull
 import com.getcode.opencode.internal.extensions.toHash
 import com.getcode.opencode.internal.extensions.toMint
 import com.getcode.opencode.internal.extensions.toPublicKey
@@ -24,7 +22,7 @@ import com.getcode.opencode.model.messaging.MessageKind
 import com.getcode.opencode.model.transactions.AddressLookupTable
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.SwapFundingSource
-import com.getcode.opencode.model.transactions.SwapResponseServerParameters
+import com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters
 import com.getcode.opencode.model.transactions.StatelessSwapServerParameters
 import com.getcode.opencode.model.transactions.StatelessSwapSuccessCode
 import com.getcode.opencode.model.transactions.SwapSuccessCode
@@ -133,8 +131,8 @@ internal fun TransactionService.Metadata.toMetadata(): TransactionMetadata {
     }
 }
 
-internal fun TransactionService.StatefulSwapResponse.ServerParameters.ReserveExistingCurrencyServerParameters.toProps(): SwapResponseServerParameters {
-    return SwapResponseServerParameters.ExistingCurrency(
+internal fun TransactionService.StatefulSwapResponse.ServerParameters.ReserveExistingCurrencyServerParameters.toProps(): StatefulSwapResponseServerParameters {
+    return StatefulSwapResponseServerParameters.ExistingCurrency(
         payer = payer.toPublicKey(),
         nonce = nonce.toPublicKey(),
         blockhash = blockhash.toPublicKey(),
@@ -151,8 +149,8 @@ internal fun TransactionService.StatefulSwapResponse.ServerParameters.ReserveExi
     )
 }
 
-internal fun TransactionService.StatefulSwapResponse.ServerParameters.ReserveNewCurrencyServerParameter.toProps(): SwapResponseServerParameters {
-    return SwapResponseServerParameters.NewCurrency(
+internal fun TransactionService.StatefulSwapResponse.ServerParameters.ReserveNewCurrencyServerParameter.toProps(): StatefulSwapResponseServerParameters {
+    return StatefulSwapResponseServerParameters.NewCurrency(
         payer = payer.toPublicKey(),
         nonce = nonce.toPublicKey(),
         blockhash = blockhash.toPublicKey(),
@@ -174,8 +172,8 @@ internal fun TransactionService.StatefulSwapResponse.ServerParameters.ReserveNew
     )
 }
 
-internal fun TransactionService.StatefulSwapResponse.ServerParameters.CoinbaseStableSwapperServerParameter.toProps(): SwapResponseServerParameters {
-    return SwapResponseServerParameters.Stablecoin(
+internal fun TransactionService.StatefulSwapResponse.ServerParameters.CoinbaseStableSwapperServerParameter.toProps(): StatefulSwapResponseServerParameters {
+    return StatefulSwapResponseServerParameters.Stablecoin(
         payer = payer.toPublicKey(),
         nonce = nonce.toPublicKey(),
         blockhash = blockhash.toPublicKey(),

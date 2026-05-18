@@ -18,10 +18,9 @@ import com.getcode.opencode.internal.solana.programs.CurrencyCreatorProgram_Init
 import com.getcode.opencode.internal.solana.programs.SystemProgram_AdvanceNonce
 import com.getcode.opencode.internal.solana.programs.TokenProgram_CloseAccount
 import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram_InitVm
-import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram_TransferForSwap
 import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram_TransferForSwapWithFee
 import com.getcode.opencode.model.financial.MintMetadata
-import com.getcode.opencode.model.transactions.SwapResponseServerParameters
+import com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters
 import com.getcode.opencode.solana.Instruction
 import com.getcode.solana.keys.PublicKey
 
@@ -48,7 +47,7 @@ import com.getcode.solana.keys.PublicKey
  * @return A list of [Instruction]s to execute the new currency creation and initial buy.
  */
 internal fun buildNewCurrencyBuyInstructions(
-    serverParameters: SwapResponseServerParameters.NewCurrency,
+    serverParameters: StatefulSwapResponseServerParameters.NewCurrency,
     nonce: PublicKey,
     authority: PublicKey,
     coreMintMetadata: MintMetadata,

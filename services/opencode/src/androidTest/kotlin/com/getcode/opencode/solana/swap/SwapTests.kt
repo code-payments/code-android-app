@@ -23,7 +23,7 @@ import com.getcode.opencode.model.financial.LaunchpadMetadata
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.opencode.model.financial.usdf
-import com.getcode.opencode.model.transactions.SwapResponseServerParameters
+import com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters
 import com.getcode.opencode.tests.generateRandomPublicKeyForTest
 import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.Mint
@@ -89,7 +89,7 @@ class SwapInstructionsTest {
     )
 
     // Mock Server Response (Stateless for simplicity)
-    private val mockServerParams = SwapResponseServerParameters.ExistingCurrency(
+    private val mockServerParams = StatefulSwapResponseServerParameters.ExistingCurrency(
         payer = mockPayer,
         blockhash = mockRecentBlockhash,
         nonce = mockNonce,
@@ -337,7 +337,7 @@ class SwapInstructionsTest {
     private val mockNewCurrencyAuthority = generateRandomPublicKeyForTest()
     private val mockSeed = generateRandomPublicKeyForTest()
 
-    private val mockNewCurrencyServerParams = SwapResponseServerParameters.NewCurrency(
+    private val mockNewCurrencyServerParams = StatefulSwapResponseServerParameters.NewCurrency(
         payer = mockPayer,
         blockhash = mockRecentBlockhash,
         nonce = mockNonce,

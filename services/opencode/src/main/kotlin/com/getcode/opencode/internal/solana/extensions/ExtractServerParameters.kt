@@ -1,7 +1,7 @@
 package com.getcode.opencode.internal.solana.extensions
 
 import com.getcode.opencode.model.transactions.AddressLookupTable
-import com.getcode.opencode.model.transactions.SwapResponseServerParameters
+import com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters
 import com.getcode.solana.keys.PublicKey
 
 sealed interface ExtractedServerParams {
@@ -37,7 +37,7 @@ sealed interface ExtractedServerParams {
     ): ExtractedServerParams
 }
 
-internal fun extractServerParameters(serverParameters: SwapResponseServerParameters.ExistingCurrency): ExtractedServerParams.ExistingCurrency {
+internal fun extractServerParameters(serverParameters: StatefulSwapResponseServerParameters.ExistingCurrency): ExtractedServerParams.ExistingCurrency {
     return ExtractedServerParams.ExistingCurrency(
         payer = serverParameters.payer,
         alts = serverParameters.alts,
@@ -49,7 +49,7 @@ internal fun extractServerParameters(serverParameters: SwapResponseServerParamet
     )
 }
 
-internal fun extractServerParameters(serverParameters: SwapResponseServerParameters.NewCurrency): ExtractedServerParams.NewCurrency {
+internal fun extractServerParameters(serverParameters: StatefulSwapResponseServerParameters.NewCurrency): ExtractedServerParams.NewCurrency {
     return ExtractedServerParams.NewCurrency(
         payer = serverParameters.payer,
         alts = serverParameters.alts,

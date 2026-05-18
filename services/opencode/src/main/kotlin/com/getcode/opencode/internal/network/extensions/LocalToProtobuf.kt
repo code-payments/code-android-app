@@ -20,7 +20,7 @@ import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.GiveRequest
 import com.getcode.opencode.model.transactions.GrabRequest
 import com.getcode.opencode.model.transactions.SwapFundingSource
-import com.getcode.opencode.model.transactions.SwapRequest
+import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.TransferRequest
@@ -275,7 +275,7 @@ internal fun LocalFiat.asExchangeData(): TransactionService.ExchangeData {
         .build()
 }
 
-internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.Builder {
+internal fun StatefulSwapRequest.currencyCreatorParams(): TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.Builder {
     return when (val details = kind) {
         is SwapStartKind.Reserve -> {
             TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.newBuilder()
@@ -312,7 +312,7 @@ internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwa
     }
 }
 
-internal fun SwapRequest.stablecoinParams(): TransactionService.StatefulSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.Builder {
+internal fun StatefulSwapRequest.stablecoinParams(): TransactionService.StatefulSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.Builder {
     return when (val details = kind) {
         is SwapStartKind.Reserve -> {
             throw IllegalStateException("Reserve should not be used for stable swapper params")
@@ -332,7 +332,7 @@ internal fun SwapRequest.stablecoinParams(): TransactionService.StatefulSwapRequ
     }
 }
 
-internal fun SwapRequest.verifiedMetadata(): TransactionService.VerifiedSwapMetadata.Builder {
+internal fun StatefulSwapRequest.verifiedMetadata(): TransactionService.VerifiedSwapMetadata.Builder {
     return TransactionService.VerifiedSwapMetadata.newBuilder()
         .apply {
             when (kind) {

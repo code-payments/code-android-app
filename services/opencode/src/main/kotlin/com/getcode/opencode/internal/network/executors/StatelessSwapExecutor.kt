@@ -1,26 +1,19 @@
 package com.getcode.opencode.internal.network.executors
 
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
-import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStreamForResult
 import com.getcode.opencode.internal.network.api.TransactionApi
-import com.getcode.opencode.internal.network.extensions.asSignature
-import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
-import com.getcode.opencode.internal.network.extensions.sign
+import com.getcode.opencode.internal.network.api.intents.IntentStatelessSwap
 import com.getcode.opencode.internal.network.extensions.toCode
 import com.getcode.opencode.internal.network.extensions.toProps
 import com.getcode.opencode.internal.network.extensions.toSignature
-import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.core.errors.SubmitIntentError
+import com.getcode.opencode.model.core.errors.SwapError
+import com.getcode.opencode.model.transactions.StatelessSwapRequest
 import com.getcode.opencode.model.transactions.StatelessSwapResult
-import com.getcode.opencode.model.transactions.StatelessSwapServerParameters
 import com.getcode.opencode.model.transactions.StatelessSwapSuccess
-import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.services.opencode.BuildConfig
-import com.getcode.solana.keys.Mint
-import com.getcode.solana.keys.Signature
-import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -40,29 +33,18 @@ internal class StatelessSwapExecutor(
 
     suspend fun execute(
         scope: CoroutineScope,
-        owner: KeyPair,
-        fromMint: Mint,
-        toMint: Mint,
-        amount: Long,
-        waitForFinalization: Boolean = false,
-        buildAndSign: (StatelessSwapServerParameters) -> Pair<SolanaTransaction, List<Signature>>,
+        request: StatelessSwapRequest,
     ): StatelessSwapResult = suspendCancellableCoroutine { cont ->
         trace(tag = TAG, message = "Opening stateless swap stream")
 
         val streamReference = StatelessSwapStreamReference(scope, "stateless-swap")
         streamReference.retain()
 
+        val intent = IntentStatelessSwap(request = request)
+
         scope.launch {
             try {
-                val result = openStream(
-                    streamRef = streamReference,
-                    owner = owner,
-                    fromMint = fromMint,
-                    toMint = toMint,
-                    amount = amount,
-                    waitForFinalization = waitForFinalization,
-                    buildAndSign = buildAndSign,
-                )
+                val result = openStream(streamReference, intent)
                 cont.resume(result)
             } catch (e: Exception) {
                 trace(tag = TAG, message = "Failed to open stateless swap stream.", error = e)
@@ -89,24 +71,17 @@ internal class StatelessSwapExecutor(
 
     private suspend fun openStream(
         streamRef: StatelessSwapStreamReference,
-        owner: KeyPair,
-        fromMint: Mint,
-        toMint: Mint,
-        amount: Long,
-        waitForFinalization: Boolean,
-        buildAndSign: (StatelessSwapServerParameters) -> Pair<SolanaTransaction, List<Signature>>,
+        intent: IntentStatelessSwap,
     ): StatelessSwapResult = openBidirectionalStreamForResult(
         streamRef = streamRef,
         apiCall = api::statelessSwap,
-        initialRequest = {
-            buildInitiateRequest(owner, fromMint, toMint, amount, waitForFinalization)
-        },
+        initialRequest = { intent.initiate() },
         responseHandler = { response, onResult, requestChannel ->
             when (response.responseCase) {
                 TransactionService.StatelessSwapResponse.ResponseCase.SERVER_PARAMETERS -> {
                     handleServerParameters(
+                        intent = intent,
                         serverParameters = response.serverParameters,
-                        buildAndSign = buildAndSign,
                         onResult = onResult,
                         requestChannel = requestChannel,
                     )
@@ -142,34 +117,9 @@ internal class StatelessSwapExecutor(
     )
 }
 
-private fun buildInitiateRequest(
-    owner: KeyPair,
-    fromMint: Mint,
-    toMint: Mint,
-    amount: Long,
-    waitForFinalization: Boolean,
-): TransactionService.StatelessSwapRequest {
-    val initiate = TransactionService.StatelessSwapRequest.Initiate.newBuilder()
-        .setOwner(owner.asSolanaAccountId())
-        .setStablecoin(
-            TransactionService.StatelessSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.newBuilder()
-                .setFromMint(fromMint.asSolanaAccountId())
-                .setToMint(toMint.asSolanaAccountId())
-                .setSwapAmount(amount)
-                .build()
-        )
-        .setWaitForFinalization(waitForFinalization)
-        .apply { setSignature(sign(owner)) }
-        .build()
-
-    return TransactionService.StatelessSwapRequest.newBuilder()
-        .setInitiate(initiate)
-        .build()
-}
-
 private fun handleServerParameters(
+    intent: IntentStatelessSwap,
     serverParameters: TransactionService.StatelessSwapResponse.ServerParameters?,
-    buildAndSign: (StatelessSwapServerParameters) -> Pair<SolanaTransaction, List<Signature>>,
     requestChannel: (TransactionService.StatelessSwapRequest) -> Unit,
     onResult: (StatelessSwapResult) -> Unit,
 ) {
@@ -188,17 +138,8 @@ private fun handleServerParameters(
 
         trace(tag = TAG, message = "Received server parameters. Building transaction and submitting signatures...")
 
-        val (_, signatures) = buildAndSign(params)
-
-        val submitSignatures = TransactionService.StatelessSwapRequest.SubmitSignatures.newBuilder()
-            .addAllTransactionSignatures(signatures.map { it.asSignature() })
-            .build()
-
-        requestChannel(
-            TransactionService.StatelessSwapRequest.newBuilder()
-                .setSubmitSignatures(submitSignatures)
-                .build()
-        )
+        intent.parameters = params
+        requestChannel(intent.requestToSubmitSignatures())
     } catch (e: Exception) {
         if (BuildConfig.DEBUG) e.printStackTrace()
         onResult(Result.failure(SwapError.Other(cause = e)))
