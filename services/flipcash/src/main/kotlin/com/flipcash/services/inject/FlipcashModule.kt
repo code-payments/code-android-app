@@ -69,7 +69,7 @@ internal object FlipcashModule {
                 get() {
                     val version =
                         context.packageManager.getPackageInfo(context.packageName, 0).versionName
-                    return "Flipcash/Core/Android/$version"
+                    return "Flipcash/Android/$version"
                 }
         }
     }
