@@ -46,7 +46,6 @@ import com.flipcash.app.internal.ui.navigation.appEntryProvider
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.onramp.CoinbaseOnRampHandler
-import com.flipcash.app.onramp.ExternalWalletOnRampHandler
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.theme.FlipcashTheme
@@ -148,7 +147,6 @@ internal fun App(
                                 LocalScrimController provides scrimController,
                                 LocalSharedTransitionScope provides this,
                             ) {
-                                ExternalWalletOnRampHandler(navigator = codeNavigator) {
                                     CoinbaseOnRampHandler {
                                         AppNavHost(
                                             navigator = codeNavigator,
@@ -234,7 +232,6 @@ internal fun App(
 
                                         ScrimOverlay(scrimController)
                                     }
-                                }
 
                                 val emailCodeChannel = LocalEmailCodeChannel.current
                                 LaunchedEffect(deepLink) {

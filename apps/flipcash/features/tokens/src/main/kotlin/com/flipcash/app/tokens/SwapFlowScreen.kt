@@ -62,6 +62,6 @@ private fun swapEntryProvider(): (NavKey) -> NavEntry<NavKey> = entryProvider {
         PhantomTransactionConfirmationScreen()
     }
     annotatedEntry<SwapStep.Processing> { step ->
-        SwapProcessingScreen(step.swapId, step.awaitExternalWallet)
+        SwapProcessingScreen(step.swapId)
     }
 }

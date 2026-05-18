@@ -14,7 +14,6 @@ import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
 import com.flipcash.app.onramp.LocalCoinbaseOnRampController
-import com.flipcash.app.onramp.LocalExternalWalletOnRampController
 import com.flipcash.app.tokens.internal.SwapEntryScreenContent
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
@@ -40,7 +39,6 @@ internal fun SwapEntryScreen(
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
-    val externalWalletOnRampController = LocalExternalWalletOnRampController.current
     val coinbaseOnRampController = LocalCoinbaseOnRampController.current
 
     Column(
@@ -84,15 +82,6 @@ internal fun SwapEntryScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<SwapViewModel.Event.CreateAndSendTransactionToWallet>()
-            .onEach { (token, amount) ->
-                externalWalletOnRampController.setTokenToPurchase(token)
-                externalWalletOnRampController.setAmount(amount)
-            }.launchIn(this)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.Exit>()
             .onEach {
                 flowNavigator.exitCanceled()
@@ -106,23 +95,6 @@ internal fun SwapEntryScreen(
             .onEach { swapId ->
                 flowNavigator.navigateTo(SwapStep.Processing(swapId))
             }.launchIn(this)
-    }
-
-    // Navigate to pending processing step from ExternalWalletOnRampHandler
-    LaunchedEffect(Unit) {
-        externalWalletOnRampController.pendingNavigation.collect { nav ->
-            if (nav is AppRoute.Token.TxProcessing) {
-                flowNavigator.navigateTo(
-                    SwapStep.Processing(nav.swapId, nav.awaitExternalWallet)
-                )
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        externalWalletOnRampController.flowExitRequests.collect {
-            flowNavigator.exitCanceled()
-        }
     }
 
     LaunchedEffect(viewModel) {
@@ -153,8 +125,9 @@ internal fun SwapEntryScreen(
     LaunchedEffect(Unit) {
         coinbaseOnRampController.pendingNavigation.collect { route ->
             if (route is AppRoute.Token.TxProcessing) {
+                viewModel.dispatchEvent(SwapViewModel.Event.OnSwapIdChanged(route.swapId))
                 flowNavigator.navigateTo(
-                    SwapStep.Processing(route.swapId, route.awaitExternalWallet)
+                    SwapStep.Processing(route.swapId)
                 )
             }
         }
