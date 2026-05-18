@@ -245,4 +245,8 @@ class TransactionApi @Inject constructor(
     fun swap(
         requestFlow: Flow<TransactionService.StatefulSwapRequest>
     ): Flow<TransactionService.StatefulSwapResponse> = api.statefulSwap(requestFlow)
+
+    fun statelessSwap(
+        requestFlow: Flow<TransactionService.StatelessSwapRequest>
+    ): Flow<TransactionService.StatelessSwapResponse> = api.statelessSwap(requestFlow)
 }

@@ -264,6 +264,7 @@ sealed class SwapError(
     class InvalidSwap(reasons: List<String>): SwapError(message = reasons.joinToString()), NotifiableError {
         val insufficientBalance = reasons.contains("insufficient balance")
     }
+    class TransactionFailed(reasons: List<String>): SwapError(message = reasons.joinToString()), NotifiableError
 
     data class Other(override val cause: Throwable? = null) : SwapError(message = cause?.message, cause = cause), NotifiableError
 
@@ -291,6 +292,30 @@ sealed class SwapError(
                 TransactionService.StatefulSwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
                 TransactionService.StatefulSwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
                 TransactionService.StatefulSwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
+            }
+        }
+
+        fun typed(proto: TransactionService.StatelessSwapResponse.Error): SwapError {
+            val reasonStrings = proto.errorDetailsList.mapNotNull {
+                when (it.typeCase) {
+                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+                        it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
+                    else -> null
+                }
+            }
+
+            return when (proto.code) {
+                TransactionService.StatelessSwapResponse.Error.Code.DENIED -> {
+                    val reasons = proto.errorDetailsList.mapNotNull {
+                        if (!it.hasDenied()) return@mapNotNull null
+                        it.denied.reason
+                    }
+                    Denied(reasons)
+                }
+                TransactionService.StatelessSwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
+                TransactionService.StatelessSwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
+                TransactionService.StatelessSwapResponse.Error.Code.TRANSACTION_FAILED -> TransactionFailed(reasonStrings)
+                TransactionService.StatelessSwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
             }
         }
     }
