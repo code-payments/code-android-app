@@ -130,6 +130,7 @@ internal object CoinbaseOnRampScripts {
 }
 
 internal class CoinbaseOnRampEventHandler(
+    private val orderId: String,
     private val startMark: TimeMark,
     private val webViewVersion: String,
     private val gmsVersion: String,
@@ -185,6 +186,7 @@ internal class CoinbaseOnRampEventHandler(
                         error = if (isFirstError) error else null,
                         type = TraceType.Error,
                         metadata = {
+                            "orderId" to orderId
                             "webViewVersion" to webViewVersion
                             "gmsVersion" to gmsVersion
                             if (errorCode == CoinbaseOnRampWebError.CODE_GOOGLE_PAY_BUTTON_NOT_FOUND && data != null) {
