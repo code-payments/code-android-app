@@ -30,15 +30,15 @@ val appNamespace = "${Gradle.flipcashNamespace}.app.android"
 android {
     // static namespace
     namespace = appNamespace
-    compileSdk = Android.compileSdkVersion
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
         versionCode = Packaging.Flipcash.versionCode ?: gitVersionCode()
         versionName = Packaging.Flipcash.versionName
         applicationId = appNamespace
-        minSdk = Android.minSdkVersion
-        targetSdk = Android.targetSdkVersion
-        testInstrumentationRunner = Android.testInstrumentationRunner
+        minSdk = libs.versions.android.minSdk.get().toInt()
+        targetSdk = libs.versions.android.targetSdk.get().toInt()
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "VERSION_NAME", "\"${Packaging.Flipcash.versionName}\"")
         buildConfigField("String", "MIXPANEL_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "MIXPANEL_API_KEY")}\"")
@@ -65,6 +65,7 @@ android {
     buildTypes {
         getByName("release") {
             resValue("string", "applicationId", appNamespace)
+            signingConfig = signingConfigs.getByName("contributors")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -87,8 +88,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility(Android.javaVersion)
-        targetCompatibility(Android.javaVersion)
+        sourceCompatibility(libs.versions.android.java.get())
+        targetCompatibility(libs.versions.android.java.get())
         isCoreLibraryDesugaringEnabled = true
     }
 
@@ -120,11 +121,11 @@ bugsnag {
 
 kotlin {
     jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(Android.javaVersion))
+        languageVersion.set(JavaLanguageVersion.of(libs.versions.android.java.get()))
     }
 
     compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(Android.javaVersion))
+        jvmTarget.set(JvmTarget.fromTarget(libs.versions.android.java.get()))
         optIn.addAll(
             "kotlin.time.ExperimentalTime",
             "kotlin.ExperimentalUnsignedTypes",
