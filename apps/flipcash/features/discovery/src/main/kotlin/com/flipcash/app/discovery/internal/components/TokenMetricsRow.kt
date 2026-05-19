@@ -43,7 +43,7 @@ internal fun RankedTokenMetricsRow(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = modifier.rememberedClickable(onClick = onClick),
+        modifier = Modifier.rememberedClickable(onClick = onClick).then(modifier),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RankBadge(rank)

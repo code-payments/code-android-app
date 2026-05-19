@@ -7,20 +7,26 @@ import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.to
-import com.flipcash.app.core.money.formatted
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.onramp.CoinbaseOnRampState
+import com.flipcash.app.onramp.DeeplinkError
+import com.flipcash.app.onramp.DeeplinkOnRampError
 import com.flipcash.app.onramp.OnRampAuthError
+import com.flipcash.app.onramp.PhantomWalletController
 import com.flipcash.app.onramp.PurchaseGate
+import com.flipcash.app.onramp.isAlert
+import com.flipcash.app.onramp.isNetworkCause
+import com.flipcash.app.onramp.messaging
 import com.getcode.manager.BottomBarAction
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarManager
@@ -29,7 +35,6 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.solana.model.SwapId
-import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -50,23 +55,23 @@ import com.getcode.solana.keys.base58
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.TraceType
 import com.getcode.utils.trace
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import java.util.concurrent.CancellationException
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
@@ -90,8 +95,9 @@ class SwapViewModel @Inject constructor(
     private val analytics: FlipcashAnalyticsService,
     private val purchaseMethodController: PurchaseMethodController,
     private val coinbaseOnRampController: CoinbaseOnRampController,
+    private val phantomWalletController: PhantomWalletController,
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<SwapViewModel.State, SwapViewModel.Event>(
+) : BaseViewModel<SwapViewModel.State, SwapViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
@@ -130,6 +136,7 @@ class SwapViewModel @Inject constructor(
                 is SwapPurpose.Buy -> amountEntryState.maxToAdd?.let {
                     Fiat(it.first, it.second).formatted()
                 }.orEmpty()
+
                 is SwapPurpose.Sell -> tokenBalance.formatted()
                 null -> ""
             }
@@ -154,8 +161,11 @@ class SwapViewModel @Inject constructor(
 
         val netTransferAmount: Fiat
             get() = confirmedNetTransferAmount ?: when (purpose) {
-               is SwapPurpose.BalanceIncrease -> enteredAmount
-               else -> Fiat(fiat = enteredAmount.decimalValue - feeAmount.decimalValue, currencyCode = enteredAmount.currencyCode)
+                is SwapPurpose.BalanceIncrease -> enteredAmount
+                else -> Fiat(
+                    fiat = enteredAmount.decimalValue - feeAmount.decimalValue,
+                    currencyCode = enteredAmount.currencyCode
+                )
             }
 
         val transactionLimit: Fiat
@@ -167,6 +177,7 @@ class SwapViewModel @Inject constructor(
                         } ?: SendLimit.Zero
                         sendLimit.maxPerDay.toFiat(enteredAmount.currencyCode)
                     }
+
                     is SwapPurpose.Sell -> tokenBalance
                     null -> Fiat.Zero
                 }
@@ -207,8 +218,8 @@ class SwapViewModel @Inject constructor(
 
         data class OnCurrencyChanged(val currency: Currency) : Event
 
-        data object CoinbaseSelected: Event
-        data object PhantomSelected: Event
+        data object CoinbaseSelected : Event
+        data object PhantomSelected : Event
         data object ConfirmPhantomTransaction : Event
         data object OnAmountConfirmed : Event
 
@@ -226,7 +237,13 @@ class SwapViewModel @Inject constructor(
 
         data class OnSwapIdChanged(val swapId: SwapId) : Event
 
-        data class CreateAndSendTransactionToWallet(val token: Token, val amount: VerifiedFiat) : Event
+        data object StartPhantomCeremony : Event
+        data object PhantomConnected : Event
+        data class PhantomNavigateToProcessing(val swapId: SwapId) : Event
+        data object PhantomCeremonyFailed : Event
+
+        data class CreateAndSendTransactionToWallet(val token: Token, val amount: VerifiedFiat) :
+            Event
 
         data class OnAmountAccepted(val amount: VerifiedFiat, val netTransferAmount: Fiat) : Event
 
@@ -243,6 +260,7 @@ class SwapViewModel @Inject constructor(
             val success: Boolean = false,
             val error: Boolean = false,
         ) : Event
+
         data object OnTransactionSuccessful : Event
 
         data class OnInitialAmountProvided(val amount: Fiat) : Event
@@ -328,7 +346,10 @@ class SwapViewModel @Inject constructor(
                     }
 
                     if (token == null) {
-                        trace(tag = "BuySellSwap", message = "Unable to find token for mint ${mint.base58()}")
+                        trace(
+                            tag = "BuySellSwap",
+                            message = "Unable to find token for mint ${mint.base58()}"
+                        )
                         dispatchEvent(Event.Exit)
                         return@combine null
                     }
@@ -513,7 +534,12 @@ class SwapViewModel @Inject constructor(
                             val netAmount = amountFiat.localFiat.nativeAmount
 
                             dispatchEvent(Event.UpdateBuyState(loading = true))
-                            dispatchEvent(Event.OnAmountAccepted(amountFiat, netTransferAmount = netAmount))
+                            dispatchEvent(
+                                Event.OnAmountAccepted(
+                                    amountFiat,
+                                    netTransferAmount = netAmount
+                                )
+                            )
                             dispatchEvent(Event.ProceedWithPurchase(amountFiat))
                         } else {
                             // Insufficient reserves — check available purchase methods
@@ -549,7 +575,12 @@ class SwapViewModel @Inject constructor(
                         }
                         val netAmount = stateFlow.value.netTransferAmount
 
-                        dispatchEvent(Event.OnAmountAccepted(amountFiat, netTransferAmount = netAmount))
+                        dispatchEvent(
+                            Event.OnAmountAccepted(
+                                amountFiat,
+                                netTransferAmount = netAmount
+                            )
+                        )
                         dispatchEvent(Event.ShowSellReceipt)
                     }
                 }
@@ -558,28 +589,43 @@ class SwapViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.ConfirmPhantomTransaction>()
             .onEach {
-                val data = stateFlow.value.amountEntryState.amountAnimatedModel
-                val rate = exchange.rateForUsd()
-                val amountFiat = verifiedFiatCalculator.compute(
-                    amount = Fiat(data.amountData.amount, rate.currency),
-                    token = Token.usdf,
-                    rate = rate,
-                ).getOrElse {
-                    BottomBarManager.showAlert(
-                        title = resources.getString(R.string.error_title_staleRates),
-                        message = resources.getString(R.string.error_description_staleRates),
+                try {
+                    val data = stateFlow.value.amountEntryState.amountAnimatedModel
+                    val rate = exchange.rateForUsd()
+                    val amountFiat = verifiedFiatCalculator.compute(
+                        amount = Fiat(data.amountData.amount, rate.currency),
+                        token = Token.usdf,
+                        rate = rate,
+                    ).getOrElse {
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_staleRates),
+                            message = resources.getString(R.string.error_description_staleRates),
+                        )
+                        return@onEach
+                    }
+                    dispatchEvent(
+                        Event.OnAmountAccepted(
+                            amountFiat,
+                            netTransferAmount = amountFiat.localFiat.nativeAmount
+                        )
                     )
-                    return@onEach
+                    dispatchEvent(Event.UpdateBuyState(loading = true))
+                    val token = stateFlow.value.tokenWithBalance?.token ?: run {
+                        handlePhantomError(IllegalStateException("Token not available"))
+                        return@onEach
+                    }
+                    signAndSendPhantomTransaction(token, amountFiat)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    handlePhantomError(e)
                 }
-                dispatchEvent(Event.OnAmountAccepted(amountFiat, netTransferAmount = amountFiat.localFiat.nativeAmount))
-                dispatchEvent(Event.UpdateBuyState(loading = true))
-                dispatchEvent(
-                    Event.CreateAndSendTransactionToWallet(
-                        token = stateFlow.value.tokenWithBalance!!.token,
-                        amount = amountFiat
-                    )
-                )
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.StartPhantomCeremony>()
+            .onEach { connectPhantomWallet() }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnSellConfirmed>()
@@ -606,6 +652,7 @@ class SwapViewModel @Inject constructor(
                     of = token,
                 ).onSuccess { swapId ->
                     trackTransaction(token)
+                    dispatchEvent(Event.OnSwapIdChanged(swapId))
                     dispatchEvent(Event.OnPurchaseSubmitted(token, swapId))
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = true))
                     // buy submitted from reserves, drop reserves balance
@@ -647,7 +694,8 @@ class SwapViewModel @Inject constructor(
 
                 // underlyingTokenAmount.quarks are token quarks, not USD —
                 // convert back through the bonding curve for an apples-to-apples comparison.
-                val amountInUsd = Fiat.tokenBalance(amount.localFiat.underlyingTokenAmount.quarks, token)
+                val amountInUsd =
+                    Fiat.tokenBalance(amount.localFiat.underlyingTokenAmount.quarks, token)
                 val refreshedBalance = tokenCoordinator.balanceForToken(token)
                 if (amountInUsd > refreshedBalance) {
                     dispatchEvent(Event.UpdateSellState(loading = false))
@@ -664,6 +712,7 @@ class SwapViewModel @Inject constructor(
                     of = token,
                 ).onSuccess { swapId ->
                     trackTransaction(token)
+                    dispatchEvent(Event.OnSwapIdChanged(swapId))
                     dispatchEvent(Event.OnSellSubmitted(token, swapId))
                     dispatchEvent(Event.UpdateSellState(loading = false, success = true))
                     // sell submitted, drop from balance
@@ -687,12 +736,11 @@ class SwapViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-        stateFlow
-            .mapNotNull { it.swapId }
-            .distinctUntilChanged()
-            .mapNotNull { swapId ->
+        eventFlow
+            .filterIsInstance<Event.OnSwapIdChanged>()
+            .mapNotNull { event ->
                 val owner = userManager.accountCluster ?: return@mapNotNull null
-                owner to swapId
+                owner to event.swapId
             }
             .map { (owner, swapId) ->
                 dispatchEvent(Event.UpdateProcessingState(loading = true))
@@ -717,7 +765,13 @@ class SwapViewModel @Inject constructor(
                     dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
                 },
                 onError = {
-                    dispatchEvent(Event.UpdateProcessingState(loading = false, success = false, error = true))
+                    dispatchEvent(
+                        Event.UpdateProcessingState(
+                            loading = false,
+                            success = false,
+                            error = true
+                        )
+                    )
                 }
             ).launchIn(viewModelScope)
 
@@ -728,6 +782,7 @@ class SwapViewModel @Inject constructor(
                 when (s) {
                     is CoinbaseOnRampState.Failed,
                     CoinbaseOnRampState.Idle -> dispatchEvent(Event.UpdateBuyState())
+
                     is CoinbaseOnRampState.Completed,
                     is CoinbaseOnRampState.Paying -> Unit
                 }
@@ -767,9 +822,11 @@ class SwapViewModel @Inject constructor(
 
                         executeCoinbasePurchase(amountFiat, token)
                     }
+
                     is PurchaseMethod.CashReserves -> {
                         dispatchEvent(Event.OnAmountConfirmed)
                     }
+
                     PurchaseMethod.PhantomWallet -> {
                         analytics.buttonTapped(Button.TokenBuyWithPhantom)
                         dispatchEvent(Event.PhantomSelected)
@@ -798,12 +855,14 @@ class SwapViewModel @Inject constructor(
                                 message = resources.getString(R.string.error_description_onrampGooglePayNotSupported),
                             )
                         }
+
                         is PurchaseGate.GooglePayNoPaymentMethod -> {
                             BottomBarManager.showAlert(
                                 title = resources.getString(R.string.error_title_onrampGooglePayNotReady),
                                 message = resources.getString(R.string.error_description_onrampGooglePayNotReady),
                             )
                         }
+
                         is PurchaseGate.WebViewWarning -> {
                             BottomBarManager.showAlert(
                                 title = resources.getString(R.string.error_title_onrampNonStableWebView),
@@ -869,6 +928,7 @@ class SwapViewModel @Inject constructor(
                 FundingSource.Coinbase -> Analytics.SwapMethod.Buy.Coinbase
                 else -> Analytics.SwapMethod.Buy.Reserves
             }
+
             else -> Analytics.SwapMethod.Sell
         }
 
@@ -881,6 +941,7 @@ class SwapViewModel @Inject constructor(
                     error = error
                 )
             }
+
             is Analytics.SwapMethod.Buy -> {
                 analytics.buy(
                     method = method.with,
@@ -890,6 +951,102 @@ class SwapViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun connectPhantomWallet() {
+        viewModelScope.launch {
+            dispatchEvent(Event.UpdateBuyState(loading = true))
+            phantomWalletController
+                .connectWallet()
+                .onSuccess {
+                    dispatchEvent(Event.UpdateBuyState(success = true))
+                    dispatchEvent(Event.PhantomConnected)
+                    dispatchEvent(Event.UpdateBuyState())
+                    analytics.connectWallet(OnRampProvider.Phantom)
+                }.onFailure {
+                    dispatchEvent(Event.UpdateBuyState())
+                    handlePhantomError(it)
+                }
+        }
+    }
+
+    private fun signAndSendPhantomTransaction(
+        token: Token,
+        amount: VerifiedFiat,
+    ) {
+        viewModelScope.launch {
+            phantomWalletController.executeSwap(
+                amount = amount,
+                fee = LocalFiat.Zero,
+                token = token,
+                onBeforeSign = { swapId ->
+                    analytics.amountSelectedForWalletTransfer(
+                        OnRampProvider.Phantom,
+                        amount.localFiat.underlyingTokenAmount
+                    )
+                    dispatchEvent(Event.PhantomNavigateToProcessing(swapId))
+                },
+            ).onSuccess { swapId ->
+                dispatchEvent(Event.OnSwapIdChanged(swapId))
+            }.onFailure { error ->
+                handlePhantomError(error)
+            }
+        }
+    }
+
+    private fun handlePhantomError(error: Throwable) {
+        val deeplinkError = error as? DeeplinkOnRampError
+            ?: DeeplinkOnRampError.FailedToCreateTransaction(message = error.message, cause = error)
+
+        if (deeplinkError is DeeplinkOnRampError.WalletProvidedError && deeplinkError.code == DeeplinkError.UserRejectedRequest.code) {
+            analytics.walletTransactionCancelled(OnRampProvider.Phantom)
+        } else if (deeplinkError is DeeplinkOnRampError.FailedToSendTransaction) {
+            analytics.walletTransactionFailed(OnRampProvider.Phantom)
+        }
+
+        trace(
+            tag = "BuySellSwap",
+            message = "Something went wrong during phantom onramp",
+            type = TraceType.Error,
+            metadata = {
+                "errorMessage" to deeplinkError.message
+                "code" to deeplinkError.code
+            },
+            error = deeplinkError.takeUnless { it.isAlert }
+        )
+
+        val (title, message) = deeplinkError.messaging(
+            resources::getString,
+            resources.getString(R.string.label_phantom)
+        )
+
+        when {
+            deeplinkError.isNetworkCause -> {
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.error_title_noInternet),
+                    message = resources.getString(R.string.error_description_noInternet),
+                    onDismiss = { dispatchEvent(Event.PhantomCeremonyFailed) }
+                )
+            }
+
+            deeplinkError.isAlert -> {
+                BottomBarManager.showAlert(
+                    title = title,
+                    message = message,
+                    onDismiss = { dispatchEvent(Event.PhantomCeremonyFailed) }
+                )
+            }
+
+            else -> {
+                BottomBarManager.showError(
+                    title = title,
+                    message = message,
+                    onDismiss = { dispatchEvent(Event.PhantomCeremonyFailed) }
+                )
+            }
+        }
+
+        dispatchEvent(Event.UpdateBuyState())
     }
 
     override fun onCleared() {
@@ -1010,6 +1167,10 @@ class SwapViewModel @Inject constructor(
                 }
 
                 Event.ConfirmPhantomTransaction,
+                Event.StartPhantomCeremony,
+                Event.PhantomConnected,
+                is Event.PhantomNavigateToProcessing,
+                Event.PhantomCeremonyFailed,
                 Event.OnAmountConfirmed,
                 Event.OnBackspace,
                 Event.OnDecimalPressed,
@@ -1060,9 +1221,11 @@ class SwapViewModel @Inject constructor(
                 is Event.OnInitialAmountProvided -> { state ->
                     state.copy(minimumBuyAmount = event.amount, pendingInitialAmount = event.amount)
                 }
+
                 Event.OnInitialAmountEntered -> { state ->
                     state.copy(pendingInitialAmount = null)
                 }
+
                 is Event.OnVerificationNeeded -> { state -> state }
                 Event.Exit -> { state -> state }
             }

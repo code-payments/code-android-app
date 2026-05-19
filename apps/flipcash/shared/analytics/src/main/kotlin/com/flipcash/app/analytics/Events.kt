@@ -157,8 +157,6 @@ internal sealed interface AnalyticsEvent {
     sealed interface WalletEvent : AnalyticsEvent {
         val provider: OnRampProvider.UsesDeeplinks
         val providerName get() = when (provider) {
-            OnRampProvider.Backpack -> "Backpack"
-            OnRampProvider.Solflare -> "Solflare"
             OnRampProvider.Phantom -> "Phantom"
         }
     }

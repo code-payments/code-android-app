@@ -62,13 +62,44 @@ fun CoinbaseOnRampHandler(
 
 private fun showOnRampFailure(resources: Resources, error: CoinbaseOnRampWebError) {
     when (error) {
-        is CoinbaseOnRampWebError.Unknown,
-        is CoinbaseOnRampWebError.MissingTransactionUuid -> {
+        // --- Grouped errors ---
+
+        is CoinbaseOnRampWebError.UnknownFailure -> {
             BottomBarManager.showError(
                 title = resources.getString(R.string.error_title_onrampUnknownFailure),
                 message = resources.getString(R.string.error_description_onrampUnknownFailure),
             )
         }
+
+        is CoinbaseOnRampWebError.CardDeclined -> {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampCardSoftDeclined),
+                message = resources.getString(R.string.error_description_onrampCardSoftDeclined),
+            )
+        }
+
+        is CoinbaseOnRampWebError.BillingAddressInvalid -> {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampTransactionAvsValidationFailed),
+                message = resources.getString(R.string.error_description_onrampTransactionAvsValidationFailed),
+            )
+        }
+
+        is CoinbaseOnRampWebError.InternalFailure -> {
+            BottomBarManager.showError(
+                title = resources.getString(R.string.error_title_onrampInternal),
+                message = resources.getString(R.string.error_description_onrampInternal),
+            )
+        }
+
+        is CoinbaseOnRampWebError.TransactionFailed -> {
+            BottomBarManager.showError(
+                title = resources.getString(R.string.error_title_onrampTransactionFailed),
+                message = resources.getString(R.string.error_description_onrampTransactionFailed),
+            )
+        }
+
+        // --- Single-variant errors ---
 
         is CoinbaseOnRampWebError.GuestCardNotDebit -> {
             BottomBarManager.showAlert(
@@ -77,17 +108,38 @@ private fun showOnRampFailure(resources: Resources, error: CoinbaseOnRampWebErro
             )
         }
 
-        is CoinbaseOnRampWebError.GuestRegionMismatch -> {
+        is CoinbaseOnRampWebError.GuestCardRiskDeclined -> {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampCardRiskDeclined),
+                message = resources.getString(R.string.error_description_onrampCardRiskDeclined),
+            )
+        }
+
+        is CoinbaseOnRampWebError.GuestPermissionDenied -> {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampCardPermissionDenied),
+                message = resources.getString(R.string.error_description_onrampCardPermissionDenied),
+            )
+        }
+
+        is CoinbaseOnRampWebError.RegionNotSupported -> {
             BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_onrampRegionMismatch),
                 message = resources.getString(R.string.error_description_onrampRegionMismatch),
             )
         }
 
-        is CoinbaseOnRampWebError.GuestGooglePayError -> {
-            BottomBarManager.showError(
-                title = resources.getString(R.string.error_title_onrampTransactionFailed),
-                message = resources.getString(R.string.error_description_onrampTransactionFailed),
+        is CoinbaseOnRampWebError.GuestWeeklyTransactionLimitReached -> {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampTransactionLimit),
+                message = resources.getString(R.string.error_description_onrampTransactionLimit),
+            )
+        }
+
+        is CoinbaseOnRampWebError.GuestTransactionMaxLimitReached -> {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampTransactionCount),
+                message = resources.getString(R.string.error_description_onrampTransactionCount),
             )
         }
 
@@ -98,40 +150,31 @@ private fun showOnRampFailure(resources: Resources, error: CoinbaseOnRampWebErro
             )
         }
 
-        is CoinbaseOnRampWebError.GuestTransactionBuyFailed -> {
-            BottomBarManager.showError(
-                title = resources.getString(R.string.error_title_onrampTransactionBuyFailed),
-                message = resources.getString(R.string.error_description_onrampTransactionBuyFailed),
+        is CoinbaseOnRampWebError.GuestGooglePayNotSupported -> {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampGooglePayNotSupported),
+                message = resources.getString(R.string.error_description_onrampGooglePayNotSupported),
             )
         }
 
-        is CoinbaseOnRampWebError.GuestTransactionSendFailed -> {
-            BottomBarManager.showError(
-                title = resources.getString(R.string.error_title_onrampTransactionSendFailed),
-                message = resources.getString(R.string.error_description_onrampTransactionSendFailed),
+        is CoinbaseOnRampWebError.GuestCardInsufficientBalance -> {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampCardInsufficientBalance),
+                message = resources.getString(R.string.error_description_onrampCardInsufficientBalance),
             )
         }
 
-        is CoinbaseOnRampWebError.GuestTransactionAvsValidationFailed -> {
-            BottomBarManager.showError(
-                title = resources.getString(R.string.error_title_onrampTransactionAvsValidationFailed),
-                message = resources.getString(R.string.error_description_onrampTransactionAvsValidationFailed),
+        is CoinbaseOnRampWebError.GuestCardPrepaidDeclined -> {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampCardPrepaidDeclined),
+                message = resources.getString(R.string.error_description_onrampCardPrepaidDeclined),
             )
         }
 
-        is CoinbaseOnRampWebError.GuestTransactionTransactionFailed -> {
-            BottomBarManager.showError(
-                title = resources.getString(R.string.error_title_onrampTransactionFailed),
-                message = resources.getString(R.string.error_description_onrampTransactionFailed),
-            )
-        }
-
-        is CoinbaseOnRampWebError.Internal,
-        is CoinbaseOnRampWebError.GooglePayButtonNotFound,
-        is CoinbaseOnRampWebError.WebViewTimeout -> {
-            BottomBarManager.showError(
-                title = resources.getString(R.string.error_title_onrampInternal),
-                message = resources.getString(R.string.error_description_onrampInternal),
+        is CoinbaseOnRampWebError.InvalidBillingName -> {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampInvalidBillingName),
+                message = resources.getString(R.string.error_description_onrampInvalidBillingName),
             )
         }
 

@@ -2,13 +2,7 @@ package com.flipcash.app.core.navigation
 
 import android.net.Uri
 import android.os.Parcelable
-import com.flipcash.app.core.onramp.deeplinks.WalletDeeplinkConnectionResult
-import com.flipcash.app.core.onramp.deeplinks.ExternalWalletDeeplinkError
-import com.flipcash.app.core.onramp.deeplinks.OnRampDeeplinkOrigin
-import com.flipcash.app.core.onramp.deeplinks.WalletDeeplinkSigningResult
-import com.getcode.ed25519.Ed25519
 import com.getcode.solana.keys.Mint
-import com.getcode.vendor.Base58
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 
@@ -20,24 +14,6 @@ sealed interface DeeplinkType: Parcelable {
     @Serializable data class CashLink(val entropy: String = "") : DeeplinkType
 
     @Serializable data class TokenInfo(val mint: Mint): DeeplinkType, Navigatable
-
-    sealed interface ExternalWalletStep {
-        val origin: OnRampDeeplinkOrigin
-    }
-
-    @Serializable
-    data class ExternalWalletConnection(
-        override val origin: OnRampDeeplinkOrigin,
-        val result: WalletDeeplinkConnectionResult?,
-        val error: ExternalWalletDeeplinkError? = null
-    ): DeeplinkType, ExternalWalletStep, Navigatable
-
-    @Serializable
-    data class ExternalWalletSignedTransaction(
-        override val origin: OnRampDeeplinkOrigin,
-        val result: WalletDeeplinkSigningResult?,
-        val error: ExternalWalletDeeplinkError? = null
-    ): DeeplinkType, ExternalWalletStep, Navigatable
 
     @Serializable
     data class EmailVerification(

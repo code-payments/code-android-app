@@ -14,7 +14,6 @@ dependencies {
     api(libs.androidx.annotation)
     api(libs.kotlin.stdlib)
     api(libs.kotlinx.coroutines.core)
-    api(libs.kotlinx.coroutines.rx3)
 
     implementation(libs.bundles.hilt)
     ksp(libs.bundles.hilt.compiler)

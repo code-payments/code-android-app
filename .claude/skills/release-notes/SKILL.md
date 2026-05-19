@@ -42,14 +42,15 @@ Use the Agent tool with `model: "haiku"`. Pass the raw changelog output with thi
 > Given these git commits (conventional commit format), write user-facing release notes.
 >
 > Rules:
-> - Group under: **Features**, **Bug Fixes**, **Improvements** (omit empty sections)
+> - Group under: **Features**, **Bug Fixes**, **Improvements**, **Dependencies** (omit empty sections)
 > - Write for end users — no jargon, file names, or internals
 > - One short sentence per item
 > - Group related commits into a single bullet when they address the same area
 > - Use scope as context but write in plain language; keep scope in **bold** prefix when it adds clarity
-> - Drop internal-only changes (pure refactors, CI tweaks, build config) unless user-facing
+> - ALWAYS include bug fixes — only drop pure refactors, CI pipeline changes, and release/manifest bookkeeping
 > - Feature bullets start with a lowercase verb (e.g., "add", "support", "enable")
 > - Bug fix bullets start with "Fixed" (capitalized)
+> - **Dependencies** section: list each dependency bump as `Name X.Y.Z → A.B.C` (use the human-readable library name, not the Maven coordinate). Include targetSdkVersion and Gradle wrapper bumps in this section too.
 > - Use 2-space indent before each bullet (`  - `)
 > - Do NOT include commit hashes
 > - If no user-facing changes, output: Bug fixes and performance improvements.

@@ -4,7 +4,6 @@ import android.net.Uri
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.core.text.trimmedLength
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.extensions.flatMapResult
@@ -13,8 +12,12 @@ import com.flipcash.app.core.tokens.CurrencyCreatorDraft
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.currencycreator.CurrencyCreatorCoordinator
 import com.flipcash.app.currencycreator.internal.components.CurrencyCreatorTopBarController
-import com.flipcash.app.onramp.ExternalWalletOnRampController
-import com.flipcash.app.onramp.ExternalWalletOnRampState
+import com.flipcash.app.onramp.DeeplinkError
+import com.flipcash.app.onramp.DeeplinkOnRampError
+import com.flipcash.app.onramp.PhantomWalletController
+import com.flipcash.app.onramp.isAlert
+import com.flipcash.app.onramp.isNetworkCause
+import com.flipcash.app.onramp.messaging
 import com.flipcash.app.payments.PaymentAction
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
@@ -25,7 +28,9 @@ import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.currencycreator.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ModerationController
-import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import com.flipcash.services.models.ImageModerationError
 import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.TextModerationError
@@ -57,7 +62,7 @@ import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
@@ -91,14 +96,14 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     currencyController: CurrencyController,
     transactionController: TransactionController,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
-    externalWalletController: ExternalWalletOnRampController,
+    private val phantomWalletController: PhantomWalletController,
     tokenCoordinator: TokenCoordinator,
     balancePoller: BalancePoller,
-    resources: ResourceHelper,
+    private val resources: ResourceHelper,
     val contentReader: ContentReader,
     val purchaseMethodController: PurchaseMethodController,
     private val currencyCreatorCoordinator: CurrencyCreatorCoordinator,
-) : BaseViewModel2<CurrencyCreatorViewModel.State, CurrencyCreatorViewModel.Event>(
+) : BaseViewModel<CurrencyCreatorViewModel.State, CurrencyCreatorViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
@@ -515,11 +520,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.PurchaseWithPhantom>()
             .onEach { event ->
-                // start() must come first — it calls reset() which clears amount/token.
-                externalWalletController.start(
-                    AppRoute.Token.CurrencyCreator,
-                    OnRampProvider.Phantom
-                )
                 val totalAmount = verifiedFiatCalculator.compute(
                     amount = event.context.amount,
                     token = Token.usdf,
@@ -533,8 +533,20 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 }
 
                 val feeAmount = event.context.feeAmount?.let { LocalFiat.fromUsd(usdf = it) }
-                externalWalletController.setAmount(amount = totalAmount, feeAmount = feeAmount)
-                externalWalletController.setTokenToPurchase(event.context.token)
+                    ?: LocalFiat.Zero
+                val token = event.context.token
+
+                viewModelScope.launch {
+                    phantomWalletController.connectAndSwap(
+                        amount = totalAmount,
+                        fee = feeAmount,
+                        token = token,
+                    ).onSuccess { swapId ->
+                        dispatchEvent(Event.PurchaseSubmitted(swapId, token.address))
+                    }.onFailure { error ->
+                        handlePhantomError(error)
+                    }
+                }
             }
             .launchIn(viewModelScope)
 
@@ -583,26 +595,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             )
             .launchIn(viewModelScope)
 
-        externalWalletController.state
-            .filterIsInstance<ExternalWalletOnRampState.Transacted>()
-            .filter { it.origin is AppRoute.Token.CurrencyCreator }
-            .mapNotNull { state ->
-                val swapId = state.swapId ?: return@mapNotNull null
-                val mint = state.token?.address ?: return@mapNotNull null
-                swapId to mint
-            }
-            .onEach { (swapId, mint) ->
-                externalWalletController.reset()
-                dispatchEvent(Event.PurchaseSubmitted(swapId, mint))
-            }
-            .launchIn(viewModelScope)
-
-        externalWalletController.state
-            .filterIsInstance<ExternalWalletOnRampState.Failed>()
-            .onEach {
-                dispatchEvent(Event.UpdateProcessingState())
-            }.launchIn(viewModelScope)
-
         eventFlow
             .filterIsInstance<Event.PurchaseSubmitted>()
             .map { event ->
@@ -639,6 +631,42 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 controller.progress = state.progress
             }
             .launchIn(viewModelScope)
+    }
+
+    private fun handlePhantomError(error: Throwable) {
+        val deeplinkError = error as? DeeplinkOnRampError
+            ?: DeeplinkOnRampError.FailedToCreateTransaction(message = error.message, cause = error)
+
+        if (deeplinkError is DeeplinkOnRampError.WalletProvidedError && deeplinkError.code == DeeplinkError.UserRejectedRequest.code) {
+            // user cancelled — not an error worth reporting
+        } else {
+            trace(
+                tag = "onramp::deeplinks",
+                message = "Phantom error in currency creator",
+                type = TraceType.Error,
+                error = deeplinkError.takeUnless { it.isAlert }
+            )
+        }
+
+        val providerName = resources.getString(com.flipcash.shared.onramp.deeplinks.R.string.label_phantom)
+        val (title, message) = deeplinkError.messaging(resources::getString, providerName)
+
+        when {
+            deeplinkError.isNetworkCause -> {
+                BottomBarManager.showAlert(
+                    title = resources.getString(com.flipcash.shared.onramp.deeplinks.R.string.error_title_noInternet),
+                    message = resources.getString(com.flipcash.shared.onramp.deeplinks.R.string.error_description_noInternet),
+                )
+            }
+            deeplinkError.isAlert -> {
+                BottomBarManager.showAlert(title = title, message = message)
+            }
+            else -> {
+                BottomBarManager.showError(title = title, message = message)
+            }
+        }
+
+        dispatchEvent(Event.UpdateProcessingState())
     }
 
     internal companion object {

@@ -4,7 +4,7 @@
 
 # libsodium
 -keep class com.ionspin.kotlin.crypto.** { *; }
--keep class com.sun.jna.** { *; }
+-keep,allowoptimization class com.sun.jna.** { *; }
 -dontwarn java.awt.Component
 -dontwarn java.awt.GraphicsEnvironment
 -dontwarn java.awt.HeadlessException

@@ -26,7 +26,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CompletableDeferred
@@ -54,7 +54,7 @@ internal class CashScreenViewModel @Inject constructor(
     tokenCoordinator: TokenCoordinator,
     transactionController: TransactionOperations,
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<CashScreenViewModel.State, CashScreenViewModel.Event>(
+) : BaseViewModel<CashScreenViewModel.State, CashScreenViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

@@ -18,24 +18,18 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
-import com.flipcash.app.onramp.LocalExternalWalletOnRampController
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.core.R
-import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.core.rememberAnimationScale
-import com.getcode.ui.core.scaled
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -45,22 +39,19 @@ internal fun PhantomConnectConfirmationScreen() {
     val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val externalWalletOnRampController = LocalExternalWalletOnRampController.current
 
-    val animationScale by rememberAnimationScale()
-    LaunchedEffect(Unit) {
-        externalWalletOnRampController.pendingNavigation.collect { nav ->
-            if (nav is AppRoute.Token.Swap) {
-                delay(300.scaled(animationScale))
-                flowNavigator.navigateTo(SwapStep.PhantomConfirmTransaction)
-            }
-        }
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.PhantomCeremonyFailed>()
+            .onEach { flowNavigator.exitCanceled() }
+            .launchIn(this)
     }
 
     LaunchedEffect(Unit) {
-        externalWalletOnRampController.flowExitRequests.collect {
-            flowNavigator.exitCanceled()
-        }
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.PhantomConnected>()
+            .onEach { flowNavigator.navigateTo(SwapStep.PhantomConfirmTransaction) }
+            .launchIn(this)
     }
 
     CodeScaffold(
@@ -82,14 +73,10 @@ internal fun PhantomConnectConfirmationScreen() {
                     .navigationBarsPadding(),
                 buttonState = ButtonState.Filled,
                 text = stringResource(R.string.action_connectYourPhantomWallet),
+                isLoading = state.buyProgress.loading,
+                enabled = state.buyProgress.isIdle,
             ) {
-                val mint = state.purpose?.mint
-                mint?.let {
-                    externalWalletOnRampController.start(
-                        AppRoute.Token.Info(mint = it),
-                        OnRampProvider.Phantom,
-                    )
-                }
+                viewModel.dispatchEvent(SwapViewModel.Event.StartPhantomCeremony)
             }
         }
     ) { padding ->
@@ -141,31 +128,20 @@ internal fun PhantomTransactionConfirmationScreen() {
     val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val externalWalletOnRampController = LocalExternalWalletOnRampController.current
 
-    LaunchedEffect(Unit) {
-        externalWalletOnRampController.pendingNavigation.collect { nav ->
-            if (nav is AppRoute.Token.TxProcessing) {
-                flowNavigator.navigateTo(
-                    SwapStep.Processing(nav.swapId, nav.awaitExternalWallet)
-                )
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        externalWalletOnRampController.flowExitRequests.collect {
-            flowNavigator.exitCanceled()
-        }
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.PhantomNavigateToProcessing>()
+            .onEach { event ->
+                flowNavigator.navigateTo(SwapStep.Processing(event.swapId))
+            }.launchIn(this)
     }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<SwapViewModel.Event.CreateAndSendTransactionToWallet>()
-            .onEach { (token, amount) ->
-                externalWalletOnRampController.setTokenToPurchase(token)
-                externalWalletOnRampController.setAmount(amount)
-            }.launchIn(this)
+            .filterIsInstance<SwapViewModel.Event.PhantomCeremonyFailed>()
+            .onEach { flowNavigator.exitCanceled() }
+            .launchIn(this)
     }
 
     CodeScaffold(

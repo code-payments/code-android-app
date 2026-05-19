@@ -6,8 +6,6 @@ import com.getcode.manager.TopBarManager
 import io.grpc.Status
 import io.grpc.StatusException
 import io.grpc.StatusRuntimeException
-import io.reactivex.rxjava3.exceptions.OnErrorNotImplementedException
-import io.reactivex.rxjava3.exceptions.UndeliverableException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import timber.log.Timber
@@ -40,7 +38,7 @@ object ErrorUtils {
         if (isGmsTransientError(throwable)) return
 
         val throwableCause: Throwable =
-            if (throwable.cause != null && (throwable is UndeliverableException || throwable is OnErrorNotImplementedException || throwable is CodeServerError))
+            if (throwable.cause != null && throwable is CodeServerError)
                 throwable.cause ?: throwable
             else throwable
 
