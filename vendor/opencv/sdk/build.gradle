@@ -104,11 +104,11 @@ println "OpenCV: " +openCVersionName + " " + project.buildscript.sourceFile
 
 android {
     namespace 'org.opencv'
-    compileSdkVersion Android.compileSdkVersion
+    compileSdkVersion libs.versions.android.compileSdk.get().toInteger()
 
     defaultConfig {
-        minSdkVersion Android.minSdkVersion
-        targetSdkVersion Android.targetSdkVersion
+        minSdkVersion libs.versions.android.minSdk.get().toInteger()
+        targetSdkVersion libs.versions.android.targetSdk.get().toInteger()
 
 
         externalNativeBuild {
@@ -125,8 +125,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility(Android.javaVersion)
-        targetCompatibility(Android.javaVersion)
+        sourceCompatibility(libs.versions.android.java.get())
+        targetCompatibility(libs.versions.android.java.get())
     }
 
     buildTypes {

@@ -21,11 +21,16 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 }
             }
 
+            val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
+            val compileSdkVersion = libs.findVersion("android-compileSdk").get().requiredVersion.toInt()
+            val minSdkVersion = libs.findVersion("android-minSdk").get().requiredVersion.toInt()
+            val javaVersion = libs.findVersion("android-java").get().requiredVersion
+
             extensions.configure<LibraryExtension> {
-                compileSdk = 37
+                compileSdk = compileSdkVersion
 
                 defaultConfig {
-                    minSdk = 29
+                    minSdk = minSdkVersion
                     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
                 }
 
@@ -34,18 +39,18 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 }
 
                 compileOptions {
-                    sourceCompatibility = JavaVersion.VERSION_21
-                    targetCompatibility = JavaVersion.VERSION_21
+                    sourceCompatibility = JavaVersion.toVersion(javaVersion)
+                    targetCompatibility = JavaVersion.toVersion(javaVersion)
                 }
             }
 
             extensions.configure<KotlinAndroidProjectExtension> {
                 jvmToolchain {
-                    languageVersion.set(JavaLanguageVersion.of(21))
+                    languageVersion.set(JavaLanguageVersion.of(javaVersion))
                 }
 
                 compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_21)
+                    jvmTarget.set(JvmTarget.fromTarget(javaVersion))
                     optIn.addAll(
                         "kotlin.time.ExperimentalTime",
                         "kotlin.ExperimentalUnsignedTypes",
@@ -53,8 +58,6 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                     )
                 }
             }
-
-            val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
             dependencies {
                 "implementation"(libs.findLibrary("timber").get())
