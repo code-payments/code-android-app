@@ -70,9 +70,10 @@ class PhantomWalletController @Inject constructor(
         onConnectLaunching: () -> Unit = {},
         onSignLaunching: (SwapId) -> Unit = {},
     ): Result<SwapId> {
-        return phantomConnector.withCeremony {
+        phantomConnector.beginCeremony()
+        return try {
             onConnectLaunching()
-            doConnect().getOrElse { return@withCeremony Result.failure(it) }
+            doConnect().getOrElse { return Result.failure(it) }
 
             executeSwap(
                 amount = amount,
@@ -82,6 +83,8 @@ class PhantomWalletController @Inject constructor(
                     onSignLaunching(swapId)
                 },
             )
+        } finally {
+            phantomConnector.endCeremony()
         }
     }
 
@@ -113,7 +116,6 @@ class PhantomWalletController @Inject constructor(
         fee: LocalFiat,
         token: Token,
         onBeforeSign: (suspend (SwapId) -> Unit)? = null,
-        onSignLaunched: ((SwapId) -> Unit)? = null,
     ): Result<SwapId> {
         val sender = getSolanaAddress()
 
@@ -124,9 +126,6 @@ class PhantomWalletController @Inject constructor(
             .getOrElse { return Result.failure(it) }
 
         onBeforeSign?.invoke(swapId)
-        onSignLaunched?.let { cb ->
-            phantomConnector.setNextCallbacks(onLaunched = { cb(swapId) })
-        }
 
         val signedTxBase58 = try {
             phantomSdk.solana.signTransaction(tx.encode().base64)
