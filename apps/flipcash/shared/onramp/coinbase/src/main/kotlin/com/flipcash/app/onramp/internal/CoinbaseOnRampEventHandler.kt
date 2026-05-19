@@ -265,7 +265,7 @@ internal class CoinbaseOnRampEventHandler(
     }
 }
 
-sealed class CoinbaseOnRampWebError(val data: String? = null): Throwable() {
+sealed class CoinbaseOnRampWebError(val data: String? = null): Throwable(data) {
     class Unknown(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
     class MissingTransactionUuid(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
     class GuestCardNotDebit(data: String? = null) : CoinbaseOnRampWebError(data)
@@ -275,6 +275,7 @@ sealed class CoinbaseOnRampWebError(val data: String? = null): Throwable() {
     class GuestTransactionAvsValidationFailed(data: String? = null) : CoinbaseOnRampWebError(data)
     class GuestTransactionTransactionFailed(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
     class GuestRegionMismatch(data: String? = null) : CoinbaseOnRampWebError(data)
+    class AssetNotTradableInRegion(data: String? = null): CoinbaseOnRampWebError(data)
     class GuestGooglePayNotReady(data: String? = null) : CoinbaseOnRampWebError(data)
     class Internal(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
     class GooglePayButtonNotFound(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
@@ -285,6 +286,7 @@ sealed class CoinbaseOnRampWebError(val data: String? = null): Throwable() {
         fun fromErrorCode(errorCode: String, data: String? = null): CoinbaseOnRampWebError {
             return when (errorCode) {
                 "ERROR_CODE_MISSING_TRANSACTION_UUID" -> MissingTransactionUuid(data)
+                "ERROR_CODE_ASSET_NOT_TRADABLE" -> AssetNotTradableInRegion(data)
                 "ERROR_CODE_GUEST_CARD_NOT_DEBIT" -> GuestCardNotDebit(data)
                 "ERROR_CODE_GUEST_GOOGLE_PAY_ERROR" -> GuestGooglePayError(data)
                 "ERROR_CODE_GUEST_TRANSACTION_BUY_FAILED" -> GuestTransactionBuyFailed(data)
