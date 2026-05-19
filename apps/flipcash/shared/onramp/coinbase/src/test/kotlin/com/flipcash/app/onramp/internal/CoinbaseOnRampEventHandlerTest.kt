@@ -50,6 +50,7 @@ class CoinbaseOnRampEventHandlerTest {
     private var lastError: CoinbaseOnRampWebError? = null
 
     private val handler = CoinbaseOnRampEventHandler(
+        orderId = "test-order-id",
         startMark = TimeSource.Monotonic.markNow(),
         webViewVersion = "1.0.0",
         gmsVersion = "24.0.0",

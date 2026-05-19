@@ -43,6 +43,7 @@ fun CoinbaseOnRampWebview(
         url = paymentLinkUrl,
         factoryExtension = {
             cleanup = configureForCoinbaseOnRamp(
+                orderId = orderId,
                 onPaymentSuccess = { onPaymentSuccess(orderId) },
                 onPaymentFailure = onPaymentFailure,
                 onCancel = onCancel,
@@ -54,6 +55,7 @@ fun CoinbaseOnRampWebview(
 
 @SuppressLint("SetJavaScriptEnabled")
 private fun WebView.configureForCoinbaseOnRamp(
+    orderId: String,
     onPaymentSuccess: () -> Unit,
     onPaymentFailure: (CoinbaseOnRampWebError) -> Unit,
     onCancel: () -> Unit,
@@ -162,6 +164,7 @@ private fun WebView.configureForCoinbaseOnRamp(
     settings.setSupportMultipleWindows(false)
 
     val eventHandler = CoinbaseOnRampEventHandler(
+        orderId = orderId,
         startMark = startMark,
         webViewVersion = webViewVersion,
         gmsVersion = gmsVersion,
