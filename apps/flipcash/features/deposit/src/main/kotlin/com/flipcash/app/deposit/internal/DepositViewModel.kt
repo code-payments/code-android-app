@@ -12,10 +12,8 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -65,10 +63,7 @@ internal class DepositViewModel @Inject constructor(
                     viewModelScope.launch {
                         val directDeposit = featureFlags.get(FeatureFlag.DepositUsdc)
                         val address = if (result.token.address == Mint.usdf && directDeposit) {
-                            val usdfSwapAccounts = userManager.accountCluster?.let {
-                                Token.usdf.timelockSwapAccounts(it.authorityPublicKey)
-                            }
-                            usdfSwapAccounts?.ata?.publicKey?.base58()
+                            userManager.accountCluster?.authorityPublicKey?.base58()
                         } else {
                             userManager.accountCluster?.depositAddressFor(result.token)?.base58()
                         }

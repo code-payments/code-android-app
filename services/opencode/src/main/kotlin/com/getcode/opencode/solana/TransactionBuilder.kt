@@ -11,7 +11,9 @@ import com.getcode.opencode.solana.swap.buildExistingCurrencyBuyInstructions
 import com.getcode.opencode.solana.swap.buildNewCurrencyBuyInstructions
 import com.getcode.opencode.solana.swap.buildSellInstructions
 import com.getcode.opencode.solana.swap.buildStablecoinSwapperInstructions
+import com.getcode.opencode.solana.swap.buildStatelessSwapInstructions
 import com.getcode.opencode.solana.swap.buildUsdcToUsdfSwapInstructions
+import com.getcode.opencode.model.transactions.StatelessSwapServerParameters
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 
@@ -204,6 +206,43 @@ object TransactionBuilder {
             payer = sender,
             recentBlockhash = blockhash,
             addressLookupTables = emptyList(),
+            instructions = instructions,
+        )
+    }
+
+    /**
+     * Constructs a Solana transaction for a stateless USDC deposit sweep via the
+     * Coinbase Stable Swapper program.
+     *
+     * Swaps USDC from the owner's ATA into USDF, depositing the result into
+     * the owner's USDF VM Deposit ATA (monitored by Geyser).
+     *
+     * @param response Server parameters for the stateless swap.
+     * @param owner The public key of the wallet owner.
+     * @param fromMint Metadata for the source mint (USDC).
+     * @param toMint Metadata for the destination mint (USDF).
+     * @param amount The amount to swap (in quarks).
+     * @return A constructed [SolanaTransaction] (V0) ready to be signed.
+     */
+    fun statelessSwap(
+        response: StatelessSwapServerParameters,
+        owner: PublicKey,
+        fromMint: MintMetadata,
+        toMint: MintMetadata,
+        amount: Long,
+    ): SolanaTransaction {
+        val instructions = buildStatelessSwapInstructions(
+            serverParameters = response,
+            owner = owner,
+            fromMint = fromMint,
+            toMint = toMint,
+            amount = amount,
+        )
+
+        return SolanaTransaction.newV0Instance(
+            payer = response.payer,
+            recentBlockhash = response.blockhash,
+            addressLookupTables = response.alts,
             instructions = instructions,
         )
     }

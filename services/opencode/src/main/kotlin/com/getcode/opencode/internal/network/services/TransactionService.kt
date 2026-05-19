@@ -271,12 +271,37 @@ internal class TransactionService @Inject constructor(
         return statefulSwap(scope, request, owner)
     }
 
+    suspend fun sweepUsdc(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        amount: Long,
+    ): Result<Unit> {
+        val request = StatelessSwapRequest(
+            owner = owner,
+            fromMint = Mint.usdc,
+            toMint = Mint.usdf,
+            amount = amount,
+        )
+
+        return statelessSwap(scope, request)
+    }
+
     private suspend fun statelessSwap(
         scope: CoroutineScope,
-        request: StatelessSwapRequest,
-    ): StatelessSwapResult {
+       request: StatelessSwapRequest,
+    ): Result<Unit> {
         val executor = StatelessSwapExecutor(api)
+
         return executor.execute(scope, request)
+            .fold(
+                onSuccess = {
+                    trace("Sweep submitted")
+                    Result.success(Unit)
+                },
+                onFailure = {
+                    Result.failure(it)
+                }
+            )
     }
 
     private suspend fun statefulSwap(

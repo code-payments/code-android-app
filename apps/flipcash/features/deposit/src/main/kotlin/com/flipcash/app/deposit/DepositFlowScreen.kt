@@ -2,8 +2,12 @@ package com.flipcash.app.deposit
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -22,7 +26,6 @@ import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.LocalFlowNavigator
 import com.getcode.navigation.flow.PreviewFlowNavigator
 import com.getcode.navigation.flow.deliverFlowResult
-import com.getcode.navigation.flow.rememberInitialStack
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.solana.keys.Mint
@@ -35,8 +38,14 @@ fun DepositFlowScreen(
     val outerNavigator = LocalCodeNavigator.current
     val featureFlags = LocalFeatureFlags.current
 
-    val initialStack = route.rememberInitialStack<DepositStep> { steps ->
-        val directDeposit = featureFlags.observe(FeatureFlag.DepositUsdc).value
+    val directDeposit by featureFlags
+        .observe(FeatureFlag.DepositUsdc)
+        .collectAsStateWithLifecycle()
+
+    val initialStack = remember(route, directDeposit) {
+        @Suppress("UNCHECKED_CAST")
+        val steps = route.initialStack as List<DepositStep>
+        println("direct deposit = $directDeposit, isUsdf=${route.mint == Mint.usdf}")
         if (!directDeposit && route.mint == Mint.usdf) {
             listOf(DepositStep.Destination(route.mint))
         } else {
@@ -44,30 +53,32 @@ fun DepositFlowScreen(
         }
     }
 
-    FlowHost(
-        initialStack = initialStack,
-        resultStateRegistry = resultStateRegistry,
-        onExit = { reason ->
-            val result: DepositResult = when (reason) {
-                is FlowExitReason.Completed -> reason.result
-                FlowExitReason.Canceled,
-                FlowExitReason.BackedOutOfRoot -> DepositResult.Canceled
-            }
-            outerNavigator.deliverFlowResult(
-                route = route,
-                value = NavResultOrCanceled.ReturnValue(result),
-            )
-            when (result) {
-                DepositResult.Success -> {
-                    outerNavigator.popUntil { it == AppRoute.Sheets.Menu }
+    key(directDeposit) {
+        FlowHost(
+            initialStack = initialStack,
+            resultStateRegistry = resultStateRegistry,
+            onExit = { reason ->
+                val result: DepositResult = when (reason) {
+                    is FlowExitReason.Completed -> reason.result
+                    FlowExitReason.Canceled,
+                    FlowExitReason.BackedOutOfRoot -> DepositResult.Canceled
                 }
-                DepositResult.Canceled -> {
-                    outerNavigator.pop()
+                outerNavigator.deliverFlowResult(
+                    route = route,
+                    value = NavResultOrCanceled.ReturnValue(result),
+                )
+                when (result) {
+                    DepositResult.Success -> {
+                        outerNavigator.popUntil { it == AppRoute.Sheets.Menu }
+                    }
+                    DepositResult.Canceled -> {
+                        outerNavigator.pop()
+                    }
                 }
-            }
-        },
-        entryProvider = depositEntryProvider(route.mint),
-    )
+            },
+            entryProvider = depositEntryProvider(route.mint),
+        )
+    }
 }
 
 private fun depositEntryProvider(

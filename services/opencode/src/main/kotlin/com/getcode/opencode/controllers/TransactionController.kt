@@ -1,7 +1,6 @@
 package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.events.Events
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.intents.IntentDistribution
@@ -436,6 +435,14 @@ class TransactionController @Inject constructor(
             .catch { emit(Result.failure(it)) }
             .firstOrNull()
             ?: Result.failure(GetIntentMetadataError.Timeout())
+    }
+
+    override suspend fun swapUsdc(
+        owner: AccountCluster,
+        amount: Long,
+    ): Result<Unit> {
+        if (amount <= 0L) return Result.success(Unit)
+        return repository.sweepUsdc(scope, owner, amount)
     }
 
     override suspend fun checkWithdrawalAvailability(

@@ -24,6 +24,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
+import com.flipcash.app.onramp.PhantomWalletController
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -62,6 +63,7 @@ class SwapViewModelErrorTest {
     private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
     private val purchaseMethodController = mockk<PurchaseMethodController>(relaxed = true)
     private val coinbaseOnRampController = mockk<CoinbaseOnRampController>(relaxed = true)
+    private val phantomWalletController = mockk<PhantomWalletController>(relaxed = true)
 
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
 
@@ -102,6 +104,7 @@ class SwapViewModelErrorTest {
             analytics = analytics,
             purchaseMethodController = purchaseMethodController,
             coinbaseOnRampController = coinbaseOnRampController,
+            phantomWalletController = phantomWalletController,
             dispatchers = dispatchers,
         )
     }

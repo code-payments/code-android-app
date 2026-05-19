@@ -79,4 +79,9 @@ interface TransactionOperations {
         address: String,
         mint: Mint,
     ): Result<WithdrawalAvailability>
+
+    suspend fun swapUsdc(
+        owner: AccountCluster,
+        amount: Long,
+    ): Result<Unit>
 }

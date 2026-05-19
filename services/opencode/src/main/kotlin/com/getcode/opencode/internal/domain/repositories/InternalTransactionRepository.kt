@@ -8,6 +8,7 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.transactions.StatelessSwapRequest
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.TransactionMetadata
@@ -115,4 +116,13 @@ internal class InternalTransactionRepository @Inject constructor(
         destinationOwner = destinationOwner,
         verifiedState = verifiedState,
     ).onFailure { ErrorUtils.handleError(it) }
+
+    override suspend fun sweepUsdc(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        amount: Long,
+    ): Result<Unit> {
+        return service.sweepUsdc(scope, owner, amount)
+            .onFailure { ErrorUtils.handleError(it) }
+    }
 }
