@@ -84,6 +84,13 @@ private fun showOnRampFailure(resources: Resources, error: CoinbaseOnRampWebErro
             )
         }
 
+        is CoinbaseOnRampWebError.AssetNotTradableInRegion -> {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampRegionMismatch),
+                message = resources.getString(R.string.error_description_onrampRegionMismatch),
+            )
+        }
+
         is CoinbaseOnRampWebError.GuestGooglePayError -> {
             BottomBarManager.showError(
                 title = resources.getString(R.string.error_title_onrampTransactionFailed),
