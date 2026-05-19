@@ -13,5 +13,4 @@ dependencies {
     implementation(libs.androidx.exifinterface)
     api(libs.kotlin.stdlib)
     api(libs.kotlinx.coroutines.core)
-    api(libs.kotlinx.coroutines.rx3)
 }

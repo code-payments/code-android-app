@@ -18,8 +18,6 @@ dependencies {
     api(project(":ui:resources"))
     implementation(project(":ui:theme"))
 
-    api(libs.rxjava)
-
     implementation(libs.compose.material3)
     implementation(libs.compose.activities)
     implementation(libs.bundles.kotlinx.serialization)
