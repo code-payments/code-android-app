@@ -6,6 +6,32 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.time.TimeSource
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_ASSET_NOT_TRADABLE
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GOOGLE_PAY_BUTTON_NOT_FOUND
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_CARD_HARD_DECLINED
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_CARD_INSUFFICIENT_BALANCE
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_CARD_NOT_DEBIT
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_CARD_PREPAID_DECLINED
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_CARD_RISK_DECLINED
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_CARD_SOFT_DECLINED
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_GOOGLE_PAY_ERROR
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_GOOGLE_PAY_NOT_READY
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_GOOGLE_PAY_NOT_SUPPORTED
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_INVALID_CARD
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_PERMISSION_DENIED
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_REGION_MISMATCH
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_TRANSACTION_AVS_VALIDATION_FAILED
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_TRANSACTION_BUY_FAILED
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_TRANSACTION_COUNT
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_TRANSACTION_LIMIT
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_TRANSACTION_SEND_FAILED
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_GUEST_TRANSACTION_TRANSACTION_FAILED
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_INIT
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_INTERNAL
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_INVALID_BILLING_ADDRESS
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_INVALID_BILLING_NAME
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_INVALID_BILLING_ZIP
+import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.Companion.CODE_MISSING_TRANSACTION_UUID
 import com.getcode.utils.NotifiableError
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -66,19 +92,19 @@ class CoinbaseOnRampEventHandlerTest {
     @Test
     fun commitErrorTriggersFailure() {
         handler.handleEvent("""{"eventName":"onramp_api.commit_error","data":{"errorCode":"ERROR_CODE_INTERNAL"}}""")
-        assertIs<CoinbaseOnRampWebError.Internal>(lastError)
+        assertIs<CoinbaseOnRampWebError.InternalFailure.Internal>(lastError)
     }
 
     @Test
     fun loadErrorTriggersFailure() {
         handler.handleEvent("""{"eventName":"onramp_api.load_error","data":{"errorCode":"ERROR_CODE_GUEST_GOOGLE_PAY_ERROR"}}""")
-        assertIs<CoinbaseOnRampWebError.GuestGooglePayError>(lastError)
+        assertIs<CoinbaseOnRampWebError.TransactionFailed.GooglePayError>(lastError)
     }
 
     @Test
     fun pollingErrorTriggersFailure() {
         handler.handleEvent("""{"eventName":"onramp_api.polling_error","data":{"errorCode":"ERROR_CODE_GUEST_TRANSACTION_BUY_FAILED"}}""")
-        assertIs<CoinbaseOnRampWebError.GuestTransactionBuyFailed>(lastError)
+        assertIs<CoinbaseOnRampWebError.CardDeclined.BuyFailed>(lastError)
     }
 
     @Test
@@ -90,19 +116,19 @@ class CoinbaseOnRampEventHandlerTest {
     @Test
     fun errorWithUnknownCodeFallsBackToUnknown() {
         handler.handleEvent("""{"eventName":"onramp_api.commit_error","data":{"errorCode":"SOME_NEW_ERROR"}}""")
-        assertIs<CoinbaseOnRampWebError.Unknown>(lastError)
+        assertIs<CoinbaseOnRampWebError.UnknownFailure.Unknown>(lastError)
     }
 
     @Test
     fun errorWithMissingDataFallsBackToUnknown() {
         handler.handleEvent("""{"eventName":"onramp_api.commit_error"}""")
-        assertIs<CoinbaseOnRampWebError.Unknown>(lastError)
+        assertIs<CoinbaseOnRampWebError.UnknownFailure.Unknown>(lastError)
     }
 
     @Test
     fun errorWithEmptyErrorCodeFallsBackToUnknown() {
         handler.handleEvent("""{"eventName":"onramp_api.commit_error","data":{"errorCode":""}}""")
-        assertIs<CoinbaseOnRampWebError.Unknown>(lastError)
+        assertIs<CoinbaseOnRampWebError.UnknownFailure.Unknown>(lastError)
     }
 
     // --- Data payload ---
@@ -111,7 +137,7 @@ class CoinbaseOnRampEventHandlerTest {
     fun errorCarriesJsonData() {
         handler.handleEvent("""{"eventName":"onramp_api.commit_error","data":{"errorCode":"ERROR_CODE_INTERNAL","transactionId":"abc-123"}}""")
         val error = lastError
-        assertIs<CoinbaseOnRampWebError.Internal>(error)
+        assertIs<CoinbaseOnRampWebError.InternalFailure.Internal>(error)
         assertNotNull(error.data)
         assertTrue(error.data!!.contains("abc-123"))
     }
@@ -203,16 +229,32 @@ class CoinbaseOnRampWebErrorTest {
     @Test
     fun fromErrorCodeAllKnownCodes() {
         val expected = mapOf(
-            "ERROR_CODE_MISSING_TRANSACTION_UUID" to CoinbaseOnRampWebError.MissingTransactionUuid::class,
-            "ERROR_CODE_GUEST_CARD_NOT_DEBIT" to CoinbaseOnRampWebError.GuestCardNotDebit::class,
-            "ERROR_CODE_GUEST_GOOGLE_PAY_ERROR" to CoinbaseOnRampWebError.GuestGooglePayError::class,
-            "ERROR_CODE_GUEST_TRANSACTION_BUY_FAILED" to CoinbaseOnRampWebError.GuestTransactionBuyFailed::class,
-            "ERROR_CODE_GUEST_TRANSACTION_SEND_FAILED" to CoinbaseOnRampWebError.GuestTransactionSendFailed::class,
-            "ERROR_CODE_GUEST_TRANSACTION_AVS_VALIDATION_FAILED" to CoinbaseOnRampWebError.GuestTransactionAvsValidationFailed::class,
-            "ERROR_CODE_GUEST_TRANSACTION_TRANSACTION_FAILED" to CoinbaseOnRampWebError.GuestTransactionTransactionFailed::class,
-            "ERROR_CODE_GUEST_REGION_MISMATCH" to CoinbaseOnRampWebError.GuestRegionMismatch::class,
-            "ERROR_CODE_INTERNAL" to CoinbaseOnRampWebError.Internal::class,
-            "ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND" to CoinbaseOnRampWebError.GooglePayButtonNotFound::class,
+            CODE_MISSING_TRANSACTION_UUID to CoinbaseOnRampWebError.UnknownFailure.MissingTransactionUuid::class,
+            CODE_GUEST_CARD_NOT_DEBIT to CoinbaseOnRampWebError.GuestCardNotDebit::class,
+            CODE_GUEST_INVALID_CARD to CoinbaseOnRampWebError.GuestCardNotDebit::class,
+            CODE_GUEST_GOOGLE_PAY_ERROR to CoinbaseOnRampWebError.TransactionFailed.GooglePayError::class,
+            CODE_GUEST_TRANSACTION_BUY_FAILED to CoinbaseOnRampWebError.CardDeclined.BuyFailed::class,
+            CODE_GUEST_TRANSACTION_SEND_FAILED to CoinbaseOnRampWebError.TransactionFailed.SendFailed::class,
+            CODE_GUEST_TRANSACTION_AVS_VALIDATION_FAILED to CoinbaseOnRampWebError.BillingAddressInvalid.AvsValidationFailed::class,
+            CODE_GUEST_TRANSACTION_TRANSACTION_FAILED to CoinbaseOnRampWebError.TransactionFailed.ProcessingFailed::class,
+            CODE_GUEST_REGION_MISMATCH to CoinbaseOnRampWebError.RegionNotSupported.RegionMismatch::class,
+            CODE_GUEST_TRANSACTION_LIMIT to CoinbaseOnRampWebError.GuestWeeklyTransactionLimitReached::class,
+            CODE_GUEST_TRANSACTION_COUNT to CoinbaseOnRampWebError.GuestTransactionMaxLimitReached::class,
+            CODE_GUEST_CARD_RISK_DECLINED to CoinbaseOnRampWebError.GuestCardRiskDeclined::class,
+            CODE_GUEST_PERMISSION_DENIED to CoinbaseOnRampWebError.GuestPermissionDenied::class,
+            CODE_ASSET_NOT_TRADABLE to CoinbaseOnRampWebError.RegionNotSupported.AssetNotTradable::class,
+            CODE_GUEST_GOOGLE_PAY_NOT_READY to CoinbaseOnRampWebError.GuestGooglePayNotReady::class,
+            CODE_GUEST_GOOGLE_PAY_NOT_SUPPORTED to CoinbaseOnRampWebError.GuestGooglePayNotSupported::class,
+            CODE_GUEST_CARD_SOFT_DECLINED to CoinbaseOnRampWebError.CardDeclined.Soft::class,
+            CODE_GUEST_CARD_HARD_DECLINED to CoinbaseOnRampWebError.CardDeclined.Hard::class,
+            CODE_GUEST_CARD_INSUFFICIENT_BALANCE to CoinbaseOnRampWebError.GuestCardInsufficientBalance::class,
+            CODE_GUEST_CARD_PREPAID_DECLINED to CoinbaseOnRampWebError.GuestCardPrepaidDeclined::class,
+            CODE_INVALID_BILLING_ZIP to CoinbaseOnRampWebError.BillingAddressInvalid.InvalidZip::class,
+            CODE_INVALID_BILLING_ADDRESS to CoinbaseOnRampWebError.BillingAddressInvalid.InvalidAddress::class,
+            CODE_INVALID_BILLING_NAME to CoinbaseOnRampWebError.InvalidBillingName::class,
+            CODE_INIT to CoinbaseOnRampWebError.InternalFailure.InitError::class,
+            CODE_INTERNAL to CoinbaseOnRampWebError.InternalFailure.Internal::class,
+            CODE_GOOGLE_PAY_BUTTON_NOT_FOUND to CoinbaseOnRampWebError.InternalFailure.GooglePayButtonNotFound::class,
         )
 
         for ((code, expectedType) in expected) {
@@ -223,29 +265,36 @@ class CoinbaseOnRampWebErrorTest {
 
     @Test
     fun fromErrorCodeUnknownCodeReturnsUnknown() {
-        assertIs<CoinbaseOnRampWebError.Unknown>(CoinbaseOnRampWebError.fromErrorCode("SOMETHING_NEW"))
+        assertIs<CoinbaseOnRampWebError.UnknownFailure.Unknown>(CoinbaseOnRampWebError.fromErrorCode("SOMETHING_NEW"))
     }
 
     @Test
     fun fromErrorCodeEmptyStringReturnsUnknown() {
-        assertIs<CoinbaseOnRampWebError.Unknown>(CoinbaseOnRampWebError.fromErrorCode(""))
+        assertIs<CoinbaseOnRampWebError.UnknownFailure.Unknown>(CoinbaseOnRampWebError.fromErrorCode(""))
     }
 
     @Test
     fun fromErrorCodeCaseSensitive() {
-        assertIs<CoinbaseOnRampWebError.Unknown>(CoinbaseOnRampWebError.fromErrorCode("error_code_internal"))
+        assertIs<CoinbaseOnRampWebError.UnknownFailure.Unknown>(CoinbaseOnRampWebError.fromErrorCode("error_code_internal"))
     }
 
     @Test
-    fun webViewTimeoutImplementsNotifiableError() {
-        val error = CoinbaseOnRampWebError.WebViewTimeout()
-        assertIs<NotifiableError>(error)
-        assertIs<Throwable>(error)
+    fun internalFailureGroupImplementsNotifiableError() {
+        assertIs<NotifiableError>(CoinbaseOnRampWebError.InternalFailure.InitError())
+        assertIs<NotifiableError>(CoinbaseOnRampWebError.InternalFailure.Internal())
+        assertIs<NotifiableError>(CoinbaseOnRampWebError.InternalFailure.WebViewTimeout())
+        assertIs<NotifiableError>(CoinbaseOnRampWebError.InternalFailure.GooglePayButtonNotFound())
+    }
+
+    @Test
+    fun unknownFailureGroupImplementsNotifiableError() {
+        assertIs<NotifiableError>(CoinbaseOnRampWebError.UnknownFailure.Unknown())
+        assertIs<NotifiableError>(CoinbaseOnRampWebError.UnknownFailure.MissingTransactionUuid())
     }
 
     @Test
     fun guestRegionMismatchIsNotNotifiable() {
-        val error = CoinbaseOnRampWebError.GuestRegionMismatch()
+        val error = CoinbaseOnRampWebError.RegionNotSupported.RegionMismatch()
         assertFalse(error is NotifiableError)
     }
 

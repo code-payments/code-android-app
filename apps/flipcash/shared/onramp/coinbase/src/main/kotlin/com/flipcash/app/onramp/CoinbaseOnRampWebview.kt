@@ -97,7 +97,7 @@ private fun WebView.configureForCoinbaseOnRamp(
                     "gmsVersion" to gmsVersion
                 },
             )
-            onPaymentFailure(CoinbaseOnRampWebError.WebViewTimeout())
+            onPaymentFailure(CoinbaseOnRampWebError.InternalFailure.WebViewTimeout())
         }
     }
 
@@ -221,7 +221,7 @@ private fun WebView.configureForCoinbaseOnRamp(
             error: WebResourceError?
         ) {
             if (request?.isForMainFrame == true) {
-                wrappedOnPaymentFailure(CoinbaseOnRampWebError.GuestGooglePayError())
+                wrappedOnPaymentFailure(CoinbaseOnRampWebError.TransactionFailed.GooglePayError())
             }
         }
     }

@@ -570,6 +570,9 @@
     <string name="error_title_onrampTransactionAvsValidationFailed">Billing Address Invalid</string>
     <string name="error_description_onrampTransactionAvsValidationFailed">Please check that your billing address is correct and try again</string>
 
+    <string name="error_title_onrampInvalidBillingName">Billing Name Invalid</string>
+    <string name="error_description_onrampInvalidBillingName">Please check that the name on your card matches your billing name and try again</string>
+
     <string name="error_title_onrampTransactionFailed">Something Went Wrong</string>
     <string name="error_description_onrampTransactionFailed">The Coinbase team has been notified and is investigating the issue. Your funds will arrive once resolved. We appreciate your patience</string>
 
