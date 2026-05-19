@@ -4,9 +4,13 @@ import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.getcode.opencode.internal.network.extensions.asSignature
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.sign
+import com.getcode.opencode.model.financial.MintMetadata
+import com.getcode.opencode.model.financial.usdc
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.StatelessSwapRequest
 import com.getcode.opencode.model.transactions.StatelessSwapServerParameters
 import com.getcode.opencode.solana.SolanaTransaction
+import com.getcode.opencode.solana.TransactionBuilder
 import com.getcode.solana.keys.Signature
 
 internal class IntentStatelessSwap(
@@ -20,7 +24,13 @@ internal class IntentStatelessSwap(
     }
 
     fun transaction(parameters: StatelessSwapServerParameters): SolanaTransaction {
-        TODO("Stateless swap transaction building not yet implemented")
+        return TransactionBuilder.statelessSwap(
+            response = parameters,
+            owner = request.owner.authorityPublicKey,
+            fromMint = MintMetadata.usdc,
+            toMint = MintMetadata.usdf,
+            amount = request.amount,
+        )
     }
 
     fun initiate(): TransactionService.StatelessSwapRequest {

@@ -73,4 +73,10 @@ interface TransactionRepository {
         destinationOwner: PublicKey,
         verifiedState: VerifiedState,
     ): Result<SwapId>
+
+    suspend fun sweepUsdc(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        amount: Long,
+    ): Result<Unit>
 }

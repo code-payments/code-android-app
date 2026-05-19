@@ -29,6 +29,7 @@ import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.shareable.ShareableConfirmationController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.TokenUpdater
+import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.core.R
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.SettingsController
@@ -122,6 +123,7 @@ class RealSessionController @Inject constructor(
     private val tokenCoordinator: TokenCoordinator,
     private val featureFlagController: FeatureFlagController,
     private val analytics: FlipcashAnalyticsService,
+    private val usdcSweep: UsdcDepositSweep,
     appSettingsCoordinator: AppSettingsCoordinator,
 ) : SessionController {
 
@@ -147,6 +149,7 @@ class RealSessionController @Inject constructor(
                 when {
                     authState is AuthState.LoggedOut -> {
                         stopPolling()
+                        cancelUpdates()
                         _state.update { SessionState() }
                     }
                     authState.isAtLeastRegistered -> {
@@ -218,6 +221,7 @@ class RealSessionController @Inject constructor(
             type = TraceType.Process,
         )
         startPolling()
+        swapUsdcIfNeeded()
         updateUserFlags()
         updateSettings()
         checkPendingItemsInFeed()
@@ -240,6 +244,7 @@ class RealSessionController @Inject constructor(
      */
     override fun onAppInBackground() {
         stopPolling()
+        cancelUpdates()
         billingClient.disconnect()
 
         toastController.clear()
@@ -260,10 +265,21 @@ class RealSessionController @Inject constructor(
         }
     }
 
+    private fun swapUsdcIfNeeded() {
+        val owner = userManager.accountCluster ?: return
+        if (userManager.authState.canAccessAuthenticatedApis) {
+            usdcSweep.execute(owner)
+        }
+    }
+
     private fun stopPolling() {
         tokenUpdater.stop()
         activityFeedUpdater.stop()
         profileUpdater.stop()
+    }
+
+    private fun cancelUpdates() {
+        usdcSweep.cancel()
     }
 
     private fun updateUserFlags() {
