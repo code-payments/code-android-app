@@ -85,8 +85,8 @@ class UserFlagsMapperTest {
         assertEquals(
             listOf(
                 OnRampProvider.Phantom,
-                OnRampProvider.Solflare,
-                OnRampProvider.Backpack,
+                OnRampProvider.Unknown,
+                OnRampProvider.Unknown,
                 OnRampProvider.ManualDeposit,
             ),
             result.supportedOnRampProviders,

@@ -153,6 +153,9 @@ dependencies {
     implementation(project(":apps:flipcash:shared:notifications"))
     implementation(project(":apps:flipcash:shared:onramp:coinbase"))
     implementation(project(":apps:flipcash:shared:onramp:deeplinks"))
+    implementation(libs.phantom.connect) {
+        exclude(group = "com.ionspin.kotlin", module = "multiplatform-crypto-libsodium-bindings-android-debug")
+    }
     implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:permissions"))
     implementation(project(":apps:flipcash:shared:phone"))

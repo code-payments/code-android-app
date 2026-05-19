@@ -40,8 +40,6 @@ sealed class Field<Stored, Domain>(
             options = listOf(
                 "Manual Deposit" to OnRampProvider.ManualDeposit,
                 "Phantom" to OnRampProvider.Phantom,
-                "Solflare" to OnRampProvider.Solflare,
-                "Backpack" to OnRampProvider.Backpack,
                 "Coinbase" to OnRampProvider.Coinbase(OnRampType.Virtual),
             )
         ),
@@ -63,8 +61,6 @@ sealed class Field<Stored, Domain>(
             options = listOf(
                 "Manual Deposit" to OnRampProvider.ManualDeposit,
                 "Phantom" to OnRampProvider.Phantom,
-                "Solflare" to OnRampProvider.Solflare,
-                "Backpack" to OnRampProvider.Backpack,
                 "Coinbase" to OnRampProvider.Coinbase(OnRampType.Virtual),
             )
         )
@@ -178,8 +174,6 @@ sealed class Field<Stored, Domain>(
 internal fun OnRampProvider.Defined.encode(): String = when (this) {
     is OnRampProvider.ManualDeposit -> "manual_deposit"
     is OnRampProvider.Phantom -> "phantom"
-    is OnRampProvider.Solflare -> "solflare"
-    is OnRampProvider.Backpack -> "backpack"
     is OnRampProvider.Coinbase -> "coinbase"
 }
 
@@ -187,8 +181,6 @@ internal fun OnRampProvider.Defined.encode(): String = when (this) {
 internal fun decodeOnRampProvider(raw: String): OnRampProvider.Defined? = when (raw) {
     "manual_deposit" -> OnRampProvider.ManualDeposit
     "phantom" -> OnRampProvider.Phantom
-    "solflare" -> OnRampProvider.Solflare
-    "backpack" -> OnRampProvider.Backpack
     "coinbase" -> OnRampProvider.Coinbase(OnRampType.Virtual)
     else -> null
 }
@@ -196,8 +188,6 @@ internal fun decodeOnRampProvider(raw: String): OnRampProvider.Defined? = when (
 private fun OnRampProvider.Defined.displayName(): String = when (this) {
     is OnRampProvider.ManualDeposit -> "Manual Deposit"
     is OnRampProvider.Phantom -> "Phantom"
-    is OnRampProvider.Solflare -> "Solflare"
-    is OnRampProvider.Backpack -> "Backpack"
     is OnRampProvider.Coinbase -> "Coinbase"
 }
 

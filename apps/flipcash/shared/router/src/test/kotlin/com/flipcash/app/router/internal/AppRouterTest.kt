@@ -4,10 +4,8 @@ import android.util.Base64
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
-import com.flipcash.app.core.onramp.deeplinks.OnRampDeeplinkOrigin
 import com.flipcash.services.user.AuthState
 import com.getcode.solana.keys.Mint
-import com.getcode.vendor.Base58
 import dev.theolm.rinku.DeepLink
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -90,73 +88,6 @@ class AppRouterTest {
 
     // endregion
 
-    // region classify — ExternalWallet
-
-    @Test
-    fun `classify recognizes external wallet connection`() {
-        val pubKey = Base58.encode(ByteArray(32) { 1 })
-        val nonce = Base58.encode(ByteArray(24) { 2 })
-        val data = Base58.encode(ByteArray(48) { 3 })
-
-        val url = "https://app.flipcash.com/external/phantom/connected" +
-                "?origin=menu" +
-                "&phantom_encryption_public_key=$pubKey" +
-                "&nonce=$nonce" +
-                "&data=$data"
-
-        val type = router.classify(DeepLink(url))
-        assertIs<DeeplinkType.ExternalWalletConnection>(type)
-        assertEquals(OnRampDeeplinkOrigin.Menu, type.origin)
-        assertTrue(type.result != null)
-        assertNull(type.error)
-    }
-
-    @Test
-    fun `classify recognizes external wallet connection error`() {
-        val url = "https://app.flipcash.com/external/phantom/connected" +
-                "?origin=menu" +
-                "&errorCode=4001" +
-                "&errorMessage=User+rejected+request"
-
-        val type = router.classify(DeepLink(url))
-        assertIs<DeeplinkType.ExternalWalletConnection>(type)
-        assertNull(type.result)
-        assertEquals("4001", type.error?.errorCode)
-    }
-
-    @Test
-    fun `classify recognizes external wallet signed transaction`() {
-        val nonce = Base58.encode(ByteArray(24) { 5 })
-        val data = Base58.encode(ByteArray(64) { 6 })
-
-        val url = "https://app.flipcash.com/external/phantom/signed" +
-                "?origin=menu" +
-                "&nonce=$nonce" +
-                "&data=$data"
-
-        val type = router.classify(DeepLink(url))
-        assertIs<DeeplinkType.ExternalWalletSignedTransaction>(type)
-        assertEquals(OnRampDeeplinkOrigin.Menu, type.origin)
-        assertTrue(type.result != null)
-    }
-
-    @Test
-    fun `classify recognizes wallet origin`() {
-        val nonce = Base58.encode(ByteArray(24) { 5 })
-        val data = Base58.encode(ByteArray(64) { 6 })
-
-        val url = "https://app.flipcash.com/external/phantom/signed" +
-                "?origin=wallet" +
-                "&nonce=$nonce" +
-                "&data=$data"
-
-        val type = router.classify(DeepLink(url))
-        assertIs<DeeplinkType.ExternalWalletSignedTransaction>(type)
-        assertEquals(OnRampDeeplinkOrigin.Wallet, type.origin)
-    }
-
-    // endregion
-
     // region classify — EmailVerification
 
     @Test
@@ -199,6 +130,12 @@ class AppRouterTest {
         assertNull(type)
     }
 
+    @Test
+    fun `classify returns null for old external wallet paths`() {
+        val type = router.classify(DeepLink("https://app.flipcash.com/external/phantom/connected?origin=menu"))
+        assertNull(type)
+    }
+
     // endregion
 
     // region dispatch — Not logged in
@@ -229,24 +166,6 @@ class AppRouterTest {
     fun `dispatch redirects cash link to login when auth state is unknown`() {
         authState = AuthState.Unknown
         val action = router.dispatch(DeepLink("https://app.flipcash.com/c/e=entropy"))
-        assertIs<DeeplinkAction.Navigate>(action)
-        assertIs<AppRoute.Onboarding.Login>(action.routes.single())
-    }
-
-    @Test
-    fun `dispatch redirects external wallet to login when logged out`() {
-        loggedOut()
-        val pubKey = Base58.encode(ByteArray(32) { 1 })
-        val nonce = Base58.encode(ByteArray(24) { 2 })
-        val data = Base58.encode(ByteArray(48) { 3 })
-
-        val url = "https://app.flipcash.com/external/phantom/connected" +
-                "?origin=menu" +
-                "&phantom_encryption_public_key=$pubKey" +
-                "&nonce=$nonce" +
-                "&data=$data"
-
-        val action = router.dispatch(DeepLink(url))
         assertIs<DeeplinkAction.Navigate>(action)
         assertIs<AppRoute.Onboarding.Login>(action.routes.single())
     }
@@ -299,60 +218,6 @@ class AppRouterTest {
         assertIs<AppRoute.Token.Info>(tokenInfo)
         assertEquals(Mint(mint), tokenInfo.mint)
         assertTrue(tokenInfo.fromDeeplink)
-    }
-
-    // endregion
-
-    // region dispatch — Logged in: ExternalWallet
-
-    @Test
-    fun `dispatch returns ExternalWallet for wallet connection deeplink`() {
-        loggedIn()
-        val pubKey = Base58.encode(ByteArray(32) { 1 })
-        val nonce = Base58.encode(ByteArray(24) { 2 })
-        val data = Base58.encode(ByteArray(48) { 3 })
-
-        val url = "https://app.flipcash.com/external/phantom/connected" +
-                "?origin=menu" +
-                "&phantom_encryption_public_key=$pubKey" +
-                "&nonce=$nonce" +
-                "&data=$data"
-
-        val action = router.dispatch(DeepLink(url))
-        assertIs<DeeplinkAction.ExternalWallet>(action)
-        assertIs<DeeplinkType.ExternalWalletConnection>(action.type)
-    }
-
-    @Test
-    fun `dispatch returns ExternalWallet for signed transaction deeplink`() {
-        loggedIn()
-        val nonce = Base58.encode(ByteArray(24) { 5 })
-        val data = Base58.encode(ByteArray(64) { 6 })
-
-        val url = "https://app.flipcash.com/external/phantom/signed" +
-                "?origin=wallet" +
-                "&nonce=$nonce" +
-                "&data=$data"
-
-        val action = router.dispatch(DeepLink(url))
-        assertIs<DeeplinkAction.ExternalWallet>(action)
-        assertIs<DeeplinkType.ExternalWalletSignedTransaction>(action.type)
-    }
-
-    @Test
-    fun `dispatch returns ExternalWallet even when wallet reports error`() {
-        loggedIn()
-        val url = "https://app.flipcash.com/external/phantom/connected" +
-                "?origin=menu" +
-                "&errorCode=4001" +
-                "&errorMessage=User+rejected"
-
-        val action = router.dispatch(DeepLink(url))
-        assertIs<DeeplinkAction.ExternalWallet>(action)
-        val type = action.type
-        assertIs<DeeplinkType.ExternalWalletConnection>(type)
-        assertNull(type.result)
-        assertEquals("4001", type.error?.errorCode)
     }
 
     // endregion

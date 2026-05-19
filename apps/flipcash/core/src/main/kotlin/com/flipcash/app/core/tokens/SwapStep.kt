@@ -30,6 +30,5 @@ sealed interface SwapStep : FlowStep, Parcelable {
     @Serializable
     data class Processing(
         val swapId: SwapId,
-        val awaitExternalWallet: Boolean = false,
     ) : SwapStep, NonDismissableRoute, NonDraggableRoute
 }

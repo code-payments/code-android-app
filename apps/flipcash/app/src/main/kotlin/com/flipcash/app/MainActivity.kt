@@ -19,8 +19,6 @@ import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.verification.email.EmailCodeChannel
 import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
-import com.flipcash.app.onramp.ExternalWalletOnRampController
-import com.flipcash.app.onramp.LocalExternalWalletOnRampController
 import com.flipcash.app.onramp.LocalCoinbaseOnRampController
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.featureflags.FeatureFlagController
@@ -118,9 +116,6 @@ class MainActivity : FragmentActivity() {
     lateinit var emailCodeChannel: EmailCodeChannel
 
     @Inject
-    lateinit var externalWalletOnRampController: ExternalWalletOnRampController
-
-    @Inject
     lateinit var coinbaseOnRampController: CoinbaseOnRampController
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -146,7 +141,6 @@ class MainActivity : FragmentActivity() {
                 LocalBillPlaygroundController provides billPlaygroundController,
                 LocalAppUpdater provides appUpdater,
                 LocalEmailCodeChannel provides emailCodeChannel,
-                LocalExternalWalletOnRampController provides externalWalletOnRampController,
                 LocalCoinbaseOnRampController provides coinbaseOnRampController,
                 LocalUiTesting provides intent.getBooleanExtra(UI_TEST, false),
             ) {

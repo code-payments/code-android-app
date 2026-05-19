@@ -15,6 +15,7 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.currency.PreferredCurrencyController
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.trace
+import dev.bmcreations.phantom.connect.PhantomSdk
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -41,7 +42,7 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
 
     override fun onCreate() {
         super.onCreate()
-
+        PhantomSdk.init(this)
         authManager.init()
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)

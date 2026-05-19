@@ -37,9 +37,8 @@ private fun FlipcashAccountService.UserFlags.OnRampProvider.toDomain(): OnRampPr
         FlipcashAccountService.UserFlags.OnRampProvider.COINBASE_PHYSICAL_CREDIT -> OnRampProvider.Coinbase(OnRampType.PhysicalCredit)
         FlipcashAccountService.UserFlags.OnRampProvider.MANUAL_DEPOSIT -> OnRampProvider.ManualDeposit
         FlipcashAccountService.UserFlags.OnRampProvider.PHANTOM -> OnRampProvider.Phantom
-        FlipcashAccountService.UserFlags.OnRampProvider.SOLFLARE -> OnRampProvider.Solflare
-        FlipcashAccountService.UserFlags.OnRampProvider.BACKPACK -> OnRampProvider.Backpack
-        // Unhandled for now
+        FlipcashAccountService.UserFlags.OnRampProvider.SOLFLARE,
+        FlipcashAccountService.UserFlags.OnRampProvider.BACKPACK,
         FlipcashAccountService.UserFlags.OnRampProvider.BASE,
         FlipcashAccountService.UserFlags.OnRampProvider.UNKNOWN_ON_RAMP_PROVIDER,
         FlipcashAccountService.UserFlags.OnRampProvider.UNRECOGNIZED -> OnRampProvider.Unknown

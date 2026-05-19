@@ -1,30 +1,19 @@
 package com.flipcash.app.onramp.internal
 
-import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.onramp.deeplinks.ExternalWalletConnection
 import com.flipcash.app.onramp.DeeplinkOnRampError
-import com.flipcash.app.onramp.ExternalWalletOnRampController
-import com.flipcash.app.onramp.ExternalWalletOnRampState
+import com.flipcash.app.onramp.PhantomWalletController
 import com.flipcash.app.userflags.UserFlagsCoordinator
-import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.controllers.TransactionOperations
-import com.getcode.opencode.exchange.VerifiedFiat
-import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.rpc.RpcConfig
-import com.ionspin.kotlin.crypto.box.Box
-import com.ionspin.kotlin.crypto.box.BoxKeyPair
 import com.solana.networking.HttpNetworkDriver
 import com.solana.networking.HttpRequest
+import dev.bmcreations.phantom.connect.PhantomSdk
+import dev.bmcreations.phantom.connect.wallet.PhantomWalletConnector
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
-import io.mockk.unmockkObject
 import kotlinx.coroutines.test.runTest
-import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertTrue
@@ -36,47 +25,22 @@ class ExternalWalletBalanceCheckTest {
     private val transactionController = mockk<TransactionOperations>(relaxed = true)
     private val networkDriver = mockk<HttpNetworkDriver>()
     private val rpcConfig = RpcConfig(networkDriver = networkDriver, rpcUrl = "https://localhost")
+    private val phantomSdk = mockk<PhantomSdk>(relaxed = true)
+    private val phantomConnector = mockk<PhantomWalletConnector>(relaxed = true)
 
-    private lateinit var controller: ExternalWalletOnRampController
+    private lateinit var controller: PhantomWalletController
 
     private val testPublicKey = PublicKey("11111111111111111111111111111111")
 
     @Before
     fun setUp() {
-        mockkObject(Box)
-        every { Box.keypair() } returns mockk<BoxKeyPair>(relaxed = true)
-        controller = ExternalWalletOnRampController(
+        controller = PhantomWalletController(
             userManager = userManager,
             userFlags = userFlags,
             transactionController = transactionController,
             rpcConfig = rpcConfig,
-        )
-    }
-
-    @After
-    fun tearDown() {
-        unmockkObject(Box)
-    }
-
-    private fun putControllerInConnectedState(requiredQuarks: Long = 10_000_000L) {
-        controller.transitionTo(
-            ExternalWalletOnRampState.Connected(
-                origin = AppRoute.Token.CurrencyCreator,
-                provider = OnRampProvider.Phantom,
-                connection = ExternalWalletConnection(
-                    publicKey = testPublicKey,
-                    session = "test-session",
-                ),
-                encryptionPublicKey = List(32) { 0.toByte() },
-            )
-        )
-        controller.setAmount(
-            VerifiedFiat(
-                localFiat = LocalFiat(
-                    usdf = Fiat(quarks = requiredQuarks),
-                    nativeAmount = Fiat(quarks = requiredQuarks),
-                )
-            )
+            phantomSdk = phantomSdk,
+            phantomConnector = phantomConnector,
         )
     }
 
@@ -94,131 +58,96 @@ class ExternalWalletBalanceCheckTest {
     // ── Insufficient SOL ──
 
     @Test
-    fun `insufficient SOL transitions to Failed with InsufficientSol`() = runTest {
-        putControllerInConnectedState()
+    fun `insufficient SOL returns failure with InsufficientSol`() = runTest {
         mockRpcResponses(solLamports = 1_000L, usdcQuarks = 100_000_000L)
 
-        controller.createAndValidateSwapTransaction()
+        val result = controller.checkBalances(testPublicKey, requiredUsdcQuarks = 10_000_000L)
 
-        val state = controller.state.value
-        assertTrue(state is ExternalWalletOnRampState.Failed, "Expected Failed, got $state")
-        assertTrue(state.error is DeeplinkOnRampError.InsufficientSol, "Expected InsufficientSol, got ${state.error}")
+        assertTrue(result.isFailure, "Expected failure")
+        assertTrue(result.exceptionOrNull() is DeeplinkOnRampError.InsufficientSol, "Expected InsufficientSol")
     }
 
     @Test
-    fun `zero SOL transitions to Failed with InsufficientSol`() = runTest {
-        putControllerInConnectedState()
+    fun `zero SOL returns failure with InsufficientSol`() = runTest {
         mockRpcResponses(solLamports = 0L, usdcQuarks = 100_000_000L)
 
-        controller.createAndValidateSwapTransaction()
+        val result = controller.checkBalances(testPublicKey, requiredUsdcQuarks = 10_000_000L)
 
-        val state = controller.state.value
-        assertTrue(state is ExternalWalletOnRampState.Failed)
-        assertTrue(state.error is DeeplinkOnRampError.InsufficientSol)
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is DeeplinkOnRampError.InsufficientSol)
     }
 
     // ── Insufficient USDC ──
 
     @Test
-    fun `insufficient USDC transitions to Failed with InsufficientUsdc`() = runTest {
-        putControllerInConnectedState(requiredQuarks = 10_000_000L)
+    fun `insufficient USDC returns failure with InsufficientUsdc`() = runTest {
         mockRpcResponses(solLamports = 10_000_000L, usdcQuarks = 1_000L)
 
-        controller.createAndValidateSwapTransaction()
+        val result = controller.checkBalances(testPublicKey, requiredUsdcQuarks = 10_000_000L)
 
-        val state = controller.state.value
-        assertTrue(state is ExternalWalletOnRampState.Failed, "Expected Failed, got $state")
-        assertTrue(state.error is DeeplinkOnRampError.InsufficientUsdc, "Expected InsufficientUsdc, got ${state.error}")
+        assertTrue(result.isFailure, "Expected failure")
+        assertTrue(result.exceptionOrNull() is DeeplinkOnRampError.InsufficientUsdc, "Expected InsufficientUsdc")
     }
 
     @Test
-    fun `zero USDC transitions to Failed with InsufficientUsdc`() = runTest {
-        putControllerInConnectedState(requiredQuarks = 10_000_000L)
+    fun `zero USDC returns failure with InsufficientUsdc`() = runTest {
         mockRpcResponses(solLamports = 10_000_000L, usdcQuarks = 0L)
 
-        controller.createAndValidateSwapTransaction()
+        val result = controller.checkBalances(testPublicKey, requiredUsdcQuarks = 10_000_000L)
 
-        val state = controller.state.value
-        assertTrue(state is ExternalWalletOnRampState.Failed)
-        assertTrue(state.error is DeeplinkOnRampError.InsufficientUsdc)
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is DeeplinkOnRampError.InsufficientUsdc)
     }
 
-    // ── RPC errors wrap as FailedToCreateTransaction ──
+    // ── RPC errors ──
 
     @Test
-    fun `RPC error on getBalance transitions to Failed with FailedToCreateTransaction`() = runTest {
-        putControllerInConnectedState()
+    fun `RPC error on getBalance returns failure`() = runTest {
         coEvery { networkDriver.makeHttpRequest(any()) } returns errorJson(-1, "Internal error")
 
-        controller.createAndValidateSwapTransaction()
+        val result = controller.checkBalances(testPublicKey, requiredUsdcQuarks = 10_000_000L)
 
-        val state = controller.state.value
-        assertTrue(state is ExternalWalletOnRampState.Failed, "Expected Failed, got $state")
-        assertTrue(
-            state.error is DeeplinkOnRampError.FailedToCreateTransaction,
-            "Expected FailedToCreateTransaction, got ${state.error}"
-        )
+        assertTrue(result.isFailure, "Expected failure")
     }
 
     // ── Boundary: exact threshold passes ──
 
     @Test
     fun `exact SOL threshold passes balance check`() = runTest {
-        putControllerInConnectedState(requiredQuarks = 5_000_000L)
-        // 6_500_000 is MINIMUM_SOL_LAMPORTS, 5_000_000 quarks matched exactly
-        mockRpcResponses(solLamports = 6_500_000L, usdcQuarks = 5_000_000L)
+        mockRpcResponses(solLamports = PhantomWalletController.MINIMUM_SOL_LAMPORTS, usdcQuarks = 5_000_000L)
 
-        controller.createAndValidateSwapTransaction()
+        val result = controller.checkBalances(testPublicKey, requiredUsdcQuarks = 5_000_000L)
 
-        val state = controller.state.value
-        if (state is ExternalWalletOnRampState.Failed) {
-            assertTrue(
-                state.error !is DeeplinkOnRampError.InsufficientSol &&
-                    state.error !is DeeplinkOnRampError.InsufficientUsdc,
-                "Should not fail with balance errors, got ${state.error}"
-            )
-        }
+        assertTrue(result.isSuccess, "Expected success at exact SOL threshold")
     }
 
     @Test
     fun `SOL just below threshold fails with InsufficientSol`() = runTest {
-        putControllerInConnectedState()
-        mockRpcResponses(solLamports = 6_499_999L, usdcQuarks = 100_000_000L)
+        mockRpcResponses(solLamports = PhantomWalletController.MINIMUM_SOL_LAMPORTS - 1, usdcQuarks = 100_000_000L)
 
-        controller.createAndValidateSwapTransaction()
+        val result = controller.checkBalances(testPublicKey, requiredUsdcQuarks = 10_000_000L)
 
-        val state = controller.state.value
-        assertTrue(state is ExternalWalletOnRampState.Failed)
-        assertTrue(state.error is DeeplinkOnRampError.InsufficientSol)
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is DeeplinkOnRampError.InsufficientSol)
     }
 
     @Test
     fun `USDC exactly matching required amount passes balance check`() = runTest {
-        putControllerInConnectedState(requiredQuarks = 10_000_000L)
         mockRpcResponses(solLamports = 10_000_000L, usdcQuarks = 10_000_000L)
 
-        controller.createAndValidateSwapTransaction()
+        val result = controller.checkBalances(testPublicKey, requiredUsdcQuarks = 10_000_000L)
 
-        val state = controller.state.value
-        if (state is ExternalWalletOnRampState.Failed) {
-            assertTrue(
-                state.error !is DeeplinkOnRampError.InsufficientSol &&
-                    state.error !is DeeplinkOnRampError.InsufficientUsdc,
-                "Should not fail with balance errors, got ${state.error}"
-            )
-        }
+        assertTrue(result.isSuccess, "Expected success with exact USDC amount")
     }
 
     @Test
     fun `USDC one quark below required fails with InsufficientUsdc`() = runTest {
-        putControllerInConnectedState(requiredQuarks = 10_000_000L)
         mockRpcResponses(solLamports = 10_000_000L, usdcQuarks = 9_999_999L)
 
-        controller.createAndValidateSwapTransaction()
+        val result = controller.checkBalances(testPublicKey, requiredUsdcQuarks = 10_000_000L)
 
-        val state = controller.state.value
-        assertTrue(state is ExternalWalletOnRampState.Failed)
-        assertTrue(state.error is DeeplinkOnRampError.InsufficientUsdc)
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is DeeplinkOnRampError.InsufficientUsdc)
     }
 
     companion object {

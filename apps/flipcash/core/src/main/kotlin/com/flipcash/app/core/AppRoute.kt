@@ -153,7 +153,6 @@ sealed interface AppRoute : NavKey, Parcelable {
             val swapId: SwapId,
             val swapPurpose: SwapPurpose? = null,
             val amount: VerifiedFiat? = null,
-            val awaitExternalWallet: Boolean = false,
             val isFundingShortfall: Boolean = false,
         ) : Token, NonDismissableRoute, NonDraggableRoute
 
