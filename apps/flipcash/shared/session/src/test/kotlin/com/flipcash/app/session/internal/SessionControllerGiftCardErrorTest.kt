@@ -102,6 +102,7 @@ class SessionControllerGiftCardErrorTest {
             featureFlagController = mockk(relaxed = true),
             analytics = analytics,
             appSettingsCoordinator = mockk(relaxed = true),
+            usdcSweep = mockk(relaxed = true),
         )
     }
 
