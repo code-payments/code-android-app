@@ -10,7 +10,7 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -29,7 +29,7 @@ class CurrencyViewModel @Inject constructor(
     preferredCurrencyController: PreferredCurrencyController,
     private val resources: ResourceHelper,
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<CurrencyViewModel.State, CurrencyViewModel.Event>(
+) : BaseViewModel<CurrencyViewModel.State, CurrencyViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

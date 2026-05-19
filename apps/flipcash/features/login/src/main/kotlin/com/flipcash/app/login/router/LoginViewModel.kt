@@ -10,7 +10,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.encodeBase64
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filter
@@ -30,7 +30,7 @@ class LoginViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalyticsService,
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<LoginViewModel.State, LoginViewModel.Event>(
+) : BaseViewModel<LoginViewModel.State, LoginViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

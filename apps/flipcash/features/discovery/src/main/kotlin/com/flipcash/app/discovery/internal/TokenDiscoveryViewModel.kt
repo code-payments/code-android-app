@@ -12,7 +12,7 @@ import com.getcode.opencode.model.ui.DiscoverCategory
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
@@ -28,7 +28,7 @@ internal class TokenDiscoveryViewModel @Inject constructor(
     private val resources: ResourceHelper,
     featureFlags: FeatureFlagController,
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<TokenDiscoveryViewModel.State, TokenDiscoveryViewModel.Event>(
+) : BaseViewModel<TokenDiscoveryViewModel.State, TokenDiscoveryViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

@@ -39,7 +39,7 @@ class <Name>ViewModelTest {
     @get:Rule val mainCoroutineRule = MainCoroutineRule()
 
     // Dependencies as mockk(relaxed = true)
-    // VMs extend BaseViewModel2<State, Event> with a companion `updateStateForEvent` reducer
+    // VMs extend BaseViewModel<State, Event> with a companion `updateStateForEvent` reducer
     // Test the pure updateStateForEvent reducer function directly when possible
     // For integration: create VM, dispatch events, advanceUntilIdle(), assert stateFlow value
 }

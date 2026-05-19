@@ -14,7 +14,7 @@ import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.PhoneVerificationError
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -39,7 +39,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
     private val profileController: ProfileController,
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
-) : BaseViewModel2<PhoneVerificationViewModel.State, PhoneVerificationViewModel.Event>(
+) : BaseViewModel<PhoneVerificationViewModel.State, PhoneVerificationViewModel.Event>(
     initialState = State(selectedLocale = phoneUtils.defaultCountryLocale),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
