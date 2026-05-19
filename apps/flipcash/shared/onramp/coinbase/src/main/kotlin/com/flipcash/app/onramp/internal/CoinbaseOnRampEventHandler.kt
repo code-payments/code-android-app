@@ -187,7 +187,7 @@ internal class CoinbaseOnRampEventHandler(
                         metadata = {
                             "webViewVersion" to webViewVersion
                             "gmsVersion" to gmsVersion
-                            if (errorCode == "ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND" && data != null) {
+                            if (errorCode == CoinbaseOnRampWebError.CODE_GOOGLE_PAY_BUTTON_NOT_FOUND && data != null) {
                                 "buttons" to data.optInt("buttons", -1)
                                 "gpayElements" to data.optInt("gpayElements", -1)
                                 "iframes" to data.optInt("iframes", -1)
@@ -265,38 +265,124 @@ internal class CoinbaseOnRampEventHandler(
     }
 }
 
-sealed class CoinbaseOnRampWebError(val data: String? = null): Throwable() {
-    class Unknown(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
-    class MissingTransactionUuid(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
+/** @see [Docs](https://docs.cdp.coinbase.com/onramp/headless-onramp/overview#events-names) */
+sealed class CoinbaseOnRampWebError(val data: String? = null) : Throwable(data) {
+
+    // --- Grouped errors (shared UI) ---
+
+    /** "Something Went Wrong" — unknown / unmapped error codes */
+    sealed class UnknownFailure(data: String?) : CoinbaseOnRampWebError(data), NotifiableError {
+        class Unknown(data: String? = null) : UnknownFailure(data)
+        class MissingTransactionUuid(data: String? = null) : UnknownFailure(data)
+    }
+
+    /** "Card Declined" — declined by issuing bank */
+    sealed class CardDeclined(data: String?) : CoinbaseOnRampWebError(data) {
+        class Soft(data: String? = null) : CardDeclined(data)
+        class Hard(data: String? = null) : CardDeclined(data)
+        class BuyFailed(data: String? = null) : CardDeclined(data)
+    }
+
+    /** "Billing Address Invalid" — AVS / zip / address mismatch */
+    sealed class BillingAddressInvalid(data: String?) : CoinbaseOnRampWebError(data) {
+        class AvsValidationFailed(data: String? = null) : BillingAddressInvalid(data)
+        class InvalidZip(data: String? = null) : BillingAddressInvalid(data)
+        class InvalidAddress(data: String? = null) : BillingAddressInvalid(data)
+    }
+
+    /** "Something Went Wrong" — internal / infra failures */
+    sealed class InternalFailure(data: String?) : CoinbaseOnRampWebError(data), NotifiableError {
+        class Internal(data: String? = null) : InternalFailure(data)
+        class GooglePayButtonNotFound(data: String? = null) : InternalFailure(data)
+        class WebViewTimeout(data: String? = null) : InternalFailure(data)
+        class InitError(data: String? = null) : InternalFailure(data)
+    }
+
+    /** "Something Went Wrong" — transaction processing failure */
+    sealed class TransactionFailed(data: String?) : CoinbaseOnRampWebError(data) {
+        class GooglePayError(data: String? = null) : TransactionFailed(data)
+        class SendFailed(data: String? = null) : TransactionFailed(data), NotifiableError
+        class ProcessingFailed(data: String? = null) : TransactionFailed(data), NotifiableError
+    }
+
+    /** "Your Region Isn't Supported" — region / asset availability */
+    sealed class RegionNotSupported(data: String?) : CoinbaseOnRampWebError(data) {
+        class RegionMismatch(data: String? = null) : RegionNotSupported(data)
+        class AssetNotTradable(data: String? = null) : RegionNotSupported(data)
+    }
+
+    // --- Single-variant errors ---
+
     class GuestCardNotDebit(data: String? = null) : CoinbaseOnRampWebError(data)
-    class GuestGooglePayError(data: String? = null) : CoinbaseOnRampWebError(data)
-    class GuestTransactionBuyFailed(data: String? = null) : CoinbaseOnRampWebError(data)
-    class GuestTransactionSendFailed(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
-    class GuestTransactionAvsValidationFailed(data: String? = null) : CoinbaseOnRampWebError(data)
-    class GuestTransactionTransactionFailed(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
-    class GuestRegionMismatch(data: String? = null) : CoinbaseOnRampWebError(data)
+    class GuestCardRiskDeclined(data: String? = null) : CoinbaseOnRampWebError(data)
+    class GuestPermissionDenied(data: String? = null) : CoinbaseOnRampWebError(data)
+    class GuestWeeklyTransactionLimitReached(data: String? = null) : CoinbaseOnRampWebError(data)
+    class GuestTransactionMaxLimitReached(data: String? = null) : CoinbaseOnRampWebError(data)
     class GuestGooglePayNotReady(data: String? = null) : CoinbaseOnRampWebError(data)
-    class Internal(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
-    class GooglePayButtonNotFound(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
-    class WebViewTimeout(data: String? = null) : CoinbaseOnRampWebError(data), NotifiableError
+    class GuestGooglePayNotSupported(data: String? = null) : CoinbaseOnRampWebError(data)
+    class GuestCardInsufficientBalance(data: String? = null) : CoinbaseOnRampWebError(data)
+    class GuestCardPrepaidDeclined(data: String? = null) : CoinbaseOnRampWebError(data)
+    class InvalidBillingName(data: String? = null) : CoinbaseOnRampWebError(data)
     class PaymentSheetTimeout(data: String? = null) : CoinbaseOnRampWebError(data)
 
     companion object {
-        fun fromErrorCode(errorCode: String, data: String? = null): CoinbaseOnRampWebError {
-            return when (errorCode) {
-                "ERROR_CODE_MISSING_TRANSACTION_UUID" -> MissingTransactionUuid(data)
-                "ERROR_CODE_GUEST_CARD_NOT_DEBIT" -> GuestCardNotDebit(data)
-                "ERROR_CODE_GUEST_GOOGLE_PAY_ERROR" -> GuestGooglePayError(data)
-                "ERROR_CODE_GUEST_TRANSACTION_BUY_FAILED" -> GuestTransactionBuyFailed(data)
-                "ERROR_CODE_GUEST_TRANSACTION_SEND_FAILED" -> GuestTransactionSendFailed(data)
-                "ERROR_CODE_GUEST_TRANSACTION_AVS_VALIDATION_FAILED" -> GuestTransactionAvsValidationFailed(data)
-                "ERROR_CODE_GUEST_TRANSACTION_TRANSACTION_FAILED" -> GuestTransactionTransactionFailed(data)
-                "ERROR_CODE_GUEST_REGION_MISMATCH" -> GuestRegionMismatch(data)
-                "ERROR_CODE_GUEST_GOOGLE_PAY_NOT_READY" -> GuestGooglePayNotReady(data)
-                "ERROR_CODE_INTERNAL" -> Internal(data)
-                "ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND" -> GooglePayButtonNotFound(data)
-                else -> Unknown(data)
-            }
-        }
+        const val CODE_INIT = "ERROR_CODE_INIT"
+        const val CODE_INTERNAL = "ERROR_CODE_INTERNAL"
+        const val CODE_MISSING_TRANSACTION_UUID = "ERROR_CODE_MISSING_TRANSACTION_UUID"
+        const val CODE_GOOGLE_PAY_BUTTON_NOT_FOUND = "ERROR_CODE_GOOGLE_PAY_BUTTON_NOT_FOUND"
+        const val CODE_GUEST_INVALID_CARD = "ERROR_CODE_GUEST_INVALID_CARD"
+        const val CODE_GUEST_CARD_NOT_DEBIT = "ERROR_CODE_GUEST_CARD_NOT_DEBIT"
+        const val CODE_GUEST_CARD_SOFT_DECLINED = "ERROR_CODE_GUEST_CARD_SOFT_DECLINED"
+        const val CODE_GUEST_CARD_HARD_DECLINED = "ERROR_CODE_GUEST_CARD_HARD_DECLINED"
+        const val CODE_GUEST_CARD_RISK_DECLINED = "ERROR_CODE_GUEST_CARD_RISK_DECLINED"
+        const val CODE_GUEST_CARD_INSUFFICIENT_BALANCE = "ERROR_CODE_GUEST_CARD_INSUFFICIENT_BALANCE"
+        const val CODE_GUEST_CARD_PREPAID_DECLINED = "ERROR_CODE_GUEST_CARD_PREPAID_DECLINED"
+        const val CODE_GUEST_PERMISSION_DENIED = "ERROR_CODE_GUEST_PERMISSION_DENIED"
+        const val CODE_GUEST_REGION_MISMATCH = "ERROR_CODE_GUEST_REGION_MISMATCH"
+        const val CODE_GUEST_GOOGLE_PAY_ERROR = "ERROR_CODE_GUEST_GOOGLE_PAY_ERROR"
+        const val CODE_GUEST_GOOGLE_PAY_NOT_READY = "ERROR_CODE_GUEST_GOOGLE_PAY_NOT_READY"
+        const val CODE_GUEST_GOOGLE_PAY_NOT_SUPPORTED = "ERROR_CODE_GUEST_GOOGLE_PAY_NOT_SUPPORTED"
+        const val CODE_GUEST_TRANSACTION_LIMIT = "ERROR_CODE_GUEST_TRANSACTION_LIMIT"
+        const val CODE_GUEST_TRANSACTION_COUNT = "ERROR_CODE_GUEST_TRANSACTION_COUNT"
+        const val CODE_GUEST_TRANSACTION_BUY_FAILED = "ERROR_CODE_GUEST_TRANSACTION_BUY_FAILED"
+        const val CODE_GUEST_TRANSACTION_SEND_FAILED = "ERROR_CODE_GUEST_TRANSACTION_SEND_FAILED"
+        const val CODE_GUEST_TRANSACTION_AVS_VALIDATION_FAILED = "ERROR_CODE_GUEST_TRANSACTION_AVS_VALIDATION_FAILED"
+        const val CODE_GUEST_TRANSACTION_TRANSACTION_FAILED = "ERROR_CODE_GUEST_TRANSACTION_TRANSACTION_FAILED"
+        const val CODE_ASSET_NOT_TRADABLE = "ERROR_CODE_ASSET_NOT_TRADABLE"
+        const val CODE_INVALID_BILLING_ZIP = "ERROR_CODE_INVALID_BILLING_ZIP"
+        const val CODE_INVALID_BILLING_ADDRESS = "ERROR_CODE_INVALID_BILLING_ADDRESS"
+        const val CODE_INVALID_BILLING_NAME = "ERROR_CODE_INVALID_BILLING_NAME"
+
+        private val codeMap: Map<String, (String?) -> CoinbaseOnRampWebError> = mapOf(
+            CODE_MISSING_TRANSACTION_UUID to { UnknownFailure.MissingTransactionUuid(it) },
+            CODE_GUEST_INVALID_CARD to ::GuestCardNotDebit,
+            CODE_GUEST_CARD_NOT_DEBIT to ::GuestCardNotDebit,
+            CODE_GUEST_TRANSACTION_LIMIT to ::GuestWeeklyTransactionLimitReached,
+            CODE_GUEST_TRANSACTION_COUNT to ::GuestTransactionMaxLimitReached,
+            CODE_GUEST_CARD_RISK_DECLINED to ::GuestCardRiskDeclined,
+            CODE_ASSET_NOT_TRADABLE to { RegionNotSupported.AssetNotTradable(it) },
+            CODE_GUEST_REGION_MISMATCH to { RegionNotSupported.RegionMismatch(it) },
+            CODE_GUEST_GOOGLE_PAY_ERROR to { TransactionFailed.GooglePayError(it) },
+            CODE_GUEST_TRANSACTION_BUY_FAILED to { CardDeclined.BuyFailed(it) },
+            CODE_GUEST_TRANSACTION_SEND_FAILED to { TransactionFailed.SendFailed(it) },
+            CODE_GUEST_TRANSACTION_AVS_VALIDATION_FAILED to { BillingAddressInvalid.AvsValidationFailed(it) },
+            CODE_GUEST_TRANSACTION_TRANSACTION_FAILED to { TransactionFailed.ProcessingFailed(it) },
+            CODE_GUEST_PERMISSION_DENIED to ::GuestPermissionDenied,
+            CODE_GUEST_GOOGLE_PAY_NOT_READY to ::GuestGooglePayNotReady,
+            CODE_GUEST_GOOGLE_PAY_NOT_SUPPORTED to ::GuestGooglePayNotSupported,
+            CODE_GUEST_CARD_SOFT_DECLINED to { CardDeclined.Soft(it) },
+            CODE_GUEST_CARD_HARD_DECLINED to { CardDeclined.Hard(it) },
+            CODE_GUEST_CARD_INSUFFICIENT_BALANCE to ::GuestCardInsufficientBalance,
+            CODE_GUEST_CARD_PREPAID_DECLINED to ::GuestCardPrepaidDeclined,
+            CODE_INVALID_BILLING_ZIP to { BillingAddressInvalid.InvalidZip(it) },
+            CODE_INVALID_BILLING_ADDRESS to { BillingAddressInvalid.InvalidAddress(it) },
+            CODE_INVALID_BILLING_NAME to ::InvalidBillingName,
+            CODE_INIT to { InternalFailure.InitError(it) },
+            CODE_INTERNAL to { InternalFailure.Internal(it) },
+            CODE_GOOGLE_PAY_BUTTON_NOT_FOUND to { InternalFailure.GooglePayButtonNotFound(it) },
+        )
+
+        fun fromErrorCode(errorCode: String, data: String? = null): CoinbaseOnRampWebError =
+            codeMap[errorCode]?.invoke(data) ?: UnknownFailure.Unknown(data)
     }
 }

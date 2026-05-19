@@ -19,7 +19,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -39,7 +39,7 @@ class TransactionHistoryViewModel @Inject constructor(
     userManager: UserManager,
     resources: ResourceHelper,
     dispatchers: DispatcherProvider,
-): BaseViewModel2<TransactionHistoryViewModel.State, TransactionHistoryViewModel.Event>(
+): BaseViewModel<TransactionHistoryViewModel.State, TransactionHistoryViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

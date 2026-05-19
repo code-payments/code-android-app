@@ -18,7 +18,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel
+import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,7 +47,7 @@ class SeedInputViewModel @Inject constructor(
     private val userFlags: UserFlagsCoordinator,
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
-) : BaseViewModel(resources) {
+) : ViewModel() {
     val uiFlow = MutableStateFlow(SeedInputUiModel())
     private val mnemonicCode = mnemonicManager.mnemonicCode
 
@@ -99,8 +99,8 @@ class SeedInputViewModel @Inject constructor(
                 .onFailure {
                     if (it is AuthManager.AuthManagerException.TimelockUnlockedException) {
                         BottomBarManager.showAlert(
-                            getString(R.string.error_title_timelockUnlocked),
-                            getString(R.string.error_description_timelockUnlocked)
+                            resources.getString(R.string.error_title_timelockUnlocked),
+                            resources.getString(R.string.error_description_timelockUnlocked)
                         )
                         navigator.popAll()
                     } else {
@@ -118,8 +118,8 @@ class SeedInputViewModel @Inject constructor(
                             }.onFailure {
                                 setState(isLoading = false, isSuccess = false, isContinueEnabled = false)
                                 BottomBarManager.showError(
-                                    getString(R.string.error_title_loginFailed),
-                                    getString(R.string.error_description_loginFailed)
+                                    resources.getString(R.string.error_title_loginFailed),
+                                    resources.getString(R.string.error_description_loginFailed)
                                 )
                             }
                     } else {
@@ -157,8 +157,8 @@ class SeedInputViewModel @Inject constructor(
                  is SelectCredentialError.UserCancelled -> { /* no op */ }
                  else -> {
                      BottomBarManager.showError(
-                         getString(R.string.error_title_selectCredential),
-                         getString(R.string.error_description_selectCredential)
+                         resources.getString(R.string.error_title_selectCredential),
+                         resources.getString(R.string.error_description_selectCredential)
                      )
                  }
              }
@@ -171,15 +171,6 @@ class SeedInputViewModel @Inject constructor(
                 isLoading = isLoading,
                 isSuccess = isSuccess,
                 continueEnabled = isContinueEnabled
-            )
-        }
-    }
-
-    override fun setIsLoading(isLoading: Boolean) {
-        uiFlow.update {
-            it.copy(
-                isLoading = isLoading,
-                continueEnabled = false
             )
         }
     }

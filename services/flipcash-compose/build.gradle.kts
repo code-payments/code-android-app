@@ -36,7 +36,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.rxjava3)
     implementation(libs.androidx.room.paging)
     implementation(libs.okhttp)
     implementation(libs.mixpanel)

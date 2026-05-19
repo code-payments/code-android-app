@@ -14,7 +14,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base64
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
@@ -43,7 +43,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
     authManager: AuthManager,
     clipboardManager: ClipboardManager,
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<MyAccountScreenViewModel.State, MyAccountScreenViewModel.Event>(
+) : BaseViewModel<MyAccountScreenViewModel.State, MyAccountScreenViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

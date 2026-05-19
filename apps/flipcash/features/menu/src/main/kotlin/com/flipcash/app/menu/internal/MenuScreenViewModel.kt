@@ -20,7 +20,7 @@ import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.manager.BottomBarAction
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
@@ -55,7 +55,7 @@ internal class MenuScreenViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
     releaseStageProvider: ReleaseStageProvider,
 ) :
-    BaseViewModel2<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
+    BaseViewModel<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
         initialState = State(),
         updateStateForEvent = updateStateForEvent,
         defaultDispatcher = dispatchers.Default,
