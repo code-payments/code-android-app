@@ -27,7 +27,7 @@ import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.decodeBase64
-import com.getcode.view.BaseViewModel
+import androidx.lifecycle.ViewModel
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -66,7 +66,7 @@ abstract class BaseAccessKeyViewModel(
     private val mediaScanner: MediaScanner,
     userManager: UserManager,
     private val qrCodeGenerator: QRCodeGenerator
-) : BaseViewModel(resources) {
+) : ViewModel() {
     val uiFlow = MutableStateFlow(AccessKeyUiModel())
 
     init {
@@ -177,7 +177,7 @@ abstract class BaseAccessKeyViewModel(
                 drawPaint(paintBackground)
             }
 
-            val topTextChunks = getString(R.string.subtitle_accessKeySnapshotWarning)
+            val topTextChunks = resources.getString(R.string.subtitle_accessKeySnapshotWarning)
                 .split(" ", "\n")
                 .chunked(7)
                 .map { it.joinToString(" ") }
@@ -253,7 +253,7 @@ abstract class BaseAccessKeyViewModel(
                 text = accessKeyText[1]
             )
 
-            val bottomTextChunks = getString(R.string.subtitle_accessKeySnapshotDescription)
+            val bottomTextChunks = resources.getString(R.string.subtitle_accessKeySnapshotDescription)
                 .split(" ")
                 .chunked(8)
                 .map { it.joinToString(" ") }
