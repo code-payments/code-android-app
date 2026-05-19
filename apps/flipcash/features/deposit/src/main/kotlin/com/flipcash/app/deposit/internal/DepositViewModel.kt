@@ -17,7 +17,7 @@ import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
@@ -36,7 +36,7 @@ internal class DepositViewModel @Inject constructor(
     resources: ResourceHelper,
     dispatchers: DispatcherProvider,
     featureFlags: FeatureFlagController,
-) : BaseViewModel2<DepositViewModel.State, DepositViewModel.Event>(
+) : BaseViewModel<DepositViewModel.State, DepositViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

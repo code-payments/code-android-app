@@ -11,7 +11,7 @@ import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.app.userflags.internal.components.FieldEditorSheet
 import com.flipcash.features.userflags.R
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -22,7 +22,7 @@ import javax.inject.Inject
 internal class UserFlagsViewModel @Inject constructor(
     flagsCoordinator: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<UserFlagsViewModel.State, UserFlagsViewModel.Event>(
+) : BaseViewModel<UserFlagsViewModel.State, UserFlagsViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

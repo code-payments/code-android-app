@@ -19,7 +19,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.manager.BottomBarManager.BottomBarButtonStyle
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +45,7 @@ class EmailVerificationViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
     private val emailCodeChannel: EmailCodeChannel,
-) : BaseViewModel2<EmailVerificationViewModel.State, EmailVerificationViewModel.Event>(
+) : BaseViewModel<EmailVerificationViewModel.State, EmailVerificationViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

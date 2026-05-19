@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 
-abstract class BaseViewModel2<ViewState : Any, Event : Any>(
+abstract class BaseViewModel<ViewState : Any, Event : Any>(
     initialState: ViewState,
     private val updateStateForEvent: (Event) -> (ViewState.() -> ViewState),
     private val defaultDispatcher: CoroutineContext = Dispatchers.Default,

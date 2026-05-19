@@ -7,7 +7,7 @@ import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -23,7 +23,7 @@ internal class BalanceViewModel @Inject constructor(
     userManager: UserManager,
     userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<BalanceViewModel.State, BalanceViewModel.Event>(
+) : BaseViewModel<BalanceViewModel.State, BalanceViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

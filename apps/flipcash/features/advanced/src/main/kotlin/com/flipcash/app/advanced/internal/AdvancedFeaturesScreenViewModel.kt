@@ -7,7 +7,7 @@ import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
@@ -25,7 +25,7 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
     featureFlagController: FeatureFlagController,
     userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<AdvancedFeaturesScreenViewModel.State, AdvancedFeaturesScreenViewModel.Event>(
+) : BaseViewModel<AdvancedFeaturesScreenViewModel.State, AdvancedFeaturesScreenViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

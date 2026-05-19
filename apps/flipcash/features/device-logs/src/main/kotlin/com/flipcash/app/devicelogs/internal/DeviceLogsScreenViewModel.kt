@@ -3,7 +3,7 @@ package com.flipcash.app.devicelogs.internal
 import androidx.lifecycle.viewModelScope
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.utils.TraceManager
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -13,7 +13,7 @@ import javax.inject.Inject
 @HiltViewModel
 internal class DeviceLogsScreenViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<DeviceLogsScreenViewModel.State, DeviceLogsScreenViewModel.Event>(
+) : BaseViewModel<DeviceLogsScreenViewModel.State, DeviceLogsScreenViewModel.Event>(
     // Subscribing to the SharedFlow replay cache below seeds history naturally —
     // new collectors receive the last N lines as emissions.
     initialState = State(),

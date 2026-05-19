@@ -16,7 +16,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -37,7 +37,7 @@ internal class PurchaseAccountViewModel @Inject constructor(
     billingClient: BillingClient,
     resources: ResourceHelper,
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<PurchaseAccountViewModel.State, PurchaseAccountViewModel.Event>(
+) : BaseViewModel<PurchaseAccountViewModel.State, PurchaseAccountViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

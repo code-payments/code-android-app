@@ -117,14 +117,14 @@ fun <Name>Screen() {
 package com.flipcash.app.<name>.internal
 
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
 internal class <Name>ViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<<Name>ViewModel.State, <Name>ViewModel.Event>(
+) : BaseViewModel<<Name>ViewModel.State, <Name>ViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

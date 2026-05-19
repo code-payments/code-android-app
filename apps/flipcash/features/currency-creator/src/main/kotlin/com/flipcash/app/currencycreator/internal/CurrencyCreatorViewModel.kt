@@ -57,7 +57,7 @@ import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
@@ -98,7 +98,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     val contentReader: ContentReader,
     val purchaseMethodController: PurchaseMethodController,
     private val currencyCreatorCoordinator: CurrencyCreatorCoordinator,
-) : BaseViewModel2<CurrencyCreatorViewModel.State, CurrencyCreatorViewModel.Event>(
+) : BaseViewModel<CurrencyCreatorViewModel.State, CurrencyCreatorViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,

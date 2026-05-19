@@ -26,7 +26,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -50,7 +50,7 @@ class TokenInfoViewModel @Inject constructor(
     private val resources: ResourceHelper,
     features: FeatureFlagController,
     dispatchers: DispatcherProvider,
-) : BaseViewModel2<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
+) : BaseViewModel<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
