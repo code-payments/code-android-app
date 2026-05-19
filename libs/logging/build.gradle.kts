@@ -29,7 +29,6 @@ dependencies {
 
     api(libs.timber)
     implementation(libs.androidx.annotation)
-    implementation(libs.rxjava)
     implementation(libs.grpc.kotlin)
     implementation(project(":libs:messaging"))
 }
