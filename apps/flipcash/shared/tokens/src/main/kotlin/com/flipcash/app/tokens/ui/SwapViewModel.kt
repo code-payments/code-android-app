@@ -218,6 +218,7 @@ class SwapViewModel @Inject constructor(
 
         data class OnCurrencyChanged(val currency: Currency) : Event
 
+        data object OtherWalletSelected: Event
         data object CoinbaseSelected : Event
         data object PhantomSelected : Event
         data object ConfirmPhantomTransaction : Event
@@ -547,6 +548,7 @@ class SwapViewModel @Inject constructor(
                             val metadata = PurchaseMethodMetadata(
                                 mint = mint,
                                 purchaseAmount = Fiat(data.amountData.amount, rate.currency),
+                                canUseOtherWallets = true, // allow external USDC deposit as a "purchase" option
                             )
                             val methods = purchaseMethodController.state.value.availableMethods
                             if (methods.size == 1) {
@@ -833,7 +835,8 @@ class SwapViewModel @Inject constructor(
                     }
 
                     PurchaseMethod.OtherWallet -> {
-                        // TODO:
+                        analytics.buttonTapped(Button.TokenBuyWithOtherWallet)
+                        dispatchEvent(Event.OtherWalletSelected)
                     }
                 }
             }.launchIn(viewModelScope)
@@ -1166,6 +1169,7 @@ class SwapViewModel @Inject constructor(
                     }
                 }
 
+                Event.OtherWalletSelected,
                 Event.ConfirmPhantomTransaction,
                 Event.StartPhantomCeremony,
                 Event.PhantomConnected,

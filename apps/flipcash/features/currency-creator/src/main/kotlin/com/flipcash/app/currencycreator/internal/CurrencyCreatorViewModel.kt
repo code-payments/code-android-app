@@ -421,6 +421,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     purchaseAmount = stateFlow.value.totalCost,
                     feeAmount = stateFlow.value.feeAmount,
                     paymentAction = PaymentAction.Pay,
+                    canUseOtherWallets = false, // can not use external deposit for this flow
                 )
                 purchaseMethodController.present(metadata)
             }
