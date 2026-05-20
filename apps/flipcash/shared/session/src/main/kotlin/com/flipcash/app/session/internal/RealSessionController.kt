@@ -199,6 +199,7 @@ class RealSessionController @Inject constructor(
             .onEach {
                 if (userManager.authState.isAtLeastRegistered) {
                     updateUserFlags()
+                    swapUsdcIfNeeded()
                 }
             }.launchIn(scope)
     }
