@@ -252,7 +252,7 @@ class PhantomWalletController @Inject constructor(
                 signature = signature,
             ).getOrElse { cause ->
                 return@withContext Result.failure(
-                    DeeplinkOnRampError.FailedToSubmitBuyToServer(message = cause.message)
+                    DeeplinkOnRampError.FailedToSubmitBuyToServer(message = cause.message, cause = cause)
                 )
             }
 
