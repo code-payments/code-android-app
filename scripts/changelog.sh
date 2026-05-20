@@ -10,8 +10,27 @@
 
 set -euo pipefail
 
-FROM="${1:?Usage: changelog.sh <from> <to>}"
-TO="${2:-HEAD}"
+# Resolve a ref that might be a commit number (e.g. 3599 = the 3599th commit).
+# Pure numbers with fewer than 7 digits are always treated as commit ordinals
+# (7 is the minimum git short-SHA length, so this avoids ambiguity).
+# Everything else (tags, SHAs, HEAD) passes through as-is.
+resolve_ref() {
+  local ref="$1"
+  if [[ "$ref" =~ ^[0-9]+$ ]] && [ "${#ref}" -lt 7 ]; then
+    local sha
+    sha=$(git rev-list --reverse HEAD | sed -n "${ref}p")
+    if [ -z "$sha" ]; then
+      echo "Error: commit #$ref not found (repo has $(git rev-list --count HEAD) commits)" >&2
+      exit 1
+    fi
+    echo "$sha"
+  else
+    echo "$ref"
+  fi
+}
+
+FROM=$(resolve_ref "${1:?Usage: changelog.sh <from|commit#> [to|commit#]}")
+TO=$(resolve_ref "${2:-HEAD}")
 
 # Collect commits (skip merges)
 COMMITS=$(git log --no-merges --format="%H %s" "$FROM".."$TO")
