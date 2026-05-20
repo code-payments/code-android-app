@@ -8,5 +8,5 @@ data class StatelessSwapRequest(
     val fromMint: Mint,
     val toMint: Mint,
     val amount: Long,
-    val waitForFinalization: Boolean = false,
+    val waitForFinalization: Boolean = true,
 )
