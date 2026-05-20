@@ -3,13 +3,15 @@ package com.getcode.utils.network
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.delay
+import kotlin.math.pow
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
-suspend fun <T> retryable(
+suspend inline fun <T> retryable(
     maxRetries: Int = 3,
     delayDuration: Duration = 2.seconds,
+    backoffFactor: Double = 1.0,
     retryIf: (Throwable) -> Boolean = { true },
     onRetry: (Int) -> Unit = { currentAttempt ->
         trace(
@@ -36,11 +38,6 @@ suspend fun <T> retryable(
             call()
         } catch (e: Throwable) {
             if (!retryIf(e)) throw e
-            trace(
-                message = "Attempt $currentAttempt failed with exception: ${e.message}",
-                error = e,
-                type = TraceType.Error
-            )
             null
         }
 
@@ -50,7 +47,8 @@ suspend fun <T> retryable(
             currentAttempt++
             if (currentAttempt < maxRetries) {
                 onRetry(currentAttempt)
-                delay(delayDuration.inWholeMilliseconds)
+                val actualDelay = delayDuration * backoffFactor.pow(currentAttempt - 1)
+                delay(actualDelay.inWholeMilliseconds)
             }
         }
     }
@@ -66,6 +64,7 @@ suspend fun <T> retryable(
 suspend fun <T> retryableOrThrow(
     maxRetries: Int = 3,
     delayDuration: Duration = 2.seconds,
+    backoffFactor: Double = 1.0,
     retryIf: (Throwable) -> Boolean = { true },
     onRetry: (Int) -> Unit = { currentAttempt ->
         trace(
@@ -102,7 +101,8 @@ suspend fun <T> retryableOrThrow(
             currentAttempt++
             if (currentAttempt < maxRetries) {
                 onRetry(currentAttempt)
-                delay(delayDuration.inWholeMilliseconds)
+                val actualDelay = delayDuration * backoffFactor.pow(currentAttempt - 1)
+                delay(actualDelay.inWholeMilliseconds)
             }
         }
     }

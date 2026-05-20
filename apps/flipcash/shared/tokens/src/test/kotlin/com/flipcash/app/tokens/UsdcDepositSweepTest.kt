@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class UsdcDepositSweepTest {
@@ -34,6 +35,9 @@ class UsdcDepositSweepTest {
             transactionOperations = transactionOperations,
             accountController = accountController,
             tokenCoordinator = tokenCoordinator,
+            maxRetries = 3,
+            initialDelay = 10.milliseconds,
+            backoffFactor = 1.0,
         )
     }
 
@@ -60,14 +64,12 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `skips swap when USDC account is not found`() = runTest {
+    fun `gives up after max retries when USDC account is not found`() = runTest {
         stubNoUsdcAccount()
 
         sweep.execute(owner)
         advanceUntilIdle()
-
-        // Give the internal scope time to complete
-        Thread.sleep(100)
+        Thread.sleep(200)
 
         coVerify(exactly = 0) {
             transactionOperations.swapUsdc(any(), any())
@@ -75,12 +77,12 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `skips swap when USDC account type is not AssociatedToken`() = runTest {
+    fun `gives up after max retries when account type is not AssociatedToken`() = runTest {
         stubUsdcAccount(balance = 1_000_000L, type = AccountType.Primary)
 
         sweep.execute(owner)
         advanceUntilIdle()
-        Thread.sleep(100)
+        Thread.sleep(200)
 
         coVerify(exactly = 0) {
             transactionOperations.swapUsdc(any(), any())
@@ -88,12 +90,12 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `skips swap when USDC balance is zero`() = runTest {
+    fun `gives up after max retries when USDC balance stays zero`() = runTest {
         stubUsdcAccount(balance = 0L)
 
         sweep.execute(owner)
         advanceUntilIdle()
-        Thread.sleep(100)
+        Thread.sleep(200)
 
         coVerify(exactly = 0) {
             transactionOperations.swapUsdc(any(), any())
@@ -101,15 +103,28 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `skips swap when USDC balance is negative`() = runTest {
-        stubUsdcAccount(balance = -1L)
+    fun `retries until balance appears then sweeps`() = runTest {
+        var callCount = 0
+        coEvery {
+            accountController.getAccount(any(), any(), any())
+        } coAnswers {
+            callCount++
+            val balance = if (callCount >= 3) 2_000_000L else 0L
+            val accountInfo = mockk<AccountInfo> {
+                every { accountType } returns AccountType.AssociatedToken
+                every { this@mockk.balance } returns balance
+                every { address } returns mockk<PublicKey>(relaxed = true)
+            }
+            Result.success(accountInfo)
+        }
+        coEvery { transactionOperations.swapUsdc(any(), any()) } returns Result.success(Unit)
 
         sweep.execute(owner)
         advanceUntilIdle()
-        Thread.sleep(100)
+        Thread.sleep(300)
 
-        coVerify(exactly = 0) {
-            transactionOperations.swapUsdc(any(), any())
+        coVerify {
+            transactionOperations.swapUsdc(owner, 2_000_000L)
         }
     }
 
@@ -166,9 +181,7 @@ class UsdcDepositSweepTest {
             Result.success(Unit)
         }
 
-        // First call starts the job
         sweep.execute(owner)
-        // Second call should be ignored since the first is still active
         sweep.execute(owner)
 
         Thread.sleep(700)
@@ -180,7 +193,6 @@ class UsdcDepositSweepTest {
 
     @Test
     fun `cancel stops active job`() = runTest {
-        // Make getAccount slow so we can cancel before swapUsdc is reached
         coEvery {
             accountController.getAccount(any(), any(), any())
         } coAnswers {
@@ -195,7 +207,7 @@ class UsdcDepositSweepTest {
         coEvery { transactionOperations.swapUsdc(any(), any()) } returns Result.success(Unit)
 
         sweep.execute(owner)
-        Thread.sleep(50) // Let the coroutine start
+        Thread.sleep(50)
         sweep.cancel()
         Thread.sleep(100)
 
