@@ -21,10 +21,8 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.core.rememberAnimationScale
-import com.getcode.ui.core.scaled
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -112,13 +110,19 @@ internal fun SwapEntryScreen(
             }.launchIn(this)
     }
 
-    val animationScale by rememberAnimationScale()
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.PhantomSelected>()
-            .onEach { delay(300.scaled(animationScale)) }
             .onEach {
                 flowNavigator.navigateTo(SwapStep.PhantomConnect)
+            }.launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.OtherWalletSelected>()
+            .onEach {
+                navigator.push(AppRoute.Transfers.Deposit(Mint.usdf))
             }.launchIn(this)
     }
 

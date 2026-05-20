@@ -45,6 +45,10 @@ sealed interface Button: AppAction {
         override val value: String = "Button: Buy With Coinbase"
     }
 
+    data object TokenBuyWithOtherWallet : Button {
+        override val value: String = "Button: Buy With Other Wallet"
+    }
+
     data object TokenSell : Button {
         override val value: String = "Button: Sell"
     }
