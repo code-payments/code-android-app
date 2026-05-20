@@ -89,9 +89,8 @@ internal fun SwapEntryScreen(
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.OnPurchaseSubmitted>()
-            .map { it.swapId }
-            .onEach { swapId ->
-                flowNavigator.navigateTo(SwapStep.Processing(swapId))
+            .onEach {
+                flowNavigator.navigateTo(SwapStep.Processing)
             }.launchIn(this)
     }
 
@@ -130,9 +129,7 @@ internal fun SwapEntryScreen(
         coinbaseOnRampController.pendingNavigation.collect { route ->
             if (route is AppRoute.Token.TxProcessing) {
                 viewModel.dispatchEvent(SwapViewModel.Event.OnSwapIdChanged(route.swapId))
-                flowNavigator.navigateTo(
-                    SwapStep.Processing(route.swapId)
-                )
+                flowNavigator.navigateTo(SwapStep.Processing)
             }
         }
     }

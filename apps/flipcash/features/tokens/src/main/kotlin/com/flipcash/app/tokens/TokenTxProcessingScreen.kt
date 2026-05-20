@@ -24,17 +24,11 @@ import kotlinx.coroutines.flow.onEach
  * Flow-aware swap processing content, used inside `SwapFlowScreen`.
  */
 @Composable
-internal fun SwapProcessingScreen(
-    swapId: SwapId,
-) {
+internal fun SwapProcessingScreen() {
     val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
     val viewModel = flowSharedViewModel<SwapViewModel>()
 
     TokenTxProcessingScreen(viewModel = viewModel)
-
-    LaunchedEffect(viewModel) {
-        viewModel.dispatchEvent(Event.UpdateProcessingState(loading = true))
-    }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
@@ -47,6 +41,14 @@ internal fun SwapProcessingScreen(
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<Event.Exit>()
+            .onEach {
+                flowNavigator.exitCanceled()
+            }.launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<Event.PhantomCeremonyFailed>()
             .onEach {
                 flowNavigator.exitCanceled()
             }.launchIn(this)

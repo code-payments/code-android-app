@@ -132,8 +132,8 @@ internal fun PhantomTransactionConfirmationScreen() {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.PhantomNavigateToProcessing>()
-            .onEach { event ->
-                flowNavigator.navigateTo(SwapStep.Processing(event.swapId))
+            .onEach {
+                flowNavigator.navigateTo(SwapStep.Processing)
             }.launchIn(this)
     }
 

@@ -277,14 +277,30 @@ class PhantomWalletController @Inject constructor(
                             }
                         }
                     )
-                    ErrorUtils.handleError(error)
-                    return@withContext Result.failure(
-                        DeeplinkOnRampError.FailedToSendTransaction(
-                            code = code ?: -99L,
-                            message = error.message,
-                            cause = error,
-                        )
-                    )
+
+                    when {
+                        // Detect expired blockhash — occurs when the Phantom wallet
+                        // round-trip exceeds ~60 seconds (Solana's blockhash lifetime).
+                        error is RpcException && error.isBlockhashNotFound -> {
+                            ErrorUtils.handleError(error)
+                            return@withContext Result.failure(
+                                DeeplinkOnRampError.TransactionExpired(
+                                    message = error.message,
+                                    cause = error,
+                                )
+                            )
+                        }
+                        else -> {
+                            ErrorUtils.handleError(error)
+                            return@withContext Result.failure(
+                                DeeplinkOnRampError.FailedToSendTransaction(
+                                    code = code ?: -99L,
+                                    message = error.message,
+                                    cause = error,
+                                )
+                            )
+                        }
+                    }
                 }
 
             Result.success(Unit)

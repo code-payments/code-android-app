@@ -982,14 +982,15 @@ class SwapViewModel @Inject constructor(
                 amount = amount,
                 fee = LocalFiat.Zero,
                 token = token,
-                onBeforeSign = { swapId ->
+                onBeforeSign = {
                     analytics.amountSelectedForWalletTransfer(
                         OnRampProvider.Phantom,
                         amount.localFiat.underlyingTokenAmount
                     )
-                    dispatchEvent(Event.PhantomNavigateToProcessing(swapId))
                 },
             ).onSuccess { swapId ->
+                dispatchEvent(Event.UpdateProcessingState(loading = true))
+                dispatchEvent(Event.PhantomNavigateToProcessing(swapId))
                 dispatchEvent(Event.OnSwapIdChanged(swapId))
             }.onFailure { error ->
                 handlePhantomError(error)

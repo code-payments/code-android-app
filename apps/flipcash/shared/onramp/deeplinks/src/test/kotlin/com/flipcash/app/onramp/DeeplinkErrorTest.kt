@@ -75,6 +75,7 @@ class DeeplinkErrorTest {
     fun `DeeplinkOnRampError subtypes are Throwable`() {
         val errors: List<Throwable> = listOf(
             DeeplinkOnRampError.FailedToSendTransaction(message = "fail"),
+            DeeplinkOnRampError.TransactionExpired(message = "expired"),
             DeeplinkOnRampError.WalletProvidedError(
                 error = DeeplinkError.Disconnected,
                 message = "disconnected"
@@ -85,6 +86,24 @@ class DeeplinkErrorTest {
         errors.forEach { error ->
             assertTrue(error is Throwable, "${error::class.simpleName} should be Throwable")
         }
+    }
+
+    @Test
+    fun `TransactionExpired isAlert returns true`() {
+        val error = DeeplinkOnRampError.TransactionExpired(message = "Blockhash not found")
+        assertTrue(error.isAlert, "TransactionExpired should be an alert")
+    }
+
+    @Test
+    fun `TransactionExpired preserves cause chain`() {
+        val cause = RuntimeException("Blockhash not found")
+        val error = DeeplinkOnRampError.TransactionExpired(
+            message = cause.message,
+            cause = cause,
+        )
+
+        assertEquals("Blockhash not found", error.message)
+        assertEquals(cause, error.cause)
     }
 
     @Test

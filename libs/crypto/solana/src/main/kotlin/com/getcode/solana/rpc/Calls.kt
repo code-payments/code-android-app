@@ -200,4 +200,8 @@ suspend fun Rpc20Driver.simulateTransaction(
 class RpcException(
     val code: Int,
     override val message: String,
-) : Throwable(message)
+) : Throwable(message) {
+    val isBlockhashNotFound: Boolean
+        get() = message.contains("Blockhash not found", ignoreCase = true) ||
+                message.contains("BlockhashNotFound", ignoreCase = true)
+}

@@ -61,7 +61,7 @@ private fun swapEntryProvider(): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<SwapStep.PhantomConfirmTransaction> {
         PhantomTransactionConfirmationScreen()
     }
-    annotatedEntry<SwapStep.Processing> { step ->
-        SwapProcessingScreen(step.swapId)
+    annotatedEntry<SwapStep.Processing> {
+        SwapProcessingScreen()
     }
 }

@@ -28,7 +28,5 @@ sealed interface SwapStep : FlowStep, Parcelable {
     data object PhantomConfirmTransaction: SwapStep
     @Parcelize
     @Serializable
-    data class Processing(
-        val swapId: SwapId,
-    ) : SwapStep, NonDismissableRoute, NonDraggableRoute
+    data object Processing : SwapStep, NonDismissableRoute, NonDraggableRoute
 }

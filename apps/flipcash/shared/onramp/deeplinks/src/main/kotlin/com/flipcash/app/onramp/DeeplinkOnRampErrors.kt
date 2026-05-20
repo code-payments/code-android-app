@@ -25,6 +25,11 @@ sealed class DeeplinkOnRampError(
         override val cause: Throwable? = null
     ) : DeeplinkOnRampError(code = code, message = message, cause = cause)
 
+    class TransactionExpired(
+        override val message: String?,
+        override val cause: Throwable? = null
+    ) : DeeplinkOnRampError(message = message, cause = cause)
+
     class FailedToSubmitBuyToServer(
         override val code: Long = -100,
         override val message: String?,
@@ -70,6 +75,7 @@ val DeeplinkOnRampError.isAlert: Boolean
         DeeplinkError.Disconnected,
         DeeplinkError.TransactionRejected,
     ) || this is DeeplinkOnRampError.FailedToSendTransaction
+        || this is DeeplinkOnRampError.TransactionExpired
         || this is DeeplinkOnRampError.InsufficientSol
         || this is DeeplinkOnRampError.InsufficientUsdc
         || (this is DeeplinkOnRampError.FailedToSimulateTransaction && cause?.isNetworkError() == true)
@@ -83,6 +89,7 @@ fun DeeplinkOnRampError.messaging(getString: (Int) -> String, provider: String):
     is DeeplinkOnRampError.FailedToCreateTransaction -> getString(R.string.error_title_deeplinkOnRampFailedToCreateTransaction) to getString(R.string.error_description_deeplinkOnRampFailedToCreateTransaction)
     is DeeplinkOnRampError.FailedToSimulateTransaction -> getString(R.string.error_title_deeplinkOnRampFailedToSimulateTransaction) to getString(R.string.error_description_deeplinkOnRampFailedToSimulateTransaction)
     is DeeplinkOnRampError.FailedToSendTransaction -> getString(R.string.error_title_deeplinkOnRampFailedToSendTransaction) to getString(R.string.error_description_deeplinkOnRampFailedToSendTransaction).format(provider)
+    is DeeplinkOnRampError.TransactionExpired -> getString(R.string.error_title_deeplinkOnRampTransactionExpired) to getString(R.string.error_description_deeplinkOnRampTransactionExpired)
     is DeeplinkOnRampError.FailedToSubmitBuyToServer -> getString(R.string.error_title_deeplinkOnRampExternalFundBuy) to getString(R.string.error_description_deeplinkOnRampExternalFundBuy).format(provider)
     is DeeplinkOnRampError.InsufficientSol -> getString(R.string.error_title_deeplinkOnRampInsufficientSol) to getString(R.string.error_description_deeplinkOnRampInsufficientSol).format(provider)
     is DeeplinkOnRampError.InsufficientUsdc -> getString(R.string.error_title_deeplinkOnRampInsufficientUsdc) to getString(R.string.error_description_deeplinkOnRampInsufficientUsdc).format(provider)
