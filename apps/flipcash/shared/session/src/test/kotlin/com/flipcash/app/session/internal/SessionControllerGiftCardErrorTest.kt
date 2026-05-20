@@ -8,6 +8,8 @@ import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.session.internal.toast.ToastController
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.shareable.ShareSheetController
+import com.flipcash.app.shareable.ShareResult
+import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.shareable.ShareableConfirmationController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.TokenUpdater
@@ -22,6 +24,7 @@ import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.BillState
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.util.resources.ResourceHelper
@@ -29,9 +32,13 @@ import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.core.MainCoroutineRule
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.util.vibration.Vibrator
+import com.getcode.opencode.model.accounts.GiftCardAccount
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
 import io.mockk.slot
+import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -80,7 +87,9 @@ class SessionControllerGiftCardErrorTest {
         BottomBarManager.clear()
     }
 
-    private fun createController(): RealSessionController {
+    private fun createController(
+        shareSheetController: ShareSheetController = mockk(relaxed = true),
+    ): RealSessionController {
         return RealSessionController(
             billController = billController,
             userManager = userManager,
@@ -94,7 +103,7 @@ class SessionControllerGiftCardErrorTest {
             tokenUpdater = mockk(relaxed = true),
             activityFeedUpdater = mockk(relaxed = true),
             profileUpdater = mockk(relaxed = true),
-            shareSheetController = mockk(relaxed = true),
+            shareSheetController = shareSheetController,
             shareConfirmationController = mockk(relaxed = true),
             toastController = mockk(relaxed = true),
             billingClient = mockk(relaxed = true),
@@ -193,6 +202,70 @@ class SessionControllerGiftCardErrorTest {
         val messages = BottomBarManager.messages.value
         assertTrue(messages.isNotEmpty(), "Expected an error message")
         assertEquals("error_title_CashReturnedToWallet", messages.first().title)
+    }
+
+    @Test
+    fun `duplicate onShared invocations only fund gift card once`() = runTest {
+        // Mock GiftCardAccount.create to avoid MnemonicCache (requires Android context)
+        mockkObject(GiftCardAccount.Companion)
+        every { GiftCardAccount.create(any(), any()) } returns mockk(relaxed = true)
+
+        try {
+            // Fake that fires onShared twice on present(), simulating the race between
+            // shareResultReceiver and checkForShare().
+            val racingShareSheet = object : ShareSheetController {
+                override val isCheckingForShare: Boolean = false
+                override var onShared: ((ShareResult) -> Unit)? = null
+                override fun checkForShare() {}
+                override suspend fun present(shareable: Shareable) {
+                    onShared?.invoke(ShareResult.SharedToApp("com.example.app"))
+                    onShared?.invoke(ShareResult.SharedToApp("com.example.app"))
+                }
+                override fun reset(setChecked: Boolean) {}
+            }
+
+            // Capture the update lambda so we can extract the SendAsLink action
+            val updateSlot = slot<(BillState) -> BillState>()
+            every { billController.update(capture(updateSlot)) } answers {}
+
+            val controller = createController(shareSheetController = racingShareSheet)
+
+            val amount = mockk<LocalFiat>(relaxed = true) {
+                every { nativeAmount.decimalValue } returns 5.0
+            }
+            val bill = Bill.Cash(
+                token = mockk(relaxed = true),
+                amount = amount,
+                didReceive = false,
+                kind = Bill.Kind.cash,
+                verifiedState = mockk(relaxed = true),
+            )
+
+            controller.showBill(bill)
+
+            // Extract and invoke the "Send as Link" action (calls shareGiftCard)
+            val updatedState = updateSlot.captured(BillState.Default)
+            val sendAction = updatedState.primaryAction as BillState.Action.SendAsLink
+            sendAction.action()
+
+            // Wait for IO-dispatched coroutines to execute
+            Thread.sleep(1000)
+
+            // The guard should ensure fundGiftCard is called exactly once, not twice
+            verify(exactly = 1) {
+                billController.fundGiftCard(
+                    giftCard = any(),
+                    amount = any(),
+                    token = any(),
+                    owner = any(),
+                    verifiedState = any(),
+                    onFunded = any(),
+                    onError = any(),
+                )
+            }
+        } finally {
+            unmockkObject(GiftCardAccount.Companion)
+        }
     }
 
     // Phase 3: fund gift card error
