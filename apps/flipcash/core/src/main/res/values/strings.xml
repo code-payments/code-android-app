@@ -234,6 +234,8 @@
     <string name="error_title_deeplinkOnRampFailedToSimulateTransaction">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampFailedToCreateDeeplink">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampFailedToSendTransaction">Transaction Failed</string>
+    <string name="error_title_deeplinkOnRampTransactionExpired">Transaction Expired</string>
+    <string name="error_description_deeplinkOnRampTransactionExpired">The transaction took too long to process. Please try again</string>
     <string name="error_title_deeplinkOnRampDisconnected">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampUnauthorized">Something Went Wrong</string>
     <string name="error_title_deeplinkOnRampUserRejected">Request Rejected in %1$s</string>

@@ -52,9 +52,8 @@ internal fun SellReceiptScreen() {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.OnSellSubmitted>()
-            .map { it.swapId }
-            .onEach { swapId ->
-                flowNavigator.navigateTo(SwapStep.Processing(swapId))
+            .onEach {
+                flowNavigator.navigateTo(SwapStep.Processing)
             }.launchIn(this)
     }
 }
