@@ -77,6 +77,7 @@ private fun WebView.configureForCoinbaseOnRamp(
 
     val autoClickTriggered = AtomicBoolean(false)
     val terminalEventReceived = AtomicBoolean(false)
+    val paymentSheetPresented = AtomicBoolean(false)
     var messageListenerInstalled = false
 
     var initialTimeoutRunnable: Runnable? = null
@@ -87,6 +88,15 @@ private fun WebView.configureForCoinbaseOnRamp(
         initialTimeoutRunnable?.let { removeCallbacks(it) }
         interEventTimeoutRunnable?.let { removeCallbacks(it) }
         paymentSheetTimeoutRunnable?.let { removeCallbacks(it) }
+    }
+
+    fun dismissPaymentSheet() {
+        (context as? Activity)?.let { activity ->
+            val intent = Intent(activity, activity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+            activity.startActivity(intent)
+        }
     }
 
     val timeoutAction = Runnable {
@@ -118,6 +128,9 @@ private fun WebView.configureForCoinbaseOnRamp(
     val wrappedOnPaymentFailure: (CoinbaseOnRampWebError) -> Unit = { error ->
         terminalEventReceived.set(true)
         post { cancelAllTimeouts() }
+        if (paymentSheetPresented.get()) {
+            post { dismissPaymentSheet() }
+        }
         onPaymentFailure(error)
     }
 
@@ -135,20 +148,13 @@ private fun WebView.configureForCoinbaseOnRamp(
         if (terminalEventReceived.compareAndSet(false, true)) {
             trace(tag = "CoinbaseOnRamp", message = "Payment sheet timeout fired (60s)")
             cancelAllTimeouts()
-            // The Google Pay sheet is a GMS Activity sitting on top of ours
-            // in the task stack. Relaunching our Activity with CLEAR_TOP
-            // finishes everything above it, dismissing the sheet.
-            (context as? Activity)?.let { activity ->
-                val intent = Intent(activity, activity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                }
-                activity.startActivity(intent)
-            }
+            dismissPaymentSheet()
             onPaymentFailure(CoinbaseOnRampWebError.PaymentSheetTimeout())
         }
     }
 
     val pauseWatchdog: () -> Unit = {
+        paymentSheetPresented.set(true)
         post {
             cancelAllTimeouts()
             val runnable = Runnable { paymentSheetTimeoutAction.run() }
