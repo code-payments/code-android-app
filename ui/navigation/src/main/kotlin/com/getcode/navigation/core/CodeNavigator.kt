@@ -99,6 +99,9 @@ data class CodeNavigator(
             NavOptions.PopUpTo.ClearAll -> {
                 Snapshot.withMutableSnapshot {
                     if (currentRouteKey != route) {
+                        if (route is Sheet) {
+                            backStack.removeAll { it is Sheet && it.toString() == route.toString() }
+                        }
                         backStack.add(route)
                         // Remove all entries before the new one
                         while (backStack.size > 1) {

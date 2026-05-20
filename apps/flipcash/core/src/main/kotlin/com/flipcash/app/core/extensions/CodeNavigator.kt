@@ -16,7 +16,19 @@ fun CodeNavigator.navigateTo(route: NavKey, options: NavOptions = NavOptions()) 
     } else {
         route
     }
-    navigate(destination, options)
+    val needsSheet = destination is AppRoute.Main.Sheet
+    val hasSheet = backStack.any { it is AppRoute.Main.Sheet }
+
+    if (hasSheet && needsSheet) {
+        pendingSheetDismiss = {
+            Snapshot.withMutableSnapshot {
+                sheetGeneration++
+                navigate(destination, options)
+            }
+        }
+    } else {
+        navigate(destination, options)
+    }
 }
 
 /**

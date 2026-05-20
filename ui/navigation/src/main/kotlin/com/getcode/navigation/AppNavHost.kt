@@ -17,6 +17,8 @@ import androidx.navigation3.scene.OverlayScene
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
@@ -35,6 +37,7 @@ import com.getcode.navigation.decorators.rememberNavResultScopeEntryDecorator
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.results.rememberNavResultStateRegistry
 import com.getcode.theme.CodeTheme
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +62,29 @@ fun AppNavHost(
     decorators: List<NavEntryDecorator<NavKey>> = emptyList(),
 ) {
     ChangeSystemBarsTheme(CodeTheme.colors.background.luminance() < 0.5f)
+
+    // Safety net: async duplicate Sheet sanitization.
+    // Cannot prevent a same-frame crash, but cleans up residual duplicates
+    // from unforeseen race conditions before the next frame renders.
+    LaunchedEffect(navigator.backStack) {
+        snapshotFlow { navigator.backStack.toList() }
+            .collect { stack ->
+                val seen = mutableSetOf<String>()
+                val toRemove = mutableListOf<Int>()
+                for (i in stack.lastIndex downTo 0) {
+                    val entry = stack[i]
+                    if (entry is Sheet && !seen.add(entry.toString())) {
+                        toRemove.add(i)
+                    }
+                }
+                if (toRemove.isNotEmpty()) {
+                    Timber.w("Duplicate Sheet keys detected, sanitizing backstack")
+                    Snapshot.withMutableSnapshot {
+                        toRemove.forEach { navigator.backStack.removeAt(it) }
+                    }
+                }
+            }
+    }
 
     NavDisplay(
         backStack = navigator.backStack,
