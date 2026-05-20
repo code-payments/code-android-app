@@ -76,17 +76,60 @@ class GiveBillTransactorTest {
     @Test
     fun `start fails when exchange data expired`() = runTest {
         val transactor = createTransactor(this)
-        // Provide verified state directly to skip resolveVerifiedState fallback chain
+        // Provide verified state directly — its rate is stale
         val verifiedState = mockk<VerifiedState>(relaxed = true)
         setupWith(transactor, verifiedState = verifiedState)
 
         mockkStatic("com.getcode.opencode.internal.extensions.VerifiedStateKt")
         every { verifiedState.exchangeDataFor(any<LocalFiat>(), any<Mint>(), any()) } returns null
 
+        // Fresh resolve also returns a stale state so the retry still fails
+        val freshState = mockk<VerifiedState>(relaxed = true)
+        every { freshState.exchangeDataFor(any<LocalFiat>(), any<Mint>(), any()) } returns null
+        coEvery {
+            verifiedFiatCalculator.resolveVerifiedState(any<CurrencyCode>(), any<Mint>())
+        } returns freshState
+
         val result = transactor.start()
 
         assertTrue(result.isFailure)
         assertIs<GiveBillTransactor.GiveTransactorError.ExchangeRateExpiredException>(result.exceptionOrNull())
+
+        unmockkStatic("com.getcode.opencode.internal.extensions.VerifiedStateKt")
+    }
+
+    @Test
+    fun `start refreshes state when exchange data expired`() = runTest {
+        val transactor = createTransactor(this)
+        // Provide verified state whose rate is stale
+        val staleState = mockk<VerifiedState>(relaxed = true)
+        setupWith(transactor, verifiedState = staleState)
+
+        mockkStatic("com.getcode.opencode.internal.extensions.VerifiedStateKt")
+        every { staleState.exchangeDataFor(any<LocalFiat>(), any<Mint>(), any()) } returns null
+
+        // Fresh resolve returns a valid state with fresh exchange data
+        val freshState = mockk<VerifiedState>(relaxed = true)
+        every { freshState.exchangeDataFor(any<LocalFiat>(), any<Mint>(), any()) } returns mockk<ExchangeData.Verified>(relaxed = true)
+        coEvery {
+            verifiedFiatCalculator.resolveVerifiedState(any<CurrencyCode>(), any<Mint>())
+        } returns freshState
+
+        coEvery {
+            messagingController.sendRequestToGiveBill(any(), any(), any())
+        } returns Result.success(mockk(relaxed = true))
+
+        coEvery {
+            messagingController.awaitRequestToGrabBill(any(), any())
+        } returns null
+
+        // start() should proceed past exchange data resolution and fail later
+        // (at awaitRequestToGrabBill) — confirming the fresh resolve succeeded
+        val result = transactor.start()
+
+        assertTrue(result.isFailure)
+        // Should NOT be ExchangeRateExpiredException — it recovered via fresh state
+        assertIs<GiveBillTransactor.GiveTransactorError.NoGrabReceived>(result.exceptionOrNull())
 
         unmockkStatic("com.getcode.opencode.internal.extensions.VerifiedStateKt")
     }
