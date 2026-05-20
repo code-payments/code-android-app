@@ -277,4 +277,68 @@ class NavigateToTest {
     }
 
     // endregion
+
+    // region Single-route navigateTo dismiss-then-replace
+
+    @Test
+    fun `single-route navigateTo with existing sheet sets pendingSheetDismiss`() {
+        val navigator = createNavigator(
+            AppRoute.Main.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
+        )
+
+        navigator.navigateTo(AppRoute.Sheets.TokenDiscovery, options = quietOptions)
+
+        assertNotNull(navigator.pendingSheetDismiss)
+        // Backstack unchanged until the callback fires
+        assertEquals(2, navigator.backStack.size)
+    }
+
+    @Test
+    fun `single-route navigateTo callback navigates to new sheet after dismiss`() {
+        val navigator = createNavigator(
+            AppRoute.Main.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
+        )
+
+        navigator.navigateTo(AppRoute.Sheets.TokenDiscovery, options = quietOptions)
+
+        // Simulate dismiss: remove old sheet entry, then callback fires
+        navigator.backStack.removeAt(navigator.backStack.lastIndex)
+        navigator.pendingSheetDismiss!!.invoke()
+
+        val last = navigator.backStack.last()
+        assertIs<AppRoute.Main.Sheet>(last)
+        assertEquals(AppRoute.Sheets.TokenDiscovery, last.initialRoute)
+    }
+
+    @Test
+    fun `single-route navigateTo increments sheetGeneration on dismiss-replace`() {
+        val navigator = createNavigator(
+            AppRoute.Main.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
+        )
+        val initialGeneration = navigator.sheetGeneration
+
+        navigator.navigateTo(AppRoute.Sheets.TokenDiscovery, options = quietOptions)
+
+        // Simulate dismiss
+        navigator.backStack.removeAt(navigator.backStack.lastIndex)
+        navigator.pendingSheetDismiss!!.invoke()
+
+        assertEquals(initialGeneration + 1, navigator.sheetGeneration)
+    }
+
+    @Test
+    fun `single-route navigateTo without existing sheet navigates directly`() {
+        val navigator = createNavigator(AppRoute.Main.Scanner)
+
+        navigator.navigateTo(AppRoute.Sheets.TokenDiscovery, options = quietOptions)
+
+        assertNull(navigator.pendingSheetDismiss)
+        assertEquals(2, navigator.backStack.size)
+        assertIs<AppRoute.Main.Sheet>(navigator.backStack.last())
+    }
+
+    // endregion
 }
