@@ -1,8 +1,7 @@
 ---
 name: release-notes
-description: Generate GitHub release notes from git tags. Usage - /release-notes <from_tag> <to_tag>. Runs the changelog script, then rewrites the output into polished GitHub release notes.
-disable-model-invocation: true
-argument-hint: <from_tag> <to_tag>
+description: Generate GitHub release notes from git refs (tags, commits, or HEAD). Usage - /release-notes <from> <to>. Runs the changelog script, then rewrites the output into polished GitHub release notes.
+argument-hint: <from_ref> [to_ref]
 user-invocable: true
 allowed-tools: Bash(git log *), Bash(git tag *), Bash(git describe *), Bash(bash scripts/changelog.sh *), Bash(gh release *), Read, Agent
 ---
@@ -18,12 +17,14 @@ Generate polished GitHub release notes for the code-android-app repository.
 
 ## Input
 
-Parse the two tags from `$ARGUMENTS`, e.g.:
+Parse the two refs from `$ARGUMENTS`. Each ref can be a tag, a commit SHA, a commit number (Nth commit in repo history), or `HEAD`:
 - `/release-notes fcash/2026.4.10 fcash/2026.4.11`
 - `/release-notes fcash/2026.4.9 HEAD`
+- `/release-notes a3f2417 HEAD`
+- `/release-notes 3599 HEAD` (from the 3599th commit to HEAD)
 
-If only one tag is provided, use it as `<from>` and default `<to>` to `HEAD`.
-If no tags are provided, use the pre-flight latest tag as `<from>` and `HEAD` as `<to>`.
+If only one ref is provided, use it as `<from>` and default `<to>` to `HEAD`.
+If no refs are provided, use the pre-flight latest tag as `<from>` and `HEAD` as `<to>`.
 
 ## Steps
 
