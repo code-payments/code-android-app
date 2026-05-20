@@ -214,6 +214,32 @@ class SubmitIntentErrorTest {
     }
 
     @Test
+    fun staleStateWithAccountAlreadyOpenedIsAccountAlreadyOpened() {
+        val error = SubmitIntentError.typed(
+            buildError(
+                SubmitIntentResponse.Error.Code.STALE_STATE,
+                reasonStrings = listOf("actions[0]: account is already opened")
+            )
+        )
+        assertIs<SubmitIntentError.StaleState>(error)
+        assertTrue(error.isAccountAlreadyOpened)
+        assertTrue(error.isExpected)
+        assertFalse(error.isNotifiable)
+    }
+
+    @Test
+    fun staleStateWithOtherReasonIsNotAccountAlreadyOpened() {
+        val error = SubmitIntentError.typed(
+            buildError(
+                SubmitIntentResponse.Error.Code.STALE_STATE,
+                reasonStrings = listOf("nonce expired")
+            )
+        )
+        assertIs<SubmitIntentError.StaleState>(error)
+        assertFalse(error.isAccountAlreadyOpened)
+    }
+
+    @Test
     fun otherWrausesCause() {
         val cause = RuntimeException("root cause")
         val error = SubmitIntentError.Other(cause)

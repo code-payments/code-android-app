@@ -134,6 +134,8 @@ sealed class SubmitIntentError(
             get() = reasons.any { it.contains("pool balance has already been distributed") }
         val isIntentAlreadyExists: Boolean
             get() = reasons.any { it.contains("intent already exists") }
+        val isAccountAlreadyOpened: Boolean
+            get() = reasons.any { it.contains("account is already opened") }
 
         val isExpected: Boolean
             get() = isRaceCondition
@@ -141,6 +143,7 @@ sealed class SubmitIntentError(
                 || isGiftCardExpired
                 || isPoolAlreadyDistributed
                 || isIntentAlreadyExists
+                || isAccountAlreadyOpened
 
         override val isNotifiable: Boolean
             get() = !isExpected

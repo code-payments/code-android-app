@@ -74,6 +74,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.time.Clock
@@ -138,6 +139,7 @@ class RealSessionController @Inject constructor(
 
     private val scannedRendezvous = mutableMapOf<String, Long>()
 
+    private val giftCardFundingInProgress = AtomicBoolean(false)
     private val giftCardClaimInProgress = MutableStateFlow<String?>(null)
 
     init {
@@ -463,9 +465,10 @@ class RealSessionController @Inject constructor(
         )
 
         scope.launch {
-            shareSheetController.onShared = { result ->
+            shareSheetController.onShared = onShared@{ result ->
                 when (result) {
                     is ShareResult.ActionTaken -> {
+                        if (!giftCardFundingInProgress.compareAndSet(false, true)) return@onShared
                         scope.launch action@{
                             // immediately fund the gift card
                             val fundingResult = initiateGiftCardFunding(
@@ -492,7 +495,7 @@ class RealSessionController @Inject constructor(
                                 shareable = shareable,
                                 result = result
                             )
-                        }
+                        }.invokeOnCompletion { giftCardFundingInProgress.set(false) }
                     }
 
                     ShareResult.NotShared -> {
