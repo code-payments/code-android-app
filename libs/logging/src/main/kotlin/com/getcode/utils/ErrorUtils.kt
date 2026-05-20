@@ -10,8 +10,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import timber.log.Timber
 import java.net.ConnectException
+import java.net.SocketException
 import java.net.UnknownHostException
 import java.util.concurrent.TimeoutException
+import javax.net.ssl.SSLException
 
 object ErrorUtils {
     private var isDisplayErrors = false
@@ -30,6 +32,8 @@ object ErrorUtils {
         TimeoutCancellationException::class,
         CancellationException::class,
         ConnectException::class,
+        SSLException::class,
+        SocketException::class,
     )
 
     fun handleError(throwable: Throwable) {
@@ -76,7 +80,11 @@ object ErrorUtils {
         throwable is TimeoutException ||
                 throwable.cause is TimeoutException ||
                 throwable is UnknownHostException ||
-                throwable.cause is UnknownHostException
+                throwable.cause is UnknownHostException ||
+                throwable is SSLException ||
+                throwable.cause is SSLException ||
+                throwable is SocketException ||
+                throwable.cause is SocketException
 
     private val gmsTransientMessages = setOf("SERVICE_NOT_AVAILABLE", "FIS_AUTH_ERROR")
 
@@ -122,7 +130,9 @@ object ErrorUtils {
 fun Throwable.isNetworkError(): Boolean =
     this is UnknownHostException || cause is UnknownHostException ||
     this is ConnectException || cause is ConnectException ||
-    this is TimeoutException || cause is TimeoutException
+    this is TimeoutException || cause is TimeoutException ||
+    this is SSLException || cause is SSLException ||
+    this is SocketException || cause is SocketException
 
 data class SuppressibleException(override val message: String, override val cause: Throwable? = null) : Throwable(message, cause) {
     constructor(cause: Throwable) : this(cause.message.orEmpty(), cause)

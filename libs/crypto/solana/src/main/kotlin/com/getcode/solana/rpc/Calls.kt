@@ -20,10 +20,12 @@ class SolanaConnection(rpcUrl: String,) {
  * Returns the SOL balance (in lamports) for the given public key.
  */
 suspend fun Rpc20Driver.getBalance(publicKey: PublicKey): Result<Long> {
-    val response = makeRequest(
-        request = GetBalance(publicKey),
-        resultSerializer = JsonElement.serializer()
-    )
+    val response = runCatching {
+        makeRequest(
+            request = GetBalance(publicKey),
+            resultSerializer = JsonElement.serializer()
+        )
+    }.getOrElse { return Result.failure(it) }
     val error = response.error
     if (error != null) {
         return Result.failure(RpcException(error.code, error.message))
@@ -42,10 +44,12 @@ suspend fun Rpc20Driver.getBalance(publicKey: PublicKey): Result<Long> {
  * Returns 0 if the account does not exist.
  */
 suspend fun Rpc20Driver.getTokenAccountBalance(tokenAccount: PublicKey): Result<Long> {
-    val response = makeRequest(
-        request = GetTokenAccountBalance(tokenAccount),
-        resultSerializer = JsonElement.serializer()
-    )
+    val response = runCatching {
+        makeRequest(
+            request = GetTokenAccountBalance(tokenAccount),
+            resultSerializer = JsonElement.serializer()
+        )
+    }.getOrElse { return Result.failure(it) }
     val error = response.error
     if (error != null) {
         // Account not found — treat as zero balance
@@ -77,10 +81,12 @@ suspend fun Rpc20Driver.getTokenAccountBalance(tokenAccount: PublicKey): Result<
  * (e.g., network issue, account not found, or RPC error).
  */
 suspend fun Rpc20Driver.doesAccountExist(publicKey: PublicKey): Result<Unit> {
-    val response = makeRequest(
-        request = GetAccountInfo(publicKey),
-        resultSerializer = JsonElement.serializer()
-    )
+    val response = runCatching {
+        makeRequest(
+            request = GetAccountInfo(publicKey),
+            resultSerializer = JsonElement.serializer()
+        )
+    }.getOrElse { return Result.failure(it) }
     val error = response.error
     if (error != null) {
         return Result.failure(RpcException(error.code, error.message))
@@ -98,10 +104,12 @@ suspend fun Rpc20Driver.doesAccountExist(publicKey: PublicKey): Result<Unit> {
  * Returns the raw account data for the given public key, base64-decoded.
  */
 suspend fun Rpc20Driver.getAccountData(publicKey: PublicKey): Result<ByteArray> {
-    val response = makeRequest(
-        request = GetAccountInfo(publicKey),
-        resultSerializer = JsonElement.serializer()
-    )
+    val response = runCatching {
+        makeRequest(
+            request = GetAccountInfo(publicKey),
+            resultSerializer = JsonElement.serializer()
+        )
+    }.getOrElse { return Result.failure(it) }
     val error = response.error
     if (error != null) {
         return Result.failure(RpcException(error.code, error.message))
@@ -127,10 +135,12 @@ suspend fun Rpc20Driver.getAccountData(publicKey: PublicKey): Result<ByteArray> 
  */
 suspend fun Rpc20Driver.sendTransaction(encodedTransaction: String): Result<String> {
     println("sending transaction on the blockchain => $encodedTransaction")
-    val response = makeRequest(
-        request = SendTransaction(encodedTransaction),
-        resultSerializer = JsonElement.serializer()
-    )
+    val response = runCatching {
+        makeRequest(
+            request = SendTransaction(encodedTransaction),
+            resultSerializer = JsonElement.serializer()
+        )
+    }.getOrElse { return Result.failure(it) }
     val error = response.error
     if (error != null) {
         return Result.failure(RpcException(error.code, error.message))
@@ -163,10 +173,12 @@ suspend fun Rpc20Driver.simulateTransaction(
     commitment: String = "confirmed",
 ): Result<String> {
     println("simulating transaction on the blockchain => $encodedTransaction")
-    val response = makeRequest(
-        request = SimulateTransaction(encodedTransaction, commitment),
-        resultSerializer = JsonElement.serializer()
-    )
+    val response = runCatching {
+        makeRequest(
+            request = SimulateTransaction(encodedTransaction, commitment),
+            resultSerializer = JsonElement.serializer()
+        )
+    }.getOrElse { return Result.failure(it) }
     val error = response.error
     val errorDetails = response.result?.jsonObject?.get("err")?.toString()
     if (error != null || errorDetails != null) {
