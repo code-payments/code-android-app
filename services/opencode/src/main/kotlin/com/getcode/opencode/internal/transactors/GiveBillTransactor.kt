@@ -126,15 +126,29 @@ internal class GiveBillTransactor(
         val sendingAmount = amount
             ?: return logAndFail(GiveTransactorError.Other(message = "No amount. Did you call with() first?"))
 
-        val verifiedState = providedVerifiedState
+        val initialState = providedVerifiedState
             ?: verifiedFiatCalculator.resolveVerifiedState(sendingAmount.rate.currency, desiredToken.address)
             ?: return logAndFail(GiveTransactorError.Other("Failed to get verified state"))
 
-        val exchangeData = verifiedState.exchangeDataFor(
+        val (verifiedState, exchangeData) = initialState.exchangeDataFor(
             amount = sendingAmount,
             mint = desiredToken.address,
             billExchangeDataTimeout = exchangeDataTimeout
-        ) ?: return logAndFail(GiveTransactorError.ExchangeRateExpiredException())
+        )?.let { initialState to it }
+            ?: run {
+                // Rate expired — attempt to resolve a fresh verified state
+                val freshState = verifiedFiatCalculator.resolveVerifiedState(
+                    sendingAmount.rate.currency, desiredToken.address
+                ) ?: return logAndFail(GiveTransactorError.ExchangeRateExpiredException())
+
+                val freshExchange = freshState.exchangeDataFor(
+                    amount = sendingAmount,
+                    mint = desiredToken.address,
+                    billExchangeDataTimeout = exchangeDataTimeout
+                ) ?: return logAndFail(GiveTransactorError.ExchangeRateExpiredException())
+
+                freshState to freshExchange
+            }
 
         // 1. Send request to "give" the bill to the recipient.
         // This provides the recipient with the desired token mint of the cash.
