@@ -73,6 +73,38 @@ class RetryTest {
 
     // endregion
 
+    @Test
+    fun `retryable with backoffFactor retries and succeeds`() = runTest {
+        var attempts = 0
+        val result = retryable(
+            maxRetries = 4,
+            delayDuration = 100.milliseconds,
+            backoffFactor = 2.0,
+        ) {
+            attempts++
+            if (attempts < 4) throw RuntimeException("retry")
+            "ok"
+        }
+        assertEquals("ok", result)
+        assertEquals(4, attempts)
+    }
+
+    @Test
+    fun `retryable with backoffFactor 1 behaves like fixed delay`() = runTest {
+        var attempts = 0
+        val result = retryable(
+            maxRetries = 3,
+            delayDuration = 1.milliseconds,
+            backoffFactor = 1.0,
+        ) {
+            attempts++
+            if (attempts < 3) throw RuntimeException("retry")
+            "ok"
+        }
+        assertEquals("ok", result)
+        assertEquals(3, attempts)
+    }
+
     // region retryableOrThrow
 
     @Test

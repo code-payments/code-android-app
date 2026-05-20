@@ -7,49 +7,68 @@ import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
-class UsdcDepositSweep @Inject constructor(
+class UsdcDepositSweep(
     private val transactionOperations: TransactionOperations,
     private val accountController: AccountController,
     private val tokenCoordinator: TokenCoordinator,
+    private val maxRetries: Int = MAX_RETRIES,
+    private val initialDelay: Duration = INITIAL_DELAY,
+    private val backoffFactor: Double = BACKOFF_FACTOR,
 ) {
+    @Inject constructor(
+        transactionOperations: TransactionOperations,
+        accountController: AccountController,
+        tokenCoordinator: TokenCoordinator,
+    ) : this(
+        transactionOperations = transactionOperations,
+        accountController = accountController,
+        tokenCoordinator = tokenCoordinator,
+        maxRetries = MAX_RETRIES,
+        initialDelay = INITIAL_DELAY,
+        backoffFactor = BACKOFF_FACTOR
+    )
+
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var activeJob: Job? = null
 
     fun execute(owner: AccountCluster) {
         if (activeJob?.isActive == true) return
         activeJob = scope.launch {
-            val usdcAccount = accountController.getAccount(
-                accountOwner = owner,
-                requestingOwner = owner,
-                filter = AccountFilter.MintAddress(Mint.usdc),
-            ).getOrNull()?.takeIf { account ->
-                account.accountType == AccountType.AssociatedToken
-            }
+            val amount = retryable(
+                maxRetries = maxRetries,
+                delayDuration = initialDelay,
+                backoffFactor = backoffFactor,
+            ) {
+                val usdcAccount = accountController.getAccount(
+                    accountOwner = owner,
+                    requestingOwner = owner,
+                    filter = AccountFilter.MintAddress(Mint.usdc),
+                ).getOrNull()?.takeIf { account ->
+                    account.accountType == AccountType.AssociatedToken
+                }
 
-            usdcAccount?.let {
-                trace(tag = TAG, message = "USDC ATA found. => ${it.address.base58()}")
-            } ?: trace(tag = TAG, message = "USDC ATA not found")
+                usdcAccount?.let {
+                    trace(tag = TAG, message = "USDC ATA found. => ${it.address.base58()}")
+                } ?: trace(tag = TAG, message = "USDC ATA not found")
 
-            val amount = usdcAccount?.balance ?: 0L
-            if (amount <= 0L) {
-                trace(tag = TAG, message = "USDC balance <= 0. nothing to sweep")
-                return@launch
-            }
+                val balance = usdcAccount?.balance ?: 0L
+                check(balance > 0L) { "USDC balance <= 0. nothing to sweep" }
+                balance
+            } ?: return@launch
 
-            coroutineContext.ensureActive()
-
-            trace(tag = TAG, message = "Swapping $amount USDC quarks to USDF", type = TraceType.Process)
+            trace(tag = TAG, message = "Swapping $amount USDC to USDF", type = TraceType.Process)
 
             transactionOperations.swapUsdc(
                 owner = owner,
@@ -70,5 +89,8 @@ class UsdcDepositSweep @Inject constructor(
 
     companion object {
         private const val TAG = "UsdcDepositSweep"
+        private const val MAX_RETRIES = 5
+        private val INITIAL_DELAY = 5.seconds
+        private const val BACKOFF_FACTOR = 2.0
     }
 }
