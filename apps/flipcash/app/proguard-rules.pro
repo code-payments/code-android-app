@@ -3,6 +3,9 @@
 -obfuscationdictionary shuffled-dictionary.txt
 -classobfuscationdictionary shuffled-dictionary.txt
 
+# Preserve source file names and line numbers for stack traces (call site tracking, Bugsnag)
+-keepattributes SourceFile,LineNumberTable
+
 # Keep screen names
 -keepnames class * implements cafe.adriel.voyager.core.screen.Screen
 
