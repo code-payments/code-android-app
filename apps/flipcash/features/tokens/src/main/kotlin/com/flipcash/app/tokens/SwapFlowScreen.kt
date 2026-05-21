@@ -28,7 +28,7 @@ fun SwapFlowScreen(
     FlowHost<SwapStep, SwapResult>(
         initialStack = initialStack,
         resultStateRegistry = resultStateRegistry,
-        onExit = { reason ->
+        onExit = { reason, _ ->
             val result = when (reason) {
                 is FlowExitReason.Completed -> reason.result
                 FlowExitReason.Canceled,

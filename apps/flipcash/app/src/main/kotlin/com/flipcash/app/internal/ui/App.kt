@@ -36,7 +36,7 @@ import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.bill.customization.BillPlaygroundScaffold
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.LocalUserManager
-import com.flipcash.app.core.extensions.navigateTo
+import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
 import com.flipcash.app.featureflags.FeatureFlag
@@ -258,7 +258,7 @@ internal fun App(
                                             } else false
 
                                             if (!delivered) {
-                                                codeNavigator.navigateTo(action.routes)
+                                                codeNavigator.navigateAll(action.routes)
                                             }
                                         }
 

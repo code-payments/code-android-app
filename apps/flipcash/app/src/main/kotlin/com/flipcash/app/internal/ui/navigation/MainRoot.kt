@@ -25,7 +25,7 @@ import com.flipcash.app.android.R
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
-import com.flipcash.app.core.extensions.navigateTo
+import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.resolveRoutes
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
@@ -128,7 +128,7 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
                     if (!current.startsWith(target)) {
                         navigator.replaceAll(launch.baseRoutes)
                         if (launch.deeplinkRoutes.isNotEmpty()) {
-                            navigator.navigateTo(launch.deeplinkRoutes)
+                            navigator.navigateAll(launch.deeplinkRoutes)
                         }
                     }
                 }

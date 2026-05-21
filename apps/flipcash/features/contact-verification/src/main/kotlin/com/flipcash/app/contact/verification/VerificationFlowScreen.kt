@@ -36,7 +36,7 @@ fun VerificationFlowScreen(
     FlowHost(
         initialStack = initialStack,
         resultStateRegistry = resultStateRegistry,
-        onExit = { reason ->
+        onExit = { reason, _ ->
             val result: VerificationResult = when (reason) {
                 is FlowExitReason.Completed -> reason.result
                 FlowExitReason.Canceled,

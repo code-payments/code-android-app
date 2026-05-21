@@ -89,14 +89,18 @@ private val DefaultFlowPopTransitionSpec:
  *     FlowHost<MyStep, MyResult>(
  *         initialStack = route.initialStack.filterIsInstance<MyStep>(),
  *         resultStateRegistry = resultStateRegistry,
- *         onExit = { reason ->
+ *         onExit = { reason, isSheetRoot ->
  *             val result = when (reason) {
  *                 is FlowExitReason.Completed -> reason.result
  *                 FlowExitReason.Canceled,
  *                 FlowExitReason.BackedOutOfRoot -> MyResult.Canceled
  *             }
- *             outer.deliverFlowResult(route, NavResultOrCanceled.ReturnValue(result))
- *             outer.pop()
+ *             if (isSheetRoot) {
+ *                 outer.pop()
+ *             } else {
+ *                 outer.deliverFlowResult(route, NavResultOrCanceled.ReturnValue(result))
+ *                 outer.pop()
+ *             }
  *         },
  *         entryProvider = myEntryProvider(route),
  *     )
@@ -112,7 +116,7 @@ private val DefaultFlowPopTransitionSpec:
 fun <S : FlowStep, R : Parcelable> FlowHost(
     initialStack: List<S>,
     resultStateRegistry: NavResultStateRegistry,
-    onExit: (FlowExitReason<R>) -> Unit,
+    onExit: (reason: FlowExitReason<R>, isSheetRoot: Boolean) -> Unit,
     entryProvider: (NavKey) -> NavEntry<NavKey>,
     decorators: List<NavEntryDecorator<NavKey>> = emptyList(),
     sceneStrategies: List<SceneStrategy<NavKey>> = listOf(SinglePaneSceneStrategy()),
@@ -130,9 +134,14 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
     val currentOnExit = rememberUpdatedState(onExit)
 
     if (initialStack.isEmpty()) {
-        LaunchedEffect(Unit) { currentOnExit.value(FlowExitReason.BackedOutOfRoot) }
+        LaunchedEffect(Unit) { currentOnExit.value(FlowExitReason.BackedOutOfRoot, false) }
         return
     }
+
+    // Capture outer navigator and sheet context before overriding locals below.
+    val outerNavigator = LocalCodeNavigator.current
+    val sheetNavigator = LocalSheetNavigator.current
+    val isSheetRoot = remember { sheetNavigator != null && outerNavigator.backStack.size <= 1 }
 
     // Seed the inner back stack from the initial step list.
     // Uses rememberSaveable so the stack survives composition removal (e.g. when a
@@ -160,19 +169,18 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
     val innerNavigator = rememberCodeNavigator(
         backStack = innerBackStack,
         resultStateRegistry = resultStateRegistry,
-        onRootReached = remember { { currentOnExit.value(FlowExitReason.BackedOutOfRoot) } },
+        onRootReached = remember { { currentOnExit.value(FlowExitReason.BackedOutOfRoot, isSheetRoot) } },
     )
 
     val flowNavigator = remember(innerNavigator) {
         InnerFlowNavigator<S, R>(
             navigator = innerNavigator,
-            onExit = { reason -> currentOnExit.value(reason) },
+            onExit = { reason -> currentOnExit.value(reason, isSheetRoot) },
         )
     }
 
     // Propagate NonDismissableRoute / NonDraggableRoute from the current inner step
     // to the enclosing sheet so that drag-to-dismiss is blocked when a step requires it.
-    val sheetNavigator = LocalSheetNavigator.current
     if (sheetNavigator != null) {
         val currentInnerRoute by remember {
             derivedStateOf { innerBackStack.lastOrNull() }
@@ -189,15 +197,20 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
         }
     }
 
-    // Expose the outer navigator so that flowAnnotatedEntry (or manual overrides)
-    // can restore it for steps that need to push routes onto the app-level nav graph.
-    val outerNavigator = LocalCodeNavigator.current
+    // Compute dismiss style for AppBarWithTitle auto-swap (back arrow vs close X).
+    val dismissStyle by remember {
+        derivedStateOf {
+            val atRoot = innerBackStack.size <= 1
+            if (isSheetRoot && atRoot) FlowDismissStyle.Close else FlowDismissStyle.BackArrow
+        }
+    }
 
     CompositionLocalProvider(
         LocalOuterCodeNavigator provides outerNavigator,
         LocalCodeNavigator provides innerNavigator,
         LocalFlowNavigator provides flowNavigator,
         LocalFlowViewModelStoreOwner provides flowOwner,
+        LocalFlowDismissStyle provides dismissStyle,
     ) {
         AppNavHost(
             navigator = innerNavigator,

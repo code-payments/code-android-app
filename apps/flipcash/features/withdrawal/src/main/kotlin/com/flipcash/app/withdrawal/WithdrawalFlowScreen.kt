@@ -40,7 +40,7 @@ fun WithdrawalFlowScreen(
     FlowHost(
         initialStack = initialStack,
         resultStateRegistry = resultStateRegistry,
-        onExit = { reason ->
+        onExit = { reason, _ ->
             val result: WithdrawalResult = when (reason) {
                 is FlowExitReason.Completed -> reason.result
                 FlowExitReason.Canceled,

@@ -3,7 +3,8 @@ package com.flipcash.app.router.internal
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.extensions.navigateTo
+import com.flipcash.app.core.extensions.navigateAll
+import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.extensions.resolveRoutes
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.EmptyCodeNavigator
@@ -41,7 +42,7 @@ class NavigateToTest {
         val navigator = createNavigator(AppRoute.Main.Scanner)
         val mint = Mint("So11111111111111111111111111111111111111112")
 
-        navigator.navigateTo(
+        navigator.navigateAll(
             listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(mint)),
             options = quietOptions,
         )
@@ -58,7 +59,7 @@ class NavigateToTest {
             AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
         )
 
-        navigator.navigateTo(listOf(AppRoute.Menu.MyAccount), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Menu.MyAccount), options = quietOptions)
 
         assertNull(navigator.pendingSheetDismiss)
     }
@@ -75,7 +76,7 @@ class NavigateToTest {
         )
         val mint = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
 
-        navigator.navigateTo(
+        navigator.navigateAll(
             listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(mint)),
             options = quietOptions,
         )
@@ -93,7 +94,7 @@ class NavigateToTest {
         )
         val initialGeneration = navigator.sheetGeneration
 
-        navigator.navigateTo(listOf(AppRoute.Sheets.Wallet), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Sheets.Wallet), options = quietOptions)
 
         // Simulate what ModalBottomSheetScene does: remove old sheet, then invoke callback
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
@@ -110,7 +111,7 @@ class NavigateToTest {
         )
         val mint = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
 
-        navigator.navigateTo(
+        navigator.navigateAll(
             listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(mint)),
             options = quietOptions,
         )
@@ -133,13 +134,13 @@ class NavigateToTest {
         )
 
         // First replace
-        navigator.navigateTo(listOf(AppRoute.Sheets.Wallet), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Sheets.Wallet), options = quietOptions)
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
         navigator.pendingSheetDismiss!!.invoke()
         assertEquals(1, navigator.sheetGeneration)
 
         // Second replace
-        navigator.navigateTo(listOf(AppRoute.Sheets.Wallet), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Sheets.Wallet), options = quietOptions)
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
         navigator.pendingSheetDismiss!!.invoke()
         assertEquals(2, navigator.sheetGeneration)
@@ -153,7 +154,7 @@ class NavigateToTest {
     fun `empty routes is a no-op`() {
         val navigator = createNavigator(AppRoute.Main.Scanner)
 
-        navigator.navigateTo(emptyList(), options = quietOptions)
+        navigator.navigateAll(emptyList(), options = quietOptions)
 
         assertEquals(1, navigator.backStack.size)
         assertNull(navigator.pendingSheetDismiss)
@@ -170,7 +171,7 @@ class NavigateToTest {
             ),
         )
 
-        navigator.navigateTo(
+        navigator.navigateAll(
             listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(mint, fromDeeplink = true)),
             options = quietOptions,
         )
@@ -190,7 +191,7 @@ class NavigateToTest {
             AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
         )
 
-        navigator.navigateTo(listOf(AppRoute.Sheets.Wallet), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Sheets.Wallet), options = quietOptions)
 
         // Simulate: a route is pushed during the dismiss animation
         navigator.backStack.add(AppRoute.Menu.MyAccount)
@@ -213,7 +214,7 @@ class NavigateToTest {
             AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
         )
 
-        navigator.navigateTo(listOf(AppRoute.Sheets.Wallet), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Sheets.Wallet), options = quietOptions)
 
         // Simulate ModalBottomSheetScene dismiss: remove old sheet, then fire callback
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
@@ -256,11 +257,11 @@ class NavigateToTest {
         )
 
         // First navigate sets pendingSheetDismiss
-        navigator.navigateTo(listOf(AppRoute.Sheets.Menu), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Sheets.Menu), options = quietOptions)
         assertNotNull(navigator.pendingSheetDismiss)
 
         // Second navigate overwrites pendingSheetDismiss
-        navigator.navigateTo(listOf(AppRoute.Sheets.Menu), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Sheets.Menu), options = quietOptions)
 
         // Simulate: onBack removes old sheet, then callback fires
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
@@ -278,16 +279,16 @@ class NavigateToTest {
 
     // endregion
 
-    // region Single-route navigateTo dismiss-then-replace
+    // region openAsSheet dismiss-then-replace
 
     @Test
-    fun `single-route navigateTo with existing sheet sets pendingSheetDismiss`() {
+    fun `openAsSheet with existing sheet sets pendingSheetDismiss`() {
         val navigator = createNavigator(
             AppRoute.Main.Scanner,
             AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
         )
 
-        navigator.navigateTo(AppRoute.Sheets.TokenDiscovery, options = quietOptions)
+        navigator.openAsSheet(AppRoute.Sheets.Lab)
 
         assertNotNull(navigator.pendingSheetDismiss)
         // Backstack unchanged until the callback fires
@@ -295,13 +296,13 @@ class NavigateToTest {
     }
 
     @Test
-    fun `single-route navigateTo callback navigates to new sheet after dismiss`() {
+    fun `openAsSheet callback navigates to new sheet after dismiss`() {
         val navigator = createNavigator(
             AppRoute.Main.Scanner,
             AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
         )
 
-        navigator.navigateTo(AppRoute.Sheets.TokenDiscovery, options = quietOptions)
+        navigator.openAsSheet(AppRoute.Sheets.Lab)
 
         // Simulate dismiss: remove old sheet entry, then callback fires
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
@@ -309,18 +310,18 @@ class NavigateToTest {
 
         val last = navigator.backStack.last()
         assertIs<AppRoute.Main.Sheet>(last)
-        assertEquals(AppRoute.Sheets.TokenDiscovery, last.initialRoute)
+        assertEquals(AppRoute.Sheets.Lab, last.initialRoute)
     }
 
     @Test
-    fun `single-route navigateTo increments sheetGeneration on dismiss-replace`() {
+    fun `openAsSheet increments sheetGeneration on dismiss-replace`() {
         val navigator = createNavigator(
             AppRoute.Main.Scanner,
             AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
         )
         val initialGeneration = navigator.sheetGeneration
 
-        navigator.navigateTo(AppRoute.Sheets.TokenDiscovery, options = quietOptions)
+        navigator.openAsSheet(AppRoute.Sheets.Lab)
 
         // Simulate dismiss
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
@@ -330,10 +331,10 @@ class NavigateToTest {
     }
 
     @Test
-    fun `single-route navigateTo without existing sheet navigates directly`() {
+    fun `openAsSheet without existing sheet navigates directly`() {
         val navigator = createNavigator(AppRoute.Main.Scanner)
 
-        navigator.navigateTo(AppRoute.Sheets.TokenDiscovery, options = quietOptions)
+        navigator.openAsSheet(AppRoute.Sheets.Lab)
 
         assertNull(navigator.pendingSheetDismiss)
         assertEquals(2, navigator.backStack.size)

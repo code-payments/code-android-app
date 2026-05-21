@@ -24,7 +24,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.extensions.navigateTo
 import com.flipcash.app.featureflags.FlagOption
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.featureflags.message
@@ -122,7 +121,7 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
                     headline = stringResource(R.string.subtitle_settingsUserFlags),
                     icon = rememberVectorPainter(Icons.Default.Token),
                 ) {
-                    navigator.navigateTo(AppRoute.UserFlags)
+                    navigator.navigate(AppRoute.UserFlags)
                 }
             }
         }

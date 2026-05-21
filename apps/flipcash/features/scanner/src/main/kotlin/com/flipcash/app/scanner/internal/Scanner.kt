@@ -33,7 +33,8 @@ import com.getcode.utils.ErrorUtils
 import com.kik.kikx.kikcodes.implementation.KikCodeResult
 import dev.theolm.rinku.DeepLink
 import timber.log.Timber
-import com.flipcash.app.core.extensions.navigateTo
+import com.flipcash.app.core.extensions.navigateAll
+import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.getcode.manager.BottomBarAction
 
@@ -95,17 +96,17 @@ internal fun Scanner() {
                                 BottomBarAction(
                                     text = context.getString(R.string.action_discoverCurrencies)
                                 ) {
-                                    navigator.navigateTo(AppRoute.Sheets.TokenDiscovery)
+                                    navigator.openAsSheet(AppRoute.Token.Discovery)
                                 },
                             ),
                             showCancel = true,
                         )
-                        return@BillContainer
+                        return@BillContainer 
                     }
                 }
                 else -> Unit
             }
-            navigator.navigateTo(it.screen)
+            navigator.openAsSheet(it.screen)
         },
         scannerView = {
             CodeScanner(
@@ -143,7 +144,7 @@ internal fun Scanner() {
                                             else -> emptyList()
                                         }
                                         if (routes.isNotEmpty()) {
-                                            navigator.navigateTo(routes)
+                                            navigator.navigateAll(routes)
                                         }
                                     }
                                     is DeeplinkType.Login -> Unit

@@ -76,7 +76,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         @Parcelize
         data class Sheet(
-            val initialRoute: Sheets,
+            val initialRoute: AppRoute,
             val innerRoutes: List<AppRoute> = emptyList(),
         ) : Main, com.getcode.navigation.Sheet
     }
@@ -113,9 +113,6 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object Menu : Sheets
         @Serializable
         data object Lab : Sheets
-
-        @Serializable
-        data object TokenDiscovery: Sheets
 
         @Serializable
         data object ShareApp : Sheets
@@ -195,8 +192,6 @@ sealed interface AppRoute : NavKey, Parcelable {
     sealed interface Menu : AppRoute {
         @Serializable
         data object MyAccount : Menu
-        @Serializable
-        data class Deposit(val mint: Mint) : Menu
         @Serializable
         data object BackupKey : Menu
         @Serializable

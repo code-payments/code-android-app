@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -22,46 +23,34 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
-
-@Composable
-fun TokenDiscoverySheet() {
-    val navigator = LocalCodeNavigator.current
-    val viewModel = hiltViewModel<TokenDiscoveryViewModel>()
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        AppBarWithTitle(
-            title = stringResource(R.string.title_discoverCurrencies),
-            isInModal = true,
-            titleAlignment = Alignment.CenterHorizontally,
-            endContent = {
-                AppBarDefaults.Close { navigator.hide() }
-            },
-        )
-        TokenDiscoveryScreen(viewModel)
-    }
-
-    TokenDiscoveryEventHandler(viewModel, navigator)
-}
-
 @Composable
 fun TokenDiscoveryScreen() {
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<TokenDiscoveryViewModel>()
+    val isSheetRoot = remember { navigator.backStack.size <= 1 }
 
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        AppBarWithTitle(
-            title = stringResource(R.string.title_discoverCurrencies),
-            isInModal = true,
-            titleAlignment = Alignment.CenterHorizontally,
-            backButton = true,
-            onBackIconClicked = { navigator.pop() },
-        )
+        if (isSheetRoot) {
+            AppBarWithTitle(
+                title = stringResource(R.string.title_discoverCurrencies),
+                isInModal = true,
+                titleAlignment = Alignment.CenterHorizontally,
+                endContent = {
+                    AppBarDefaults.Close { navigator.hide() }
+                },
+            )
+        } else {
+            AppBarWithTitle(
+                title = stringResource(R.string.title_discoverCurrencies),
+                isInModal = true,
+                titleAlignment = Alignment.CenterHorizontally,
+                backButton = true,
+                onBackIconClicked = { navigator.pop() },
+            )
+        }
         TokenDiscoveryScreen(viewModel)
     }
 

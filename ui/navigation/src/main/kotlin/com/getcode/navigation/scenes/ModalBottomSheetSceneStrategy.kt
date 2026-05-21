@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
@@ -78,13 +79,17 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
 
     @OptIn(ExperimentalMaterial3Api::class)
     override val content: @Composable (() -> Unit) = {
-        // Scope composition by the scene key + generation counter so that
-        // rememberModalBottomSheetState (which uses rememberSaveable) creates a fresh
-        // SheetState when the route changes OR when the same route is re-opened via
-        // dismiss-then-replace. Without the generation counter, Compose reuses the
-        // Hidden SheetState because onBack + navigateTo happen in the same snapshot.
+        // Scope composition by the scene key so that rememberModalBottomSheetState
+        // (which uses rememberSaveable) creates a fresh SheetState when the route changes.
+        //
+        // NOTE: sheetGeneration is intentionally NOT part of this key. Putting it here
+        // causes the key() block to re-key while the old scene is still composing
+        // (during the pendingDismiss finally block), which creates a second
+        // ModalBottomSheet popup for the same SaveableStateProvider key → crash.
+        // Instead, sheetGeneration is used as the LaunchedEffect key for show() so
+        // same-route dismiss-replace re-shows the sheet without recreating the scope.
         val navigator = LocalCodeNavigator.current
-        key(key, navigator.sheetGeneration) {
+        key(key) {
             val isNonDismissable =
                 (metadata[NavMetadataKeys.IsNonDismissable.key] as? Boolean ?: false)
                         || navigator.sheetDismissDisabled
@@ -116,11 +121,10 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                 }
             )
 
-            // Ensure the sheet shows when entering composition. Material3's internal
-            // LaunchedEffect is keyed on sheetState, which may be the same object when
-            // rememberSaveable restores a Hidden state for the same route key. Keying on
-            // Unit guarantees show() fires on every fresh composition entry.
-            LaunchedEffect(Unit) {
+            // Show the sheet on initial composition AND after same-route
+            // dismiss-replace (where sheetGeneration increments but the scene
+            // key stays the same, so rememberSaveable restores the Hidden state).
+            LaunchedEffect(navigator.sheetGeneration) {
                 sheetState.show()
             }
 
@@ -149,10 +153,19 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                     try {
                         sheetState.hide()
                     } finally {
-                        handleBackResult()
-                        onBack()
-                        navigator.pendingSheetDismiss = null
-                        pendingDismiss()
+                        // Apply all changes atomically so Compose never sees an
+                        // intermediate state where the old sheet is removed but
+                        // sheetGeneration hasn't incremented yet.  Without this,
+                        // the key(key, sheetGeneration) block can recompose and
+                        // create a second ModalBottomSheet popup for the same key
+                        // before the old one is destroyed → SaveableStateProvider
+                        // duplicate-key crash.
+                        Snapshot.withMutableSnapshot {
+                            handleBackResult()
+                            onBack()
+                            navigator.pendingSheetDismiss = null
+                            pendingDismiss()
+                        }
                     }
                 }
             }
@@ -171,7 +184,14 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                     sheetState = sheetState,
                     onDismissRequest = {
                         if (!isNonDismissable) {
-                            if (confirmHiddenCalled) {
+                            if (navigator.pendingSheetDismiss != null) {
+                                // External dismiss in progress (e.g. sheet replacement via
+                                // openAsSheet). The pendingDismiss handler's finally block
+                                // owns the onBack() call — don't let onDismissRequest also
+                                // call it, which would remove the sheet prematurely while
+                                // the handler is still running.
+                                confirmHiddenCalled = false
+                            } else if (confirmHiddenCalled) {
                                 confirmHiddenCalled = false
                                 dismiss(false)
                             } else {

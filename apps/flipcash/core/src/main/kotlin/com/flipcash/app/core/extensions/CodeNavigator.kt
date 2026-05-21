@@ -7,27 +7,24 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.NavOptions
 
 /**
- * Navigate to a route, wrapping [AppRoute.Sheets] in [AppRoute.Main.Sheet]
- * so the [ModalBottomSheetSceneStrategy] renders them in a bottom sheet.
+ * Open any [AppRoute] as a modal bottom sheet.
+ *
+ * Wraps [route] in [AppRoute.Main.Sheet] and navigates to it. If a sheet is already
+ * open, the current sheet is animated closed before the new one opens.
  */
-fun CodeNavigator.navigateTo(route: NavKey, options: NavOptions = NavOptions()) {
-    val destination = if (route is AppRoute.Sheets) {
-        AppRoute.Main.Sheet(route)
-    } else {
-        route
-    }
-    val needsSheet = destination is AppRoute.Main.Sheet
+fun CodeNavigator.openAsSheet(route: AppRoute, innerRoutes: List<AppRoute> = emptyList()) {
+    val destination = AppRoute.Main.Sheet(route, innerRoutes)
     val hasSheet = backStack.any { it is AppRoute.Main.Sheet }
 
-    if (hasSheet && needsSheet) {
+    if (hasSheet) {
         pendingSheetDismiss = {
             Snapshot.withMutableSnapshot {
                 sheetGeneration++
-                navigate(destination, options)
+                navigate(destination)
             }
         }
     } else {
-        navigate(destination, options)
+        navigate(destination)
     }
 }
 
@@ -37,10 +34,9 @@ fun CodeNavigator.navigateTo(route: NavKey, options: NavOptions = NavOptions()) 
  * so they appear inside the sheet rather than on the root backstack.
  *
  * If a sheet is already open and the new routes include a sheet, the current sheet
- * is animated closed before the new one opens. For direct navigation without
- * dismiss handling, use [navigate] directly.
+ * is animated closed before the new one opens.
  */
-fun CodeNavigator.navigateTo(routes: List<NavKey>, options: NavOptions = NavOptions()) {
+fun CodeNavigator.navigateAll(routes: List<NavKey>, options: NavOptions = NavOptions()) {
     if (routes.isEmpty()) return
 
     val resolved = resolveRoutes(routes)
@@ -48,9 +44,6 @@ fun CodeNavigator.navigateTo(routes: List<NavKey>, options: NavOptions = NavOpti
     val hasSheet = backStack.any { it is AppRoute.Main.Sheet }
 
     if (hasSheet && needsSheet) {
-        // Animate the current sheet down, then open the new one.
-        // The callback is invoked by ModalBottomSheetScene after the dismiss
-        // animation completes and the old entry is removed from the backstack.
         pendingSheetDismiss = {
             Snapshot.withMutableSnapshot {
                 sheetGeneration++
