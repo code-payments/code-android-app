@@ -97,6 +97,8 @@ vico = "2.4.1"
 androidxTestRules = "1.7.0"
 archCore = "2.2.0"
 
+appfunctions = "1.0.0-alpha09"
+
 screenshot = "0.0.1-alpha14"
 
 secrets-gradle-plugin = "2.0.1"
@@ -288,6 +290,11 @@ testing-slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version.ref
 testing-lifecycle = { group = "androidx.lifecycle", name = "lifecycle-runtime-testing", version.ref = "androidx-lifecycle" }
 testing-compose-uiTestManifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 testing-androidx-compose-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version.ref = "androidxUiJUnit" }
+
+# AppFunctions
+appfunctions = { module = "androidx.appfunctions:appfunctions", version.ref = "appfunctions" }
+appfunctions-service = { module = "androidx.appfunctions:appfunctions-service", version.ref = "appfunctions" }
+appfunctions-compiler = { module = "androidx.appfunctions:appfunctions-compiler", version.ref = "appfunctions" }
 
 # Screenshot testing
 screenshot-validation-api = { module = "com.android.tools.screenshot:screenshot-validation-api", version.ref = "screenshot" }

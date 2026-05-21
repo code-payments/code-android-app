@@ -18,6 +18,9 @@ interface TokenDao {
     @Query("SELECT * FROM tokens WHERE address = :address")
     suspend fun getByMint(address: String): TokenEntity?
 
+    @Query("SELECT * FROM tokens WHERE symbol = :symbol COLLATE NOCASE LIMIT 1")
+    suspend fun getBySymbol(symbol: String): TokenEntity?
+
     @Query("SELECT * FROM tokens")
     suspend fun getAll(): List<TokenEntity>
 

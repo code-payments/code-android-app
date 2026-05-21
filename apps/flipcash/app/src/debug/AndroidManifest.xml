@@ -2,7 +2,13 @@
 
     <uses-permission android:name="com.getcode.dev.READ_ACCOUNT" />
     <application>
-
+        <receiver
+            android:name="com.flipcash.app.debug.AppFunctionTestReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.flipcash.TEST_APP_FUNCTION" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

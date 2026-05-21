@@ -27,6 +27,11 @@ fun gitVersionCode(): Int {
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
 val appNamespace = "${Gradle.flipcashNamespace}.app.android"
 
+ksp {
+    arg("appfunctions:aggregateAppFunctions", "true")
+    arg("appfunctions:generateMetadataFromSchema", "true")
+}
+
 android {
     // static namespace
     namespace = appNamespace
@@ -162,6 +167,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:web"))
+    implementation(project(":apps:flipcash:shared:appfunctions"))
     implementation(project(":apps:flipcash:shared:workers"))
     implementation(project(":apps:flipcash:features:login"))
     implementation(project(":apps:flipcash:features:purchase"))
@@ -264,6 +270,9 @@ dependencies {
         exclude(module = "protobuf-lite")
     }
     androidTestImplementation(libs.espresso.intents)
+
+    implementation(libs.appfunctions.service)
+    ksp(libs.appfunctions.compiler)
 
     implementation(libs.timber)
     implementation(libs.bugsnag)

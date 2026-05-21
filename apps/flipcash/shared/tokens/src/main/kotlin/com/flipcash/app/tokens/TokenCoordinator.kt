@@ -216,6 +216,7 @@ class TokenCoordinator @Inject constructor(
         modifyBalance(token, amount) { current, delta -> current - delta }
     }
 
+
     // endregion
 
     // region Public API — Token Metadata (implements TokenMetadataProvider)
@@ -256,6 +257,27 @@ class TokenCoordinator @Inject constructor(
                     }
                 }
             }
+    }
+
+    /**
+     * 2-tier symbol lookup: in-memory → Room.
+     * Network is not available for symbol-based search.
+     */
+    suspend fun getTokenBySymbol(symbol: String): Token? {
+        // 1. In-memory
+        _state.value.tokens.values
+            .firstOrNull { it.symbol.equals(symbol, ignoreCase = true) }
+            ?.let { return it }
+
+        // 2. Room
+        dataSource.getBySymbol(symbol)?.let { persisted ->
+            _state.update { state ->
+                state.copy(tokens = state.tokens + (persisted.address to persisted))
+            }
+            return persisted
+        }
+
+        return null
     }
 
     // endregion

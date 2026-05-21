@@ -47,6 +47,7 @@ include(
     ":apps:flipcash:shared:appsettings",
     ":apps:flipcash:shared:authentication",
     ":apps:flipcash:shared:activityfeed",
+    ":apps:flipcash:shared:appfunctions",
     ":apps:flipcash:shared:bills",
     ":apps:flipcash:shared:bill-customization",
     ":apps:flipcash:shared:currency-creator",

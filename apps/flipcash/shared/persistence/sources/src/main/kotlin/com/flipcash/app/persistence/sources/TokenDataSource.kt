@@ -33,6 +33,11 @@ class TokenDataSource @Inject constructor(
         return domainMapper.map(entity)
     }
 
+    suspend fun getBySymbol(symbol: String): MintMetadata? {
+        val entity = db?.tokenDao()?.getBySymbol(symbol) ?: return null
+        return domainMapper.map(entity)
+    }
+
     override suspend fun get(): List<MintMetadata> {
         val entities = db?.tokenDao()?.getAll() ?: return emptyList()
         return entities.map { domainMapper.map(it) }

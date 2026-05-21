@@ -94,6 +94,10 @@ class ActivityFeedCoordinator @Inject constructor(
             }
     }
 
+    suspend fun getRecent(limit: Int = 20): List<ActivityFeedMessage> {
+        return dataSource.query(whereClause = "1=1 ORDER BY timestamp DESC LIMIT $limit")
+    }
+
     suspend fun fetchSinceLatest(count: Int = 20): Result<Unit> {
         val latest = dataSource.getMostRecent()
         return activityFeedController.queryNotificationsFor(

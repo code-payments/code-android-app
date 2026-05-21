@@ -2,6 +2,7 @@ package com.flipcash.app
 
 import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.appfunctions.service.AppFunctionConfiguration
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import coil3.ImageLoader
@@ -13,6 +14,7 @@ import coil3.request.CachePolicy
 import coil3.request.crossfade
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.currency.PreferredCurrencyController
+import com.flipcash.shared.appfunctions.enablement.AppFunctionEnablementCoordinator
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.trace
 import dev.bmcreations.phantom.connect.PhantomSdk
@@ -20,7 +22,8 @@ import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
 @HiltAndroidApp
-class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.Factory {
+class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.Factory,
+    AppFunctionConfiguration.Provider {
 
     @Inject
     lateinit var authManager: AuthManager
@@ -34,6 +37,12 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
+    @Inject
+    lateinit var _appFunctionConfiguration: AppFunctionConfiguration
+
+    @Inject
+    lateinit var appFunctionEnablementCoordinator: AppFunctionEnablementCoordinator
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -44,10 +53,14 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
         super.onCreate()
         PhantomSdk.init(this)
         authManager.init()
+        appFunctionEnablementCoordinator.init()
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         trace("app onCreate end")
     }
+
+    override val appFunctionConfiguration: AppFunctionConfiguration
+        get() = _appFunctionConfiguration
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
         return ImageLoader.Builder(context)
