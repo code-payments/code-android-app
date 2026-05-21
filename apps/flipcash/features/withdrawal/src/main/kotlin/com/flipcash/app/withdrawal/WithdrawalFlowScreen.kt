@@ -124,7 +124,6 @@ private fun WithdrawalSelectTokenScreen() {
             tokens = state.tokens,
             selectedToken = state.selectedToken,
             showFlags = true,
-            includeReserves = true,
             onTokenSelected = { viewModel.dispatchEvent(SelectTokenViewModel.Event.OnTokenSelected(it.address)) },
         )
     }
