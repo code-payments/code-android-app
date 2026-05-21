@@ -13,7 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.extensions.navigateTo
+import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.login.internal.LoginRouterScreenContent
 import com.getcode.navigation.core.LocalCodeNavigator
 import kotlinx.coroutines.delay
@@ -83,7 +83,7 @@ fun LoginRouter(
             login = { navigator.push(AppRoute.Onboarding.SeedInput) },
             isLabsOpen = state.betaOptionsVisible,
             onLogoTapped = { vm.dispatchEvent(LoginViewModel.Event.OnLogoTapped) },
-            openBetaFlags = { navigator.navigateTo(AppRoute.Sheets.Lab) }
+            openBetaFlags = { navigator.openAsSheet(AppRoute.Sheets.Lab) }
         )
     }
 }

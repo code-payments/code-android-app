@@ -57,22 +57,26 @@ fun DepositFlowScreen(
         FlowHost(
             initialStack = initialStack,
             resultStateRegistry = resultStateRegistry,
-            onExit = { reason ->
+            onExit = { reason, isSheetRoot ->
                 val result: DepositResult = when (reason) {
                     is FlowExitReason.Completed -> reason.result
                     FlowExitReason.Canceled,
                     FlowExitReason.BackedOutOfRoot -> DepositResult.Canceled
                 }
-                outerNavigator.deliverFlowResult(
-                    route = route,
-                    value = NavResultOrCanceled.ReturnValue(result),
-                )
-                when (result) {
-                    DepositResult.Success -> {
-                        outerNavigator.popUntil { it == AppRoute.Sheets.Menu }
-                    }
-                    DepositResult.Canceled -> {
-                        outerNavigator.pop()
+                if (isSheetRoot) {
+                    outerNavigator.pop()
+                } else {
+                    outerNavigator.deliverFlowResult(
+                        route = route,
+                        value = NavResultOrCanceled.ReturnValue(result),
+                    )
+                    when (result) {
+                        DepositResult.Success -> {
+                            outerNavigator.popUntil { it == AppRoute.Sheets.Menu }
+                        }
+                        DepositResult.Canceled -> {
+                            outerNavigator.pop()
+                        }
                     }
                 }
             },

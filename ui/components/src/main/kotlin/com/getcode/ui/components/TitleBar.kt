@@ -32,6 +32,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.getcode.navigation.flow.FlowDismissStyle
+import com.getcode.navigation.flow.LocalFlowDismissStyle
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 import com.getcode.ui.core.addIf
@@ -164,12 +166,15 @@ fun AppBarWithTitle(
     onBackIconClicked: () -> Unit = {},
     endContent: @Composable () -> Unit = { },
 ) {
+    val flowDismissStyle = LocalFlowDismissStyle.current
+    val showClose = backButton && flowDismissStyle == FlowDismissStyle.Close
+
     TopAppBarBase(
         modifier = modifier,
         isInModal = isInModal,
         contentPadding = contentPadding,
         leftIcon = {
-            if (backButton) {
+            if (backButton && !showClose) {
                 AppBarDefaults.UpNavigation { onBackIconClicked() }
             }
         },
@@ -177,7 +182,11 @@ fun AppBarWithTitle(
             AppBarDefaults.Title(text = title)
         },
         titleAlignment = titleAlignment,
-        rightContents = endContent
+        rightContents = if (showClose) {
+            { AppBarDefaults.Close { onBackIconClicked() } }
+        } else {
+            endContent
+        },
     )
 }
 
