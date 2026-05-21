@@ -4,9 +4,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.flipcash.app.withdrawal.WithdrawalViewModel
@@ -21,13 +23,15 @@ import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.util.resources.LocalResources
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun WithdrawalConfirmationScreen(mint: Mint) {
+internal fun WithdrawalConfirmationScreen() {
     val flowNavigator = rememberFlowNavigator<WithdrawalStep, WithdrawalResult>()
     val viewModel = flowSharedViewModel<WithdrawalViewModel>()
     val resources = LocalResources.current
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -61,7 +65,8 @@ internal fun WithdrawalConfirmationScreen(mint: Mint) {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<WithdrawalViewModel.Event.OnWithdrawalTooSmall>()
-            .onEach {
+            .mapNotNull { state.selectedTokenAddress }
+            .onEach { mint ->
                 BottomBarManager.showAlert(
                     title = resources.getString(WR.string.error_title_withdrawalTooSmall),
                     message = resources.getString(WR.string.error_description_withdrawalTooSmall),

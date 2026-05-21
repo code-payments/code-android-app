@@ -3,6 +3,7 @@ package com.getcode.navigation.flow
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.navigation3.runtime.NavKey
 import com.getcode.navigation.core.CodeNavigator
 
 /**
@@ -39,6 +40,13 @@ interface FlowNavigator<S : FlowStep, R : Parcelable> {
 
     /** Exit the flow without delivering a result (caller sees it as a cancellation). */
     fun exitCanceled()
+
+    /**
+     * Push [route] onto the *outer* (app-level) navigator.
+     * Use this when a flow step needs to open a screen outside the flow
+     * (e.g. region selection, token selection) without referencing the outer navigator directly.
+     */
+    fun navigate(route: NavKey)
 }
 
 val LocalFlowNavigator =
@@ -66,6 +74,7 @@ class PreviewFlowNavigator<S : FlowStep, R : Parcelable> : FlowNavigator<S, R> {
     override fun back(): Boolean = false
     override fun exitWithResult(result: R) {}
     override fun exitCanceled() {}
+    override fun navigate(route: NavKey) {}
 }
 
 /**

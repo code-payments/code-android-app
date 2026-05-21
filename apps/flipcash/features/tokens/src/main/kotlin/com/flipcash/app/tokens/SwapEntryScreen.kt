@@ -17,11 +17,9 @@ import com.flipcash.app.onramp.LocalCoinbaseOnRampController
 import com.flipcash.app.tokens.internal.SwapEntryScreenContent
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -36,7 +34,6 @@ internal fun SwapEntryScreen(
     val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val navigator = LocalCodeNavigator.current
     val coinbaseOnRampController = LocalCoinbaseOnRampController.current
 
     Column(
@@ -99,7 +96,7 @@ internal fun SwapEntryScreen(
             .filterIsInstance<SwapViewModel.Event.OnVerificationNeeded>()
             .onEach { (phone, email) ->
                 val mint = (viewModel.stateFlow.value.purpose as? SwapPurpose.Buy)?.mint ?: return@onEach
-                navigator.push(
+                flowNavigator.navigate(
                     AppRoute.Verification(
                         origin = AppRoute.Token.Swap(SwapPurpose.Buy(mint)),
                         includePhone = phone,
@@ -121,7 +118,7 @@ internal fun SwapEntryScreen(
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.OtherWalletSelected>()
             .onEach {
-                navigator.push(AppRoute.Transfers.Deposit(Mint.usdf))
+                flowNavigator.exitWithResult(SwapResult.OpenDeposit)
             }.launchIn(this)
     }
 

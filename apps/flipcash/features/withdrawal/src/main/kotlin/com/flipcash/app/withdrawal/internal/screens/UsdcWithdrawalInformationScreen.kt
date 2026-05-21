@@ -33,7 +33,7 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 
 @Composable
-internal fun UsdcWithdrawalInformationScreen() {
+internal fun UsdcWithdrawalInformationScreen(showOtherOptions: Boolean) {
     val flowNavigator = rememberFlowNavigator<WithdrawalStep, WithdrawalResult>()
 
     CodeScaffold(
@@ -47,16 +47,31 @@ internal fun UsdcWithdrawalInformationScreen() {
             )
         },
         bottomBar = {
-            CodeButton(
-                modifier = Modifier
-                    .fillMaxWidth()
+            Column(
+                modifier = Modifier.fillMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .padding(bottom = CodeTheme.dimens.grid.x2)
                     .navigationBarsPadding(),
-                buttonState = ButtonState.Filled,
-                text = stringResource(R.string.action_next),
             ) {
-                flowNavigator.navigateTo(WithdrawalStep.Amount(Mint.usdf))
+                CodeButton(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    buttonState = ButtonState.Filled,
+                    text = stringResource(R.string.action_next),
+                ) {
+                    flowNavigator.navigateTo(WithdrawalStep.Amount(Mint.usdc))
+                }
+
+                if (showOtherOptions) {
+                    CodeButton(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        buttonState = ButtonState.Subtle,
+                        text = stringResource(R.string.action_withdrawOtherCurrencies),
+                    ) {
+                        flowNavigator.navigateTo(WithdrawalStep.SelectToken)
+                    }
+                }
             }
         }
     ) { padding ->

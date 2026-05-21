@@ -1,10 +1,12 @@
 package com.flipcash.app.tokens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
 import com.getcode.navigation.annotatedEntry
@@ -16,6 +18,7 @@ import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.deliverFlowResult
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
+import com.getcode.navigation.scenes.LocalSheetNavigator
 
 @Composable
 fun SwapFlowScreen(
@@ -23,6 +26,7 @@ fun SwapFlowScreen(
     resultStateRegistry: NavResultStateRegistry,
 ) {
     val outerNavigator = LocalCodeNavigator.current
+    val rootNavigator = LocalSheetNavigator.current
     val initialStack = route.rememberInitialStack<SwapStep>()
 
     FlowHost<SwapStep, SwapResult>(
@@ -34,16 +38,27 @@ fun SwapFlowScreen(
                 FlowExitReason.Canceled,
                 FlowExitReason.BackedOutOfRoot -> SwapResult.Canceled
             }
-            outerNavigator.deliverFlowResult(
-                route = route,
-                value = NavResultOrCanceled.ReturnValue(result),
-            )
             when (result) {
-                SwapResult.Success -> {
-                    if (route.shortfall != null) outerNavigator.popAll()
-                    else outerNavigator.popUntil { it is AppRoute.Token.Info }
+                is SwapResult.OpenDeposit -> {
+                    Snapshot.withMutableSnapshot {
+                        rootNavigator?.hide()
+                        // can only deposit USDC from this flow
+                        rootNavigator?.openAsSheet(AppRoute.Transfers.Deposit(showOtherOptions = false))
+                    }
                 }
-                SwapResult.Canceled -> outerNavigator.pop()
+                else -> {
+                    outerNavigator.deliverFlowResult(
+                        route = route,
+                        value = NavResultOrCanceled.ReturnValue(result),
+                    )
+                    when (result) {
+                        SwapResult.Success -> {
+                            if (route.shortfall != null) outerNavigator.popAll()
+                            else outerNavigator.popUntil { it is AppRoute.Token.Info }
+                        }
+                        SwapResult.Canceled -> outerNavigator.pop()
+                    }
+                }
             }
         },
         entryProvider = swapEntryProvider(),

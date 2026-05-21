@@ -175,6 +175,7 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
     val flowNavigator = remember(innerNavigator) {
         InnerFlowNavigator<S, R>(
             navigator = innerNavigator,
+            outerNavigator = outerNavigator,
             onExit = { reason -> currentOnExit.value(reason, isSheetRoot) },
         )
     }
@@ -227,6 +228,7 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
 
 private class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
     private val navigator: CodeNavigator,
+    private val outerNavigator: CodeNavigator,
     private val onExit: (FlowExitReason<R>) -> Unit,
 ) : FlowNavigator<S, R> {
 
@@ -271,6 +273,10 @@ private class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
 
     override fun exitCanceled() {
         onExit(FlowExitReason.Canceled)
+    }
+
+    override fun navigate(route: NavKey) {
+        outerNavigator.push(route)
     }
 }
 

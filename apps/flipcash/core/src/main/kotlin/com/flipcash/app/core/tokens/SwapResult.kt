@@ -13,4 +13,8 @@ sealed interface SwapResult : Parcelable {
     @Parcelize
     @Serializable
     data object Canceled : SwapResult
+
+    @Parcelize
+    @Serializable
+    data object OpenDeposit : SwapResult
 }

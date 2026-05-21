@@ -167,23 +167,15 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Parcelize
     sealed interface Transfers : AppRoute {
         @Serializable
-        data class Deposit(val mint: Mint): Transfers, FlowRouteWithResult<DepositResult> {
+        data class Deposit(val showOtherOptions: Boolean = true): Transfers, FlowRouteWithResult<DepositResult> {
             override val initialStack: List<NavKey>
-                get() = if (mint == Mint.usdf) {
-                    listOf(DepositStep.UsdcInformational)
-                } else {
-                    listOf(DepositStep.Destination(mint))
-                }
+                get() =  listOf(DepositStep.UsdcInformational(showOtherOptions))
         }
 
         @Serializable
-        data class Withdrawal(val mint: Mint) : Transfers, FlowRouteWithResult<WithdrawalResult> {
+        data class Withdrawal(val showOtherOptions: Boolean = true) : Transfers, FlowRouteWithResult<WithdrawalResult> {
             override val initialStack: List<NavKey>
-                get() = if (mint == Mint.usdf) {
-                    listOf(WithdrawalStep.UsdcInformational)
-                } else {
-                    listOf(WithdrawalStep.Amount(mint))
-                }
+                get() =  listOf(WithdrawalStep.UsdcInformational(showOtherOptions))
         }
     }
 

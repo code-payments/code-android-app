@@ -669,4 +669,7 @@
     <string name="description_buyWithPhantomConnected">Confirm the transaction in Phantom to continue</string>
 
     <string name="title_depositToken">Deposit %1$s</string>
+
+    <string name="action_depositOtherCurrencies">Deposit Other Flipcash Currencies</string>
+    <string name="action_withdrawOtherCurrencies">Withdraw Other Flipcash Currencies</string>
 </resources>

@@ -61,8 +61,7 @@ internal class DepositViewModel @Inject constructor(
             .onResult(
                 onSuccess = { result ->
                     viewModelScope.launch {
-                        val directDeposit = featureFlags.get(FeatureFlag.DepositUsdc)
-                        val address = if (result.token.address == Mint.usdf && directDeposit) {
+                        val address = if (result.token.address == Mint.usdc) {
                             userManager.accountCluster?.authorityPublicKey?.base58()
                         } else {
                             userManager.accountCluster?.depositAddressFor(result.token)?.base58()
@@ -77,11 +76,11 @@ internal class DepositViewModel @Inject constructor(
                             }
                             return@launch
                         }
-                        val tokenName = when {
-                            directDeposit && result.token.address == Mint.usdf -> {
+                        val tokenName = when (result.token.address) {
+                            Mint.usdc -> {
                                 resources.getString(R.string.displayName_usdc)
                             }
-                            result.token.address == Mint.usdf -> {
+                            Mint.usdf -> {
                                 resources.getString(R.string.displayName_usdf)
                             }
                             else -> result.token.name

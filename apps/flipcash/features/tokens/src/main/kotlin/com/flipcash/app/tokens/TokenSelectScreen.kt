@@ -63,10 +63,10 @@ fun TokenSelectScreen(purpose: TokenPurpose) {
                         TokenPurpose.Balance -> Unit
                         TokenPurpose.Select -> Unit
                         TokenPurpose.Withdraw -> {
-                            navigator.push(Withdrawal(token))
+                            navigator.push(Withdrawal())
                         }
                         TokenPurpose.Deposit -> {
-                            navigator.push(Deposit(token))
+                            navigator.push(Deposit())
                         }
                     }
                 }.launchIn(this)
