@@ -1,5 +1,6 @@
 package com.flipcash.app.cash.internal
 
+import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
@@ -7,6 +8,7 @@ import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -75,6 +77,26 @@ class CashScreenViewModelStateTest {
             CashScreenViewModel.Event.OnLimitsChanged(null)
         )(CashScreenViewModel.State())
         assertNull(updated.limits)
+    }
+
+    @Test
+    fun `OnCurrencyChanged sets currencyModel`() {
+        val currency = Currency(code = "EUR", name = "Euro", symbol = "€", rate = 0.92)
+        val updated = reduce(
+            CashScreenViewModel.Event.OnCurrencyChanged(currency)
+        )(CashScreenViewModel.State())
+        assertNotNull(updated.currencyModel.selected)
+        assertEquals("EUR", updated.currencyModel.selected?.code)
+        assertEquals(CurrencyCode.EUR, updated.currencyModel.code)
+    }
+
+    @Test
+    fun `OnCurrencyChanged preserves fractionUnits`() {
+        val currency = Currency(code = "JPY", name = "Japanese Yen", symbol = "¥", fractionUnits = 0)
+        val updated = reduce(
+            CashScreenViewModel.Event.OnCurrencyChanged(currency)
+        )(CashScreenViewModel.State())
+        assertEquals(0, updated.currencyModel.fractionUnits)
     }
 
     // --- No-op events ---
