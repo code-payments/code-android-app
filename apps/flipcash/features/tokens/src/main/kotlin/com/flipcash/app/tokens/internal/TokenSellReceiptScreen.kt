@@ -21,7 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.ui.ReceiptLineItem
 import com.flipcash.app.core.ui.TokenBalanceRow
-import com.flipcash.app.core.ui.rememberTokenBalanceRowSizing
+import com.flipcash.app.core.ui.TokenBalanceStyle
+import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.opencode.model.financial.Fiat
@@ -166,8 +167,10 @@ private fun SellReceipt(
                 showLogo = false,
                 showFlag = true,
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                sizing = rememberTokenBalanceRowSizing(
-                    balanceTextStyle = CodeTheme.typography.displaySmall.bolded(),
+                styling = rememberTokenBalanceRowStyling(
+                    balanceDisplayStyle = TokenBalanceStyle.Large(
+                        textStyle = CodeTheme.typography.displaySmall.bolded()
+                    ),
                     flagSize = CodeTheme.dimens.grid.x4,
                 ),
                 contentPadding = PaddingValues(0.dp),

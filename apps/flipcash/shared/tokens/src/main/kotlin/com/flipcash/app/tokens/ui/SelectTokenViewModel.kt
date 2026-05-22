@@ -133,7 +133,25 @@ class SelectTokenViewModel @Inject constructor(
                             TokenWithLocalizedBalance(
                                 token = it.token,
                                 balance = balance,
-                                appreciation = appreciation
+                                appreciation = appreciation,
+                                displayName = when (purpose) {
+                                    TokenPurpose.Balance -> it.token.name
+                                    TokenPurpose.Deposit -> {
+                                        if (it.token.address == Mint.usdf) {
+                                            resources.getString(R.string.displayName_usdf)
+                                        } else {
+                                            it.token.name
+                                        }
+                                    }
+                                    TokenPurpose.Select -> it.token.name
+                                    TokenPurpose.Withdraw -> {
+                                        if (it.token.address == Mint.usdf) {
+                                            resources.getString(R.string.displayName_usdf)
+                                        } else {
+                                            it.token.name
+                                        }
+                                    }
+                                }
                             )
                         }
                         .sortedWith(compareByDescending { item -> item.balance.nativeAmount })

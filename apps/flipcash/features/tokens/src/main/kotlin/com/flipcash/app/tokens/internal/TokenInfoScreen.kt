@@ -330,7 +330,7 @@ private fun RowScope.ReserveButtonOptions(
     ) {
         dispatch(
             TokenInfoViewModel.Event.OpenScreen(
-                AppRoute.Transfers.Deposit(mint = mint)
+                AppRoute.Transfers.Deposit()
             )
         )
     }
@@ -345,7 +345,7 @@ private fun RowScope.ReserveButtonOptions(
         ) {
             dispatch(
                 TokenInfoViewModel.Event.OpenScreen(
-                    AppRoute.Transfers.Withdrawal(mint = mint)
+                    AppRoute.Transfers.Withdrawal(showOtherOptions = false)
                 )
             )
         }

@@ -40,7 +40,7 @@ internal fun WithdrawalDestinationScreen() {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<WithdrawalViewModel.Event.OnDestinationConfirmed>()
-            .onEach {
+            .onEach { mint ->
                 flowNavigator.navigateTo(WithdrawalStep.Confirmation)
             }.launchIn(this)
     }

@@ -21,7 +21,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.TileButton
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
@@ -105,7 +104,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                         text = stringResource(R.string.action_depositFunds),
                         icon = painterResource(R.drawable.ic_menu_deposit)
                     ) {
-                        navigator.push(AppRoute.Sheets.TokenSelection(purpose = TokenPurpose.Deposit))
+                        navigator.push(AppRoute.Transfers.Deposit())
                     }
 
                     TileButton(
@@ -113,7 +112,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                         text = stringResource(R.string.action_withdraw),
                         icon = painterResource(R.drawable.ic_menu_withdraw)
                     ) {
-                        navigator.push(AppRoute.Sheets.TokenSelection(TokenPurpose.Withdraw))
+                        navigator.push(AppRoute.Transfers.Withdrawal())
                     }
                 }
             },

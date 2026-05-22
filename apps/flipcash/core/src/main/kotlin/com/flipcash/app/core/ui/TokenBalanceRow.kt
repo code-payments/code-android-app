@@ -1,6 +1,7 @@
 package com.flipcash.app.core.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,7 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +22,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
@@ -27,23 +30,48 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White20
+import com.getcode.theme.extraSmall
 import com.getcode.ui.components.text.AnimatedNumberText
 import com.getcode.ui.core.addIf
 
-data class TokenBalanceRowSizing(
+sealed interface TokenBalanceStyle {
+    val textStyle: TextStyle
+
+    data class Large(override val textStyle: TextStyle = TextStyle.Default) : TokenBalanceStyle
+    data class Pill(override val textStyle: TextStyle = TextStyle.Default) : TokenBalanceStyle
+}
+
+enum class TokenSelectionStyle {
+    None,
+    Chevron,
+    Checkbox,
+    ;
+}
+
+data class TokenBalanceRowStyling(
     val nameTextStyle: TextStyle,
-    val balanceTextStyle: TextStyle,
+    val balanceDisplayStyle: TokenBalanceStyle,
     val iconSize: Dp,
     val flagSize: Dp,
+    val selectionStyle: TokenSelectionStyle,
 )
 
 @Composable
-fun rememberTokenBalanceRowSizing(
+fun rememberTokenBalanceRowStyling(
     nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
-    balanceTextStyle: TextStyle = CodeTheme.typography.screenTitle,
+    balanceDisplayStyle: TokenBalanceStyle = TokenBalanceStyle.Large(),
     iconSize: Dp = CodeTheme.dimens.staticGrid.x6,
     flagSize: Dp = CodeTheme.dimens.staticGrid.x3,
-): TokenBalanceRowSizing = TokenBalanceRowSizing(nameTextStyle, balanceTextStyle, iconSize, flagSize)
+    selectionStyle: TokenSelectionStyle = TokenSelectionStyle.None,
+): TokenBalanceRowStyling =
+    TokenBalanceRowStyling(
+        nameTextStyle = nameTextStyle,
+        balanceDisplayStyle = balanceDisplayStyle,
+        iconSize = iconSize,
+        flagSize = flagSize,
+        selectionStyle = selectionStyle
+    )
 
 @Composable
 fun TokenBalanceRow(
@@ -56,7 +84,7 @@ fun TokenBalanceRow(
     iconOverride: @Composable ((Any?) -> Any?) = { it },
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
-    sizing: TokenBalanceRowSizing = rememberTokenBalanceRowSizing(),
+    styling: TokenBalanceRowStyling = rememberTokenBalanceRowStyling(),
     contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
     onClick: (() -> Unit)? = null,
 ) {
@@ -72,7 +100,7 @@ fun TokenBalanceRow(
         showName = showName,
         showFlag = showFlag,
         showLogo = showLogo,
-        sizing = sizing,
+        styling = styling,
         horizontalArrangement = horizontalArrangement,
         contentPadding = contentPadding,
         onClick = onClick
@@ -90,7 +118,7 @@ fun TokenBalanceRow(
     iconOverride: @Composable ((Any?) -> Any?) = { it },
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
-    sizing: TokenBalanceRowSizing = rememberTokenBalanceRowSizing(),
+    styling: TokenBalanceRowStyling = rememberTokenBalanceRowStyling(),
     contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
     onClick: (() -> Unit)? = null,
 ) {
@@ -104,7 +132,7 @@ fun TokenBalanceRow(
         showFlag = showFlag,
         isSelected = isSelected,
         modifier = modifier,
-        sizing = sizing,
+        styling = styling,
         iconOverride = iconOverride,
         formattedBalance = formattedBalance,
         horizontalArrangement = horizontalArrangement,
@@ -127,7 +155,7 @@ fun TokenBalanceRow(
     iconOverride: @Composable ((Any?) -> Any?) = { it },
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
-    sizing: TokenBalanceRowSizing = rememberTokenBalanceRowSizing(),
+    styling: TokenBalanceRowStyling = rememberTokenBalanceRowStyling(),
     contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
     onClick: (() -> Unit)? = null,
 ) {
@@ -150,8 +178,8 @@ fun TokenBalanceRow(
                     token = token,
                     iconOverride = iconOverride,
                     displayName = { displayName },
-                    imageSize = sizing.iconSize,
-                    textStyle = sizing.nameTextStyle,
+                    imageSize = styling.iconSize,
+                    textStyle = styling.nameTextStyle,
                     textColor = CodeTheme.colors.textMain,
                     spacing = CodeTheme.dimens.grid.x2,
                 )
@@ -162,11 +190,12 @@ fun TokenBalanceRow(
                     is Painter -> Image(
                         painter = image,
                         contentDescription = null,
-                        modifier = Modifier.size(sizing.iconSize),
+                        modifier = Modifier.size(styling.iconSize),
                     )
+
                     else -> TokenIcon(
                         image = image,
-                        modifier = Modifier.size(sizing.iconSize)
+                        modifier = Modifier.size(styling.iconSize)
                     )
                 }
             }
@@ -174,7 +203,7 @@ fun TokenBalanceRow(
             showName -> {
                 Text(
                     text = displayName,
-                    style = sizing.nameTextStyle,
+                    style = styling.nameTextStyle,
                     color = CodeTheme.colors.textMain,
                 )
             }
@@ -190,8 +219,8 @@ fun TokenBalanceRow(
                 flag?.let {
                     Image(
                         modifier = Modifier
-                            .height(sizing.flagSize)
-                            .width(sizing.flagSize)
+                            .height(styling.flagSize)
+                            .width(styling.flagSize)
                             .clip(CircleShape),
                         painter = painterResource(it),
                         contentDescription = ""
@@ -199,23 +228,69 @@ fun TokenBalanceRow(
                 }
             }
 
-            AnimatedNumberText(
-                value = formattedBalance(balance),
-                style = sizing.balanceTextStyle,
-                color = CodeTheme.colors.textMain,
-            )
+            when (val displayStyle = styling.balanceDisplayStyle) {
+                is TokenBalanceStyle.Large -> {
+                    val resolvedTextStyle = displayStyle.textStyle
+                        .takeUnless { it == TextStyle.Default }
+                        ?: CodeTheme.typography.screenTitle
 
-            if (isSelected != null) {
-                Image(
-                    modifier = Modifier
-                        .wrapContentWidth()
-                        .padding(start = CodeTheme.dimens.grid.x3),
-                    painter = painterResource(
-                        if (isSelected)
-                            R.drawable.ic_checked else R.drawable.ic_unchecked
-                    ),
-                    contentDescription = ""
-                )
+                    AnimatedNumberText(
+                        value = formattedBalance(balance),
+                        style = resolvedTextStyle,
+                        color = CodeTheme.colors.textMain,
+                    )
+                }
+
+                is TokenBalanceStyle.Pill -> {
+                    val resolvedTextStyle = displayStyle.textStyle
+                        .takeUnless { it == TextStyle.Default }
+                        ?: CodeTheme.typography.caption
+
+                    Text(
+                        modifier = Modifier
+                            .padding(start = CodeTheme.dimens.grid.x1)
+                            .border(
+                                width = CodeTheme.dimens.border,
+                                color = White20,
+                                shape = CodeTheme.shapes.extraSmall,
+                            )
+                            .padding(
+                                horizontal = 4.dp,
+                                vertical = 3.dp
+                            ),
+                        text = formattedBalance(balance),
+                        color = CodeTheme.colors.textSecondary,
+                        style = resolvedTextStyle,
+                    )
+                }
+            }
+
+            when (styling.selectionStyle) {
+                TokenSelectionStyle.Chevron -> {
+                    Icon(
+                        modifier = Modifier.padding(start = CodeTheme.dimens.grid.x1),
+                        painter = painterResource(R.drawable.ic_chevron_right),
+                        contentDescription = null,
+                        tint = CodeTheme.colors.secondary,
+                    )
+                }
+
+                TokenSelectionStyle.Checkbox -> {
+                    if (isSelected != null) {
+                        Image(
+                            modifier = Modifier
+                                .wrapContentWidth()
+                                .padding(start = CodeTheme.dimens.grid.x3),
+                            painter = painterResource(
+                                if (isSelected)
+                                    R.drawable.ic_checked else R.drawable.ic_unchecked
+                            ),
+                            contentDescription = ""
+                        )
+                    }
+                }
+
+                TokenSelectionStyle.None -> Unit
             }
         }
     }

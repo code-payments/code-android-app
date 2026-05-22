@@ -654,7 +654,15 @@ internal class WithdrawalViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnMintSelected -> { state -> state.copy(selectedTokenAddress = event.mint) }
+                is Event.OnMintSelected -> { state ->
+                    // if mint is USDC, store it as USDF
+                    val mint = if (event.mint == Mint.usdc) {
+                        Mint.usdf
+                    } else {
+                        event.mint
+                    }
+                    state.copy(selectedTokenAddress = mint)
+                }
                 is Event.OnTokenUpdated -> { state -> state.copy(token = event.token) }
 
                 is Event.OnAmountChanged -> { state ->

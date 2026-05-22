@@ -23,7 +23,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.ui.ReceiptLineItem
 import com.flipcash.app.core.ui.TokenBalanceRow
-import com.flipcash.app.core.ui.rememberTokenBalanceRowSizing
+import com.flipcash.app.core.ui.TokenBalanceStyle
+import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.withdrawal.R
 import com.getcode.opencode.compose.ExchangeStub
@@ -104,8 +105,10 @@ internal fun TransactionReceipt(
                     amount.convertingToUsdIfNeeded(exchange.entryRate)
                         .estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2)
                 },
-                sizing = rememberTokenBalanceRowSizing(
-                    balanceTextStyle = CodeTheme.typography.displayMedium.bolded(),
+                styling = rememberTokenBalanceRowStyling(
+                    balanceDisplayStyle = TokenBalanceStyle.Large(
+                        textStyle = CodeTheme.typography.displayMedium.bolded()
+                    ),
                 ),
                 contentPadding = PaddingValues(0.dp),
             )

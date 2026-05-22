@@ -27,9 +27,8 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 
 @Composable
-internal fun UsdcDepositInformationScreen() {
+internal fun UsdcDepositInformationScreen(showOtherOptions: Boolean) {
     val flowNavigator = rememberFlowNavigator<DepositStep, DepositResult>()
-
     CodeScaffold(
         topBar = {
             AppBarWithTitle(
@@ -41,17 +40,33 @@ internal fun UsdcDepositInformationScreen() {
             )
         },
         bottomBar = {
-            CodeButton(
-                modifier = Modifier
-                    .fillMaxWidth()
+            Column(
+                modifier = Modifier.fillMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .padding(bottom = CodeTheme.dimens.grid.x2)
                     .navigationBarsPadding(),
-                buttonState = ButtonState.Filled,
-                text = stringResource(R.string.action_next),
             ) {
-                flowNavigator.navigateTo(DepositStep.Destination(Mint.usdf))
+                CodeButton(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    buttonState = ButtonState.Filled,
+                    text = stringResource(R.string.action_next),
+                ) {
+                    flowNavigator.navigateTo(DepositStep.Destination(Mint.usdc))
+                }
+
+                if (showOtherOptions) {
+                    CodeButton(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        buttonState = ButtonState.Subtle,
+                        text = stringResource(R.string.action_depositOtherCurrencies),
+                    ) {
+                        flowNavigator.navigateTo(DepositStep.SelectToken)
+                    }
+                }
             }
+
         }
     ) { padding ->
         Box(

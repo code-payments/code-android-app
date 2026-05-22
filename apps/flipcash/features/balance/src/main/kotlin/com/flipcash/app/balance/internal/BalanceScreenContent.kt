@@ -1,6 +1,5 @@
 package com.flipcash.app.balance.internal
 
-import androidx.compose.animation.animateBounds
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,11 +23,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.balance.internal.components.BalanceHeader
-import com.flipcash.app.balance.internal.components.CashReservesRow
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
 import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.features.balance.R
 import com.getcode.opencode.compose.ExchangeStub
@@ -36,7 +35,6 @@ import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.core.addIf
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 
@@ -63,7 +61,7 @@ private fun BalanceScreenContent(
         TokenList(
             modifier = Modifier.weight(1f),
             itemModifier = { Modifier.animateItem(fadeInSpec = null) },
-            includeReserves = true,
+            styling = rememberTokenBalanceRowStyling(),
             header = {
                 BalanceHeader(
                     modifier = Modifier

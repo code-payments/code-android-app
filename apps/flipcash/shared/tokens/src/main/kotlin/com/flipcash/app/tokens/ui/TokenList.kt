@@ -20,6 +20,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.flipcash.app.core.ui.TokenBalanceRow
+import com.flipcash.app.core.ui.TokenBalanceRowStyling
+import com.flipcash.app.core.ui.TokenBalanceStyle
+import com.flipcash.app.core.ui.TokenSelectionStyle
+import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -37,9 +41,13 @@ fun TokenList(
     modifier: Modifier = Modifier,
     itemModifier: LazyItemScope.() -> Modifier = { Modifier },
     showFlags: Boolean = false,
+    styling: TokenBalanceRowStyling = rememberTokenBalanceRowStyling(
+        balanceDisplayStyle = TokenBalanceStyle.Pill(),
+        selectionStyle = TokenSelectionStyle.Chevron,
+    ),
     selectedToken: Mint? = null,
     showSelections: Boolean = false,
-    includeReserves: Boolean = false,
+    includeReserves: Boolean = true,
     pinFooter: Boolean = false,
     emptyState: (@Composable LazyItemScope.() -> Unit)? = null,
     reserves: (@Composable LazyItemScope.(mint: Mint, cashReserves: LocalFiat) -> Unit)? = null,
@@ -97,6 +105,7 @@ fun TokenList(
                             .then(itemModifier()),
                         tokenWithBalance = item,
                         showFlag = showFlags,
+                        styling = styling,
                         isSelected = (selectedToken == item.token.address).takeIf { showSelections },
                     ) { onTokenSelected(item.token) }
 
