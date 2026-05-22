@@ -7,6 +7,8 @@ android {
 }
 
 dependencies {
+    testImplementation(kotlin("test"))
+
     implementation(project(":libs:messaging"))
 
     implementation(project(":apps:flipcash:shared:featureflags"))

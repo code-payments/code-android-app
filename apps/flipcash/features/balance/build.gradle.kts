@@ -7,6 +7,8 @@ android {
 }
 
 dependencies {
+    testImplementation(kotlin("test"))
+
     implementation(libs.compose.paging)
 
     implementation(project(":apps:flipcash:shared:analytics"))
