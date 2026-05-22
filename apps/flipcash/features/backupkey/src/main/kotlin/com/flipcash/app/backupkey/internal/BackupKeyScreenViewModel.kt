@@ -1,7 +1,7 @@
 package com.flipcash.app.backupkey.internal
 
 import com.flipcash.app.accesskey.BaseAccessKeyViewModel
-import com.flipcash.app.core.storage.MediaScanner
+import com.flipcash.app.core.storage.MediaSaver
 import com.flipcash.services.user.UserManager
 import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.opencode.managers.MnemonicManager
@@ -17,13 +17,13 @@ import kotlin.time.Duration.Companion.seconds
 internal class BackupKeyScreenViewModel @Inject constructor(
     resources: ResourceHelper,
     mnemonicManager: MnemonicManager,
-    mediaScanner: MediaScanner,
+    mediaSaver: MediaSaver,
     userManager: UserManager,
     qrCodeGenerator: QRCodeGenerator,
 ) : BaseAccessKeyViewModel(
     resources,
     mnemonicManager,
-    mediaScanner,
+    mediaSaver,
     userManager,
     qrCodeGenerator
 ) {
