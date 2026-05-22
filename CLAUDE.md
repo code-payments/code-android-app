@@ -98,5 +98,5 @@ The feature plugin automatically includes `:libs:logging`, `:ui:core`, `:ui:comp
 ## Git Conventions
 
 - Conventional commits: `feat:`, `fix:`, `chore:`, with optional scope in parens (e.g., `feat(oc):`, `fix(tokens):`)
-- Main branch: `main`
+- Main branch: `code/cash`
 - CI runs on all PRs (tests via Fastlane)
