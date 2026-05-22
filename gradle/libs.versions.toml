@@ -74,7 +74,7 @@ mockito-kotlin = "6.3.0"
 mockk = "1.14.9"
 turbine = "1.2.1"
 robolectric = "4.16.1"
-slf4j-simple = "2.0.17"
+slf4j-simple = "2.0.18"
 androidxUiJUnit = "1.11.1"
 mixpanel = "8.5.1"
 
