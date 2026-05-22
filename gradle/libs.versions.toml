@@ -97,7 +97,7 @@ vico = "2.4.1"
 androidxTestRules = "1.7.0"
 archCore = "2.2.0"
 
-screenshot = "0.0.1-alpha14"
+screenshot = "0.0.1-alpha15"
 
 secrets-gradle-plugin = "2.0.1"
 firebase-perf-plugin = "2.0.2"
