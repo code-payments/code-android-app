@@ -33,6 +33,7 @@ import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.utils.flowInterval
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
 import com.getcode.utils.base64
 import com.getcode.utils.trace
@@ -130,6 +131,19 @@ class TransactionController @Inject constructor(
         fee: Fiat?,
         scope: CoroutineScope,
     ): Result<IntentType> {
+        trace(
+            tag = "TransactionController",
+            message = "Starting withdrawal",
+            type = TraceType.Process,
+            metadata = {
+                "amount (native)" to amount.localFiat.nativeAmount.formatted()
+                "amount (underlying)" to amount.localFiat.underlyingTokenAmount.formatted()
+                "amount currency" to amount.localFiat.nativeAmount.currencyCode.name
+                "fee" to (fee?.formatted() ?: "none")
+                "mint" to mint.base58()
+            }
+        )
+
         val verifiedState = amount.verifiedState
             ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
@@ -156,6 +170,18 @@ class TransactionController @Inject constructor(
         destinationOwner: PublicKey,
         fee: LocalFiat,
     ): Result<SwapId> {
+        trace(
+            tag = "TransactionController",
+            message = "Starting USDF->USDC withdrawal",
+            type = TraceType.Process,
+            metadata = {
+                "amount (native)" to "${amount.localFiat.nativeAmount.formatted()} (${amount.localFiat.nativeAmount.currencyCode})"
+                "amount (underlying)" to "${amount.localFiat.underlyingTokenAmount.formatted()} (${amount.localFiat.underlyingTokenAmount.currencyCode})"
+                "fee (native)" to "${fee.nativeAmount.formatted()} (${fee.nativeAmount.currencyCode})"
+                "fee (underlying)" to "${fee.underlyingTokenAmount.formatted()} (${fee.underlyingTokenAmount.currencyCode})"
+            }
+        )
+
         val verifiedState = amount.verifiedState
             ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
