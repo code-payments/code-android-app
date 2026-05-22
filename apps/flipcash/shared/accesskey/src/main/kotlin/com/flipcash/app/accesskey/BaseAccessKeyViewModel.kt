@@ -8,13 +8,11 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
-import android.os.Environment
 import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.internal.extensions.save
-import com.flipcash.app.core.storage.MediaScanner
+import com.flipcash.app.core.storage.MediaSaver
 import com.flipcash.app.theme.internal.Flipcash2ColorSpec
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.accesskey.R
@@ -63,7 +61,7 @@ data class AccessKeyUiModel(
 abstract class BaseAccessKeyViewModel(
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
-    private val mediaScanner: MediaScanner,
+    private val mediaSaver: MediaSaver,
     userManager: UserManager,
     private val qrCodeGenerator: QRCodeGenerator
 ) : ViewModel() {
@@ -129,22 +127,12 @@ abstract class BaseAccessKeyViewModel(
         uiFlow.update { it.copy(exportState = LoadingSuccessState(loading = true)) }
         val bitmap = uiFlow.value.accessKeyBitmap
             ?: return Result.failure(IllegalStateException("No access key?"))
-        val destination =
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
 
         return withContext(Dispatchers.IO) {
             runCatching {
-                val result = bitmap.save(
-                    destination = destination,
-                    name = {
-                        val date: DateFormat = SimpleDateFormat("yyy-MM-dd-h-mm", Locale.CANADA)
-                        "Flipcash-Recovery-${date.format(Date())}.png"
-                    }
-                )
-                if (result) {
-                    mediaScanner.scan(destination)
-                }
-                result
+                val date: DateFormat = SimpleDateFormat("yyy-MM-dd-h-mm", Locale.CANADA)
+                val filename = "Flipcash-Recovery-${date.format(Date())}.png"
+                mediaSaver.saveBitmap(bitmap, filename)
             }
         }.onFailure {
             getAccessKeySaveError()
