@@ -62,7 +62,7 @@ protobuf = "4.34.1"
 protobuf-plugin = "0.10.0"
 protovalidate-kt = "0.1.1"
 
-lib-phone-number-port = "9.0.28"
+lib-phone-number-port = "9.0.30"
 lib-phone-number-google = "9.0.29"
 zxing = "3.5.4"
 
