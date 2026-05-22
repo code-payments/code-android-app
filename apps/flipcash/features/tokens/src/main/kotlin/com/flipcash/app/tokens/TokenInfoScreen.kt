@@ -14,12 +14,15 @@ import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.tokens.internal.TokenInfoScreen
 import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.features.tokens.R
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.results.NavResultOrCanceled
+import com.getcode.navigation.results.navigateForResult
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
@@ -105,8 +108,18 @@ fun TokenInfoScreen(
             viewModel.eventFlow
                 .filterIsInstance<TokenInfoViewModel.Event.OpenScreen>()
                 .map { it.screen }
-                .onEach {
-                    navigator.push(it)
+                .onEach { screen ->
+                    when (screen) {
+                        is AppRoute.Token.Swap -> {
+                            navigator.navigateForResult<SwapResult>(screen) { result ->
+                                if (result is NavResultOrCanceled.ReturnValue &&
+                                    result.value is SwapResult.OpenDeposit) {
+                                    navigator.push(AppRoute.Transfers.Deposit(showOtherOptions = false))
+                                }
+                            }
+                        }
+                        else -> navigator.push(screen)
+                    }
                 }.launchIn(this)
         }
     }
