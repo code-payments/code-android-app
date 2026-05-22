@@ -101,10 +101,7 @@ class SelectTokenViewModel @Inject constructor(
                 combine(
                     stateFlow,
                     tokenCoordinator.tokenBalances,
-                    when (purpose) {
-                        TokenPurpose.Withdraw -> flowOf(exchange.rateForUsd())
-                        else -> exchange.observePreferredRate()
-                    }
+                    exchange.observePreferredRate()
                 ) { state, balances, rate ->
                     dispatchEvent(Event.OnRateChanged(rate))
                     balances

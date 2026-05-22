@@ -240,14 +240,19 @@ internal class WithdrawalViewModel @Inject constructor(
                     exchange.observePreferredRate(),
                 ) { tokens, balance, rate ->
                     val token = tokens.find { it.address == tokenAddress } ?: return@combine null
+                    val tokenName = when (token.address) {
+                        Mint.usdc -> {
+                            resources.getString(R.string.displayName_usdc)
+                        }
+                        Mint.usdf -> {
+                            resources.getString(R.string.displayName_usdf)
+                        }
+                        else -> token.name
+                    }
                     TokenWithBalance(
                         token = token,
                         balance = balance.convertingTo(rate),
-                        displayName = if (token.address == Mint.usdf) {
-                            resources.getString(R.string.displayName_usdc)
-                        } else {
-                            token.name
-                        }
+                        displayName = tokenName,
                     )
                 }
             }.filterNotNull()
