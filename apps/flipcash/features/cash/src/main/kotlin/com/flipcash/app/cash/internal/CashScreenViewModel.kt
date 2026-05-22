@@ -142,7 +142,7 @@ internal class CashScreenViewModel @Inject constructor(
                         style = BottomBarManager.BottomBarButtonStyle.Filled,
                     ) {
                         viewModelScope.launch {
-                            val rate = exchange.entryRate
+                            val rate = exchange.preferredRate
                             val (token, balance) = stateFlow.value.token!!
                             val amountFiat = verifiedFiatCalculator.compute(
                                 amount =  Fiat(amount, rate.currency),
@@ -212,7 +212,7 @@ internal class CashScreenViewModel @Inject constructor(
                 combine(
                     tokenCoordinator.tokens,
                     tokenCoordinator.balanceForToken(tokenAddress),
-                    exchange.observeEntryRate(),
+                    exchange.observePreferredRate(),
                 ) { tokens, balance, rate ->
                     val token = tokens.find { it.address == tokenAddress } ?: return@combine null
                     TokenWithLocalizedBalance(
@@ -232,7 +232,7 @@ internal class CashScreenViewModel @Inject constructor(
                 dispatchEvent(Event.OnCurrencyChanged(it))
             }.launchIn(viewModelScope)
 
-        exchange.observeEntryRate()
+        exchange.observePreferredRate()
             .onEach {
                 // reset when entry rate changes
                 numberInputHelper.reset()
@@ -309,7 +309,7 @@ internal class CashScreenViewModel @Inject constructor(
             .onEach { data ->
                 dispatchEvent(Event.UpdateLoadingState(loading = true))
                 val (token, balance) = stateFlow.value.token!!
-                val rate = exchange.entryRate
+                val rate = exchange.preferredRate
 
                 val result = verifiedFiatCalculator.compute(
                     amount = Fiat(data.amountData.amount, rate.currency),
@@ -352,9 +352,6 @@ internal class CashScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
     }
 
-    override fun onCleared() {
-        exchange.resetEntryToBalance()
-    }
 
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->

@@ -15,7 +15,7 @@ class SettingsController @Inject constructor(
 ) {
     suspend fun update(): Result<Unit> {
         val locale = localeHelper.getLanguageTag()
-        val currencyRegion = exchange.balanceRate.currency
+        val currencyRegion = exchange.preferredRate.currency
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 

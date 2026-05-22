@@ -139,7 +139,7 @@ class TokenInfoViewModel @Inject constructor(
                 combine(
                     tokenCoordinator.balanceForToken(token.address),
                     tokenCoordinator.appreciationForToken(token.address),
-                    exchange.observeBalanceRate(),
+                    exchange.observePreferredRate(),
                 ) { balance, appreciation, rate ->
                     val localizedBalance = LocalFiat(
                         usdf = balance,
@@ -241,7 +241,7 @@ class TokenInfoViewModel @Inject constructor(
             .flatMapLatest { mcap ->
                 combine(
                     flowOf(mcap),
-                    exchange.observeBalanceRate(),
+                    exchange.observePreferredRate(),
                 ) { usdMcap, rate ->
                     usdMcap?.convertingTo(rate)
                 }

@@ -102,7 +102,7 @@ internal fun TransactionReceipt(
                     }
                 },
                 formattedBalance = { amount ->
-                    amount.convertingToUsdIfNeeded(exchange.entryRate)
+                    amount.convertingToUsdIfNeeded(exchange.preferredRate)
                         .estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2)
                 },
                 styling = rememberTokenBalanceRowStyling(
@@ -157,7 +157,7 @@ private fun LineItems(
             label = AnnotatedString(
                 stringResource(R.string.label_amountInToken, tokenWithBalance.displayName)
             ),
-            amount = transferAmount.convertingToUsdIfNeeded(exchange.entryRate)
+            amount = transferAmount.convertingToUsdIfNeeded(exchange.preferredRate)
                 .estimatedTokenAmountIn(tokenWithBalance.token, fractionDigits = 2),
         )
     }

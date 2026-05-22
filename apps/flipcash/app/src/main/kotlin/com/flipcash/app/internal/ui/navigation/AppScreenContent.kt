@@ -90,7 +90,7 @@ fun appEntryProvider(
     }
     annotatedEntry<AppRoute.Main.AppRestricted> { key -> AppRestrictedScreen(key.restrictionType) }
     annotatedEntry<AppRoute.Main.Scanner> { ScannerScreen() }
-    annotatedEntry<AppRoute.Main.RegionSelection> { key -> RegionSelectionScreen(key.kind) }
+    annotatedEntry<AppRoute.Main.RegionSelection> { RegionSelectionScreen() }
 
     // Sheets (inner content — wrapped in Main.Sheet by navigateTo())
     annotatedEntry<AppRoute.Sheets.Give> { key -> CashScreen(key.mint, key.fromTokenInfo) }

@@ -3,12 +3,10 @@ package com.flipcash.app.currency
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.currency.internal.CurrencyViewModel
 import com.flipcash.app.currency.internal.RegionSelectionModalContent
 import com.flipcash.core.R
@@ -16,7 +14,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarWithTitle
 
 @Composable
-fun RegionSelectionScreen(kind: RegionSelectionKind) {
+fun RegionSelectionScreen() {
     val navigator = LocalCodeNavigator.current
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -34,9 +32,5 @@ fun RegionSelectionScreen(kind: RegionSelectionKind) {
 
         val viewModel = hiltViewModel<CurrencyViewModel>()
         RegionSelectionModalContent(viewModel)
-
-        LaunchedEffect(viewModel, kind) {
-            viewModel.dispatchEvent(CurrencyViewModel.Event.OnKindChanged(kind))
-        }
     }
 }

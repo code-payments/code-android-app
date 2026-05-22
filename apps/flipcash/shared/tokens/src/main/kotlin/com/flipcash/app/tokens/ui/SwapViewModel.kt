@@ -333,7 +333,7 @@ class SwapViewModel @Inject constructor(
 
                 combine(
                     tokenCoordinator.tokenBalances,
-                    exchange.observeEntryRate(),
+                    exchange.observePreferredRate(),
                 ) { tokens, rate ->
                     var token = tokens.find { it.token.address == mint }
                     if (token == null) {
@@ -379,7 +379,7 @@ class SwapViewModel @Inject constructor(
                 combine(
                     tokenCoordinator.tokens,
                     tokenCoordinator.balanceForToken(tokenAddress),
-                    exchange.observeEntryRate(),
+                    exchange.observePreferredRate(),
                 ) { tokens, balance, rate ->
                     val token = tokens.find { it.address == tokenAddress } ?: return@combine null
                     TokenWithLocalizedBalance(
@@ -398,7 +398,7 @@ class SwapViewModel @Inject constructor(
 
         combine(
             tokenCoordinator.observeReservesBalance(),
-            exchange.observeEntryRate(),
+            exchange.observePreferredRate(),
         ) { balance, rate ->
             LocalFiat(
                 usdf = balance,
@@ -410,7 +410,7 @@ class SwapViewModel @Inject constructor(
             dispatchEvent(Event.OnReservesUpdated(TokenWithBalance(Token.usdf, it.nativeAmount)))
         }.launchIn(viewModelScope)
 
-        exchange.observeEntryRate()
+        exchange.observePreferredRate()
             .onEach {
                 numberInputHelper.reset()
                 if (stateFlow.value.pendingInitialAmount == null) {
@@ -508,7 +508,7 @@ class SwapViewModel @Inject constructor(
             .onEach { (data, purpose) ->
                 when (purpose) {
                     is SwapPurpose.Buy -> {
-                        val rate = exchange.entryRate
+                        val rate = exchange.preferredRate
                         val conversionRate = exchange.rateToUsd(
                             stateFlow.value.amountEntryState.currencyModel.code ?: CurrencyCode.USD
                         ) ?: Rate.ignore
@@ -561,7 +561,7 @@ class SwapViewModel @Inject constructor(
                     }
 
                     is SwapPurpose.Sell -> {
-                        val rate = exchange.entryRate
+                        val rate = exchange.preferredRate
                         val tokenWithBalance = stateFlow.value.tokenWithBalance!!
                         val amountFiat = verifiedFiatCalculator.compute(
                             amount = Fiat(data.amountData.amount, rate.currency),
@@ -806,7 +806,7 @@ class SwapViewModel @Inject constructor(
                             return@onEach
                         }
 
-                        val rate = exchange.entryRate
+                        val rate = exchange.preferredRate
                         val amountFiat = verifiedFiatCalculator.compute(
                             amount = amount,
                             token = Token.usdf,
@@ -1053,9 +1053,6 @@ class SwapViewModel @Inject constructor(
         dispatchEvent(Event.UpdateBuyState())
     }
 
-    override fun onCleared() {
-        exchange.resetEntryToBalance()
-    }
 
     private fun enterAmount(amount: Fiat) {
         numberInputHelper.maxLength = 10

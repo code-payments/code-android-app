@@ -43,7 +43,7 @@ internal class OpenCodeExchange @Inject constructor(
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
         scope.launch {
             val currencyCode = locale.getDefaultCurrencyName()
-            balanceCurrency = CurrencyCode.tryValueOf(currencyCode)
+            preferredCurrency = CurrencyCode.tryValueOf(currencyCode)
         }
     }
 
@@ -57,20 +57,20 @@ internal class OpenCodeExchange @Inject constructor(
     }
 
 
-    private val _balanceRate = MutableStateFlow(Rate.oneToOne)
-    override val balanceRate
-        get() = _balanceRate.value
+    private val _preferredRate = MutableStateFlow(Rate.oneToOne)
+    override val preferredRate: Rate
+        get() = _preferredRate.value
 
-    override fun observeBalanceRate(): Flow<Rate> = _balanceRate
+    override fun observePreferredRate(): Flow<Rate> = _preferredRate
 
     private val mints = MutableStateFlow<List<Mint>>(emptyList())
 
-    override suspend fun setPreferredBalanceCurrency(currencyCode: CurrencyCode) {
-        balanceCurrency = currencyCode
+    override suspend fun setPreferredCurrency(currencyCode: CurrencyCode) {
+        preferredCurrency = currencyCode
         verifiedStateManager.rateFor(currencyCode)?.let {
-            _balanceRate.value = it
+            _preferredRate.value = it
         } ?: run {
-            _balanceRate.value = Rate.oneToOne.copy(currency = currencyCode)
+            _preferredRate.value = Rate.oneToOne.copy(currency = currencyCode)
         }
     }
 
@@ -78,27 +78,7 @@ internal class OpenCodeExchange @Inject constructor(
         this.mints.value = mints
     }
 
-    private val _entryRate = MutableStateFlow(Rate.oneToOne)
-    override val entryRate: Rate
-        get() = _entryRate.value
-
-    override fun observeEntryRate(): Flow<Rate> = _entryRate
-
-    override suspend fun setPreferredEntryCurrency(currencyCode: CurrencyCode) {
-        entryCurrency = currencyCode
-        verifiedStateManager.rateFor(currencyCode)?.let {
-            _entryRate.value = it
-        } ?: run {
-            _entryRate.value = Rate.oneToOne.copy(currency = currencyCode)
-        }
-    }
-
-    override fun resetEntryToBalance() {
-        scope.launch { setPreferredEntryCurrency(balanceRate.currency) }
-    }
-
-    private var balanceCurrency: CurrencyCode? = null
-    private var entryCurrency: CurrencyCode? = null
+    private var preferredCurrency: CurrencyCode? = null
 
     override fun rates() = verifiedStateManager.rates()
     override fun observeRates(): Flow<Map<CurrencyCode, Rate>> = verifiedStateManager.observeRates()
@@ -175,47 +155,25 @@ internal class OpenCodeExchange @Inject constructor(
     }
 
     private fun updateRates(rates: Map<CurrencyCode, Rate>) {
-        val balanceRate = balanceCurrency?.let { rates[it] }
-        val balanceChanged = _balanceRate.value != balanceRate
-        if (balanceChanged) {
-            _balanceRate.value = if (balanceRate != null) {
+        val rate = preferredCurrency?.let { rates[it] }
+        val changed = _preferredRate.value != rate
+        if (changed) {
+            _preferredRate.value = if (rate != null) {
                 trace(
                     tag = "Background",
-                    message = "Updated the local currency: $balanceCurrency",
+                    message = "Updated the preferred currency: $preferredCurrency",
                     type = TraceType.Process
                 )
-                balanceRate
+                rate
             } else {
                 trace(
                     tag = "Background",
-                    message = "local:: Rate for $balanceCurrency not found. Defaulting to USD.",
+                    message = "Rate for $preferredCurrency not found. Defaulting to USD.",
                     type = TraceType.Process
                 )
                 rates[CurrencyCode.USD] ?: Rate.oneToOne
             }
-        }
 
-        val entryRate = entryCurrency?.let { rates[it] }
-        val entryChanged = _entryRate.value != entryRate
-        if (entryChanged) {
-            _entryRate.value = if (entryRate != null) {
-                trace(
-                    tag = "Background",
-                    message = "Updated the entry currency: $entryCurrency",
-                    type = TraceType.Process
-                )
-                entryRate
-            } else {
-                trace(
-                    tag = "Background",
-                    message = "entry:: Rate for $entryCurrency not found. Defaulting to USD.",
-                    type = TraceType.Process
-                )
-                rates[CurrencyCode.USD] ?: Rate.oneToOne
-            }
-        }
-
-        if (balanceChanged || entryChanged) {
             trace(
                 tag = "Background",
                 message = "Updated rates",

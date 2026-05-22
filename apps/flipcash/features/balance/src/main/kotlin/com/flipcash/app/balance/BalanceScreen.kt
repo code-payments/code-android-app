@@ -11,7 +11,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.flipcash.app.balance.internal.BalanceScreen
 import com.flipcash.app.balance.internal.BalanceViewModel
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.core.R
@@ -55,11 +54,7 @@ fun BalanceScreen() {
             viewModel.eventFlow
                 .filterIsInstance<BalanceViewModel.Event.OpenCurrencySelection>()
                 .onEach {
-                    navigator.push(
-                        AppRoute.Main.RegionSelection(
-                            RegionSelectionKind.Balance
-                        )
-                    )
+                    navigator.push(AppRoute.Main.RegionSelection)
                 }.launchIn(this)
         }
 

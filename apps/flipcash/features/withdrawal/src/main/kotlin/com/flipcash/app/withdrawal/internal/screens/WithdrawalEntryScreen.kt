@@ -8,7 +8,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.flipcash.app.withdrawal.WithdrawalViewModel
@@ -45,9 +44,7 @@ internal fun WithdrawalEntryScreen(
             viewModel = viewModel,
             mint = selectedMint,
             onOpenRegionSelection = {
-                codeNavigator.push(
-                    AppRoute.Main.RegionSelection(kind = RegionSelectionKind.Entry)
-                )
+                codeNavigator.push(AppRoute.Main.RegionSelection)
             },
         )
     }

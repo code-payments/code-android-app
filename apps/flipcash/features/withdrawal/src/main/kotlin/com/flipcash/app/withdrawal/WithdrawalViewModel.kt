@@ -229,7 +229,7 @@ internal class WithdrawalViewModel @Inject constructor(
 
     init {
         numberInputHelper.reset()
-        dispatchEvent(Event.OnEntryRateUpdated(exchange.entryRate))
+        dispatchEvent(Event.OnEntryRateUpdated(exchange.preferredRate))
 
         stateFlow
             .mapNotNull { it.selectedTokenAddress }
@@ -237,7 +237,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 combine(
                     tokenCoordinator.tokens,
                     tokenCoordinator.balanceForToken(tokenAddress),
-                    exchange.observeEntryRate(),
+                    exchange.observePreferredRate(),
                 ) { tokens, balance, rate ->
                     val token = tokens.find { it.address == tokenAddress } ?: return@combine null
                     TokenWithBalance(
@@ -271,7 +271,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 numberInputHelper.fractionUnits = it.fractionUnits
             }.launchIn(viewModelScope)
 
-        exchange.observeEntryRate()
+        exchange.observePreferredRate()
             .onEach {
                 // reset when entry rate changes
                 numberInputHelper.reset()
@@ -329,7 +329,7 @@ internal class WithdrawalViewModel @Inject constructor(
             .filterNot { checkMinimumExceeded() }
             .onEach { data ->
                 dispatchEvent(Event.UpdateConfirmingAmountState(loading = true))
-                val rate = exchange.entryRate
+                val rate = exchange.preferredRate
                 val token = stateFlow.value.token!!.token
                 val amountVerified = verifiedFiatCalculator.compute(
                     amount = Fiat(data.amountData.amount, rate.currency),
@@ -647,9 +647,6 @@ internal class WithdrawalViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    override fun onCleared() {
-        exchange.resetEntryToBalance()
-    }
 
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->

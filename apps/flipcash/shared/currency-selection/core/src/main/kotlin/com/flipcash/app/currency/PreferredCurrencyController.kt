@@ -9,7 +9,6 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.services.controllers.SettingsController
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.exchange.Exchange
@@ -43,10 +42,8 @@ class PreferredCurrencyController @Inject constructor(
         fun initializedKeyForUser(userIdentifier: String) =
             booleanPreferencesKey("init-$userIdentifier")
 
-        fun kindKeyForUser(
-            kind: RegionSelectionKind,
-            userIdentifier: String
-        ) = stringPreferencesKey("${kind.name.lowercase()}-$userIdentifier")
+        fun currencyKeyForUser(userIdentifier: String) =
+            stringPreferencesKey("balance-$userIdentifier")
 
         fun recentsKeyForUser(userIdentifier: String) =
             stringSetPreferencesKey("recents-$userIdentifier")
@@ -80,34 +77,21 @@ class PreferredCurrencyController @Inject constructor(
                         prefs[initKey] = true
                     }
 
-                    val balanceCurrency = prefs[kindKeyForUser(
-                        kind = RegionSelectionKind.Balance,
-                        userId
-                    )]?.let { CurrencyCode.tryValueOf(it) }
+                    val currencyCode = prefs[currencyKeyForUser(userId)]
+                        ?.let { CurrencyCode.tryValueOf(it) }
                         ?: CurrencyCode.tryValueOf(locale.getDefaultCurrencyName())
                         ?: CurrencyCode.USD
 
-                    // entry defaults to balance — no longer read from DataStore
-                    exchange.setPreferredEntryCurrency(balanceCurrency)
-                    exchange.setPreferredBalanceCurrency(balanceCurrency)
+                    exchange.setPreferredCurrency(currencyCode)
                 }
             }.launchIn(dataScope)
 
     }
 
-    fun observePreferredForKind(
-        kind: RegionSelectionKind
-    ): Flow<String> {
-        return when (kind) {
-            RegionSelectionKind.Entry -> {
-                exchange.observeEntryRate().map { it.currency.name }
-            }
-            RegionSelectionKind.Balance -> {
-                val identifier = userManager.accountId?.base58 ?: return emptyFlow()
-                storage.data.map { prefs ->
-                    prefs[kindKeyForUser(kind, identifier)] ?: locale.getDefaultCurrencyName()
-                }
-            }
+    fun observePreferredCurrency(): Flow<String> {
+        val identifier = userManager.accountId?.base58 ?: return emptyFlow()
+        return storage.data.map { prefs ->
+            prefs[currencyKeyForUser(identifier)] ?: locale.getDefaultCurrencyName()
         }
     }
 
@@ -117,31 +101,19 @@ class PreferredCurrencyController @Inject constructor(
         return storage.data.map { prefs -> prefs[recentsKeyForUser(identifier)].orEmpty() }
     }
 
-    suspend fun updateSelection(
-        kind: RegionSelectionKind,
-        currency: Currency
-    ) {
+    suspend fun updateSelection(currency: Currency) {
         val code = CurrencyCode.tryValueOf(currency.code) ?: return
-        when (kind) {
-            RegionSelectionKind.Entry -> {
-                // temporary — only update Exchange, don't persist
-                exchange.setPreferredEntryCurrency(code)
-            }
-            RegionSelectionKind.Balance -> {
-                val identifier = userManager.accountId?.base58 ?: return
-                storage.edit { prefs ->
-                    prefs[kindKeyForUser(kind, identifier)] = currency.code
+        val identifier = userManager.accountId?.base58 ?: return
+        storage.edit { prefs ->
+            prefs[currencyKeyForUser(identifier)] = currency.code
 
-                    val recentKey = recentsKeyForUser(identifier)
-                    val recents = prefs[recentKey].orEmpty()
+            val recentKey = recentsKeyForUser(identifier)
+            val recents = prefs[recentKey].orEmpty()
 
-                    prefs[recentKey] = updateRecents(recents, currency.code)
-                }
-                exchange.setPreferredBalanceCurrency(code)
-                exchange.setPreferredEntryCurrency(code)
-                settingsController.update()
-            }
+            prefs[recentKey] = updateRecents(recents, currency.code)
         }
+        exchange.setPreferredCurrency(code)
+        settingsController.update()
     }
 
     suspend fun removeFromRecents(
