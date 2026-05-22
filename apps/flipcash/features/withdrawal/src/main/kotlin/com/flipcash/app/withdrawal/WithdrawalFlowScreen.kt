@@ -123,7 +123,6 @@ private fun WithdrawalSelectTokenScreen() {
             modifier = Modifier.fillMaxSize(),
             tokens = state.tokens,
             selectedToken = state.selectedToken,
-            showFlags = true,
             onTokenSelected = { viewModel.dispatchEvent(SelectTokenViewModel.Event.OnTokenSelected(it.address)) },
         )
     }

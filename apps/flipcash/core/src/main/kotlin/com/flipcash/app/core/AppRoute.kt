@@ -4,7 +4,6 @@ import android.os.Parcelable
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.deposit.DepositResult
 import com.flipcash.app.core.deposit.DepositStep
-import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.core.tokens.SwapPurpose
@@ -71,7 +70,7 @@ sealed interface AppRoute : NavKey, Parcelable {
 
         // TODO: is there a better place for this to live?
         @Serializable
-        data class RegionSelection(val kind: RegionSelectionKind) : Main
+        data object RegionSelection : Main
 
         @Serializable
         @Parcelize

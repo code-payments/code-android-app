@@ -67,7 +67,7 @@ class InternalPurchaseMethodController @Inject constructor(
 
         combine(
             reservesBalanceProvider.observeReservesBalance(),
-            exchange.observeBalanceRate(),
+            exchange.observePreferredRate(),
         ) { balance, rate ->
             LocalFiat(
                 usdf = balance,

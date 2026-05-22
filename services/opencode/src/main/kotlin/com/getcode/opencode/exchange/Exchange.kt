@@ -4,17 +4,12 @@ import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
-import com.getcode.solana.keys.Signature
 import kotlinx.coroutines.flow.Flow
 
 interface Exchange {
-    val entryRate: Rate
-    fun observeEntryRate(): Flow<Rate>
-    suspend fun setPreferredEntryCurrency(currencyCode: CurrencyCode)
-    fun resetEntryToBalance()
-    val balanceRate: Rate
-    fun observeBalanceRate(): Flow<Rate>
-    suspend fun setPreferredBalanceCurrency(currencyCode: CurrencyCode)
+    val preferredRate: Rate
+    fun observePreferredRate(): Flow<Rate>
+    suspend fun setPreferredCurrency(currencyCode: CurrencyCode)
 
     fun updateUserMints(mints: List<Mint>)
 

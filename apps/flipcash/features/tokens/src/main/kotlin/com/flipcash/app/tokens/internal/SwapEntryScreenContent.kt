@@ -15,7 +15,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
@@ -87,11 +86,7 @@ internal fun SwapEntryScreenContent(
             decimalPlaces = entryState.currencyModel.fractionUnits,
             isClickable = (state.purpose as? SwapPurpose.Buy)?.fundingSource != FundingSource.Phantom,
             onAmountClicked = {
-                navigator.push(
-                    AppRoute.Main.RegionSelection(
-                        kind = RegionSelectionKind.Entry
-                    )
-                )
+                navigator.push(AppRoute.Main.RegionSelection)
             },
             isError = state.isError,
             onNumberPressed = {

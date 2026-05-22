@@ -35,7 +35,6 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
-import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.tokens.internal.components.info.MarketCapSection
 import com.flipcash.app.tokens.internal.components.info.TokenBalance
@@ -145,7 +144,7 @@ private fun TokenInfoScreen(
                                 onClick = {
                                     dispatch(
                                         TokenInfoViewModel.Event.OpenScreen(
-                                            AppRoute.Main.RegionSelection(kind = RegionSelectionKind.Balance)
+                                            AppRoute.Main.RegionSelection
                                         )
                                     )
                                 }

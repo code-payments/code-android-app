@@ -13,29 +13,14 @@ import kotlinx.coroutines.flow.emptyFlow
 val LocalExchange: ProvidableCompositionLocal<Exchange> = staticCompositionLocalOf { ExchangeNull() }
 
 private class ExchangeNull : Exchange {
-    override val balanceRate: Rate
+    override val preferredRate: Rate
         get() = Rate.oneToOne
 
-    override val entryRate: Rate
-        get() = Rate.oneToOne
-
-
-    override fun observeEntryRate(): Flow<Rate> {
+    override fun observePreferredRate(): Flow<Rate> {
         return emptyFlow()
     }
 
-    override suspend fun setPreferredEntryCurrency(currencyCode: CurrencyCode) {
-
-    }
-
-    override fun resetEntryToBalance() = Unit
-
-    override fun observeBalanceRate(): Flow<Rate> {
-        return emptyFlow()
-    }
-
-    override suspend fun setPreferredBalanceCurrency(currencyCode: CurrencyCode) {
-
+    override suspend fun setPreferredCurrency(currencyCode: CurrencyCode) {
     }
 
     override fun updateUserMints(mints: List<Mint>) = Unit

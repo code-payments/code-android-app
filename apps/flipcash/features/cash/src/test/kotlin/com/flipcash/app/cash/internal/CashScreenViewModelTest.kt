@@ -76,8 +76,8 @@ class CashScreenViewModelTest {
         every { resources.getString(R.string.error_description_sendLimitReached) } returns "error_description_sendLimitReached"
 
         // Default stubs for flows consumed in init
-        every { exchange.observeEntryRate() } returns emptyFlow()
-        every { exchange.entryRate } returns Rate.oneToOne
+        every { exchange.observePreferredRate() } returns emptyFlow()
+        every { exchange.preferredRate } returns Rate.oneToOne
         every { tokenCoordinator.observeSelectedTokenMint() } returns emptyFlow()
         every { tokenCoordinator.tokens } returns emptyFlow()
         every { transactionController.limits } returns MutableStateFlow(null)

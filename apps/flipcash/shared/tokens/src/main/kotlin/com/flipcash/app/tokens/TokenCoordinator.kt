@@ -514,7 +514,7 @@ class TokenCoordinator @Inject constructor(
         val resolved = resolveTokenSelection(
             balances = _state.value.balances,
             currentSelection = currentSelection,
-            rate = exchange.entryRate,
+            rate = exchange.preferredRate,
         )
 
         if (resolved != null && resolved != currentSelection) {

@@ -102,10 +102,8 @@ class SelectTokenViewModel @Inject constructor(
                     stateFlow,
                     tokenCoordinator.tokenBalances,
                     when (purpose) {
-                        TokenPurpose.Balance -> exchange.observeBalanceRate()
-                        TokenPurpose.Select -> exchange.observeEntryRate()
                         TokenPurpose.Withdraw -> flowOf(exchange.rateForUsd())
-                        TokenPurpose.Deposit -> exchange.observeEntryRate()
+                        else -> exchange.observePreferredRate()
                     }
                 ) { state, balances, rate ->
                     dispatchEvent(Event.OnRateChanged(rate))
