@@ -73,7 +73,10 @@ internal class RealVerifiedFiatCalculator @Inject constructor(
         val usdValue = amount.convertingToUsdIfNeeded(rate)
         // cap the entered amount as well, since our display rounds HALF_UP
         // e,g entered 0.02 USD, but balance is 0.016 USD
-        val cappedValue = balance?.let { min(it, usdValue) } ?: usdValue
+        // Balance may arrive in the user's local currency; normalize to USD
+        // before comparing so the capped value preserves the USD currency code.
+        val balanceInUsd = balance?.convertingToUsdIfNeeded(rate)
+        val cappedValue = balanceInUsd?.let { min(it, usdValue) } ?: usdValue
 
         val verifiedState = resolveVerifiedState(rate.currency, token.address)
 

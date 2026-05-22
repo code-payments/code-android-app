@@ -13,8 +13,10 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.HolderMetrics
 import com.getcode.opencode.model.financial.LaunchpadMetadata
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.solana.keys.Mint
@@ -223,6 +225,62 @@ class RealVerifiedFiatCalculatorTest {
             directResult.localFiat.underlyingTokenAmount.quarks,
             cappedResult.localFiat.underlyingTokenAmount.quarks,
         )
+    }
+
+    @Test
+    fun `USDF caps correctly when balance is in non-USD currency`() = runTest {
+        // Regression: when the user's local currency is stronger than USD (e.g. GBP
+        // at fx=0.79), the balance in GBP quarks is smaller than the USD equivalent.
+        // A naive min() would pick the GBP Fiat, corrupting underlyingTokenAmount
+        // with a non-USD currency code and causing "Cannot subtract different currencies".
+        val token = usdfToken()
+        val gbpRate = Rate(fx = 0.79, currency = CurrencyCode.GBP)
+
+        // User has $100 USD on-chain → £79 GBP display balance
+        val balanceGbp = Fiat(fiat = 79.0, currencyCode = CurrencyCode.GBP)
+        // User enters £79 GBP (full balance)
+        val amount = Fiat(fiat = 79.0, currencyCode = CurrencyCode.GBP)
+
+        val result = calculator.compute(
+            amount = amount,
+            token = token,
+            balance = balanceGbp,
+            rate = gbpRate,
+            trace = false,
+        ).getOrThrow()
+
+        // underlyingTokenAmount must always be USD-denominated
+        assertEquals(CurrencyCode.USD, result.localFiat.underlyingTokenAmount.currencyCode)
+        assertEquals(CurrencyCode.GBP, result.localFiat.nativeAmount.currencyCode)
+    }
+
+    @Test
+    fun `USDF withdrawal with non-USD balance does not crash on fee subtraction`() = runTest {
+        // End-to-end regression: reproduces the exact crash path in
+        // TransactionService.withdrawUsdf where amount - fee threw
+        // "Cannot subtract different currencies".
+        val token = usdfToken()
+        val gbpRate = Rate(fx = 0.79, currency = CurrencyCode.GBP)
+        val balanceGbp = Fiat(fiat = 79.0, currencyCode = CurrencyCode.GBP)
+        val amount = Fiat(fiat = 79.0, currencyCode = CurrencyCode.GBP)
+
+        val verifiedAmount = calculator.compute(
+            amount = amount,
+            token = token,
+            balance = balanceGbp,
+            rate = gbpRate,
+            trace = false,
+        ).getOrThrow().localFiat
+
+        val fee = LocalFiat.fromUsd(
+            usdf = Fiat(fiat = 1.0, currencyCode = CurrencyCode.USD),
+            rate = verifiedAmount.rate,
+        )
+
+        // This is the exact line that crashed in TransactionService.withdrawUsdf
+        val netAmount = verifiedAmount - fee
+        assertEquals(CurrencyCode.USD, netAmount.underlyingTokenAmount.currencyCode)
+        assertEquals(CurrencyCode.GBP, netAmount.nativeAmount.currencyCode)
     }
 
     @Test
