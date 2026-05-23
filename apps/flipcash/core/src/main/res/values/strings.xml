@@ -519,10 +519,15 @@
     <string name="prompt_message_currencyCreateNotYetAvailable">Check back soon</string>
 
     <string name="title_settingsSectionFeatures">Features</string>
+    <string name="title_settingsSectionHomeScreen">Home Screen</string>
     <string name="title_settingsSectionDeveloper">Developer</string>
     <string name="subtitle_settingsUserFlags">User Flags</string>
     <string name="title_settingsSectionAccount">Account</string>
     <string name="title_userFlags">User Flags</string>
+
+    <string name="title_settingsButtonOrder">Button Order</string>
+    <string name="subtitle_settingsButtonOrder">Hold and drag to reorder</string>
+    <string name="title_settingsSectionGiveButtonLabel">Give Button Label</string>
 
     <string name="title_purchase">Purchase</string>
     <string name="action_connectYourPhantomWallet">Connect Your Phantom Wallet</string>
