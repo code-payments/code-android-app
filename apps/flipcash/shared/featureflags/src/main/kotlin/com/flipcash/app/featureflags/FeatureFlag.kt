@@ -1,6 +1,7 @@
 package com.flipcash.app.featureflags
 
 import com.flipcash.app.featureflags.model.BackgroundResetTimeout
+import com.flipcash.app.core.navigation.NavBarConfig
 import com.flipcash.app.ksp.annotations.FeatureFlagMarker
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -169,6 +170,16 @@ sealed interface FeatureFlag<T: Any> {
             .map { FlagOption(it.name, it.label, isDisabled = it.duration == null) }
     }
 
+    @FeatureFlagMarker
+    data object NavBar : FeatureFlag<NavBarConfig> {
+        override val key: String = "nav_bar_config"
+        override val default: NavBarConfig = NavBarConfig.Default
+        override val launched: Boolean = false
+        override val visible: Boolean = false
+        override val persistLogOut: Boolean = false
+        override val defaultOption: String get() = default.serialize()
+    }
+
     companion object {
         val entries: List<FeatureFlag<*>>
             get() = FeatureFlagEntries.entries
@@ -198,6 +209,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.BillTextures -> "Bill Textures"
         FeatureFlag.DepositUsdc -> "Deposit USDC"
         FeatureFlag.BackgroundReset -> "Background Reset"
+        FeatureFlag.NavBar -> "Navigation Bar"
     }
 
 val FeatureFlag<*>.message: String
@@ -218,6 +230,7 @@ val FeatureFlag<*>.message: String
         FeatureFlag.BillTextures -> "When enabled, you'll gain the ability to select textures for bills during currency creation"
         FeatureFlag.DepositUsdc -> "When enabled, you'll gain the ability to deposit USDC directly from any external wallet app instead of purchasing a currency first and sell"
         FeatureFlag.BackgroundReset -> "Automatically returns the app to the camera screen after a period of inactivity with the app in the background"
+        FeatureFlag.NavBar -> "Customize the order and labels of navigation bar buttons"
     }
 
 
