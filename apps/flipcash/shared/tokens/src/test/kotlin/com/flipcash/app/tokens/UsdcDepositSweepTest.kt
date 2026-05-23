@@ -5,6 +5,8 @@ import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountInfo
 import com.getcode.opencode.model.accounts.AccountType
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -24,6 +26,7 @@ class UsdcDepositSweepTest {
     private val transactionOperations: TransactionOperations = mockk(relaxed = true)
     private val accountController: AccountController = mockk(relaxed = true)
     private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true)
+    private val balancePoller: BalancePoller = mockk(relaxed = true)
 
     private val owner: AccountCluster = mockk(relaxed = true)
 
@@ -31,13 +34,20 @@ class UsdcDepositSweepTest {
 
     @Before
     fun setUp() {
+        coEvery {
+            balancePoller.awaitBalanceChange(any(), any(), any(), any(), any())
+        } returns Result.success(Fiat.Zero)
+
         sweep = UsdcDepositSweep(
             transactionOperations = transactionOperations,
             accountController = accountController,
             tokenCoordinator = tokenCoordinator,
+            balancePoller = balancePoller,
             maxRetries = 3,
             initialDelay = 10.milliseconds,
             backoffFactor = 1.0,
+            pollInterval = 10.milliseconds,
+            pollMaxAttempts = 2,
         )
     }
 
@@ -144,7 +154,7 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `calls tokenCoordinator update on successful swap`() = runTest {
+    fun `polls for USDF balance on successful swap`() = runTest {
         stubUsdcAccount(balance = 1_000_000L)
         coEvery { transactionOperations.swapUsdc(any(), any()) } returns Result.success(Unit)
 
@@ -153,12 +163,18 @@ class UsdcDepositSweepTest {
         Thread.sleep(200)
 
         coVerify {
-            tokenCoordinator.update()
+            balancePoller.awaitBalanceChange(
+                mint = Mint.usdf,
+                baseline = Fiat.Zero,
+                predicate = any(),
+                interval = 10.milliseconds,
+                maxAttempts = 2,
+            )
         }
     }
 
     @Test
-    fun `does not call tokenCoordinator update on failed swap`() = runTest {
+    fun `does not poll for USDF balance when swap fails`() = runTest {
         stubUsdcAccount(balance = 1_000_000L)
         coEvery {
             transactionOperations.swapUsdc(any(), any())
@@ -169,7 +185,24 @@ class UsdcDepositSweepTest {
         Thread.sleep(200)
 
         coVerify(exactly = 0) {
-            tokenCoordinator.update()
+            balancePoller.awaitBalanceChange(any(), any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun `completes gracefully when USDF balance poll times out`() = runTest {
+        stubUsdcAccount(balance = 1_000_000L)
+        coEvery { transactionOperations.swapUsdc(any(), any()) } returns Result.success(Unit)
+        coEvery {
+            balancePoller.awaitBalanceChange(any(), any(), any(), any(), any())
+        } returns Result.failure(BalancePollError.Timeout(Mint.usdf, 2))
+
+        sweep.execute(owner)
+        advanceUntilIdle()
+        Thread.sleep(200)
+
+        coVerify {
+            balancePoller.awaitBalanceChange(any(), any(), any(), any(), any())
         }
     }
 
