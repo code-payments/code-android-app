@@ -5,6 +5,7 @@ import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.AccountFilter
 import com.getcode.opencode.model.accounts.AccountType
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
@@ -23,21 +24,28 @@ class UsdcDepositSweep(
     private val transactionOperations: TransactionOperations,
     private val accountController: AccountController,
     private val tokenCoordinator: TokenCoordinator,
+    private val balancePoller: BalancePoller,
     private val maxRetries: Int = MAX_RETRIES,
     private val initialDelay: Duration = INITIAL_DELAY,
     private val backoffFactor: Double = BACKOFF_FACTOR,
+    private val pollInterval: Duration = POLL_INTERVAL,
+    private val pollMaxAttempts: Int = POLL_MAX_ATTEMPTS,
 ) {
     @Inject constructor(
         transactionOperations: TransactionOperations,
         accountController: AccountController,
         tokenCoordinator: TokenCoordinator,
+        balancePoller: BalancePoller,
     ) : this(
         transactionOperations = transactionOperations,
         accountController = accountController,
         tokenCoordinator = tokenCoordinator,
+        balancePoller = balancePoller,
         maxRetries = MAX_RETRIES,
         initialDelay = INITIAL_DELAY,
-        backoffFactor = BACKOFF_FACTOR
+        backoffFactor = BACKOFF_FACTOR,
+        pollInterval = POLL_INTERVAL,
+        pollMaxAttempts = POLL_MAX_ATTEMPTS,
     )
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -75,7 +83,19 @@ class UsdcDepositSweep(
                 amount = amount,
             ).onSuccess {
                 trace(tag = TAG, message = "USDC→USDF sweep completed")
-                tokenCoordinator.update()
+                balancePoller.awaitBalanceChange(
+                    mint = Mint.usdf,
+                    baseline = Fiat.Zero,
+                    predicate = { _, current -> current.hasDisplayableValue },
+                    interval = pollInterval,
+                    maxAttempts = pollMaxAttempts,
+                ).onFailure { error ->
+                    trace(
+                        tag = TAG,
+                        message = "USDF balance poll timed out: ${error.message}",
+                        type = TraceType.Log,
+                    )
+                }
             }.onFailure { error ->
                 trace(tag = TAG, message = "USDC→USDF sweep failed: ${error.message}", error = error)
             }
@@ -92,5 +112,7 @@ class UsdcDepositSweep(
         private const val MAX_RETRIES = 5
         private val INITIAL_DELAY = 5.seconds
         private const val BACKOFF_FACTOR = 2.0
+        internal val POLL_INTERVAL = 5.seconds
+        internal const val POLL_MAX_ATTEMPTS = 12
     }
 }
