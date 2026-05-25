@@ -28,11 +28,11 @@ import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.currency.RegionSelectionScreen
-import com.flipcash.app.deposit.DepositDestinationScreen
 import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.lab.LabsScreen
+import com.flipcash.app.lab.NavBarSettingsScreen
 import com.flipcash.app.lab.StandaloneLabsScreen
 import com.flipcash.app.login.accesskey.AccessKeyScreen
 import com.flipcash.app.login.accesskey.PhotoAccessKeyScreen
@@ -125,6 +125,7 @@ fun appEntryProvider(
     // Menu
     annotatedEntry<AppRoute.Menu.AppSettings> { AppSettingsScreen() }
     annotatedEntry<AppRoute.Menu.Lab> { LabsScreen() }
+    annotatedEntry<AppRoute.Menu.NavBarSettings> { NavBarSettingsScreen() }
     annotatedEntry<AppRoute.Menu.MyAccount> { MyAccountScreen() }
     annotatedEntry<AppRoute.Menu.BackupKey> { BackupKeyScreen() }
     annotatedEntry<AppRoute.Menu.AdvancedFeatures> { AdvancedFeaturesScreen() }

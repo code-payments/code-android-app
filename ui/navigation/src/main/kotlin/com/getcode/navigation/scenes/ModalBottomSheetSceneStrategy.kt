@@ -224,10 +224,18 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                             )
                         }
                     }
+                    val isWrapContent =
+                        metadata[NavMetadataKeys.IsWrapContentSheet.key] as? Boolean ?: false
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fillMaxHeight(CodeTheme.dimens.modalHeightRatio)
+                            .then(
+                                if (!isWrapContent) {
+                                    Modifier.fillMaxHeight(CodeTheme.dimens.modalHeightRatio)
+                                } else {
+                                    Modifier
+                                }
+                            )
                     ) {
                         SharedTransitionLayout {
                             CompositionLocalProvider(
@@ -237,7 +245,9 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                             ) {
                                 entry.Content()
                             }
-                            ScrimOverlay(scrim)
+                            if (!isWrapContent) {
+                                ScrimOverlay(scrim)
+                            }
                         }
                     }
                 }

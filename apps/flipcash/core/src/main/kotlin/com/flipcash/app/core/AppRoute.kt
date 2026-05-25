@@ -193,6 +193,8 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object DeviceLogs : Menu
         @Serializable
         data object Lab : Menu
+        @Serializable
+        data object NavBarSettings : Menu, com.getcode.navigation.Sheet, com.getcode.navigation.WrapContentSheet
     }
 
     @Serializable
