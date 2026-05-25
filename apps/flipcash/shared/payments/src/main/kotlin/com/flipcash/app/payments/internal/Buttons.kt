@@ -81,7 +81,7 @@ internal fun purchaseOptions(
         if (state.canUseOtherWallets) {
             add(
                 BottomBarAction(
-                    text = resources.getString(R.string.title_onrampProviderOtherWallet),
+                    text = resources.getString(R.string.action_depositUsdc),
                     onClick = { onClick(PurchaseMethod.OtherWallet) }
                 )
             )

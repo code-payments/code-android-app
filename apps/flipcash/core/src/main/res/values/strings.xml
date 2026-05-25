@@ -182,7 +182,7 @@
 
     <string name="title_learnToDeposit">Purchase USDF on a crypto exchange with your bank account, and then deposit into Flipcash</string>
     <string name="action_learnHowToDepositFunds">Learn How to Get USDF</string>
-    <string name="action_depositUsdc">Deposit USDF</string>
+    <string name="action_depositUsdc">Deposit USDC</string>
 
     <string name="title_learnToWithdraw">You can withdraw your funds at any time, and move them into your bank account</string>
     <string name="action_learnHowToWithdrawFunds">Learn How to Withdraw Funds</string>
