@@ -1,5 +1,6 @@
 package com.flipcash.services.models
 
+import com.getcode.solana.keys.Checksum
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
 
@@ -246,4 +247,58 @@ sealed class ImageModerationError(
     class UnsupportedFormat: ImageModerationError("Unsupported Format")
     class Unrecognized : ImageModerationError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : ImageModerationError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class CheckSyncError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : CheckSyncError("Denied")
+    class OutOfSync(val serverChecksum: Checksum) : CheckSyncError("Out of sync")
+    class Unrecognized : CheckSyncError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : CheckSyncError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class DeltaUploadError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : DeltaUploadError("Denied")
+    class ChecksumMismatch : DeltaUploadError("Checksum mismatch")
+    class ChecksumDrift : DeltaUploadError("Checksum drift")
+    class TooManyContacts : DeltaUploadError("Too many contacts")
+    class Unrecognized : DeltaUploadError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : DeltaUploadError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class FullUploadError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : FullUploadError("Denied")
+    class ChecksumMismatch : FullUploadError("Checksum mismatch")
+    class TooManyContacts : FullUploadError("Too many contacts")
+    class Unrecognized : FullUploadError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : FullUploadError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetContactsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetContactsError("Denied")
+    class NotFound : GetContactsError("Not found")
+    class ChecksumDrift : GetContactsError("Checksum drift")
+    class Unrecognized : GetContactsError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetContactsError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class ResolveContactError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class NotFound : ResolveContactError("Not found")
+    class Denied : ResolveContactError("Denied")
+    class Unrecognized : ResolveContactError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : ResolveContactError(message = cause?.message, cause = cause), NotifiableError
 }
