@@ -17,8 +17,6 @@ import com.getcode.opencode.model.financial.usdf
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.utils.TraceManager
 import com.getcode.utils.base58
-import com.google.firebase.Firebase
-import com.google.firebase.messaging.messaging
 import com.hoc081098.channeleventbus.ChannelEventBus
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -104,9 +102,6 @@ class UserManager @Inject constructor(
             didDetectUnlockedAccount()
         }
 
-        Firebase.messaging.token.addOnSuccessListener { token ->
-            set(pushToken = token)
-        }
     }
 
     fun establish(entropy: String) {

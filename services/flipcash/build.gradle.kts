@@ -47,7 +47,6 @@ dependencies {
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.installations)
-    implementation(libs.firebase.messaging)
 
     implementation(libs.play.integrity)
 
