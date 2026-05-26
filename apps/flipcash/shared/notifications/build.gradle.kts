@@ -4,6 +4,7 @@ plugins {
 
 android {
     namespace = "${Gradle.flipcashNamespace}.shared.notifications"
+    testOptions.unitTests.isIncludeAndroidResources = true
 }
 
 dependencies {
@@ -16,4 +17,7 @@ dependencies {
     implementation(libs.firebase.messaging)
 
     implementation(libs.androidx.datastore)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.robolectric)
 }
