@@ -21,6 +21,7 @@ import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.sum
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel
@@ -94,16 +95,19 @@ class SelectTokenViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnDiscoveryEnabled(it)) }
             .launchIn(viewModelScope)
 
+        exchange.observePreferredRate()
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnRateChanged(it)) }
+            .launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.OnPurposeChanged>()
             .map { it.purpose }
             .flatMapLatest { purpose ->
                 combine(
-                    stateFlow,
                     tokenCoordinator.tokenBalances,
                     exchange.observePreferredRate()
-                ) { state, balances, rate ->
-                    dispatchEvent(Event.OnRateChanged(rate))
+                ) { balances, rate ->
                     balances
                         .map {
                             val balance = LocalFiat(
@@ -138,6 +142,7 @@ class SelectTokenViewModel @Inject constructor(
                                             it.token.name
                                         }
                                     }
+
                                     TokenPurpose.Select -> it.token.name
                                     TokenPurpose.Withdraw -> {
                                         if (it.token.address == Mint.usdf) {
@@ -149,7 +154,10 @@ class SelectTokenViewModel @Inject constructor(
                                 }
                             )
                         }
-                        .sortedWith(compareByDescending { item -> item.balance.nativeAmount })
+                        .sortedWith(
+                            compareByDescending<TokenWithLocalizedBalance> { it.balance.nativeAmount.rounded() }
+                                .thenBy { it.token.address.base58() }
+                        )
                         .filter {
                             val hasBalance = it.balance.nativeAmount.hasDisplayableValue
                             when (purpose) {
