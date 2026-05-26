@@ -9,6 +9,7 @@ import com.codeinc.flipcash.gen.push.v1.Model as PushModels
 import com.flipcash.services.internal.extensions.toMint
 import com.flipcash.services.internal.extensions.toPublicKey
 import com.flipcash.services.models.NavigationTrigger
+import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
@@ -32,8 +33,19 @@ internal fun PushModels.Payload.asPayload(): NotificationPayload {
         }
     }
 
+    val notificationCategory = when (category) {
+        PushModels.Payload.Category.DEPOSIT_WITHDRAWAL -> NotificationCategory.DEPOSIT_WITHDRAWAL
+        PushModels.Payload.Category.BUY_SELL -> NotificationCategory.BUY_SELL
+        PushModels.Payload.Category.GAIN -> NotificationCategory.GAIN
+        PushModels.Payload.Category.CHAT -> NotificationCategory.CHAT
+        PushModels.Payload.Category.CONTACT_JOIN -> NotificationCategory.CONTACT_JOIN
+        else -> NotificationCategory.DEFAULT
+    }
+
     return NotificationPayload(
-        navigation = navigationTrigger
+        navigation = navigationTrigger,
+        category = notificationCategory,
+        groupKey = groupKey,
     )
 }
 

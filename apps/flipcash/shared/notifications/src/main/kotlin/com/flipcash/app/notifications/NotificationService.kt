@@ -1,17 +1,12 @@
 package com.flipcash.app.notifications
 
 import android.Manifest
-import android.app.NotificationChannel
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.RingtoneManager
-import android.net.Uri
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
@@ -20,10 +15,10 @@ import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.NavigationTrigger
+import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.notifications.R
-import com.getcode.opencode.controllers.TokenController
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -74,12 +69,6 @@ class NotificationService : FirebaseMessagingService(),
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
-        // dump everything into FCM fallback channel for now
-        val channel = NotificationChannelCompat.Builder(
-            "fcm_fallback_notification_channel",
-            NotificationManagerCompat.IMPORTANCE_DEFAULT
-        ).setName("Misc.").build()
-
         val title = message.data["push_notification_title"]?.ifEmpty { message.notification?.title }
         val body = message.data["push_notification_body"]?.ifEmpty { message.notification?.body }
 
@@ -108,7 +97,12 @@ class NotificationService : FirebaseMessagingService(),
             }
         }
 
+        val category = payload?.category ?: NotificationCategory.DEFAULT
+        NotificationChannels.ensureChannelGroups(this, notificationManager)
+        val channel = NotificationChannels.channelFor(this, category)
         notificationManager.createNotificationChannel(channel)
+
+        val groupKey = payload?.groupKey?.takeIf { it.isNotEmpty() }
 
         val notificationBuilder: NotificationCompat.Builder =
             NotificationCompat.Builder(this, channel.id)
@@ -120,9 +114,9 @@ class NotificationService : FirebaseMessagingService(),
                 .setContentTitle(title)
                 .setContentText(body)
                 .setContentIntent(buildContentIntent(payload?.navigation))
+                .apply { if (groupKey != null) setGroup(groupKey) }
 
-        val random = SecureRandom()
-        val notificationId = random.nextInt(256)
+        val notificationId = SecureRandom().nextInt(Int.MAX_VALUE)
 
         if (ActivityCompat.checkSelfPermission(
                 this,
@@ -130,6 +124,17 @@ class NotificationService : FirebaseMessagingService(),
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             notificationManager.notify(notificationId, notificationBuilder.build())
+
+            if (groupKey != null) {
+                val summary = NotificationCompat.Builder(this, channel.id)
+                    .setSmallIcon(R.drawable.flipcash_logo)
+                    .setColor(getColor(R.color.notification_color))
+                    .setGroup(groupKey)
+                    .setGroupSummary(true)
+                    .setAutoCancel(true)
+                    .build()
+                notificationManager.notify(groupKey.hashCode(), summary)
+            }
         }
     }
 
