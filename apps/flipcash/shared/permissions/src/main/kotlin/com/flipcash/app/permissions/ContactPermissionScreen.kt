@@ -6,35 +6,37 @@ import androidx.compose.runtime.LaunchedEffect
 import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.permissions.internal.notifications.NotificationRationalePermissionContent
-import com.flipcash.app.permissions.internal.notifications.NotificationScreenContent
+import com.flipcash.app.permissions.internal.contacts.ContactScreenContent
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.core.NavOptions
 import com.getcode.util.permissions.PermissionResult
-import com.getcode.util.permissions.rememberNotificationPermission
+import com.getcode.util.permissions.rememberContactPermission
 
 @Composable
-fun NotificationPermissionScreen(fromOnboarding: Boolean = false) {
+fun ContactPermissionScreen(fromOnboarding: Boolean) {
     val navigator = LocalCodeNavigator.current
     val analytics = LocalAnalytics.current
 
-    val permissionState = rememberNotificationPermission { result ->
+    val permissionState = rememberContactPermission { result ->
         when (result) {
             PermissionResult.Granted -> {
-                analytics.action(Button.AllowPush)
+                analytics.action(Button.AllowContacts)
                 if (fromOnboarding) analytics.action(Action.CompletedOnboarding)
-                navigator.navigate(
-                    route = AppRoute.Main.Scanner,
-                    options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll)
+                navigator.push(
+                    AppRoute.Onboarding.NotificationPermission(fromOnboarding)
                 )
             }
-            PermissionResult.Denied -> navigator.push(
-                AppRoute.Onboarding.NotificationPermissionRationale(false)
-            )
-            PermissionResult.PermanentlyDenied -> navigator.push(
-                AppRoute.Onboarding.NotificationPermissionRationale(true)
-            )
+            PermissionResult.Denied -> {
+                navigator.push(
+                    AppRoute.Onboarding.NotificationPermission(fromOnboarding)
+                )
+            }
+            PermissionResult.PermanentlyDenied -> {
+                navigator.push(
+                    AppRoute.Onboarding.NotificationPermission(fromOnboarding)
+                )
+            }
             PermissionResult.NotRequested -> Unit
         }
     }
@@ -56,21 +58,15 @@ fun NotificationPermissionScreen(fromOnboarding: Boolean = false) {
     }
 
     // Only reached when status is NotRequested
-    NotificationScreenContent(
+    ContactScreenContent(
         permissionState = permissionState,
         onSkip = {
-            analytics.action(Button.SkipPush)
-            navigator.navigate(
-                route = AppRoute.Main.Scanner,
-                options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll)
+            analytics.action(Button.SkipContacts)
+            navigator.push(
+                AppRoute.Onboarding.NotificationPermission(fromOnboarding)
             )
         }
     )
 
     BackHandler(fromOnboarding) { }
-}
-
-@Composable
-fun NotificationPermissionRationaleScreen(permanentlyDenied: Boolean = false) {
-    NotificationRationalePermissionContent(permanentlyDenied)
 }

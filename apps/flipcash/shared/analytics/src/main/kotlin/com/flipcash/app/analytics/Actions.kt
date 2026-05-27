@@ -33,6 +33,14 @@ sealed interface Button: AppAction {
         override val value: String = "Button: Skip Push"
     }
 
+    data object AllowContacts : Button {
+        override val value: String = "Button: Allow Contacts"
+    }
+
+    data object SkipContacts: Button {
+        override val value: String = "Button: Skip Contacts"
+    }
+
     data object TokenBuyWithReserves : Button {
         override val value: String = "Button: Buy With Reserves"
     }

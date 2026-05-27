@@ -40,6 +40,7 @@ import com.flipcash.app.login.router.LoginRouter
 import com.flipcash.app.login.seed.SeedInputScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.MyAccountScreen
+import com.flipcash.app.permissions.ContactPermissionScreen
 import com.flipcash.app.permissions.NotificationPermissionRationaleScreen
 import com.flipcash.app.permissions.NotificationPermissionScreen
 import com.flipcash.app.purchase.PurchaseAccountScreen
@@ -80,6 +81,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Onboarding.AccessKey> { AccessKeyScreen() }
     annotatedEntry<AppRoute.Onboarding.AccessKeySavedLocation> { PhotoAccessKeyScreen() }
     annotatedEntry<AppRoute.Onboarding.Purchase> { key -> PurchaseAccountScreen(key.fromLogin) }
+    annotatedEntry<AppRoute.Onboarding.ContactPermission> { key -> ContactPermissionScreen(key.postCreate) }
     annotatedEntry<AppRoute.Onboarding.NotificationPermission> { key -> NotificationPermissionScreen(key.postCreate) }
     annotatedEntry<AppRoute.Onboarding.NotificationPermissionRationale> { key -> NotificationPermissionRationaleScreen(key.permanentlyDenied) }
     annotatedEntry<AppRoute.Onboarding.CameraPermission> { }

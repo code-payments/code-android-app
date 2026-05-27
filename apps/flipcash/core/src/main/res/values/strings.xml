@@ -92,6 +92,13 @@
     <string name="error_description_ignoredPushPermissions">You won\'t receive updates when your balance changes</string>
     <string name="action_okAllow">Ok Allow</string>
     <string name="action_imSure">I\'m Sure</string>
+    <string name="action_notNow">Not Now</string>
+
+    <string name="permissions_title_contacts">Find Your Friends</string>
+    <string name="permissions_description_contacts">Sync your contacts to find,\ninvite, and pay friends.</string>
+    <string name="action_giveAccessToContacts">Give Access To Contacts</string>
+    <string name="error_title_ignoredContactPermissions">Are You Sure?</string>
+    <string name="error_description_ignoredContactPermissions">You won\'t be able to send cash to your contacts</string>
 
     <string name="subtitle_allowCameraAccess">Start your camera to grab cash</string>
     <string name="action_allowCameraAccess">Start Camera</string>

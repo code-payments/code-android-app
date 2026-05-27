@@ -1,4 +1,4 @@
-package com.flipcash.app.permissions.internal.components
+package com.flipcash.app.permissions.internal.notifications.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth

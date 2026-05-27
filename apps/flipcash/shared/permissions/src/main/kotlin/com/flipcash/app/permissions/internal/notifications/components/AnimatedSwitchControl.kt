@@ -1,4 +1,4 @@
-package com.flipcash.app.permissions.internal.components
+package com.flipcash.app.permissions.internal.notifications.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -54,7 +54,7 @@ private fun rememberSwitchAnimation(animate: Boolean = true, checked: Boolean = 
 }
 
 @Composable
-internal fun AnimatedSwitchPreview(animate: Boolean = false) {
+internal fun AnimatedSwitchPreview(animate: Boolean = true) {
     val animation = rememberSwitchAnimation(animate)
 
     DeviceFrame(

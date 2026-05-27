@@ -1,4 +1,4 @@
-package com.flipcash.app.permissions.internal
+package com.flipcash.app.permissions.internal.notifications
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -22,7 +22,7 @@ import com.flipcash.app.analytics.StubFlipcashAnalytics
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.extensions.launchAppSettings
-import com.flipcash.app.permissions.internal.components.AnimatedSwitchPreview
+import com.flipcash.app.permissions.internal.notifications.components.AnimatedSwitchPreview
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.shared.permissions.R
 import com.getcode.libs.analytics.LocalAnalytics
