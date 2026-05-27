@@ -50,6 +50,8 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class Purchase(val fromLogin: Boolean = false) : Onboarding
 
         @Serializable
+        data class ContactPermission(val postCreate: Boolean): Onboarding
+        @Serializable
         data class NotificationPermission(val postCreate: Boolean = false) : Onboarding
         @Serializable
         data class NotificationPermissionRationale(val permanentlyDenied: Boolean = false) : Onboarding
@@ -88,6 +90,8 @@ sealed interface AppRoute : NavKey, Parcelable {
         val includeEmail: Boolean = true,
         val email: String? = null,
         val emailVerificationCode: String? = null,
+        val target: AppRoute? = null,
+        val fullScreen: Boolean = false,
     ) : AppRoute, FlowRouteWithResult<VerificationResult> {
         override val initialStack: List<NavKey>
             get() = buildVerificationInitialStack(

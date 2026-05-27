@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 fun PhoneCodeContent(
     includeEmail: Boolean,
+    isInModal: Boolean = true,
 ) {
     val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
     val viewModel = flowSharedViewModel<PhoneVerificationViewModel>()
@@ -34,7 +35,7 @@ fun PhoneCodeContent(
     ) {
         AppBarWithTitle(
             title = stringResource(R.string.title_enterTheCode),
-            isInModal = true,
+            isInModal = isInModal,
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,
             onBackIconClicked = { flowNavigator.back() },
