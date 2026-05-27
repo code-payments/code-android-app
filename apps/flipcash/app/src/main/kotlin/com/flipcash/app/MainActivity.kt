@@ -16,6 +16,8 @@ import com.flipcash.app.appsettings.LocalAppSettings
 import com.flipcash.app.bill.customization.BillPlaygroundController
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.billing.BillingClient
+import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.app.contacts.LocalContactCoordinator
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.verification.email.EmailCodeChannel
 import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
@@ -116,6 +118,9 @@ class MainActivity : FragmentActivity() {
     lateinit var emailCodeChannel: EmailCodeChannel
 
     @Inject
+    lateinit var contactCoordinator: ContactCoordinator
+
+    @Inject
     lateinit var coinbaseOnRampController: CoinbaseOnRampController
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -141,6 +146,7 @@ class MainActivity : FragmentActivity() {
                 LocalBillPlaygroundController provides billPlaygroundController,
                 LocalAppUpdater provides appUpdater,
                 LocalEmailCodeChannel provides emailCodeChannel,
+                LocalContactCoordinator provides contactCoordinator,
                 LocalCoinbaseOnRampController provides coinbaseOnRampController,
                 LocalUiTesting provides intent.getBooleanExtra(UI_TEST, false),
             ) {

@@ -171,6 +171,15 @@ sealed interface FeatureFlag<T: Any> {
     }
 
     @FeatureFlagMarker
+    data object ContactPickerMode : FeatureFlag<Boolean> {
+        override val key: String = "contact_picker_mode"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = true
+    }
+
+    @FeatureFlagMarker
     data object NavBar : FeatureFlag<NavBarConfig> {
         override val key: String = "nav_bar_config"
         override val default: NavBarConfig = NavBarConfig.Default
@@ -209,6 +218,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.BillTextures -> "Bill Textures"
         FeatureFlag.DepositUsdc -> "Deposit USDC"
         FeatureFlag.BackgroundReset -> "Background Reset"
+        FeatureFlag.ContactPickerMode -> "Contact Picker Mode"
         FeatureFlag.NavBar -> "Navigation Bar"
     }
 
@@ -230,6 +240,7 @@ val FeatureFlag<*>.message: String
         FeatureFlag.BillTextures -> "When enabled, you'll gain the ability to select textures for bills during currency creation"
         FeatureFlag.DepositUsdc -> "When enabled, you'll gain the ability to deposit USDC directly from any external wallet app instead of purchasing a currency first and sell"
         FeatureFlag.BackgroundReset -> "Automatically returns the app to the camera screen after a period of inactivity with the app in the background"
+        FeatureFlag.ContactPickerMode -> "When enabled, contacts will be accessed via the system contact picker instead of requesting full READ_CONTACTS permission"
         FeatureFlag.NavBar -> "Customize the order and labels of navigation bar buttons"
     }
 

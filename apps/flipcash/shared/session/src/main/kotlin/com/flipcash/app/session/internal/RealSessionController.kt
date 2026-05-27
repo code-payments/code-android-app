@@ -7,6 +7,7 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.billing.BillingClient
+import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.PaymentValuation
@@ -122,6 +123,7 @@ class RealSessionController @Inject constructor(
     private val toastController: ToastController,
     private val billingClient: BillingClient,
     private val tokenCoordinator: TokenCoordinator,
+    private val contactCoordinator: ContactCoordinator,
     private val featureFlagController: FeatureFlagController,
     private val analytics: FlipcashAnalyticsService,
     private val usdcSweep: UsdcDepositSweep,
@@ -152,6 +154,7 @@ class RealSessionController @Inject constructor(
                     authState is AuthState.LoggedOut -> {
                         stopPolling()
                         cancelUpdates()
+                        scope.launch { contactCoordinator.reset() }
                         _state.update { SessionState() }
                     }
                     authState.isAtLeastRegistered -> {
