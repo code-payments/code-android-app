@@ -6,6 +6,8 @@ import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.storage.MediaSaver
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.user.UserManager
 import com.getcode.libs.qr.QRCodeGenerator
@@ -25,9 +27,14 @@ class LoginAccessKeyViewModel @Inject constructor(
     mediaSaver: MediaSaver,
     userManager: UserManager,
     private val userFlags: UserFlagsCoordinator,
+    private val featureFlags: FeatureFlagController,
     private val authManager: AuthManager,
     private val analytics: FlipcashAnalyticsService,
 ): BaseAccessKeyViewModel(resources, mnemonicManager, mediaSaver, userManager, qrCodeGenerator) {
+
+    val isPhoneNumberSendEnabled: Boolean
+        get() = featureFlags.observe(FeatureFlag.PhoneNumberSend).value ||
+                userFlags.resolvedFlags.value.enablePhoneNumberSend.effectiveValue
 
     suspend fun onWroteDownInstead(): Result<Boolean> {
         trackButton(Button.WroteAccessKey)

@@ -44,6 +44,7 @@ data class SessionState(
     val isRemoteSendLoading: Boolean = false,
     val notificationUnreadCount: Int = 0,
     val tokens: List<Token> = emptyList(),
+    val isPhoneNumberSendEnabled: Boolean = false,
 )
 
 val LocalSessionController = staticCompositionLocalOf<SessionController?> { null }

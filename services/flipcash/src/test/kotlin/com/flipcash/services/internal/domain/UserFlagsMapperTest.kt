@@ -128,6 +128,17 @@ class UserFlagsMapperTest {
     }
 
     @Test
+    fun `maps enable phone number send`() {
+        val proto = userFlags {
+            enablePhoneNumberSend = true
+        }
+
+        val result = mapper.map(proto)
+
+        assertTrue(result.enablePhoneNumberSend)
+    }
+
+    @Test
     fun `maps minimum version`() {
         val proto = userFlags {
             minBuildNumber = 42

@@ -17,4 +17,5 @@
     <string name="label_flag_withdrawalFeeAmount">Withdrawal Fee Amount</string>
     <string name="hint_flag_withdrawalFeeAmount">Enter amount</string>
     <string name="label_flag_preferredUsdcLiquidityPool">Preferred USDC On-Ramp Liquidity Pool</string>
+    <string name="label_flag_enablePhoneNumberSend">Phone Number Send Enabled</string>
 </resources>

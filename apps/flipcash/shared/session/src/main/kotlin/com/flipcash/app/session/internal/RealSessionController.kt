@@ -63,6 +63,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -195,6 +196,13 @@ class RealSessionController @Inject constructor(
             .onEach { tokens ->
                 _state.update { it.copy(tokens = tokens) }
             }.launchIn(scope)
+
+        combine(
+            featureFlagController.observe(FeatureFlag.PhoneNumberSend),
+            userManager.state.map { it.flags?.enablePhoneNumberSend == true }
+        ) { beta, server -> beta || server }
+            .onEach { enabled -> _state.update { it.copy(isPhoneNumberSendEnabled = enabled) } }
+            .launchIn(scope)
 
         // Retry updateUserFlags when network is restored
         networkObserver.state

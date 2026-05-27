@@ -45,6 +45,10 @@ internal class UserFlagsViewModel @Inject constructor(
                         R.string.label_flag_requiresPurchaseForAccount,
                         flags.data.requiresIapForRegistration.effectiveValue
                     ),
+                    ReadOnlyEntry(
+                        R.string.label_flag_enablePhoneNumberSend,
+                        flags.data.enablePhoneNumberSend.effectiveValue
+                    ),
                 )
 
                 else -> emptyList()

@@ -17,6 +17,7 @@ data class UserFlags(
     val newCurrencyFeeAmount: Fiat,
     val withdrawalFeeAmount: Fiat,
     val preferredUsdcOnRampLiquidityPool: UsdcLiquidtyPool,
+    val enablePhoneNumberSend: Boolean,
 ) {
     companion object {
         val Default = UserFlags(
@@ -31,6 +32,7 @@ data class UserFlags(
             newCurrencyFeeAmount = Fiat.MAX_VALUE,
             withdrawalFeeAmount = Fiat.Zero,
             preferredUsdcOnRampLiquidityPool = UsdcLiquidtyPool.Unknown,
+            enablePhoneNumberSend = false,
         )
     }
 }

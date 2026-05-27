@@ -10,4 +10,5 @@ sealed class ScannerDecorItem(val screen: AppRoute) {
     data object Menu : ScannerDecorItem(AppRoute.Sheets.Menu)
     data object Logo: ScannerDecorItem(AppRoute.Sheets.ShareApp)
     data object Discover: ScannerDecorItem(AppRoute.Token.Discovery)
+    data object Send: ScannerDecorItem(AppRoute.Sheets.Send)
 }

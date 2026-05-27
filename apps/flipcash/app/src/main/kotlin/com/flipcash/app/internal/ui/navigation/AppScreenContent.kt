@@ -96,6 +96,7 @@ fun appEntryProvider(
 
     // Sheets (inner content — wrapped in Main.Sheet by navigateTo())
     annotatedEntry<AppRoute.Sheets.Give> { key -> CashScreen(key.mint, key.fromTokenInfo) }
+    annotatedEntry<AppRoute.Sheets.Send> {  }
     annotatedEntry<AppRoute.Sheets.TokenSelection> { key -> TokenSelectScreen(key.purpose) }
     annotatedEntry<AppRoute.Sheets.Wallet> { BalanceScreen() }
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
