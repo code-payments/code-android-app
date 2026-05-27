@@ -150,6 +150,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:google-play-billing"))
     implementation(project(":apps:flipcash:shared:currency-selection:core"))
     implementation(project(":apps:flipcash:shared:currency-selection:ui"))
+    implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:notifications"))
     implementation(project(":apps:flipcash:shared:onramp:coinbase"))
     implementation(project(":apps:flipcash:shared:onramp:deeplinks"))
