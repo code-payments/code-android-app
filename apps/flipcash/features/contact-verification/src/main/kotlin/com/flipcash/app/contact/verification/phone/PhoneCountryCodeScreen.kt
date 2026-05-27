@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun PhoneCountryCodeContent() {
+fun PhoneCountryCodeContent(isInModal: Boolean = true) {
     val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
     val viewModel = flowSharedViewModel<PhoneVerificationViewModel>()
 
@@ -30,7 +30,7 @@ fun PhoneCountryCodeContent() {
     ) {
         AppBarWithTitle(
             title = stringResource(R.string.title_verifyPhoneNumber),
-            isInModal = true,
+            isInModal = isInModal,
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,
             onBackIconClicked = { flowNavigator.back() },

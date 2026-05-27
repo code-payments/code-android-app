@@ -46,7 +46,11 @@ fun VerificationFlowScreen(
                 route = route,
                 value = NavResultOrCanceled.ReturnValue(result),
             )
-            outerNavigator.pop()
+            if (route.target != null && result is VerificationResult.Success) {
+                outerNavigator.replace(route.target!!)
+            } else {
+                outerNavigator.pop()
+            }
         },
         entryProvider = verificationEntryProvider(route),
     )
@@ -59,13 +63,13 @@ private fun verificationEntryProvider(
         VerificationFlowIntroContent(isForOnRamp = step.isForOnRamp)
     }
     annotatedEntry<VerificationStep.PhoneEntry> {
-        PhoneVerificationContent()
+        PhoneVerificationContent(isInModal = !route.fullScreen)
     }
     annotatedEntry<VerificationStep.PhoneCode> {
-        PhoneCodeContent(includeEmail = route.includeEmail)
+        PhoneCodeContent(includeEmail = route.includeEmail, isInModal = !route.fullScreen)
     }
     annotatedEntry<VerificationStep.PhoneCountryCode> {
-        PhoneCountryCodeContent()
+        PhoneCountryCodeContent(isInModal = !route.fullScreen)
     }
     annotatedEntry<VerificationStep.EmailEntry> {
         EmailVerificationContent(
