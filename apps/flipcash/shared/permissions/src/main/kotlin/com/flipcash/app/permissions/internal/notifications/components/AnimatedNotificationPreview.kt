@@ -1,4 +1,4 @@
-package com.flipcash.app.permissions.internal.components
+package com.flipcash.app.permissions.internal.notifications.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween

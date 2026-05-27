@@ -89,16 +89,6 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
             )
         }
 
-        item { SectionHeader(stringResource(R.string.title_settingsSectionHomeScreen)) }
-        item {
-            ListItem(
-                headline = stringResource(R.string.title_settingsButtonOrder),
-                icon = painterResource(R.drawable.ic_bottom_navigation),
-            ) {
-                navigator.navigate(AppRoute.Menu.NavBarSettings)
-            }
-        }
-
         if (betaFlags.isEmpty()) {
             item {
                 Box {
@@ -123,6 +113,16 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
                         )
                     }
                 }
+            }
+        }
+
+        item { SectionHeader(stringResource(R.string.title_settingsSectionHomeScreen)) }
+        item {
+            ListItem(
+                headline = stringResource(R.string.title_settingsButtonOrder),
+                icon = painterResource(R.drawable.ic_bottom_navigation),
+            ) {
+                navigator.navigate(AppRoute.Menu.NavBarSettings)
             }
         }
 

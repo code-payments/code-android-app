@@ -174,6 +174,17 @@ fun rememberNotificationPermission(
 ) = rememberPermission(PermissionConfigs.notifications(), onResult)
 
 /**
+ * Convenience wrapper for [android.Manifest.permission.READ_CONTACTS].
+ *
+ * @see rememberPermission
+ * @see PermissionConfigs.contacts
+ */
+@Composable
+fun rememberContactPermission(
+    onResult: (PermissionResult) -> Unit = {},
+) = rememberPermission(PermissionConfigs.contacts(), onResult)
+
+/**
  * Convenience wrapper for [android.Manifest.permission.CAMERA].
  *
  * @see rememberPermission

@@ -13,6 +13,28 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
 
 @Composable
+fun ScreenFrame(
+    modifier: Modifier = Modifier,
+    contentAlignment: Alignment = Alignment.TopCenter,
+    contents: @Composable () -> Unit,
+) {
+    Box(modifier = modifier, contentAlignment = Alignment.TopCenter) {
+        Image(
+            painter = painterResource(id = R.drawable.ic_screen_frame),
+            contentDescription = "",
+        )
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(RoundedCornerShape(35.dp)),
+            contentAlignment = contentAlignment,
+        ) {
+            contents()
+        }
+    }
+}
+
+@Composable
 fun DeviceFrame(
     modifier: Modifier = Modifier,
     clipToFrame: Boolean = true,

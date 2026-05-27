@@ -1,4 +1,4 @@
-package com.flipcash.app.permissions.internal
+package com.flipcash.app.permissions.internal.notifications
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,8 +14,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.analytics.StubFlipcashAnalytics
-import com.flipcash.app.permissions.internal.components.AnimatedNotificationPreview
-import com.flipcash.app.permissions.internal.components.NotificationPermissionBottomBar
+import com.flipcash.app.permissions.internal.notifications.components.AnimatedNotificationPreview
+import com.flipcash.app.permissions.internal.notifications.components.NotificationPermissionBottomBar
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.shared.permissions.R
 import com.getcode.libs.analytics.LocalAnalytics

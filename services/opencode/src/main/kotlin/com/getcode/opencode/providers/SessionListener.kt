@@ -17,5 +17,5 @@ import com.getcode.opencode.model.accounts.AccountCluster
  */
 interface SessionListener {
     suspend fun onUserLoggedIn(cluster: AccountCluster)
-    suspend fun onBalanceUpdateRequested()
+    suspend fun onBalanceUpdateRequested() = Unit
 }

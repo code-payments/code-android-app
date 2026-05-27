@@ -69,6 +69,19 @@ object PermissionConfigs {
     }
 
     /**
+     * Config for [Manifest.permission.READ_CONTACTS].
+     * Requires a runtime request on all supported API levels.
+     */
+    @Composable
+    fun contacts(): PermissionConfig {
+        return remember {
+            PermissionConfig(
+                permission = Manifest.permission.READ_CONTACTS,
+            )
+        }
+    }
+
+    /**
      * Config for [Manifest.permission.WRITE_EXTERNAL_STORAGE].
      * Requires a runtime request on all supported API levels.
      */
