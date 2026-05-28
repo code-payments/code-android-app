@@ -25,12 +25,26 @@
 "area: auth":
   - changed-files:
       - any-glob-to-any-file:
-          - "apps/flipcash/features/login/**"
           - "apps/flipcash/shared/authentication/**"
-          - "apps/flipcash/shared/accesskey/**"
+
+"area: session":
+  - changed-files:
+      - any-glob-to-any-file:
           - "apps/flipcash/shared/session/**"
-          - "apps/flipcash/features/contact-verification/**"
+
+"area: phone":
+  - changed-files:
+      - any-glob-to-any-file:
           - "apps/flipcash/shared/phone/**"
+
+"area: onboarding":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/flipcash/features/login/**"
+          - "apps/flipcash/shared/accesskey/**"
+          - "apps/flipcash/features/contact-verification/**"
+          - "apps/flipcash/shared/permissions/**"
+          - "apps/flipcash/core/**/onboarding/**"
 
 "area: tokens":
   - changed-files:
