@@ -1,20 +1,27 @@
 package com.flipcash.app.discovery.internal.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.coerceAtLeast
@@ -24,11 +31,13 @@ import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.discovery.internal.TokenDiscoveryViewModel
 import com.flipcash.app.tokens.ui.CurrencyCreatorUpsellCard
 import com.flipcash.features.discovery.R
+import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.DiscoverCategory
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
+import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -61,7 +70,9 @@ internal fun TokenLeaderboard(
             start = CodeTheme.dimens.inset,
             end = CodeTheme.dimens.inset,
             top = CodeTheme.dimens.grid.x2 + padding.calculateTopPadding(),
-            bottom = (CodeTheme.dimens.grid.x2 + padding.calculateBottomPadding() - reduceBottomPadding).coerceAtLeast(0.dp)
+            bottom = (CodeTheme.dimens.grid.x2 + padding.calculateBottomPadding() - reduceBottomPadding).coerceAtLeast(
+                0.dp
+            )
         )
     ) {
         when (tokens) {
@@ -145,15 +156,31 @@ internal fun TokenLeaderboard(
                 } else {
                     // leaderboard header
                     item {
-                        Text(
+                        Row(
                             modifier = Modifier.padding(
                                 top = CodeTheme.dimens.inset,
                                 bottom = CodeTheme.dimens.grid.x1,
                             ),
-                            text = stringResource(R.string.title_leaderboard),
-                            style = CodeTheme.typography.textLarge,
-                            color = CodeTheme.colors.textMain,
-                        )
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.title_leaderboard),
+                                style = CodeTheme.typography.textLarge,
+                                color = CodeTheme.colors.textMain,
+                            )
+
+                            Icon(
+                                modifier = Modifier
+                                    .size(CodeTheme.dimens.staticGrid.x4)
+                                    .unboundedClickable {
+                                        dispatch(TokenDiscoveryViewModel.Event.LearnAboutLeaderboard)
+                                    },
+                                imageVector = Icons.Outlined.Info,
+                                tint = CodeTheme.colors.textSecondary,
+                                contentDescription = stringResource(R.string.content_description_leaderboard),
+                            )
+                        }
                     }
 
                     itemsIndexed(
