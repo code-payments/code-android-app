@@ -71,6 +71,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         val seed: String? = null,
         val fromDeeplink: Boolean = false,
         val resumeAt: ResumePoint = ResumePoint.Login,
+        val skipContacts: Boolean = false,
     ) : AppRoute, FlowRoute {
         enum class Phase { Account, Permissions }
         enum class ResumePoint { Login, AccessKey, AccessKeyThenPurchase, PostAccessKey }
