@@ -66,7 +66,11 @@ private fun verificationEntryProvider(
         PhoneVerificationContent(isInModal = !route.fullScreen)
     }
     annotatedEntry<VerificationStep.PhoneCode> {
-        PhoneCodeContent(includeEmail = route.includeEmail, isInModal = !route.fullScreen)
+        PhoneCodeContent(
+            includeEmail = route.includeEmail,
+            isInModal = !route.fullScreen,
+            linkForPayment = route.linkForPayment,
+        )
     }
     annotatedEntry<VerificationStep.PhoneCountryCode> {
         PhoneCountryCodeContent(isInModal = !route.fullScreen)

@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.onEach
 fun PhoneCodeContent(
     includeEmail: Boolean,
     isInModal: Boolean = true,
+    linkForPayment: Boolean = false,
 ) {
     val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
     val viewModel = flowSharedViewModel<PhoneVerificationViewModel>()
@@ -55,10 +56,13 @@ fun PhoneCodeContent(
             .launchIn(this)
     }
 
-    LaunchedEffect(viewModel, includeEmail) {
+    LaunchedEffect(viewModel, includeEmail, linkForPayment) {
         viewModel.eventFlow
             .filterIsInstance<PhoneVerificationViewModel.Event.OnCodeVerified>()
             .onEach {
+                if (linkForPayment) {
+                    viewModel.dispatchEvent(PhoneVerificationViewModel.Event.LinkForPayment)
+                }
                 if (includeEmail) {
                     flowNavigator.navigateTo(VerificationStep.EmailEntry)
                 } else {

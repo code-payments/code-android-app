@@ -33,6 +33,7 @@ import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.core.onboarding.OnboardingResult
 import com.flipcash.app.core.onboarding.OnboardingStep
 import com.flipcash.app.login.internal.LoginAccessKeyViewModel
+import com.flipcash.app.login.internal.OnboardingViewModel
 import com.flipcash.app.login.internal.screens.PhotoAccessKeyScreen
 import com.flipcash.app.login.internal.screens.AccessKeyScreen
 import com.flipcash.app.login.internal.screens.LoginRouterScreenContent
@@ -73,13 +74,13 @@ import kotlinx.coroutines.flow.onEach
  * ```
  * 1. New account (ResumePoint.Login → ProceedToVerification)
  *
- *    Start → Verification³ → AccessKey ──┬──→ Contacts¹ → Notifications → Scanner
+ *    Start → Verification² → AccessKey ──┬──────────────→ Contacts¹ → Notifications → Scanner
  *                                         └→ Purchase ─┘
  *
  * 2. Seed restore (ResumePoint.Login → LoggedIn via SeedInput)
  *
- *    Start → SeedInput ──┬──────────────────────→ Contacts¹ → Notifications → Scanner
- *                         └→ Purchase → Verification² ─┘
+ *    Start → SeedInput ──┬──────────────→ Contacts¹ → Notifications → Scanner
+ *                         └→ Purchase ─┘
  *
  * 3. App resume (ResumePoint.PostAccessKey)
  *
@@ -95,9 +96,9 @@ import kotlinx.coroutines.flow.onEach
  *   **and** [FeatureFlag.ContactPickerMode] is off. When ContactPickerMode is on,
  *   contacts are accessed via the system picker at call site (no READ_CONTACTS needed).
  *   Already-granted permissions are auto-skipped via [PermissionsPhaseFlowHost].
- * ² Verification is skipped if a phone number is already linked.
- * ³ Phone verification is shown only when [FeatureFlag.PhoneNumberSend] is enabled
- *   and no phone is linked. Uses `target` to replace nav stack with AccessKey on success.
+ * ² Phone verification is shown only when [FeatureFlag.PhoneNumberSend] is enabled
+ *   and no phone is linked. Skipped entirely when the flag is off.
+ *   Uses `target` to replace the nav stack with AccessKey on success.
  */
 @Composable
 fun OnboardingFlowScreen(
@@ -134,6 +135,7 @@ private fun PermissionsPhaseFlowHost(
     resultStateRegistry: NavResultStateRegistry,
 ) {
     val outerNavigator = LocalCodeNavigator.current
+    val onboardingViewModel = hiltViewModel<OnboardingViewModel>()
     val checker = LocalPermissionChecker.current
     val contactConfig = PermissionConfigs.contacts()
     val notificationConfig = PermissionConfigs.notifications()
@@ -178,6 +180,7 @@ private fun PermissionsPhaseFlowHost(
             when (reason) {
                 is FlowExitReason.Completed -> {
                     analytics.action(Action.CompletedOnboarding)
+                    onboardingViewModel.linkPhoneForPayment()
                     outerNavigator.navigate(
                         route = AppRoute.Main.Scanner,
                         options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll),
@@ -186,6 +189,7 @@ private fun PermissionsPhaseFlowHost(
 
                 FlowExitReason.BackedOutOfRoot -> {
                     // All permissions already granted
+                    onboardingViewModel.linkPhoneForPayment()
                     outerNavigator.navigate(
                         route = AppRoute.Main.Scanner,
                         options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll),
@@ -205,19 +209,16 @@ private fun AccountPhaseFlowHost(
     resultStateRegistry: NavResultStateRegistry,
 ) {
     val outerNavigator = LocalCodeNavigator.current
-    val userManager = LocalUserManager.current!!
-    val userState by userManager.state.collectAsStateWithLifecycle()
 
     val initialStack = route.rememberInitialStack<OnboardingStep>()
 
-    FlowHost<OnboardingStep, OnboardingResult>(
+    FlowHost(
         initialStack = initialStack,
         resultStateRegistry = resultStateRegistry,
         onExit = { reason, _ ->
             when (reason) {
                 is FlowExitReason.Completed -> {
-                    val hasLinkedPhone = userState.userProfile?.verifiedPhoneNumber != null
-                    val route = resolvePostAccountRoute(reason.result, hasLinkedPhone)
+                    val route = resolvePostAccountRoute(reason.result)
                     route?.let { outerNavigator.replace(it) }
                 }
 
@@ -231,7 +232,6 @@ private fun AccountPhaseFlowHost(
 
 internal fun resolvePostAccountRoute(
     result: OnboardingResult,
-    hasLinkedPhone: Boolean,
     skipContacts: Boolean = false,
 ): AppRoute? {
     val permissionsRoute = AppRoute.OnboardingFlow(
@@ -239,19 +239,7 @@ internal fun resolvePostAccountRoute(
         skipContacts = skipContacts,
     )
     return when (result) {
-        is OnboardingResult.ProceedToVerification -> {
-            if (hasLinkedPhone) {
-                permissionsRoute
-            } else {
-                AppRoute.Verification(
-                    origin = AppRoute.Onboarding.AccessKey,
-                    includePhone = true,
-                    includeEmail = false,
-                    target = permissionsRoute,
-                    fullScreen = true,
-                )
-            }
-        }
+        is OnboardingResult.ProceedToVerification -> permissionsRoute
         OnboardingResult.LoggedIn -> permissionsRoute
         OnboardingResult.Completed -> null
     }

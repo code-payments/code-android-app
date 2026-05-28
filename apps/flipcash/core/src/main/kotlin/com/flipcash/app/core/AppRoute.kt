@@ -119,6 +119,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         val emailVerificationCode: String? = null,
         val target: AppRoute? = null,
         val fullScreen: Boolean = false,
+        val linkForPayment: Boolean = false,
     ) : AppRoute, FlowRouteWithResult<VerificationResult> {
         override val initialStack: List<NavKey>
             get() = buildVerificationInitialStack(
