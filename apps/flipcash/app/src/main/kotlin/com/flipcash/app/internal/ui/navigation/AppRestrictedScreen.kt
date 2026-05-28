@@ -19,9 +19,7 @@ fun AppRestrictedScreen(restrictionType: RestrictionType) {
         coroutineScope.launch {
             homeViewModel.logout()
                 .onSuccess {
-                    navigator.replaceAll(
-                        AppRoute.Onboarding.Login()
-                    )
+                    navigator.replaceAll(AppRoute.OnboardingFlow())
                 }
         }
     }

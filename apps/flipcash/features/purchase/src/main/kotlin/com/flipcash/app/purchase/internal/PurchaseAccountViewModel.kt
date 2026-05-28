@@ -32,7 +32,7 @@ import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
-internal class PurchaseAccountViewModel @Inject constructor(
+class PurchaseAccountViewModel @Inject constructor(
     private val authManager: AuthManager,
     billingClient: BillingClient,
     resources: ResourceHelper,

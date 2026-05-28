@@ -1,7 +1,6 @@
-package com.flipcash.app.login.accesskey
+package com.flipcash.app.login.internal.screens
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -30,7 +29,7 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 
 @Composable
-fun PhotoAccessKeyScreen() {
+internal fun PhotoAccessKeyScreen() {
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
 

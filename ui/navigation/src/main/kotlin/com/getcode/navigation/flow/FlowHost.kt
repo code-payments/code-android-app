@@ -14,8 +14,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshots.Snapshot
@@ -78,43 +80,93 @@ private val DefaultFlowPopTransitionSpec:
 }
 
 /**
- * Hosts a multi-step flow inside its own private [NavBackStack]. Generalises the nested sub-
- * NavHost pattern used by `SheetContent` into a reusable primitive.
+ * Linear flow overload — for ordered flows with [FlowNavigator.proceed].
  *
- * Typical use — a flow screen wrapper that lives in the outer entry provider:
- * ```
- * @Composable
- * fun MyFlowScreen(route: AppRoute.MyFlow, resultStateRegistry: NavResultStateRegistry) {
- *     val outer = LocalCodeNavigator.current
- *     FlowHost<MyStep, MyResult>(
- *         initialStack = route.initialStack.filterIsInstance<MyStep>(),
- *         resultStateRegistry = resultStateRegistry,
- *         onExit = { reason, isSheetRoot ->
- *             val result = when (reason) {
- *                 is FlowExitReason.Completed -> reason.result
- *                 FlowExitReason.Canceled,
- *                 FlowExitReason.BackedOutOfRoot -> MyResult.Canceled
- *             }
- *             if (isSheetRoot) {
- *                 outer.pop()
- *             } else {
- *                 outer.deliverFlowResult(route, NavResultOrCanceled.ReturnValue(result))
- *                 outer.pop()
- *             }
- *         },
- *         entryProvider = myEntryProvider(route),
- *     )
- * }
- * ```
+ * The backstack is seeded with `steps[resumeAt]`. Calling [FlowNavigator.proceed] advances
+ * through the [steps] list in order, or exits with [completedResult] at the end.
  *
- * The host captures [LocalViewModelStoreOwner] at the call site (the outer flow entry's own
- * [androidx.lifecycle.ViewModelStoreOwner]) and exposes it as [LocalFlowViewModelStoreOwner] so
- * that [flowSharedViewModel] can resolve a single shared [androidx.lifecycle.ViewModel] across
- * all steps in the flow.
+ * @param steps        Ordered list of steps in the flow.
+ * @param resumeAt     Index in [steps] to start at. If `>= steps.size`, the flow exits
+ *                     immediately with [FlowExitReason.BackedOutOfRoot] (all steps done).
+ * @param completedResult Result delivered when the flow reaches the end of [steps].
+ * @param onProceed    Optional callback invoked by [FlowNavigator.proceed] before the default
+ *                     step-list behavior. Return `true` if handled, `false` to fall through.
+ *                     Receives [FlowNavigator] as `this` so it can call [FlowNavigator.navigateTo],
+ *                     [FlowNavigator.exitWithResult], etc.
+ */
+@Composable
+fun <S : FlowStep, R : Parcelable> FlowHost(
+    steps: List<S>,
+    resumeAt: Int = 0,
+    resultStateRegistry: NavResultStateRegistry,
+    onExit: (reason: FlowExitReason<R>, isSheetRoot: Boolean) -> Unit,
+    completedResult: R? = null,
+    onProceed: (FlowNavigator<S, R>.(currentStep: S) -> Boolean)? = null,
+    entryProvider: (NavKey) -> NavEntry<NavKey>,
+    decorators: List<NavEntryDecorator<NavKey>> = emptyList(),
+    sceneStrategies: List<SceneStrategy<NavKey>> = listOf(SinglePaneSceneStrategy()),
+    transitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform =
+        DefaultFlowTransitionSpec,
+    popTransitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform =
+        DefaultFlowPopTransitionSpec,
+) {
+    val clampedResumeAt = resumeAt.coerceIn(0, steps.size)
+    val initialStack = if (clampedResumeAt < steps.size) listOf(steps[clampedResumeAt]) else emptyList()
+    FlowHostImpl(
+        initialStack = initialStack,
+        steps = steps,
+        completedResult = completedResult,
+        onProceed = onProceed,
+        resultStateRegistry = resultStateRegistry,
+        onExit = onExit,
+        entryProvider = entryProvider,
+        decorators = decorators,
+        sceneStrategies = sceneStrategies,
+        transitionSpec = transitionSpec,
+        popTransitionSpec = popTransitionSpec,
+    )
+}
+
+/**
+ * Non-linear flow overload — for flows that manage their own navigation.
+ *
+ * The backstack is seeded with all items in [initialStack]. [FlowNavigator.proceed] is a no-op;
+ * steps use [FlowNavigator.navigateTo] / [FlowNavigator.exitWithResult] directly.
  */
 @Composable
 fun <S : FlowStep, R : Parcelable> FlowHost(
     initialStack: List<S>,
+    resultStateRegistry: NavResultStateRegistry,
+    onExit: (reason: FlowExitReason<R>, isSheetRoot: Boolean) -> Unit,
+    entryProvider: (NavKey) -> NavEntry<NavKey>,
+    decorators: List<NavEntryDecorator<NavKey>> = emptyList(),
+    sceneStrategies: List<SceneStrategy<NavKey>> = listOf(SinglePaneSceneStrategy()),
+    transitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform =
+        DefaultFlowTransitionSpec,
+    popTransitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform =
+        DefaultFlowPopTransitionSpec,
+) {
+    FlowHostImpl(
+        initialStack = initialStack,
+        steps = emptyList(),
+        completedResult = null,
+        onProceed = null,
+        resultStateRegistry = resultStateRegistry,
+        onExit = onExit,
+        entryProvider = entryProvider,
+        decorators = decorators,
+        sceneStrategies = sceneStrategies,
+        transitionSpec = transitionSpec,
+        popTransitionSpec = popTransitionSpec,
+    )
+}
+
+@Composable
+private fun <S : FlowStep, R : Parcelable> FlowHostImpl(
+    initialStack: List<S>,
+    steps: List<S>,
+    completedResult: R?,
+    onProceed: (FlowNavigator<S, R>.(currentStep: S) -> Boolean)?,
     resultStateRegistry: NavResultStateRegistry,
     onExit: (reason: FlowExitReason<R>, isSheetRoot: Boolean) -> Unit,
     entryProvider: (NavKey) -> NavEntry<NavKey>,
@@ -130,8 +182,11 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
         "FlowHost requires a LocalViewModelStoreOwner (the outer flow entry's owner)"
     }
 
-    // Exit path needs to be a stable reference to avoid re-creating the navigator.
+    // Stable references via rememberUpdatedState to avoid re-creating the navigator.
     val currentOnExit = rememberUpdatedState(onExit)
+    val currentOnProceed = rememberUpdatedState(onProceed)
+    val currentSteps = rememberUpdatedState(steps)
+    val currentCompletedResult = rememberUpdatedState(completedResult)
 
     if (initialStack.isEmpty()) {
         LaunchedEffect(Unit) { currentOnExit.value(FlowExitReason.BackedOutOfRoot, false) }
@@ -162,6 +217,32 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
         }
     }
 
+    // Re-seed if the caller's initialStack changed before the user has navigated.
+    // This handles the case where an async value (e.g. feature flag) settles after
+    // the first composition already seeded the backstack with a stale value.
+    // We track what was seeded and only re-seed if the backstack is still untouched.
+    // Animation is suppressed during re-seed so NavDisplay doesn't slide between
+    // the stale and corrected content.
+    val seededStack = remember { initialStack.map { it::class } }
+    val currentInitialClasses = initialStack.map { it::class }
+    val suppressTransition = remember { mutableStateOf(false) }
+    LaunchedEffect(currentInitialClasses) {
+        if (currentInitialClasses == seededStack) return@LaunchedEffect
+        val backstackClasses = innerBackStack.map { it::class }
+        if (backstackClasses != seededStack) return@LaunchedEffect
+        suppressTransition.value = true
+        Snapshot.withMutableSnapshot {
+            innerBackStack.clear()
+            @Suppress("UNCHECKED_CAST")
+            initialStack.forEach { innerBackStack.add(it as NavKey) }
+        }
+        // Wait two frames so NavDisplay processes the change under the suppressed
+        // spec before restoring normal transitions.
+        withFrameNanos {}
+        withFrameNanos {}
+        suppressTransition.value = false
+    }
+
     // Build the inner navigator + flow navigator once and keep them stable.
     // onRootReached and onExit read through rememberUpdatedState so the references
     // never change — preventing unnecessary recompositions of children that read
@@ -177,6 +258,9 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
             navigator = innerNavigator,
             outerNavigator = outerNavigator,
             onExit = { reason -> currentOnExit.value(reason, isSheetRoot) },
+            steps = { currentSteps.value },
+            completedResult = { currentCompletedResult.value },
+            onProceed = { step -> currentOnProceed.value?.invoke(this, step) ?: false },
         )
     }
 
@@ -213,12 +297,14 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
         LocalFlowViewModelStoreOwner provides flowOwner,
         LocalFlowDismissStyle provides dismissStyle,
     ) {
+        val noTransition: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform =
+            { EnterTransition.None togetherWith ExitTransition.None }
         AppNavHost(
             navigator = innerNavigator,
             resultStateRegistry = resultStateRegistry,
             sceneStrategies = sceneStrategies,
-            transitionSpec = transitionSpec,
-            popTransitionSpec = popTransitionSpec,
+            transitionSpec = if (suppressTransition.value) noTransition else transitionSpec,
+            popTransitionSpec = if (suppressTransition.value) noTransition else popTransitionSpec,
             onBack = { innerNavigator.navigateBack() },
             decorators = decorators,
             entryProvider = entryProvider,
@@ -230,6 +316,9 @@ private class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
     private val navigator: CodeNavigator,
     private val outerNavigator: CodeNavigator,
     private val onExit: (FlowExitReason<R>) -> Unit,
+    private val steps: () -> List<S>,
+    private val completedResult: () -> R?,
+    private val onProceed: (FlowNavigator<S, R>.(S) -> Boolean)?,
 ) : FlowNavigator<S, R> {
 
     @Suppress("UNCHECKED_CAST")
@@ -273,6 +362,32 @@ private class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
 
     override fun exitCanceled() {
         onExit(FlowExitReason.Canceled)
+    }
+
+    override fun proceed() {
+        val step = currentStep ?: return
+        val currentSteps = steps()
+        if (currentSteps.isEmpty()) return // non-linear flow, proceed is a no-op
+
+        // Let the callback handle it first
+        if (onProceed?.invoke(this, step) == true) return
+
+        // Default: advance through the steps list.
+        // If the current step isn't in the list (e.g. a rationale sub-step), scan the
+        // backstack for the most recent step that IS in the list and advance from there.
+        val anchorIndex = currentSteps.indexOfFirst { it::class == step::class }.let { idx ->
+            if (idx >= 0) return@let idx
+            navigator.backStack.asReversed().firstNotNullOfOrNull { entry ->
+                currentSteps.indexOfFirst { it::class == entry::class }.takeIf { it >= 0 }
+            } ?: -1
+        }
+        val nextIndex = anchorIndex + 1
+        if (anchorIndex >= 0 && nextIndex <= currentSteps.lastIndex) {
+            navigateTo(currentSteps[nextIndex])
+        } else {
+            val result = completedResult()
+            if (result != null) exitWithResult(result)
+        }
     }
 
     override fun navigate(route: NavKey) {

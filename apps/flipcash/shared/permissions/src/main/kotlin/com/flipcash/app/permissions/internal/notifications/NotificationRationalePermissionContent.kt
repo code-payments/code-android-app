@@ -20,24 +20,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.StubFlipcashAnalytics
 import com.flipcash.app.analytics.rememberAnalytics
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.permissions.internal.notifications.components.AnimatedSwitchPreview
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.shared.permissions.R
 import com.getcode.libs.analytics.LocalAnalytics
-import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.core.NavOptions
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 
 @Composable
-internal fun NotificationRationalePermissionContent(permanentlyDenied: Boolean = false) {
+fun NotificationRationalePermissionContent(
+    permanentlyDenied: Boolean = false,
+    onComplete: () -> Unit,
+) {
     val analytics = rememberAnalytics()
     val context = LocalContext.current
-    val navigator = LocalCodeNavigator.current
     CodeScaffold(
         bottomBar = {
             Column(
@@ -63,10 +62,7 @@ internal fun NotificationRationalePermissionContent(permanentlyDenied: Boolean =
                         .padding(horizontal = CodeTheme.dimens.inset),
                     onClick = {
                         analytics.action(Button.SkipPush)
-                        navigator.navigate(
-                            AppRoute.Main.Scanner,
-                            options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll)
-                        )
+                        onComplete()
                     },
                     text = if (permanentlyDenied) {
                         stringResource(R.string.action_notNow)
@@ -137,7 +133,7 @@ internal fun NotificationRationalePermissionContent(permanentlyDenied: Boolean =
 private fun PreviewNotificationRationalePermissionScreen() {
     FlipcashPreview(showBackground = true) {
         CompositionLocalProvider(LocalAnalytics provides StubFlipcashAnalytics()) {
-            NotificationRationalePermissionContent()
+            NotificationRationalePermissionContent(onComplete = {})
         }
     }
 }

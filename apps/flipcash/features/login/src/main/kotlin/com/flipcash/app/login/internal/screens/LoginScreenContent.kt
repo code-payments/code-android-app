@@ -1,4 +1,4 @@
-package com.flipcash.app.login.internal
+package com.flipcash.app.login.internal.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement

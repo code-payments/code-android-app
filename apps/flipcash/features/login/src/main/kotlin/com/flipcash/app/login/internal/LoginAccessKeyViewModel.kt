@@ -1,7 +1,6 @@
-package com.flipcash.app.login.accesskey
+package com.flipcash.app.login.internal
 
 import com.flipcash.app.accesskey.BaseAccessKeyViewModel
-import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
@@ -20,7 +19,7 @@ import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
 @HiltViewModel
-class LoginAccessKeyViewModel @Inject constructor(
+internal class LoginAccessKeyViewModel @Inject constructor(
     resources: ResourceHelper,
     mnemonicManager: MnemonicManager,
     qrCodeGenerator: QRCodeGenerator,
@@ -31,10 +30,6 @@ class LoginAccessKeyViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val analytics: FlipcashAnalyticsService,
 ): BaseAccessKeyViewModel(resources, mnemonicManager, mediaSaver, userManager, qrCodeGenerator) {
-
-    val isPhoneNumberSendEnabled: Boolean
-        get() = featureFlags.observe(FeatureFlag.PhoneNumberSend).value ||
-                userFlags.resolvedFlags.value.enablePhoneNumberSend.effectiveValue
 
     suspend fun onWroteDownInstead(): Result<Boolean> {
         trackButton(Button.WroteAccessKey)

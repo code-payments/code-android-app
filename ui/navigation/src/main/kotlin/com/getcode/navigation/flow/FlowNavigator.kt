@@ -42,6 +42,20 @@ interface FlowNavigator<S : FlowStep, R : Parcelable> {
     fun exitCanceled()
 
     /**
+     * Advance the flow from the current step.
+     *
+     * **Linear flows** (created with the `steps` + `resumeAt` overload of [FlowHost]):
+     * tries `onProceed` first — if it returns `true`, the callback handled navigation.
+     * Otherwise, advances to the next step in the `steps` list, or exits with `completedResult`
+     * when the end is reached. Steps not in the list (e.g. sub-steps like rationale screens)
+     * scan the backstack for the most recent parent that *is* in the list and advance from there.
+     *
+     * **Non-linear flows** (created with the `initialStack` overload): this is a no-op.
+     * Steps use [navigateTo] / [exitWithResult] directly.
+     */
+    fun proceed()
+
+    /**
      * Push [route] onto the *outer* (app-level) navigator.
      * Use this when a flow step needs to open a screen outside the flow
      * (e.g. region selection, token selection) without referencing the outer navigator directly.
@@ -74,6 +88,7 @@ class PreviewFlowNavigator<S : FlowStep, R : Parcelable> : FlowNavigator<S, R> {
     override fun back(): Boolean = false
     override fun exitWithResult(result: R) {}
     override fun exitCanceled() {}
+    override fun proceed() {}
     override fun navigate(route: NavKey) {}
 }
 

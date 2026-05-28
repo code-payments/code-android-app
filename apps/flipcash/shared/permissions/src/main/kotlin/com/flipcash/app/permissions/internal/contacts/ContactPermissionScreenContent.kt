@@ -26,7 +26,7 @@ import com.getcode.util.permissions.ProvideTestPermissions
 import com.getcode.util.permissions.rememberContactPermission
 
 @Composable
-internal fun ContactScreenContent(
+fun ContactScreenContent(
     permissionState: PermissionHandle,
     onSkip: () -> Unit,
 ) {
