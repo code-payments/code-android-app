@@ -7,6 +7,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.app.contacts.device.DeviceContact
+import com.flipcash.app.contacts.device.PickedContactData
 import com.flipcash.app.contacts.device.ScopeAwareContactReader
 import com.flipcash.app.contacts.sync.ContactChecksum
 import com.flipcash.app.persistence.FlipcashDatabase
@@ -79,7 +80,7 @@ class ContactCoordinator @Inject constructor(
         trace(tag = TAG, message = "User logged in, hydrating contacts", type = TraceType.User)
         this.cluster.value = cluster
         hydrateFromPersistence()
-        sync()
+        launchSync()
     }
 
     // endregion
@@ -95,7 +96,7 @@ class ContactCoordinator @Inject constructor(
             .filter { it.connected }
             .onEach {
                 trace(tag = TAG, message = "Network connected, triggering contact sync", type = TraceType.Process)
-                sync()
+                launchSync()
             }
             .launchIn(scope)
     }
@@ -103,7 +104,7 @@ class ContactCoordinator @Inject constructor(
     override fun onStart(owner: LifecycleOwner) {
         if (cluster.value != null) {
             trace(tag = TAG, message = "Lifecycle resumed, triggering contact sync", type = TraceType.Process)
-            sync()
+            launchSync()
         }
     }
 
@@ -115,14 +116,16 @@ class ContactCoordinator @Inject constructor(
 
     // region Public API
 
-    fun sync() {
+    suspend fun sync(): Result<Unit> = performSync()
+
+    private fun launchSync() {
         syncJob?.cancel()
         syncJob = scope.launch { performSync() }
     }
 
-    fun addPickedContacts(contactIds: List<Long>) {
-        contactReader.addSelectedContacts(contactIds)
-        sync()
+    suspend fun addPickedContacts(contacts: List<PickedContactData>): Result<Unit> {
+        contactReader.addSelectedContacts(contacts)
+        return performSync()
     }
 
     suspend fun resolve(e164: String): Result<PublicKey> {
@@ -165,8 +168,8 @@ class ContactCoordinator @Inject constructor(
         trace(tag = TAG, message = "Hydrated ${mappings.size} contacts from persistence", type = TraceType.Process)
     }
 
-    private suspend fun performSync() {
-        if (cluster.value == null) return
+    private suspend fun performSync(): Result<Unit> {
+        if (cluster.value == null) return Result.failure(IllegalStateException("No active session"))
 
         _state.update { it.copy(syncState = SyncState.Syncing) }
 
@@ -174,13 +177,13 @@ class ContactCoordinator @Inject constructor(
             // 1. Read device contacts
             val deviceContacts = contactReader.readAll().getOrElse { error ->
                 trace(tag = TAG, message = "Cannot read contacts: ${error.message}", type = TraceType.Log)
-                return
+                return Result.failure(error)
             }
 
             if (deviceContacts.isEmpty()) {
                 trace(tag = TAG, message = "No device contacts found", type = TraceType.Process)
                 _state.update { it.copy(syncState = SyncState.Synced) }
-                return
+                return Result.success(Unit)
             }
 
             // 2. Compute checksum
@@ -189,7 +192,7 @@ class ContactCoordinator @Inject constructor(
             // 3. Diff against persisted mappings
             val db = FlipcashDatabase.getInstance() ?: run {
                 _state.update { it.copy(syncState = SyncState.Error) }
-                return
+                return Result.failure(IllegalStateException("Database unavailable"))
             }
             val dao = db.contactDao()
             val existingMappings = dao.getAllMappings()
@@ -273,10 +276,12 @@ class ContactCoordinator @Inject constructor(
 
             _state.update { it.copy(syncState = SyncState.Synced) }
             trace(tag = TAG, message = "Contact sync complete", type = TraceType.Process)
+            return Result.success(Unit)
 
         } catch (e: Exception) {
             trace(tag = TAG, message = "Contact sync failed: ${e.message}", error = e, type = TraceType.Error)
             _state.update { it.copy(syncState = SyncState.Error) }
+            return Result.failure(e)
         }
     }
 

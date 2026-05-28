@@ -179,25 +179,13 @@ private fun buildNavGraphForLaunch(
 ): LaunchNavGraph? {
     return when (state) {
         is AuthState.Registered -> {
-            if (state.seenAccessKey) {
-                val routes = if (userFlags?.requiresIapForRegistration == true) {
-                    listOf(
-                        AppRoute.Onboarding.Login(),
-                        AppRoute.Onboarding.AccessKey,
-                        AppRoute.Onboarding.Purchase()
-                    )
-                } else {
-                    listOf(AppRoute.Main.Scanner)
-                }
-                LaunchNavGraph(routes)
-            } else {
-                LaunchNavGraph(
-                    listOf(
-                        AppRoute.Onboarding.Login(),
-                        AppRoute.Onboarding.AccessKey
-                    )
-                )
+            val resumePoint = when {
+                !state.seenAccessKey -> AppRoute.OnboardingFlow.ResumePoint.AccessKey
+                userFlags?.requiresIapForRegistration == true ->
+                    AppRoute.OnboardingFlow.ResumePoint.AccessKeyThenPurchase
+                else -> AppRoute.OnboardingFlow.ResumePoint.PostAccessKey
             }
+            LaunchNavGraph(listOf(AppRoute.OnboardingFlow(resumeAt = resumePoint)))
         }
 
         AuthState.LoggedInWithUser -> {
@@ -223,10 +211,10 @@ private fun buildNavGraphForLaunch(
             if (link != null) {
                 when (val action = router.dispatch(link)) {
                     is DeeplinkAction.Navigate -> LaunchNavGraph(action.routes)
-                    else -> LaunchNavGraph(listOf(AppRoute.Onboarding.Login()))
+                    else -> LaunchNavGraph(listOf(AppRoute.OnboardingFlow()))
                 }
             } else {
-                LaunchNavGraph(listOf(AppRoute.Onboarding.Login()))
+                LaunchNavGraph(listOf(AppRoute.OnboardingFlow()))
             }
         }
 

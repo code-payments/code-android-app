@@ -266,8 +266,8 @@ internal fun App(
                                             action.entropy,
                                             onSwitchAccount = {
                                                 codeNavigator.replaceAll(
-                                                    AppRoute.Onboarding.Login(
-                                                        action.entropy,
+                                                    AppRoute.OnboardingFlow(
+                                                        seed = action.entropy,
                                                         fromDeeplink = true
                                                     )
                                                 )
@@ -287,13 +287,13 @@ internal fun App(
                                 LaunchedEffect(userState.authState) {
                                     if (userState.authState == AuthState.LoggedOut) {
                                         val current = codeNavigator.currentRouteKey
-                                        if (current !is AppRoute.Loading && current !is AppRoute.Onboarding) {
+                                        if (current !is AppRoute.Loading && current !is AppRoute.OnboardingFlow) {
                                             codeNavigator.pendingSheetDismiss = null
                                             val switchEntropy =
                                                 viewModel.consumePendingSwitchEntropy()
                                             codeNavigator.replaceAll(
-                                                AppRoute.Onboarding.Login(
-                                                    switchEntropy
+                                                AppRoute.OnboardingFlow(
+                                                    seed = switchEntropy
                                                 )
                                             )
                                         }

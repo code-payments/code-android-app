@@ -10,6 +10,7 @@ import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.UserFlags
 import com.flipcash.services.user.AuthState
@@ -45,6 +46,7 @@ class AuthManagerTest {
     private val userManager: UserManager = mockk(relaxed = true)
     private val notificationManager: NotificationManagerCompat = mockk(relaxed = true)
     private val accountController: AccountController = mockk(relaxed = true)
+    private val profileController: ProfileController = mockk(relaxed = true)
     private val pushController: PushController = mockk(relaxed = true)
     private val pushTokenProvider: PushTokenProvider = mockk(relaxed = true)
     private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true)
@@ -66,12 +68,14 @@ class AuthManagerTest {
         coEvery { credentialManager.onAccountPurchased() } returns Result.success(mockk(relaxed = true))
         coEvery { pushController.addToken(any()) } returns Result.success(Unit)
         coEvery { pushController.deleteTokens() } returns Result.success(Unit)
+        coEvery { credentialManager.hasSeenAccessKey() } returns true
 
         authManager = AuthManager(
             credentialManager = credentialManager,
             userManager = userManager,
             notificationManager = notificationManager,
             accountController = accountController,
+            profileController = profileController,
             pushController = pushController,
             pushTokenProvider = pushTokenProvider,
             tokenCoordinator = tokenCoordinator,

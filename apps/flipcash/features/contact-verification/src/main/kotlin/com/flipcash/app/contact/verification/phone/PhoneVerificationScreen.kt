@@ -36,7 +36,7 @@ fun PhoneVerificationContent(isInModal: Boolean = true) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            title = stringResource(R.string.title_verifyPhoneNumber),
+            title = stringResource(R.string.title_connectPhoneNumber),
             isInModal = isInModal,
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,

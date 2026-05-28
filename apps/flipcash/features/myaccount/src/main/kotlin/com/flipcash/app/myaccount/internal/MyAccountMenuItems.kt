@@ -25,7 +25,7 @@ internal data object VerifyEmail : FullMenuItem<MyAccountScreenViewModel.Event>(
     override val icon: Painter
         @Composable get() = rememberVectorPainter(Icons.Default.Email)
     override val name: String
-        @Composable get() = stringResource(R.string.title_verifyEmailAddress)
+        @Composable get() = stringResource(R.string.title_connectEmailAddress)
     override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnVerifyEmailClicked
 }
 
@@ -33,7 +33,7 @@ internal data object VerifyPhone : FullMenuItem<MyAccountScreenViewModel.Event>(
     override val icon: Painter
         @Composable get() = rememberVectorPainter(Icons.Default.Phone)
     override val name: String
-        @Composable get() = stringResource(R.string.title_verifyPhoneNumber)
+        @Composable get() = stringResource(R.string.title_connectPhoneNumber)
     override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnVerifyPhoneClicked
 }
 

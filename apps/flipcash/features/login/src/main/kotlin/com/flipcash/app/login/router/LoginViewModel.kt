@@ -4,8 +4,11 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.features.login.R
 import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.encodeBase64
@@ -13,6 +16,7 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
@@ -29,6 +33,8 @@ class LoginViewModel @Inject constructor(
     private val accounts: AccountController,
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalyticsService,
+    userManager: UserManager,
+    featureFlags: FeatureFlagController,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<LoginViewModel.State, LoginViewModel.Event>(
     initialState = State(),
@@ -40,6 +46,7 @@ class LoginViewModel @Inject constructor(
         val loggingIn: LoadingSuccessState = LoadingSuccessState(),
         val logoTapCount: Int = 0,
         val betaOptionsVisible: Boolean = false,
+        val needsPhoneVerification: Boolean = false,
     )
 
     sealed interface Event {
@@ -53,9 +60,21 @@ class LoginViewModel @Inject constructor(
         data object LogInFailed : Event
         data object OnAccountCreated : Event
         data object CreateFailed : Event
+        data class PhoneVerificationUpdated(val needed: Boolean) : Event
     }
 
     init {
+        combine(
+            userManager.state,
+            featureFlags.observe(FeatureFlag.PhoneNumberSend),
+        ) { userState, phoneNumberSendFlag ->
+            val enabled = phoneNumberSendFlag || userState.flags?.enablePhoneNumberSend == true
+            val hasLinkedPhone = userState.userProfile?.verifiedPhoneNumber != null
+            enabled && !hasLinkedPhone
+        }.onEach { needed ->
+            dispatchEvent(Event.PhoneVerificationUpdated(needed))
+        }.launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.OnLogoTapped>()
             .map { stateFlow.value.logoTapCount }
@@ -187,6 +206,10 @@ class LoginViewModel @Inject constructor(
                             loading = false
                         )
                     )
+                }
+
+                is Event.PhoneVerificationUpdated -> { state ->
+                    state.copy(needsPhoneVerification = event.needed)
                 }
             }
         }

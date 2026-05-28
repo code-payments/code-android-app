@@ -59,7 +59,7 @@ fun ContactPermissionScreen(fromOnboarding: Boolean) {
 
     // Only reached when status is NotRequested
     ContactScreenContent(
-        permissionState = permissionState,
+        accessHandle = permissionState.asContactAccessHandle(),
         onSkip = {
             analytics.action(Button.SkipContacts)
             navigator.push(

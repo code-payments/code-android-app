@@ -42,7 +42,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun PurchaseAccountScreen(viewModel: PurchaseAccountViewModel) {
+fun PurchaseAccountScreen(viewModel: PurchaseAccountViewModel) {
     val navigator = LocalCodeNavigator.current
 
     val state by viewModel.stateFlow.collectAsState()
@@ -59,7 +59,7 @@ internal fun PurchaseAccountScreen(viewModel: PurchaseAccountViewModel) {
 }
 
 @Composable
-private fun PurchaseAccountScreenContent(
+fun PurchaseAccountScreenContent(
     state: PurchaseAccountViewModel.State,
     dispatchEvent: (PurchaseAccountViewModel.Event) -> Unit
 ) {

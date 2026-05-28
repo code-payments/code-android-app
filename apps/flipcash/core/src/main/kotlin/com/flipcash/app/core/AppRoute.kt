@@ -14,8 +14,10 @@ import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
+import com.flipcash.app.core.onboarding.OnboardingStep
 import com.getcode.navigation.NonDismissableRoute
 import com.getcode.navigation.NonDraggableRoute
+import com.getcode.navigation.flow.FlowRoute
 import com.getcode.navigation.flow.FlowRouteWithResult
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.internal.solana.model.SwapId
@@ -61,6 +63,31 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class CameraPermission(val postCreate: Boolean = false) : Onboarding
     }
 
+
+    @Serializable
+    @Parcelize
+    data class OnboardingFlow(
+        val phase: Phase = Phase.Account,
+        val seed: String? = null,
+        val fromDeeplink: Boolean = false,
+        val resumeAt: ResumePoint = ResumePoint.Login,
+        val skipContacts: Boolean = false,
+    ) : AppRoute, FlowRoute {
+        enum class Phase { Account, Permissions }
+        enum class ResumePoint { Login, AccessKey, AccessKeyThenPurchase, PostAccessKey }
+
+        override val initialStack: List<NavKey>
+            get() = when (phase) {
+                Phase.Account -> when (resumeAt) {
+                    ResumePoint.Login -> listOf(OnboardingStep.Start(seed, fromDeeplink))
+                    ResumePoint.AccessKey -> listOf(OnboardingStep.Start(), OnboardingStep.AccessKey)
+                    ResumePoint.AccessKeyThenPurchase ->
+                        listOf(OnboardingStep.Start(), OnboardingStep.AccessKey, OnboardingStep.Purchase)
+                    ResumePoint.PostAccessKey -> emptyList()
+                }
+                Phase.Permissions -> listOf(OnboardingStep.ContactPermission, OnboardingStep.NotificationPermission)
+            }
+    }
 
     @Serializable
     @Parcelize

@@ -3,10 +3,12 @@ package com.flipcash.app.login.router
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.features.login.R
 import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import io.mockk.every
@@ -41,6 +43,8 @@ class LoginViewModelErrorTest {
     // MockK for everything else
     private val resources: ResourceHelper = mockk(relaxed = true)
     private val analytics: FlipcashAnalyticsService = mockk(relaxed = true)
+    private val userManager: UserManager = mockk(relaxed = true)
+    private val featureFlags: FeatureFlagController = mockk(relaxed = true)
 
     private lateinit var dispatchers: TestDispatchers
 
@@ -68,6 +72,8 @@ class LoginViewModelErrorTest {
             accounts = accounts,
             resources = resources,
             analytics = analytics,
+            userManager = userManager,
+            featureFlags = featureFlags,
             dispatchers = dispatchers,
         )
     }

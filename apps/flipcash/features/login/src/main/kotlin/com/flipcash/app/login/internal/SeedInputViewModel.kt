@@ -1,21 +1,15 @@
-package com.flipcash.app.login.seed
+package com.flipcash.app.login.internal
 
-import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.auth.internal.credentials.SelectCredentialError
-import com.flipcash.app.core.AppRoute
-import com.flipcash.app.userflags.ResolvedFlag
 import com.flipcash.app.userflags.ResolvedUserFlags
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.login.R
 import com.flipcash.services.controllers.AccountController
-import com.flipcash.services.models.UserFlags
-import com.flipcash.services.user.UserManager
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.navigation.core.CodeNavigator
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
 import androidx.lifecycle.ViewModel
@@ -23,7 +17,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -40,16 +36,25 @@ data class SeedInputUiModel(
 )
 
 @HiltViewModel
-class SeedInputViewModel @Inject constructor(
+internal class SeedInputViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val accountController: AccountController,
-    private val userManager: UserManager,
     private val userFlags: UserFlagsCoordinator,
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
 ) : ViewModel() {
     val uiFlow = MutableStateFlow(SeedInputUiModel())
     private val mnemonicCode = mnemonicManager.mnemonicCode
+
+    sealed interface NavigationEvent {
+        data object LoggedIn : NavigationEvent
+        data object NeedsPurchase : NavigationEvent
+        data object ResetToLogin : NavigationEvent
+        data object TimelockUnlocked : NavigationEvent
+    }
+
+    private val _navigationEvents = MutableSharedFlow<NavigationEvent>(extraBufferCapacity = 1)
+    val navigationEvents: SharedFlow<NavigationEvent> = _navigationEvents
 
     fun onTextChange(wordsString: String) {
         val isLoading = uiFlow.value.isLoading
@@ -68,30 +73,27 @@ class SeedInputViewModel @Inject constructor(
         }
     }
 
-    fun onSubmit(navigator: CodeNavigator) {
+    fun onSubmit() {
         val userWordList =
             uiFlow.value.wordsString.trim().replace(Regex("(\\s)+"), " ").lowercase(Locale.getDefault()).split(" ")
         val mnemonic = MnemonicPhrase.newInstance(userWordList) ?: return
-
 
         CoroutineScope(Dispatchers.IO).launch {
             val entropyB64: String
             try {
                 entropyB64 = mnemonicManager.getEncodedBase64(mnemonic)
             } catch (e: Exception) {
-                showError(navigator)
+                showError()
                 return@launch
             }
 
-            performLogin(navigator, entropyB64)
+            performLogin(entropyB64)
         }
     }
 
-    @SuppressLint("CheckResult")
     fun performLogin(
-        navigator: CodeNavigator,
         entropyB64: String,
-        isRestore: Boolean = false
+        isRestore: Boolean = false,
     ) {
         viewModelScope.launch {
             setState(isLoading = true, isSuccess = false, isContinueEnabled = false)
@@ -102,9 +104,9 @@ class SeedInputViewModel @Inject constructor(
                             resources.getString(R.string.error_title_timelockUnlocked),
                             resources.getString(R.string.error_description_timelockUnlocked)
                         )
-                        navigator.popAll()
+                        _navigationEvents.tryEmit(NavigationEvent.TimelockUnlocked)
                     } else {
-                        showError(navigator)
+                        showError()
                     }
                     setState(isLoading = false, isSuccess = false, isContinueEnabled = true)
                 }
@@ -114,7 +116,7 @@ class SeedInputViewModel @Inject constructor(
                     if (resolvedFlags.minimumVersion.serverValue == null) {
                         accountController.getUserFlags()
                             .onSuccess {
-                                postLoginNavigation(navigator, userFlags.resolvedFlags.value)
+                                postLoginNavigation(userFlags.resolvedFlags.value)
                             }.onFailure {
                                 setState(isLoading = false, isSuccess = false, isContinueEnabled = false)
                                 BottomBarManager.showError(
@@ -123,34 +125,29 @@ class SeedInputViewModel @Inject constructor(
                                 )
                             }
                     } else {
-                        postLoginNavigation(navigator, resolvedFlags)
+                        postLoginNavigation(resolvedFlags)
                     }
                 }
         }
     }
 
-    private suspend fun postLoginNavigation(
-        navigator: CodeNavigator,
-        flags: ResolvedUserFlags?,
-    ) {
+    private suspend fun postLoginNavigation(flags: ResolvedUserFlags?) {
         setState(isLoading = false, isSuccess = true, isContinueEnabled = false)
         delay(1.seconds)
         when {
             flags?.isRegistered?.effectiveValue == true && flags.requiresIapForRegistration.effectiveValue -> {
-                navigator.push(AppRoute.Onboarding.Purchase(true))
+                _navigationEvents.emit(NavigationEvent.NeedsPurchase)
             }
-
-            else -> navigator.replaceAll(AppRoute.Main.Scanner)
+            else -> _navigationEvents.emit(NavigationEvent.LoggedIn)
         }
     }
 
-    suspend fun restoreAccount(navigator: CodeNavigator): Result<Unit> {
+    suspend fun restoreAccount(): Result<Unit> {
         return authManager.selectAccount()
             .onSuccess { mnemonic ->
                 performLogin(
-                    navigator = navigator,
                     entropyB64 = mnemonic.getBase64EncodedEntropy(),
-                    isRestore = true
+                    isRestore = true,
                 )
             }.onFailure { error ->
              when (error) {
@@ -179,7 +176,7 @@ class SeedInputViewModel @Inject constructor(
         return userWordList.filter { it in mnemonicWordList }.size
     }
 
-    private fun showError(navigator: CodeNavigator) {
+    private fun showError() {
         BottomBarManager.showAlert(
             title = resources.getString(R.string.prompt_title_notFlipcashAccount),
             message = resources.getString(R.string.prompt_description_notFlipcashAccount),
@@ -187,7 +184,7 @@ class SeedInputViewModel @Inject constructor(
                 BottomBarAction(
                     resources.getString(R.string.action_createNewFlipcashAccount)
                 ) {
-                    navigator.replaceAll(AppRoute.Onboarding.Login())
+                    _navigationEvents.tryEmit(NavigationEvent.ResetToLogin)
                 },
                 BottomBarAction(
                     resources.getString(R.string.action_tryDifferentFlipcashAccount),

@@ -1,4 +1,4 @@
-package com.flipcash.app.login.internal
+package com.flipcash.app.login.internal.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -41,14 +41,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
-import com.flipcash.app.login.seed.SeedInputUiModel
-import com.flipcash.app.login.seed.SeedInputViewModel
+import com.flipcash.app.login.internal.SeedInputUiModel
+import com.flipcash.app.login.internal.SeedInputViewModel
 import com.flipcash.features.login.R
-import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
 import com.getcode.ui.core.MaskWithSpacesTransformation
@@ -64,15 +61,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun SeedInputContent(viewModel: SeedInputViewModel) {
-    val navigator: CodeNavigator = LocalCodeNavigator.current
+internal fun SeedInputContent(
+    viewModel: SeedInputViewModel,
+    onCantFind: () -> Unit,
+) {
     val dataState by viewModel.uiFlow.collectAsState()
     SeedInputContent(
         state = dataState,
         onTextChange = { viewModel.onTextChange(it) },
-        onLogin = { viewModel.onSubmit(navigator) },
-        onRestore = { viewModel.restoreAccount(navigator) },
-        onCantFind = { navigator.push(AppRoute.Onboarding.AccessKeySavedLocation) }
+        onLogin = { viewModel.onSubmit() },
+        onRestore = { viewModel.restoreAccount() },
+        onCantFind = onCantFind,
     )
 }
 

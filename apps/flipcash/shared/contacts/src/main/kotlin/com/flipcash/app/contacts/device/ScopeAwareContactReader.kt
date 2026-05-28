@@ -16,8 +16,8 @@ class ScopeAwareContactReader @Inject constructor(
 
     override suspend fun readAll(): Result<Map<String, DeviceContact>> = activeReader().readAll()
 
-    fun addSelectedContacts(contactIds: List<Long>) {
-        picker.addPickedContacts(contactIds)
+    fun addSelectedContacts(contacts: List<PickedContactData>) {
+        picker.addPickedContacts(contacts)
     }
 
     fun reset() {

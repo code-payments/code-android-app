@@ -141,33 +141,33 @@ class AppRouterTest {
     // region dispatch — Not logged in
 
     @Test
-    fun `dispatch redirects login deeplink to onboarding with entropy when logged out`() {
+    fun `dispatch redirects login deeplink to onboarding flow with seed when logged out`() {
         loggedOut()
         val action = router.dispatch(DeepLink("https://app.flipcash.com/login/e=seed123"))
         assertIs<DeeplinkAction.Navigate>(action)
         val route = action.routes.single()
-        assertIs<AppRoute.Onboarding.Login>(route)
+        assertIs<AppRoute.OnboardingFlow>(route)
         assertEquals("seed123", route.seed)
         assertTrue(route.fromDeeplink)
     }
 
     @Test
-    fun `dispatch redirects non-login deeplink to plain login when logged out`() {
+    fun `dispatch redirects non-login deeplink to plain onboarding flow when logged out`() {
         loggedOut()
         val mintAddress = "So11111111111111111111111111111111111111112"
         val action = router.dispatch(DeepLink("https://app.flipcash.com/token/$mintAddress"))
         assertIs<DeeplinkAction.Navigate>(action)
         val route = action.routes.single()
-        assertIs<AppRoute.Onboarding.Login>(route)
+        assertIs<AppRoute.OnboardingFlow>(route)
         assertNull(route.seed)
     }
 
     @Test
-    fun `dispatch redirects cash link to login when auth state is unknown`() {
+    fun `dispatch redirects cash link to onboarding flow when auth state is unknown`() {
         authState = AuthState.Unknown
         val action = router.dispatch(DeepLink("https://app.flipcash.com/c/e=entropy"))
         assertIs<DeeplinkAction.Navigate>(action)
-        assertIs<AppRoute.Onboarding.Login>(action.routes.single())
+        assertIs<AppRoute.OnboardingFlow>(action.routes.single())
     }
 
     // endregion
@@ -303,10 +303,10 @@ class AppRouterTest {
         loggedOut()
         val loginUrl = "https://app.flipcash.com/login/e=seed"
 
-        // Logged out: should redirect to onboarding
+        // Logged out: should redirect to onboarding flow
         val action1 = router.dispatch(DeepLink(loginUrl))
         assertIs<DeeplinkAction.Navigate>(action1)
-        assertIs<AppRoute.Onboarding.Login>(action1.routes.single())
+        assertIs<AppRoute.OnboardingFlow>(action1.routes.single())
 
         // Log in
         loggedIn()

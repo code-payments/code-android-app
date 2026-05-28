@@ -54,7 +54,7 @@ fun MyAccountScreen() {
             .filterIsInstance<MyAccountScreenViewModel.Event.OnLoggedOutCompletely>()
             .onEach {
                 navigator.hide()
-                navigator.replaceAll(AppRoute.Onboarding.Login()) }
+                navigator.replaceAll(AppRoute.OnboardingFlow()) }
             .launchIn(this)
     }
 
@@ -63,7 +63,7 @@ fun MyAccountScreen() {
             .filterIsInstance<MyAccountScreenViewModel.Event.OnAccountDeleted>()
             .onEach {
                 navigator.hide()
-                navigator.replaceAll(AppRoute.Onboarding.Login()) }
+                navigator.replaceAll(AppRoute.OnboardingFlow()) }
             .launchIn(this)
     }
 

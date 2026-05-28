@@ -48,11 +48,13 @@ private class FakePermissionChecker(
 /**
  * [androidx.compose.runtime.CompositionLocal] providing the active [PermissionChecker].
  *
- * Internal — replaced in tests via [ProvideTestPermissions].
- * In production, provide [AndroidPermissionChecker] via your DI-aware
- * composition root.
+ * In production, provide [AndroidPermissionChecker] via [ProvidePermissionChecker]
+ * in your composition root. Replaced in tests via [ProvideTestPermissions].
+ *
+ * Use this for lightweight, side-effect-free permission checks (no launcher registration).
+ * For permission requests with result callbacks, use [rememberPermission] instead.
  */
-internal val LocalPermissionChecker: ProvidableCompositionLocal<PermissionChecker> =
+val LocalPermissionChecker: ProvidableCompositionLocal<PermissionChecker> =
     staticCompositionLocalOf { DefaultPermissionChecker }
 
 /**

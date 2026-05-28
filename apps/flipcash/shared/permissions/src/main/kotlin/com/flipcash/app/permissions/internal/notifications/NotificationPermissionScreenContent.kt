@@ -27,7 +27,7 @@ import com.getcode.util.permissions.rememberNotificationPermission
 
 
 @Composable
-internal fun NotificationScreenContent(
+fun NotificationScreenContent(
     permissionState: PermissionHandle,
     onSkip: () -> Unit,
 ) {

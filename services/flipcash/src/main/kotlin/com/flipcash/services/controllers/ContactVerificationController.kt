@@ -27,6 +27,13 @@ class ContactVerificationController @Inject constructor(
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
-        return repository.unlink(method, owner)
+        return repository.unlink(method, owner).onSuccess {
+            val profile = userManager.profile ?: return@onSuccess
+            val updated = when (method) {
+                is ContactMethod.Phone -> profile.copy(verifiedPhoneNumber = null)
+                is ContactMethod.Email -> profile.copy(verifiedEmailAddress = null)
+            }
+            userManager.set(updated)
+        }
     }
 }

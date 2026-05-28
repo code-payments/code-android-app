@@ -37,9 +37,9 @@ internal class AppRouter(
         if (authStateProvider() !is AuthState.LoggedInWithUser) {
             return when (type) {
                 is DeeplinkType.Login -> DeeplinkAction.Navigate(
-                    listOf(AppRoute.Onboarding.Login(type.entropy, fromDeeplink = true))
+                    listOf(AppRoute.OnboardingFlow(seed = type.entropy, fromDeeplink = true))
                 )
-                else -> DeeplinkAction.Navigate(listOf(AppRoute.Onboarding.Login()))
+                else -> DeeplinkAction.Navigate(listOf(AppRoute.OnboardingFlow()))
             }
         }
 

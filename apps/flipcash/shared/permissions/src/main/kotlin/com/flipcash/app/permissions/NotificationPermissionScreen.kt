@@ -72,5 +72,14 @@ fun NotificationPermissionScreen(fromOnboarding: Boolean = false) {
 
 @Composable
 fun NotificationPermissionRationaleScreen(permanentlyDenied: Boolean = false) {
-    NotificationRationalePermissionContent(permanentlyDenied)
+    val navigator = LocalCodeNavigator.current
+    NotificationRationalePermissionContent(
+        permanentlyDenied = permanentlyDenied,
+        onComplete = {
+            navigator.navigate(
+                route = AppRoute.Main.Scanner,
+                options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll)
+            )
+        },
+    )
 }

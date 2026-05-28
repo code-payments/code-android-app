@@ -1,6 +1,5 @@
-package com.flipcash.app.login.internal
+package com.flipcash.app.login.internal.screens
 
-import android.Manifest
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -46,7 +45,7 @@ import androidx.compose.ui.unit.isSpecified
 import com.flipcash.app.accesskey.AccessKeyUiModel
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.extensions.launchAppSettings
-import com.flipcash.app.login.accesskey.LoginAccessKeyViewModel
+import com.flipcash.app.login.internal.LoginAccessKeyViewModel
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.login.R
 import com.getcode.manager.BottomBarAction
@@ -67,7 +66,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: (requiresIap: Boolean) -> Unit) {
+internal fun AccessKeyScreen(
+    viewModel: LoginAccessKeyViewModel,
+    onExit: (() -> Unit)? = null,
+    onCompleted: (requiresIap: Boolean) -> Unit,
+) {
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -137,7 +140,7 @@ internal fun AccessKeyScreen(viewModel: LoginAccessKeyViewModel, onCompleted: (r
         dataState = dataState,
         onExport = onExportClick,
         onSkip = onSkipClick,
-        onExit = {
+        onExit = onExit ?: {
             navigator.replaceAll(AppRoute.Onboarding.Login())
         }
     )

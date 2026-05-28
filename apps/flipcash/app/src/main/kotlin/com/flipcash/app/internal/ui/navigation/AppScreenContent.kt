@@ -34,16 +34,9 @@ import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEn
 import com.flipcash.app.lab.LabsScreen
 import com.flipcash.app.lab.NavBarSettingsScreen
 import com.flipcash.app.lab.StandaloneLabsScreen
-import com.flipcash.app.login.accesskey.AccessKeyScreen
-import com.flipcash.app.login.accesskey.PhotoAccessKeyScreen
-import com.flipcash.app.login.router.LoginRouter
-import com.flipcash.app.login.seed.SeedInputScreen
+import com.flipcash.app.login.OnboardingFlowScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.MyAccountScreen
-import com.flipcash.app.permissions.ContactPermissionScreen
-import com.flipcash.app.permissions.NotificationPermissionRationaleScreen
-import com.flipcash.app.permissions.NotificationPermissionScreen
-import com.flipcash.app.purchase.PurchaseAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
 import com.flipcash.app.shareapp.ShareAppScreen
 import com.flipcash.app.tokens.SwapFlowScreen
@@ -75,16 +68,10 @@ fun appEntryProvider(
     // Loading / splash
     annotatedEntry<AppRoute.Loading> { MainRoot(deepLink) }
 
-    // Onboarding
-    annotatedEntry<AppRoute.Onboarding.Login> { key -> LoginRouter(key.seed, key.fromDeeplink) }
-    annotatedEntry<AppRoute.Onboarding.SeedInput> { SeedInputScreen() }
-    annotatedEntry<AppRoute.Onboarding.AccessKey> { AccessKeyScreen() }
-    annotatedEntry<AppRoute.Onboarding.AccessKeySavedLocation> { PhotoAccessKeyScreen() }
-    annotatedEntry<AppRoute.Onboarding.Purchase> { key -> PurchaseAccountScreen(key.fromLogin) }
-    annotatedEntry<AppRoute.Onboarding.ContactPermission> { key -> ContactPermissionScreen(key.postCreate) }
-    annotatedEntry<AppRoute.Onboarding.NotificationPermission> { key -> NotificationPermissionScreen(key.postCreate) }
-    annotatedEntry<AppRoute.Onboarding.NotificationPermissionRationale> { key -> NotificationPermissionRationaleScreen(key.permanentlyDenied) }
-    annotatedEntry<AppRoute.Onboarding.CameraPermission> { }
+    // Onboarding flow
+    annotatedEntry<AppRoute.OnboardingFlow> { key ->
+        OnboardingFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
+    }
 
     // Main
     annotatedEntry<AppRoute.Main.Sheet> { key ->

@@ -43,7 +43,7 @@ fun EmailVerificationContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            title = stringResource(R.string.title_verifyEmailAddress),
+            title = stringResource(R.string.title_connectEmailAddress),
             isInModal = true,
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,
