@@ -32,6 +32,7 @@ data class ResolvedUserFlags(
     val withdrawalFeeAmount: ResolvedFlag<Fiat>,
     val usdcOnRampLiquidityPool: ResolvedFlag<UsdcLiquidtyPool>,
     val enablePhoneNumberSend: ResolvedFlag<Boolean>,
+    val minimumHolderAmountForLeaderboard: ResolvedFlag<Fiat>,
 )
 
 internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = ResolvedUserFlags(
@@ -47,4 +48,5 @@ internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = Resolv
     withdrawalFeeAmount = ResolvedFlag(withdrawalFeeAmount, overrides.withdrawalFeeAmount),
     usdcOnRampLiquidityPool = ResolvedFlag(preferredUsdcOnRampLiquidityPool, overrides.preferredUsdcOnRampLiquidityPool),
     enablePhoneNumberSend = ResolvedFlag(enablePhoneNumberSend, FieldOverride.None),
+    minimumHolderAmountForLeaderboard = ResolvedFlag(minimumHolderValue, overrides.minimumHolderAmountForLeaderboard),
 )

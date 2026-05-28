@@ -29,7 +29,7 @@ import kotlin.time.Duration
 
 @Singleton
 class UserFlagsCoordinator @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     userManager: UserManager,
     dispatchers: DispatcherProvider,
 ) {
@@ -42,6 +42,7 @@ class UserFlagsCoordinator @Inject constructor(
         val newCurrencyFeeAmount: FieldOverride<Fiat>,
         val withdrawalFeeAmount: FieldOverride<Fiat>,
         val preferredUsdcOnRampLiquidityPool: FieldOverride<UsdcLiquidtyPool>,
+        val minimumHolderAmountForLeaderboard: FieldOverride<Fiat>,
     ) {
         companion object {
             val None = Overrides(
@@ -53,6 +54,7 @@ class UserFlagsCoordinator @Inject constructor(
                 newCurrencyFeeAmount = FieldOverride.None,
                 withdrawalFeeAmount = FieldOverride.None,
                 preferredUsdcOnRampLiquidityPool = FieldOverride.None,
+                minimumHolderAmountForLeaderboard = FieldOverride.None,
             )
         }
     }
@@ -86,6 +88,7 @@ class UserFlagsCoordinator @Inject constructor(
             newCurrencyFeeAmount = prefs.readOverride(Field.NewCurrencyFeeAmount),
             withdrawalFeeAmount = prefs.readOverride(Field.WithdrawalFeeAmount),
             preferredUsdcOnRampLiquidityPool = prefs.readOverride(Field.PreferredUsdcOnRampLiquidityPool),
+            minimumHolderAmountForLeaderboard = prefs.readOverride(Field.MinimumHolderAmountForLeaderboard),
         )
     }.stateIn(scope, SharingStarted.Eagerly, Overrides.None)
 

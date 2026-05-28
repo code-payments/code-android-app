@@ -18,6 +18,7 @@ data class UserFlags(
     val withdrawalFeeAmount: Fiat,
     val preferredUsdcOnRampLiquidityPool: UsdcLiquidtyPool,
     val enablePhoneNumberSend: Boolean,
+    val minimumHolderValue: Fiat,
 ) {
     companion object {
         val Default = UserFlags(
@@ -33,6 +34,7 @@ data class UserFlags(
             withdrawalFeeAmount = Fiat.Zero,
             preferredUsdcOnRampLiquidityPool = UsdcLiquidtyPool.Unknown,
             enablePhoneNumberSend = false,
+            minimumHolderValue = Fiat.Zero,
         )
     }
 }

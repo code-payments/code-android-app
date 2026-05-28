@@ -87,6 +87,8 @@ Only build the targets that were fetched. If the build fails, show errors and st
 
 ### Step 4 — Detect service layer impact
 
+#### 4a — RPC changes
+
 For each new or modified RPC found in Step 2:
 
 1. Identify which service proto file it belongs to (e.g., `account/v1/flipcash_account_service.proto`)
@@ -100,6 +102,59 @@ Present a report:
 |-----|-----|---------|------------|------------|--------|
 | `NewRpc` | missing | missing | missing | missing | **New — needs scaffolding** |
 | `ModifiedRpc` | exists | exists | exists | exists | **Signature may need update** |
+
+#### 4b — Message field changes (domain models)
+
+For each message with added or removed fields (e.g., `UserFlags`, `UserProfile`):
+
+1. Search for the corresponding domain model in `services/<target>/src/**/models/`
+2. Search for the corresponding mapper in `services/<target>/src/**/internal/domain/`
+3. For **added fields**: add the property to the domain data class, set a sensible
+   default in the `Default` companion, and map it in the mapper
+4. For **removed fields**: remove the property from the domain data class, its
+   default, and the mapper line
+
+**Common type mappings** (match existing fields on the same model):
+
+| Proto type | Domain type | Mapping |
+|------------|-------------|---------|
+| `uint64` amount/quarks fields | `Fiat` | `Fiat(quarks = from.fieldName)` |
+| `bool` | `Boolean` | `from.fieldName` |
+| `string` | `String` | `from.fieldName` |
+| `int32`/`uint32` | `Int` | `from.fieldName` |
+| `Duration` | `kotlin.time.Duration` | `from.fieldName.seconds.toDuration(DurationUnit.SECONDS)` |
+| `enum` | sealed/enum domain type | `from.fieldName.toDomain()` (add private extension) |
+
+When in doubt, look at how neighboring fields on the same message are typed and
+mapped — follow the same pattern.
+
+##### UserFlags-specific chain
+
+When `UserFlags` fields change, the following files form a chain that must all be
+updated together. Ask the user whether the new field should be **read-only** (display
+only) or **editable** (overridable via the debug editor).
+
+| # | File | What to update |
+|---|------|----------------|
+| 1 | `services/flipcash/src/**/models/UserFlags.kt` | Add/remove property + `Default` companion value |
+| 2 | `services/flipcash/src/**/internal/domain/UserFlagsMapper.kt` | Add/remove mapping line in `map()` |
+| 3 | `apps/flipcash/shared/userflags/src/**/ResolvedUserFlags.kt` | Add/remove `ResolvedFlag<T>` property + line in `resolve()` extension |
+| 4 | `apps/flipcash/features/userflags/src/**/internal/UserFlagsViewModel.kt` | Add to `readOnlyEntries` (bool) or `editableEntries()` list |
+
+If the field is **editable** (overridable), also update:
+
+| # | File | What to update |
+|---|------|----------------|
+| 5 | `apps/flipcash/shared/userflags/src/**/UserFlagsCoordinator.kt` | Add `FieldOverride<T>` to `Overrides` data class + `Overrides.None` + `overrides` flow mapping |
+| 6 | `apps/flipcash/shared/userflags/src/**/Field.kt` | Add `data object` subclass with preference key, encode/decode, label, editor |
+| 7 | `apps/flipcash/shared/userflags/src/main/res/values/strings.xml` | Add `label_flag_*` (and `hint_flag_*` if needed) string resources |
+
+For **read-only** fields (e.g., booleans like `enablePhoneNumberSend`):
+- In `ResolvedUserFlags.resolve()`, use `FieldOverride.None` (no override support)
+- In `UserFlagsViewModel`, add to `readOnlyEntries` with a string resource label
+- No changes needed in `Overrides`, `Field.kt`, or `UserFlagsCoordinator`
+
+Present a report of domain model updates needed and apply them after user confirmation.
 
 ### Step 5 — Scaffold new service stubs
 
