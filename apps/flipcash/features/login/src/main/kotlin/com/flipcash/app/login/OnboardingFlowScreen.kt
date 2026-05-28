@@ -39,6 +39,7 @@ import com.flipcash.app.login.internal.screens.LoginRouterScreenContent
 import com.flipcash.app.login.internal.screens.SeedInputContent
 import com.flipcash.app.login.router.LoginViewModel
 import com.flipcash.app.login.internal.SeedInputViewModel
+import com.flipcash.app.permissions.asContactAccessHandle
 import com.flipcash.app.permissions.internal.contacts.ContactScreenContent
 import com.flipcash.app.permissions.internal.notifications.NotificationRationalePermissionContent
 import com.flipcash.app.permissions.internal.notifications.NotificationScreenContent
@@ -72,8 +73,8 @@ import kotlinx.coroutines.flow.onEach
  * ```
  * 1. New account (ResumePoint.Login → ProceedToVerification)
  *
- *    Start → AccessKey ──┬────────────→ Verification² → Contacts¹ → Notifications → Scanner
- *                         └→ Purchase ─┘
+ *    Start → Verification³ → AccessKey ──┬──→ Contacts¹ → Notifications → Scanner
+ *                                         └→ Purchase ─┘
  *
  * 2. Seed restore (ResumePoint.Login → LoggedIn via SeedInput)
  *
@@ -82,9 +83,8 @@ import kotlinx.coroutines.flow.onEach
  *
  * 3. App resume (ResumePoint.PostAccessKey)
  *
- *    ┬─ phone linked ──→ Notifications → Scanner
- *    └─ not linked ────→ Verification → Notifications → Scanner
- *    (contacts always skipped — existing users encounter contacts in-app)
+ *    → Notifications → Scanner
+ *    (contacts and verification skipped — existing users encounter these in-app)
  *
  * 4. Mid-flow resume (ResumePoint.AccessKey / AccessKeyThenPurchase)
  *
@@ -96,6 +96,8 @@ import kotlinx.coroutines.flow.onEach
  *   contacts are accessed via the system picker at call site (no READ_CONTACTS needed).
  *   Already-granted permissions are auto-skipped via [PermissionsPhaseFlowHost].
  * ² Verification is skipped if a phone number is already linked.
+ * ³ Phone verification is shown only when [FeatureFlag.PhoneNumberSend] is enabled
+ *   and no phone is linked. Uses `target` to replace nav stack with AccessKey on success.
  */
 @Composable
 fun OnboardingFlowScreen(
@@ -115,17 +117,14 @@ fun OnboardingFlowScreen(
 @Composable
 private fun CompleteExistingUserOnboarding() {
     val navigator = LocalCodeNavigator.current
-    val userManager = LocalUserManager.current!!
-    val userState by userManager.state.collectAsStateWithLifecycle()
-    val hasLinkedPhone = userState.userProfile?.verifiedPhoneNumber != null
 
     LaunchedEffect(Unit) {
-        val route = resolvePostAccountRoute(
-            result = OnboardingResult.ProceedToVerification,
-            hasLinkedPhone = hasLinkedPhone,
-            skipContacts = true,
+        navigator.replace(
+            AppRoute.OnboardingFlow(
+                phase = AppRoute.OnboardingFlow.Phase.Permissions,
+                skipContacts = true,
+            )
         )
-        route?.let { navigator.replace(it) }
     }
 }
 
@@ -306,7 +305,23 @@ private fun LoginStepContent(seed: String?) {
     LaunchedEffect(vm) {
         vm.eventFlow
             .filterIsInstance<LoginViewModel.Event.OnAccountCreated>()
-            .onEach { flowNavigator.navigateTo(OnboardingStep.AccessKey) }
+            .onEach {
+                if (state.needsPhoneVerification) {
+                    flowNavigator.navigate(
+                        AppRoute.Verification(
+                            origin = AppRoute.OnboardingFlow(),
+                            includePhone = true,
+                            includeEmail = false,
+                            target = AppRoute.OnboardingFlow(
+                                resumeAt = AppRoute.OnboardingFlow.ResumePoint.AccessKey,
+                            ),
+                            fullScreen = true,
+                        )
+                    )
+                } else {
+                    flowNavigator.navigateTo(OnboardingStep.AccessKey)
+                }
+            }
             .launchIn(this)
     }
 
@@ -402,8 +417,6 @@ private fun AccessKeyStepContent() {
         AppBarWithTitle(
             title = stringResource(R.string.title_accessKey),
             titleAlignment = Alignment.CenterHorizontally,
-            backButton = true,
-            onBackIconClicked = { flowNavigator.back() },
         )
         AccessKeyScreen(
             viewModel = viewModel,
@@ -415,6 +428,8 @@ private fun AccessKeyStepContent() {
                 flowNavigator.exitWithResult(OnboardingResult.ProceedToVerification)
             }
         }
+
+        BackHandler { /* swallow back during onboarding permissions */ }
     }
 }
 
@@ -432,12 +447,12 @@ private fun PurchaseStepContent() {
     }
 
     Column {
-        AppBarWithTitle(
-            backButton = true,
-            onBackIconClicked = { flowNavigator.back() },
-        )
+        AppBarWithTitle()
         PurchaseAccountScreenContent(state, viewModel::dispatchEvent)
     }
+
+
+    BackHandler { /* swallow back during onboarding permissions */ }
 }
 
 @Composable
@@ -458,7 +473,7 @@ private fun ContactPermissionStepContent() {
     }
 
     ContactScreenContent(
-        permissionState = permissionState,
+        accessHandle = permissionState.asContactAccessHandle(),
         onSkip = {
             analytics.action(Button.SkipContacts)
             flowNavigator.proceed()

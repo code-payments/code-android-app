@@ -47,7 +47,7 @@ fun VerificationFlowScreen(
                 value = NavResultOrCanceled.ReturnValue(result),
             )
             if (route.target != null && result is VerificationResult.Success) {
-                outerNavigator.replace(route.target!!)
+                outerNavigator.replaceAll(route.target!!)
             } else {
                 outerNavigator.pop()
             }
