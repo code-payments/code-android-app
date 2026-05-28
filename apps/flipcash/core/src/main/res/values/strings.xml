@@ -275,12 +275,16 @@
     <string name="error_description_deeplinkOnRampInsufficientUsdc">Your %1$s wallet doesn\'t have enough USDC for this purchase. Please add more USDC and try again.</string>
     <string name="error_description_deeplinkOnRampUnknown">Please try again</string>
 
-    <string name="title_verifyPhoneNumber">Verify Phone Number</string>
+    <string name="title_connectPhoneNumber">Connect Phone Number</string>
     <string name="subtitle_enterPhoneNumberToContinue">Please enter your phone number to continue</string>
     <string name="subtitle_enterPhoneVerificationCode">An SMS message was sent to your phone number with a verification code.\nPlease enter the verification code above</string>
     <string name="subtitle_enterEmailToContinue">Please enter your email to continue</string>
 
-    <string name="title_verifyEmailAddress">Verify Your Email</string>
+    <string name="title_connectPhoneToSend">Connect Phone To Send</string>
+    <string name="subtitle_connectPhoneToSend">Connect your phone number to send cash.</string>
+    <string name="action_connectPhoneNumber">Connect Your Phone Number</string>
+
+    <string name="title_connectEmailAddress">Connect Your Email</string>
     <string name="subtitle_resend">Resend</string>
 
     <string name="title_enterTheCode">Enter The Code</string>

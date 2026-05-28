@@ -10,3 +10,9 @@ data class DeviceContact(
     val displayName: String,
     val photoUri: String?,
 )
+
+data class PickedContactData(
+    val phoneNumber: String,
+    val displayName: String,
+    val photoUri: String? = null,
+)

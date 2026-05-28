@@ -1,5 +1,6 @@
 package com.flipcash.app.featureflags
 
+import android.os.Build
 import com.flipcash.app.featureflags.model.BackgroundResetTimeout
 import com.flipcash.app.core.navigation.NavBarConfig
 import com.flipcash.app.ksp.annotations.FeatureFlagMarker
@@ -175,7 +176,7 @@ sealed interface FeatureFlag<T: Any> {
         override val key: String = "contact_picker_mode"
         override val default: Boolean = false
         override val launched: Boolean = false
-        override val visible: Boolean = true
+        override val visible: Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN
         override val persistLogOut: Boolean = true
     }
 
