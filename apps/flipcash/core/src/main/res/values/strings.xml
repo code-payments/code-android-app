@@ -689,4 +689,8 @@
 
     <string name="action_depositOtherCurrencies">Deposit Other Flipcash Currencies</string>
     <string name="action_withdrawOtherCurrencies">Withdraw Other Flipcash Currencies</string>
+
+    <string name="content_description_leaderboard">Learn more</string>
+    <string name="prompt_title_learnAboutLeaderboard">Leaderboard Ranking</string>
+    <string name="prompt_description_learnAboutLeaderboard">People must have a minimum balance of %1$s to be counted</string>
 </resources>

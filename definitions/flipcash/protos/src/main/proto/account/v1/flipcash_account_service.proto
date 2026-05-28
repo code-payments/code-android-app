@@ -160,4 +160,7 @@ message UserFlags {
 
 	// Whether the send by phone number feature is enabled
 	bool enable_phone_number_send = 12;
+
+	// USDF amount, in quarks, that a user must hold to be counted as a holder on the leaderboard
+	uint64 minimum_holder_value = 13;
 }

@@ -27,6 +27,7 @@ internal class UserFlagsMapper @Inject constructor():
             withdrawalFeeAmount = Fiat(quarks = from.withdrawalFeeAmount),
             preferredUsdcOnRampLiquidityPool = from.preferredOnRampUsdcLiquidityPool.toDomain(),
             enablePhoneNumberSend = from.enablePhoneNumberSend,
+            minimumHolderValue = Fiat(quarks = from.minimumHolderValue),
         )
     }
 }

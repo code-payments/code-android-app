@@ -5,6 +5,7 @@ import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.discovery.R
 import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.model.financial.Token
@@ -12,6 +13,9 @@ import com.getcode.opencode.model.ui.DiscoverCategory
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.toFiat
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -25,6 +29,7 @@ import javax.inject.Inject
 @HiltViewModel
 internal class TokenDiscoveryViewModel @Inject constructor(
     private val currencyController: CurrencyController,
+    private val userFlags: UserFlagsCoordinator,
     private val resources: ResourceHelper,
     featureFlags: FeatureFlagController,
     dispatchers: DispatcherProvider,
@@ -38,10 +43,13 @@ internal class TokenDiscoveryViewModel @Inject constructor(
         val createEnabled: Boolean = false,
         val category: DiscoverCategory? = null,
         val tokens: Loadable<List<Token>> = Loadable.Loading(),
+        val minimumHolderAmount: Fiat = 10.toFiat(),
     )
 
     sealed interface Event {
         data class OnCreateAllowed(val enabled: Boolean) : Event
+        data class OnMinimumHolderAmountChanged(val amount: Fiat): Event
+        data object LearnAboutLeaderboard: Event
         data class OnCategorySelected(
             val category: DiscoverCategory,
             val fromUser: Boolean = false
@@ -56,6 +64,11 @@ internal class TokenDiscoveryViewModel @Inject constructor(
     }
 
     init {
+        userFlags.resolvedFlags
+            .map { it.minimumHolderAmountForLeaderboard.effectiveValue }
+            .onEach { dispatchEvent(Event.OnMinimumHolderAmountChanged(it)) }
+            .launchIn(viewModelScope)
+
         featureFlags.observe(FeatureFlag.CurrencyCreator)
             .onEach { dispatchEvent(Event.OnCreateAllowed(it)) }
             .launchIn(viewModelScope)
@@ -100,7 +113,19 @@ internal class TokenDiscoveryViewModel @Inject constructor(
             )
             .launchIn(viewModelScope)
 
-
+        eventFlow
+            .filterIsInstance<Event.LearnAboutLeaderboard>()
+            .map { stateFlow.value.minimumHolderAmount }
+            .onEach { amount ->
+                val minAmount = amount.formatted(
+                    rule = Fiat.FormattingRule.Truncated,
+                    suffix = resources.getString(R.string.subtitle_usdSuffix),
+                )
+                BottomBarManager.showInfo(
+                    title = resources.getString(R.string.prompt_title_learnAboutLeaderboard),
+                    message = resources.getString(R.string.prompt_description_learnAboutLeaderboard, minAmount)
+                )
+            }.launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -108,6 +133,10 @@ internal class TokenDiscoveryViewModel @Inject constructor(
             when (event) {
                 is Event.OnCategorySelected -> { state ->
                     state.copy(category = event.category)
+                }
+
+                is Event.OnMinimumHolderAmountChanged -> { state ->
+                    state.copy(minimumHolderAmount = event.amount)
                 }
 
                 is Event.OnCreateAllowed -> { state ->
@@ -122,6 +151,7 @@ internal class TokenDiscoveryViewModel @Inject constructor(
                 is Event.OpenTokenInfo -> { state -> state }
                 is Event.Refresh -> { state -> state }
                 is Event.CreateCurrency -> { state -> state }
+                Event.LearnAboutLeaderboard -> { state -> state }
             }
         }
     }
