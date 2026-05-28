@@ -68,6 +68,7 @@ class AuthManagerTest {
         coEvery { credentialManager.onAccountPurchased() } returns Result.success(mockk(relaxed = true))
         coEvery { pushController.addToken(any()) } returns Result.success(Unit)
         coEvery { pushController.deleteTokens() } returns Result.success(Unit)
+        coEvery { credentialManager.hasSeenAccessKey() } returns true
 
         authManager = AuthManager(
             credentialManager = credentialManager,

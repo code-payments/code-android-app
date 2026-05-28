@@ -108,12 +108,25 @@ class PassphraseCredentialManager @Inject constructor(
 
     suspend fun onUserAccessKeySeen(): Result<Unit> {
         storage.edit { prefs ->
-            prefs[temporaryUserIdKey]?.let { userId ->
+            val userId = prefs[temporaryUserIdKey] ?: prefs[selectedAccountIdKey]
+            if (userId != null) {
                 prefs[seenAccessKeyKey(userId)] = true
             }
         }
 
         return Result.success(Unit)
+    }
+
+    suspend fun hasSeenAccessKey(): Boolean {
+        val tempUserId = storage.data.map { it[temporaryUserIdKey] }.firstOrNull()
+        if (tempUserId != null) {
+            return storage.data.map { it[seenAccessKeyKey(tempUserId)] }.firstOrNull() ?: false
+        }
+        // Temporary keys cleared by onAccountPurchased — check selected account.
+        // Default to true so existing production users (who never had this flag) aren't affected.
+        val selectedId = storage.data.map { it[selectedAccountIdKey] }.firstOrNull()
+            ?: return true
+        return storage.data.map { it[seenAccessKeyKey(selectedId)] }.firstOrNull() ?: true
     }
 
     suspend fun presentSaveOption(): Result<AccountMetadata> {
@@ -150,11 +163,13 @@ class PassphraseCredentialManager @Inject constructor(
             return Result.failure(Throwable("No user id found"))
         }
 
-        // remove temporary states
+        // remove temporary states; persist seenAccessKey as false for the
+        // selected account so a restart before the access-key screen resumes there
+        val seenAccessKey = storage.data.map { it[seenAccessKeyKey(accountId.base58)] }.firstOrNull() ?: false
         storage.edit {
             it.remove(temporaryEntropyKey)
             it.remove(temporaryUserIdKey)
-            it.remove(seenAccessKeyKey(accountId.base58))
+            it[seenAccessKeyKey(accountId.base58)] = seenAccessKey
         }
 
         // Store metadata
@@ -202,7 +217,7 @@ class PassphraseCredentialManager @Inject constructor(
         val selectedMetadata = getSelectedMetadata()
         if (selectedMetadata != null && selectedMetadata.entropy == entropy) {
             storeMetadata(selectedMetadata, isSelected = true)
-            updateUserManager(selectedMetadata.id, AuthState.LoggedInWithUser)
+            userManager.set(selectedMetadata.id)
             return Result.success(selectedMetadata)
         }
 

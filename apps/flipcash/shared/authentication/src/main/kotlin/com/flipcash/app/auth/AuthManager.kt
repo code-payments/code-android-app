@@ -172,12 +172,17 @@ class AuthManager @Inject constructor(
                             accountController.getUserFlags().getOrNull()
                         }
 
+                        val seenAccessKey = credentialManager.hasSeenAccessKey()
                         if (flags != null) {
                             userManager.set(flags)
-                            userManager.set(if (flags.isRegistered) AuthState.LoggedInWithUser else AuthState.Registered())
+                            if (flags.isRegistered && seenAccessKey) {
+                                userManager.set(AuthState.LoggedInWithUser)
+                            } else {
+                                userManager.set(AuthState.Registered(seenAccessKey))
+                            }
                         } else {
                             taggedTrace("Failed to get user flags after retries", type = TraceType.Error)
-                            userManager.set(authState = AuthState.Registered())
+                            userManager.set(authState = AuthState.Registered(seenAccessKey))
                         }
 
                         profileController.updateUserProfile()

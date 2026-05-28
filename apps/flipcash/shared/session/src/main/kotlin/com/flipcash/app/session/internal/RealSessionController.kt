@@ -302,7 +302,9 @@ class RealSessionController @Inject constructor(
                 accountController.getUserFlags()
                     .onSuccess { flags ->
                         userManager.set(flags)
-                        if (flags.isRegistered && !userManager.authState.canAccessAuthenticatedApis) {
+                        val currentState = userManager.authState
+                        val onboardingIncomplete = currentState is AuthState.Registered && !currentState.seenAccessKey
+                        if (flags.isRegistered && !currentState.canAccessAuthenticatedApis && !onboardingIncomplete) {
                             userManager.set(authState = AuthState.LoggedInWithUser)
                         }
                     }
