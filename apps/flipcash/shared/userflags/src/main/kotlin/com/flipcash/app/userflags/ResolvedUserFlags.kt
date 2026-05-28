@@ -31,6 +31,7 @@ data class ResolvedUserFlags(
     val newCurrencyFeeAmount: ResolvedFlag<Fiat>,
     val withdrawalFeeAmount: ResolvedFlag<Fiat>,
     val usdcOnRampLiquidityPool: ResolvedFlag<UsdcLiquidtyPool>,
+    val enablePhoneNumberSend: ResolvedFlag<Boolean>,
 )
 
 internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = ResolvedUserFlags(
@@ -44,5 +45,6 @@ internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = Resolv
     newCurrencyPurchaseAmount = ResolvedFlag(newCurrencyPurchaseAmount, overrides.newCurrencyPurchaseAmount),
     newCurrencyFeeAmount = ResolvedFlag(newCurrencyFeeAmount, overrides.newCurrencyPurchaseAmount),
     withdrawalFeeAmount = ResolvedFlag(withdrawalFeeAmount, overrides.withdrawalFeeAmount),
-    usdcOnRampLiquidityPool = ResolvedFlag(preferredUsdcOnRampLiquidityPool, overrides.preferredUsdcOnRampLiquidityPool)
+    usdcOnRampLiquidityPool = ResolvedFlag(preferredUsdcOnRampLiquidityPool, overrides.preferredUsdcOnRampLiquidityPool),
+    enablePhoneNumberSend = ResolvedFlag(enablePhoneNumberSend, FieldOverride.None),
 )

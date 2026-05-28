@@ -180,6 +180,15 @@ sealed interface FeatureFlag<T: Any> {
     }
 
     @FeatureFlagMarker
+    data object PhoneNumberSend : FeatureFlag<Boolean> {
+        override val key: String = "phone_number_send_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = true
+    }
+
+    @FeatureFlagMarker
     data object NavBar : FeatureFlag<NavBarConfig> {
         override val key: String = "nav_bar_config"
         override val default: NavBarConfig = NavBarConfig.Default
@@ -219,6 +228,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.DepositUsdc -> "Deposit USDC"
         FeatureFlag.BackgroundReset -> "Background Reset"
         FeatureFlag.ContactPickerMode -> "Contact Picker Mode"
+        FeatureFlag.PhoneNumberSend -> "Phone Number Send"
         FeatureFlag.NavBar -> "Navigation Bar"
     }
 
@@ -241,6 +251,7 @@ val FeatureFlag<*>.message: String
         FeatureFlag.DepositUsdc -> "When enabled, you'll gain the ability to deposit USDC directly from any external wallet app instead of purchasing a currency first and sell"
         FeatureFlag.BackgroundReset -> "Automatically returns the app to the camera screen after a period of inactivity with the app in the background"
         FeatureFlag.ContactPickerMode -> "When enabled, contacts will be accessed via the system contact picker instead of requesting full READ_CONTACTS permission"
+        FeatureFlag.PhoneNumberSend -> "When enabled, you'll gain the ability to send cash directly to contacts via phone number"
         FeatureFlag.NavBar -> "Customize the order and labels of navigation bar buttons"
     }
 

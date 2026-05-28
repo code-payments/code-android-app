@@ -90,6 +90,7 @@ include(
     ":apps:flipcash:features:deposit",
     ":apps:flipcash:features:advanced",
     ":apps:flipcash:features:currency-creator",
+    ":apps:flipcash:features:direct-send",
     ":apps:flipcash:features:device-logs",
     ":apps:flipcash:features:myaccount",
     ":apps:flipcash:features:backupkey",

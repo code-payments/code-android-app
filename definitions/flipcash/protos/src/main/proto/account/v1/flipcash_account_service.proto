@@ -157,4 +157,7 @@ message UserFlags {
 
 	// The preferred USDC liquidity pool for external wallet on ramp flows
 	UsdcLiquidityPool preferred_on_ramp_usdc_liquidity_pool = 11;
+
+	// Whether the send by phone number feature is enabled
+	bool enable_phone_number_send = 12;
 }

@@ -31,9 +31,14 @@ internal fun ScannerNavigationBar(
         NavBarConfig.deserialize(navBarConfigString)
     }
 
+    val effectiveConfig = remember(config, state.isPhoneNumberSendEnabled) {
+        if (state.isPhoneNumberSendEnabled) config
+        else config.copy(order = config.order.filter { it != NavBarButton.Send })
+    }
+
     NavigationBar(
         modifier = modifier,
-        config = config,
+        config = effectiveConfig,
         state = NavigationBarState(
             notificationUnreadCount = state.notificationUnreadCount,
             showToast = billState.showToast && billState.toast != null,
@@ -45,6 +50,7 @@ internal fun ScannerNavigationBar(
                 NavBarButton.Give -> ScannerDecorItem.Give
                 NavBarButton.Wallet -> ScannerDecorItem.Wallet
                 NavBarButton.Discover -> ScannerDecorItem.Discover
+                NavBarButton.Send -> ScannerDecorItem.Send
             }
             onAction(item)
         },

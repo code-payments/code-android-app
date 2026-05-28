@@ -132,6 +132,14 @@ fun NavigationBar(
                     badgeCount = 0,
                     onClick = { onButtonClick(NavBarButton.Discover) }
                 )
+
+                NavBarButton.Send -> BottomBarAction(
+                    modifier = buttonModifier,
+                    label = stringResource(R.string.action_send),
+                    painter = painterResource(R.drawable.ic_send_outlined),
+                    badgeCount = 0,
+                    onClick = { onButtonClick(NavBarButton.Send) }
+                )
             }
         }
     }

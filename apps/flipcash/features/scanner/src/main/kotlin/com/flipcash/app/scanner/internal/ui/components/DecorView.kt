@@ -58,9 +58,9 @@ internal fun DecorView(
     state: SessionState,
     billState: BillState,
     isPaused: Boolean,
+    modifier: Modifier = Modifier,
     isPinching: Boolean = false,
     zoomRatio: Float = 1f,
-    modifier: Modifier = Modifier,
     onAction: (ScannerDecorItem) -> Unit,
 ) {
     val billPlayground = LocalBillPlaygroundController.current

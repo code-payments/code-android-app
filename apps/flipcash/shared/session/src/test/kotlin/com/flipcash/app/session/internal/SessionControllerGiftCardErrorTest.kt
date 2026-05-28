@@ -108,10 +108,11 @@ class SessionControllerGiftCardErrorTest {
             toastController = mockk(relaxed = true),
             billingClient = mockk(relaxed = true),
             tokenCoordinator = tokenCoordinator,
+            contactCoordinator = mockk(relaxed = true),
             featureFlagController = mockk(relaxed = true),
             analytics = analytics,
-            appSettingsCoordinator = mockk(relaxed = true),
             usdcSweep = mockk(relaxed = true),
+            appSettingsCoordinator = mockk(relaxed = true),
         )
     }
 

@@ -376,6 +376,7 @@
     <string name="subtitle_youReceive">You Receive</string>
 
     <string name="action_give">Give</string>
+    <string name="action_send">Send</string>
     <string name="title_transactionHistory">Transaction History</string>
     <string name="action_viewTransactionHistory">Transaction History</string>
     <string name="subtitle_marketcap">Market Cap</string>

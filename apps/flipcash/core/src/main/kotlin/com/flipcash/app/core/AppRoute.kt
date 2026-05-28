@@ -110,6 +110,9 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class TokenSelection(val purpose: TokenPurpose) : Sheets
         @Serializable
         data class Give(val mint: Mint? = null, val fromTokenInfo: Boolean = false) : Sheets
+
+        @Serializable
+        data object Send: Sheets
         @Serializable
         data object Wallet : Sheets
         @Serializable

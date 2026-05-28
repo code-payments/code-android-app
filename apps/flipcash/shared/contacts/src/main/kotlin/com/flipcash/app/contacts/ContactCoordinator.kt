@@ -17,6 +17,7 @@ import com.flipcash.services.controllers.ResolverController
 import com.flipcash.services.models.CheckSyncError
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.DeltaUploadError
+import com.flipcash.services.models.GetContactsError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.providers.SessionListener
 import com.getcode.solana.keys.Checksum
@@ -332,7 +333,13 @@ class ContactCoordinator @Inject constructor(
                 _state.update { it.copy(flipcashE164s = flipcashE164s) }
                 trace(tag = TAG, message = "Found ${flipcashE164s.size} contacts on Flipcash", type = TraceType.Process)
             }?.onFailure { error ->
-                trace(tag = TAG, message = "GetFlipcashContacts failed: ${error.message}", type = TraceType.Error)
+                if (error is GetContactsError.NotFound) {
+                    dao.clearFlipcashStatus()
+                    _state.update { it.copy(flipcashE164s = emptySet()) }
+                    trace(tag = TAG, message = "No contacts on Flipcash yet", type = TraceType.Process)
+                } else {
+                    trace(tag = TAG, message = "GetFlipcashContacts failed: ${error.message}", type = TraceType.Error)
+                }
             }
         } catch (e: Exception) {
             trace(tag = TAG, message = "GetFlipcashContacts exception: ${e.message}", error = e, type = TraceType.Error)
