@@ -86,7 +86,10 @@ import kotlinx.coroutines.flow.onEach
  *   which matches current behavior (shows verification).
  *
  * **Permissions phase** (all paths converge here):
- *   Contacts (if phone-number-send enabled) → notifications → Scanner.
+ *   Contacts (if phone-number-send enabled and [FeatureFlag.ContactPickerMode] is off)
+ *   → notifications → Scanner.
+ *   When ContactPickerMode is enabled, contacts are accessed via the system picker
+ *   at call site (no READ_CONTACTS permission needed), so the contact step is skipped.
  *   Already-granted permissions are auto-skipped via [PermissionsPhaseFlowHost].
  */
 @Composable
@@ -146,16 +149,17 @@ private fun PermissionsPhaseFlowHost(
     val phoneNumberSendEnabled = remember(userFlags?.enablePhoneNumberSend, phoneNumberSendFlagEnabled) {
         phoneNumberSendFlagEnabled || userFlags?.enablePhoneNumberSend == true
     }
+    val contactPickerMode by featureFlags.observe(FeatureFlag.ContactPickerMode).collectAsStateWithLifecycle()
 
     val permissionsSteps = buildList {
-        if (phoneNumberSendEnabled) add(OnboardingStep.ContactPermission)
+        if (phoneNumberSendEnabled && !contactPickerMode) add(OnboardingStep.ContactPermission)
         add(OnboardingStep.NotificationPermission)
     }
 
     // Compute resumeAt once per steps-list identity. This recomputes when the flag loads
     // (steps changes) but NOT when permissions are granted mid-flow, preventing a stale
     // recomposition from triggering a spurious BackedOutOfRoot exit.
-    val resumeAt = remember(permissionsSteps.map { it::class }) {
+    val resumeAt = remember(permissionsSteps.map { it::class }, contactPickerMode) {
         val contactsGranted = checker.isGranted(contactConfig.permission)
         val notificationsGranted = !notificationConfig.requiresRuntimeRequest ||
             checker.isGranted(notificationConfig.permission)
