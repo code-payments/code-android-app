@@ -10,6 +10,7 @@ import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.controllers.AccountController
+import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
@@ -34,6 +35,7 @@ class AuthManager @Inject constructor(
     private val userManager: UserManager,
     private val notificationManager: NotificationManagerCompat,
     private val accountController: AccountController,
+    private val profileController: ProfileController,
     private val pushController: PushController,
     private val pushTokenProvider: PushTokenProvider,
     private val tokenCoordinator: TokenCoordinator,
@@ -177,6 +179,8 @@ class AuthManager @Inject constructor(
                             taggedTrace("Failed to get user flags after retries", type = TraceType.Error)
                             userManager.set(authState = AuthState.Registered())
                         }
+
+                        profileController.updateUserProfile()
                     }
                     launch { savePrefs() }
                 }
