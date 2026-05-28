@@ -3,6 +3,7 @@ package com.flipcash.services.internal.network.services
 import com.flipcash.services.internal.network.api.PhoneVerificationApi
 import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.ContactMethod
+import com.flipcash.services.models.LinkForPaymentError
 import com.flipcash.services.models.PhoneVerificationError
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
@@ -108,6 +109,34 @@ internal class PhoneVerificationService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(cause.toValidationOrElse { PhoneVerificationError.Other(it) })
+            }
+        )
+    }
+
+    suspend fun linkForPayment(
+        request: ContactMethod.Phone,
+        owner: Ed25519.KeyPair
+    ): Result<Unit> {
+        return runCatching {
+            api.linkForPayment(request, owner)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcPhoneService.LinkForPaymentResponse.Result.OK -> Result.success(Unit)
+                    RpcPhoneService.LinkForPaymentResponse.Result.DENIED -> {
+                        Result.failure(LinkForPaymentError.Denied())
+                    }
+                    RpcPhoneService.LinkForPaymentResponse.Result.NOT_ASSOCIATED -> {
+                        Result.failure(LinkForPaymentError.NotAssociated())
+                    }
+                    RpcPhoneService.LinkForPaymentResponse.Result.UNRECOGNIZED -> {
+                        Result.failure(LinkForPaymentError.Unrecognized())
+                    }
+                    else -> Result.failure(LinkForPaymentError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { LinkForPaymentError.Other(it) })
             }
         )
     }

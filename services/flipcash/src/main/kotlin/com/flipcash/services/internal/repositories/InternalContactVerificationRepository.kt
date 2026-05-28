@@ -38,4 +38,9 @@ internal class InternalContactVerificationRepository(
             is ContactMethod.Phone -> phoneService.unlink(method, owner)
         }.onFailure { ErrorUtils.handleError(it) }
     }
+
+    override suspend fun linkForPayment(method: ContactMethod.Phone, owner: Ed25519.KeyPair): Result<Unit> {
+        return phoneService.linkForPayment(method, owner)
+            .onFailure { ErrorUtils.handleError(it) }
+    }
 }
