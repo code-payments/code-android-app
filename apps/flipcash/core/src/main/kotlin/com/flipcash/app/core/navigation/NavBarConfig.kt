@@ -2,7 +2,7 @@ package com.flipcash.app.core.navigation
 
 data class NavBarConfig(
     val order: List<NavBarButton> = NavBarButton.defaultOrder,
-    val giveButtonLabel: GiveButtonLabel = GiveButtonLabel.Give,
+    val giveButtonLabel: GiveButtonLabel = GiveButtonLabel.Cash,
 ) {
     fun serialize(): String =
         "${order.joinToString(",") { it.name }}|${giveButtonLabel.name}"
