@@ -87,4 +87,20 @@ internal class PhoneVerificationApi @Inject constructor(
             api.unlink(request)
         }
     }
+
+    suspend fun linkForPayment(
+        request: ContactMethod.Phone,
+        owner: Ed25519.KeyPair
+    ): PhoneVerificationService.LinkForPaymentResponse {
+        val request = PhoneVerificationService.LinkForPaymentRequest.newBuilder()
+            .setPhoneNumber(Model.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.linkForPayment(request)
+        }
+    }
 }

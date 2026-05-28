@@ -4,6 +4,8 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.phone.CountryLocale
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.features.contact.verification.R
@@ -11,6 +13,7 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.ContactMethod
+import com.flipcash.services.user.UserManager
 import com.flipcash.services.models.PhoneVerificationError
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
@@ -19,6 +22,7 @@ import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
@@ -37,6 +41,8 @@ internal class PhoneVerificationViewModel @Inject constructor(
     private val phoneUtils: PhoneUtils,
     private val verificationController: ContactVerificationController,
     private val profileController: ProfileController,
+    private val userManager: UserManager,
+    private val featureFlags: FeatureFlagController,
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
 ) : BaseViewModel<PhoneVerificationViewModel.State, PhoneVerificationViewModel.Event>(
@@ -88,6 +94,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
 
         data object OnVerifyCodeClicked : Event
         data object OnCodeVerified : Event
+        data object LinkForPayment : Event
 
         data object OnMaxAttemptsReached : Event
     }
@@ -196,6 +203,21 @@ internal class PhoneVerificationViewModel @Inject constructor(
                     )
                 }
             ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.LinkForPayment>()
+            .filter {
+                featureFlags.observe(FeatureFlag.PhoneNumberSend).value ||
+                    userManager.state.value.flags?.enablePhoneNumberSend == true
+            }
+            .map {
+                val number = stateFlow.value.numberTextFieldState.text.toString()
+                val locale = stateFlow.value.selectedLocale
+                val cleanedNumber = phoneUtils.cleanNumber(number, locale)
+                ContactMethod.Phone(cleanedNumber)
+            }
+            .map { verificationController.linkForPayment(it) }
+            .launchIn(viewModelScope)
     }
 
     private suspend fun handleSendVerificationCode(method: ContactMethod) {
@@ -296,6 +318,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 }
                 Event.OnVerifyCodeClicked -> { state -> state }
                 Event.OnCodeVerified -> { state -> state }
+                Event.LinkForPayment -> { state -> state }
                 is Event.OnPhoneNumberFormatted -> { state -> state.copy(formattedPhone = event.formatted) }
                 Event.OnSendCodeClicked -> { state -> state.copy(attempts = state.attempts + 1) }
                 Event.OnMaxAttemptsReached -> { state -> state }

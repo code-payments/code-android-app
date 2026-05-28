@@ -36,4 +36,11 @@ class ContactVerificationController @Inject constructor(
             userManager.set(updated)
         }
     }
+
+    suspend fun linkForPayment(method: ContactMethod.Phone): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.linkForPayment(method, owner)
+    }
 }

@@ -175,6 +175,16 @@ sealed class PhoneVerificationError(
     data class Other(override val cause: Throwable? = null) : PhoneVerificationError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class LinkForPaymentError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: LinkForPaymentError("Denied")
+    class NotAssociated: LinkForPaymentError("Not associated")
+    class Unrecognized : LinkForPaymentError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : LinkForPaymentError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class GetUserProfileError(
     override val message: String? = null,
     override val cause: Throwable? = null

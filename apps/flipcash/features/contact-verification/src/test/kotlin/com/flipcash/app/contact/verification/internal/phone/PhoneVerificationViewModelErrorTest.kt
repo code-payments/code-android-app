@@ -1,10 +1,12 @@
 package com.flipcash.app.contact.verification.internal.phone
 
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.features.contact.verification.R
 import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.PhoneVerificationError
+import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.app.core.MainCoroutineRule
@@ -34,6 +36,8 @@ class PhoneVerificationViewModelErrorTest {
     // Mockito for Result-returning methods (MockK double-boxes Result inline class)
     private val verificationController: ContactVerificationController = mock()
     private val profileController = mockk<ProfileController>(relaxed = true)
+    private val userManager = mockk<UserManager>(relaxed = true)
+    private val featureFlags = mockk<FeatureFlagController>(relaxed = true)
     private val resources = mockk<ResourceHelper>(relaxed = true)
 
     private lateinit var dispatchers: TestDispatchers
@@ -62,6 +66,8 @@ class PhoneVerificationViewModelErrorTest {
             phoneUtils = phoneUtils,
             verificationController = verificationController,
             profileController = profileController,
+            userManager = userManager,
+            featureFlags = featureFlags,
             resources = resources,
             dispatchers = dispatchers,
         )
