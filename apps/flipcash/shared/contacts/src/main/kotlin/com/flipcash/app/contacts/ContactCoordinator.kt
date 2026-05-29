@@ -11,9 +11,8 @@ import com.flipcash.app.contacts.device.PickedContactData
 import com.flipcash.app.contacts.device.ScopeAwareContactReader
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.contacts.sync.ContactChecksum
-import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.entities.ContactMappingEntity
-import com.flipcash.app.persistence.entities.ContactSyncStateEntity
+import com.flipcash.app.persistence.sources.ContactDataSource
 import com.flipcash.services.controllers.ContactListController
 import com.flipcash.services.controllers.ResolverController
 import com.flipcash.services.models.CheckSyncError
@@ -54,6 +53,7 @@ class ContactCoordinator @Inject constructor(
     private val networkObserver: NetworkConnectivityListener,
     private val contactReader: ScopeAwareContactReader,
     private val phoneUtils: PhoneUtils,
+    private val contactDataSource: ContactDataSource,
 ) : SessionListener, DefaultLifecycleObserver {
 
     companion object {
@@ -134,8 +134,7 @@ class ContactCoordinator @Inject constructor(
 
     suspend fun removeContact(e164: String) {
         contactReader.removeSelectedContact(e164)
-        val db = FlipcashDatabase.getInstance() ?: return
-        db.contactDao().deleteMappings(listOf(e164))
+        contactDataSource.deleteMappings(listOf(e164))
         _state.update { state ->
             state.copy(
                 contacts = state.contacts - e164,
@@ -153,8 +152,7 @@ class ContactCoordinator @Inject constructor(
         _state.value = ContactState()
         cluster.value = null
         contactReader.reset()
-        val db = FlipcashDatabase.getInstance() ?: return
-        db.contactDao().clearAll()
+        contactDataSource.clear()
         trace(tag = TAG, message = "reset complete", type = TraceType.Process)
     }
 
@@ -166,8 +164,7 @@ class ContactCoordinator @Inject constructor(
      * the next foreground retries.
      */
     suspend fun clearServerContactSetIfRevoked() {
-        val db = FlipcashDatabase.getInstance() ?: return
-        val syncState = db.contactDao().getSyncState() ?: return
+        val syncState = contactDataSource.getSyncState() ?: return
         if (syncState.checksumBytes.all { it == 0.toByte() }) return
 
         if (!contactReader.isPermissionRevoked()) return
@@ -175,7 +172,7 @@ class ContactCoordinator @Inject constructor(
         clearServerContactSet()
         _state.value = ContactState()
         contactReader.reset()
-        db.contactDao().clearAll()
+        contactDataSource.clear()
         trace(tag = TAG, message = "Cleared server contact set after permission revoke", type = TraceType.Process)
     }
 
@@ -201,9 +198,8 @@ class ContactCoordinator @Inject constructor(
     // region Internal
 
     private suspend fun hydrateFromPersistence() {
-        val db = FlipcashDatabase.getInstance() ?: return
-        val syncState = db.contactDao().getSyncState()
-        val mappings = db.contactDao().getAllMappings()
+        val syncState = contactDataSource.getSyncState()
+        val mappings = contactDataSource.get()
 
         val hasEverSynced = syncState != null || mappings.isNotEmpty()
         if (mappings.isEmpty()) {
@@ -253,12 +249,7 @@ class ContactCoordinator @Inject constructor(
             val newChecksum = ContactChecksum.compute(deviceContacts.keys)
 
             // 3. Diff against persisted mappings
-            val db = FlipcashDatabase.getInstance() ?: run {
-                _state.update { it.copy(syncState = SyncState.Error) }
-                return Result.failure(IllegalStateException("Database unavailable"))
-            }
-            val dao = db.contactDao()
-            val existingMappings = dao.getAllMappings()
+            val existingMappings = contactDataSource.get()
             val existingE164s = existingMappings.map { it.e164 }.toSet()
             val newE164s = deviceContacts.keys
 
@@ -275,9 +266,9 @@ class ContactCoordinator @Inject constructor(
                     displayNumber = phoneUtils.formatNumber(contact.e164),
                 )
             }
-            dao.upsertMappings(allEntities)
+            contactDataSource.upsert(allEntities)
             if (removes.isNotEmpty()) {
-                dao.deleteMappings(removes.toList())
+                contactDataSource.deleteMappings(removes.toList())
             }
 
             // Update in-memory contacts with displayNumber, merging into existing state
@@ -288,7 +279,7 @@ class ContactCoordinator @Inject constructor(
             _state.update { it.copy(contacts = it.contacts + enrichedContacts) }
 
             // 5. CheckSync with server
-            val syncState = dao.getSyncState()
+            val syncState = contactDataSource.getSyncState()
             val oldChecksum = syncState?.let { Checksum(it.checksumBytes.toList()) }
 
             val checkSyncResult = contactListController.checkSync(newChecksum)
@@ -297,7 +288,7 @@ class ContactCoordinator @Inject constructor(
                 onSuccess = { serverChecksum ->
                     // Checksums match — skip upload
                     trace(tag = TAG, message = "Contacts in sync with server", type = TraceType.Process)
-                    persistSyncState(dao, newChecksum)
+                    contactDataSource.persistSyncState(newChecksum)
                 },
                 onFailure = { error ->
                     when (error) {
@@ -313,30 +304,30 @@ class ContactCoordinator @Inject constructor(
                                 deltaResult.fold(
                                     onSuccess = {
                                         trace(tag = TAG, message = "Delta upload successful", type = TraceType.Process)
-                                        persistSyncState(dao, newChecksum)
+                                        contactDataSource.persistSyncState(newChecksum)
                                     },
                                     onFailure = { deltaError ->
                                         if (deltaError is DeltaUploadError.ChecksumDrift || deltaError is DeltaUploadError.ChecksumMismatch) {
-                                            performFullUpload(newE164s, newChecksum, dao)
+                                            performFullUpload(newE164s, newChecksum)
                                         } else {
                                             trace(tag = TAG, message = "Delta upload failed: ${deltaError.message}", type = TraceType.Error)
                                         }
                                     }
                                 )
                             } else {
-                                performFullUpload(newE164s, newChecksum, dao)
+                                performFullUpload(newE164s, newChecksum)
                             }
                         }
                         else -> {
                             // First sync or other error — full upload
-                            performFullUpload(newE164s, newChecksum, dao)
+                            performFullUpload(newE164s, newChecksum)
                         }
                     }
                 }
             )
 
             // 6. GetFlipcashContacts
-            fetchFlipcashContacts(newChecksum, dao)
+            fetchFlipcashContacts(newChecksum)
 
             _state.update { it.copy(syncState = SyncState.Synced, hasEverSynced = true) }
             trace(tag = TAG, message = "Contact sync complete", type = TraceType.Process)
@@ -352,7 +343,6 @@ class ContactCoordinator @Inject constructor(
     private suspend fun performFullUpload(
         e164s: Set<String>,
         checksum: Checksum,
-        dao: com.flipcash.app.persistence.dao.ContactDao,
     ) {
         val phones = e164s.map { ContactMethod.Phone(it) }
         val chunked = phones.chunked(500)
@@ -365,7 +355,7 @@ class ContactCoordinator @Inject constructor(
         result.fold(
             onSuccess = {
                 trace(tag = TAG, message = "Full upload successful (${e164s.size} contacts)", type = TraceType.Process)
-                persistSyncState(dao, checksum)
+                contactDataSource.persistSyncState(checksum)
             },
             onFailure = { error ->
                 trace(tag = TAG, message = "Full upload failed: ${error.message}", type = TraceType.Error)
@@ -373,37 +363,22 @@ class ContactCoordinator @Inject constructor(
         )
     }
 
-    private suspend fun persistSyncState(
-        dao: com.flipcash.app.persistence.dao.ContactDao,
-        checksum: Checksum,
-    ) {
-        dao.upsertSyncState(
-            ContactSyncStateEntity(
-                checksumBytes = checksum.byteArray,
-                lastSyncTimestamp = System.currentTimeMillis(),
-            )
-        )
-    }
-
-    private suspend fun fetchFlipcashContacts(
-        checksum: Checksum,
-        dao: com.flipcash.app.persistence.dao.ContactDao,
-    ) {
+    private suspend fun fetchFlipcashContacts(checksum: Checksum) {
         try {
             val result = contactListController.getFlipcashContacts(checksum)
                 .firstOrNull()
 
             result?.onSuccess { phones ->
                 val flipcashE164s = phones.map { it.phoneNumber }.toSet()
-                dao.clearFlipcashStatus()
+                contactDataSource.clearFlipcashStatus()
                 if (flipcashE164s.isNotEmpty()) {
-                    dao.markAsFlipcash(flipcashE164s.toList())
+                    contactDataSource.markAsFlipcash(flipcashE164s.toList())
                 }
                 _state.update { it.copy(flipcashE164s = flipcashE164s) }
                 trace(tag = TAG, message = "Found ${flipcashE164s.size} contacts on Flipcash", type = TraceType.Process)
             }?.onFailure { error ->
                 if (error is GetContactsError.NotFound) {
-                    dao.clearFlipcashStatus()
+                    contactDataSource.clearFlipcashStatus()
                     _state.update { it.copy(flipcashE164s = emptySet()) }
                     trace(tag = TAG, message = "No contacts on Flipcash yet", type = TraceType.Process)
                 } else {
