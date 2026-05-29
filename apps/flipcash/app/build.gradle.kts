@@ -161,6 +161,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:permissions"))
     implementation(project(":apps:flipcash:shared:phone"))
     implementation(project(":apps:flipcash:shared:shareable"))
+    implementation(project(":apps:flipcash:shared:invite"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:web"))
     implementation(project(":apps:flipcash:shared:workers"))
@@ -186,6 +187,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:bill-customization"))
     implementation(project(":apps:flipcash:features:currency-creator"))
     implementation(project(":apps:flipcash:features:direct-send"))
+    implementation(project(":apps:flipcash:features:invite"))
     implementation(project(":apps:flipcash:features:discovery"))
     implementation(project(":apps:flipcash:features:userflags"))
 

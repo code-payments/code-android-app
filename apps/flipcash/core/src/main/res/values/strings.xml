@@ -152,6 +152,8 @@
 
     <string name="title_shareDownloadLink">Get the Flipcash App</string>
     <string name="title_shareCashLink">Send %1$s</string>
+    <string name="title_inviteContact">Invite to Flipcash</string>
+    <string name="message_invite_contact">Download Flipcash so I can send you money\n\n%1$s</string>
 
     <string name="title_enterAddress">Enter Solana address</string>
     <string name="subtitle_whereWithdrawTo">Where would you like to withdraw your %1$s to?</string>
@@ -693,4 +695,7 @@
     <string name="content_description_leaderboard">Learn more</string>
     <string name="prompt_title_learnAboutLeaderboard">Leaderboard Ranking</string>
     <string name="prompt_description_learnAboutLeaderboard">People must have a minimum balance of %1$s to be counted</string>
+
+    <string name="action_invite">Invite</string>
+    <string name="action_inviteMoreOptions">More</string>
 </resources>
