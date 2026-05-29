@@ -2,23 +2,35 @@
 
 package com.flipcash.app.contacts
 
+import android.content.Context
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.contacts.device.PickedContactData
 import com.flipcash.app.contacts.device.ScopeAwareContactReader
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.contacts.sync.ContactChecksum
 import com.flipcash.app.persistence.entities.ContactMappingEntity
 import com.flipcash.app.persistence.sources.ContactDataSource
 import com.flipcash.services.controllers.ContactListController
+import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.controllers.ResolverController
 import com.flipcash.services.models.CheckSyncError
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.DeltaUploadError
 import com.flipcash.services.models.GetContactsError
+import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.providers.SessionListener
 import com.getcode.solana.keys.Checksum
@@ -26,6 +38,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.trace
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -37,28 +50,45 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
+
 @Singleton
 class ContactCoordinator @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val contactListController: ContactListController,
+    private val contactVerificationController: ContactVerificationController,
     private val resolverController: ResolverController,
     private val networkObserver: NetworkConnectivityListener,
     private val contactReader: ScopeAwareContactReader,
     private val phoneUtils: PhoneUtils,
     private val contactDataSource: ContactDataSource,
+    private val userManager: UserManager,
+    private val featureFlagController: FeatureFlagController,
 ) : SessionListener, DefaultLifecycleObserver {
 
     companion object {
         private const val TAG = "ContactCoordinator"
+        private val KEY_LINKED_FOR_PAYMENT = booleanPreferencesKey("linked_for_payment")
     }
+
+    private val contactPrefs = PreferenceDataStoreFactory.create(
+        corruptionHandler = ReplaceFileCorruptionHandler(
+            produceNewData = { emptyPreferences() }
+        ),
+        migrations = listOf(),
+        scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+        produceFile = { context.preferencesDataStoreFile("app-settings") }
+    )
 
     data class ContactState(
         val contacts: Map<String, DeviceContact> = emptyMap(),
@@ -147,12 +177,49 @@ class ContactCoordinator @Inject constructor(
         return resolverController.resolve(ContactMethod.Phone(e164))
     }
 
+    /**
+     * Ensures the user's verified phone number is linked for payment, calling the
+     * server RPC at most once per account lifetime (persisted via DataStore).
+     *
+     * Called from [com.flipcash.app.session.internal.RealSessionController.onAppInForeground].
+     *
+     * | Scenario                                | What happens                                                                   |
+     * |-----------------------------------------|--------------------------------------------------------------------------------|
+     * | No verified phone                       | Returns immediately (no RPC)                                                   |
+     * | Both flags off                          | Returns immediately (no RPC)                                                   |
+     * | Feature flag on, server flag off         | Enabled — proceeds to DataStore check                                          |
+     * | Feature flag off, server flag on         | Enabled — proceeds to DataStore check                                          |
+     * | Both flags on                           | Enabled — proceeds to DataStore check                                          |
+     * | DataStore `linked_for_payment = true`   | Returns immediately (no RPC)                                                   |
+     * | First time, RPC succeeds                | Persists `true`, never fires again for this account                            |
+     * | First time, RPC fails                   | Flag stays `false`, retries on next foreground if conditions met               |
+     * | After logout → re-login                 | `reset()` clears flag, fires on first foreground if conditions met             |
+     * | Phone number changed (unlink + re-verify) | Foreground path won't re-fire (flag is `true`), but the verification flow calls `linkForPayment` directly |
+     */
+    fun linkForPaymentIfNeeded() {
+        val phone = userManager.profile?.verifiedPhoneNumber ?: return
+        val enabled = featureFlagController.observe(FeatureFlag.PhoneNumberSend).value ||
+            userManager.state.value.flags?.enablePhoneNumberSend == true
+        if (!enabled) return
+        scope.launch {
+            val alreadyLinked = contactPrefs.data
+                .map { it[KEY_LINKED_FOR_PAYMENT] ?: false }
+                .first()
+            if (alreadyLinked) return@launch
+            contactVerificationController.linkForPayment(ContactMethod.Phone(phone))
+                .onSuccess {
+                    contactPrefs.edit { it[KEY_LINKED_FOR_PAYMENT] = true }
+                }
+        }
+    }
+
     suspend fun reset() {
         syncJob?.cancel()
         _state.value = ContactState()
         cluster.value = null
         contactReader.reset()
         contactDataSource.clear()
+        contactPrefs.edit { it.remove(KEY_LINKED_FOR_PAYMENT) }
         trace(tag = TAG, message = "reset complete", type = TraceType.Process)
     }
 

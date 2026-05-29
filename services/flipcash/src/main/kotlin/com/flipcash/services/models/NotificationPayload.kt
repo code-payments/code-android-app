@@ -14,10 +14,17 @@ enum class NotificationCategory {
     CONTACT_JOIN,
 }
 
+data class Substitution(
+    val fallback: String,
+    val phoneNumber: String?,
+)
+
 data class NotificationPayload(
     val navigation: NavigationTrigger?,
     val category: NotificationCategory = NotificationCategory.DEFAULT,
     val groupKey: String = "",
+    val titleSubstitutions: List<Substitution> = emptyList(),
+    val bodySubstitutions: List<Substitution> = emptyList(),
 ) {
     companion object {
         fun fromEncoded(encoded: String): NotificationPayload? {

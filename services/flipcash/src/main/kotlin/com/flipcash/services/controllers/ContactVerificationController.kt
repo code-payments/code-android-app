@@ -4,7 +4,9 @@ import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.repository.ContactVerificationRepository
 import com.flipcash.services.user.UserManager
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class ContactVerificationController @Inject constructor(
     private val repository: ContactVerificationRepository,
     private val userManager: UserManager,

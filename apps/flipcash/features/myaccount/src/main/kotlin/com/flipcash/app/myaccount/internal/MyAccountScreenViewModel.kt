@@ -4,9 +4,9 @@ import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.extensions.setText
-import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
+import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.features.myaccount.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
@@ -30,8 +30,7 @@ import javax.inject.Inject
 
 private val FullMenuList = buildList {
     add(AccessKey)
-    add(VerifyPhone)
-    add(VerifyEmail)
+    add(UserProfile)
     add(LogOut)
     add(DeleteAccount)
 }
@@ -55,7 +54,6 @@ internal class MyAccountScreenViewModel @Inject constructor(
         val accountId: String? = null,
         val publicKey: String? = null,
         val pushToken: String? = null,
-        val linkForPayment: Boolean = false,
         val items: List<MenuItem<Event>> = FullMenuList
     )
 
@@ -64,7 +62,6 @@ internal class MyAccountScreenViewModel @Inject constructor(
             val userId: String?,
             val publicKey: String?,
             val pushToken: String? = null,
-            val linkForPayment: Boolean = false,
         ) : Event
 
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
@@ -72,9 +69,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
         data class ToggleAccountInfo(val show: Boolean) : Event
         data object OnAccessKeyClicked : Event
         data object OnViewAccessKey : Event
-        data object OnVerifyEmailClicked : Event
-        data object OnVerifyPhoneClicked : Event
-        data class ConnectPhoneClicked(val linkForPayment: Boolean) : Event
+        data object OnContactMethodsClicked : Event
+        data object OnViewUserProfile : Event
         data object OnDeleteAccountClicked : Event
         data object OnAccountDeleted : Event
         data object CopyPublicKey : Event
@@ -85,26 +81,19 @@ internal class MyAccountScreenViewModel @Inject constructor(
     }
 
     init {
-        combine(
-            userManager.state,
-            featureFlagController.observe(FeatureFlag.PhoneNumberSend),
-        ) { state, sendEnabled ->
-            val userId = state.accountId?.base64
-            val publicKey = state.cluster?.authorityPublicKey?.base58()
+        userManager.state
+            .onEach { state ->
+                val userId = state.accountId?.base64
+                val publicKey = state.cluster?.authorityPublicKey?.base58()
 
-            val linkForPayment = sendEnabled ||
-                    state.flags?.enablePhoneNumberSend == true
-
-            dispatchEvent(
-                Event.OnUserAssociated(
-                    userId = userId,
-                    publicKey = publicKey,
-                    pushToken = state.pushToken,
-                    linkForPayment = linkForPayment,
+                dispatchEvent(
+                    Event.OnUserAssociated(
+                        userId = userId,
+                        publicKey = publicKey,
+                        pushToken = state.pushToken,
+                    )
                 )
-            )
-
-        }.launchIn(viewModelScope)
+            }.launchIn(viewModelScope)
 
         combine(
             featureFlagController.observeOverride(),
@@ -195,9 +184,9 @@ internal class MyAccountScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.OnVerifyPhoneClicked>()
+            .filterIsInstance<Event.OnContactMethodsClicked>()
             .onEach {
-                dispatchEvent(Event.ConnectPhoneClicked(stateFlow.value.linkForPayment))
+                dispatchEvent(Event.OnViewUserProfile)
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -235,7 +224,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
             return if (isBetaEnabled) {
                 FullMenuList
             } else {
-                FullMenuList.filterNot { item -> item is VerifyEmail || item is VerifyPhone }
+                FullMenuList.filterNot { item -> item is StaffMenuItem }
             }
         }
 
@@ -246,15 +235,13 @@ internal class MyAccountScreenViewModel @Inject constructor(
                         accountId = event.userId,
                         publicKey = event.publicKey,
                         pushToken = event.pushToken,
-                        linkForPayment = event.linkForPayment,
                     )
                 }
 
                 Event.OnLogOutClicked,
                 Event.OnLoggedOutCompletely,
-                Event.OnVerifyPhoneClicked,
-                is Event.ConnectPhoneClicked,
-                Event.OnVerifyEmailClicked,
+                Event.OnContactMethodsClicked,
+                Event.OnViewUserProfile,
                 Event.OnViewAccessKey,
                 Event.CopyPublicKey,
                 Event.CopyAccountId,
