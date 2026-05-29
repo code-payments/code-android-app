@@ -53,9 +53,12 @@ interface ContactDao {
 
     // endregion
 
+    @Query("DELETE FROM contact_mapping")
+    suspend fun deleteAllMappings()
+
     @Transaction
     suspend fun clearAll() {
         clearSyncState()
-        clearFlipcashStatus()
+        deleteAllMappings()
     }
 }

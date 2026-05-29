@@ -4,6 +4,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
+import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.push.PushTokenProvider
@@ -43,6 +44,7 @@ class AuthManager @Inject constructor(
     private val featureFlagController: FeatureFlagController,
     private val appSettings: AppSettingsCoordinator,
     private val userFlags: UserFlagsCoordinator,
+    private val contactCoordinator: ContactCoordinator,
 //    private val analytics: AnalyticsService,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
@@ -202,6 +204,8 @@ class AuthManager @Inject constructor(
 
     suspend fun deleteAndLogout(): Result<Unit> {
         //todo: add account deletion
+        // Wipe server contact set before logout while the session can still authenticate.
+        contactCoordinator.clearServerContactSet()
         return logout()
     }
 

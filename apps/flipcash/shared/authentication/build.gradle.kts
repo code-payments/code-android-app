@@ -12,6 +12,7 @@ dependencies {
     implementation(libs.androidx.datastore)
 
     implementation(project(":apps:flipcash:shared:appsettings"))
+    implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:persistence:provider"))
     implementation(project(":apps:flipcash:shared:push"))
     implementation(project(":apps:flipcash:shared:featureflags"))
