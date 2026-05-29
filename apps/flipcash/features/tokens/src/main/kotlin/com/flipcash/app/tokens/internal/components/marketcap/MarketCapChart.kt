@@ -44,24 +44,23 @@ import com.getcode.ui.components.charts.LineTrend
 import com.getcode.ui.components.charts.TrendType
 import com.getcode.ui.components.charts.yValues
 import com.getcode.util.vibration.LocalVibrator
+import androidx.compose.ui.graphics.Brush
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.layer.continuous
+import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.compose.cartesian.data.lineSeries
+import com.patrykandpatrick.vico.compose.cartesian.layer.LineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarker
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarkerController
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarkerVisibilityListener
+import com.patrykandpatrick.vico.compose.cartesian.marker.DefaultCartesianMarker
 import com.patrykandpatrick.vico.compose.cartesian.marker.rememberDefaultCartesianMarker
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
+import com.patrykandpatrick.vico.compose.common.Fill
+import com.patrykandpatrick.vico.compose.common.Insets
 import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
-import com.patrykandpatrick.vico.compose.common.fill
-import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
-import com.patrykandpatrick.vico.core.cartesian.data.lineSeries
-import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
-import com.patrykandpatrick.vico.core.cartesian.marker.CartesianMarker
-import com.patrykandpatrick.vico.core.cartesian.marker.CartesianMarkerController
-import com.patrykandpatrick.vico.core.cartesian.marker.CartesianMarkerVisibilityListener
-import com.patrykandpatrick.vico.core.cartesian.marker.DefaultCartesianMarker
-import com.patrykandpatrick.vico.core.common.Insets
-import com.patrykandpatrick.vico.core.common.shader.ShaderProvider
 import kotlinx.coroutines.runBlocking
 import kotlin.time.Duration
 
@@ -274,25 +273,27 @@ private fun MarketCapChartContent(
                 LineCartesianLayer.rememberLine(
                     fill = remember(trend) {
                         LineCartesianLayer.LineFill.double(
-                            leftFill = fill(trendColor),
-                            rightFill = fill(trendPressedColor),
+                            leftFill = Fill(trendColor),
+                            rightFill = Fill(trendPressedColor),
                             splitX = {
                                 splitState.canvasX - with(density) { indicatorSize.toPx() / 4 }
                             }
                         )
                     },
                     stroke = remember(trend) {
-                        LineCartesianLayer.LineStroke.continuous(
+                        LineCartesianLayer.LineStroke.Continuous(
                             thickness = strokeSize,
                             cap = StrokeCap.Round
                         )
                     },
                     areaFill = remember(trend) {
                         LineCartesianLayer.AreaFill.single(
-                            fill(
-                                ShaderProvider.verticalGradient(
-                                    trendColor.copy(alpha = trendAlpha).toArgb(),
-                                    trendColor.copy(alpha = 0f).toArgb(),
+                            Fill(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        trendColor.copy(alpha = trendAlpha),
+                                        trendColor.copy(alpha = 0f),
+                                    )
                                 )
                             )
                         )
@@ -334,7 +335,7 @@ private fun rememberChartMarker(
 
     return rememberDefaultCartesianMarker(
         label = rememberTextComponent(
-            color = Color.Transparent,
+            style = androidx.compose.ui.text.TextStyle(color = Color.Transparent),
         ),
         valueFormatter = remember {
             DefaultCartesianMarker.ValueFormatter.default(colorCode = false)
@@ -342,10 +343,10 @@ private fun rememberChartMarker(
         indicator = remember(strokeFill) {
             { color ->
                 outerFillShapeComponent(
-                    outerFill = fill(outerFill),
-                    margins = Insets(6f),
-                    innerFill = fill(markerFill),
-                    strokeFill = fill(strokeFill ?: color),
+                    outerFill = Fill(outerFill),
+                    margins = Insets(6.dp),
+                    innerFill = Fill(markerFill),
+                    strokeFill = Fill(strokeFill ?: color),
                     strokeThickness = 2.dp,
                 )
             }

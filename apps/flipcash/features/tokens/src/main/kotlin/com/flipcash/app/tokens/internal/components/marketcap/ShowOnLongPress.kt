@@ -2,9 +2,9 @@ package com.flipcash.app.tokens.internal.components.marketcap
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import com.patrykandpatrick.vico.core.cartesian.marker.CartesianMarker
-import com.patrykandpatrick.vico.core.cartesian.marker.CartesianMarkerController
-import com.patrykandpatrick.vico.core.cartesian.marker.Interaction
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarker
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarkerController
+import com.patrykandpatrick.vico.compose.cartesian.marker.Interaction
 
 private class ShowOnLongPress : CartesianMarkerController {
 
