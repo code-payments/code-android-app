@@ -54,7 +54,9 @@ internal fun RegionSelectionModalContent(viewModel: CurrencyViewModel) {
                 .launchIn(this)
         }
         SearchInput(
-            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
+            modifier = Modifier
+                .padding(horizontal = CodeTheme.dimens.grid.x3)
+                .padding(top = CodeTheme.dimens.grid.x3),
             state = state.searchState,
             contentPadding = PaddingValues(start = CodeTheme.dimens.grid.x1),
             placeholder = stringResource(R.string.subtitle_searchRegions)
