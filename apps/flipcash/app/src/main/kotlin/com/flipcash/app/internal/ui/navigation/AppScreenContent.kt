@@ -29,6 +29,7 @@ import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositFlowScreen
+import com.flipcash.app.directsend.SendFlowScreen
 import com.flipcash.app.invite.InviteContactScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
@@ -84,7 +85,7 @@ fun appEntryProvider(
 
     // Sheets (inner content — wrapped in Main.Sheet by navigateTo())
     annotatedEntry<AppRoute.Sheets.Give> { key -> CashScreen(key.mint, key.fromTokenInfo) }
-    annotatedEntry<AppRoute.Sheets.Send> { }
+    annotatedEntry<AppRoute.Sheets.Send> { SendFlowScreen(resultStateRegistry = resultStateRegistry) }
     annotatedEntry<AppRoute.Sheets.TokenSelection> { key -> TokenSelectScreen(key.purpose) }
     annotatedEntry<AppRoute.Sheets.Wallet> { BalanceScreen() }
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
