@@ -77,12 +77,13 @@ fun MyAccountScreen() {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<MyAccountScreenViewModel.Event.OnVerifyPhoneClicked>()
+            .filterIsInstance<MyAccountScreenViewModel.Event.ConnectPhoneClicked>()
             .onEach {
                 val flow = AppRoute.Verification(
                     origin = AppRoute.Menu.MyAccount,
                     includePhone = true,
                     includeEmail = false,
+                    linkForPayment = it.linkForPayment
                 )
 
                 navigator.push(flow) }

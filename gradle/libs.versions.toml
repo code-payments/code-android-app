@@ -35,7 +35,7 @@ androidx-webkit = "1.15.0"
 
 sqlcipher = "4.5.4"
 
-compose-bom = "2026.04.01"
+compose-bom = "2026.05.01"
 compose-activities = "1.13.0"
 compose-view-models = "2.10.0"
 compose-paging = "3.5.0"
@@ -63,7 +63,7 @@ protobuf-plugin = "0.10.0"
 protovalidate-kt = "0.1.1"
 
 lib-phone-number-port = "9.0.31"
-lib-phone-number-google = "9.0.29"
+lib-phone-number-google = "9.0.31"
 zxing = "3.5.4"
 
 androidx-test-runner = "1.7.0"
@@ -102,7 +102,7 @@ screenshot = "0.0.1-alpha15"
 secrets-gradle-plugin = "2.0.1"
 firebase-perf-plugin = "2.0.2"
 uiToolingPreview = "1.11.2"
-uiTooling = "1.11.1"
+uiTooling = "1.11.2"
 
 [libraries]
 # Desugaring
