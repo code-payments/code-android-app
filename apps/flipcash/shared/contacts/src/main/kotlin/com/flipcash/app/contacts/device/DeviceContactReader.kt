@@ -1,5 +1,7 @@
 package com.flipcash.app.contacts.device
 
+import com.flipcash.app.phone.PhoneUtils
+
 interface DeviceContactReader {
     suspend fun readAll(): Result<Map<String, DeviceContact>>
 }
@@ -9,6 +11,7 @@ data class DeviceContact(
     val androidContactId: Long,
     val displayName: String,
     val photoUri: String?,
+    val displayNumber: String = "",
 )
 
 data class PickedContactData(

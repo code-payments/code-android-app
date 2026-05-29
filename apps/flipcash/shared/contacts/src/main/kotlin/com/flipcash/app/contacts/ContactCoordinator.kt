@@ -9,6 +9,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.contacts.device.PickedContactData
 import com.flipcash.app.contacts.device.ScopeAwareContactReader
+import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.contacts.sync.ContactChecksum
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.entities.ContactMappingEntity
@@ -52,6 +53,7 @@ class ContactCoordinator @Inject constructor(
     private val resolverController: ResolverController,
     private val networkObserver: NetworkConnectivityListener,
     private val contactReader: ScopeAwareContactReader,
+    private val phoneUtils: PhoneUtils,
 ) : SessionListener, DefaultLifecycleObserver {
 
     companion object {
@@ -157,6 +159,7 @@ class ContactCoordinator @Inject constructor(
                 androidContactId = mapping.androidContactId,
                 displayName = mapping.displayName,
                 photoUri = mapping.photoUri,
+                displayNumber = mapping.displayNumber,
             )
         }
         val flipcashE164s = mappings.filter { it.isOnFlipcash }.map { it.e164 }.toSet()
@@ -202,26 +205,26 @@ class ContactCoordinator @Inject constructor(
             val adds = newE164s - existingE164s
             val removes = existingE164s - newE164s
 
-            // 4. Persist new mappings
-            if (adds.isNotEmpty()) {
-                val newEntities = adds.mapNotNull { e164 ->
-                    deviceContacts[e164]?.let { contact ->
-                        ContactMappingEntity(
-                            e164 = contact.e164,
-                            androidContactId = contact.androidContactId,
-                            displayName = contact.displayName,
-                            photoUri = contact.photoUri,
-                        )
-                    }
-                }
-                dao.upsertMappings(newEntities)
+            // 4. Persist all mappings (upsert fixes metadata staleness for name/photo changes)
+            val allEntities = deviceContacts.values.map { contact ->
+                ContactMappingEntity(
+                    e164 = contact.e164,
+                    androidContactId = contact.androidContactId,
+                    displayName = contact.displayName,
+                    photoUri = contact.photoUri,
+                    displayNumber = phoneUtils.formatNumber(contact.e164),
+                )
             }
+            dao.upsertMappings(allEntities)
             if (removes.isNotEmpty()) {
                 dao.deleteMappings(removes.toList())
             }
 
-            // Update in-memory contacts
-            _state.update { it.copy(contacts = deviceContacts) }
+            // Update in-memory contacts with displayNumber
+            val enrichedContacts = deviceContacts.mapValues { (_, contact) ->
+                contact.copy(displayNumber = phoneUtils.formatNumber(contact.e164))
+            }
+            _state.update { it.copy(contacts = enrichedContacts) }
 
             // 5. CheckSync with server
             val syncState = dao.getSyncState()

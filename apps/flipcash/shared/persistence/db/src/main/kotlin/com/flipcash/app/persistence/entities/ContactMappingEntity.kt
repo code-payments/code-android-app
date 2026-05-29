@@ -1,5 +1,6 @@
 package com.flipcash.app.persistence.entities
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -11,4 +12,6 @@ data class ContactMappingEntity(
     val displayName: String,
     val photoUri: String?,
     val isOnFlipcash: Boolean = false,
+    @ColumnInfo(defaultValue = "")
+    val displayNumber: String = "",
 )
