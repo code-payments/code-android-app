@@ -10,4 +10,10 @@ dependencies {
     api(libs.google.play.app.updates.runtime)
     api(libs.google.play.app.updates.ktx)
 
+    implementation(project(":apps:flipcash:shared:userflags"))
+    implementation(libs.androidx.datastore)
+    implementation(libs.okhttp)
+    implementation(libs.kotlinx.serialization.json)
+
+    testImplementation(kotlin("test"))
 }

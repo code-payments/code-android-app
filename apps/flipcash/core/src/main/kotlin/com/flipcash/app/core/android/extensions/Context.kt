@@ -21,7 +21,6 @@ fun Context.launchPhotos(searchQuery: String = "Flipcash") {
     if (searchIntent.resolveActivity(packageManager) != null) {
         startActivity(searchIntent)
     } else {
-        println("No apps handling image search")
         // Fall back to just opening the gallery
         val photosIntent = IntentUtils.photosApp()
         startActivity(photosIntent)

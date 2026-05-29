@@ -8,7 +8,9 @@ import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.core.errors.GetPendingSwapsError
 import com.getcode.opencode.model.core.errors.GetSwapError
+import com.getcode.opencode.model.core.errors.SendMessageError
 import com.getcode.opencode.model.transactions.Swap
+import com.getcode.opencode.utils.toValidationOrElse
 import javax.inject.Inject
 
 internal class SwapService @Inject constructor(
@@ -38,7 +40,7 @@ internal class SwapService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(GetSwapError.Other(cause = cause))
+                Result.failure(cause.toValidationOrElse { GetSwapError.Other(cause = it) })
             }
         )
     }
@@ -58,7 +60,7 @@ internal class SwapService @Inject constructor(
             }
         },
         onFailure = { cause ->
-            Result.failure(GetPendingSwapsError.Other(cause = cause))
+            Result.failure(cause.toValidationOrElse { GetPendingSwapsError.Other(cause = it) })
         }
     )
 }

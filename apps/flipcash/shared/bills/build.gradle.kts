@@ -9,7 +9,6 @@ android {
 dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
-    implementation(libs.bugsnag)
 
     implementation(project(":libs:messaging"))
 

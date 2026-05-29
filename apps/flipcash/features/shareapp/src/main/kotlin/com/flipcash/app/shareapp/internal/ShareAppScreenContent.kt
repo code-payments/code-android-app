@@ -39,7 +39,6 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Cloudy
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
-import com.getcode.ui.core.addIf
 import com.getcode.ui.core.rememberedLongClickable
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -123,9 +122,7 @@ internal fun ShareAppScreenContent() {
 
             Image(
                 modifier = Modifier
-                    .addIf(navigator.sheetFullyVisible) {
-                        Modifier.onPlaced { contentRect = it.boundsInWindow() }
-                    }
+                    .onPlaced { contentRect = it.boundsInWindow() }
                     .rememberedLongClickable {
                         onClick()
                     }

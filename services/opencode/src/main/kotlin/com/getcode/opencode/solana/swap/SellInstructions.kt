@@ -12,7 +12,7 @@ import com.getcode.opencode.internal.solana.programs.TokenProgram_CloseAccount
 import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram_CloseSwapAccountIfEmpty
 import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram_TransferForSwap
 import com.getcode.opencode.model.financial.MintMetadata
-import com.getcode.opencode.model.transactions.SwapResponseServerParameters
+import com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters
 import com.getcode.opencode.solana.Instruction
 import com.getcode.solana.keys.PublicKey
 
@@ -40,7 +40,7 @@ import com.getcode.solana.keys.PublicKey
  * @return A list of [Instruction]s to execute the sell operation.
  */
 internal fun buildSellInstructions(
-    serverParameters: SwapResponseServerParameters,
+    serverParameters: StatefulSwapResponseServerParameters.ExistingCurrency,
     nonce: PublicKey,
     authority: PublicKey,
     swapAuthority: PublicKey,
@@ -94,7 +94,7 @@ internal fun buildSellInstructions(
             ).instruction()
         )
 
-        // 7. CurrencyCreator::SellAndDepositIntoVm
+        // 7. Reserve::SellAndDepositIntoVm
         add(
             CurrencyCreatorProgram_SellAndDepositIntoVm(
                 inAmount = amount,

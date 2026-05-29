@@ -3,41 +3,24 @@ package com.getcode.opencode.compose
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.opencode.exchange.Exchange
-import com.getcode.opencode.internal.model.VerifiedResponseData
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
-import com.getcode.solana.keys.Signature
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
 
 val LocalExchange: ProvidableCompositionLocal<Exchange> = staticCompositionLocalOf { ExchangeNull() }
 
 private class ExchangeNull : Exchange {
-    override val balanceRate: Rate
+    override val preferredRate: Rate
         get() = Rate.oneToOne
 
-    override val entryRate: Rate
-        get() = Rate.oneToOne
-
-
-    override fun observeEntryRate(): Flow<Rate> {
+    override fun observePreferredRate(): Flow<Rate> {
         return emptyFlow()
     }
 
-    override suspend fun setPreferredEntryCurrency(currencyCode: CurrencyCode) {
-
-    }
-
-    override fun observeBalanceRate(): Flow<Rate> {
-        return emptyFlow()
-    }
-
-    override suspend fun setPreferredBalanceCurrency(currencyCode: CurrencyCode) {
-
+    override suspend fun setPreferredCurrency(currencyCode: CurrencyCode) {
     }
 
     override fun updateUserMints(mints: List<Mint>) = Unit

@@ -3,28 +3,31 @@ package com.flipcash.app.contact.verification.internal.phone
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.phone.CountryLocale
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.features.contact.verification.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.ContactMethod
+import com.flipcash.services.user.UserManager
 import com.flipcash.services.models.PhoneVerificationError
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel2
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
+import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.util.Timer
@@ -39,10 +42,14 @@ internal class PhoneVerificationViewModel @Inject constructor(
     private val phoneUtils: PhoneUtils,
     private val verificationController: ContactVerificationController,
     private val profileController: ProfileController,
+    private val userManager: UserManager,
+    private val featureFlags: FeatureFlagController,
     private val resources: ResourceHelper,
-) : BaseViewModel2<PhoneVerificationViewModel.State, PhoneVerificationViewModel.Event>(
+    private val dispatchers: DispatcherProvider,
+) : BaseViewModel<PhoneVerificationViewModel.State, PhoneVerificationViewModel.Event>(
     initialState = State(selectedLocale = phoneUtils.defaultCountryLocale),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val numberTextFieldState: TextFieldState = TextFieldState(),
@@ -88,6 +95,8 @@ internal class PhoneVerificationViewModel @Inject constructor(
 
         data object OnVerifyCodeClicked : Event
         data object OnCodeVerified : Event
+        data object LinkForPayment : Event
+        data object OnPhoneVerificationComplete : Event
 
         data object OnMaxAttemptsReached : Event
     }
@@ -159,11 +168,15 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 val cleanedNumber = phoneUtils.cleanNumber(number, locale)
                 ContactMethod.Phone(cleanedNumber)
             }
-            .onEach { dispatchEvent(Event.OnVerifyingCodeChanged(loading = true)) }
+            .onEach {
+                trace(message = "Verifying code", type = TraceType.Process)
+                dispatchEvent(Event.OnVerifyingCodeChanged(loading = true))
+            }
             .map { method ->
                 verificationController.checkVerificationCode(method, stateFlow.value.codeTextFieldState.text.toString())
             }.onResult(
                 onSuccess = {
+                    trace(message = "Code verified successfully", type = TraceType.Process)
                     stopTimer()
                     dispatchEvent(Event.OnVerifyingCodeChanged(success = true))
                     viewModelScope.launch {
@@ -177,6 +190,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
                     }
                 },
                 onError = {
+                    trace(message = "Code verification failed: $it", type = TraceType.Error)
                     dispatchEvent(Event.OnVerifyingCodeChanged())
                     val (title, message) = when (it) {
                         is PhoneVerificationError -> when (it) {
@@ -196,13 +210,34 @@ internal class PhoneVerificationViewModel @Inject constructor(
                     )
                 }
             ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.LinkForPayment>()
+            .map {
+                val number = stateFlow.value.numberTextFieldState.text.toString()
+                val locale = stateFlow.value.selectedLocale
+                val cleanedNumber = phoneUtils.cleanNumber(number, locale)
+                trace(message = "Calling linkForPayment", type = TraceType.Process)
+                ContactMethod.Phone(cleanedNumber)
+            }
+            .map { method -> verificationController.linkForPayment(method) }
+            .onResult(
+                onSuccess = {
+                    trace(message = "linkForPayment succeeded", type = TraceType.Process)
+                    dispatchEvent(Event.OnPhoneVerificationComplete)
+                },
+                onError = {
+                    trace(message = "linkForPayment failed: $it", type = TraceType.Error)
+                    dispatchEvent(Event.OnPhoneVerificationComplete)
+                }
+            ).launchIn(viewModelScope)
     }
 
     private suspend fun handleSendVerificationCode(method: ContactMethod) {
         dispatchEvent(Event.OnSendingCodeChanged(loading = true))
         if (stateFlow.value.attempts >= 3) {
             dispatchEvent(Event.OnSendingCodeChanged())
-            BottomBarManager.showError(
+            BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_maxAttemptsReached),
                 message = resources.getString(R.string.error_description_maxAttemptsReached),
             ) {
@@ -246,6 +281,17 @@ internal class PhoneVerificationViewModel @Inject constructor(
             }
     }
 
+    suspend fun awaitLinkForPayment() {
+        val isEnabled = featureFlags.observe(FeatureFlag.PhoneNumberSend).value ||
+            userManager.state.value.flags?.enablePhoneNumberSend == true
+        if (!isEnabled) return
+
+        val number = stateFlow.value.numberTextFieldState.text.toString()
+        val locale = stateFlow.value.selectedLocale
+        val cleanedNumber = phoneUtils.cleanNumber(number, locale)
+        verificationController.linkForPayment(ContactMethod.Phone(cleanedNumber))
+    }
+
     private fun startTimer() {
         dispatchEvent(
             Event.OnTimerTick(
@@ -260,7 +306,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
             if (remainingTime <= 0) stopTimer()
             viewModelScope.launch {
                 dispatchEvent(
-                    Dispatchers.Main,
+                    dispatchers.Main,
                     Event.OnTimerTick(
                         isRunning = remainingTime > 0,
                         timeRemaining = remainingTime
@@ -296,6 +342,8 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 }
                 Event.OnVerifyCodeClicked -> { state -> state }
                 Event.OnCodeVerified -> { state -> state }
+                Event.LinkForPayment -> { state -> state }
+                Event.OnPhoneVerificationComplete -> { state -> state }
                 is Event.OnPhoneNumberFormatted -> { state -> state.copy(formattedPhone = event.formatted) }
                 Event.OnSendCodeClicked -> { state -> state.copy(attempts = state.attempts + 1) }
                 Event.OnMaxAttemptsReached -> { state -> state }

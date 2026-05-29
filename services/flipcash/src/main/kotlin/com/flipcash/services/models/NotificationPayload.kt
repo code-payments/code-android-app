@@ -5,8 +5,26 @@ import com.flipcash.services.internal.network.extensions.asPayload
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.decodeBase64
 
+enum class NotificationCategory {
+    DEFAULT,
+    DEPOSIT_WITHDRAWAL,
+    BUY_SELL,
+    GAIN,
+    CHAT,
+    CONTACT_JOIN,
+}
+
+data class Substitution(
+    val fallback: String,
+    val phoneNumber: String?,
+)
+
 data class NotificationPayload(
-    val navigation: NavigationTrigger?
+    val navigation: NavigationTrigger?,
+    val category: NotificationCategory = NotificationCategory.DEFAULT,
+    val groupKey: String = "",
+    val titleSubstitutions: List<Substitution> = emptyList(),
+    val bodySubstitutions: List<Substitution> = emptyList(),
 ) {
     companion object {
         fun fromEncoded(encoded: String): NotificationPayload? {

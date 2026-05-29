@@ -7,8 +7,7 @@ android {
 }
 
 dependencies {
-    implementation(libs.javax.inject)
-    implementation(libs.hilt.android)
+    implementation(libs.bundles.hilt)
 
     api(libs.androidx.camerax.core)
 }

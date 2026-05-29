@@ -1,8 +1,8 @@
 package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.opencode.events.Events
-import com.getcode.opencode.internal.manager.VerifiedProtoManager
+import com.getcode.opencode.exchange.VerifiedFiat
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.intents.IntentDistribution
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteReceive
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
@@ -23,7 +23,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapMetadata
-import com.getcode.opencode.model.transactions.SwapRequest
+import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
@@ -33,6 +33,7 @@ import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.utils.flowInterval
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
 import com.getcode.utils.base64
 import com.getcode.utils.trace
@@ -45,17 +46,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
-import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
+import kotlin.time.Duration
 
 @Singleton
 class TransactionController @Inject constructor(
@@ -63,18 +64,21 @@ class TransactionController @Inject constructor(
     private val swapRepository: SwapRepository,
     private val accountController: AccountController,
     private val eventBus: ChannelEventBus,
-    private val verifiedStateManager: VerifiedProtoManager,
-) {
+) : TransactionOperations {
     val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    private fun refreshAccountState() {
+        scope.launch { accountController.refreshAccountState() }
+    }
+
     private val _limits = MutableStateFlow<Limits?>(Limits.Empty)
-    val limits: StateFlow<Limits?>
+    override val limits: StateFlow<Limits?>
         get() = _limits.asStateFlow()
 
-    val areLimitsStale: Boolean
+    override val areLimitsStale: Boolean
         get() = _limits.value == null || _limits.value?.isStale == true
 
-    suspend fun updateLimits(owner: AccountCluster, force: Boolean = false) {
+    override suspend fun updateLimits(owner: AccountCluster, force: Boolean) {
         if (areLimitsStale || force) {
             val since = Clock.System.now()
             trace(
@@ -118,20 +122,33 @@ class TransactionController @Inject constructor(
         return submitIntent(scope, intent, source.authority.keyPair)
     }
 
-    suspend fun withdraw(
-        amount: LocalFiat,
+    override suspend fun withdraw(
+        amount: VerifiedFiat,
         mint: Mint,
         owner: AccountCluster,
         destination: PublicKey,
         destinationOwner: PublicKey?,
-        fee: Fiat? = null,
-        scope: CoroutineScope = this.scope,
+        fee: Fiat?,
+        scope: CoroutineScope,
     ): Result<IntentType> {
-        val verifiedState = verifiedStateManager.getVerifiedStateFor(amount.rate.currency, mint)
+        trace(
+            tag = "TransactionController",
+            message = "Starting withdrawal",
+            type = TraceType.Process,
+            metadata = {
+                "amount (native)" to amount.localFiat.nativeAmount.formatted()
+                "amount (underlying)" to amount.localFiat.underlyingTokenAmount.formatted()
+                "amount currency" to amount.localFiat.nativeAmount.currencyCode.name
+                "fee" to (fee?.formatted() ?: "none")
+                "mint" to mint.base58()
+            }
+        )
+
+        val verifiedState = amount.verifiedState
             ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
         val intent = IntentWithdraw.create(
-            amount = amount,
+            amount = amount.localFiat,
             mint = mint,
             fee = fee?.let { Fee(it, FeeType.CreateOnSendWithdrawal) },
             sourceCluster = owner,
@@ -142,8 +159,47 @@ class TransactionController @Inject constructor(
 
         return submitIntent(scope, intent, owner.authority.keyPair)
             .onSuccess {
-                eventBus.send(Events.FetchBalance())
+                refreshAccountState()
             }
+    }
+
+    override suspend fun withdrawUsdf(
+        amount: VerifiedFiat,
+        owner: AccountCluster,
+        destination: PublicKey,
+        destinationOwner: PublicKey,
+        fee: LocalFiat,
+    ): Result<SwapId> {
+        trace(
+            tag = "TransactionController",
+            message = "Starting USDF->USDC withdrawal",
+            type = TraceType.Process,
+            metadata = {
+                "amount (native)" to "${amount.localFiat.nativeAmount.formatted()} (${amount.localFiat.nativeAmount.currencyCode})"
+                "amount (underlying)" to "${amount.localFiat.underlyingTokenAmount.formatted()} (${amount.localFiat.underlyingTokenAmount.currencyCode})"
+                "fee (native)" to "${fee.nativeAmount.formatted()} (${fee.nativeAmount.currencyCode})"
+                "fee (underlying)" to "${fee.underlyingTokenAmount.formatted()} (${fee.underlyingTokenAmount.currencyCode})"
+            }
+        )
+
+        val verifiedState = amount.verifiedState
+            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+
+        return repository.withdrawUsdf(
+            scope = scope,
+            owner = owner,
+            amount = amount.localFiat,
+            fee = fee,
+            destinationOwner = destinationOwner,
+            verifiedState = verifiedState
+        ).onSuccess { refreshAccountState() }.onFailure { error ->
+            trace(
+                tag = "TransactionController",
+                message = error.message.orEmpty(),
+                type = TraceType.Error,
+                error = error
+            )
+        }
     }
 
     suspend fun remoteSend(
@@ -153,11 +209,9 @@ class TransactionController @Inject constructor(
         owner: AccountCluster,
         source: AccountCluster,
         rendezvous: PublicKey,
+        verifiedState: VerifiedState,
         scope: CoroutineScope = this.scope,
     ): Result<IntentType> {
-        val verifiedState =
-            verifiedStateManager.getVerifiedStateFor(amount.rate.currency, token.address)
-                ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
         val intent = IntentRemoteSend.create(
             amount = amount,
@@ -180,7 +234,7 @@ class TransactionController @Inject constructor(
             }
     }
 
-    suspend fun cancelRemoteSend(
+    override suspend fun cancelRemoteSend(
         owner: AccountCluster,
         vault: PublicKey,
     ): Result<Unit> {
@@ -190,6 +244,7 @@ class TransactionController @Inject constructor(
             type = TraceType.User
         )
         return repository.voidGiftCard(owner.authority.keyPair, vault)
+            .onSuccess { refreshAccountState() }
             .onFailure {
                 trace(
                     tag = "Transactions",
@@ -232,30 +287,39 @@ class TransactionController @Inject constructor(
         return submitIntent(scope, intent, owner.authority.keyPair)
     }
 
-    suspend fun buy(
+    override suspend fun buy(
         owner: AccountCluster,
-        amount: LocalFiat,
-        swapId: SwapId? = null,
+        amount: VerifiedFiat,
+        feeAmount: LocalFiat?,
+        swapId: SwapId?,
         of: Token,
-        source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
-        fund: (suspend (SwapRequest) -> Result<Unit>)? = null,
+        source: SwapFundingSource,
+        fund: (suspend (StatefulSwapRequest) -> Result<Unit>)?,
     ): Result<SwapId> {
-        trace("Starting ${amount.nativeAmount.formatted()} buy of ${of.symbol}")
+        trace("Starting ${amount.localFiat.nativeAmount.formatted()} buy of ${of.symbol}")
         val tokenizedOwner = owner.withTimelockForToken(of)
 
+        // A Token whose launchpadMetadata is null and whose address isn't USDF is
+        // a freshly-launched stub (see MintMetadata.fromLaunch). For that case the
+        // on-chain VM doesn't exist yet; the atomic new-currency swap transaction
+        // itself creates the VM (VM::InitializeVm) and the VM deposit ATA
+        // (CreateIdempotent), so no pre-flight createUserAccount call is needed —
+        // and attempting one would fail against a non-existent VM.
+        val isFreshlyLaunchedStub =
+            of.launchpadMetadata == null && of.address != Mint.usdf
+
         // create an account if we don't currently have one for this token
-        val accountResult = if (!accountController.hasAccountFor(of.address)) {
-            accountController.createUserAccount(
+        val accountResult = when {
+            isFreshlyLaunchedStub -> Result.success(Unit)
+            accountController.hasAccountFor(of.address) -> Result.success(Unit)
+            else -> accountController.createUserAccount(
                 ownerForMint = tokenizedOwner,
-                mint = of.address
+                mint = of.address,
             )
-        } else {
-            Result.success(Unit)
         }
 
-        val verifiedState =
-            verifiedStateManager.getVerifiedStateFor(amount.rate.currency, Mint.usdf)
-                ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+        val verifiedState = amount.verifiedState
+            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
         return accountResult.fold(
             onSuccess = {
@@ -263,12 +327,13 @@ class TransactionController @Inject constructor(
                     scope = scope,
                     swapId = swapId,
                     owner = owner,
-                    amount = amount,
+                    amount = amount.localFiat,
+                    feeAmount = feeAmount,
                     of = of,
                     source = source,
                     fund = fund,
                     verifiedState = verifiedState,
-                )
+                ).onSuccess { refreshAccountState() }
             },
             onFailure = { error ->
                 trace(
@@ -282,22 +347,22 @@ class TransactionController @Inject constructor(
         )
     }
 
-    suspend fun sell(
+    override suspend fun sell(
         owner: AccountCluster,
-        amount: LocalFiat,
+        amount: VerifiedFiat,
         of: Token,
     ): Result<SwapId> {
-        val verifiedState =
-            verifiedStateManager.getVerifiedStateFor(amount.rate.currency, of.address)
-                ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+        val verifiedState = amount.verifiedState
+            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
 
         return repository.sell(
             scope = scope,
             owner = owner,
-            amount = amount,
+            amount = amount.localFiat,
             of = of,
             verifiedState = verifiedState
         )
+            .onSuccess { refreshAccountState() }
             .onFailure { error ->
                 trace(
                     tag = "TransactionController",
@@ -308,12 +373,20 @@ class TransactionController @Inject constructor(
             }
     }
 
-    suspend fun pollSwapForState(
+    override suspend fun pollSwapForState(
         swapId: SwapId,
         owner: AccountCluster,
         targetState: SwapState,
+        maxAttempts: Int,
+        interval: Duration,
     ): Result<SwapMetadata> {
-        return swapRepository.pollForState(swapId, owner.authority.keyPair, targetState)
+        return swapRepository.pollForState(
+            swapId,
+            owner.authority.keyPair,
+            targetState,
+            maxAttempts,
+            interval
+        )
     }
 
     internal suspend fun submitIntent(
@@ -321,6 +394,7 @@ class TransactionController @Inject constructor(
         intent: IntentType,
         authority: KeyPair,
     ): Result<IntentType> = repository.submitIntent(scope, intent, authority)
+        .onSuccess { refreshAccountState() }
 
     suspend fun getIntentMetadata(
         intentId: PublicKey,
@@ -386,10 +460,18 @@ class TransactionController @Inject constructor(
             .map { Result.success(it) }
             .catch { emit(Result.failure(it)) }
             .firstOrNull()
-            ?: Result.failure(IllegalStateException("Never received the desired metadata"))
+            ?: Result.failure(GetIntentMetadataError.Timeout())
     }
 
-    suspend fun checkWithdrawalAvailability(
+    override suspend fun swapUsdc(
+        owner: AccountCluster,
+        amount: Long,
+    ): Result<Unit> {
+        if (amount <= 0L) return Result.success(Unit)
+        return repository.sweepUsdc(scope, owner, amount)
+    }
+
+    override suspend fun checkWithdrawalAvailability(
         address: String,
         mint: Mint,
     ): Result<WithdrawalAvailability> {

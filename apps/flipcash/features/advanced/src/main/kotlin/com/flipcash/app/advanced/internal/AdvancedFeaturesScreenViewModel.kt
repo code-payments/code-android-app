@@ -5,9 +5,9 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
-import com.flipcash.services.user.UserManager
-import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel2
+import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
@@ -17,16 +17,18 @@ import javax.inject.Inject
 
 private val FullMenuList = buildList {
     add(BillCustomizer)
-    add(Deposit)
+    add(DeviceLogs)
 }
 
 @HiltViewModel
 internal class AdvancedFeaturesScreenViewModel @Inject constructor(
-    userManager: UserManager,
     featureFlagController: FeatureFlagController,
-) : BaseViewModel2<AdvancedFeaturesScreenViewModel.State, AdvancedFeaturesScreenViewModel.Event>(
+    userFlags: UserFlagsCoordinator,
+    dispatchers: DispatcherProvider,
+) : BaseViewModel<AdvancedFeaturesScreenViewModel.State, AdvancedFeaturesScreenViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val isBetaEnabled: Boolean = false,
@@ -35,21 +37,14 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
-        data class OnBillCustomizerEnabled(val enabled: Boolean) : Event
         data class OpenScreen(val screen: AppRoute) : Event
-
-        data object OpenBillPlayground: Event
+        data object OpenBillPlayground : Event
     }
 
     init {
-        featureFlagController.observe(FeatureFlag.BillCustomizer)
-            .onEach {
-                dispatchEvent(Event.OnBillCustomizerEnabled(it))
-            }.launchIn(viewModelScope)
-
         combine(
             featureFlagController.observeOverride(),
-            userManager.state.map { it.flags?.isStaff == true }
+            userFlags.resolvedFlags.map { it.isStaff.effectiveValue }
         ) { override, isStaff ->
             override || isStaff
         }.map {
@@ -63,16 +58,6 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
                 is Event.OnBetaFeaturesUnlocked -> { state ->
                     state.copy(
                         isBetaEnabled = event.unlocked,
-                    )
-                }
-
-                is Event.OnBillCustomizerEnabled -> { state ->
-                    state.copy(
-                        items = if (event.enabled) {
-                            FullMenuList
-                        } else {
-                            FullMenuList.filterNot { it is BillCustomizer }
-                        }
                     )
                 }
 

@@ -10,11 +10,20 @@ android {
 }
 
 dependencies {
-    implementation(libs.compose.webview)
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.robolectric)
 
+    implementation(libs.androidx.webkit)
     implementation(libs.androidx.localbroadcastmanager)
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
 
+    implementation(libs.play.services.wallet)
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(project(":libs:messaging"))
+    implementation(project(":apps:flipcash:shared:featureflags"))
+    implementation(project(":apps:flipcash:shared:web"))
     api(project(":libs:network:coinbase:onramp"))
     implementation(project(":libs:network:jwt"))
+    implementation(project(":libs:network:connectivity:public"))
 }

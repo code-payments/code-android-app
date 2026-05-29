@@ -310,6 +310,7 @@ internal fun CashBill(
                 .aspectRatio(CashBillDefaults.AspectRatio, matchHeightConstraintsFirst = true)
                 .fillMaxHeight()
                 .fillMaxWidth(0.95f)
+                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                 .clipToBounds()
                 .testTag("cash_bill")
         ) {

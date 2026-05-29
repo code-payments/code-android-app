@@ -30,4 +30,5 @@ interface AppUpdateController {
     suspend fun checkForUpdate()
 
     suspend fun startUpdate(): Result<Unit>
+    suspend fun reset()
 }

@@ -35,6 +35,8 @@ import com.flipcash.app.bill.customization.Event.Colors as ColorEvent
 @Composable
 internal fun BackgroundControls(
     state: ColorState,
+    onShowingPaste: () -> Unit,
+    onPasteConfiguration: () -> Unit,
     dispatchEvent: (ColorEvent) -> Unit,
 ) {
     Column(
@@ -48,7 +50,9 @@ internal fun BackgroundControls(
             selectedSlot = state.selectedSlot,
             maxSlots = state.maxSlots,
             selectedColors = state.selectedColors,
-            dispatchEvent = dispatchEvent
+            dispatchEvent = dispatchEvent,
+            onShowingPaste = onShowingPaste,
+            onPasteConfiguration = onPasteConfiguration,
         )
 
         val selectedSlotStore by rememberUpdatedState(state.selectedColors[state.selectedSlot])

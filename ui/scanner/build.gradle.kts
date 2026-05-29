@@ -18,7 +18,7 @@ dependencies {
     implementation(project(":ui:components"))
     implementation(project(":ui:theme"))
     api(project(":vendor:kik:scanner"))
-    implementation("com.google.guava:guava:33.4.8-android")
+    implementation("com.google.guava:guava:33.6.0-android")
 
     // cameraX
     implementation(libs.androidx.camerax.core)

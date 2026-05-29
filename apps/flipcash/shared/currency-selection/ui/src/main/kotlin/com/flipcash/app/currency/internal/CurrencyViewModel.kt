@@ -3,13 +3,13 @@ package com.flipcash.app.currency.internal
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.currency.PreferredCurrencyController
 import com.flipcash.features.currency.R
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel2
+import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -27,12 +27,13 @@ class CurrencyViewModel @Inject constructor(
     exchange: Exchange,
     preferredCurrencyController: PreferredCurrencyController,
     private val resources: ResourceHelper,
-) : BaseViewModel2<CurrencyViewModel.State, CurrencyViewModel.Event>(
+    dispatchers: DispatcherProvider,
+) : BaseViewModel<CurrencyViewModel.State, CurrencyViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
-        val kind: RegionSelectionKind? = null,
         val loading: Boolean = false,
         val listItems: List<CurrencyListItem> = emptyList(),
         val currencies: List<Currency> = emptyList(),
@@ -43,7 +44,6 @@ class CurrencyViewModel @Inject constructor(
     )
 
     sealed interface Event {
-        data class OnKindChanged(val kind: RegionSelectionKind): Event
         data class OnLoadingChanged(val loading: Boolean) : Event
         data class OnItemsPopulated(val currencies: List<CurrencyListItem>) : Event
         data class OnCurrenciesUpdated(val currencies: List<Currency>): Event
@@ -58,8 +58,7 @@ class CurrencyViewModel @Inject constructor(
     init {
         combine(
             exchange.observeRates().distinctUntilChanged().map { exchange.getCurrenciesWithRates() },
-            stateFlow.mapNotNull { it.kind }
-                .flatMapLatest { preferredCurrencyController.observePreferredForKind(it) }.distinctUntilChanged(),
+            preferredCurrencyController.observePreferredCurrency().distinctUntilChanged(),
         ) { currenciesWithRates, preferredCurrency ->
             dispatchEvent(Event.OnCurrenciesUpdated(currenciesWithRates))
             val preferredWithRate = currenciesWithRates.find { it.code == preferredCurrency }
@@ -83,8 +82,7 @@ class CurrencyViewModel @Inject constructor(
             .filter { it.fromUser }
             .map { it.currency }
             .onEach { selected ->
-                val kind = stateFlow.value.kind ?: return@onEach
-                preferredCurrencyController.updateSelection(kind, selected)
+                preferredCurrencyController.updateSelection(selected)
             }.onEach { dispatchEvent(Event.OnSelectedCurrencyChanged) }
             .launchIn(viewModelScope)
 
@@ -154,7 +152,6 @@ class CurrencyViewModel @Inject constructor(
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnItemsPopulated -> { state -> state.copy(listItems = event.currencies) }
-                is Event.OnKindChanged -> { state -> state.copy(kind = event.kind) }
                 is Event.OnLoadingChanged -> { state -> state.copy(loading = event.loading) }
                 is Event.OnCurrenciesUpdated -> { state -> state.copy(currencies = event.currencies) }
                 is Event.OnRecentCurrenciesUpdated -> { state -> state.copy(recents = event.recents) }

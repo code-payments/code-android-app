@@ -1,10 +1,17 @@
 package com.getcode.opencode.controllers
 
-import com.getcode.opencode.internal.model.LiveMintDataResponse
-import com.getcode.opencode.internal.model.WindowedRange
+import com.getcode.ed25519.Ed25519
+import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
+import com.getcode.opencode.model.financial.LiveMintDataResponse
+import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.HistoricalMintData
 import com.getcode.opencode.model.financial.MintMetadata
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenCreateRequest
+import com.getcode.opencode.model.moderation.ModerationAttestation
+import com.getcode.opencode.model.ui.DiscoverCategory
+import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.opencode.repositories.CurrencyRepository
 import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.CoroutineScope
@@ -109,5 +116,27 @@ class CurrencyController @Inject constructor(
         windowedRange: WindowedRange,
     ): Result<List<HistoricalMintData>> = runCatching {
         return repository.getHistoricalMintData(mint, currencyCode, windowedRange)
+    }
+
+    suspend fun discoverTokens(
+        category: DiscoverCategory
+    ): Result<List<Token>> {
+        return repository.discoverTokens(category)
+    }
+
+    suspend fun checkTokenAvailability(name: String): Result<Unit> {
+        return repository.checkTokenAvailability(name)
+            .mapCatching { available ->
+                if (!available) {
+                    throw CheckTokenAvailabilityError.Unavailable()
+                }
+            }
+    }
+
+    suspend fun launchToken(
+        request: TokenCreateRequest,
+        owner: Ed25519.KeyPair,
+    ): Result<Mint> {
+        return repository.launchToken(request, owner)
     }
 }

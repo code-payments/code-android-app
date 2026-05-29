@@ -1,6 +1,7 @@
 package com.getcode.libs.biometrics
 
 import android.content.Context
+import android.content.ContextWrapper
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.runtime.getValue
@@ -79,7 +80,7 @@ object Biometrics {
         promptActive = true
         delay(delay)
         return suspendCancellableCoroutine { cont ->
-            val activity = context as FragmentActivity
+            val activity = context.findFragmentActivity()
             val executor = Executors.newSingleThreadExecutor()
             val biometricPrompt = BiometricPrompt(
                 activity,
@@ -112,4 +113,13 @@ object Biometrics {
             biometricPrompt.authenticate(promptInfo)
         }
     }
+}
+
+private fun Context.findFragmentActivity(): FragmentActivity {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is FragmentActivity) return ctx
+        ctx = ctx.baseContext
+    }
+    throw IllegalStateException("Biometric prompt requires a FragmentActivity context")
 }

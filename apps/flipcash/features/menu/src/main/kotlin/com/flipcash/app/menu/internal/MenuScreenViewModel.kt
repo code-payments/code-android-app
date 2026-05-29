@@ -1,30 +1,30 @@
 package com.flipcash.app.menu.internal
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
-import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
-import com.flipcash.app.onramp.ConfirmationEvent
-import com.flipcash.app.onramp.OnRampAmount
-import com.flipcash.app.onramp.OnRampAmountController
+import com.flipcash.app.updates.ReleaseStage
+import com.flipcash.app.updates.ReleaseStageProvider
+import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.features.menu.BuildConfig
 import com.flipcash.features.menu.R
-import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel2
+import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.manager.BottomBarAction
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
@@ -33,7 +33,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -41,53 +40,47 @@ private val FullMenuList = buildList {
     add(MyAccount)
     add(AppSettings)
     add(AdvancedFeatures)
-    add(Withdraw)
     add(SwitchAccount)
     add(Labs)
-    add(LogOut)
 }
 
 @HiltViewModel
 internal class MenuScreenViewModel @Inject constructor(
-    private val resources: ResourceHelper,
     userManager: UserManager,
+    userFlags: UserFlagsCoordinator,
     authManager: AuthManager,
     versionInfo: VersionInfo,
     mnemonicManager: MnemonicManager,
     featureFlags: FeatureFlagController,
-    onrampController: OnRampAmountController,
-    analytics: FlipcashAnalyticsService,
+    dispatchers: DispatcherProvider,
+    releaseStageProvider: ReleaseStageProvider,
 ) :
-    BaseViewModel2<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
+    BaseViewModel<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
         initialState = State(),
-        updateStateForEvent = updateStateForEvent
+        updateStateForEvent = updateStateForEvent,
+        defaultDispatcher = dispatchers.Default,
     ) {
     data class State(
         val items: List<MenuItem<Event>> = FullMenuList,
         val logoTapCount: Int = 0,
         val isStaff: Boolean = false,
-        val preferredOnRampProvider: OnRampProvider? = null,
-        val showQuickActions: Boolean = false,
         val flags: List<BetaFeature> = emptyList(),
         val unlockedBetaFeaturesManually: Boolean = false,
         val appVersionInfo: VersionInfo = VersionInfo(),
+        val releaseTrack: String = "",
     )
 
     sealed interface Event {
-        data object OnLogoTapped: Event
+        data object OnVersionInfoClicked: Event
+        data object CheckForUpdate: Event
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean): Event
         data class OnFeatureFlagsUpdated(val flags: List<BetaFeature>): Event
-        data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider?): Event
         data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
+        data class OnReleaseTrackDetermined(val stage: String): Event
         data class OnStaffUserDetermined(val staff: Boolean) : Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object OnSwitchAccountsClicked : Event
-        data object OnLogOutClicked : Event
-        data object OnLoggedOutCompletely : Event
         data class OnSwitchAccountTo(val entropy: String): Event
-        data object OnAddCashClicked: Event
-        data object OpenOnRampAmountModal: Event
-        data object OnWithdrawClicked: Event
     }
 
     init {
@@ -96,8 +89,8 @@ internal class MenuScreenViewModel @Inject constructor(
 
         userManager.state
             .filter { it.authState is AuthState.LoggedInWithUser }
-            .mapNotNull { it.flags }
-            .map { it.isStaff }
+            .flatMapLatest { userFlags.resolvedFlags }
+            .mapNotNull { it.isStaff.effectiveValue }
             .onEach {
                 dispatchEvent(Event.OnStaffUserDetermined(it))
             }.launchIn(viewModelScope)
@@ -110,61 +103,32 @@ internal class MenuScreenViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnFeatureFlagsUpdated(it)) }
             .launchIn(viewModelScope)
 
-        userManager.state
-            .filter { it.authState is AuthState.LoggedInWithUser }
-            .mapNotNull { it.flags }
-            .map { it.preferredOnRampProvider }
-            .onEach { provider ->
-                dispatchEvent(Event.OnPreferredOnRampProviderChanged(provider))
+        viewModelScope.launch {
+            val resolvedStage = releaseStageProvider.resolvedStage
+            val label = when {
+                BuildConfig.DEBUG -> "development"
+                resolvedStage == null || resolvedStage == ReleaseStage.Production -> null
+                else -> resolvedStage.name.lowercase()
             }
-            .launchIn(viewModelScope)
+
+            val formattedLabel = if (label != null) { " • $label" } else ""
+            dispatchEvent(Event.OnReleaseTrackDetermined(formattedLabel))
+        }
 
         eventFlow
-            .filterIsInstance<Event.OnLogoTapped>()
+            .filterIsInstance<Event.OnVersionInfoClicked>()
             .map { stateFlow.value.logoTapCount }
             .filter { it > TAP_THRESHOLD }
             .filterNot { stateFlow.value.unlockedBetaFeaturesManually }
             .onEach { featureFlags.enableBetaFeatures() }
             .launchIn(viewModelScope)
 
+        @OptIn(FlowPreview::class)
         eventFlow
-            .filterIsInstance<Event.OnAddCashClicked>()
-            .onEach {
-                analytics.openOnramp(Analytics.OnrampSource.Settings)
-                val provider = stateFlow.value.preferredOnRampProvider
-                if (provider is OnRampProvider.Coinbase && provider.type == OnRampType.Virtual) {
-                    // has coinbase provider supporting google pay - pop selection for quick add
-                    dispatchEvent(Event.OpenOnRampAmountModal)
-                }
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnWithdrawClicked>()
-            .onEach {
-                dispatchEvent(
-                    Event.OpenScreen(
-                        AppRoute.Sheets.TokenSelection(TokenPurpose.Withdraw)
-                    )
-                )
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OpenOnRampAmountModal>()
-            .map { onrampController.requestAmountSelection(OnRampProvider.Coinbase(OnRampType.Virtual)) }
-            .flatMapLatest {
-                onrampController.confirmationEvents.take(1)
-            }.onEach { event ->
-                when (event) {
-                    is ConfirmationEvent.OnConfirmationSuccess -> {
-                        when (event.amount) {
-                            OnRampAmount.Custom -> dispatchEvent(Event.OpenScreen(AppRoute.OnRamp.AmountEntry))
-                            is OnRampAmount.Predefined -> Unit
-                        }
-                    }
-
-                    ConfirmationEvent.Cancelled -> Unit
-                }
-            }.launchIn(viewModelScope)
+            .filterIsInstance<Event.OnVersionInfoClicked>()
+            .debounce(500)
+            .onEach { dispatchEvent(Event.CheckForUpdate) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnSwitchAccountsClicked>()
@@ -179,40 +143,9 @@ internal class MenuScreenViewModel @Inject constructor(
                         onFailure = { Result.failure(it) }
                     )
             }.onResult(
-                onError = {
-
-                },
+                onError = { },
                 onSuccess = { dispatchEvent(Event.OnSwitchAccountTo(it)) }
             ).launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnLogOutClicked>()
-            .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.prompt_title_logout),
-                        subtitle = resources.getString(R.string.prompt_description_logout),
-                        showScrim = true,
-                        positiveText = resources.getString(R.string.action_logout),
-                        tertiaryText = resources.getString(R.string.action_cancel),
-                        onPositive = {
-                            viewModelScope.launch {
-                                delay(150) // wait for dismiss
-                                authManager.logout()
-                                    .onSuccess {
-                                        dispatchEvent(Event.OnLoggedOutCompletely)
-                                    }
-                                    .onFailure {
-                                        BottomBarManager.showError(
-                                            title = resources.getString(R.string.error_title_failedToLogOut),
-                                            message = resources.getString(R.string.error_description_failedToLogOut),
-                                        )
-                                    }
-                            }
-                        }
-                    )
-                )
-            }.launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -250,7 +183,7 @@ internal class MenuScreenViewModel @Inject constructor(
 
         private val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                Event.OnLogoTapped -> { state ->
+                Event.OnVersionInfoClicked -> { state ->
                     state.copy(logoTapCount = state.logoTapCount + 1)
                 }
 
@@ -269,6 +202,10 @@ internal class MenuScreenViewModel @Inject constructor(
                     state.copy(appVersionInfo = event.versionInfo)
                 }
 
+                is Event.OnReleaseTrackDetermined -> { state ->
+                    state.copy(releaseTrack = event.stage)
+                }
+
                 is Event.OnStaffUserDetermined -> { state ->
                     state.copy(
                         isStaff = event.staff,
@@ -280,18 +217,10 @@ internal class MenuScreenViewModel @Inject constructor(
                     )
                 }
 
-                Event.OnLogOutClicked,
+                Event.CheckForUpdate,
                 Event.OnSwitchAccountsClicked,
                 is Event.OpenScreen,
-                Event.OnLoggedOutCompletely,
                 is Event.OnSwitchAccountTo -> { state -> state }
-
-                Event.OnAddCashClicked -> { state -> state }
-                Event.OnWithdrawClicked -> { state -> state }
-                Event.OpenOnRampAmountModal -> { state -> state }
-                is Event.OnPreferredOnRampProviderChanged -> { state ->
-                    state.copy(preferredOnRampProvider = event.provider)
-                }
 
                 is Event.OnFeatureFlagsUpdated -> { state ->
                     state.copy(

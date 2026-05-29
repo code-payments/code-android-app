@@ -7,13 +7,12 @@ android {
 }
 
 dependencies {
-    implementation(libs.compose.activities)
-
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:appupdates"))
     implementation(project(":apps:flipcash:shared:bills"))
     implementation(project(":apps:flipcash:shared:bill-customization"))
+    implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:router"))
     implementation(project(":apps:flipcash:shared:session"))
 

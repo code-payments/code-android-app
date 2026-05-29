@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,20 +30,19 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
-import com.flipcash.app.core.money.RegionSelectionKind
-import com.flipcash.app.core.tokens.TokenSwapPurpose
-import com.flipcash.app.tokens.ui.TokenInfoViewModel
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.tokens.internal.components.info.MarketCapSection
 import com.flipcash.app.tokens.internal.components.info.TokenBalance
 import com.flipcash.app.tokens.internal.components.info.TokenDetailsSection
+import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.features.tokens.R
-import com.getcode.libs.analytics.LocalAnalytics
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.measured
@@ -56,21 +56,21 @@ import com.getcode.ui.utils.calculateStartPadding
 import com.getcode.ui.utils.sheetResignmentBehavior
 
 @Composable
-internal fun TokenInfoScreen(viewModel: TokenInfoViewModel, isForNeededFunds: Boolean) {
+internal fun TokenInfoScreen(viewModel: TokenInfoViewModel, shortfall: Fiat?) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    TokenInfoScreen(isForNeededFunds, state, viewModel::dispatchEvent)
+    TokenInfoScreen(shortfall, state, viewModel::dispatchEvent)
 }
 
 @Composable
 private fun TokenInfoScreen(
-    isForNeededFunds: Boolean,
+    shortfall: Fiat?,
     state: TokenInfoViewModel.State,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
     val listState = rememberLazyListState()
 
     CodeScaffold(
-        bottomBar = { BottomBar(isForNeededFunds, state, dispatch) }
+        bottomBar = { BottomBar(shortfall, state, dispatch) }
     ) { innerPadding ->
         Box(
             modifier = Modifier.verticalScrollStateGradient(
@@ -112,6 +112,7 @@ private fun TokenInfoScreen(
                             }
                         }
                     }
+
                     is Loadable.Error -> {
                         item {
                             Box(modifier = Modifier.fillParentMaxSize()) {
@@ -131,6 +132,7 @@ private fun TokenInfoScreen(
                             }
                         }
                     }
+
                     is Loadable.Loaded -> {
                         item {
                             TokenBalance(
@@ -142,7 +144,7 @@ private fun TokenInfoScreen(
                                 onClick = {
                                     dispatch(
                                         TokenInfoViewModel.Event.OpenScreen(
-                                            AppRoute.Main.RegionSelection(kind = RegionSelectionKind.Balance)
+                                            AppRoute.Main.RegionSelection
                                         )
                                     )
                                 }
@@ -178,7 +180,7 @@ private fun TokenInfoScreen(
 
                         // currency info
                         item {
-                            if (state.isCashReserve && state.cashReservesEnabled) {
+                            if (state.isCashReserve) {
                                 Text(
                                     modifier = Modifier
                                         .fillParentMaxWidth()
@@ -200,7 +202,8 @@ private fun TokenInfoScreen(
                         if (!state.isCashReserve) {
                             // market cap
                             state.marketCap?.let { mcap ->
-                                val loadable = state.historicalMarketCapData[state.selectedPeriod] ?: Loadable.Loaded(emptyList())
+                                val loadable = state.historicalMarketCapData[state.selectedPeriod]
+                                    ?: Loadable.Loaded(emptyList())
                                 item {
                                     MarketCapSection(
                                         modifier = Modifier
@@ -211,10 +214,18 @@ private fun TokenInfoScreen(
                                         selectedPeriod = state.selectedPeriod,
                                         rawHistoricalData = loadable,
                                         onRetry = {
-                                            dispatch(TokenInfoViewModel.Event.LoadHistoricalDataForPeriod(state.selectedPeriod))
+                                            dispatch(
+                                                TokenInfoViewModel.Event.LoadHistoricalDataForPeriod(
+                                                    state.selectedPeriod
+                                                )
+                                            )
                                         },
                                         onPeriodSelected = {
-                                            dispatch(TokenInfoViewModel.Event.OnMarketCapPeriodSelected(it))
+                                            dispatch(
+                                                TokenInfoViewModel.Event.OnMarketCapPeriodSelected(
+                                                    it
+                                                )
+                                            )
                                         },
                                     )
                                 }
@@ -232,7 +243,7 @@ private fun TokenInfoScreen(
 
 @Composable
 private fun BottomBar(
-    isForNeededFunds: Boolean,
+    shortfall: Fiat?,
     state: TokenInfoViewModel.State,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
@@ -258,7 +269,7 @@ private fun BottomBar(
                     top = CodeTheme.dimens.grid.x9,
                     bottom = CodeTheme.dimens.grid.x3
                 ),
-            isForNeededFunds = isForNeededFunds,
+            shortfall = shortfall,
             state = state,
             dispatch = dispatch
         )
@@ -267,7 +278,7 @@ private fun BottomBar(
 
 @Composable
 private fun BottomBarButtons(
-    isForNeededFunds: Boolean,
+    shortfall: Fiat?,
     state: TokenInfoViewModel.State,
     modifier: Modifier = Modifier,
     dispatch: (TokenInfoViewModel.Event) -> Unit
@@ -282,51 +293,114 @@ private fun BottomBarButtons(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             ) {
-                if (state.isCashReserve) return@Row
-                val canGive = state.balance.nativeAmount.isPositive
-                if (canGive) {
-                    CodeButton(
-                        modifier = Modifier.weight(1f),
-                        buttonState = ButtonState.Filled,
-                        text = stringResource(R.string.action_give),
-                    ) {
-                        dispatch(
-                            TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.Main.Give(mint = loadable.data.address, fromTokenInfo = true)
-                            )
-                        )
-                    }
-                }
+                if (state.isCashReserve) {
+                    ReserveButtonOptions(
+                        mint = loadable.data.address,
 
-                if (state.cashReservesEnabled) {
-                    CodeButton(
-                        modifier = Modifier.weight(1f),
-                        buttonState = if (canGive) ButtonState.Filled20 else ButtonState.Filled,
-                        text = stringResource(R.string.action_buy),
-                    ) {
-                        dispatch(TokenInfoViewModel.Event.OpenPurchaseMethods(forNeededFunds = isForNeededFunds))
-                    }
-
-                    if (state.canSell) {
-                        CodeButton(
-                            modifier = Modifier
-                                .weight(1f),
-                            buttonState = ButtonState.Filled20,
-                            text = stringResource(R.string.action_sell),
-                        ) {
-                            analytics.buttonTapped(Button.TokenSell)
-                            dispatch(
-                                TokenInfoViewModel.Event.OpenScreen(
-                                    AppRoute.Token.SwapTransact(
-                                        purpose = TokenSwapPurpose.Sell(loadable.data.address),
-                                    )
-                                )
-                            )
-                        }
-                    }
+                        state = state,
+                        dispatch = dispatch,
+                    )
+                } else {
+                    ButtonOptions(
+                        analytics = analytics,
+                        mint = loadable.data.address,
+                        shortfall = shortfall,
+                        state = state,
+                        dispatch = dispatch,
+                    )
                 }
             }
         }
+
         is Loadable.Loading -> Unit
+    }
+}
+
+@Composable
+private fun RowScope.ReserveButtonOptions(
+    mint: Mint,
+    state: TokenInfoViewModel.State,
+    dispatch: (TokenInfoViewModel.Event) -> Unit
+) {
+    CodeButton(
+        modifier = Modifier.weight(1f),
+        buttonState = ButtonState.Filled,
+        text = stringResource(R.string.action_depositFunds),
+    ) {
+        dispatch(
+            TokenInfoViewModel.Event.OpenScreen(
+                AppRoute.Transfers.Deposit()
+            )
+        )
+    }
+
+    val hasBalance = state.balance.nativeAmount.isPositive
+
+    if (hasBalance) {
+        CodeButton(
+            modifier = Modifier.weight(1f),
+            buttonState = ButtonState.Filled20,
+            text = stringResource(R.string.action_withdraw),
+        ) {
+            dispatch(
+                TokenInfoViewModel.Event.OpenScreen(
+                    AppRoute.Transfers.Withdrawal(showOtherOptions = false)
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun RowScope.ButtonOptions(
+    analytics: FlipcashAnalyticsService,
+    mint: Mint,
+    shortfall: Fiat?,
+    state: TokenInfoViewModel.State,
+    dispatch: (TokenInfoViewModel.Event) -> Unit
+) {
+    val canGive = state.balance.nativeAmount.isPositive
+
+    CodeButton(
+        modifier = Modifier.weight(1f),
+        buttonState = ButtonState.Filled,
+        text = stringResource(R.string.action_buy),
+    ) {
+        dispatch(TokenInfoViewModel.Event.OnBuy(shortfall))
+    }
+
+    if (canGive) {
+        CodeButton(
+            modifier = Modifier.weight(1f),
+            buttonState = ButtonState.Filled20,
+            text = stringResource(R.string.action_give),
+        ) {
+            dispatch(
+                TokenInfoViewModel.Event.OpenScreen(
+                    AppRoute.Sheets.Give(
+                        mint = mint,
+                        fromTokenInfo = true
+                    )
+                )
+            )
+        }
+    }
+
+    if (state.canSell) {
+        CodeButton(
+            modifier = Modifier
+                .weight(1f),
+            buttonState = ButtonState.Filled20,
+            text = stringResource(R.string.action_sell),
+        ) {
+            analytics.buttonTapped(Button.TokenSell)
+            dispatch(
+                TokenInfoViewModel.Event.OpenScreen(
+                    AppRoute.Token.Swap(
+                        purpose = SwapPurpose.Sell(mint),
+                    )
+                )
+            )
+        }
     }
 }

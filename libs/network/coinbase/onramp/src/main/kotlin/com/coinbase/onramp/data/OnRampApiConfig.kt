@@ -5,7 +5,6 @@ data class OnRampApiConfig(
     val host: String,
     val path: String,
     val method: String,
-    val useSandbox: Boolean = false,
 ) {
     val baseUrl: String
         get() = "$scheme://$host"

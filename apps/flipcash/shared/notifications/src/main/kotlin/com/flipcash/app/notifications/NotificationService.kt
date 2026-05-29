@@ -1,29 +1,28 @@
 package com.flipcash.app.notifications
 
 import android.Manifest
-import android.app.NotificationChannel
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.RingtoneManager
-import android.net.Uri
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.util.Linkify
+import com.flipcash.app.persistence.sources.ContactDataSource
+import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.NavigationTrigger
+import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
+import com.flipcash.services.models.Substitution
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.notifications.R
-import com.getcode.opencode.controllers.TokenController
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -38,6 +37,12 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class NotificationService : FirebaseMessagingService(),
     CoroutineScope by CoroutineScope(Dispatchers.IO) {
+
+    companion object {
+        private const val KEY_TITLE = "push_notification_title"
+        private const val KEY_BODY = "push_notification_body"
+        private const val KEY_PAYLOAD = "flipcash_payload"
+    }
 
     @Inject
     lateinit var authManager: AuthManager
@@ -54,17 +59,28 @@ class NotificationService : FirebaseMessagingService(),
     @Inject
     lateinit var tokenCoordinator: TokenCoordinator
 
+    @Inject
+    lateinit var contactDataSource: ContactDataSource
+
+    @Inject
+    lateinit var contactCoordinator: ContactCoordinator
+
+    @Inject
+    lateinit var phoneUtils: PhoneUtils
+
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         authenticateIfNeeded {
             launch {
-                pushController.addToken(token)
-                    .onSuccess {
-                        userManager.set(pushToken = token)
-                        trace("push token updated onNewToken", type = TraceType.Silent)
-                    }.onFailure {
-                        trace(message = "Failure updating push token", error = it)
-                    }
+                if (userManager.state.value.authState.canAccessAuthenticatedApis) {
+                    pushController.addToken(token)
+                        .onSuccess {
+                            userManager.set(pushToken = token)
+                            trace("push token updated onNewToken", type = TraceType.Silent)
+                        }.onFailure {
+                            trace(message = "Failure updating push token", error = it)
+                        }
+                }
             }
         }
     }
@@ -72,14 +88,8 @@ class NotificationService : FirebaseMessagingService(),
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
-        // dump everything into FCM fallback channel for now
-        val channel = NotificationChannelCompat.Builder(
-            "fcm_fallback_notification_channel",
-            NotificationManagerCompat.IMPORTANCE_DEFAULT
-        ).setName("Misc.").build()
-
-        val title = message.data["push_notification_title"]?.ifEmpty { message.notification?.title }
-        val body = message.data["push_notification_body"]?.ifEmpty { message.notification?.body }
+        val title = message.data[KEY_TITLE]?.ifEmpty { message.notification?.title }
+        val body = message.data[KEY_BODY]?.ifEmpty { message.notification?.body }
 
         trace(
             message = "onMessageReceived",
@@ -90,45 +100,81 @@ class NotificationService : FirebaseMessagingService(),
             }
         )
 
-        if (title == null) {
-            return
-        }
+        if (title == null) return
 
-        val payload = message.data.getOrDefault("flipcash_payload", "")
+        val payload = message.data.getOrDefault(KEY_PAYLOAD, "")
             .takeIf { it.isNotEmpty() }
-            ?.let { protoString ->
-                NotificationPayload.fromEncoded(protoString)
-            }
+            ?.let { NotificationPayload.fromEncoded(it) }
 
-        if (payload?.navigation is NavigationTrigger.CurrencyInfo) {
-            launch {
-                tokenCoordinator.update()
+        when {
+            payload?.navigation is NavigationTrigger.CurrencyInfo -> {
+                launch { tokenCoordinator.update() }
+            }
+            payload?.category == NotificationCategory.CONTACT_JOIN -> {
+                launch { contactCoordinator.sync() }
             }
         }
 
+        launch {
+            val resolvedTitle = applySubstitutions(title, payload?.titleSubstitutions.orEmpty())
+            val resolvedBody = body?.let { applySubstitutions(it, payload?.bodySubstitutions.orEmpty()) }
+            postNotification(resolvedTitle, resolvedBody, payload)
+        }
+    }
+
+    private fun postNotification(title: String, body: String?, payload: NotificationPayload?) {
+        val category = payload?.category ?: NotificationCategory.DEFAULT
+        NotificationChannels.ensureChannelGroups(this, notificationManager)
+        val channel = NotificationChannels.channelFor(this, category)
         notificationManager.createNotificationChannel(channel)
 
-        val notificationBuilder: NotificationCompat.Builder =
-            NotificationCompat.Builder(this, channel.id)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+        val groupKey = payload?.groupKey?.takeIf { it.isNotEmpty() }
+
+        val notification = NotificationCompat.Builder(this, channel.id)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+            .setSmallIcon(R.drawable.flipcash_logo)
+            .setColor(getColor(R.color.notification_color))
+            .setAutoCancel(true)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setContentIntent(buildContentIntent(payload?.navigation))
+            .apply { if (groupKey != null) setGroup(groupKey) }
+            .build()
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) return
+
+        val notificationId = SecureRandom().nextInt(Int.MAX_VALUE)
+        notificationManager.notify(notificationId, notification)
+
+        if (groupKey != null) {
+            val summary = NotificationCompat.Builder(this, channel.id)
                 .setSmallIcon(R.drawable.flipcash_logo)
                 .setColor(getColor(R.color.notification_color))
+                .setGroup(groupKey)
+                .setGroupSummary(true)
                 .setAutoCancel(true)
-                .setContentTitle(title)
-                .setContentText(body)
-                .setContentIntent(buildContentIntent(payload?.navigation))
-
-        val random = SecureRandom()
-        val notificationId = random.nextInt(256)
-
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationManager.notify(notificationId, notificationBuilder.build())
+                .build()
+            notificationManager.notify(groupKey.hashCode(), summary)
         }
+    }
+
+    private suspend fun resolveSubstitution(substitution: Substitution): String {
+        val phoneNumber = substitution.phoneNumber ?: return substitution.fallback
+        val displayName = contactDataSource.getDisplayName(phoneNumber)
+        if (displayName != null) return displayName
+        return runCatching { phoneUtils.formatNumber(phoneNumber) }.getOrDefault(substitution.fallback)
+    }
+
+    private suspend fun applySubstitutions(text: String, substitutions: List<Substitution>): String {
+        var result = text
+        for ((index, substitution) in substitutions.withIndex()) {
+            val resolved = resolveSubstitution(substitution)
+            result = result.replace("{$index}", resolved)
+        }
+        return result
     }
 
     private fun authenticateIfNeeded(block: () -> Unit) {

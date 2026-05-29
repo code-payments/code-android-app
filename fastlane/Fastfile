@@ -16,117 +16,22 @@
 default_platform(:android)
 
 platform :android do
-  desc "Runs all the tests for Code"
-  lane :code_tests do
-      gradle(task: "generateEmojiList")
-    gradle(task: "apps:codeApp:testDebug")
-  end
-
-  desc "Runs all the tests for Flipchat"
-  lane :flipchat_tests do
-    gradle(task: "generateEmojiList")
-    gradle(task: "apps:flipchatApp:testDebug")
-  end
-
   desc "Runs all the tests for Flipcash"
     lane :flipcash_tests do
-      gradle(task: "generateEmojiList")
-      gradle(task: "app:flipcash:app:testDebug")
-    end
-    
-  desc "Runs all the tests for Flipcash2"
-    lane :flipcash2_tests do
-      gradle(task: "generateEmojiList")
-      gradle(task: "app:flipcash:app2:testDebug")
-  end
-
-  desc "Build and Deploy a new version of Code to the Google Play"
-    lane :deploy_code do
-      #puts "Patch version for this build will be " + ENV["BUILD_NUMBER"]
       gradle(
-        task: "clean apps:codeApp:bundle", #"clean app:bundleRelease",
-        build_type: "release",
+        task: "generateEmojiList flipcashTestDebug",
         properties: {
-          #"versionPatch" => ENV["BUILD_NUMBER"],
-          "android.injected.signing.store.file" => "key/key",
-          "android.injected.signing.store.password" => ENV["STORE_PASSWORD"],
-          "android.injected.signing.key.alias" => ENV["KEY_ALIAS"],
-          "android.injected.signing.key.password" => ENV["KEY_PASSWORD"]
+          "skipCoverage" => ENV.fetch("SKIP_COVERAGE", "false")
         }
       )
-
-      validate_play_store_json_key(
-        json_key: ENV["SERVICE_ACCOUNT_KEY_JSON"]
-      )
-
-      upload_to_play_store(
-        track: ENV["PLAYSTORE_TRACK"],
-#         release_status: ENV["RELEASE_STATUS"],
-        aab: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
-        skip_upload_apk: true,
-        skip_upload_changelogs: true,
-        skip_upload_images: true,
-        package_name: ENV["PACKAGE_NAME"],
-        mapping: Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH]
-      #  mapping: mapping_file_exists() ? Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH] : nil
-      )
     end
 
-
-  desc "Build and Deploy a new version of Flipchat to the Google Play Store"
-    lane :deploy_flipchat do
-      #puts "Patch version for this build will be " + ENV["BUILD_NUMBER"]
+desc "Build a new version of Flipcash"
+    lane :build_flipcash do
       gradle(
-        task: "generateEmojiList"
-      )
-
-      gradle(
-        task: "clean apps:flipchatApp:bundle", #"clean app:bundleRelease",
+        task: "apps:flipcash:app:bundle",
         build_type: "release",
         properties: {
-          #"versionPatch" => ENV["BUILD_NUMBER"],
-          "android.injected.signing.store.file" => "key/key",
-          "android.injected.signing.store.password" => ENV["STORE_PASSWORD"],
-          "android.injected.signing.key.alias" => ENV["KEY_ALIAS"],
-          "android.injected.signing.key.password" => ENV["KEY_PASSWORD"]
-        }
-      )
-
-      bundletool(
-        ks_path: "key/key",
-        ks_password: ENV["STORE_PASSWORD"],
-        ks_key_alias: ENV["KEY_ALIAS"],
-        ks_key_alias_password: ENV["KEY_PASSWORD"],
-        bundletool_version: '1.10.0',
-        aab_path: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
-        apk_output_path: "apps/flipchatApp/build/outputs/apk/release",
-        verbose: true,
-      )
-
-      validate_play_store_json_key(
-        json_key: ENV["SERVICE_ACCOUNT_KEY_JSON"]
-      )
-
-      upload_to_play_store(
-        track: ENV["PLAYSTORE_TRACK"],
-        release_status: ENV["RELEASE_STATUS"],
-        aab: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
-        skip_upload_apk: true,
-        skip_upload_changelogs: true,
-        skip_upload_images: true,
-        package_name: ENV["PACKAGE_NAME"],
-        mapping: Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH]
-      #  mapping: mapping_file_exists() ? Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH] : nil
-      )
-    end
-
-desc "Build and Deploy a new version of Flipcash to the Google Play Store"
-    lane :deploy_flipcash do
-      gradle(
-        task: "clean apps:flipcash:app:bundle", #"clean app:bundleRelease",
-        build_type: "release",
-        properties: {
-          #"versionPatch" => ENV["BUILD_NUMBER"],
           "android.injected.signing.store.file" => ENV["STORE_FILE"],
           "android.injected.signing.store.password" => ENV["STORE_PASSWORD"],
           "android.injected.signing.key.alias" => ENV["KEY_ALIAS"],
@@ -145,6 +50,22 @@ desc "Build and Deploy a new version of Flipcash to the Google Play Store"
         verbose: true,
       )
 
+      gradle(
+        task: "apps:flipcash:app:bugsnagUploadReleaseProguardMapping",
+        properties: {
+          "android.injected.signing.store.file" => ENV["STORE_FILE"],
+          "android.injected.signing.store.password" => ENV["STORE_PASSWORD"],
+          "android.injected.signing.key.alias" => ENV["KEY_ALIAS"],
+          "android.injected.signing.key.password" => ENV["KEY_PASSWORD"]
+        }
+      )
+    end
+
+  desc "Upload Flipcash to the Google Play Store"
+    lane :upload_flipcash do
+      aab = ENV["AAB_PATH"] || Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]
+      mapping = ENV["MAPPING_PATH"] || Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH]
+
       validate_play_store_json_key(
         json_key: ENV["SERVICE_ACCOUNT_KEY_JSON"]
       )
@@ -152,36 +73,19 @@ desc "Build and Deploy a new version of Flipcash to the Google Play Store"
       upload_to_play_store(
         track: ENV["PLAYSTORE_TRACK"],
         release_status: ENV["RELEASE_STATUS"],
-        aab: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+        aab: aab,
         skip_upload_apk: true,
         skip_upload_changelogs: true,
         skip_upload_images: true,
         package_name: ENV["PACKAGE_NAME"],
-        mapping: Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH]
-      #  mapping: mapping_file_exists() ? Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH] : nil
+        mapping: mapping
       )
+    end
 
-#       gradle(
-#               task: "apps:flipcash:app:bugsnagUploadReleaseBundle",
-#               properties: {
-#                 #"versionPatch" => ENV["BUILD_NUMBER"],
-#                 "android.injected.signing.store.file" => ENV["STORE_FILE"],
-#                 "android.injected.signing.store.password" => ENV["STORE_PASSWORD"],
-#                 "android.injected.signing.key.alias" => ENV["KEY_ALIAS"],
-#                 "android.injected.signing.key.password" => ENV["KEY_PASSWORD"]
-#               }
-#             )
-
-      gradle(
-        task: "apps:flipcash:app:bugsnagUploadReleaseProguardMapping",
-        properties: {
-          #"versionPatch" => ENV["BUILD_NUMBER"],
-          "android.injected.signing.store.file" => ENV["STORE_FILE"],
-          "android.injected.signing.store.password" => ENV["STORE_PASSWORD"],
-          "android.injected.signing.key.alias" => ENV["KEY_ALIAS"],
-          "android.injected.signing.key.password" => ENV["KEY_PASSWORD"]
-        }
-      )
+  desc "Build and Deploy a new version of Flipcash to the Google Play Store"
+    lane :deploy_flipcash do
+      build_flipcash
+      upload_flipcash
     end
 
     desc "Download store metadata for Flipcash"

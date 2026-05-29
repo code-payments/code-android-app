@@ -7,8 +7,7 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.paging)
+    implementation(libs.bundles.room)
     implementation(libs.androidx.paging.runtime)
 
     compileOnly(project(":apps:flipcash:shared:persistence:db"))

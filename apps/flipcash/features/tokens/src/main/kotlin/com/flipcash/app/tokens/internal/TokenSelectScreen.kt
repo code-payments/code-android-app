@@ -17,6 +17,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.TokenPurpose
+import com.flipcash.app.core.ui.TokenBalanceStyle
+import com.flipcash.app.core.ui.TokenSelectionStyle
+import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
@@ -43,8 +46,13 @@ private fun SelectTokenScreenContent(
         modifier = Modifier.fillMaxSize(),
         tokens = tokens,
         selectedToken = state.selectedToken,
+        styling = rememberTokenBalanceRowStyling(
+            balanceDisplayStyle = TokenBalanceStyle.Pill(),
+            selectionStyle = if (state.purpose is TokenPurpose.Select) TokenSelectionStyle.Checkbox else TokenSelectionStyle.Chevron,
+        ),
         showSelections = state.purpose is TokenPurpose.Select,
         showFlags = state.purpose !is TokenPurpose.Select,
+        includeReserves = state.purpose !is TokenPurpose.Select,
         emptyState = {
             Box(
                 modifier = Modifier

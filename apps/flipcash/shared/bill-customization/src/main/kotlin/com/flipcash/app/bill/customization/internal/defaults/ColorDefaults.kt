@@ -1,7 +1,12 @@
 package com.flipcash.app.bill.customization.internal.defaults
 
+import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import com.flipcash.app.bill.customization.models.ColorStore
 import com.getcode.opencode.model.ui.BillBackground
+import com.getcode.ui.utils.Hsv
+import com.getcode.ui.utils.color
+import com.getcode.ui.utils.hsv
 
 
 internal const val MaxGradientColors = 3
@@ -34,10 +39,18 @@ internal val PresetGradients: List<BillBackground.Gradient> = listOf(
 internal fun buildGradient(): List<ColorStore> {
     val swatches = PresetColorOptions
 
-    // return a random 3 color gradient
+    // select a random base
+    val base = Color(swatches.random().colorHex.toColorInt())
+
+    // mutate per recipe
+    val top = base.hsv.copy(s = 0.53f, v = 1f,)
+    val mid = base.hsv.copy(s = 1f, v = 0.71f,)
+    val bottom = base.hsv.copy(s = 1f, v = 0.23f,)
+
+    // return the random hue gradient
     return listOf(
-        ColorStore(swatches.random().colorHex),
-        ColorStore(swatches.random().colorHex),
-        ColorStore(swatches.random().colorHex),
+        ColorStore(top.color),
+        ColorStore(mid.color),
+        ColorStore(bottom.color),
     )
 }

@@ -8,7 +8,9 @@ import com.getcode.opencode.model.transactions.Swap
 import com.getcode.opencode.model.transactions.SwapMetadata
 import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.opencode.repositories.SwapRepository
+import com.getcode.utils.ErrorUtils
 import javax.inject.Inject
+import kotlin.time.Duration
 
 internal class InternalSwapRepository @Inject constructor(
     private val swapService: SwapService,
@@ -26,6 +28,9 @@ internal class InternalSwapRepository @Inject constructor(
     override suspend fun pollForState(
         swapId: SwapId,
         owner: Ed25519.KeyPair,
-        targetState: SwapState
-    ): Result<SwapMetadata> = swapPoller.pollUntil(swapId, owner, targetState)
+        targetState: SwapState,
+        maxAttempts: Int,
+        interval: Duration,
+    ): Result<SwapMetadata> = swapPoller.pollUntil(swapId, owner, targetState, maxAttempts, interval)
+        .onFailure { ErrorUtils.handleError(it) }
 }

@@ -9,8 +9,6 @@
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- needed for network connectivity detection in Api24NetworkObserver -->
     <uses-permission
@@ -30,24 +28,32 @@
         </intent>
 
         <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:host="backpack.app" />
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.APP_MESSAGING" />
         </intent>
 
         <intent>
-            <action android:name="android.intent.action.VIEW" />
-            <data android:host="solflare.com" />
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="smsto" />
         </intent>
+
+        <!-- Messaging apps for invite share sheet filtering -->
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+        <package android:name="org.thoughtcrime.securesms" />
+        <package android:name="org.telegram.messenger" />
+        <package android:name="com.facebook.orca" />
     </queries>
 
     <application
         android:name="com.flipcash.app.FlipcashApp"
         android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:largeHeap="true"
         android:enableOnBackInvokedCallback="true"
-        android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.Code"
         tools:targetApi="tiramisu">
@@ -80,8 +86,6 @@
                 <data android:pathPattern="/login.*" />
                 <data android:pathPattern="/token.*" />
                 <data android:pathPattern="/verify.*" />
-                <data android:pathPattern="/external/.*/connected" />
-                <data android:pathPattern="/external/.*/signed" />
             </intent-filter>
 
             <!-- send.flipcash.com App Links -->
@@ -158,29 +162,6 @@
                     android:scheme="https" />
             </intent-filter>
 
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="app.flipcash.com"
-                    android:pathPattern="/external/.*/connected"
-                    android:scheme="https" />
-            </intent-filter>
-
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="app.flipcash.com"
-                    android:pathPattern="/external/.*/signed"
-                    android:scheme="https" />
-            </intent-filter>
 
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -230,6 +211,19 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="dev.bmcreations.phantom.connect.wallet.PhantomWalletCallbackActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="app.flipcash.com" android:path="/phantom-wallet-callback" />
+            </intent-filter>
+        </activity>
+
         <!--
              Prompt Google Play services to install the backported photo picker module
              https://developer.android.com/training/data-storage/shared/photopicker#device-availability
@@ -244,6 +238,16 @@
             </intent-filter>
             <meta-data android:name="photopicker_activity:0:required" android:value="" />
         </service>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <provider
             android:name="androidx.startup.InitializationProvider"
@@ -273,6 +277,10 @@
 
             <meta-data
                 android:name="com.flipcash.app.internal.startup.DiscreteBondingCurveInitializer"
+                android:value="androidx.startup" />
+
+            <meta-data
+                android:name="com.flipcash.app.internal.startup.CameraXInitializer"
                 android:value="androidx.startup" />
 
         </provider>

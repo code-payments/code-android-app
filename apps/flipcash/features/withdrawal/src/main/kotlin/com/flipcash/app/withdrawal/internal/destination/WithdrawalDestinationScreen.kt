@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,11 +27,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.withdrawal.WithdrawalViewModel
 import com.flipcash.features.withdrawal.R
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
 import com.getcode.ui.components.TextInput
@@ -40,23 +36,11 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.rememberKeyboardController
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun WithdrawalDestinationScreen(viewModel: WithdrawalViewModel) {
-    val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     WithdrawalDestinationScreenContent(state, viewModel::dispatchEvent)
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<WithdrawalViewModel.Event.OnDestinationConfirmed>()
-            .onEach {
-                navigator.push(ScreenRegistry.get(AppRoute.Transfers.Withdrawal.Confirmation))
-            }.launchIn(this)
-    }
 }
 
 @Composable
@@ -69,7 +53,8 @@ private fun WithdrawalDestinationScreenContent(
     CodeScaffold(
         bottomBar = {
             CodeButton(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .navigationBarsPadding()
                     .imePadding()
                     .padding(horizontal = CodeTheme.dimens.inset)
@@ -86,17 +71,22 @@ private fun WithdrawalDestinationScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = CodeTheme.dimens.inset,),
+                .padding(horizontal = CodeTheme.dimens.inset),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
             Text(
-                text = stringResource(R.string.subtitle_whereWithdrawTo, state.token?.token?.name.orEmpty()),
+                text = stringResource(
+                    R.string.subtitle_whereWithdrawTo,
+                    state.token?.displayName.orEmpty()
+                ),
                 style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textSecondary
             )
 
             Column(
-                modifier = Modifier.fillMaxWidth().padding(top = CodeTheme.dimens.grid.x1),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = CodeTheme.dimens.grid.x1),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
             ) {
                 TextInput(
@@ -107,8 +97,21 @@ private fun WithdrawalDestinationScreenContent(
                     placeholder = stringResource(R.string.title_enterAddress),
                     placeholderStyle = CodeTheme.typography.textMedium,
                     maxLines = 1,
-                    contentPadding = PaddingValues(CodeTheme.dimens.grid.x2),
-                    colors = inputColors(placeholderColor = CodeTheme.colors.textSecondary,),
+                    leadingIcon = {
+                        Image(
+                            modifier = Modifier.padding(start = CodeTheme.dimens.grid.x3),
+                            painter = painterResource(R.drawable.ic_solana_logo),
+                            contentDescription = null,
+                            colorFilter = ColorFilter.tint(CodeTheme.colors.textSecondary),
+                        )
+                    },
+                    contentPadding = PaddingValues(
+                        start = CodeTheme.dimens.grid.x1,
+                        top = CodeTheme.dimens.grid.x2,
+                        bottom = CodeTheme.dimens.grid.x2,
+                        end = CodeTheme.dimens.grid.x3,
+                    ),
+                    colors = inputColors(placeholderColor = CodeTheme.colors.textSecondary),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 )
 
@@ -143,9 +146,6 @@ private fun WithdrawalDestinationScreenContent(
                                 modifier = Modifier.align(Alignment.CenterVertically),
                                 text = when {
                                     availability.isValid -> stringResource(id = R.string.subtitle_validAddress)
-//                                    !availability.hasResolvedDestination -> {
-//                                        stringResource(R.string.error_title_destinationAccountNotInitialized)
-//                                    }
                                     else -> stringResource(R.string.error_title_invalidAddress)
                                 },
                                 color = if (availability.isValid) CodeTheme.colors.successText else CodeTheme.colors.errorText,

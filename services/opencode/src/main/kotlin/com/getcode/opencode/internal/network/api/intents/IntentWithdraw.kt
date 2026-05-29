@@ -2,7 +2,6 @@ package com.getcode.opencode.internal.network.api.intents
 
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.getcode.opencode.internal.manager.VerifiedState
-import com.getcode.opencode.internal.model.VerifiedResponseData
 import com.getcode.opencode.internal.network.api.intents.actions.ActionFeePayment
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -39,7 +38,8 @@ internal class IntentWithdraw(
             verifiedState: VerifiedState,
         ): IntentWithdraw {
             // transfer the amount less any fee
-            val transferAmount = amount.underlyingTokenAmount - (fee?.fiat ?: Fiat.Zero)
+            val feeAmount = fee?.fiat ?: Fiat.Zero
+            val transferAmount = amount.underlyingTokenAmount - feeAmount
 
             val actionGroup = buildActionGroup {
                 add(

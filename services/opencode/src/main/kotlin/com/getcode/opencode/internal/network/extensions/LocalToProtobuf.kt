@@ -1,6 +1,7 @@
 package com.getcode.opencode.internal.network.extensions
 
 import com.codeinc.opencode.gen.common.v1.Model
+import com.codeinc.opencode.gen.currency.v1.CurrencyService
 import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.messaging.v1.requestToGiveBill
 import com.codeinc.opencode.gen.messaging.v1.requestToGrabBill
@@ -11,16 +12,20 @@ import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.SocialLink
 import com.getcode.opencode.model.messaging.Message
 import com.getcode.opencode.model.messaging.MessageKind
+import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.GiveRequest
 import com.getcode.opencode.model.transactions.GrabRequest
 import com.getcode.opencode.model.transactions.SwapFundingSource
-import com.getcode.opencode.model.transactions.SwapRequest
+import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.TransferRequest
+import com.getcode.opencode.model.ui.BillBackground
+import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
@@ -270,39 +275,110 @@ internal fun LocalFiat.asExchangeData(): TransactionService.ExchangeData {
         .build()
 }
 
-internal fun SwapRequest.currencyCreatorParams(): TransactionService.StatefulSwapRequest.Initiate.CurrencyCreator.Builder {
-    return TransactionService.StatefulSwapRequest.Initiate.CurrencyCreator.newBuilder()
-        .apply {
-            when (val details = kind) {
-                is SwapStartKind.CurrencyCreator -> {
-                    setId(swapId.asSwapId())
-                        .setFromMint(details.fromMint.asSolanaAccountId())
-                        .setToMint(details.toMint.asSolanaAccountId())
-                        .setAmount(details.amount)
-                        .apply {
-                            when (val source = details.fundingSource) {
-                                is SwapFundingSource.ExternalWallet -> {
-                                    setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET)
-                                    setFundingId(source.transactionSignature.base58)
-                                }
-                                is SwapFundingSource.SubmitIntent -> {
-                                    setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
-                                    setFundingId(source.id.base58)
-                                }
-
-                                SwapFundingSource.Unknown -> Unit
-                            }
+internal fun StatefulSwapRequest.currencyCreatorParams(): TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.Builder {
+    return when (val details = kind) {
+        is SwapStartKind.Reserve -> {
+            TransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.newBuilder()
+                .setId(swapId.asSwapId())
+                .setFromMint(details.fromMint.asSolanaAccountId())
+                .setToMint(details.toMint.asSolanaAccountId())
+                .setSwapAmount(this@currencyCreatorParams.swapAmount.underlyingTokenAmount.quarks)
+                .setFeeAmount(this@currencyCreatorParams.feeAmount?.underlyingTokenAmount?.quarks ?: 0)
+                .apply {
+                    when (val source = details.fundingSource) {
+                        is SwapFundingSource.ExternalWallet -> {
+                            setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET)
+                            setFundingId(source.transactionSignature.base58)
                         }
+
+                        is SwapFundingSource.SubmitIntent -> {
+                            setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
+                            setFundingId(source.id.base58)
+                        }
+
+                        is SwapFundingSource.CoinbaseOnramp -> {
+                            setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_COINBASE_ONRAMP)
+                            setFundingId(source.orderId)
+                        }
+
+                        SwapFundingSource.Unknown -> Unit
+                    }
                 }
+        }
+
+        is SwapStartKind.Stablecoin -> {
+            throw IllegalStateException("Stablecoin should not be used for currency creator params")
+        }
+    }
+}
+
+internal fun StatefulSwapRequest.stablecoinParams(): TransactionService.StatefulSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.Builder {
+    return when (val details = kind) {
+        is SwapStartKind.Reserve -> {
+            throw IllegalStateException("Reserve should not be used for stable swapper params")
+        }
+
+        is SwapStartKind.Stablecoin -> {
+            TransactionService.StatefulSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.newBuilder()
+                .setId(swapId.asSwapId())
+                .setFromMint(details.fromMint.asSolanaAccountId())
+                .setToMint(details.toMint.asSolanaAccountId())
+                .setSwapAmount(this@stablecoinParams.swapAmount.underlyingTokenAmount.quarks)
+                .setDestinationOwner(this@stablecoinParams.kind.destinationOwner.asSolanaAccountId())
+                .setFeeAmount(this@stablecoinParams.feeAmount?.underlyingTokenAmount?.quarks ?: 0)
+                .setFundingSource(TransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
+                .setFundingId(details.fundingSource.id.base58)
+        }
+    }
+}
+
+internal fun StatefulSwapRequest.verifiedMetadata(): TransactionService.VerifiedSwapMetadata.Builder {
+    return TransactionService.VerifiedSwapMetadata.newBuilder()
+        .apply {
+            when (kind) {
+                is SwapStartKind.Reserve -> setReserve(
+                    TransactionService.VerifiedReserveSwapMetadata.newBuilder()
+                        .setClientParameters(currencyCreatorParams())
+                )
+                is SwapStartKind.Stablecoin -> setStablecoin(
+                    TransactionService.VerifiedCoinbaseStableSwapperSwapMetadata.newBuilder()
+                        .setClientParameters(stablecoinParams())
+                )
             }
         }
 }
 
-internal fun SwapRequest.verifiedMetadata(): TransactionService.VerifiedSwapMetadata.Builder {
-    return TransactionService.VerifiedSwapMetadata.newBuilder()
-        .setCurrencyCreator(
-            TransactionService.VerifiedCurrencyCreatorSwapMetadata.newBuilder()
-                .setClientParameters(currencyCreatorParams())
+internal fun TokenBillCustomizations.asProto(): CurrencyService.BillCustomization {
+    return CurrencyService.BillCustomization.newBuilder()
+        .apply {
+            when (background) {
+                is BillBackground.Gradient -> addAllColors(
+                    background.colors.map { color ->
+                        CurrencyService.Color.newBuilder().setHex(color).build()
+                    }
+                )
 
-        )
+                is BillBackground.Solid -> addColors(
+                    CurrencyService.Color.newBuilder().setHex(background.colorHex)
+                )
+            }
+        }.build()
+}
+
+internal fun SocialLink.asProto(): CurrencyService.SocialLink {
+    return CurrencyService.SocialLink.newBuilder()
+        .apply {
+            when (this@asProto) {
+                is SocialLink.Discord -> setDiscord(CurrencyService.SocialLink.Discord.newBuilder().setInviteCode(inviteCode))
+                is SocialLink.Telegram -> setTelegram(CurrencyService.SocialLink.Telegram.newBuilder().setUsername(username))
+                is SocialLink.Website -> setWebsite(CurrencyService.SocialLink.Website.newBuilder().setUrl(url))
+                is SocialLink.X -> setX(CurrencyService.SocialLink.X.newBuilder().setUsername(username))
+            }
+        }.build()
+}
+
+internal fun ModerationAttestation.asProto(): CurrencyService.ModerationAttestation {
+    return CurrencyService.ModerationAttestation.newBuilder()
+        .setRawValue(attestation.toByteString())
+        .build()
 }

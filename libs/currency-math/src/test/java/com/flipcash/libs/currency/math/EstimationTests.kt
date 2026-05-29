@@ -1,8 +1,5 @@
 package com.flipcash.libs.currency.math
 
-import com.flipcash.libs.currency.math.internal.curves.DiscreteBondingCurve
-import com.flipcash.libs.currency.math.loader.FileTableLoader
-import kotlinx.coroutines.runBlocking
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
@@ -15,7 +12,7 @@ class EstimationTests {
 
     @BeforeTest
     fun initializeCurve() {
-        runBlocking { DiscreteBondingCurve.initialize(FileTableLoader()) }
+        CurveTestInitializer.initialize()
     }
 
     @Test

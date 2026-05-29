@@ -14,6 +14,7 @@ import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.base58
+import com.getcode.solana.keys.redact
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -99,7 +100,13 @@ class IntentExecutor(
         owner: KeyPair,
     ): Result<IntentType> = openBidirectionalStreamForResult(
         streamRef = streamRef,
-        apiCall = api::submitIntent,
+        apiCall = { request ->
+            trace(
+                tag = "SubmitIntent",
+                message = "submitting intent ${intent.id.base58().redact()}"
+            )
+            api.submitIntent(request)
+        },
         initialRequest = { intent.requestToSubmitActions(owner) },
         responseHandler = { response, onResult, requestChannel ->
             when (val result = response.responseCase) {

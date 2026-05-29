@@ -7,6 +7,5 @@ android {
 }
 
 dependencies {
-    implementation(libs.compose.webview)
-
+    api(libs.androidx.webkit)
 }

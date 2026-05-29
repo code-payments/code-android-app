@@ -10,10 +10,15 @@ import com.flipcash.services.models.SocialAccountLinkRequest
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.network.jwt.ApiProvider
 import com.getcode.opencode.model.core.ID
+import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
 import com.google.protobuf.Timestamp
 import kotlinx.datetime.Instant
+
+internal fun Checksum.asHash(): Common.Hash {
+    return Common.Hash.newBuilder().setValue(byteArray.toByteString()).build()
+}
 
 internal fun ByteArray.asSignature(): Common.Signature {
     return Common.Signature.newBuilder().setValue(this.toByteString())

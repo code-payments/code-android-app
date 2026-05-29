@@ -13,14 +13,10 @@ sealed interface OnRampProvider {
     data class Coinbase(val type: OnRampType) : OnRampProvider, ThirdParty
 
     data object Phantom: OnRampProvider, ThirdParty, UsesDeeplinks
-    data object Solflare: OnRampProvider, ThirdParty, UsesDeeplinks
-    data object Backpack: OnRampProvider, ThirdParty, UsesDeeplinks
 
     companion object {
         val types: List<OnRampProvider.Defined> = listOf(
             Phantom,
-            Solflare,
-            Backpack,
             ManualDeposit
         )
     }

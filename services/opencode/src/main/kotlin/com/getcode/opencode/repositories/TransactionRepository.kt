@@ -8,7 +8,7 @@ import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.SwapFundingSource
-import com.getcode.opencode.model.transactions.SwapRequest
+import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.solana.intents.IntentType
@@ -49,11 +49,12 @@ interface TransactionRepository {
         scope: CoroutineScope,
         owner: AccountCluster,
         amount: LocalFiat,
+        feeAmount: LocalFiat? = null,
         of: Token,
         swapId: SwapId? = null,
         verifiedState: VerifiedState,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
-        fund: (suspend (SwapRequest) -> Result<Unit>)? = null,
+        fund: (suspend (StatefulSwapRequest) -> Result<Unit>)? = null,
     ): Result<SwapId>
 
     suspend fun sell(
@@ -63,4 +64,19 @@ interface TransactionRepository {
         of: Token,
         verifiedState: VerifiedState,
     ): Result<SwapId>
+
+    suspend fun withdrawUsdf(
+        scope: CoroutineScope,
+        amount: LocalFiat,
+        fee: LocalFiat,
+        owner: AccountCluster,
+        destinationOwner: PublicKey,
+        verifiedState: VerifiedState,
+    ): Result<SwapId>
+
+    suspend fun sweepUsdc(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        amount: Long,
+    ): Result<Unit>
 }

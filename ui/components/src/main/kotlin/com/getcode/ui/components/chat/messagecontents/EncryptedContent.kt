@@ -13,7 +13,7 @@ import androidx.compose.ui.res.painterResource
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
 import com.getcode.util.formatTimeRelatively
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 @Composable
 internal fun EncryptedContent(modifier: Modifier = Modifier, date: Instant) {

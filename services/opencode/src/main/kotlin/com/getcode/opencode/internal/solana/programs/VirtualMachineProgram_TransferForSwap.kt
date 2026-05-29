@@ -21,7 +21,7 @@ internal class VirtualMachineProgram_TransferForSwap(
             accounts = listOf(
                 AccountMeta.writable(publicKey = vmAuthority, signer = true),
 
-                AccountMeta.readonly(publicKey = vm),
+                AccountMeta.writable(publicKey = vm),
 
                 AccountMeta.writable(publicKey = swapper, signer = true),
 

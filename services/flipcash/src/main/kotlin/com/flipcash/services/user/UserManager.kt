@@ -1,7 +1,6 @@
 package com.flipcash.services.user
 
-import com.bugsnag.android.Bugsnag
-import com.flipcash.services.internal.model.account.UserFlags
+import com.flipcash.services.models.UserFlags
 import com.flipcash.services.models.UserProfile
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
@@ -16,9 +15,8 @@ import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.services.opencode.BuildConfig
+import com.getcode.utils.TraceManager
 import com.getcode.utils.base58
-import com.google.firebase.Firebase
-import com.google.firebase.messaging.messaging
 import com.hoc081098.channeleventbus.ChannelEventBus
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -104,9 +102,6 @@ class UserManager @Inject constructor(
             didDetectUnlockedAccount()
         }
 
-        Firebase.messaging.token.addOnSuccessListener { token ->
-            set(pushToken = token)
-        }
     }
 
     fun establish(entropy: String) {
@@ -130,12 +125,17 @@ class UserManager @Inject constructor(
     }
 
     fun set(authState: AuthState) {
+        val previous = _state.value.authState
         _state.update { it.copy(authState = authState) }
 
         when (authState) {
             is AuthState.LoggedIn -> {
                 accountCluster?.let { owner ->
                     eventBus.send(Events.UpdateLimits(owner = owner, force = true))
+                    // Fire OnLoggedIn only on transition INTO LoggedInWithUser
+                    if (authState is AuthState.LoggedInWithUser && previous !is AuthState.LoggedInWithUser) {
+                        eventBus.send(Events.OnLoggedIn(owner))
+                    }
                 }
             }
 
@@ -148,10 +148,6 @@ class UserManager @Inject constructor(
             it.copy(
                 flags = userFlags,
             )
-        }
-
-        if (userFlags?.isRegistered == true) {
-            accountCluster?.let { eventBus.send(Events.OnLoggedIn(accountCluster!!)) }
         }
     }
 
@@ -182,10 +178,7 @@ class UserManager @Inject constructor(
 
     private fun associate() {
         if (!BuildConfig.DEBUG) {
-            if (Bugsnag.isStarted()) {
-                Bugsnag.setUser(accountId?.base58, null, "")
-            }
-
+            TraceManager.userId = accountId?.base58
             mixpanelAPI.identify(accountId?.base58)
         }
     }

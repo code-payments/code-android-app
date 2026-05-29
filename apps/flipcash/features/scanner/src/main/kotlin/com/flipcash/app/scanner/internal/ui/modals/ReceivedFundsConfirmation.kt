@@ -61,7 +61,12 @@ internal fun ReceivedFundsConfirmation(
         }
 
         CodeButton(
-            modifier = Modifier.fillMaxWidth().padding(top = CodeTheme.dimens.grid.x6),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    top = CodeTheme.dimens.grid.x6,
+                    bottom = CodeTheme.dimens.inset,
+                ),
             onClick = onClaim,
             buttonState = ButtonState.Filled,
             text = stringResource(id = R.string.action_putInWallet)

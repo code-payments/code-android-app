@@ -7,7 +7,6 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.services.opencode.R
 import com.getcode.solana.keys.Mint
-import com.getcode.solana.keys.Signature
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -16,20 +15,13 @@ import kotlinx.coroutines.withContext
 
 class ExchangeStub(
     private val providedRates: Map<CurrencyCode, Rate> = emptyMap(),
-    private val providedProofs: Map<CurrencyCode, Signature> = emptyMap(),
     private val context: Context,
 ): Exchange {
-    override val entryRate: Rate = Rate.oneToOne
+    override val preferredRate: Rate = Rate.oneToOne
 
-    override fun observeEntryRate(): Flow<Rate> = emptyFlow()
+    override fun observePreferredRate(): Flow<Rate> = emptyFlow()
 
-    override suspend fun setPreferredEntryCurrency(currencyCode: CurrencyCode) = Unit
-
-    override val balanceRate: Rate = Rate.oneToOne
-
-    override fun observeBalanceRate(): Flow<Rate> = emptyFlow()
-
-    override suspend fun setPreferredBalanceCurrency(currencyCode: CurrencyCode) = Unit
+    override suspend fun setPreferredCurrency(currencyCode: CurrencyCode) = Unit
     override fun updateUserMints(mints: List<Mint>) = Unit
 
     override fun rates(): Map<CurrencyCode, Rate> = providedRates

@@ -11,18 +11,21 @@ data class BottomBarAction(
     val inlineContentMap: Map<String, InlineTextContent>,
     val style: BottomBarManager.BottomBarButtonStyle = BottomBarManager.BottomBarButtonStyle.Filled,
     val isUser: Boolean = true,
+    val enabled: Boolean = true,
     val onClick: () -> Unit = { }
 ) {
     constructor(
         text: String,
         style: BottomBarManager.BottomBarButtonStyle = BottomBarManager.BottomBarButtonStyle.Filled,
         isUser: Boolean = true,
+        enabled: Boolean = true,
         onClick: () -> Unit = { }
-    ): this(
+    ) : this(
         text = AnnotatedString(text),
         inlineContentMap = emptyMap(),
         style = style,
         isUser = isUser,
+        enabled = enabled,
         onClick = onClick
     )
 
@@ -31,6 +34,7 @@ data class BottomBarAction(
         val Ok = BottomBarAction(
             text = OK_DESCRIPTOR,
             isUser = false,
+            enabled = true,
             style = BottomBarManager.BottomBarButtonStyle.Filled
         )
     }
@@ -60,10 +64,12 @@ object BottomBarManager {
         val onClose: (selection: SelectedBottomBarAction) -> Unit = { },
         val onTimeout: () -> Unit = { },
         val type: BottomBarMessageType = BottomBarMessageType.DESTRUCTIVE,
+        val isError: Boolean = type == BottomBarMessageType.ERROR,
         val isDismissible: Boolean = true,
         val showScrim: Boolean = true,
         val timeoutSeconds: Int? = null,
         val id: Long = UUID.randomUUID().mostSignificantBits,
+        val callSite: String? = null,
     ) {
         constructor(
             title: String = "",
@@ -87,11 +93,25 @@ object BottomBarManager {
             subtitle = subtitle,
             actions = buildList {
                 if (positiveText.isNotBlank()) {
-                    add(BottomBarAction(positiveText, positiveStyle, true, onPositive))
+                    add(
+                        BottomBarAction(
+                            positiveText, positiveStyle,
+                            isUser = true,
+                            enabled = true,
+                            onClick = onPositive
+                        )
+                    )
                 }
 
                 if (negativeText.isNotBlank()) {
-                    add(BottomBarAction(negativeText, negativeStyle, true, onNegative))
+                    add(
+                        BottomBarAction(
+                            negativeText, negativeStyle,
+                            isUser = true,
+                            enabled = true,
+                            onClick = onNegative
+                        )
+                    )
                 }
             },
             showCancel = tertiaryText != null,
@@ -105,18 +125,17 @@ object BottomBarManager {
         )
     }
 
-    private val _messages: MutableStateFlow<List<BottomBarMessage>> = MutableStateFlow(
-        listOf()
-    )
+    private val _messages: MutableStateFlow<List<BottomBarMessage>> = MutableStateFlow(emptyList())
     val messages: StateFlow<List<BottomBarMessage>> get() = _messages.asStateFlow()
 
-    fun showMessage(bottomBarMessage: BottomBarMessage) {
+    @PublishedApi
+    internal fun showMessage(bottomBarMessage: BottomBarMessage) {
         _messages.update { currentMessages ->
             currentMessages + bottomBarMessage
         }
     }
 
-    fun showMessage(
+    private fun showMessage(
         title: String,
         subtitle: String,
         actions: List<BottomBarAction>,
@@ -124,6 +143,7 @@ object BottomBarManager {
         isDismissible: Boolean = true,
         showScrim: Boolean = true,
         type: BottomBarMessageType = BottomBarMessageType.DESTRUCTIVE,
+        onTimeout: () -> Unit = { },
         timeoutSeconds: Int? = null,
         onClose: (SelectedBottomBarAction) -> Unit = { }
     ) {
@@ -137,6 +157,113 @@ object BottomBarManager {
                 isDismissible = isDismissible,
                 showScrim = showScrim,
                 onClose = onClose,
+                onTimeout = onTimeout,
+                timeoutSeconds = timeoutSeconds,
+            )
+        )
+    }
+
+    fun showMessage(
+        title: String,
+        message: String = "",
+        actions: List<BottomBarAction> = listOf(BottomBarAction.Ok),
+        showCancel: Boolean = false,
+        showScrim: Boolean = true,
+        isDismissible: Boolean = true,
+        onTimeout: () -> Unit = { },
+        timeoutSeconds: Int? = null,
+        onDismiss: (SelectedBottomBarAction) -> Unit = { }
+    ) {
+        showMessage(
+            type = BottomBarMessageType.DEFAULT,
+            title = title,
+            subtitle = message,
+            actions = actions,
+            showCancel = showCancel,
+            isDismissible = isDismissible,
+            showScrim = showScrim,
+            onClose = onDismiss,
+            onTimeout = onTimeout,
+            timeoutSeconds = timeoutSeconds,
+        )
+    }
+
+    fun showInfo(
+        title: String,
+        message: String,
+        actions: List<BottomBarAction> = listOf(BottomBarAction.Ok),
+        showCancel: Boolean = false,
+        showScrim: Boolean = true,
+        isDismissible: Boolean = true,
+        onTimeout: () -> Unit = { },
+        timeoutSeconds: Int? = null,
+        onDismiss: (SelectedBottomBarAction) -> Unit = { }
+    ) {
+        showMessage(
+            title = title,
+            subtitle = message,
+            type = BottomBarMessageType.INFO,
+            actions = actions,
+            showCancel = showCancel,
+            isDismissible = isDismissible,
+            showScrim = showScrim,
+            onClose = onDismiss,
+            onTimeout = onTimeout,
+            timeoutSeconds = timeoutSeconds,
+        )
+    }
+
+    fun showSuccess(
+        title: String,
+        message: String,
+        actions: List<BottomBarAction> = listOf(BottomBarAction.Ok),
+        showCancel: Boolean = false,
+        isDismissible: Boolean = true,
+        showScrim: Boolean = true,
+        onTimeout: () -> Unit = { },
+        timeoutSeconds: Int? = null,
+        onDismiss: (SelectedBottomBarAction) -> Unit = { }
+    ) {
+        showMessage(
+            BottomBarMessage(
+                title = title,
+                subtitle = message,
+                showCancel = showCancel,
+                type = BottomBarMessageType.SUCCESS,
+                actions = actions,
+                isDismissible = isDismissible,
+                showScrim = showScrim,
+                onClose = onDismiss,
+                onTimeout = onTimeout,
+                timeoutSeconds = timeoutSeconds,
+            )
+        )
+    }
+
+    fun showAlert(
+        title: String,
+        message: String,
+        additionalInfo: Map<String, Any?> = emptyMap(),
+        actions: List<BottomBarAction> = listOf(BottomBarAction.Ok),
+        showCancel: Boolean = false,
+        isDismissible: Boolean = true,
+        showScrim: Boolean = true,
+        onTimeout: () -> Unit = { },
+        timeoutSeconds: Int? = null,
+        onDismiss: (fromAction: Boolean) -> Unit = { },
+    ) {
+        showMessage(
+            BottomBarMessage(
+                title = title,
+                subtitle = message,
+                additionalInfo = additionalInfo,
+                showCancel = showCancel,
+                actions = actions,
+                type = BottomBarMessageType.DESTRUCTIVE,
+                isDismissible = isDismissible,
+                showScrim = showScrim,
+                onClose = { onDismiss(it.index != -1) },
+                onTimeout = onTimeout,
                 timeoutSeconds = timeoutSeconds,
             )
         )
@@ -152,17 +279,21 @@ object BottomBarManager {
      * - Timeout-able
      * - Include "OK" button
      *
-     * Additional [BottomBarAction]'s can be included via [additionalActions] and dismiss callbacks
+     * Additional [BottomBarAction]'s can be included via [actions] and dismiss callbacks
      * are available via [onDismiss].
      */
-    fun showError(
+    inline fun showError(
         title: String,
         message: String,
         additionalInfo: Map<String, Any?> = emptyMap(),
         actions: List<BottomBarAction> = listOf(BottomBarAction.Ok),
         showCancel: Boolean = false,
-        onDismiss: (fromAction: Boolean) -> Unit = { },
+        noinline onDismiss: (fromAction: Boolean) -> Unit = { },
     ) {
+        val callSite = Throwable().stackTrace
+            .firstOrNull { it.fileName != null }
+            ?.let { "${it.fileName}:${it.lineNumber}" }
+
         showMessage(
             BottomBarMessage(
                 title = title,
@@ -173,7 +304,8 @@ object BottomBarManager {
                 type = BottomBarMessageType.ERROR,
                 isDismissible = true,
                 showScrim = true,
-                onClose = { onDismiss(it.index != -1) }
+                onClose = { onDismiss(it.index != -1) },
+                callSite = callSite,
             )
         )
     }

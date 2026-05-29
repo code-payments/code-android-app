@@ -3,6 +3,7 @@ package com.getcode.opencode
 import android.content.Context
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.inject.OpenCodeModule
+import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.util.locale.LocaleModule
 import com.getcode.util.resources.AndroidResources
 import dagger.hilt.android.EntryPointAccessors
@@ -26,8 +27,10 @@ object ExchangeFactory {
         val locale = localeModule.bindLocaleHelper(context)
         val resources = AndroidResources(context)
         val controller = ControllerFactory.createCurrencyController(context, config)
+        val verifiedStateManager = VerifiedProtoManager()
         return module.providesExchange(
             currencyController = controller,
+            verifiedStateManager = verifiedStateManager,
             resources = resources,
             locale = locale,
         )

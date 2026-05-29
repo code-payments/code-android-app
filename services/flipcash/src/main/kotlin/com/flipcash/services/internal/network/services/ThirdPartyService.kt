@@ -2,6 +2,7 @@ package com.flipcash.services.internal.network.services
 
 import com.codeinc.flipcash.gen.thirdparty.v1.ThirdPartyService
 import com.flipcash.services.internal.network.api.ThirdPartyApi
+import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.GetJwtError
 import com.flipcash.services.models.Jwt
 import com.getcode.ed25519.Ed25519
@@ -32,7 +33,7 @@ internal class ThirdPartyService @Inject constructor(
                 }
             },
             onFailure = { cause ->
-                Result.failure(GetJwtError.Other(cause))
+                Result.failure(cause.toValidationOrElse { GetJwtError.Other(it) })
             }
         )
     }

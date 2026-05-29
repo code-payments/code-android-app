@@ -1,4 +1,4 @@
-import com.android.build.gradle.LibraryExtension
+import com.android.build.api.dsl.LibraryExtension
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -15,31 +15,42 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
         with(target) {
             with(pluginManager) {
                 apply("com.android.library")
-                apply("org.jetbrains.kotlin.android")
                 apply("org.jetbrains.kotlin.plugin.serialization")
+                if (!providers.gradleProperty("skipCoverage").orNull.toBoolean()) {
+                    apply("org.jetbrains.kotlinx.kover")
+                }
             }
 
+            val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
+            val compileSdkVersion = libs.findVersion("android-compileSdk").get().requiredVersion.toInt()
+            val minSdkVersion = libs.findVersion("android-minSdk").get().requiredVersion.toInt()
+            val javaVersion = libs.findVersion("android-java").get().requiredVersion
+
             extensions.configure<LibraryExtension> {
-                compileSdk = 36
+                compileSdk = compileSdkVersion
 
                 defaultConfig {
-                    minSdk = 29
+                    minSdk = minSdkVersion
                     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
                 }
 
+                testOptions {
+                    unitTests.isReturnDefaultValues = true
+                }
+
                 compileOptions {
-                    sourceCompatibility = JavaVersion.VERSION_21
-                    targetCompatibility = JavaVersion.VERSION_21
+                    sourceCompatibility = JavaVersion.toVersion(javaVersion)
+                    targetCompatibility = JavaVersion.toVersion(javaVersion)
                 }
             }
 
             extensions.configure<KotlinAndroidProjectExtension> {
                 jvmToolchain {
-                    languageVersion.set(JavaLanguageVersion.of(21))
+                    languageVersion.set(JavaLanguageVersion.of(javaVersion))
                 }
 
                 compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_21)
+                    jvmTarget.set(JvmTarget.fromTarget(javaVersion))
                     optIn.addAll(
                         "kotlin.time.ExperimentalTime",
                         "kotlin.ExperimentalUnsignedTypes",
@@ -48,11 +59,12 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 }
             }
 
-            val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
-
             dependencies {
                 "implementation"(libs.findLibrary("timber").get())
                 "implementation"(libs.findLibrary("kotlinx-coroutines-core").get())
+                // AGP's built-in Kotlin no longer auto-selects the kotlin-test
+                // JUnit variant, so provide it explicitly for all library modules.
+                "testImplementation"(libs.findLibrary("kotlin-test-junit").get())
             }
         }
     }

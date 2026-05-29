@@ -8,16 +8,21 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.transactions.StatelessSwapRequest
 import com.getcode.opencode.model.transactions.SwapFundingSource
-import com.getcode.opencode.model.transactions.SwapRequest
+import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
+import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.opencode.repositories.TransactionRepository
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.ErrorUtils
+import com.getcode.utils.network.retryableOrThrow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.Instant
+import kotlin.time.Duration.Companion.seconds
 import javax.inject.Inject
 
 internal class InternalTransactionRepository @Inject constructor(
@@ -27,7 +32,17 @@ internal class InternalTransactionRepository @Inject constructor(
         scope: CoroutineScope,
         intent: IntentType,
         owner: Ed25519.KeyPair
-    ): Result<IntentType> = service.submitIntent(scope, intent, owner)
+    ): Result<IntentType> = runCatching {
+        retryableOrThrow(
+            maxRetries = 3,
+            delayDuration = 1.seconds,
+            retryIf = { it is SubmitIntentError.StaleState && it.isRaceCondition },
+        ) {
+            service.submitIntent(scope, intent, owner).getOrThrow()
+        }
+    }.onFailure {
+        ErrorUtils.handleError(it)
+    }
 
     override suspend fun getIntentMetadata(
         intentId: PublicKey,
@@ -48,26 +63,29 @@ internal class InternalTransactionRepository @Inject constructor(
         owner: Ed25519.KeyPair,
         giftCardVault: PublicKey
     ): Result<Unit> = service.voidGiftCard(owner, giftCardVault)
+        .onFailure { ErrorUtils.handleError(it) }
 
     override suspend fun buy(
         scope: CoroutineScope,
         owner: AccountCluster,
         amount: LocalFiat,
+        feeAmount: LocalFiat?,
         of: Token,
         swapId: SwapId?,
         verifiedState: VerifiedState,
         source: SwapFundingSource,
-        fund: (suspend (SwapRequest) -> Result<Unit>)?
+        fund: (suspend (StatefulSwapRequest) -> Result<Unit>)?
     ): Result<SwapId> = service.buy(
         scope = scope,
         swapId = swapId,
         amount = amount,
+        feeAmount = feeAmount,
         of = of,
         owner = owner,
         verifiedState = verifiedState,
         source = source,
         fund = fund
-    )
+    ).onFailure { ErrorUtils.handleError(it) }
 
     override suspend fun sell(
         scope: CoroutineScope,
@@ -81,5 +99,30 @@ internal class InternalTransactionRepository @Inject constructor(
         of = of,
         owner = owner,
         verifiedState = verifiedState
-    )
+    ).onFailure { ErrorUtils.handleError(it) }
+
+    override suspend fun withdrawUsdf(
+        scope: CoroutineScope,
+        amount: LocalFiat,
+        fee: LocalFiat,
+        owner: AccountCluster,
+        destinationOwner: PublicKey,
+        verifiedState: VerifiedState,
+    ): Result<SwapId> = service.withdrawUsdf(
+        scope = scope,
+        amount = amount,
+        fee = fee,
+        owner = owner,
+        destinationOwner = destinationOwner,
+        verifiedState = verifiedState,
+    ).onFailure { ErrorUtils.handleError(it) }
+
+    override suspend fun sweepUsdc(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        amount: Long,
+    ): Result<Unit> {
+        return service.sweepUsdc(scope, owner, amount)
+            .onFailure { ErrorUtils.handleError(it) }
+    }
 }

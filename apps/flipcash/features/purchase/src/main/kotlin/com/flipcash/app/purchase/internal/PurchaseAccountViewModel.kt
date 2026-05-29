@@ -15,7 +15,8 @@ import com.flipcash.app.billing.ProductPrice
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel2
+import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -31,13 +32,15 @@ import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
-internal class PurchaseAccountViewModel @Inject constructor(
+class PurchaseAccountViewModel @Inject constructor(
     private val authManager: AuthManager,
     billingClient: BillingClient,
     resources: ResourceHelper,
-) : BaseViewModel2<PurchaseAccountViewModel.State, PurchaseAccountViewModel.Event>(
+    dispatchers: DispatcherProvider,
+) : BaseViewModel<PurchaseAccountViewModel.State, PurchaseAccountViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         internal val productToBuy: IapProduct? = null,

@@ -3,18 +3,14 @@
 root=$(pwd)
 REPO_URL="git@github.com:code-payments/ocp-protobuf-api.git"  # Default repo URL
 COMMIT_SHA=""
-RUN_STRIP_PROTO_VALIDATION=false  # Default to not running the script
 TEMP_DIR=$(mktemp -d)
 TARGET="code"
 
 # Parse options
-while getopts ":r:t:x" opt; do
+while getopts ":r:t:" opt; do
   case ${opt} in
     r )
       REPO_URL=$OPTARG
-      ;;
-    x )
-      RUN_STRIP_PROTO_VALIDATION=true
       ;;
     t )
       TARGET=$OPTARG
@@ -67,21 +63,7 @@ fi
 cd ../..
 rm -rf "$TEMP_DIR"
 
-# Conditionally run the strip proto validation script
-if [ "$RUN_STRIP_PROTO_VALIDATION" = true ]; then
-    SCRIPT_PATH="${root}/scripts/strip-proto-validation.sh"
-
-    # Ensure the script exists and is executable
-    if [ -f "$SCRIPT_PATH" ]; then
-        if [ -x "$SCRIPT_PATH" ]; then
-            echo "Running strip-proto-validation.sh"
-            "$SCRIPT_PATH"
-        else
-            echo "Error: strip-proto-validation.sh is not executable. Run 'chmod +x $SCRIPT_PATH' to fix this."
-            exit 1
-        fi
-    else
-        echo "Error: strip-proto-validation.sh not found at $SCRIPT_PATH"
-        exit 1
-    fi
+# Preserve custom opencode namespacing
+if [ "$TARGET" = "opencode" ]; then
+  find "${root}/definitions/$TARGET/protos/src/main/proto" -name "*.proto" -type f -exec sh -c "awk '{gsub(/];/, \"];\n\n\"); gsub(/option java_package = \"com\.codeinc\.gen\./, \"option java_package = \\\"com.codeinc.opencode.gen.\"); print}' {} > tmp && mv tmp {}" \;
 fi

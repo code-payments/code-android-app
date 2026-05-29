@@ -11,13 +11,18 @@ import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel2
+import com.flipcash.libs.coroutines.DispatcherProvider
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
+import com.getcode.opencode.model.financial.usdf
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
@@ -27,9 +32,12 @@ internal class DepositViewModel @Inject constructor(
     tokenController: TokenMetadataProvider,
     clipboardManager: ClipboardManager,
     resources: ResourceHelper,
-) : BaseViewModel2<DepositViewModel.State, DepositViewModel.Event>(
+    dispatchers: DispatcherProvider,
+    featureFlags: FeatureFlagController,
+) : BaseViewModel<DepositViewModel.State, DepositViewModel.Event>(
     initialState = State(),
-    updateStateForEvent = updateStateForEvent
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
     internal data class State(
         val selectedTokenAddress: Mint? = null,
@@ -52,17 +60,33 @@ internal class DepositViewModel @Inject constructor(
             .mapNotNull { tokenController.getTokenMetadata(it.mint) }
             .onResult(
                 onSuccess = { result ->
-                    val address = userManager.accountCluster?.depositAddressFor(result.token)?.base58()
-                    if (address == null) {
-                        BottomBarManager.showError(
-                            title = resources.getString(R.string.error_title_tokenNotFound),
-                            message = resources.getString(R.string.error_description_tokenNotFound),
-                        ) {
-                            dispatchEvent(Event.Exit)
+                    viewModelScope.launch {
+                        val address = if (result.token.address == Mint.usdc) {
+                            userManager.accountCluster?.authorityPublicKey?.base58()
+                        } else {
+                            userManager.accountCluster?.depositAddressFor(result.token)?.base58()
                         }
-                        return@onResult
+
+                        if (address == null) {
+                            BottomBarManager.showError(
+                                title = resources.getString(R.string.error_title_tokenNotFound),
+                                message = resources.getString(R.string.error_description_tokenNotFound),
+                            ) {
+                                dispatchEvent(Event.Exit)
+                            }
+                            return@launch
+                        }
+                        val tokenName = when (result.token.address) {
+                            Mint.usdc -> {
+                                resources.getString(R.string.displayName_usdc)
+                            }
+                            Mint.usdf -> {
+                                resources.getString(R.string.displayName_usdf)
+                            }
+                            else -> result.token.name
+                        }
+                        dispatchEvent(Event.OnTokenChanged(address, tokenName))
                     }
-                    dispatchEvent(Event.OnTokenChanged(address, result.token.name))
                 },
                 onError = {
                     BottomBarManager.showError(

@@ -33,12 +33,28 @@ sealed interface Button: AppAction {
         override val value: String = "Button: Skip Push"
     }
 
+    data object AllowContacts : Button {
+        override val value: String = "Button: Allow Contacts"
+    }
+
+    data object SkipContacts: Button {
+        override val value: String = "Button: Skip Contacts"
+    }
+
     data object TokenBuyWithReserves : Button {
         override val value: String = "Button: Buy With Reserves"
     }
 
     data object TokenBuyWithPhantom : Button {
         override val value: String = "Button: Buy With Phantom"
+    }
+
+    data object TokenBuyWithCoinbase : Button {
+        override val value: String = "Button: Buy With Coinbase"
+    }
+
+    data object TokenBuyWithOtherWallet : Button {
+        override val value: String = "Button: Buy With Other Wallet"
     }
 
     data object TokenSell : Button {

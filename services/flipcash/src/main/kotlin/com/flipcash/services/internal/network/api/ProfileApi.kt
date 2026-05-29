@@ -11,6 +11,8 @@ import com.flipcash.services.models.SocialAccountUnlinkRequest
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.model.core.ID
+import com.codeinc.flipcash.gen.profile.v1.validate
+import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -51,6 +53,8 @@ internal class ProfileApi @Inject constructor(
             .setDisplayName(displayName)
             .apply { setAuth(authenticate(owner)) }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.setDisplayName(request)

@@ -12,91 +12,28 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cafe.adriel.voyager.core.registry.ScreenRegistry
-import com.flipcash.app.core.AppRoute
-import com.flipcash.app.withdrawal.WithdrawalEntryScreen
-import com.flipcash.app.withdrawal.WithdrawalFlow
 import com.flipcash.app.withdrawal.WithdrawalViewModel
 import com.flipcash.app.withdrawal.internal.components.DestinationBox
 import com.flipcash.app.withdrawal.internal.components.TransactionReceipt
 import com.flipcash.features.withdrawal.R
-import com.getcode.manager.BottomBarAction
-import com.getcode.manager.BottomBarManager
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White40
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.util.resources.LocalResources
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun WithdrawalConfirmationScreen(viewModel: WithdrawalViewModel) {
-    val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val resources = LocalResources.current
     WithdrawalConfirmationScreenContent(state, viewModel::dispatchEvent)
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<WithdrawalViewModel.Event.OnWithdrawSuccessful>()
-            .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.success_title_withdrawalComplete),
-                        subtitle = resources.getString(R.string.success_description_withdrawalComplete),
-                        showCancel = false,
-                        showScrim = true,
-                        type = BottomBarManager.BottomBarMessageType.SUCCESS,
-                        actions = listOf(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_ok),
-                            )
-                        ),
-                        onClose = {
-                            navigator.popUntil { it == ScreenRegistry.get(AppRoute.Sheets.Menu) }
-                        }
-                    )
-                )
-            }.launchIn(this)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<WithdrawalViewModel.Event.OnWithdrawalTooSmall>()
-            .onEach {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.error_title_withdrawalTooSmall),
-                        subtitle = resources.getString(R.string.error_description_withdrawalTooSmall),
-                        showCancel = false,
-                        actions = buildList {
-                            add(
-                                BottomBarAction(
-                                    text = resources.getString(R.string.action_ok),
-                                )
-                            )
-                        },
-                        onClose = {
-                            WithdrawalFlow.start()
-                            navigator.popUntil { it is WithdrawalEntryScreen }
-                        }
-                    )
-                )
-            }.launchIn(this)
-    }
 }
 
 @Composable
@@ -137,13 +74,11 @@ private fun WithdrawalConfirmationScreenContent(
             TransferInfo(
                 tokenWithBalance = TokenWithBalance(
                     state.token!!.token,
-                    balance = state.amountEntryState.selectedAmount.nativeAmount,
+                    balance = state.amountEntryState.selectedAmount.localFiat.nativeAmount,
+                    displayName = state.token.displayName
                 ),
                 destination = state.destinationState.textFieldState.text.toString(),
-                fee = state.destinationState.availability?.feeAmount,
-                onLearnMoreClicked = {
-                    dispatchEvent(WithdrawalViewModel.Event.OnLearnAboutFee)
-                }
+                fee = state.feeInEntryCurrency,
             )
         }
     }
@@ -154,7 +89,6 @@ private fun TransferInfo(
     tokenWithBalance: TokenWithBalance,
     fee: Fiat?,
     destination: String,
-    onLearnMoreClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -165,12 +99,11 @@ private fun TransferInfo(
         TransactionReceipt(
             tokenWithBalance = tokenWithBalance,
             fee = fee,
-            onLearnMoreClicked = onLearnMoreClicked
         )
 
         Image(
             imageVector = Icons.Default.ArrowDownward,
-            colorFilter = ColorFilter.tint(CodeTheme.colors.border),
+            colorFilter = ColorFilter.tint(White40),
             contentDescription = ""
         )
 

@@ -1,0 +1,81 @@
+package com.flipcash.app.permissions.internal.contacts.components
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.flipcash.shared.permissions.R
+import com.getcode.manager.BottomBarAction
+import com.getcode.manager.BottomBarManager
+import com.flipcash.app.permissions.ContactAccessHandle
+import com.getcode.theme.CodeTheme
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import com.getcode.util.resources.LocalResources
+
+@Composable
+internal fun ContactPermissionBottomBar(
+    accessHandle: ContactAccessHandle,
+    onSkip: (() -> Unit)? = null,
+    isLoading: Boolean = false,
+    isSuccess: Boolean = false,
+) {
+    val resources = LocalResources.current
+    val canSkip = onSkip != null
+    Column(
+        modifier = Modifier.fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(bottom = CodeTheme.dimens.grid.x3),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        CodeButton(
+            onClick = { accessHandle.launch() },
+            text = if (canSkip) {
+                stringResource(R.string.action_giveAccessToContacts)
+            } else {
+                stringResource(R.string.action_next)
+            },
+            isLoading = isLoading,
+            isSuccess = isSuccess,
+            enabled = !isLoading && !isSuccess,
+            buttonState = ButtonState.Filled,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = CodeTheme.dimens.inset),
+        )
+
+        if (canSkip) {
+            CodeButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = CodeTheme.dimens.grid.x2)
+                    .padding(horizontal = CodeTheme.dimens.inset),
+                onClick = {
+                    BottomBarManager.showAlert(
+                        title = resources.getString(R.string.error_title_ignoredContactPermissions),
+                        message = resources.getString(R.string.error_description_ignoredContactPermissions),
+                        actions = listOf(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_okAllow)
+                            ) {
+                                accessHandle.launch()
+                            },
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_imSure),
+                                style = BottomBarManager.BottomBarButtonStyle.Text
+                            ) {
+                                onSkip()
+                            }
+                        )
+                    )
+                },
+                text = stringResource(R.string.action_notNow),
+                buttonState = ButtonState.Subtle,
+            )
+        }
+    }
+}

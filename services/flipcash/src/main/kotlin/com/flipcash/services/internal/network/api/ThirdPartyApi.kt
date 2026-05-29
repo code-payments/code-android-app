@@ -2,12 +2,14 @@ package com.flipcash.services.internal.network.api
 
 import com.codeinc.flipcash.gen.thirdparty.v1.ThirdPartyGrpcKt
 import com.codeinc.flipcash.gen.thirdparty.v1.ThirdPartyService
+import com.codeinc.flipcash.gen.thirdparty.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asApiKey
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.getcode.ed25519.Ed25519
 import com.getcode.network.jwt.JwtSecuredEndpoint
 import com.getcode.opencode.internal.network.core.GrpcApi
+import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -36,6 +38,8 @@ internal class ThirdPartyApi @Inject constructor(
             .setMethod(endpoint.method)
             .apply { setAuth(authenticate(owner)) }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.getJwt(request)

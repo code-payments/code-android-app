@@ -4,10 +4,13 @@ import com.getcode.crypt.DerivedKey
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.solana.extensions.newInstance
 import com.getcode.opencode.internal.extensions.toPublicKey
+import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.extensions.deriveDepositAccount
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.model.financial.usdf
+import com.getcode.solana.keys.Mint
 import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
 import com.getcode.solana.keys.PublicKey
 

@@ -46,7 +46,10 @@ data class TokenEntity(
 
     // Serialized via TypeConverter (polymorphic sealed types)
     @ColumnInfo(name = "bill_customizations")
-    val billCustomizationsJson: String?, // JSON
+    val billCustomizationsJson: String?,
+
+    @ColumnInfo(name = "holder_metrics")
+    val holderMetricsJson: String?,
 ) {
     @get:Ignore
     val mint: Mint

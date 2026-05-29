@@ -55,8 +55,8 @@ import com.getcode.ui.components.text.markup.Markup
 import com.getcode.ui.components.text.markup.MarkupTextHelper
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.dashedBorder
-import kotlinx.datetime.Instant
 import kotlinx.parcelize.Parcelize
+import kotlin.time.Instant
 
 @Parcelize
 sealed interface SelectedReaction: Parcelable {

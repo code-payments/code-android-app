@@ -9,28 +9,29 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.Icon
-import androidx.compose.material.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.rounded.RestorePage
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.SubcomposeLayout
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.getcode.navigation.flow.FlowDismissStyle
+import com.getcode.navigation.flow.LocalFlowDismissStyle
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 import com.getcode.ui.core.addIf
-import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.utils.calculateHorizontalPadding
 import kotlin.math.max
 
@@ -38,67 +39,66 @@ object AppBarDefaults {
     val ContentPadding: PaddingValues
         @Composable get() = PaddingValues(horizontal = CodeTheme.dimens.grid.x2)
 
+    internal val IconSize = 20.dp
+
     @Composable
     fun UpNavigation(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-            contentDescription = "",
-            tint = Color.White,
-            modifier = modifier
-                .requiredSize(24.dp)
-                .unboundedClickable { onClick() }
-                .testTag("action_back")
-        )
+        CircularIconButton(modifier = modifier, onClick = onClick, testTag = "action_back") { size ->
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                contentDescription = "",
+                tint = Color.White,
+                modifier = Modifier.requiredSize(size),
+            )
+        }
     }
 
     @Composable
     fun Close(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        Icon(
-            imageVector = Icons.Outlined.Close,
-            contentDescription = "",
-            tint = Color.White,
-            modifier = modifier
-                .requiredSize(24.dp)
-                .unboundedClickable { onClick() }
-                .testTag("action_close")
-        )
+        CircularIconButton(modifier = modifier, onClick = onClick, testTag = "action_close") { size ->
+            Icon(
+                imageVector = Icons.Outlined.Close,
+                contentDescription = "",
+                tint = Color.White,
+                modifier = Modifier.requiredSize(size),
+            )
+        }
     }
 
     @Composable
     fun Share(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        Icon(
-            painter = painterResource(R.drawable.ic_remote_send),
-            contentDescription = "",
-            tint = Color.White,
-            modifier = modifier
-                .requiredSize(24.dp)
-                .unboundedClickable { onClick() }
-                .testTag("action_share")
-        )
+        CircularIconButton(modifier = modifier, onClick = onClick, testTag = "action_share") { size ->
+            Icon(
+                painter = painterResource(R.drawable.ic_remote_send),
+                contentDescription = "",
+                tint = Color.White,
+                modifier = Modifier.requiredSize(size),
+            )
+        }
     }
 
     @Composable
     fun Leave(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Outlined.Logout,
-            contentDescription = "",
-            tint = Color.White,
-            modifier = modifier
-                .requiredSize(24.dp)
-                .unboundedClickable { onClick() }
-        )
+        CircularIconButton(modifier = modifier, onClick = onClick) { size ->
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.Logout,
+                contentDescription = "",
+                tint = Color.White,
+                modifier = Modifier.requiredSize(size),
+            )
+        }
     }
 
     @Composable
     fun Settings(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        Icon(
-            painter = painterResource(R.drawable.ic_settings_outline),
-            contentDescription = "",
-            tint = Color.White,
-            modifier = modifier
-                .requiredSize(24.dp)
-                .unboundedClickable { onClick() }
-        )
+        CircularIconButton(modifier = modifier, onClick = onClick) { size ->
+            Icon(
+                painter = painterResource(R.drawable.ic_settings_outline),
+                contentDescription = "",
+                tint = Color.White,
+                modifier = Modifier.requiredSize(size),
+            )
+        }
     }
 
     @Composable
@@ -106,14 +106,29 @@ object AppBarDefaults {
         modifier: Modifier = Modifier,
         onClick: () -> Unit
     ) {
-        Icon(
-            imageVector = Icons.Outlined.MoreVert,
-            contentDescription = "",
-            tint = Color.White,
-            modifier = modifier
-                .requiredSize(24.dp)
-                .unboundedClickable { onClick() }
-        )
+        CircularIconButton(modifier = modifier, onClick = onClick) { size ->
+            Icon(
+                imageVector = Icons.Outlined.MoreVert,
+                contentDescription = "",
+                tint = Color.White,
+                modifier = Modifier.requiredSize(size),
+            )
+        }
+    }
+
+    @Composable
+    fun Reset(
+        modifier: Modifier = Modifier,
+        onClick: () -> Unit
+    ) {
+        CircularIconButton(modifier = modifier, onClick = onClick) { size ->
+            Icon(
+                imageVector = Icons.Rounded.RestorePage,
+                contentDescription = "",
+                tint = Color.White,
+                modifier = Modifier.requiredSize(size),
+            )
+        }
     }
 
     @Composable
@@ -144,12 +159,15 @@ fun AppBarWithTitle(
     onBackIconClicked: () -> Unit = {},
     endContent: @Composable () -> Unit = { },
 ) {
+    val flowDismissStyle = LocalFlowDismissStyle.current
+    val showClose = backButton && flowDismissStyle == FlowDismissStyle.Close
+
     TopAppBarBase(
         modifier = modifier,
         isInModal = isInModal,
         contentPadding = contentPadding,
         leftIcon = {
-            if (backButton) {
+            if (backButton && !showClose) {
                 AppBarDefaults.UpNavigation { onBackIconClicked() }
             }
         },
@@ -157,7 +175,11 @@ fun AppBarWithTitle(
             AppBarDefaults.Title(text = title)
         },
         titleAlignment = titleAlignment,
-        rightContents = endContent
+        rightContents = if (showClose) {
+            { AppBarDefaults.Close { onBackIconClicked() } }
+        } else {
+            endContent
+        },
     )
 }
 

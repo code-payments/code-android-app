@@ -11,10 +11,12 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.app.persistence.sources.TokenDataSource
+import com.flipcash.app.tokens.core.ReservesBalanceProvider
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
-import com.getcode.opencode.internal.model.WindowedRange
+import com.getcode.opencode.exchange.VerifiedFiatCalculator
+import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.DataSource
@@ -81,8 +83,9 @@ class TokenCoordinator @Inject constructor(
     private val accountController: AccountController,
     private val networkObserver: NetworkConnectivityListener,
     private val exchange: Exchange,
+    private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val dataSource: TokenDataSource,
-) : TokenMetadataProvider, SessionListener, DefaultLifecycleObserver {
+) : TokenMetadataProvider, SessionListener, DefaultLifecycleObserver, ReservesBalanceProvider {
 
     companion object {
         private const val TAG = "TokenCoordinator"
@@ -108,16 +111,21 @@ class TokenCoordinator @Inject constructor(
     )
 
     private val _state = MutableStateFlow(TokenState())
+    private val _hydrated = MutableStateFlow(false)
 
     val tokens: Flow<List<Token>> = _state.map { it.tokens.values.toList() }
 
-    val tokenBalances: Flow<List<TokenWithBalance>> = _state.map { state ->
-        state.balances.mapNotNull { (mint, balance) ->
-            val token = state.tokens[mint] ?: return@mapNotNull null
-            val appreciation = if (mint == Mint.usdf) Fiat.MIN_VALUE else state.appreciation[mint] ?: Fiat.Zero
-            TokenWithBalance(token, balance, appreciation)
+    val tokenBalances: Flow<List<TokenWithBalance>> = _hydrated
+        .filter { it }
+        .flatMapLatest {
+            _state.map { state ->
+                state.balances.mapNotNull { (mint, balance) ->
+                    val token = state.tokens[mint] ?: return@mapNotNull null
+                    val appreciation = if (mint == Mint.usdf) Fiat.MIN_VALUE else state.appreciation[mint] ?: Fiat.Zero
+                    TokenWithBalance(token, balance, appreciation)
+                }
+            }
         }
-    }
 
     // region SessionListener
 
@@ -188,7 +196,7 @@ class TokenCoordinator @Inject constructor(
 
     fun reservesBalance(): Fiat = balanceForToken(Token.usdf)
 
-    fun observeReservesBalance(): Flow<Fiat> = balanceForToken(Mint.usdf)
+    override fun observeReservesBalance(): Flow<Fiat> = balanceForToken(Mint.usdf)
 
     suspend fun add(token: Token, fiat: LocalFiat) {
         val rate = exchange.rateToUsd(fiat.rate.currency)
@@ -223,13 +231,11 @@ class TokenCoordinator @Inject constructor(
     override suspend fun getTokenMetadata(mint: Mint): Result<TokenResult> {
         // 1. In-memory cache
         _state.value.tokens[mint]?.let { cached ->
-            trace(tag = TAG, message = "Token metadata memory hit for ${cached.symbol}", type = TraceType.Silent)
             return Result.success(TokenResult(cached, DataSource.Memory))
         }
 
         // 2. Room persistence
         dataSource.getById(mint)?.let { persisted ->
-            trace(tag = TAG, message = "Token metadata DB hit for ${persisted.symbol}", type = TraceType.Silent)
             _state.update { state ->
                 state.copy(tokens = state.tokens + (persisted.address to persisted))
             }
@@ -237,8 +243,6 @@ class TokenCoordinator @Inject constructor(
         }
 
         // 3. Network via TokenController
-        trace(tag = TAG, message = "Token metadata cache miss for ${mint.base58()}, delegating to network", type = TraceType.Silent)
-
         return tokenController.getTokenMetadata(mint)
             .onSuccess { result ->
                 val hasAccount = accountController.hasAccountFor(result.token.address)
@@ -283,6 +287,7 @@ class TokenCoordinator @Inject constructor(
     suspend fun reset() {
         val previousTokenCount = _state.value.tokens.size
         _state.value = TokenState()
+        _hydrated.value = false
         cluster.value = null
         selectedToken.edit { it.clear() }
         dataSource.clear()
@@ -307,10 +312,13 @@ class TokenCoordinator @Inject constructor(
 
         if (persisted.isEmpty()) {
             trace(tag = TAG, message = "No persisted tokens found", type = TraceType.Process)
+            _hydrated.value = true
             return
         }
 
         applyTokenUpdates(persisted)
+        ensureValidTokenSelection()
+        _hydrated.value = true
 
         trace(tag = TAG, message = "Hydrated ${persisted.size} tokens from persistence", type = TraceType.Process)
     }
@@ -431,6 +439,7 @@ class TokenCoordinator @Inject constructor(
             val newBalance = operation(currentBalance, amount)
             trace(tag = TAG, message = "Modified ${token.symbol} balance: ${currentBalance.formatted()} -> ${newBalance.formatted()}", type = TraceType.Process)
             _state.update { it.copy(balances = it.balances + (token.address to newBalance)) }
+            ensureValidTokenSelection()
 
             scope.launch(Dispatchers.IO) {
                 updateTokenAccount(token.address)
@@ -450,67 +459,66 @@ class TokenCoordinator @Inject constructor(
             ).collect { response ->
                 trace(tag = TAG, message = "Received ${response.reserveStates.size} reserve state updates", type = TraceType.Process)
 
-                _state.update { state ->
-                    var updatedTokens = state.tokens
-                    var updatedBalances = state.balances
+                val state = _state.value
+                var updatedTokens = state.tokens
+                var updatedBalances = state.balances
+                var updatedAppreciation = state.appreciation
 
-                    response.reserveStates.forEach { update ->
-                        val mint = update.reserveState.mint
-                        val token = state.tokens[mint] ?: return@forEach
-                        val launchpad = token.launchpadMetadata ?: return@forEach
+                for (update in response.reserveStates) {
+                    val mint = update.reserveState.mint
+                    val token = state.tokens[mint] ?: continue
+                    val launchpad = token.launchpadMetadata ?: continue
 
-                        val updatedToken = token.copy(
-                            launchpadMetadata = launchpad.copy(
-                                currentCirculatingSupplyQuarks = update.reserveState.currentSupply
-                            )
+                    val updatedToken = token.copy(
+                        launchpadMetadata = launchpad.copy(
+                            currentCirculatingSupplyQuarks = update.reserveState.currentSupply
                         )
-                        updatedTokens = updatedTokens + (mint to updatedToken)
+                    )
+                    updatedTokens = updatedTokens + (mint to updatedToken)
 
-                        state.balances[mint]?.let { balance ->
-                            val exchangedValue = runCatching {
-                                LocalFiat.valueExchangeIn(
-                                    amount = balance,
-                                    token = token,
-                                    balance = balance,
-                                    rate = Rate.oneToOne,
-                                    debug = false,
-                                    trace = false,
-                                ).underlyingTokenAmount
-                            }.getOrNull()
+                    val balance = state.balances[mint] ?: continue
+                    val exchangedValue = verifiedFiatCalculator.compute(
+                        amount = balance,
+                        token = updatedToken,
+                        balance = balance,
+                        rate = Rate.oneToOne,
+                        trace = false,
+                    ).getOrNull()?.localFiat?.underlyingTokenAmount
 
-                            if (exchangedValue != null) {
-                                val newBalance = Fiat.tokenBalance(
-                                    quarks = exchangedValue.quarks,
-                                    token = token
-                                )
-                                updatedBalances = updatedBalances + (mint to newBalance)
-                            }
-                        }
+                    if (exchangedValue != null) {
+                        val newBalance = Fiat.tokenBalance(
+                            quarks = exchangedValue.quarks,
+                            token = updatedToken
+                        )
+                        updatedBalances = updatedBalances + (mint to newBalance)
+
+                        val currentAppreciation = state.appreciation[mint] ?: Fiat.Zero
+                        val costBasis = balance - currentAppreciation
+                        val newAppreciation = newBalance - costBasis
+                        updatedAppreciation = updatedAppreciation + (mint to newAppreciation)
                     }
+                }
 
-                    state.copy(tokens = updatedTokens, balances = updatedBalances)
+                _state.update {
+                    it.copy(tokens = updatedTokens, balances = updatedBalances, appreciation = updatedAppreciation)
                 }
             }
         }
     }
 
     private suspend fun ensureValidTokenSelection() {
-        val state = _state.value
-        if (state.balances.isEmpty()) return
-
         val currentSelection = selectedToken.data.firstOrNull()
             ?.get(mintPreferenceKey)
             ?.let { Mint(it) }
-            ?.takeIf { state.balances.containsKey(it) }
 
-        if (currentSelection != null) return
+        val resolved = resolveTokenSelection(
+            balances = _state.value.balances,
+            currentSelection = currentSelection,
+            rate = exchange.preferredRate,
+        )
 
-        val highestBalance = state.balances
-            .filterKeys { it != Mint.usdf }
-            .maxByOrNull { it.value }
-
-        if (highestBalance != null) {
-            selectToken(highestBalance.key)
+        if (resolved != null && resolved != currentSelection) {
+            selectToken(resolved)
         }
     }
 

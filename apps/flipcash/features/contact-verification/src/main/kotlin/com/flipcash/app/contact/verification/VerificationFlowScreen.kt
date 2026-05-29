@@ -1,196 +1,90 @@
 package com.flipcash.app.contact.verification
 
-import android.content.Context
-import android.os.Parcelable
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
-import cafe.adriel.voyager.core.annotation.ExperimentalVoyagerApi
-import cafe.adriel.voyager.core.lifecycle.LifecycleEffectOnce
-import cafe.adriel.voyager.core.registry.ScreenRegistry
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.core.screen.ScreenKey
-import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import cafe.adriel.voyager.navigator.Navigator
-import cafe.adriel.voyager.transitions.SlideTransition
-import com.flipcash.app.contact.verification.email.EmailMagicLinkScreen
-import com.flipcash.app.contact.verification.email.EmailVerificationScreen
-import com.flipcash.app.contact.verification.internal.VerificationFlowIntroScreen
-import com.flipcash.app.contact.verification.phone.PhoneVerificationScreen
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import com.flipcash.app.contact.verification.email.EmailMagicLinkContent
+import com.flipcash.app.contact.verification.email.EmailVerificationContent
+import com.flipcash.app.contact.verification.internal.VerificationFlowIntroContent
+import com.flipcash.app.contact.verification.phone.PhoneCodeContent
+import com.flipcash.app.contact.verification.phone.PhoneCountryCodeContent
+import com.flipcash.app.contact.verification.phone.PhoneVerificationContent
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.verification.VerificationResult
+import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
-import com.flipcash.app.navigation.FlowNavigator
-import com.flipcash.app.navigation.LocalFlowNavigator
-import com.flipcash.app.navigation.NavigationFlowStep
-import com.flipcash.features.contact.verification.R
-import com.getcode.manager.BottomBarAction
-import com.getcode.manager.BottomBarManager
+import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.ModalScreen
-import kotlinx.parcelize.IgnoredOnParcel
-import kotlinx.parcelize.Parcelize
-
-@Parcelize
-class VerificationFlowScreen(
-    private val origin: AppRoute,
-    private val target: AppRoute? = null,
-    private val includePhone: Boolean = true,
-    private val includeEmail: Boolean = true,
-    private val showSuccess: Boolean = target == null && (includePhone xor includeEmail),
-    private val emailAddress: String? = null,
-    private val emailVerificationCode: String? = null,
-) : ModalScreen, Parcelable {
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
-
-    @IgnoredOnParcel
-    override val testTag: String = "verification_screen"
-
-    @OptIn(ExperimentalVoyagerApi::class)
-    @Composable
-    override fun ModalContent() {
-        val codeNavigator = LocalCodeNavigator.current
-        val context = LocalContext.current
-        fun showSuccess() {
-            if (includePhone) {
-                BottomBarManager.showMessage(
-                    title = context.getString(R.string.prompt_title_phoneVerifiedSuccessfully),
-                    subtitle = context.getString(R.string.prompt_description_phoneVerifiedSuccessfully),
-                    actions = listOf(
-                        BottomBarAction(text = context.getString(android.R.string.ok))
-                    ),
-                    type = BottomBarManager.BottomBarMessageType.SUCCESS,
-                ) {
-                    codeNavigator.pop()
-                }
-            } else {
-                BottomBarManager.showMessage(
-                    title = context.getString(R.string.prompt_title_emailVerifiedSuccessfully),
-                    subtitle = context.getString(R.string.prompt_description_emailVerifiedSuccessfully),
-                    actions = listOf(
-                        BottomBarAction(text = context.getString(android.R.string.ok))
-                    ),
-                    type = BottomBarManager.BottomBarMessageType.SUCCESS,
-                ) {
-                    codeNavigator.pop()
-                }
-            }
-        }
-
-        fun goToTargetOrReturn(wasSuccessful: Boolean) {
-            if (target != null) {
-                codeNavigator.replace(ScreenRegistry.get(target))
-            } else {
-                if (wasSuccessful && showSuccess) {
-                    showSuccess()
-                } else {
-                    codeNavigator.pop()
-                }
-            }
-        }
-
-        LifecycleEffectOnce {
-            PhoneVerificationFlow.start(origin)
-            EmailVerificationFlow.start(EmailDeeplinkOrigin.fromRoute(origin))
-        }
-
-        val screens =
-            buildScreenSet(
-                origin = origin,
-                includePhone = includePhone,
-                includeEmail = includeEmail,
-                emailAddress = emailAddress,
-                emailVerificationCode = emailVerificationCode
-            )
-        if (screens.isEmpty()) {
-            goToTargetOrReturn(false)
-            return
-        }
-
-        Navigator(screens.toList()) { navigator ->
-            val flowNavigator = rememberFlowNavigator(
-                target = target,
-                includePhone = includePhone,
-                includeEmail = includeEmail,
-                showSuccess = showSuccess,
-                navigator = navigator,
-                context = context,
-                goToTargetOrReturn = { success -> goToTargetOrReturn(success) }
-            )
-
-            CompositionLocalProvider(LocalFlowNavigator provides flowNavigator) {
-                SlideTransition(navigator = navigator)
-            }
-        }
-    }
-}
-
-private fun buildScreenSet(
-    origin: AppRoute,
-    includePhone: Boolean,
-    includeEmail: Boolean,
-    emailAddress: String?,
-    emailVerificationCode: String?,
-): Set<Screen> {
-    if (includePhone && includeEmail) {
-        return setOf(VerificationFlowIntroScreen(origin is AppRoute.OnRamp.ProviderList))
-    }
-    if (includePhone) {
-        return setOf(PhoneVerificationScreen())
-    }
-
-    if (includeEmail) {
-        return buildSet {
-            add(EmailVerificationScreen())
-            if (emailAddress != null && emailVerificationCode != null) {
-                add(EmailMagicLinkScreen(emailAddress, emailVerificationCode))
-            }
-        }
-    }
-
-    return emptySet()
-}
-
-enum class VerificationFlowStep: NavigationFlowStep {
-    Intro,
-    Phone,
-    Email;
-}
+import com.getcode.navigation.flow.FlowExitReason
+import com.getcode.navigation.flow.rememberInitialStack
+import com.getcode.navigation.flow.FlowHost
+import com.getcode.navigation.flow.deliverFlowResult
+import com.getcode.navigation.results.NavResultOrCanceled
+import com.getcode.navigation.results.NavResultStateRegistry
 
 @Composable
-fun rememberFlowNavigator(
-    target: AppRoute?,
-    includePhone: Boolean,
-    includeEmail: Boolean,
-    showSuccess: Boolean,
-    navigator: Navigator,
-    context: Context = LocalContext.current,
-    goToTargetOrReturn: (Boolean) -> Unit = {},
-): FlowNavigator<VerificationFlowStep> {
-    return remember(navigator, target, includePhone, includeEmail, showSuccess, context) {
-        object : FlowNavigator<VerificationFlowStep> {
-            override fun exit(success: Boolean) {
-                goToTargetOrReturn(success)
-            }
+fun VerificationFlowScreen(
+    route: AppRoute.Verification,
+    resultStateRegistry: NavResultStateRegistry,
+) {
+    // Capture the outer navigator before FlowHost overrides LocalCodeNavigator.
+    val outerNavigator = LocalCodeNavigator.current
 
-            override fun continueFlowFrom(step: VerificationFlowStep) {
-                when (step) {
-                    VerificationFlowStep.Intro -> {
-                        navigator.push(PhoneVerificationScreen())
-                    }
-                    VerificationFlowStep.Phone -> {
-                        if (includeEmail) {
-                            navigator.push(EmailVerificationScreen())
-                        } else {
-                            goToTargetOrReturn(true)
-                        }
-                    }
-                    VerificationFlowStep.Email -> {
-                        goToTargetOrReturn(true)
-                    }
-                }
+    val initialStack = route.rememberInitialStack<VerificationStep>()
+
+    FlowHost(
+        initialStack = initialStack,
+        resultStateRegistry = resultStateRegistry,
+        onExit = { reason, _ ->
+            val result: VerificationResult = when (reason) {
+                is FlowExitReason.Completed -> reason.result
+                FlowExitReason.Canceled,
+                FlowExitReason.BackedOutOfRoot -> VerificationResult.Canceled
             }
-        }
+            outerNavigator.deliverFlowResult(
+                route = route,
+                value = NavResultOrCanceled.ReturnValue(result),
+            )
+            if (route.target != null && result is VerificationResult.Success) {
+                outerNavigator.replaceAll(route.target!!)
+            } else {
+                outerNavigator.pop()
+            }
+        },
+        entryProvider = verificationEntryProvider(route),
+    )
+}
+
+private fun verificationEntryProvider(
+    route: AppRoute.Verification,
+): (NavKey) -> NavEntry<NavKey> = entryProvider {
+    annotatedEntry<VerificationStep.Intro> { step ->
+        VerificationFlowIntroContent(isForOnRamp = step.isForOnRamp)
+    }
+    annotatedEntry<VerificationStep.PhoneEntry> {
+        PhoneVerificationContent(isInModal = !route.fullScreen)
+    }
+    annotatedEntry<VerificationStep.PhoneCode> {
+        PhoneCodeContent(
+            includeEmail = route.includeEmail,
+            isInModal = !route.fullScreen,
+            linkForPayment = route.linkForPayment,
+        )
+    }
+    annotatedEntry<VerificationStep.PhoneCountryCode> {
+        PhoneCountryCodeContent(isInModal = !route.fullScreen)
+    }
+    annotatedEntry<VerificationStep.EmailEntry> {
+        EmailVerificationContent(
+            origin = EmailDeeplinkOrigin.fromRoute(route.origin),
+        )
+    }
+    annotatedEntry<VerificationStep.EmailMagicLink> { step ->
+        EmailMagicLinkContent(
+            origin = EmailDeeplinkOrigin.fromRoute(route.origin),
+            email = step.email,
+            code = step.code,
+        )
     }
 }

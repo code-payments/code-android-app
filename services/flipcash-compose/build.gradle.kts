@@ -36,12 +36,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.rxjava3)
     implementation(libs.androidx.room.paging)
     implementation(libs.okhttp)
     implementation(libs.mixpanel)
     implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.installations)
     implementation(libs.firebase.perf)
     implementation(libs.firebase.messaging)
@@ -60,5 +58,4 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     ksp(libs.hilt.compiler)
-    implementation(libs.bugsnag)
 }

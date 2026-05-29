@@ -2,6 +2,7 @@ package com.getcode.theme
 
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.material.Colors
+import androidx.compose.material.LocalContentColor
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Shapes
 import androidx.compose.material.TextFieldDefaults
@@ -42,6 +43,7 @@ internal val CodeDefaultColorScheme = ColorScheme(
     successText = Success,
     textMain = TextMain,
     textSecondary = TextSecondary,
+    textTertiary = White50,
     border = BrandLight,
     divider = White10,
     dividerVariant = White05,
@@ -56,6 +58,7 @@ internal val CodeDefaultColorScheme = ColorScheme(
     bannerSuccess = BannerSuccess,
     scrim = Black40,
     accessKey = CodeAccessKey,
+    contactAvatar = CodeContactAvatar,
 )
 
 @Composable
@@ -82,7 +85,10 @@ fun DesignSystem(
                     typography = LocalCodeTypography.current.toMaterial()
                 ) {
                     // setup after MDC theme to override defaults in theme
-                    CompositionLocalProvider(LocalTextSelectionColors provides textSelectionColors) {
+                    CompositionLocalProvider(
+                        LocalTextSelectionColors provides textSelectionColors,
+                        LocalContentColor provides CodeTheme.colors.textMain,
+                    ) {
                         content()
                     }
                 }
@@ -131,6 +137,7 @@ class ColorScheme(
     successText: Color,
     textMain: Color,
     textSecondary: Color,
+    textTertiary: Color,
     trackColor: Color,
     toggleUncheckedTrackColor: Color,
     cashBill: Color,
@@ -142,6 +149,7 @@ class ColorScheme(
     bannerSuccess: Color,
     scrim: Color,
     accessKey: GradientSpec,
+    contactAvatar: GradientSpec,
 ) {
     var brand by mutableStateOf(brand)
         private set
@@ -180,6 +188,8 @@ class ColorScheme(
     var textMain by mutableStateOf(textMain)
         private set
     var textSecondary by mutableStateOf(textSecondary)
+        private set
+    var textTertiary by mutableStateOf(textTertiary)
         private set
     var secondary by mutableStateOf(secondary)
         private set
@@ -222,6 +232,8 @@ class ColorScheme(
 
     var accessKey by mutableStateOf(accessKey)
         private set
+    var contactAvatar by mutableStateOf(contactAvatar)
+        private set
 
 
     fun update(other: ColorScheme) {
@@ -244,6 +256,7 @@ class ColorScheme(
         successText = other.successText
         textMain = other.textMain
         textSecondary = other.textSecondary
+        textTertiary = other.textTertiary
         secondary = other.secondary
         tertiary = other.tertiary
         indicator = other.indicator
@@ -263,6 +276,7 @@ class ColorScheme(
         bannerSuccess = other.bannerSuccess
         scrim = other.scrim
         accessKey = other.accessKey
+        contactAvatar = other.contactAvatar
     }
 
     fun copy(): ColorScheme = ColorScheme(
@@ -285,6 +299,7 @@ class ColorScheme(
         successText = successText,
         textMain = textMain,
         textSecondary = textSecondary,
+        textTertiary = textTertiary,
         secondary = secondary,
         tertiary = tertiary,
         indicator = indicator,
@@ -304,6 +319,7 @@ class ColorScheme(
         bannerSuccess = bannerSuccess,
         scrim = scrim,
         accessKey = accessKey,
+        contactAvatar = contactAvatar,
     )
 }
 
@@ -351,7 +367,7 @@ fun inputColors(
     borderColor: Color = CodeTheme.colors.border,
     unfocusedBorderColor: Color = borderColor,
     backgroundColor: Color = White05,
-    placeholderColor: Color = White50,
+    placeholderColor: Color = CodeTheme.colors.textSecondary,
     cursorColor: Color = Color.White,
     errorBorderColor: Color = CodeTheme.colors.error,
 ) = TextFieldDefaults.outlinedTextFieldColors(

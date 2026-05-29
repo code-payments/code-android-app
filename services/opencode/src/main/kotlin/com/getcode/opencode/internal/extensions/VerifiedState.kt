@@ -4,23 +4,29 @@ import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.solana.keys.Mint
-import com.getcode.utils.TraceType
-import com.getcode.utils.trace
+import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
+
+private val DefaultBillExchangeDataTimeout = 15.minutes
 
 fun VerifiedState.exchangeDataFor(
     amount: LocalFiat,
     mint: Mint,
     billExchangeDataTimeout: Duration?
 ): ExchangeData.Verified? {
-    if (billExchangeDataTimeout == null) {
-        trace(
-            tag = "Transactor::Give",
-            message = "No bill exchange data timeout provided. This bill is not giveable.",
-            type = TraceType.Error
-        )
+    val timeout = billExchangeDataTimeout ?: DefaultBillExchangeDataTimeout
+    if (timeout <= Duration.ZERO) return null
+
+    val ts = Instant.fromEpochSeconds(
+        rateProto.exchangeRate.timestamp.seconds,
+        rateProto.exchangeRate.timestamp.nanos
+    )
+    if (Clock.System.now() - ts > timeout) {
         return null
     }
+
     return ExchangeData.Verified(
         mint = mint,
         nativeAmount = amount.nativeAmount.decimalValue,

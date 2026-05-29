@@ -22,7 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight.Companion.W600
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.menu.BetaIndicator
+import com.getcode.ui.components.BetaIndicator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.rememberedClickable
 

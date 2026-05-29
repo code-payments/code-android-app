@@ -8,13 +8,11 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
-import android.os.Environment
 import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.internal.extensions.save
-import com.flipcash.app.core.storage.MediaScanner
+import com.flipcash.app.core.storage.MediaSaver
 import com.flipcash.app.theme.internal.Flipcash2ColorSpec
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.accesskey.R
@@ -27,7 +25,7 @@ import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.decodeBase64
-import com.getcode.view.BaseViewModel
+import androidx.lifecycle.ViewModel
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -63,10 +61,10 @@ data class AccessKeyUiModel(
 abstract class BaseAccessKeyViewModel(
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
-    private val mediaScanner: MediaScanner,
+    private val mediaSaver: MediaSaver,
     userManager: UserManager,
     private val qrCodeGenerator: QRCodeGenerator
-) : BaseViewModel(resources) {
+) : ViewModel() {
     val uiFlow = MutableStateFlow(AccessKeyUiModel())
 
     init {
@@ -129,22 +127,12 @@ abstract class BaseAccessKeyViewModel(
         uiFlow.update { it.copy(exportState = LoadingSuccessState(loading = true)) }
         val bitmap = uiFlow.value.accessKeyBitmap
             ?: return Result.failure(IllegalStateException("No access key?"))
-        val destination =
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
 
         return withContext(Dispatchers.IO) {
             runCatching {
-                val result = bitmap.save(
-                    destination = destination,
-                    name = {
-                        val date: DateFormat = SimpleDateFormat("yyy-MM-dd-h-mm", Locale.CANADA)
-                        "Flipcash-Recovery-${date.format(Date())}.png"
-                    }
-                )
-                if (result) {
-                    mediaScanner.scan(destination)
-                }
-                result
+                val date: DateFormat = SimpleDateFormat("yyy-MM-dd-h-mm", Locale.CANADA)
+                val filename = "Flipcash-Recovery-${date.format(Date())}.png"
+                mediaSaver.saveBitmap(bitmap, filename)
             }
         }.onFailure {
             getAccessKeySaveError()
@@ -177,7 +165,7 @@ abstract class BaseAccessKeyViewModel(
                 drawPaint(paintBackground)
             }
 
-            val topTextChunks = getString(R.string.subtitle_accessKeySnapshotWarning)
+            val topTextChunks = resources.getString(R.string.subtitle_accessKeySnapshotWarning)
                 .split(" ", "\n")
                 .chunked(7)
                 .map { it.joinToString(" ") }
@@ -253,7 +241,7 @@ abstract class BaseAccessKeyViewModel(
                 text = accessKeyText[1]
             )
 
-            val bottomTextChunks = getString(R.string.subtitle_accessKeySnapshotDescription)
+            val bottomTextChunks = resources.getString(R.string.subtitle_accessKeySnapshotDescription)
                 .split(" ")
                 .chunked(8)
                 .map { it.joinToString(" ") }

@@ -34,6 +34,36 @@ internal class SendTransaction(
     id = requestId,
 )
 
+internal class GetBalance(
+    publicKey: PublicKey,
+    commitment: String = "confirmed",
+    requestId: String = "1",
+): JsonRpc20Request(
+    method = "getBalance",
+    params = buildJsonArray {
+        add(publicKey.base58())
+        addJsonObject {
+            put("commitment", commitment)
+        }
+    },
+    id = requestId
+)
+
+internal class GetTokenAccountBalance(
+    tokenAccount: PublicKey,
+    commitment: String = "confirmed",
+    requestId: String = "1",
+): JsonRpc20Request(
+    method = "getTokenAccountBalance",
+    params = buildJsonArray {
+        add(tokenAccount.base58())
+        addJsonObject {
+            put("commitment", commitment)
+        }
+    },
+    id = requestId
+)
+
 internal class SimulateTransaction(
     encodedTransaction: String,
     commitment: String = "finalized",

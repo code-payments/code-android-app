@@ -7,12 +7,10 @@ android {
 }
 
 dependencies {
-    implementation(libs.compose.activities)
-
-    implementation(libs.haze)
-    implementation(libs.haze.materials)
+    implementation(libs.bundles.haze)
 
     implementation(project(":apps:flipcash:shared:analytics"))
+    implementation(project(":apps:flipcash:shared:onramp:coinbase"))
     implementation(project(":apps:flipcash:shared:onramp:deeplinks"))
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:shared:tokens"))

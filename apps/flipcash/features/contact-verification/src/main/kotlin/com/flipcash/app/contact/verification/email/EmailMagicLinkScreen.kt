@@ -1,7 +1,5 @@
 package com.flipcash.app.contact.verification.email
 
-import android.os.Parcelable
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -10,103 +8,85 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import cafe.adriel.voyager.core.annotation.ExperimentalVoyagerApi
-import cafe.adriel.voyager.core.lifecycle.LifecycleEffectOnce
-import cafe.adriel.voyager.core.screen.ScreenKey
-import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.rememberAnalytics
-import com.flipcash.app.contact.verification.EmailVerificationFlow
-import com.flipcash.app.contact.verification.VerificationFlowStep
 import com.flipcash.app.contact.verification.internal.email.EmailMagicLinkScreen
 import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
 import com.flipcash.app.core.android.IntentUtils
-import com.flipcash.app.navigation.FlowNavigator
-import com.flipcash.app.navigation.LocalFlowNavigator
+import com.flipcash.app.core.verification.VerificationResult
+import com.flipcash.app.core.verification.VerificationStep
+import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.features.contact.verification.R
-import com.getcode.navigation.extensions.getStackScopedViewModel
-import com.getcode.navigation.screens.AppScreen
+import com.getcode.navigation.flow.flowSharedViewModel
+import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.parcelize.IgnoredOnParcel
-import kotlinx.parcelize.Parcelize
 
-@Parcelize
-class EmailMagicLinkScreen(
-    private val email: String? = null,
-    private val code: String? = null
-) : AppScreen, Parcelable {
+@Composable
+fun EmailMagicLinkContent(
+    origin: EmailDeeplinkOrigin? = null,
+    email: String? = null,
+    code: String? = null,
+) {
+    val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
+    val viewModel = flowSharedViewModel<EmailVerificationViewModel>()
 
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
+    LaunchedEffect(origin) {
+        viewModel.dispatchEvent(EmailVerificationViewModel.Event.OnOriginSet(origin))
+    }
 
-    @IgnoredOnParcel
-    override val testTag: String = "email_magic_link_screen"
+    val analytics = rememberAnalytics()
+    LaunchedEffect(Unit) {
+        analytics.onrampVerification(Analytics.OnrampVerificationStep.ConfirmEmail)
+    }
 
-    @OptIn(ExperimentalVoyagerApi::class)
-    @Composable
-    override fun ScreenContent() {
-        val flowNavigator = LocalFlowNavigator.current as FlowNavigator<VerificationFlowStep>
-        val viewModel =
-            getStackScopedViewModel<EmailVerificationViewModel>(EmailVerificationFlow.key)
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        AppBarWithTitle(
+            title = stringResource(R.string.title_connectEmailAddress),
+            isInModal = true,
+            titleAlignment = Alignment.CenterHorizontally,
+            backButton = true,
+            onBackIconClicked = { flowNavigator.back() },
+        )
+        EmailMagicLinkScreen(viewModel)
+    }
 
-        BackHandler {
-            flowNavigator.exit(false)
-        }
+    LaunchedEffect(email, code) {
+        viewModel.dispatchEvent(EmailVerificationViewModel.Event.OnDataProvided(email, code))
+    }
 
-        val analytics = rememberAnalytics()
-        LifecycleEffectOnce {
-            analytics.onrampVerification(Analytics.OnrampVerificationStep.ConfirmEmail)
-        }
+    val context = LocalContext.current
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<EmailVerificationViewModel.Event.OpenMailApp>()
+            .onEach {
+                context.startActivity(IntentUtils.emailApp())
+            }.launchIn(this)
+    }
 
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            AppBarWithTitle(
-                title = stringResource(R.string.title_verifyEmailAddress),
-                isInModal = true,
-                titleAlignment = Alignment.CenterHorizontally,
-                backButton = true,
-                onBackIconClicked = { flowNavigator.exit(false) },
-            )
-            EmailMagicLinkScreen(viewModel)
-        }
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<EmailVerificationViewModel.Event.OnMaxAttemptsReached>()
+            .onEach { flowNavigator.exitCanceled() }
+            .launchIn(this)
+    }
 
-        LaunchedEffect(email, code) {
-            viewModel.dispatchEvent(EmailVerificationViewModel.Event.OnDataProvided(email, code))
-        }
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<EmailVerificationViewModel.Event.Exit>()
+            .onEach { flowNavigator.exitCanceled() }
+            .launchIn(this)
+    }
 
-        val context = LocalContext.current
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<EmailVerificationViewModel.Event.OpenMailApp>()
-                .onEach {
-                    context.startActivity(IntentUtils.emailApp())
-                }.launchIn(this)
-        }
-
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<EmailVerificationViewModel.Event.OnMaxAttemptsReached>()
-                .onEach { flowNavigator.exit(false) }
-                .launchIn(this)
-        }
-
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<EmailVerificationViewModel.Event.Exit>()
-                .onEach { flowNavigator.exit(false) }
-                .launchIn(this)
-        }
-
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<EmailVerificationViewModel.Event.OnCodeVerified>()
-                .onEach { flowNavigator.continueFlowFrom(VerificationFlowStep.Email) }
-                .launchIn(this)
-        }
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<EmailVerificationViewModel.Event.OnCodeVerified>()
+            .onEach { flowNavigator.exitWithResult(VerificationResult.Success) }
+            .launchIn(this)
     }
 }

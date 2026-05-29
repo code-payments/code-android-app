@@ -1,21 +1,32 @@
 package com.getcode.opencode.solana.swap
 
-import com.codeinc.opencode.gen.common.v1.blockhash
 import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
+import com.getcode.opencode.internal.solana.extensions.deriveCurrencyConfigAddress
+import com.getcode.opencode.internal.solana.extensions.deriveCurrencyMintAddress
+import com.getcode.opencode.internal.solana.extensions.deriveDepositAccount
+import com.getcode.opencode.internal.solana.extensions.deriveLiquidityPoolAddress
+import com.getcode.opencode.internal.solana.extensions.deriveVaultAddress
+import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
+import com.getcode.opencode.internal.solana.extensions.deriveVmOmnibusAddress
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram
 import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram
+import com.getcode.opencode.internal.solana.programs.CurrencyCreatorProgram
 import com.getcode.opencode.internal.solana.programs.MemoProgram
 import com.getcode.opencode.internal.solana.programs.SystemProgram
 import com.getcode.opencode.internal.solana.programs.TokenProgram
+import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram
 import com.getcode.opencode.internal.solana.vmAuthority
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.HolderMetrics
 import com.getcode.opencode.model.financial.LaunchpadMetadata
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.opencode.model.financial.usdf
-import com.getcode.opencode.model.transactions.SwapResponseServerParameters
+import com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters
 import com.getcode.opencode.tests.generateRandomPublicKeyForTest
 import com.getcode.opencode.utils.generate
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -30,6 +41,8 @@ class SwapInstructionsTest {
     private val mockAuthority = generateRandomPublicKeyForTest() // The user/owner
     private val mockSwapAuthority = generateRandomPublicKeyForTest() // The temporary swap authority
     private val mockRecentBlockhash = generateRandomPublicKeyForTest()
+
+    private val mockFeeDestination = generateRandomPublicKeyForTest()
 
     // Mock VMs
     private val coreVmMetadata = VmMetadata(
@@ -52,14 +65,16 @@ class SwapInstructionsTest {
         mintVault = generateRandomPublicKeyForTest(),
         coreMintVault = generateRandomPublicKeyForTest(),
         currentCirculatingSupplyQuarks = 0,
-        sellFeeBps = 0
+        sellFeeBps = 0,
+        price = Fiat.MIN_VALUE,
+        marketCap = Fiat.MIN_VALUE,
     )
 
     // Mock Mints
     private val coreMint = MintMetadata.usdf
 
     private val targetMint = MintMetadata(
-        address = PublicKey.generate(),
+        address = Mint(PublicKey.generate().bytes),
         vmMetadata = targetVmMetadata,
         launchpadMetadata = mockLaunchpadMetadata,
         decimals = 6,
@@ -68,11 +83,13 @@ class SwapInstructionsTest {
         description = "",
         imageUrl = "",
         billCustomizations = null,
+        socialLinks = emptyList(),
+        holderMetrics = HolderMetrics.None,
         createdAt = Clock.System.now(),
     )
 
     // Mock Server Response (Stateless for simplicity)
-    private val mockServerParams = SwapResponseServerParameters(
+    private val mockServerParams = StatefulSwapResponseServerParameters.ExistingCurrency(
         payer = mockPayer,
         blockhash = mockRecentBlockhash,
         nonce = mockNonce,
@@ -89,7 +106,7 @@ class SwapInstructionsTest {
         val amount = 100_000L
         val minOutput = 95_000L
 
-        val instructions = buildBuyInstructions(
+        val instructions = buildExistingCurrencyBuyInstructions(
             serverParameters = mockServerParams,
             nonce = mockNonce,
             authority = mockAuthority,
@@ -260,7 +277,7 @@ class SwapInstructionsTest {
     @Test(expected = IllegalStateException::class)
     fun testBuildBuyInstructionsThrowsIfMissingLaunchpad() {
         val badTargetMint = MintMetadata(
-            address = PublicKey.generate(),
+            address = Mint(PublicKey.generate().bytes),
             vmMetadata = targetVmMetadata,
             decimals = 6,
             launchpadMetadata = null, // missing
@@ -269,10 +286,12 @@ class SwapInstructionsTest {
             description = "",
             imageUrl = "",
             billCustomizations = null,
+            socialLinks = emptyList(),
+            holderMetrics = HolderMetrics.None,
             createdAt = Clock.System.now(),
         )
 
-        buildBuyInstructions(
+        buildExistingCurrencyBuyInstructions(
             serverParameters = mockServerParams,
             nonce = mockNonce,
             authority = mockAuthority,
@@ -287,7 +306,7 @@ class SwapInstructionsTest {
     @Test(expected = IllegalStateException::class)
     fun testBuildSellInstructionsThrowsIfMissingLaunchpad() {
         val badSourceMint = MintMetadata(
-            address = PublicKey.generate(),
+            address = Mint(PublicKey.generate().bytes),
             vmMetadata = targetVmMetadata,
             launchpadMetadata = null, // Missing
             name = "Test Token",
@@ -295,6 +314,8 @@ class SwapInstructionsTest {
             description = "",
             imageUrl = "",
             billCustomizations = null,
+            socialLinks = emptyList(),
+            holderMetrics = HolderMetrics.None,
             createdAt = Clock.System.now(),
             decimals = 6,
         )
@@ -309,5 +330,424 @@ class SwapInstructionsTest {
             amount = 100,
             minOutput = 90
         )
+    }
+
+    // --- New Currency Swap Tests ---
+
+    private val mockNewCurrencyAuthority = generateRandomPublicKeyForTest()
+    private val mockSeed = generateRandomPublicKeyForTest()
+
+    private val mockNewCurrencyServerParams = StatefulSwapResponseServerParameters.NewCurrency(
+        payer = mockPayer,
+        blockhash = mockRecentBlockhash,
+        nonce = mockNonce,
+        computeUnitLimit = 800_000,
+        computeUnitPrice = 2_000,
+        memoValue = "",
+        authority = mockNewCurrencyAuthority,
+        name = "TestCoin",
+        symbol = "TC",
+        seed = mockSeed,
+        sellFeeBps = 100,
+        vmLockDurationInDays = 21,
+        alts = emptyList(),
+        feeDestination = mockFeeDestination
+    )
+
+    @Test
+    fun testBuildNewCurrencyBuyInstructionsCount() {
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
+
+        val instructions = buildNewCurrencyBuyInstructions(
+            serverParameters = mockNewCurrencyServerParams,
+            nonce = mockNonce,
+            authority = mockNewCurrencyAuthority,
+            coreMintMetadata = coreMint,
+            amount = amount,
+            feeAmount = fee,
+        )
+
+        // Expected Sequence (11 instructions):
+        // 1. System::AdvanceNonce
+        // 2. ComputeBudget::SetComputeUnitLimit
+        // 3. ComputeBudget::SetComputeUnitPrice
+        // 4. Reserve::InitializeCurrency
+        // 5. Reserve::InitializePool
+        // 6. VM::InitializeVm
+        // 7. AssociatedTokenAccount::CreateIdempotent (Core Mint ATA)
+        // 8. AssociatedTokenAccount::CreateIdempotent (target mint VM deposit ATA)
+        // 9. VM::TransferForSwap
+        // 10. Reserve::BuyTokens
+        // 11. Token::CloseAccount
+
+        assertEquals("Should generate 11 instructions", 11, instructions.size)
+    }
+
+    @Test
+    fun testBuildNewCurrencyBuyInstructionPrograms() {
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
+
+        val instructions = buildNewCurrencyBuyInstructions(
+            serverParameters = mockNewCurrencyServerParams,
+            nonce = mockNonce,
+            authority = mockNewCurrencyAuthority,
+            coreMintMetadata = coreMint,
+            amount = amount,
+            feeAmount = fee,
+        )
+
+        // 1. System::AdvanceNonce
+        assertEquals(SystemProgram.address, instructions[0].program)
+
+        // 2. ComputeBudget::SetComputeUnitLimit
+        assertEquals(ComputeBudgetProgram.address, instructions[1].program)
+
+        // 3. ComputeBudget::SetComputeUnitPrice
+        assertEquals(ComputeBudgetProgram.address, instructions[2].program)
+
+        // 4. Reserve::InitializeCurrency
+        assertEquals(CurrencyCreatorProgram.address, instructions[3].program)
+
+        // 5. Reserve::InitializePool
+        assertEquals(CurrencyCreatorProgram.address, instructions[4].program)
+
+        // 6. VM::InitializeVm
+        assertEquals(VirtualMachineProgram.address, instructions[5].program)
+
+        // 7. AssociatedTokenAccount::CreateIdempotent (Core Mint ATA)
+        assertEquals(AssociatedTokenProgram.address, instructions[6].program)
+
+        // 8. AssociatedTokenAccount::CreateIdempotent (VM deposit ATA)
+        assertEquals(AssociatedTokenProgram.address, instructions[7].program)
+
+        // 9. VM::TransferForSwap
+        assertEquals(VirtualMachineProgram.address, instructions[8].program)
+
+        // 10. Reserve::BuyTokens
+        assertEquals(CurrencyCreatorProgram.address, instructions[9].program)
+
+        // 11. Token::CloseAccount
+        assertEquals(TokenProgram.address, instructions[10].program)
+    }
+
+    @Test
+    fun testBuildNewCurrencyBuyInstructionAccounts() {
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
+
+        val instructions = buildNewCurrencyBuyInstructions(
+            serverParameters = mockNewCurrencyServerParams,
+            nonce = mockNonce,
+            authority = mockNewCurrencyAuthority,
+            coreMintMetadata = coreMint,
+            amount = amount,
+            feeAmount = fee,
+        )
+
+        // Derive expected PDAs
+        val mintDerived = PublicKey.deriveCurrencyMintAddress(
+            mockNewCurrencyAuthority, "TestCoin", mockSeed
+        )
+        val derivedTargetMint = mintDerived.publicKey
+
+        val currencyConfigDerived = PublicKey.deriveCurrencyConfigAddress(derivedTargetMint)
+        val currencyConfig = currencyConfigDerived.publicKey
+
+        val poolDerived = PublicKey.deriveLiquidityPoolAddress(currencyConfig)
+        val pool = poolDerived.publicKey
+
+        val vaultTargetDerived = PublicKey.deriveVaultAddress(pool, derivedTargetMint)
+        val vaultBaseDerived = PublicKey.deriveVaultAddress(pool, coreMint.address)
+
+        val vmDerived = PublicKey.deriveVirtualMachineAccount(
+            derivedTargetMint, mockNewCurrencyAuthority, 21.toUByte()
+        )
+        val vm = vmDerived.publicKey
+
+        val vmOmnibusDerived = PublicKey.deriveVmOmnibusAddress(vm)
+
+        val depositPda = PublicKey.deriveDepositAccount(vm, mockNewCurrencyAuthority)
+
+        // 4. InitializeCurrency: authority at index 0, mint at index 1, currency at index 2
+        assertEquals(mockNewCurrencyAuthority, instructions[3].accounts[0].publicKey)
+        assertTrue(instructions[3].accounts[0].isSigner)
+        assertTrue(instructions[3].accounts[0].isWritable)
+        assertEquals(derivedTargetMint, instructions[3].accounts[1].publicKey)
+        assertEquals(currencyConfig, instructions[3].accounts[2].publicKey)
+
+        // 5. InitializePool: authority at 0, currency at 1, targetMint at 2, baseMint at 3, pool at 4
+        assertEquals(mockNewCurrencyAuthority, instructions[4].accounts[0].publicKey)
+        assertEquals(currencyConfig, instructions[4].accounts[1].publicKey)
+        assertEquals(derivedTargetMint, instructions[4].accounts[2].publicKey)
+        assertEquals(coreMint.address, instructions[4].accounts[3].publicKey)
+        assertEquals(pool, instructions[4].accounts[4].publicKey)
+        assertEquals(vaultTargetDerived.publicKey, instructions[4].accounts[5].publicKey)
+        assertEquals(vaultBaseDerived.publicKey, instructions[4].accounts[6].publicKey)
+
+        // 6. InitializeVm: vmAuthority at 0, vm at 1, vmOmnibus at 2, mint at 3
+        assertEquals(mockNewCurrencyAuthority, instructions[5].accounts[0].publicKey)
+        assertEquals(vm, instructions[5].accounts[1].publicKey)
+        assertEquals(vmOmnibusDerived.publicKey, instructions[5].accounts[2].publicKey)
+        assertEquals(derivedTargetMint, instructions[5].accounts[3].publicKey)
+
+        // 7. CreateIdempotent for core mint ATA: subsidizer=authority(0), owner mint(3)=coreMint
+        assertEquals(mockNewCurrencyAuthority, instructions[6].accounts[0].publicKey)
+        assertEquals(coreMint.address, instructions[6].accounts[3].publicKey)
+
+        // 8. CreateIdempotent for VM deposit ATA: owner=depositPda, mint=targetMint
+        val expectedDepositAta = PublicKey.deriveAssociatedAccount(
+            depositPda.publicKey, derivedTargetMint
+        ).publicKey
+        assertEquals(expectedDepositAta, instructions[7].accounts[1].publicKey)
+        assertEquals(derivedTargetMint, instructions[7].accounts[3].publicKey)
+
+        // 9. VM::TransferForSwapWithFee: vmAuthority at 0 matches core VM authority
+        assertEquals(coreMint.vmMetadata.authority, instructions[8].accounts[0].publicKey)
+        assertEquals(coreMint.vmMetadata.vm, instructions[8].accounts[1].publicKey)
+        assertEquals(8, instructions[8].accounts.size)
+        // feeDestination at index 6
+        assertEquals(mockFeeDestination, instructions[8].accounts[6].publicKey)
+        assertTrue(instructions[8].accounts[6].isWritable)
+
+        // 10. Reserve::BuyTokens: buyer at 0 is authority
+        assertEquals(mockNewCurrencyAuthority, instructions[9].accounts[0].publicKey)
+        assertTrue(instructions[9].accounts[0].isSigner)
+        // pool at 1
+        assertEquals(pool, instructions[9].accounts[1].publicKey)
+        // targetMint at 2
+        assertEquals(derivedTargetMint, instructions[9].accounts[2].publicKey)
+        // baseMint at 3
+        assertEquals(coreMint.address, instructions[9].accounts[3].publicKey)
+        // vaultTarget at 4
+        assertEquals(vaultTargetDerived.publicKey, instructions[9].accounts[4].publicKey)
+        // vaultBase at 5
+        assertEquals(vaultBaseDerived.publicKey, instructions[9].accounts[5].publicKey)
+
+        // 11. Token::CloseAccount: account is the temp core ATA, destination and owner are authority
+        val expectedCoreMintAta = PublicKey.deriveAssociatedAccount(
+            mockNewCurrencyAuthority, coreMint.address
+        ).publicKey
+        assertEquals(expectedCoreMintAta, instructions[10].accounts[0].publicKey)
+        assertEquals(mockNewCurrencyAuthority, instructions[10].accounts[1].publicKey)
+        assertEquals(mockNewCurrencyAuthority, instructions[10].accounts[2].publicKey)
+    }
+
+    @Test
+    fun testBuildNewCurrencyBuyInstructionInitializeCurrencyData() {
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
+
+        val instructions = buildNewCurrencyBuyInstructions(
+            serverParameters = mockNewCurrencyServerParams,
+            nonce = mockNonce,
+            authority = mockNewCurrencyAuthority,
+            coreMintMetadata = coreMint,
+            amount = amount,
+            feeAmount = fee,
+        )
+
+        // InitializeCurrency data: command(1) + name(32) + symbol(8) + seed(32) + bump(1) + mintBump(1) + padding(6) = 81 bytes
+        val initCurrencyData = instructions[3].data
+        assertEquals(81, initCurrencyData.size)
+        assertEquals(CurrencyCreatorProgram.Command.initializeCurrency.value, initCurrencyData[0])
+
+        // Verify name bytes (first 8 bytes of name field should be "TestCoin")
+        val nameBytes = "TestCoin".toByteArray(Charsets.UTF_8)
+        for (i in nameBytes.indices) {
+            assertEquals(nameBytes[i], initCurrencyData[1 + i])
+        }
+        // Remaining name bytes should be zero-padded
+        for (i in nameBytes.size until 32) {
+            assertEquals(0.toByte(), initCurrencyData[1 + i])
+        }
+
+        // Verify symbol bytes (first 2 bytes should be "TC")
+        val symbolBytes = "TC".toByteArray(Charsets.UTF_8)
+        for (i in symbolBytes.indices) {
+            assertEquals(symbolBytes[i], initCurrencyData[33 + i])
+        }
+        // Remaining symbol bytes should be zero-padded
+        for (i in symbolBytes.size until 8) {
+            assertEquals(0.toByte(), initCurrencyData[33 + i])
+        }
+    }
+
+    @Test
+    fun testBuildNewCurrencyBuyInstructionInitializePoolData() {
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
+
+        val instructions = buildNewCurrencyBuyInstructions(
+            serverParameters = mockNewCurrencyServerParams,
+            nonce = mockNonce,
+            authority = mockNewCurrencyAuthority,
+            coreMintMetadata = coreMint,
+            amount = amount,
+            feeAmount = fee,
+        )
+
+        // InitializePool data: command(1) + sellFee(2) + bump(1) + vaultTargetBump(1) + vaultBaseBump(1) + padding(1) = 7 bytes
+        val initPoolData = instructions[4].data
+        assertEquals(7, initPoolData.size)
+        assertEquals(CurrencyCreatorProgram.Command.initializePool.value, initPoolData[0])
+
+        // sellFee = 100 bps = 0x64, 0x00 in LE
+        assertEquals(0x64.toByte(), initPoolData[1])
+        assertEquals(0x00.toByte(), initPoolData[2])
+    }
+
+    @Test
+    fun testBuildNewCurrencyBuyInstructionInitVmData() {
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
+
+        val instructions = buildNewCurrencyBuyInstructions(
+            serverParameters = mockNewCurrencyServerParams,
+            nonce = mockNonce,
+            authority = mockNewCurrencyAuthority,
+            coreMintMetadata = coreMint,
+            amount = amount,
+            feeAmount = fee,
+        )
+
+        // InitVm data: command(1) + lockDuration(1) + vmBump(1) + vmOmnibusBump(1) = 4 bytes
+        val initVmData = instructions[5].data
+        assertEquals(4, initVmData.size)
+        assertEquals(VirtualMachineProgram.Command.initVm.value, initVmData[0])
+        assertEquals(21.toByte(), initVmData[1]) // lockDuration = 21 days
+    }
+
+    @Test
+    fun testBuildNewCurrencyBuyInstructionBuyTokensData() {
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
+
+        val instructions = buildNewCurrencyBuyInstructions(
+            serverParameters = mockNewCurrencyServerParams,
+            nonce = mockNonce,
+            authority = mockNewCurrencyAuthority,
+            coreMintMetadata = coreMint,
+            amount = amount,
+            feeAmount = fee,
+        )
+
+        // BuyTokens data: command(1) + inAmount(8) + minOutAmount(8) = 17 bytes
+        val buyData = instructions[9].data
+        assertEquals(17, buyData.size)
+        assertEquals(CurrencyCreatorProgram.Command.buyTokens.value, buyData[0])
+
+        // inAmount = 95_000 = 0x18730100_00000000 in LE
+        assertEquals(0x18.toByte(), buyData[1])
+        assertEquals(0x73.toByte(), buyData[2])
+        assertEquals(0x01.toByte(), buyData[3])
+        assertEquals(0x00.toByte(), buyData[4])
+
+        // minOutAmount = 0
+        for (i in 9..16) {
+            assertEquals(0.toByte(), buyData[i])
+        }
+    }
+
+    @Test
+    fun testBuildNewCurrencyBuyTransferForSwapWithFeeData() {
+        val totalAmount = 100_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
+
+        val instructions = buildNewCurrencyBuyInstructions(
+            serverParameters = mockNewCurrencyServerParams,
+            nonce = mockNonce,
+            authority = mockNewCurrencyAuthority,
+            coreMintMetadata = coreMint,
+            amount = amount,
+            feeAmount = fee,
+        )
+
+        // TransferForSwapWithFee data: command(1) + swapAmount(8) + feeAmount(8) + bump(1) = 18 bytes
+        val transferData = instructions[8].data
+        assertEquals(18, transferData.size)
+
+        // Command byte is transferForSwap (17)
+        assertEquals(VirtualMachineProgram.Command.transferForSwap.value, transferData[0])
+
+        // swapAmount = 95_000 at bytes [1..8] in LE
+        assertEquals(0x18.toByte(), transferData[1])
+        assertEquals(0x73.toByte(), transferData[2])
+        assertEquals(0x01.toByte(), transferData[3])
+        for (i in 4..8) assertEquals(0x00.toByte(), transferData[i])
+
+        // feeAmount = 5_000 at bytes [9..16] in LE
+        assertEquals(0x88.toByte(), transferData[9])
+        assertEquals(0x13.toByte(), transferData[10])
+        for (i in 11..16) assertEquals(0x00.toByte(), transferData[i])
+
+        // bump is last byte
+        assertTrue(transferData[17] in Byte.MIN_VALUE..Byte.MAX_VALUE)
+    }
+
+    @Test
+    fun testNewCurrencyBuyInstructionAuthorityIsBuyer() {
+        val totalAmount = 50_000L
+        val fee = 5_000L
+        val amount = totalAmount - fee
+
+        val instructions = buildNewCurrencyBuyInstructions(
+            serverParameters = mockNewCurrencyServerParams,
+            nonce = mockNonce,
+            authority = mockNewCurrencyAuthority,
+            coreMintMetadata = coreMint,
+            amount = amount,
+            feeAmount = fee,
+        )
+
+        // In the new currency flow, authority == buyer == swapAuthority
+        // InitializeCurrency authority
+        assertEquals(mockNewCurrencyAuthority, instructions[3].accounts[0].publicKey)
+        // InitializePool authority
+        assertEquals(mockNewCurrencyAuthority, instructions[4].accounts[0].publicKey)
+        // InitVm vmAuthority
+        assertEquals(mockNewCurrencyAuthority, instructions[5].accounts[0].publicKey)
+        // BuyTokens buyer
+        assertEquals(mockNewCurrencyAuthority, instructions[9].accounts[0].publicKey)
+        // CloseAccount owner
+        assertEquals(mockNewCurrencyAuthority, instructions[10].accounts[2].publicKey)
+    }
+
+    @Test
+    fun testNewCurrencyPdaDerivationsAreConsistent() {
+        // Verify that PDA derivations chain correctly
+        val mint = PublicKey.deriveCurrencyMintAddress(
+            mockNewCurrencyAuthority, "TestCoin", mockSeed
+        )
+        val config = PublicKey.deriveCurrencyConfigAddress(mint.publicKey)
+        val pool = PublicKey.deriveLiquidityPoolAddress(config.publicKey)
+        val vaultTarget = PublicKey.deriveVaultAddress(pool.publicKey, mint.publicKey)
+        val vaultBase = PublicKey.deriveVaultAddress(pool.publicKey, coreMint.address)
+
+        // All bumps should be in valid range [0, 255]
+        assertTrue(mint.bump in 0..255)
+        assertTrue(config.bump in 0..255)
+        assertTrue(pool.bump in 0..255)
+        assertTrue(vaultTarget.bump in 0..255)
+        assertTrue(vaultBase.bump in 0..255)
+
+        // Vault target and vault base should be different addresses
+        assertTrue(vaultTarget.publicKey != vaultBase.publicKey)
+
+        // Deriving the same inputs should produce the same output (deterministic)
+        val mint2 = PublicKey.deriveCurrencyMintAddress(
+            mockNewCurrencyAuthority, "TestCoin", mockSeed
+        )
+        assertEquals(mint.publicKey, mint2.publicKey)
+        assertEquals(mint.bump, mint2.bump)
     }
 }

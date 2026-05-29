@@ -14,5 +14,8 @@ dependencies {
     implementation(libs.protobuf.kotlin.lite)
     implementation(libs.grpc.okhttp)
     implementation(libs.grpc.kotlin)
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.robolectric)
 }

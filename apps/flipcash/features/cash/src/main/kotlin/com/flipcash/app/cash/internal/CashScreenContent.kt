@@ -11,9 +11,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.money.RegionSelectionKind
 import com.flipcash.app.core.ui.AmountWithKeypad
 import com.flipcash.features.cash.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -47,13 +45,7 @@ internal fun GiveScreenContent(viewModel: CashScreenViewModel) {
             },
             isClickable = true,
             onAmountClicked = {
-                navigator.push(
-                    ScreenRegistry.get(
-                        AppRoute.Main.RegionSelection(
-                            kind = RegionSelectionKind.Entry
-                        )
-                    )
-                )
+                navigator.push(AppRoute.Main.RegionSelection)
             },
             isError = state.isError,
             onNumberPressed = { viewModel.dispatchEvent(CashScreenViewModel.Event.OnNumberPressed(it)) },

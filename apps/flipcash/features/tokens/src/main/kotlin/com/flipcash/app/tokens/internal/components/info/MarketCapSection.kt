@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,7 +23,6 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -36,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -59,11 +56,9 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.calculateEndPadding
 import com.getcode.ui.utils.calculateStartPadding
-import com.getcode.util.format
 import com.getcode.util.formatLocalized
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import java.util.Locale
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -137,7 +132,7 @@ internal fun MarketCapSection(
     ) {
         Text(
             modifier = Modifier.padding(start = contentPadding.calculateStartPadding()),
-            text = stringResource(R.string.subtitle_marketCap),
+            text = stringResource(R.string.subtitle_marketcap),
             style = CodeTheme.typography.textMedium,
             color = CodeTheme.colors.textSecondary,
         )
@@ -292,7 +287,7 @@ private fun MarketCapChangeLabel(
                 horizontal = CodeTheme.dimens.grid.x1
             ),
         text = change.formatted(
-            extraPrefix = if (change.decimalValue >= 0) "+" else "-",
+            extraPrefix = if (change.decimalValue >= 0) "+" else null,
             suffix = when (period) {
                 Period.All -> stringResource(R.string.label_marketCapAllTime)
                 Period.Day -> stringResource(R.string.label_marketCapDay)

@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -45,26 +46,34 @@ import com.flipcash.app.bill.customization.features.BackgroundControls
 import com.flipcash.app.bill.customization.features.TextureControls
 import com.flipcash.app.bill.customization.internal.InternalBillPlaygroundController
 import com.flipcash.app.bill.customization.models.PlaygroundFeature
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.featureflags.NoOpFeatureFlagController
 import com.flipcash.app.theme.FlipcashPreview
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Pill
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.measured
 import com.getcode.ui.core.rememberedClickable
+import com.getcode.ui.core.swallowClicks
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-internal fun BillPlayground(
+fun BillPlayground(
+    modifier: Modifier = Modifier,
     state: PlaygroundState,
     dispatchEvent: (Event) -> Unit,
 ) {
-    BoxWithConstraints {
+    Box(modifier = modifier) {
         val screenWidth = CodeTheme.dimens.screenWidth
         var firstFeatureWidth by remember { mutableStateOf(0.dp) }
         var lastFeatureWidth by remember { mutableStateOf(0.dp) }
         val halfWidth = screenWidth / 2
         val startPadding = halfWidth - firstFeatureWidth / 2
         val endPadding = halfWidth - lastFeatureWidth / 2
+        val toolbar = LocalTextToolbar.current
 
         Column(
             modifier = Modifier
@@ -74,8 +83,6 @@ internal fun BillPlayground(
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-
-
             val selectedIndex by remember(state.selectedFeature) {
                 derivedStateOf {
                     state.features.indexOf(state.selectedFeature).takeIf { it >= 0 } ?: 0
@@ -133,8 +140,10 @@ internal fun BillPlayground(
                     PlaygroundFeature.Background -> {
                         Box(modifier = Modifier.measured { playgroundHeight = it.height }) {
                             BackgroundControls(
-                                state.backgroundState,
-                                dispatchEvent
+                                state = state.backgroundState,
+                                onShowingPaste = { dispatchEvent(Event.PresentPasteOption(true)) },
+                                onPasteConfiguration = { dispatchEvent(Event.ApplyFromClipboard) },
+                                dispatchEvent = dispatchEvent
                             )
                         }
                     }
@@ -145,6 +154,17 @@ internal fun BillPlayground(
                     )
                 }
             }
+        }
+
+        if (state.awaitingPaste) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .swallowClicks {
+                        dispatchEvent(Event.PresentPasteOption(false))
+                        toolbar.hide()
+                    }
+            )
         }
     }
 }
@@ -196,13 +216,20 @@ internal fun Modifier.presenceBorder(
     shape = shape
 )
 
+private object PreviewFeatureFlagController : FeatureFlagController by NoOpFeatureFlagController {
+    override fun observe(flag: FeatureFlag<*>): StateFlow<Boolean> = MutableStateFlow(true)
+}
+
 @Composable
 @Preview
 private fun PreviewCustomizationControls() {
     FlipcashPreview {
         val clipboardManager = LocalContext.current.getSystemService(ClipboardManager::class.java)
         val controller = remember {
-            InternalBillPlaygroundController(clipboardManager)
+            InternalBillPlaygroundController(
+                clipboard = clipboardManager,
+                featureFlags = PreviewFeatureFlagController,
+            )
         }
         val state by controller.state.collectAsStateWithLifecycle()
 

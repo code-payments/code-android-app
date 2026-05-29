@@ -7,27 +7,32 @@ import kotlinx.coroutines.flow.StateFlow
 interface FeatureFlagController {
     fun enableBetaFeatures()
     fun observeOverride(): StateFlow<Boolean>
-    fun set(flag: FeatureFlag, value: Boolean)
-    suspend fun get(flag: FeatureFlag): Boolean
+    fun set(flag: FeatureFlag<*>, value: Boolean)
+    suspend fun get(flag: FeatureFlag<*>): Boolean
     fun observe(): StateFlow<List<BetaFeature>>
-    fun observe(flag: FeatureFlag): StateFlow<Boolean>
-    fun reset(flag: FeatureFlag)
+    fun observe(flag: FeatureFlag<*>): StateFlow<Boolean>
+    fun setOption(flag: FeatureFlag<*>, optionKey: String)
+    fun getOption(flag: FeatureFlag<*>): StateFlow<String>
+    fun reset(flag: FeatureFlag<*>)
     fun reset()
 }
 
 object NoOpFeatureFlagController : FeatureFlagController {
     override fun enableBetaFeatures() = Unit
     override fun observeOverride(): StateFlow<Boolean> = MutableStateFlow(false)
-    override fun set(flag: FeatureFlag, value: Boolean) = Unit
+    override fun set(flag: FeatureFlag<*>, value: Boolean) = Unit
 
-    override suspend fun get(flag: FeatureFlag): Boolean = false
+    override suspend fun get(flag: FeatureFlag<*>): Boolean = false
 
     override fun observe(): StateFlow<List<BetaFeature>> =
-        MutableStateFlow(FeatureFlag.entries.map { BetaFeature(it, it.default) })
+        MutableStateFlow(FeatureFlag.entries.map { BetaFeature(it, it.defaultEnabled) })
 
-    override fun observe(flag: FeatureFlag): StateFlow<Boolean> = MutableStateFlow(false)
+    override fun observe(flag: FeatureFlag<*>): StateFlow<Boolean> = MutableStateFlow(false)
 
-    override fun reset(flag: FeatureFlag) = Unit
+    override fun setOption(flag: FeatureFlag<*>, optionKey: String) = Unit
+    override fun getOption(flag: FeatureFlag<*>): StateFlow<String> = MutableStateFlow(flag.defaultOption)
+
+    override fun reset(flag: FeatureFlag<*>) = Unit
     override fun reset() = Unit
 }
 

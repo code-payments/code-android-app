@@ -1,7 +1,6 @@
 package com.flipcash.app.transactions.internal
 
 import androidx.lifecycle.viewModelScope
-import androidx.paging.cachedIn
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.feed.ActivityFeedMessage
@@ -11,16 +10,16 @@ import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.transactions.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TokenController
-import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.BaseViewModel2
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -35,13 +34,15 @@ import javax.inject.Inject
 class TransactionHistoryViewModel @Inject constructor(
     tokenCoordinator: TokenCoordinator,
     feedCoordinator: ActivityFeedCoordinator,
-    transactionController: TransactionController,
+    transactionController: TransactionOperations,
     featureFlags: FeatureFlagController,
     userManager: UserManager,
     resources: ResourceHelper,
-): BaseViewModel2<TransactionHistoryViewModel.State, TransactionHistoryViewModel.Event>(
+    dispatchers: DispatcherProvider,
+): BaseViewModel<TransactionHistoryViewModel.State, TransactionHistoryViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
 
     data class State(
@@ -79,30 +80,28 @@ class TransactionHistoryViewModel @Inject constructor(
                 val title = formattedAmount?.let {
                     resources.getString(R.string.prompt_title_cancelTransferWithAmount, it)
                 } ?: resources.getString(R.string.prompt_title_cancelTransferNoAmount)
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = title,
-                        subtitle = resources.getString(R.string.prompt_description_cancelTransfer),
-                        showScrim = true,
-                        showCancel = false,
-                        actions = buildList {
-                            add(
-                                BottomBarAction(
-                                    style = BottomBarManager.BottomBarButtonStyle.Filled,
-                                    text = resources.getString(R.string.action_cancelTransfer),
-                                ) {
-                                    dispatchEvent(Event.CancelTransfer(vault = metadata.creator))
-                                }
-                            )
+                BottomBarManager.showAlert(
+                    title = title,
+                    message = resources.getString(R.string.prompt_description_cancelTransfer),
+                    showScrim = true,
+                    showCancel = false,
+                    actions = buildList {
+                        add(
+                            BottomBarAction(
+                                style = BottomBarManager.BottomBarButtonStyle.Filled,
+                                text = resources.getString(R.string.action_cancelTransfer),
+                            ) {
+                                dispatchEvent(Event.CancelTransfer(vault = metadata.creator))
+                            }
+                        )
 
-                            add(
-                                BottomBarAction(
-                                    style = BottomBarManager.BottomBarButtonStyle.Text,
-                                    text = resources.getString(R.string.action_nevermind),
-                                )
+                        add(
+                            BottomBarAction(
+                                style = BottomBarManager.BottomBarButtonStyle.Text,
+                                text = resources.getString(R.string.action_nevermind),
                             )
-                        },
-                    )
+                        )
+                    },
                 )
             }.launchIn(viewModelScope)
 

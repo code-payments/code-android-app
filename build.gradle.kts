@@ -18,23 +18,21 @@ buildscript {
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
-    alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.kotlin.parcelize) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.kotlin.ksp) apply false
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.google.services) apply false
-    alias(libs.plugins.firebase.crashlytics) apply false
     alias(libs.plugins.firebase.perf) apply false
     alias(libs.plugins.bugsnag.android) apply false
     alias(libs.plugins.bugsnag.gradle) apply false
     alias(libs.plugins.secrets) apply false
-    alias(libs.plugins.versioning) apply false
     alias(libs.plugins.navigation.safeargs) apply false
     alias(libs.plugins.protobuf) apply false
     alias(libs.plugins.androidx.room) apply false
     alias(libs.plugins.screenshot) apply false
+    alias(libs.plugins.kover)
 }
 
 allprojects {
@@ -43,7 +41,6 @@ allprojects {
         resolutionStrategy {
             force(libs.kotlinx.serialization.core.get().toString())
             force(libs.kotlinx.serialization.json.get().toString())
-            force(libs.protobuf.java.get().toString())
         }
     }
 
@@ -52,6 +49,46 @@ allprojects {
     }
 }
 
+dependencies {
+    subprojects.forEach { subproject ->
+        subproject.afterEvaluate {
+            if (subproject.plugins.hasPlugin("org.jetbrains.kotlinx.kover")
+                && (subproject.path.startsWith(":apps:flipcash")
+                    || subproject.path.startsWith(":services:flipcash")
+                    || subproject.path.startsWith(":services:opencode")
+                    || subproject.path.startsWith(":libs:")
+                    || subproject.path.startsWith(":ui:")
+                    || subproject.path.startsWith(":definitions:"))
+            ) {
+                kover(subproject)
+            }
+        }
+    }
+}
+
 tasks.register("clean", Delete::class) {
     delete(rootProject.layout.buildDirectory)
+}
+
+tasks.register("flipcashTestDebug") {
+    description = "Run testDebug for all Flipcash modules"
+}
+
+subprojects.filter {
+    it.path.startsWith(":apps:flipcash")
+        || it.path == ":services:flipcash"
+        || it.path == ":services:opencode"
+}.forEach { sub ->
+    sub.afterEvaluate {
+        val taskName = when {
+            sub.plugins.hasPlugin("com.android.library") || sub.plugins.hasPlugin("com.android.application") -> "testDebugUnitTest"
+            sub.plugins.hasPlugin("org.jetbrains.kotlin.jvm") -> "test"
+            else -> null
+        }
+        if (taskName != null) {
+            rootProject.tasks.named("flipcashTestDebug").configure {
+                dependsOn(tasks.named(taskName))
+            }
+        }
+    }
 }

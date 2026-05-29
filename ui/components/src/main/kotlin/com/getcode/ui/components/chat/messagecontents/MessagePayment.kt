@@ -23,7 +23,7 @@ import com.getcode.network.exchange.LocalExchange
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.PriceWithFlag
 import com.getcode.ui.components.chat.utils.localizedText
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 @Composable
 internal fun MessagePayment(

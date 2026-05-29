@@ -13,7 +13,7 @@ dependencies {
     implementation(project(":libs:encryption:keys"))
     implementation(project(":libs:encryption:utils"))
     implementation(project(":libs:currency"))
-    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.kotlinx.serialization)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

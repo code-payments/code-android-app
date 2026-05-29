@@ -18,10 +18,12 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
@@ -44,6 +46,9 @@ class AccountController @Inject constructor(
     fun hasAccountFor(mint: Mint): Boolean {
         return accounts.value.any { it.mint == mint }
     }
+
+    fun observeHasAccountFor(mint: Mint): Flow<Boolean> =
+        accounts.map { list -> list.any { it.mint == mint } }.distinctUntilChanged()
 
     private val fetching = AtomicBoolean(false)
 
@@ -107,6 +112,10 @@ class AccountController @Inject constructor(
         )
     }
 
+    suspend fun refreshAccountState() {
+        fetchAdditionalAccountInfo()
+    }
+
     private suspend fun fetchAdditionalAccountInfo() {
         val owner = cluster.value
         if (owner == null) {
@@ -143,14 +152,10 @@ class AccountController @Inject constructor(
                     throw error
                 }
             }?.map { response ->
-                val primary =
-                    response.accounts.values.find {
-                        it.accountType == AccountType.Primary && it.mint == Mint.usdf
-                    }
-
                 accounts.value = response.accounts.values.toList()
+                val isUnlocked = response.accounts.any { it.value.unusable }
 
-                if (primary?.unusable == true) {
+                if (isUnlocked) {
                     onTimelockUnlocked()
                 }
             }?.onSuccess {

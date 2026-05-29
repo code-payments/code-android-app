@@ -1,6 +1,7 @@
 pluginManagement {
     includeBuild("build-logic")
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         gradlePluginPortal()
@@ -14,10 +15,14 @@ pluginManagement {
         }
     }
 }
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
 
 dependencyResolutionManagement {
     repositoriesMode = RepositoriesMode.PREFER_SETTINGS
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         maven(url = "https://plugins.gradle.org/m2/")
@@ -27,7 +32,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Code"
+rootProject.name = "Flipcash"
 
 include(
     // app containers
@@ -35,6 +40,7 @@ include(
 
     // flipcash modules
     ":apps:flipcash:core",
+    ":libs:test-utils",
     // shared flipcash coordinators/controllers/viewmodels/services
     ":apps:flipcash:shared:accesskey",
     ":apps:flipcash:shared:analytics",
@@ -43,7 +49,8 @@ include(
     ":apps:flipcash:shared:activityfeed",
     ":apps:flipcash:shared:bills",
     ":apps:flipcash:shared:bill-customization",
-    ":apps:flipcash:shared:onramp:common",
+    ":apps:flipcash:shared:contacts",
+    ":apps:flipcash:shared:currency-creator",
     ":apps:flipcash:shared:onramp:coinbase",
     ":apps:flipcash:shared:onramp:deeplinks",
     ":apps:flipcash:shared:appupdates",
@@ -53,10 +60,10 @@ include(
     ":apps:flipcash:shared:featureflags",
     ":apps:flipcash:shared:ksp",
     ":apps:flipcash:shared:menu",
-    ":apps:flipcash:shared:navigation-flow",
     ":apps:flipcash:shared:notifications",
     ":apps:flipcash:shared:payments",
     ":apps:flipcash:shared:permissions",
+    ":apps:flipcash:shared:push",
     ":apps:flipcash:shared:persistence:db",
     ":apps:flipcash:shared:persistence:provider",
     ":apps:flipcash:shared:persistence:sources",
@@ -64,8 +71,11 @@ include(
     ":apps:flipcash:shared:router",
     ":apps:flipcash:shared:session",
     ":apps:flipcash:shared:shareable",
+    ":apps:flipcash:shared:invite",
     ":apps:flipcash:shared:tokens",
+    ":apps:flipcash:shared:tokens:core",
     ":apps:flipcash:shared:theme",
+    ":apps:flipcash:shared:userflags",
     ":apps:flipcash:shared:workers",
     ":apps:flipcash:shared:web",
     // flipcash features
@@ -80,16 +90,20 @@ include(
     ":apps:flipcash:features:appupdates",
     ":apps:flipcash:features:deposit",
     ":apps:flipcash:features:advanced",
+    ":apps:flipcash:features:currency-creator",
+    ":apps:flipcash:features:direct-send",
+    ":apps:flipcash:features:invite",
+    ":apps:flipcash:features:device-logs",
     ":apps:flipcash:features:myaccount",
     ":apps:flipcash:features:backupkey",
     ":apps:flipcash:features:shareapp",
     ":apps:flipcash:features:withdrawal",
-    ":apps:flipcash:features:payments",
-    ":apps:flipcash:features:onramp",
     ":apps:flipcash:features:contact-verification",
     ":apps:flipcash:features:tokens",
     ":apps:flipcash:features:transactions",
     ":apps:flipcash:features:bill-customization",
+    ":apps:flipcash:features:discovery",
+    ":apps:flipcash:features:userflags",
 
     // protobuf model and service implementations for the Open Code Protocol
     ":definitions:opencode:models",
@@ -103,6 +117,7 @@ include(
     ":libs:analytics",
     ":libs:biometrics",
     ":libs:code-detection",
+    ":libs:coroutines",
     ":libs:crypto:kin",
     ":libs:crypto:solana",
     ":libs:currency",
@@ -141,7 +156,6 @@ include(
     ":libs:permissions:public",
 
     ":libs:quickresponse",
-    ":libs:requests",
     ":libs:search",
 
     ":libs:vibrator:bindings",
@@ -149,14 +163,12 @@ include(
     ":libs:vibrator:public",
 
     // Services definition for app and lib access
-    ":services:legacy-shared",
     ":services:opencode",
     ":services:opencode-compose",
     ":services:flipcash",
     ":services:flipcash-compose",
 
     // common UI
-    ":ui:analytics",
     ":ui:biometrics",
     ":ui:core",
     ":ui:components",

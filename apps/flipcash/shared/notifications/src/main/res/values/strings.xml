@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Channel names -->
+    <string name="notification_channel_default">Misc.</string>
+    <string name="notification_channel_deposit_withdrawal">Deposits &amp; Withdrawals</string>
+    <string name="notification_channel_buy_sell">Buys &amp; Sells</string>
+    <string name="notification_channel_gain">Price Alerts</string>
+    <string name="notification_channel_chat">Chat Messages</string>
+    <string name="notification_channel_contact_join">New Contacts</string>
+
+    <!-- Channel descriptions -->
+    <string name="notification_channel_default_description">General notifications</string>
+    <string name="notification_channel_deposit_withdrawal_description">Deposit and withdrawal confirmations</string>
+    <string name="notification_channel_buy_sell_description">Token purchase and sale confirmations</string>
+    <string name="notification_channel_gain_description">Token price movement alerts</string>
+    <string name="notification_channel_chat_description">Incoming chat messages</string>
+    <string name="notification_channel_contact_join_description">When someone you know joins Flipcash</string>
+
+    <!-- Channel group names -->
+    <string name="notification_group_transactions">Transactions</string>
+    <string name="notification_group_social">Social</string>
+</resources>

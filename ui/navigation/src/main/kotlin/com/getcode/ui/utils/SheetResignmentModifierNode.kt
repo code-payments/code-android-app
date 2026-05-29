@@ -1,119 +1,172 @@
 package com.getcode.ui.utils
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
+internal class SheetResignmentConnection(
+    internal val setGesturesEnabled: (Boolean) -> Unit,
+    private val autoResetDelayMs: Long,
+) : NestedScrollConnection {
+
+    var waitingForSecondDrag = false
+    var resetJob: Job? = null
+
+    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+        if (waitingForSecondDrag && available.y < 0f) {
+            waitingForSecondDrag = false
+            resetJob?.cancel()
+            setGesturesEnabled(true)
+        }
+        return Offset.Zero
+    }
+
+    fun onAtTop() {
+        resetJob?.cancel()
+        waitingForSecondDrag = true
+        setGesturesEnabled(false)
+    }
+
+    fun onScrolledAway() {
+        resetJob?.cancel()
+        waitingForSecondDrag = false
+        setGesturesEnabled(false)
+    }
+
+    fun onDetach() {
+        resetJob?.cancel()
+        waitingForSecondDrag = false
+        setGesturesEnabled(true)
+    }
+}
+
 private class SheetResignmentModifierNode(
-    private val listState: LazyListState,
-    private val setGesturesEnabled: (Boolean) -> Unit,
-    private val autoResetDelayMs: Long = 700L  // time after which first-drag block expires
+    private val isAtTopProvider: () -> Boolean,
+    private val connection: SheetResignmentConnection,
+    private val autoResetDelayMs: Long,
 ) : Modifier.Node(), DelegatableNode {
 
-    private val isAtTop by derivedStateOf {
-        listState.firstVisibleItemIndex == 0 &&
-                listState.firstVisibleItemScrollOffset == 0
-    }
+    private val isAtTop by derivedStateOf { isAtTopProvider() }
 
-    private var waitingForSecondDrag = false
-    private var resetJob: Job? = null
     private var observeJob: Job? = null
-
-    private val connection = object : NestedScrollConnection {
-        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-            if (isAtTop && waitingForSecondDrag && available.y < 0f) {  // downward attempt
-                // Consume the first downward motion → sheet doesn't move at all
-                waitingForSecondDrag = false
-                resetJob?.cancel()
-                return available.copy(x = 0f)  // fully consume → no sheet motion
-            }
-            return Offset.Zero
-        }
-    }
 
     override fun onAttach() {
         super.onAttach()
         observeJob = coroutineScope.launch {
-            snapshotFlow { isAtTop }
-                .collect { atTop -> updateGestures(atTop) }
-        }
-    }
-
-    private fun updateGestures(atTop: Boolean) {
-        resetJob?.cancel()
-
-        if (atTop) {
-            // Just reached top → arm the "reject first downward drag"
-            waitingForSecondDrag = true
-            setGesturesEnabled(false)  // sheet drag disabled initially
-
-            // Optional: auto-allow after delay (so pause → second drag works)
-            if (autoResetDelayMs > 0) {
-                resetJob = coroutineScope.launch {
-                    delay(autoResetDelayMs)
-                    waitingForSecondDrag = false
-                    setGesturesEnabled(true)  // now allow dismiss
+            snapshotFlow { isAtTop }.collectLatest { atTop ->
+                if (atTop) {
+                    connection.onAtTop()
+                    if (autoResetDelayMs > 0) {
+                        connection.resetJob = coroutineScope.launch {
+                            delay(autoResetDelayMs)
+                            connection.waitingForSecondDrag = false
+                            connection.setGesturesEnabled(true)
+                        }
+                    }
+                } else {
+                    connection.onScrolledAway()
                 }
             }
-        } else {
-            // Scrolled away from top → normal scrolling mode, sheet drag disabled
-            waitingForSecondDrag = false
-            setGesturesEnabled(false)
         }
     }
 
     override fun onDetach() {
         observeJob?.cancel()
-        resetJob?.cancel()
-        setGesturesEnabled(true)  // restore default
+        connection.onDetach()
         super.onDetach()
     }
 }
 
-private data class TwoStepDismissElement(
-    val listState: LazyListState,
-    val setGesturesEnabled: (Boolean) -> Unit,
-    val autoResetDelayMs: Long
+private data class SheetResignmentElement(
+    val isAtTopProvider: () -> Boolean,
+    val connection: SheetResignmentConnection,
+    val autoResetDelayMs: Long,
 ) : ModifierNodeElement<SheetResignmentModifierNode>() {
 
-    override fun create(): SheetResignmentModifierNode =
-        SheetResignmentModifierNode(listState, setGesturesEnabled, autoResetDelayMs)
+    override fun create() = SheetResignmentModifierNode(isAtTopProvider, connection, autoResetDelayMs)
 
-    override fun update(node: SheetResignmentModifierNode) {
-        // No dynamic update needed (listState & lambda are stable)
-    }
+    override fun update(node: SheetResignmentModifierNode) = Unit
 
     override fun InspectorInfo.inspectableProperties() {
-        name = "twoStepSheetDismiss"
-        properties["listState"] = listState
+        name = "sheetResignmentBehavior"
         properties["autoResetDelayMs"] = autoResetDelayMs
     }
 }
 
+
 /**
- * Reusable modifier: Prevents sheet from starting dismiss on first downward drag after list reaches top.
- * - Consumes initial downward delta → no visible movement/snap-back.
- * - Enables sheet gestures when at top (until scroll away or auto-reset).
+ * Prevents a [ModalBottomSheet] from starting dismiss on the first downward drag after the
+ * internal [LazyList] reaches the top. The first drag triggers overscroll bounce only;
+ * a subsequent downward drag (or after [autoResetDelayMs]) will dismiss normally.
+ *
+ * Requires [LocalSheetGesturesState] to be provided, or pass [setGesturesEnabled] explicitly.
+ *
+ * @param listState the [LazyListState] of the list inside the sheet
+ * @param setGesturesEnabled callback to toggle sheet gesture handling (e.g. `sheetState.gesturesEnabled`)
+ * @param autoResetDelayMs time after which a paused-then-drag will re-enable dismiss; 0 to disable
  */
 @Composable
 fun Modifier.sheetResignmentBehavior(
     listState: LazyListState,
     setGesturesEnabled: (Boolean) -> Unit = LocalSheetGesturesState.current,
-    autoResetDelayMs: Long = 700L // 0L to disable auto-reset → strict "scroll away first"
-): Modifier = this then TwoStepDismissElement(
-    listState = listState,
-    setGesturesEnabled = setGesturesEnabled,
-    autoResetDelayMs = autoResetDelayMs
-)
+    autoResetDelayMs: Long = 700L,
+): Modifier {
+    val connection = remember(setGesturesEnabled, autoResetDelayMs) {
+        SheetResignmentConnection(setGesturesEnabled, autoResetDelayMs)
+    }
+    return this
+        .nestedScroll(connection)
+        .then(SheetResignmentElement(
+            isAtTopProvider = {
+                listState.firstVisibleItemIndex == 0 &&
+                        listState.firstVisibleItemScrollOffset == 0
+            },
+            connection = connection,
+            autoResetDelayMs = autoResetDelayMs,
+        ))
+}
+
+/**
+ * Prevents a [ModalBottomSheet] from starting dismiss on the first downward drag after the
+ * internal [ScrollState] reaches the top. The first drag triggers overscroll bounce only;
+ * a subsequent downward drag (or after [autoResetDelayMs]) will dismiss normally.
+ *
+ * Requires [LocalSheetGesturesState] to be provided, or pass [setGesturesEnabled] explicitly.
+ *
+ * @param scrollState the [ScrollState] of the scrollable Column inside the sheet
+ * @param setGesturesEnabled callback to toggle sheet gesture handling (e.g. `sheetState.gesturesEnabled`)
+ * @param autoResetDelayMs time after which a paused-then-drag will re-enable dismiss; 0 to disable
+ */
+@Composable
+fun Modifier.sheetResignmentBehavior(
+    scrollState: ScrollState,
+    setGesturesEnabled: (Boolean) -> Unit = LocalSheetGesturesState.current,
+    autoResetDelayMs: Long = 700L,
+): Modifier {
+    val connection = remember(setGesturesEnabled, autoResetDelayMs) {
+        SheetResignmentConnection(setGesturesEnabled, autoResetDelayMs)
+    }
+    return this
+        .nestedScroll(connection)
+        .then(SheetResignmentElement(
+            isAtTopProvider = { scrollState.value == 0 },
+            connection = connection,
+            autoResetDelayMs = autoResetDelayMs,
+        ))
+}

@@ -2,7 +2,6 @@ package com.flipcash.app.shareable.internal
 
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.shareable.ShareConfirmationResult
-import com.flipcash.app.shareable.ShareConfirmationResult.*
 import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.shareable.ShareableConfirmationController
@@ -26,8 +25,9 @@ internal class InternalShareConfirmationController(
     ): ShareConfirmationResult {
         return when (shareable) {
             is Shareable.CashLink -> confirmCashLink(shareResult, shareable.autoConfirmationAfter)
-            is Shareable.DownloadLink -> Confirmed(shareResult)
-            is Shareable.TokenInfo -> Confirmed(shareResult)
+            is Shareable.DownloadLink -> ShareConfirmationResult.Confirmed(shareResult)
+            is Shareable.TokenInfo -> ShareConfirmationResult.Confirmed(shareResult)
+            is Shareable.Invite -> ShareConfirmationResult.Confirmed(shareResult)
         }
     }
 
@@ -42,50 +42,47 @@ internal class InternalShareConfirmationController(
         suspendCancellableCoroutine { cont ->
             billController.cancelAwaitForGrab()
 
-            BottomBarManager.showMessage(
-                BottomBarManager.BottomBarMessage(
-                    title = resources.getString(R.string.prompt_title_didYouSendLink),
-                    subtitle = resources.getString(R.string.prompt_description_didYouSendLink),
-                    actions = buildList {
-                        add(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_yes),
-                                onClick = {
-                                    if (cont.isActive) {
-                                        cont.resume(ShareConfirmationResult.Confirmed(shareResult))
-                                    }
-                                },
-                            )
-                        )
-                        add(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_noCancelSend),
-                                style = BottomBarManager.BottomBarButtonStyle.Text,
-                                onClick = {
-                                    if (cont.isActive) {
-                                        cont.resume(ShareConfirmationResult.Cancelled)
-                                    }
+            BottomBarManager.showInfo(
+                title = resources.getString(R.string.prompt_title_didYouSendLink),
+                message = resources.getString(R.string.prompt_description_didYouSendLink),
+                actions = buildList {
+                    add(
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_yes),
+                            onClick = {
+                                if (cont.isActive) {
+                                    cont.resume(ShareConfirmationResult.Confirmed(shareResult))
                                 }
+                            },
+                        )
+                    )
+                    add(
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_noCancelSend),
+                            style = BottomBarManager.BottomBarButtonStyle.Text,
+                            onClick = {
+                                if (cont.isActive) {
+                                    cont.resume(ShareConfirmationResult.Cancelled)
+                                }
+                            }
+                        )
+                    )
+                },
+                onTimeout = {
+                    if (cont.isActive) {
+                        // treat a timeout as confirmation
+                        cont.resume(
+                            ShareConfirmationResult.Confirmed(
+                                shareResult,
+                                didConfirm = false
                             )
                         )
-                    },
-                    onTimeout = {
-                        if (cont.isActive) {
-                            // treat a timeout as confirmation
-                            cont.resume(
-                                ShareConfirmationResult.Confirmed(
-                                    shareResult,
-                                    didConfirm = false
-                                )
-                            )
-                        }
-                    },
-                    type = BottomBarManager.BottomBarMessageType.INFO,
-                    isDismissible = false,
-                    showScrim = false,
-                    showCancel = false,
-                    timeoutSeconds = timeout.inWholeSeconds.toInt(),
-                )
+                    }
+                },
+                isDismissible = false,
+                showScrim = false,
+                showCancel = false,
+                timeoutSeconds = timeout.inWholeSeconds.toInt(),
             )
         }
 }

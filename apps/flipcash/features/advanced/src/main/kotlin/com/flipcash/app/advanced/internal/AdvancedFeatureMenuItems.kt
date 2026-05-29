@@ -1,6 +1,8 @@
 package com.flipcash.app.advanced.internal
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
@@ -20,12 +22,11 @@ internal data object BillCustomizer : FullMenuItem<AdvancedFeaturesScreenViewMod
     override val action: AdvancedFeaturesScreenViewModel.Event = AdvancedFeaturesScreenViewModel.Event.OpenBillPlayground
 }
 
-internal data object Deposit : FullMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
+internal data object DeviceLogs : FullMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
     override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_menu_deposit)
+        @Composable get() = rememberVectorPainter(Icons.Outlined.Description)
     override val name: String
-        @Composable get() = stringResource(R.string.title_depositFunds)
-    override val action: AdvancedFeaturesScreenViewModel.Event = AdvancedFeaturesScreenViewModel.Event.OpenScreen(
-        AppRoute.Sheets.TokenSelection(purpose = TokenPurpose.Deposit)
-    )
+        @Composable get() = stringResource(R.string.title_deviceLogs)
+    override val action: AdvancedFeaturesScreenViewModel.Event =
+        AdvancedFeaturesScreenViewModel.Event.OpenScreen(AppRoute.Menu.DeviceLogs)
 }

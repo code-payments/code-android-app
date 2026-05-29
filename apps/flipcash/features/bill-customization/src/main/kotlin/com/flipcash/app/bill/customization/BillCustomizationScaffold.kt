@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -42,7 +43,6 @@ import com.flipcash.app.bill.customization.components.BillPlayground
 import com.flipcash.app.bills.AnimatedBill
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.features.bill.playground.R
-import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.core.measured
@@ -53,8 +53,16 @@ import com.getcode.ui.utils.AnimationUtils
 @Composable
 fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
     val controller = LocalBillPlaygroundController.current
-
     val playgroundState by controller.state.collectAsStateWithLifecycle()
+
+    val isUsingPlayground by remember(
+        playgroundState.isCustomizing,
+        playgroundState.context,
+    ) {
+        derivedStateOf {
+            playgroundState.isCustomizing && playgroundState.context.renderAsOverlay
+        }
+    }
 
     // bill dismiss state, restarted for every bill
     val billDismissState = remember(playgroundState.bill) {
@@ -64,23 +72,15 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
         )
     }
 
-    val customizationsOptions by remember(
-        playgroundState.backgroundState.selectedColors,
-        playgroundState.textureState.selectedOption,
-        playgroundState.textureState.selectedBlendMode,
-        playgroundState.bill?.token?.billCustomizations
+    val customizationsOptions = playgroundState.customizations
+
+    val augmentedBill by remember(
+        playgroundState.bill,
+        customizationsOptions,
+        playgroundState.context,
     ) {
         derivedStateOf {
-            return@derivedStateOf TokenBillCustomizations(
-                background = playgroundState.background,
-                texture = playgroundState.texture,
-                icon = null,
-            )
-        }
-    }
-
-    val augmentedBill by remember(playgroundState.bill, customizationsOptions) {
-        derivedStateOf {
+            if (!playgroundState.context.renderAsOverlay) return@derivedStateOf null
             val bill = playgroundState.bill ?: return@derivedStateOf null
             if (bill !is Bill.Cash) return@derivedStateOf null
             bill.copy(
@@ -99,7 +99,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
         mutableStateOf(0.dp)
     }
 
-    BackHandler(playgroundState.isCustomizing) {
+    BackHandler(isUsingPlayground) {
         controller.cancel()
     }
 
@@ -108,7 +108,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
         AnimatedBill(
             modifier = Modifier.fillMaxSize(),
             dismissState = billDismissState,
-            dismissed = !playgroundState.isCustomizing,
+            dismissed = !isUsingPlayground,
             contentPadding = PaddingValues(
                 top = topBarHeight,
                 bottom = playgroundHeight,
@@ -125,7 +125,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .measured { topBarHeight = it.height },
-            visible = playgroundState.isCustomizing,
+            visible = isUsingPlayground,
             enter = fadeIn(),
             exit = fadeOut(),
         ) {
@@ -135,7 +135,6 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
                 canCopy = controller.canCopy,
                 onUndo = { controller.dispatchEvent(Event.Undo) },
                 onCopy = { controller.dispatchEvent(Event.Copy) },
-                onBack = { controller.cancel() },
                 onDone = { controller.cancel() },
             )
         }
@@ -145,7 +144,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .measured { playgroundHeight = it.height },
-            visible = playgroundState.isCustomizing,
+            visible = isUsingPlayground,
             enter = slideInVertically { it },
             exit = slideOutVertically { it },
             label = "bill customization",
@@ -166,7 +165,6 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
 @Composable
 private fun TopBar(
     modifier: Modifier = Modifier,
-    onBack: () -> Unit,
     canUndo: Boolean,
     canCopy: Boolean,
     onUndo: () -> Unit,
@@ -181,12 +179,12 @@ private fun TopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AppBarDefaults.UpNavigation { onBack() }
-
         Row(
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Spacer(Modifier.weight(1f))
+
             val undoAlpha by animateFloatAsState(
                 targetValue = if (canUndo) 1f else ContentAlpha.disabled,
             )

@@ -4,12 +4,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -26,10 +28,11 @@ import com.getcode.ui.components.R
 @Composable
 fun TokenIconWithName(
     tokenName: String,
-    tokenImageUrl: String?,
-    tokenSymbol: String,
+    tokenImage: Any?,
     imageSize: Dp,
     modifier: Modifier = Modifier,
+    textModifier: Modifier = Modifier,
+    iconModifier: Modifier = Modifier,
     textStyle: TextStyle = CodeTheme.typography.screenTitle,
     textColor: Color = CodeTheme.colors.textMain,
     spacing: Dp = 0.dp,
@@ -40,11 +43,13 @@ fun TokenIconWithName(
         verticalAlignment = Alignment.CenterVertically
     ) {
         TokenIcon(
-            imageUrl = tokenImageUrl,
-            symbol = tokenSymbol,
-            modifier = Modifier.size(imageSize)
+            image = tokenImage,
+            modifier = Modifier
+                .size(imageSize)
+                .then(iconModifier)
         )
         Text(
+            modifier = textModifier,
             text = tokenName,
             style = textStyle,
             color = textColor,
@@ -57,6 +62,9 @@ fun TokenIconWithName(
     token: Token,
     imageSize: Dp,
     modifier: Modifier = Modifier,
+    textModifier: Modifier = Modifier,
+    iconModifier: Modifier = Modifier,
+    iconOverride: @Composable ((Any?) -> Any?) = { it },
     displayName: (Token) -> String = { it.name },
     textStyle: TextStyle = CodeTheme.typography.screenTitle,
     textColor: Color = CodeTheme.colors.textMain,
@@ -64,10 +72,11 @@ fun TokenIconWithName(
 ) {
     TokenIconWithName(
         tokenName = displayName(token),
-        tokenImageUrl = token.imageUrl,
-        tokenSymbol = token.symbol,
+        tokenImage = iconOverride(token.imageUrl),
         imageSize = imageSize,
         modifier = modifier,
+        textModifier = textModifier,
+        iconModifier = iconModifier,
         textStyle = textStyle,
         textColor = textColor,
         spacing = spacing
@@ -77,30 +86,32 @@ fun TokenIconWithName(
 @Composable
 fun TokenIcon(
     token: Token,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    iconOverride: @Composable ((Any?) -> Any?) = { it },
 ) {
     TokenIcon(
-        imageUrl = token.imageUrl,
-        symbol = token.symbol,
+        image = iconOverride(token.imageUrl),
         modifier = modifier
     )
 }
 
 @Composable
 fun TokenIcon(
-    imageUrl: String?,
-    symbol: String,
+    image: Any?,
     modifier: Modifier = Modifier,
 ) {
     AsyncImage(
-        modifier = modifier.clip(CircleShape),
+        modifier = Modifier
+            .clip(CircleShape)
+            .then(modifier),
         model = ImageRequest.Builder(LocalPlatformContext.current)
-            .data(imageUrl)
+            .data(image)
             .crossfade(false)
             .error(R.drawable.ic_placeholder_user)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
             .build(),
         contentDescription = null,
+        contentScale = ContentScale.Crop,
     )
 }
