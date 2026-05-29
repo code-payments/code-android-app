@@ -223,12 +223,12 @@ private fun <S : FlowStep, R : Parcelable> FlowHostImpl(
     // We track what was seeded and only re-seed if the backstack is still untouched.
     // Animation is suppressed during re-seed so NavDisplay doesn't slide between
     // the stale and corrected content.
-    val seededStack = remember { initialStack.map { it::class } }
-    val currentInitialClasses = initialStack.map { it::class }
+    val seededStack = rememberSaveable { initialStack.map { it::class.qualifiedName } }
+    val currentInitialClasses = initialStack.map { it::class.qualifiedName }
     val suppressTransition = remember { mutableStateOf(false) }
     LaunchedEffect(currentInitialClasses) {
         if (currentInitialClasses == seededStack) return@LaunchedEffect
-        val backstackClasses = innerBackStack.map { it::class }
+        val backstackClasses = innerBackStack.map { it::class.qualifiedName }
         if (backstackClasses != seededStack) return@LaunchedEffect
         suppressTransition.value = true
         Snapshot.withMutableSnapshot {
