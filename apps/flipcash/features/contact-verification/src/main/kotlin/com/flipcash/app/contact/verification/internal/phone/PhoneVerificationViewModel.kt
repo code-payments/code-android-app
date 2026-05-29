@@ -17,12 +17,13 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.services.models.PhoneVerificationError
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
@@ -95,6 +96,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
         data object OnVerifyCodeClicked : Event
         data object OnCodeVerified : Event
         data object LinkForPayment : Event
+        data object OnPhoneVerificationComplete : Event
 
         data object OnMaxAttemptsReached : Event
     }
@@ -166,11 +168,15 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 val cleanedNumber = phoneUtils.cleanNumber(number, locale)
                 ContactMethod.Phone(cleanedNumber)
             }
-            .onEach { dispatchEvent(Event.OnVerifyingCodeChanged(loading = true)) }
+            .onEach {
+                trace(message = "Verifying code", type = TraceType.Process)
+                dispatchEvent(Event.OnVerifyingCodeChanged(loading = true))
+            }
             .map { method ->
                 verificationController.checkVerificationCode(method, stateFlow.value.codeTextFieldState.text.toString())
             }.onResult(
                 onSuccess = {
+                    trace(message = "Code verified successfully", type = TraceType.Process)
                     stopTimer()
                     dispatchEvent(Event.OnVerifyingCodeChanged(success = true))
                     viewModelScope.launch {
@@ -184,6 +190,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
                     }
                 },
                 onError = {
+                    trace(message = "Code verification failed: $it", type = TraceType.Error)
                     dispatchEvent(Event.OnVerifyingCodeChanged())
                     val (title, message) = when (it) {
                         is PhoneVerificationError -> when (it) {
@@ -206,18 +213,24 @@ internal class PhoneVerificationViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.LinkForPayment>()
-            .filter {
-                featureFlags.observe(FeatureFlag.PhoneNumberSend).value ||
-                    userManager.state.value.flags?.enablePhoneNumberSend == true
-            }
             .map {
                 val number = stateFlow.value.numberTextFieldState.text.toString()
                 val locale = stateFlow.value.selectedLocale
                 val cleanedNumber = phoneUtils.cleanNumber(number, locale)
+                trace(message = "Calling linkForPayment", type = TraceType.Process)
                 ContactMethod.Phone(cleanedNumber)
             }
-            .map { verificationController.linkForPayment(it) }
-            .launchIn(viewModelScope)
+            .map { method -> verificationController.linkForPayment(method) }
+            .onResult(
+                onSuccess = {
+                    trace(message = "linkForPayment succeeded", type = TraceType.Process)
+                    dispatchEvent(Event.OnPhoneVerificationComplete)
+                },
+                onError = {
+                    trace(message = "linkForPayment failed: $it", type = TraceType.Error)
+                    dispatchEvent(Event.OnPhoneVerificationComplete)
+                }
+            ).launchIn(viewModelScope)
     }
 
     private suspend fun handleSendVerificationCode(method: ContactMethod) {
@@ -266,6 +279,17 @@ internal class PhoneVerificationViewModel @Inject constructor(
                         ?: resources.getString(R.string.error_description_failedToSendCodeToPhone),
                 )
             }
+    }
+
+    suspend fun awaitLinkForPayment() {
+        val isEnabled = featureFlags.observe(FeatureFlag.PhoneNumberSend).value ||
+            userManager.state.value.flags?.enablePhoneNumberSend == true
+        if (!isEnabled) return
+
+        val number = stateFlow.value.numberTextFieldState.text.toString()
+        val locale = stateFlow.value.selectedLocale
+        val cleanedNumber = phoneUtils.cleanNumber(number, locale)
+        verificationController.linkForPayment(ContactMethod.Phone(cleanedNumber))
     }
 
     private fun startTimer() {
@@ -319,6 +343,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 Event.OnVerifyCodeClicked -> { state -> state }
                 Event.OnCodeVerified -> { state -> state }
                 Event.LinkForPayment -> { state -> state }
+                Event.OnPhoneVerificationComplete -> { state -> state }
                 is Event.OnPhoneNumberFormatted -> { state -> state.copy(formattedPhone = event.formatted) }
                 Event.OnSendCodeClicked -> { state -> state.copy(attempts = state.attempts + 1) }
                 Event.OnMaxAttemptsReached -> { state -> state }
