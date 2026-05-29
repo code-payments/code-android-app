@@ -77,30 +77,8 @@ fun MyAccountScreen() {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<MyAccountScreenViewModel.Event.ConnectPhoneClicked>()
-            .onEach {
-                val flow = AppRoute.Verification(
-                    origin = AppRoute.Menu.MyAccount,
-                    includePhone = true,
-                    includeEmail = false,
-                    linkForPayment = it.linkForPayment
-                )
-
-                navigator.push(flow) }
-            .launchIn(this)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<MyAccountScreenViewModel.Event.OnVerifyEmailClicked>()
-            .onEach {
-                val flow = AppRoute.Verification(
-                    origin = AppRoute.Menu.MyAccount,
-                    includePhone = false,
-                    includeEmail = true,
-                )
-
-                navigator.push(flow) }
+            .filterIsInstance<MyAccountScreenViewModel.Event.OnViewUserProfile>()
+            .onEach { navigator.push(AppRoute.Menu.UserProfile) }
             .launchIn(this)
     }
 }

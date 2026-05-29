@@ -66,11 +66,15 @@ fun ListItem(
             BetaIndicator()
         }
 
+        if (showBetaIndicator && showChevron) {
+            Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
+        }
+
         if (showChevron) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_chevron_right),
                 contentDescription = null,
-                tint = CodeTheme.colors.secondary,
+                tint = CodeTheme.colors.textSecondary,
             )
         }
     }
