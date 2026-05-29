@@ -58,6 +58,7 @@ internal val CodeDefaultColorScheme = ColorScheme(
     bannerSuccess = BannerSuccess,
     scrim = Black40,
     accessKey = CodeAccessKey,
+    contactAvatar = CodeContactAvatar,
 )
 
 @Composable
@@ -148,6 +149,7 @@ class ColorScheme(
     bannerSuccess: Color,
     scrim: Color,
     accessKey: GradientSpec,
+    contactAvatar: GradientSpec,
 ) {
     var brand by mutableStateOf(brand)
         private set
@@ -230,6 +232,8 @@ class ColorScheme(
 
     var accessKey by mutableStateOf(accessKey)
         private set
+    var contactAvatar by mutableStateOf(contactAvatar)
+        private set
 
 
     fun update(other: ColorScheme) {
@@ -272,6 +276,7 @@ class ColorScheme(
         bannerSuccess = other.bannerSuccess
         scrim = other.scrim
         accessKey = other.accessKey
+        contactAvatar = other.contactAvatar
     }
 
     fun copy(): ColorScheme = ColorScheme(
@@ -314,6 +319,7 @@ class ColorScheme(
         bannerSuccess = bannerSuccess,
         scrim = scrim,
         accessKey = accessKey,
+        contactAvatar = contactAvatar,
     )
 }
 
@@ -361,7 +367,7 @@ fun inputColors(
     borderColor: Color = CodeTheme.colors.border,
     unfocusedBorderColor: Color = borderColor,
     backgroundColor: Color = White05,
-    placeholderColor: Color = CodeTheme.colors.textTertiary,
+    placeholderColor: Color = CodeTheme.colors.textSecondary,
     cursorColor: Color = Color.White,
     errorBorderColor: Color = CodeTheme.colors.error,
 ) = TextFieldDefaults.outlinedTextFieldColors(

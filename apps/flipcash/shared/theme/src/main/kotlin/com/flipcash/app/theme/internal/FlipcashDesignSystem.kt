@@ -22,35 +22,47 @@ import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.White08
 import com.getcode.theme.White10
-import com.getcode.theme.White50
 import com.getcode.theme.codeTypography
 
-object FlipcashColorSpec {
-    val primary = Color(0xFF001A0C)
-    val primaryLight = Color(0xFF09550B)
+object Flipcash2ColorSpec {
+    val primary = Color(0xFF19191A)
+    val primaryLight = Color(0xFF303031)
     val secondary = Color(115, 129, 121)
     val secondaryText = Color.White.copy(alpha = 0.5f)
     val cashBill = Color(0xFF06450F)
     val trackColor = Color.White.copy(alpha = 0.07f)
-    val bannerThemed = Color(0xFF1A3125)
+    val bannerThemed = Color(0xFF252526)
     val success = Color(0xFF1AC86A)
     val successText = Color(0xFF73EAA4)
     val surfaceVariant = Color.White.copy(alpha = 0.12f)
     val errorSurface = Color(0x4AE75454)
     val accessKey = GradientSpec(
-        background = primary,
+        background = Color.Black,
         colors = listOf(
-            Color(0xFF001A0C),
-            Color(0xFF042005),
-            Color(0xFF0C291A),
-            Color(0xFF004602),
-            Color(0xFF004602),
+            Color(0xFF1E1E1E),
+            Color(0xFF2A2A2A),
+            Color(0xFF3C3C3C),
+            Color(0xFF5A5A5A),
+            Color(0xFF808080),
+            Color(0xFF959595),
+            Color(0xFF4A4A4A),
+            Color(0xFF303030),
         ),
-        stops = listOf(0f, 0.3f, 0.6f, 1f)
+        stops = listOf(0f, 0.15f, 0.30f, 0.45f, 0.60f, 0.72f, 0.85f, 1f),
+        borderColor = null,
+        borderWidth = 0f,
+    )
+    val contactAvatar = GradientSpec(
+        background = Color.Black,
+        colors = listOf(
+            Color(0xFF414141),
+            Color(0xFF202020)
+        ),
+        stops = listOf(0f, 1f)
     )
 }
 
-private val colors = with(FlipcashColorSpec) {
+private val colors = with(Flipcash2ColorSpec) {
     ColorScheme(
         brand = primary,
         brandLight = primaryLight,
@@ -76,7 +88,7 @@ private val colors = with(FlipcashColorSpec) {
         successText = success,
         textMain = Color.White,
         textSecondary = secondaryText,
-        textTertiary = White50,
+        textTertiary = White10,
         border = White08,
         divider = White10,
         dividerVariant = White05,
@@ -91,11 +103,11 @@ private val colors = with(FlipcashColorSpec) {
         bannerSuccess = BannerSuccess,
         scrim = Black40,
         accessKey = accessKey,
+        contactAvatar = contactAvatar,
     )
 }
-
 @Composable
-internal fun FlipcashLegacyDesignSystem(content: @Composable () -> Unit) {
+internal fun Flipcash2DesignSystem(content: @Composable () -> Unit) {
     DesignSystem(
         colorScheme = colors,
         // override code type system to make screen title's slightly bigger

@@ -68,6 +68,15 @@ val CodeAccessKey = GradientSpec(
     stops = listOf(0f, 0.3f, 0.6f, 1f)
 )
 
+val CodeContactAvatar = GradientSpec(
+    background = Brand,
+    colors = listOf(
+        Color(0xFF4A5568),
+        Color(0xFF6B7A90),
+    ),
+    stops = listOf(0f, 1f)
+)
+
 data class GradientSpec(
     val background: Color,
     val colors: List<Color>,
