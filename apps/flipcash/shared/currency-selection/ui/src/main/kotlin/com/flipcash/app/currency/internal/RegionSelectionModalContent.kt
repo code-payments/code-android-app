@@ -10,11 +10,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.currency.internal.components.RegionList
-import com.flipcash.app.currency.internal.components.SearchBar
+import com.flipcash.features.currency.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.SearchInput
 import com.getcode.ui.core.rememberAnimationScale
 import com.getcode.ui.core.scaled
 import com.getcode.ui.utils.rememberKeyboardController
@@ -51,10 +53,11 @@ internal fun RegionSelectionModalContent(viewModel: CurrencyViewModel) {
             snapshotFlow { state.searchState.text }
                 .launchIn(this)
         }
-        SearchBar(
+        SearchInput(
             modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
             state = state.searchState,
             contentPadding = PaddingValues(start = CodeTheme.dimens.grid.x1),
+            placeholder = stringResource(R.string.subtitle_searchRegions)
         )
 
         RegionList(
