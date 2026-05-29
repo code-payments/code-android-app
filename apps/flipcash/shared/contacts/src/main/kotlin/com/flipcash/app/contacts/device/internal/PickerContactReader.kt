@@ -20,6 +20,12 @@ class PickerContactReader @Inject constructor(
         pickedContacts.update { it + contacts }
     }
 
+    fun removePickedContact(e164: String) {
+        pickedContacts.update { list ->
+            list.filterNot { normalizeToE164(it.phoneNumber) == e164 }
+        }
+    }
+
     fun clearPickedContacts() {
         pickedContacts.value = emptyList()
     }

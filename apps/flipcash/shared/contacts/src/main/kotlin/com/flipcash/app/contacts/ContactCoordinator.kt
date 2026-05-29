@@ -64,6 +64,7 @@ class ContactCoordinator @Inject constructor(
         val contacts: Map<String, DeviceContact> = emptyMap(),
         val flipcashE164s: Set<String> = emptySet(),
         val syncState: SyncState = SyncState.Idle,
+        val hasEverSynced: Boolean = false,
     )
 
     enum class SyncState { Idle, Syncing, Synced, Error }
@@ -105,6 +106,7 @@ class ContactCoordinator @Inject constructor(
 
     override fun onStart(owner: LifecycleOwner) {
         if (cluster.value != null) {
+            scope.launch { clearServerContactSetIfRevoked() }
             trace(tag = TAG, message = "Lifecycle resumed, triggering contact sync", type = TraceType.Process)
             launchSync()
         }
@@ -130,6 +132,18 @@ class ContactCoordinator @Inject constructor(
         return performSync()
     }
 
+    suspend fun removeContact(e164: String) {
+        contactReader.removeSelectedContact(e164)
+        val db = FlipcashDatabase.getInstance() ?: return
+        db.contactDao().deleteMappings(listOf(e164))
+        _state.update { state ->
+            state.copy(
+                contacts = state.contacts - e164,
+                flipcashE164s = state.flipcashE164s - e164,
+            )
+        }
+    }
+
     suspend fun resolve(e164: String): Result<PublicKey> {
         return resolverController.resolve(ContactMethod.Phone(e164))
     }
@@ -144,14 +158,60 @@ class ContactCoordinator @Inject constructor(
         trace(tag = TAG, message = "reset complete", type = TraceType.Process)
     }
 
+    /**
+     * Detects a contacts-permission revoke and wipes the server's stored
+     * contact set. A non-null checksum means we previously uploaded; if
+     * READ_CONTACTS is now denied, wipe the server set. Idempotent: a
+     * successful wipe clears the checksum; a failure leaves it intact so
+     * the next foreground retries.
+     */
+    suspend fun clearServerContactSetIfRevoked() {
+        val db = FlipcashDatabase.getInstance() ?: return
+        val syncState = db.contactDao().getSyncState() ?: return
+        if (syncState.checksumBytes.all { it == 0.toByte() }) return
+
+        if (!contactReader.isPermissionRevoked()) return
+
+        clearServerContactSet()
+        _state.value = ContactState()
+        contactReader.reset()
+        db.contactDao().clearAll()
+        trace(tag = TAG, message = "Cleared server contact set after permission revoke", type = TraceType.Process)
+    }
+
+    /**
+     * Sends an empty full upload to wipe the server-side contact set.
+     * Best-effort — failures are logged but not propagated.
+     * Must be called while the session is still authenticated.
+     */
+    suspend fun clearServerContactSet() {
+        try {
+            val emptyChecksum = ContactChecksum.compute(emptySet())
+            contactListController.fullUpload(
+                phones = kotlinx.coroutines.flow.flowOf(emptyList()),
+                expectedChecksum = emptyChecksum,
+            )
+        } catch (e: Exception) {
+            trace(tag = TAG, message = "Failed to clear server contact set: ${e.message}", type = TraceType.Error)
+        }
+    }
+
     // endregion
 
     // region Internal
 
     private suspend fun hydrateFromPersistence() {
         val db = FlipcashDatabase.getInstance() ?: return
+        val syncState = db.contactDao().getSyncState()
         val mappings = db.contactDao().getAllMappings()
-        if (mappings.isEmpty()) return
+
+        val hasEverSynced = syncState != null || mappings.isNotEmpty()
+        if (mappings.isEmpty()) {
+            if (hasEverSynced) {
+                _state.update { it.copy(hasEverSynced = true) }
+            }
+            return
+        }
 
         val contacts = mappings.associate { mapping ->
             mapping.e164 to DeviceContact(
@@ -165,7 +225,7 @@ class ContactCoordinator @Inject constructor(
         val flipcashE164s = mappings.filter { it.isOnFlipcash }.map { it.e164 }.toSet()
 
         _state.update {
-            it.copy(contacts = contacts, flipcashE164s = flipcashE164s)
+            it.copy(contacts = contacts, flipcashE164s = flipcashE164s, hasEverSynced = true)
         }
 
         trace(tag = TAG, message = "Hydrated ${mappings.size} contacts from persistence", type = TraceType.Process)
@@ -220,11 +280,12 @@ class ContactCoordinator @Inject constructor(
                 dao.deleteMappings(removes.toList())
             }
 
-            // Update in-memory contacts with displayNumber
+            // Update in-memory contacts with displayNumber, merging into existing state
+            // so persisted contacts aren't lost when the picker returns only new picks.
             val enrichedContacts = deviceContacts.mapValues { (_, contact) ->
                 contact.copy(displayNumber = phoneUtils.formatNumber(contact.e164))
             }
-            _state.update { it.copy(contacts = enrichedContacts) }
+            _state.update { it.copy(contacts = it.contacts + enrichedContacts) }
 
             // 5. CheckSync with server
             val syncState = dao.getSyncState()
@@ -277,7 +338,7 @@ class ContactCoordinator @Inject constructor(
             // 6. GetFlipcashContacts
             fetchFlipcashContacts(newChecksum, dao)
 
-            _state.update { it.copy(syncState = SyncState.Synced) }
+            _state.update { it.copy(syncState = SyncState.Synced, hasEverSynced = true) }
             trace(tag = TAG, message = "Contact sync complete", type = TraceType.Process)
             return Result.success(Unit)
 
