@@ -4,6 +4,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.internal.credentials.AccountMetadata
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
+import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.push.PushTokenProvider
@@ -54,6 +55,7 @@ class AuthManagerTest {
     private val featureFlagController: FeatureFlagController = mockk(relaxed = true)
     private val appSettings: AppSettingsCoordinator = mockk(relaxed = true)
     private val userFlags: UserFlagsCoordinator = mockk(relaxed = true)
+    private val contactCoordinator: ContactCoordinator = mockk(relaxed = true)
 
     private lateinit var authManager: AuthManager
 
@@ -83,6 +85,7 @@ class AuthManagerTest {
             featureFlagController = featureFlagController,
             appSettings = appSettings,
             userFlags = userFlags,
+            contactCoordinator = contactCoordinator,
         )
     }
 

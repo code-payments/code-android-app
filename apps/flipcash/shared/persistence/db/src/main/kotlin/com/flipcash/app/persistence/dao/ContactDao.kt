@@ -59,6 +59,6 @@ interface ContactDao {
     @Transaction
     suspend fun clearAll() {
         clearSyncState()
-        deleteAllMappings()
+        clearFlipcashStatus()
     }
 }
