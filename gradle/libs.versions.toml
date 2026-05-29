@@ -52,7 +52,7 @@ grpc-android = "1.81.0"
 slf4j = "1.7.36"
 firebase-bom = "34.14.0"
 play-service-ml-barcode = "18.3.1"
-google-play-billing = "8.3.0"
+google-play-billing = "9.0.0"
 google-play-updates = "2.1.0"
 
 grpc = "1.81.0"
