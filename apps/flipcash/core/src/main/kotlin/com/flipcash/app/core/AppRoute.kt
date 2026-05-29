@@ -102,6 +102,9 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object RegionSelection : Main
 
         @Serializable
+        data class InviteContact(val phoneNumber: String) : com.getcode.navigation.Sheet, com.getcode.navigation.WrapContentSheet
+
+        @Serializable
         @Parcelize
         data class Sheet(
             val initialRoute: AppRoute,

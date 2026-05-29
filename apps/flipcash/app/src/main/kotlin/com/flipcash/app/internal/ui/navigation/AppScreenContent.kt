@@ -29,6 +29,7 @@ import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositFlowScreen
+import com.flipcash.app.invite.InviteContactScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.lab.LabsScreen
@@ -79,15 +80,15 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Main.AppRestricted> { key -> AppRestrictedScreen(key.restrictionType) }
     annotatedEntry<AppRoute.Main.Scanner> { ScannerScreen() }
     annotatedEntry<AppRoute.Main.RegionSelection> { RegionSelectionScreen() }
+    annotatedEntry<AppRoute.Main.InviteContact> { key -> InviteContactScreen(key.phoneNumber) }
 
     // Sheets (inner content — wrapped in Main.Sheet by navigateTo())
     annotatedEntry<AppRoute.Sheets.Give> { key -> CashScreen(key.mint, key.fromTokenInfo) }
-    annotatedEntry<AppRoute.Sheets.Send> {  }
+    annotatedEntry<AppRoute.Sheets.Send> { }
     annotatedEntry<AppRoute.Sheets.TokenSelection> { key -> TokenSelectScreen(key.purpose) }
     annotatedEntry<AppRoute.Sheets.Wallet> { BalanceScreen() }
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
     annotatedEntry<AppRoute.Sheets.Menu> { MenuScreen() }
-
 
     // Tokens
     annotatedEntry<AppRoute.Token.Info> { key ->
@@ -97,6 +98,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Token.Swap> { key ->
         SwapFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
+    // TODO: fold this into above entry
     annotatedEntry<AppRoute.Token.TxProcessing> { key ->
         TokenTxProcessingScreen(key.swapId, key.swapPurpose, key.amount, key.isFundingShortfall)
     }
@@ -120,6 +122,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Menu.DeviceLogs> { DeviceLogsScreen() }
 
     annotatedEntry<AppRoute.UserFlags> { UserFlagsScreen() }
+
     // Transfers
     annotatedEntry<AppRoute.Transfers.Deposit> { key ->
         DepositFlowScreen(route = key, resultStateRegistry = resultStateRegistry)

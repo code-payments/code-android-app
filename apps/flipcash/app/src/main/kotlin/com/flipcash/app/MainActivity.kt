@@ -32,6 +32,8 @@ import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.session.SessionController
+import com.flipcash.app.invite.InviteController
+import com.flipcash.app.invite.LocalInviteController
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.updates.AppUpdateController
@@ -97,6 +99,9 @@ class MainActivity : FragmentActivity() {
     lateinit var shareController: ShareSheetController
 
     @Inject
+    lateinit var inviteController: InviteController
+
+    @Inject
     lateinit var appSettingsCoordinator: AppSettingsCoordinator
 
     @Inject
@@ -140,6 +145,7 @@ class MainActivity : FragmentActivity() {
                 LocalUserManager provides userManager,
                 LocalSessionController provides sessionController,
                 LocalShareController provides shareController,
+                LocalInviteController provides inviteController,
                 LocalAppSettings provides appSettingsCoordinator,
                 LocalFeatureFlags provides featureFlagController,
                 LocalPhoneUtils provides phoneUtils,

@@ -3,12 +3,16 @@ package com.flipcash.app.shareable.internal
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.ClipboardManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
+import androidx.core.net.toUri
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.flipcash.app.core.money.formatted
 import com.flipcash.app.core.util.Linkify
+import com.flipcash.app.core.util.MessagingPackages
 import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.ShareSheetController.Companion.ACTION_CASH_LINK_SHARED
@@ -95,6 +99,7 @@ internal class InternalShareSheetController(
 
                 Shareable.DownloadLink -> Unit
                 is Shareable.TokenInfo -> Unit
+                is Shareable.Invite -> Unit
             }
         }
     }
@@ -134,6 +139,10 @@ internal class InternalShareSheetController(
 
             is Shareable.TokenInfo -> {
                 shareToken(shareable.token)
+            }
+
+            is Shareable.Invite -> {
+                shareInviteLink()
             }
         }
     }
@@ -205,6 +214,50 @@ internal class InternalShareSheetController(
         }
 
         context.startActivity(share)
+    }
+
+    private fun shareInviteLink() {
+        val shareRef = resources.getString(R.string.app_download_link_share_ref)
+        val url = Linkify.download(shareRef)
+        val message = resources.getString(R.string.message_invite_contact, url)
+
+        val sendIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, message)
+            type = "text/plain"
+        }
+
+        val chooser = Intent.createChooser(sendIntent, null).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val pm = context.packageManager
+            val messagingPackages = buildSet {
+                val messagingIntent = Intent(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_APP_MESSAGING)
+                }
+                pm.queryIntentActivities(messagingIntent, 0)
+                    .forEach { add(it.activityInfo.packageName) }
+
+                val smsIntent = Intent(Intent.ACTION_SENDTO, "smsto:".toUri())
+                pm.queryIntentActivities(smsIntent, 0)
+                    .forEach { add(it.activityInfo.packageName) }
+
+                addAll(MessagingPackages.all)
+            }
+
+            val excludedComponents = pm.queryIntentActivities(sendIntent, 0)
+                .filter { it.activityInfo.packageName !in messagingPackages }
+                .map { ComponentName(it.activityInfo.packageName, it.activityInfo.name) }
+                .toTypedArray()
+
+            if (excludedComponents.isNotEmpty()) {
+                chooser.putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, excludedComponents)
+            }
+        }
+
+        context.startActivity(chooser)
     }
 
     private fun shareToken(token: Token) {

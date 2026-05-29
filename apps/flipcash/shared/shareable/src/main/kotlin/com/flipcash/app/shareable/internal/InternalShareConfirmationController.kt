@@ -2,7 +2,6 @@ package com.flipcash.app.shareable.internal
 
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.shareable.ShareConfirmationResult
-import com.flipcash.app.shareable.ShareConfirmationResult.*
 import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.shareable.ShareableConfirmationController
@@ -26,8 +25,9 @@ internal class InternalShareConfirmationController(
     ): ShareConfirmationResult {
         return when (shareable) {
             is Shareable.CashLink -> confirmCashLink(shareResult, shareable.autoConfirmationAfter)
-            is Shareable.DownloadLink -> Confirmed(shareResult)
-            is Shareable.TokenInfo -> Confirmed(shareResult)
+            is Shareable.DownloadLink -> ShareConfirmationResult.Confirmed(shareResult)
+            is Shareable.TokenInfo -> ShareConfirmationResult.Confirmed(shareResult)
+            is Shareable.Invite -> ShareConfirmationResult.Confirmed(shareResult)
         }
     }
 

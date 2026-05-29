@@ -36,6 +36,10 @@ sealed interface Shareable {
     ): Shareable {
         override val pendingData: ShareablePendingData? = null
     }
+
+    data object Invite : Shareable {
+        override val pendingData: ShareablePendingData? = null
+    }
 }
 
 sealed interface ShareablePendingData {
