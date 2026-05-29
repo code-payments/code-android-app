@@ -288,7 +288,7 @@ class NavigateToTest {
             AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
         )
 
-        navigator.openAsSheet(AppRoute.Sheets.Lab)
+        navigator.openAsSheet(AppRoute.Sheets.ShareApp)
 
         assertNotNull(navigator.pendingSheetDismiss)
         // Backstack unchanged until the callback fires
@@ -302,7 +302,7 @@ class NavigateToTest {
             AppRoute.Main.Sheet(AppRoute.Sheets.Wallet),
         )
 
-        navigator.openAsSheet(AppRoute.Sheets.Lab)
+        navigator.openAsSheet(AppRoute.Sheets.ShareApp)
 
         // Simulate dismiss: remove old sheet entry, then callback fires
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
@@ -310,7 +310,7 @@ class NavigateToTest {
 
         val last = navigator.backStack.last()
         assertIs<AppRoute.Main.Sheet>(last)
-        assertEquals(AppRoute.Sheets.Lab, last.initialRoute)
+        assertEquals(AppRoute.Sheets.ShareApp, last.initialRoute)
     }
 
     @Test
@@ -321,7 +321,7 @@ class NavigateToTest {
         )
         val initialGeneration = navigator.sheetGeneration
 
-        navigator.openAsSheet(AppRoute.Sheets.Lab)
+        navigator.openAsSheet(AppRoute.Sheets.ShareApp)
 
         // Simulate dismiss
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
@@ -334,7 +334,7 @@ class NavigateToTest {
     fun `openAsSheet without existing sheet navigates directly`() {
         val navigator = createNavigator(AppRoute.Main.Scanner)
 
-        navigator.openAsSheet(AppRoute.Sheets.Lab)
+        navigator.openAsSheet(AppRoute.Sheets.ShareApp)
 
         assertNull(navigator.pendingSheetDismiss)
         assertEquals(2, navigator.backStack.size)
