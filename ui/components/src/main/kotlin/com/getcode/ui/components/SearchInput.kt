@@ -1,7 +1,8 @@
-package com.flipcash.app.currency.internal.components
+package com.getcode.ui.components
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.material.Icon
@@ -12,16 +13,15 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.flipcash.features.currency.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White50
-import com.getcode.ui.components.TextInput
 
 @Composable
-internal fun SearchBar(
+fun SearchInput(
     state: TextFieldState,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
+    placeholder: String = stringResource(R.string.action_search),
 ) {
     TextInput(
         modifier = modifier
@@ -30,13 +30,13 @@ internal fun SearchBar(
         contentPadding = contentPadding,
         leadingIcon = {
             Icon(
-                modifier = Modifier.padding(start = CodeTheme.dimens.grid.x1),
+                modifier = Modifier.padding(start = CodeTheme.dimens.grid.x3),
                 imageVector = Icons.Filled.Search,
                 contentDescription = null,
-                tint = White50,
+                tint = CodeTheme.colors.textMain,
             )
         },
-        placeholder = stringResource(id = R.string.subtitle_searchRegions),
+        placeholder = placeholder,
         placeholderStyle = CodeTheme.typography.textMedium,
         trailingIcon = {
             if (state.text.isNotEmpty()) {
@@ -55,6 +55,6 @@ internal fun SearchBar(
         },
         maxLines = 1,
         style = CodeTheme.typography.textMedium,
-        shape = CodeTheme.shapes.small
+        shape = CircleShape,
     )
 }
