@@ -33,7 +33,6 @@ import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.lab.LabsScreen
 import com.flipcash.app.lab.NavBarSettingsScreen
-import com.flipcash.app.lab.StandaloneLabsScreen
 import com.flipcash.app.login.OnboardingFlowScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.MyAccountScreen
@@ -88,7 +87,6 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Sheets.Wallet> { BalanceScreen() }
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
     annotatedEntry<AppRoute.Sheets.Menu> { MenuScreen() }
-    annotatedEntry<AppRoute.Sheets.Lab> { StandaloneLabsScreen() }
 
 
     // Tokens
