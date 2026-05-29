@@ -4,6 +4,7 @@ import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.extensions.setText
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.features.myaccount.R
@@ -54,6 +55,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
         val accountId: String? = null,
         val publicKey: String? = null,
         val pushToken: String? = null,
+        val linkForPayment: Boolean = false,
         val items: List<MenuItem<Event>> = FullMenuList
     )
 
@@ -61,7 +63,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
         data class OnUserAssociated(
             val userId: String?,
             val publicKey: String?,
-            val pushToken: String? = null
+            val pushToken: String? = null,
+            val linkForPayment: Boolean = false,
         ) : Event
 
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
@@ -71,6 +74,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
         data object OnViewAccessKey : Event
         data object OnVerifyEmailClicked : Event
         data object OnVerifyPhoneClicked : Event
+        data class ConnectPhoneClicked(val linkForPayment: Boolean) : Event
         data object OnDeleteAccountClicked : Event
         data object OnAccountDeleted : Event
         data object CopyPublicKey : Event
@@ -81,19 +85,26 @@ internal class MyAccountScreenViewModel @Inject constructor(
     }
 
     init {
-        userManager.state
-            .onEach {
-                val userId = it.accountId?.base64
-                val publicKey = it.cluster?.authorityPublicKey?.base58()
+        combine(
+            userManager.state,
+            featureFlagController.observe(FeatureFlag.PhoneNumberSend),
+        ) { state, sendEnabled ->
+            val userId = state.accountId?.base64
+            val publicKey = state.cluster?.authorityPublicKey?.base58()
 
-                dispatchEvent(
-                    Event.OnUserAssociated(
-                        userId = userId,
-                        publicKey = publicKey,
-                        pushToken = it.pushToken
-                    )
+            val linkForPayment = sendEnabled ||
+                    state.flags?.enablePhoneNumberSend == true
+
+            dispatchEvent(
+                Event.OnUserAssociated(
+                    userId = userId,
+                    publicKey = publicKey,
+                    pushToken = state.pushToken,
+                    linkForPayment = linkForPayment,
                 )
-            }.launchIn(viewModelScope)
+            )
+
+        }.launchIn(viewModelScope)
 
         combine(
             featureFlagController.observeOverride(),
@@ -184,6 +195,12 @@ internal class MyAccountScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnVerifyPhoneClicked>()
+            .onEach {
+                dispatchEvent(Event.ConnectPhoneClicked(stateFlow.value.linkForPayment))
+            }.launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.OnLogOutClicked>()
             .onEach {
                 BottomBarManager.showAlert(
@@ -228,13 +245,15 @@ internal class MyAccountScreenViewModel @Inject constructor(
                     state.copy(
                         accountId = event.userId,
                         publicKey = event.publicKey,
-                        pushToken = event.pushToken
+                        pushToken = event.pushToken,
+                        linkForPayment = event.linkForPayment,
                     )
                 }
 
                 Event.OnLogOutClicked,
                 Event.OnLoggedOutCompletely,
                 Event.OnVerifyPhoneClicked,
+                is Event.ConnectPhoneClicked,
                 Event.OnVerifyEmailClicked,
                 Event.OnViewAccessKey,
                 Event.CopyPublicKey,

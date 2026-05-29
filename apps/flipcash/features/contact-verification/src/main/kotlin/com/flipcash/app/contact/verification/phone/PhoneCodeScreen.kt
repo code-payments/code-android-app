@@ -56,13 +56,23 @@ fun PhoneCodeContent(
             .launchIn(this)
     }
 
-    LaunchedEffect(viewModel, includeEmail, linkForPayment) {
+    LaunchedEffect(viewModel, linkForPayment) {
         viewModel.eventFlow
             .filterIsInstance<PhoneVerificationViewModel.Event.OnCodeVerified>()
             .onEach {
                 if (linkForPayment) {
                     viewModel.dispatchEvent(PhoneVerificationViewModel.Event.LinkForPayment)
+                } else {
+                    viewModel.dispatchEvent(PhoneVerificationViewModel.Event.OnPhoneVerificationComplete)
                 }
+            }
+            .launchIn(this)
+    }
+
+    LaunchedEffect(viewModel, includeEmail) {
+        viewModel.eventFlow
+            .filterIsInstance<PhoneVerificationViewModel.Event.OnPhoneVerificationComplete>()
+            .onEach {
                 if (includeEmail) {
                     flowNavigator.navigateTo(VerificationStep.EmailEntry)
                 } else {
