@@ -49,24 +49,22 @@ class MyAccountScreenViewModelStateTest {
     }
 
     @Test
-    fun `OnBetaFeaturesUnlocked true enables beta and shows all menu items`() {
+    fun `OnBetaFeaturesUnlocked true enables beta and shows ContactMethods item`() {
         val updated = reduce(
             MyAccountScreenViewModel.Event.OnBetaFeaturesUnlocked(true)
         )(MyAccountScreenViewModel.State())
         assertTrue(updated.isBetaEnabled)
-        assertTrue(updated.items.any { it is VerifyPhone })
-        assertTrue(updated.items.any { it is VerifyEmail })
+        assertTrue(updated.items.any { it is UserProfile })
     }
 
     @Test
-    fun `OnBetaFeaturesUnlocked false disables beta and hides verification items`() {
+    fun `OnBetaFeaturesUnlocked false disables beta and hides ContactMethods item`() {
         val state = MyAccountScreenViewModel.State(isBetaEnabled = true)
         val updated = reduce(
             MyAccountScreenViewModel.Event.OnBetaFeaturesUnlocked(false)
         )(state)
         assertFalse(updated.isBetaEnabled)
-        assertFalse(updated.items.any { it is VerifyPhone })
-        assertFalse(updated.items.any { it is VerifyEmail })
+        assertFalse(updated.items.any { it is UserProfile })
     }
 
     @Test
@@ -105,8 +103,8 @@ class MyAccountScreenViewModelStateTest {
         val noOpEvents = listOf(
             MyAccountScreenViewModel.Event.OnLogOutClicked,
             MyAccountScreenViewModel.Event.OnLoggedOutCompletely,
-            MyAccountScreenViewModel.Event.OnVerifyPhoneClicked,
-            MyAccountScreenViewModel.Event.OnVerifyEmailClicked,
+            MyAccountScreenViewModel.Event.OnContactMethodsClicked,
+            MyAccountScreenViewModel.Event.OnViewUserProfile,
             MyAccountScreenViewModel.Event.OnViewAccessKey,
             MyAccountScreenViewModel.Event.CopyPublicKey,
             MyAccountScreenViewModel.Event.CopyAccountId,

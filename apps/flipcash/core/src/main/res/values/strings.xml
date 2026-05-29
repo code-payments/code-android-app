@@ -324,6 +324,24 @@
     <string name="action_unlinkPhone">Unlink Phone</string>
     <string name="action_unlinkEmail">Unlink Email</string>
 
+    <string name="title_userProfile">User Profile</string>
+    <string name="title_sectionPhone">Phone Number</string>
+    <string name="title_sectionEmail">Email Address</string>
+    <string name="action_addPhoneNumber">Add Phone Number</string>
+    <string name="action_addEmailAddress">Add Email Address</string>
+    <string name="subtitle_linkedForPayments">Linked for payments</string>
+    <string name="prompt_title_unlinkPhone">Unlink Phone Number?</string>
+    <string name="prompt_description_unlinkPhone">Your phone number will be removed from your profile.</string>
+    <string name="prompt_title_unlinkEmail">Unlink Email Address?</string>
+    <string name="prompt_description_unlinkEmail">Your email address will be removed from your profile.</string>
+    <string name="title_sectionDisplayName">Display Name</string>
+    <string name="title_sectionSocialAccounts">Social Accounts</string>
+    <string name="subtitle_noDisplayName">No display name set</string>
+    <string name="subtitle_noSocialAccounts">No social accounts linked</string>
+    <string name="prompt_title_unlinkSocialAccount">Unlink Account?</string>
+    <string name="prompt_description_unlinkSocialAccount">This social account will be removed from your profile.</string>
+    <string name="action_unlinkAccount">Unlink Account</string>
+
     <string name="title_verificationFlow">Verify Your Phone Number And Email To Continue</string>
     <string name="subtitle_verificationFlowForOnramp">This will allow you to add funds from your debit card</string>
     "

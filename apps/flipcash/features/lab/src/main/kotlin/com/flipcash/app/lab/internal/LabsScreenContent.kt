@@ -10,9 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MarkEmailUnread
-import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.PhonelinkErase
+import androidx.compose.material.icons.filled.ContactMail
 import androidx.compose.material.icons.filled.Token
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
@@ -45,7 +43,6 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
     val betaFlagsController = LocalFeatureFlags.current
     val betaFlags by betaFlagsController.observe().collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
-    val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
     val isStaff by viewModel.isStaff.collectAsStateWithLifecycle()
 
     val state = rememberLazyListState()
@@ -134,26 +131,6 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
                     icon = rememberVectorPainter(Icons.Default.Token),
                 ) {
                     navigator.navigate(AppRoute.UserFlags)
-                }
-            }
-        }
-
-        if (isLoggedIn) {
-            item { SectionHeader(stringResource(R.string.title_settingsSectionAccount)) }
-            item {
-                ListItem(
-                    headline = stringResource(R.string.action_unlinkPhone),
-                    icon = rememberVectorPainter(Icons.Default.PhonelinkErase),
-                ) {
-                    viewModel.unlinkPhone()
-                }
-            }
-            item {
-                ListItem(
-                    headline = stringResource(R.string.action_unlinkEmail),
-                    icon = rememberVectorPainter(Icons.Default.MarkEmailUnread),
-                ) {
-                    viewModel.unlinkEmail()
                 }
             }
         }
