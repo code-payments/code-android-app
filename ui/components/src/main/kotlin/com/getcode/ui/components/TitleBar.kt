@@ -1,6 +1,5 @@
 package com.getcode.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,29 +7,21 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Icon
-import androidx.compose.material.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.RestorePage
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.Redo
 import androidx.compose.material.icons.rounded.RestorePage
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.SubcomposeLayout
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,8 +32,6 @@ import com.getcode.navigation.flow.LocalFlowDismissStyle
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 import com.getcode.ui.core.addIf
-import com.getcode.ui.core.rememberedClickable
-import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.utils.calculateHorizontalPadding
 import kotlin.math.max
 
@@ -50,66 +39,64 @@ object AppBarDefaults {
     val ContentPadding: PaddingValues
         @Composable get() = PaddingValues(horizontal = CodeTheme.dimens.grid.x2)
 
-    private val IconSize = 20.dp
-    private val ButtonSize = 40.dp
-    private val ButtonBackground = Color.White.copy(alpha = 0.1f)
+    internal val IconSize = 20.dp
 
     @Composable
     fun UpNavigation(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        CircularIconButton(modifier = modifier, onClick = onClick, testTag = "action_back") {
+        CircularIconButton(modifier = modifier, onClick = onClick, testTag = "action_back") { size ->
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = "",
                 tint = Color.White,
-                modifier = Modifier.requiredSize(IconSize),
+                modifier = Modifier.requiredSize(size),
             )
         }
     }
 
     @Composable
     fun Close(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        CircularIconButton(modifier = modifier, onClick = onClick, testTag = "action_close") {
+        CircularIconButton(modifier = modifier, onClick = onClick, testTag = "action_close") { size ->
             Icon(
                 imageVector = Icons.Outlined.Close,
                 contentDescription = "",
                 tint = Color.White,
-                modifier = Modifier.requiredSize(IconSize),
+                modifier = Modifier.requiredSize(size),
             )
         }
     }
 
     @Composable
     fun Share(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        CircularIconButton(modifier = modifier, onClick = onClick, testTag = "action_share") {
+        CircularIconButton(modifier = modifier, onClick = onClick, testTag = "action_share") { size ->
             Icon(
                 painter = painterResource(R.drawable.ic_remote_send),
                 contentDescription = "",
                 tint = Color.White,
-                modifier = Modifier.requiredSize(IconSize),
+                modifier = Modifier.requiredSize(size),
             )
         }
     }
 
     @Composable
     fun Leave(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        CircularIconButton(modifier = modifier, onClick = onClick) {
+        CircularIconButton(modifier = modifier, onClick = onClick) { size ->
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.Logout,
                 contentDescription = "",
                 tint = Color.White,
-                modifier = Modifier.requiredSize(IconSize),
+                modifier = Modifier.requiredSize(size),
             )
         }
     }
 
     @Composable
     fun Settings(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        CircularIconButton(modifier = modifier, onClick = onClick) {
+        CircularIconButton(modifier = modifier, onClick = onClick) { size ->
             Icon(
                 painter = painterResource(R.drawable.ic_settings_outline),
                 contentDescription = "",
                 tint = Color.White,
-                modifier = Modifier.requiredSize(IconSize),
+                modifier = Modifier.requiredSize(size),
             )
         }
     }
@@ -119,12 +106,12 @@ object AppBarDefaults {
         modifier: Modifier = Modifier,
         onClick: () -> Unit
     ) {
-        CircularIconButton(modifier = modifier, onClick = onClick) {
+        CircularIconButton(modifier = modifier, onClick = onClick) { size ->
             Icon(
                 imageVector = Icons.Outlined.MoreVert,
                 contentDescription = "",
                 tint = Color.White,
-                modifier = Modifier.requiredSize(IconSize),
+                modifier = Modifier.requiredSize(size),
             )
         }
     }
@@ -134,12 +121,12 @@ object AppBarDefaults {
         modifier: Modifier = Modifier,
         onClick: () -> Unit
     ) {
-        CircularIconButton(modifier = modifier, onClick = onClick) {
+        CircularIconButton(modifier = modifier, onClick = onClick) { size ->
             Icon(
                 imageVector = Icons.Rounded.RestorePage,
                 contentDescription = "",
                 tint = Color.White,
-                modifier = Modifier.requiredSize(IconSize),
+                modifier = Modifier.requiredSize(size),
             )
         }
     }
@@ -158,26 +145,6 @@ object AppBarDefaults {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-    }
-
-    @Composable
-    private fun CircularIconButton(
-        modifier: Modifier = Modifier,
-        onClick: () -> Unit,
-        testTag: String? = null,
-        content: @Composable () -> Unit,
-    ) {
-        Box(
-            modifier = modifier
-                .size(ButtonSize)
-                .background(ButtonBackground, CircleShape)
-                .clip(CircleShape)
-                .rememberedClickable { onClick() }
-                .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
-            contentAlignment = Alignment.Center,
-        ) {
-            content()
-        }
     }
 }
 

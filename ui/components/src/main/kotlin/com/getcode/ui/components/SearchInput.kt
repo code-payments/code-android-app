@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Close
@@ -24,8 +24,7 @@ fun SearchInput(
     placeholder: String = stringResource(R.string.action_search),
 ) {
     TextInput(
-        modifier = modifier
-            .padding(horizontal = CodeTheme.dimens.grid.x3),
+        modifier = modifier,
         state = state,
         contentPadding = contentPadding,
         leadingIcon = {
