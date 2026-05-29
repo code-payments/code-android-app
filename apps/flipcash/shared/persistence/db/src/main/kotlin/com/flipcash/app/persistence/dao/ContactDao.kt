@@ -42,6 +42,9 @@ interface ContactDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertMappings(mappings: List<ContactMappingEntity>)
 
+    @Query("SELECT displayName FROM contact_mapping WHERE e164 = :e164 LIMIT 1")
+    suspend fun getDisplayName(e164: String): String?
+
     @Query("DELETE FROM contact_mapping WHERE e164 IN (:e164s)")
     suspend fun deleteMappings(e164s: List<String>)
 

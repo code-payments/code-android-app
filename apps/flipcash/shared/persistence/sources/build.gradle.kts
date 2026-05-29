@@ -24,6 +24,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:persistence:db"))
 
     implementation(project(":libs:encryption:base58"))
+    implementation(project(":libs:encryption:keys"))
     implementation(project(":libs:encryption:utils"))
 
     implementation(project(":services:flipcash"))
