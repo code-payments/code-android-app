@@ -12,6 +12,7 @@ import com.flipcash.services.internal.extensions.toPublicKey
 import com.flipcash.services.models.NavigationTrigger
 import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
+import com.flipcash.services.models.Substitution
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.Mint
@@ -45,11 +46,24 @@ internal fun PushModels.Payload.asPayload(): NotificationPayload {
         else -> NotificationCategory.DEFAULT
     }
 
+    val titleSubs = titleSubstitutionsList.map { it.asSubstitution() }
+    val bodySubs = bodySubstitutionsList.map { it.asSubstitution() }
+
     return NotificationPayload(
         navigation = navigationTrigger,
         category = notificationCategory,
         groupKey = groupKey,
+        titleSubstitutions = titleSubs,
+        bodySubstitutions = bodySubs,
     )
+}
+
+internal fun PushModels.Substitution.asSubstitution(): Substitution {
+    val phoneNumber = when (kindCase) {
+        PushModels.Substitution.KindCase.CONTACT -> contact.value
+        else -> null
+    }
+    return Substitution(fallback = fallback, phoneNumber = phoneNumber)
 }
 
 internal fun Common.Signature.toSignature(): Signature {
