@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.persistence.sources.ContactDataSource
 import com.flipcash.app.phone.PhoneUtils
@@ -62,6 +63,9 @@ class NotificationService : FirebaseMessagingService(),
     lateinit var contactDataSource: ContactDataSource
 
     @Inject
+    lateinit var contactCoordinator: ContactCoordinator
+
+    @Inject
     lateinit var phoneUtils: PhoneUtils
 
     override fun onNewToken(token: String) {
@@ -102,8 +106,13 @@ class NotificationService : FirebaseMessagingService(),
             .takeIf { it.isNotEmpty() }
             ?.let { NotificationPayload.fromEncoded(it) }
 
-        if (payload?.navigation is NavigationTrigger.CurrencyInfo) {
-            launch { tokenCoordinator.update() }
+        when {
+            payload?.navigation is NavigationTrigger.CurrencyInfo -> {
+                launch { tokenCoordinator.update() }
+            }
+            payload?.category == NotificationCategory.CONTACT_JOIN -> {
+                launch { contactCoordinator.sync() }
+            }
         }
 
         launch {
