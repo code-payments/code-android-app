@@ -384,6 +384,10 @@ private class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
         val nextIndex = anchorIndex + 1
         if (anchorIndex >= 0 && nextIndex <= currentSteps.lastIndex) {
             navigateTo(currentSteps[nextIndex])
+        } else if (anchorIndex < 0 && currentSteps.isNotEmpty()) {
+            // Current step was removed from the steps list (e.g. a gate whose condition
+            // is now met). Navigate to the first remaining step.
+            navigateTo(currentSteps.first(), popCurrent = true)
         } else {
             val result = completedResult()
             if (result != null) exitWithResult(result)
