@@ -237,6 +237,7 @@ class RealSessionController @Inject constructor(
         startPolling()
         swapUsdcIfNeeded()
         updateUserFlags()
+        linkForPaymentIfNeeded()
         updateSettings()
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
@@ -309,6 +310,12 @@ class RealSessionController @Inject constructor(
                         }
                     }
             }
+        }
+    }
+
+    private fun linkForPaymentIfNeeded() {
+        if (userManager.authState.canAccessAuthenticatedApis) {
+            contactCoordinator.linkForPaymentIfNeeded()
         }
     }
 

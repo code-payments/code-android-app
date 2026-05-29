@@ -19,6 +19,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":libs:encryption:keys"))
     implementation(project(":libs:network:connectivity:public"))
+    implementation(libs.androidx.datastore)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.bundles.room)
 }

@@ -33,7 +33,6 @@ import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.core.onboarding.OnboardingResult
 import com.flipcash.app.core.onboarding.OnboardingStep
 import com.flipcash.app.login.internal.LoginAccessKeyViewModel
-import com.flipcash.app.login.internal.OnboardingViewModel
 import com.flipcash.app.login.internal.screens.PhotoAccessKeyScreen
 import com.flipcash.app.login.internal.screens.AccessKeyScreen
 import com.flipcash.app.login.internal.screens.LoginRouterScreenContent
@@ -135,7 +134,6 @@ private fun PermissionsPhaseFlowHost(
     resultStateRegistry: NavResultStateRegistry,
 ) {
     val outerNavigator = LocalCodeNavigator.current
-    val onboardingViewModel = hiltViewModel<OnboardingViewModel>()
     val checker = LocalPermissionChecker.current
     val contactConfig = PermissionConfigs.contacts()
     val notificationConfig = PermissionConfigs.notifications()
@@ -180,7 +178,6 @@ private fun PermissionsPhaseFlowHost(
             when (reason) {
                 is FlowExitReason.Completed -> {
                     analytics.action(Action.CompletedOnboarding)
-                    onboardingViewModel.linkPhoneForPayment()
                     outerNavigator.navigate(
                         route = AppRoute.Main.Scanner,
                         options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll),
@@ -189,7 +186,6 @@ private fun PermissionsPhaseFlowHost(
 
                 FlowExitReason.BackedOutOfRoot -> {
                     // All permissions already granted
-                    onboardingViewModel.linkPhoneForPayment()
                     outerNavigator.navigate(
                         route = AppRoute.Main.Scanner,
                         options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll),
