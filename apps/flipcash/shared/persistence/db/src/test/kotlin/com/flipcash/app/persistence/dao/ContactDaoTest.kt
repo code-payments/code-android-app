@@ -221,7 +221,7 @@ class ContactDaoTest {
     // -- clearAll tests --
 
     @Test
-    fun `clearAll removes sync state and resets flipcash status`() = runTest {
+    fun `clearAll removes sync state and all mappings`() = runTest {
         dao.upsertSyncState(makeSyncState())
         dao.upsertMappings(listOf(
             makeMapping(e164 = "+15551111111", isOnFlipcash = true),
@@ -230,9 +230,6 @@ class ContactDaoTest {
         dao.clearAll()
 
         assertNull(dao.getSyncState())
-        // Mappings still exist but flipcash status is cleared
-        val mappings = dao.getAllMappings()
-        assertEquals(1, mappings.size)
-        assertTrue(!mappings.first().isOnFlipcash)
+        assertTrue(dao.getAllMappings().isEmpty())
     }
 }

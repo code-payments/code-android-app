@@ -95,6 +95,7 @@ class ContactCoordinator @Inject constructor(
         val flipcashE164s: Set<String> = emptySet(),
         val syncState: SyncState = SyncState.Idle,
         val hasEverSynced: Boolean = false,
+        val hasDiscoveredFlipcashContacts: Boolean = false,
     )
 
     enum class SyncState { Idle, Syncing, Synced, Error }
@@ -136,9 +137,12 @@ class ContactCoordinator @Inject constructor(
 
     override fun onStart(owner: LifecycleOwner) {
         if (cluster.value != null) {
-            scope.launch { clearServerContactSetIfRevoked() }
-            trace(tag = TAG, message = "Lifecycle resumed, triggering contact sync", type = TraceType.Process)
-            launchSync()
+            syncJob?.cancel()
+            syncJob = scope.launch {
+                clearServerContactSetIfRevoked()
+                trace(tag = TAG, message = "Lifecycle resumed, triggering contact sync", type = TraceType.Process)
+                performSync()
+            }
         }
     }
 
@@ -213,6 +217,11 @@ class ContactCoordinator @Inject constructor(
         }
     }
 
+    suspend fun consumeContactsDiscovery() {
+        contactDataSource.clearFlipcashContactsDiscovered()
+        _state.update { it.copy(hasDiscoveredFlipcashContacts = false) }
+    }
+
     suspend fun reset() {
         syncJob?.cancel()
         _state.value = ContactState()
@@ -269,9 +278,10 @@ class ContactCoordinator @Inject constructor(
         val mappings = contactDataSource.get()
 
         val hasEverSynced = syncState != null || mappings.isNotEmpty()
+        val hasDiscoveredFlipcashContacts = syncState?.hasDiscoveredFlipcashContacts ?: false
         if (mappings.isEmpty()) {
             if (hasEverSynced) {
-                _state.update { it.copy(hasEverSynced = true) }
+                _state.update { it.copy(hasEverSynced = true, hasDiscoveredFlipcashContacts = hasDiscoveredFlipcashContacts) }
             }
             return
         }
@@ -288,7 +298,12 @@ class ContactCoordinator @Inject constructor(
         val flipcashE164s = mappings.filter { it.isOnFlipcash }.map { it.e164 }.toSet()
 
         _state.update {
-            it.copy(contacts = contacts, flipcashE164s = flipcashE164s, hasEverSynced = true)
+            it.copy(
+                contacts = contacts,
+                flipcashE164s = flipcashE164s,
+                hasEverSynced = true,
+                hasDiscoveredFlipcashContacts = hasDiscoveredFlipcashContacts,
+            )
         }
 
         trace(tag = TAG, message = "Hydrated ${mappings.size} contacts from persistence", type = TraceType.Process)
@@ -440,6 +455,10 @@ class ContactCoordinator @Inject constructor(
                 contactDataSource.clearFlipcashStatus()
                 if (flipcashE164s.isNotEmpty()) {
                     contactDataSource.markAsFlipcash(flipcashE164s.toList())
+                    if (!_state.value.hasDiscoveredFlipcashContacts) {
+                        contactDataSource.markFlipcashContactsDiscovered()
+                        _state.update { it.copy(hasDiscoveredFlipcashContacts = true) }
+                    }
                 }
                 _state.update { it.copy(flipcashE164s = flipcashE164s) }
                 trace(tag = TAG, message = "Found ${flipcashE164s.size} contacts on Flipcash", type = TraceType.Process)

@@ -59,9 +59,15 @@ interface ContactDao {
     @Query("DELETE FROM contact_mapping")
     suspend fun deleteAllMappings()
 
+    @Query("UPDATE contact_sync_state SET hasDiscoveredFlipcashContacts = 1 WHERE id = 0")
+    suspend fun markFlipcashContactsDiscovered()
+
+    @Query("UPDATE contact_sync_state SET hasDiscoveredFlipcashContacts = 0 WHERE id = 0")
+    suspend fun clearFlipcashContactsDiscovered()
+
     @Transaction
     suspend fun clearAll() {
         clearSyncState()
-        clearFlipcashStatus()
+        deleteAllMappings()
     }
 }
