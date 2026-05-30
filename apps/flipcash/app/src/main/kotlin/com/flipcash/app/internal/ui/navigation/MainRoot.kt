@@ -143,7 +143,7 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
  * [deeplinkRoutes] are applied via navigateTo, which handles sheet wrapping
  * so deeplinks targeting screens inside sheets render correctly.
  */
-private data class LaunchNavGraph(
+internal data class LaunchNavGraph(
     val baseRoutes: List<NavKey>,
     val deeplinkRoutes: List<AppRoute> = emptyList(),
 ) {
@@ -171,7 +171,7 @@ private fun List<NavKey>.startsWith(prefix: List<NavKey>): Boolean {
     return prefix.indices.all { i -> this[i]::class == prefix[i]::class }
 }
 
-private fun buildNavGraphForLaunch(
+internal fun buildNavGraphForLaunch(
     state: AuthState,
     userFlags: UserFlags?,
     router: Router,
@@ -196,8 +196,8 @@ private fun buildNavGraphForLaunch(
                         baseRoutes = listOf(AppRoute.Main.Scanner),
                         deeplinkRoutes = action.routes,
                     )
-                    // ExternalWallet/Login/OpenCashLink can't be handled on cold start
-                    // (encryption state lost, no session yet) — fall through to Scanner
+                    // OpenCashLink/Login/ExternalWallet are handled by App.kt's
+                    // LaunchedEffect(deepLink, currentRoute) once we leave Loading.
                     else -> LaunchNavGraph(listOf(AppRoute.Main.Scanner))
                 }
             } else {
