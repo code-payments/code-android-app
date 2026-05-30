@@ -15,6 +15,7 @@ import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.permissions.PickedContact
 import com.flipcash.features.directsend.R
 import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
@@ -23,10 +24,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
@@ -159,7 +162,26 @@ internal class SendFlowViewModel @Inject constructor(
             .onEach { event -> contactCoordinator.removeContact(event.e164) }
             .launchIn(viewModelScope)
 
-        // SendInvite is observed by the UI layer (ContactListScreen) for navigation
+        contactCoordinator.state
+            .filter { it.hasDiscoveredFlipcashContacts && it.flipcashE164s.isNotEmpty() }
+            .take(1)
+            .onEach { contactState ->
+                val count = contactState.flipcashE164s.size
+                BottomBarManager.showInfo(
+                    title = resources.getQuantityString(
+                        R.plurals.prompt_title_contactsAlreadyOnFlipcash,
+                        count,
+                        count.toString(),
+                    ),
+                    message = resources.getString(R.string.prompt_description_contactsAlreadyOnFlipcash),
+                    onDismiss = {
+                        viewModelScope.launch {
+                            contactCoordinator.consumeContactsDiscovery()
+                        }
+                    }
+                )
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun generateListItems(

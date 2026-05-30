@@ -1,5 +1,6 @@
 package com.flipcash.app.persistence.entities
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -10,6 +11,8 @@ data class ContactSyncStateEntity(
     val checksumBytes: ByteArray,
     val lastSyncTimestamp: Long,
     val needsFullUpload: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val hasDiscoveredFlipcashContacts: Boolean = false,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -17,7 +20,8 @@ data class ContactSyncStateEntity(
         return id == other.id &&
             checksumBytes.contentEquals(other.checksumBytes) &&
             lastSyncTimestamp == other.lastSyncTimestamp &&
-            needsFullUpload == other.needsFullUpload
+            needsFullUpload == other.needsFullUpload &&
+            hasDiscoveredFlipcashContacts == other.hasDiscoveredFlipcashContacts
     }
 
     override fun hashCode(): Int {
@@ -25,6 +29,7 @@ data class ContactSyncStateEntity(
         result = 31 * result + checksumBytes.contentHashCode()
         result = 31 * result + lastSyncTimestamp.hashCode()
         result = 31 * result + needsFullUpload.hashCode()
+        result = 31 * result + hasDiscoveredFlipcashContacts.hashCode()
         return result
     }
 }

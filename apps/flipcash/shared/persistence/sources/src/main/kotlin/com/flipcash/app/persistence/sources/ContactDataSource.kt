@@ -60,6 +60,17 @@ class ContactDataSource @Inject constructor(
         )
     }
 
+    suspend fun hasDiscoveredFlipcashContacts(): Boolean =
+        getSyncState()?.hasDiscoveredFlipcashContacts ?: false
+
+    suspend fun markFlipcashContactsDiscovered() {
+        db?.contactDao()?.markFlipcashContactsDiscovered()
+    }
+
+    suspend fun clearFlipcashContactsDiscovered() {
+        db?.contactDao()?.clearFlipcashContactsDiscovered()
+    }
+
     // endregion
 
     // region Contact-specific operations
