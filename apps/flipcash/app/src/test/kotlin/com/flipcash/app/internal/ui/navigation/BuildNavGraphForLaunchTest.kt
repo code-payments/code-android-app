@@ -1,0 +1,149 @@
+package com.flipcash.app.internal.ui.navigation
+
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.navigation.DeeplinkAction
+import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.router.Router
+import com.flipcash.services.user.AuthState
+import dev.theolm.rinku.DeepLink
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+class BuildNavGraphForLaunchTest {
+
+    // -- Helpers --
+
+    /** Router that returns a fixed action for any deeplink. */
+    private class FakeRouter(private val action: DeeplinkAction) : Router {
+        override fun dispatch(deepLink: DeepLink): DeeplinkAction = action
+        override fun classify(deepLink: DeepLink): DeeplinkType? = null
+    }
+
+    private val dummyLink = DeepLink("https://send.flipcash.com/c/e=testEntropy")
+
+    private fun build(
+        state: AuthState,
+        action: DeeplinkAction = DeeplinkAction.None,
+        deepLink: DeepLink? = null,
+    ): LaunchNavGraph? = buildNavGraphForLaunch(
+        state = state,
+        userFlags = null,
+        router = FakeRouter(action),
+        deepLink = { deepLink },
+    )
+
+    // -- LoggedInWithUser --
+
+    @Test
+    fun `logged in without deeplink navigates to Scanner`() {
+        val result = build(AuthState.LoggedInWithUser)!!
+        assertEquals(listOf(AppRoute.Main.Scanner), result.baseRoutes)
+        assertTrue(result.deeplinkRoutes.isEmpty())
+    }
+
+    @Test
+    fun `logged in with Navigate deeplink includes deeplink routes`() {
+        val routes = listOf(AppRoute.Main.Scanner)
+        val result = build(
+            state = AuthState.LoggedInWithUser,
+            action = DeeplinkAction.Navigate(routes),
+            deepLink = dummyLink,
+        )!!
+        assertEquals(listOf(AppRoute.Main.Scanner), result.baseRoutes)
+        assertEquals(routes, result.deeplinkRoutes)
+    }
+
+    @Test
+    fun `logged in with OpenCashLink defers to App for dispatch`() {
+        val result = build(
+            state = AuthState.LoggedInWithUser,
+            action = DeeplinkAction.OpenCashLink("testEntropy"),
+            deepLink = dummyLink,
+        )!!
+        assertEquals(listOf(AppRoute.Main.Scanner), result.baseRoutes)
+        assertTrue(result.deeplinkRoutes.isEmpty(), "OpenCashLink must not be consumed by MainRoot")
+    }
+
+    @Test
+    fun `logged in with Login action defers to App for dispatch`() {
+        val result = build(
+            state = AuthState.LoggedInWithUser,
+            action = DeeplinkAction.Login("seed"),
+            deepLink = dummyLink,
+        )!!
+        assertEquals(listOf(AppRoute.Main.Scanner), result.baseRoutes)
+        assertTrue(result.deeplinkRoutes.isEmpty(), "Login must not be consumed by MainRoot")
+    }
+
+    @Test
+    fun `logged in with None action navigates to Scanner without deeplink routes`() {
+        val result = build(
+            state = AuthState.LoggedInWithUser,
+            action = DeeplinkAction.None,
+            deepLink = dummyLink,
+        )!!
+        assertEquals(listOf(AppRoute.Main.Scanner), result.baseRoutes)
+        assertTrue(result.deeplinkRoutes.isEmpty())
+    }
+
+    // -- LoggedOut / Unknown --
+
+    @Test
+    fun `logged out without deeplink navigates to OnboardingFlow`() {
+        val result = build(AuthState.LoggedOut)!!
+        assertIs<AppRoute.OnboardingFlow>(result.baseRoutes.single())
+    }
+
+    @Test
+    fun `logged out with Navigate deeplink uses action routes`() {
+        val routes = listOf(AppRoute.OnboardingFlow(seed = "abc"))
+        val result = build(
+            state = AuthState.LoggedOut,
+            action = DeeplinkAction.Navigate(routes),
+            deepLink = dummyLink,
+        )!!
+        assertEquals(routes, result.baseRoutes)
+    }
+
+    @Test
+    fun `logged out with OpenCashLink falls back to OnboardingFlow`() {
+        val result = build(
+            state = AuthState.LoggedOut,
+            action = DeeplinkAction.OpenCashLink("entropy"),
+            deepLink = dummyLink,
+        )!!
+        assertIs<AppRoute.OnboardingFlow>(result.baseRoutes.single())
+    }
+
+    @Test
+    fun `unknown auth state without deeplink navigates to OnboardingFlow`() {
+        val result = build(AuthState.Unknown)!!
+        assertIs<AppRoute.OnboardingFlow>(result.baseRoutes.single())
+    }
+
+    // -- Registered --
+
+    @Test
+    fun `registered without seenAccessKey resumes at AccessKey`() {
+        val result = build(AuthState.Registered(seenAccessKey = false))!!
+        val route = assertIs<AppRoute.OnboardingFlow>(result.baseRoutes.single())
+        assertEquals(AppRoute.OnboardingFlow.ResumePoint.AccessKey, route.resumeAt)
+    }
+
+    @Test
+    fun `registered with seenAccessKey resumes at PostAccessKey`() {
+        val result = build(AuthState.Registered(seenAccessKey = true))!!
+        val route = assertIs<AppRoute.OnboardingFlow>(result.baseRoutes.single())
+        assertEquals(AppRoute.OnboardingFlow.ResumePoint.PostAccessKey, route.resumeAt)
+    }
+
+    // -- LoggedInAwaitingUser --
+
+    @Test
+    fun `awaiting user returns null`() {
+        assertNull(build(AuthState.LoggedInAwaitingUser))
+    }
+}
