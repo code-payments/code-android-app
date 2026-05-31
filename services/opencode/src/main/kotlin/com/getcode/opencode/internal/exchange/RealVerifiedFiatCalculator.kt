@@ -114,6 +114,11 @@ internal class RealVerifiedFiatCalculator @Inject constructor(
         val underlyingTokenAmount = Fiat(quarks = quarks.toLong(), currencyCode = CurrencyCode.USD)
 
         val sellEstimate = Fiat.tokenBalance(quarks.toLong(), token, supply).convertingTo(rate)
+
+        if (!sellEstimate.hasDisplayableValue) {
+            return Result.failure(ComputeVerifiedFiatError.AmountBelowMinimum())
+        }
+
         val fx = sellEstimate.decimalValue.toBigDecimal().divideWithHighPrecision(units).toDouble()
 
         if (trace) {

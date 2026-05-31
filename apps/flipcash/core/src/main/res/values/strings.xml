@@ -679,6 +679,9 @@
     <string name="error_title_staleRates">Rate Unavailable</string>
     <string name="error_description_staleRates">Couldn\'t get a fresh rate. Please try again.</string>
 
+    <string name="error_title_amountTooSmall">Amount Too Small</string>
+    <string name="error_description_amountTooSmall">The amount you entered is too small to transfer\nPlease enter a larger amount</string>
+
     <string name="title_settings">Settings</string>
 
     <string name="title_withdrawUsdfAsUsdc">Withdraw as USDC</string>
