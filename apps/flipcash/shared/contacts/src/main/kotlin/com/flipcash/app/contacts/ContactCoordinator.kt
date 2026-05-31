@@ -87,7 +87,7 @@ class ContactCoordinator @Inject constructor(
         ),
         migrations = listOf(),
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-        produceFile = { context.preferencesDataStoreFile("app-settings") }
+        produceFile = { context.preferencesDataStoreFile("contact-prefs") }
     )
 
     data class ContactState(
@@ -455,7 +455,7 @@ class ContactCoordinator @Inject constructor(
                 contactDataSource.clearFlipcashStatus()
                 if (flipcashE164s.isNotEmpty()) {
                     contactDataSource.markAsFlipcash(flipcashE164s.toList())
-                    if (!_state.value.hasDiscoveredFlipcashContacts) {
+                    if (!_state.value.hasDiscoveredFlipcashContacts && _state.value.flipcashE164s.isEmpty()) {
                         contactDataSource.markFlipcashContactsDiscovered()
                         _state.update { it.copy(hasDiscoveredFlipcashContacts = true) }
                     }

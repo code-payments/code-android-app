@@ -305,9 +305,30 @@ class RealSessionController @Inject constructor(
                     .onSuccess { flags ->
                         userManager.set(flags)
                         val currentState = userManager.authState
-                        val onboardingIncomplete = currentState is AuthState.Registered && !currentState.seenAccessKey
-                        if (flags.isRegistered && !currentState.canAccessAuthenticatedApis && !onboardingIncomplete) {
-                            userManager.set(authState = AuthState.LoggedInWithUser)
+                        when {
+                            // Don't promote during onboarding — the permissions
+                            // completion flow sets Ready when navigating to Scanner.
+                            flags.isRegistered && !currentState.canAccessAuthenticatedApis
+                                && currentState !is AuthState.Onboarding -> {
+                                userManager.set(authState = AuthState.Ready)
+                            }
+                            // Reconcile resume point with freshly-loaded flags.
+                            currentState is AuthState.Onboarding -> {
+                                val corrected = when (currentState.resumePoint) {
+                                    AuthState.ResumePoint.PostAccessKey ->
+                                        if (flags.requiresIapForRegistration)
+                                            AuthState.ResumePoint.AccessKeyThenPurchase
+                                        else currentState.resumePoint
+                                    AuthState.ResumePoint.AccessKeyThenPurchase ->
+                                        if (!flags.requiresIapForRegistration)
+                                            AuthState.ResumePoint.PostAccessKey
+                                        else currentState.resumePoint
+                                    AuthState.ResumePoint.AccessKey -> currentState.resumePoint
+                                }
+                                if (corrected != currentState.resumePoint) {
+                                    userManager.set(authState = AuthState.Onboarding(corrected))
+                                }
+                            }
                         }
                     }
             }
