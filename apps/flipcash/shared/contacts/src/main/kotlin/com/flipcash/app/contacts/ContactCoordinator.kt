@@ -103,10 +103,14 @@ class ContactCoordinator @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val cluster = MutableStateFlow<AccountCluster?>(null)
     private val _state = MutableStateFlow(ContactState())
+    private val _isLinkedForPayment = MutableStateFlow(false)
     private var syncJob: Job? = null
 
     val state: StateFlow<ContactState>
         get() = _state.asStateFlow()
+
+    val isLinkedForPayment: StateFlow<Boolean>
+        get() = _isLinkedForPayment.asStateFlow()
 
     // region SessionListener
 
@@ -123,6 +127,13 @@ class ContactCoordinator @Inject constructor(
 
     init {
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+
+        // Hydrate linked-for-payment flag from DataStore
+        contactPrefs.data
+            .map { it[KEY_LINKED_FOR_PAYMENT] ?: false }
+            .distinctUntilChanged()
+            .onEach { _isLinkedForPayment.value = it }
+            .launchIn(scope)
 
         cluster.filterNotNull()
             .flatMapLatest { networkObserver.state }
@@ -201,15 +212,24 @@ class ContactCoordinator @Inject constructor(
      * | Phone number changed (unlink + re-verify) | Foreground path won't re-fire (flag is `true`), but the verification flow calls `linkForPayment` directly |
      */
     fun linkForPaymentIfNeeded() {
-        val phone = userManager.profile?.verifiedPhoneNumber ?: return
-        val enabled = featureFlagController.observe(FeatureFlag.PhoneNumberSend).value ||
-            userManager.state.value.flags?.enablePhoneNumberSend == true
-        if (!enabled) return
         scope.launch {
+            val featureFlag = featureFlagController.get(FeatureFlag.PhoneNumberSend)
+            val serverFlag = userManager.state.value.flags?.enablePhoneNumberSend == true
+            val enabled = featureFlag || serverFlag
+            if (!enabled) return@launch
+
             val alreadyLinked = contactPrefs.data
                 .map { it[KEY_LINKED_FOR_PAYMENT] ?: false }
                 .first()
             if (alreadyLinked) return@launch
+
+            // Profile may not be loaded yet on the first Ready transition;
+            // wait for the verified phone number to arrive.
+            val phone = userManager.state
+                .map { it.userProfile?.verifiedPhoneNumber }
+                .filterNotNull()
+                .first()
+
             contactVerificationController.linkForPayment(ContactMethod.Phone(phone))
                 .onSuccess {
                     contactPrefs.edit { it[KEY_LINKED_FOR_PAYMENT] = true }
