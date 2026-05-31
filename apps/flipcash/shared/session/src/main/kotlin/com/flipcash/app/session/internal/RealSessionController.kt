@@ -158,8 +158,11 @@ class RealSessionController @Inject constructor(
                         scope.launch { contactCoordinator.reset() }
                         _state.update { SessionState() }
                     }
-                    authState.isAtLeastRegistered -> {
+                    authState is AuthState.Ready -> {
                         onAppInForeground()
+                    }
+                    authState.isAtLeastRegistered -> {
+                        updateUserFlags()
                     }
                 }
             }.launchIn(scope)
