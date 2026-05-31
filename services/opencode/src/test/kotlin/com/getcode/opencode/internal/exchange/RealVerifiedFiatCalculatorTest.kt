@@ -396,6 +396,32 @@ class RealVerifiedFiatCalculatorTest {
 
     // endregion
 
+    // region sub-minimum amount
+
+    @Test
+    fun `returns AmountBelowMinimum when sell estimate has no displayable value`() = runTest {
+        // Simulates the Bugsnag scenario: a low-supply custom token where the
+        // bonding curve produces a native amount below the currency's smallest
+        // displayable unit (e.g. ₦0.003 rounds to ₦0.00 for NGN).
+        val supply = 1_000_000_000_000L
+        val token = bondingCurveToken(supply = supply)
+        stubVerifiedState(CurrencyCode.USD, testMint, supply)
+
+        // Use a sub-cent amount ($0.000001 = 1 quark) so the curve succeeds
+        // but the sell estimate is below the smallest displayable USD unit ($0.01).
+        val result = calculator.compute(
+            amount = Fiat(quarks = 1, currencyCode = CurrencyCode.USD),
+            token = token,
+            rate = Rate.oneToOne,
+            trace = false,
+        )
+
+        assertTrue(result.isFailure)
+        assertIs<ComputeVerifiedFiatError.AmountBelowMinimum>(result.exceptionOrNull())
+    }
+
+    // endregion
+
     // region helpers
 
     private fun usdfToken(): Token = MintMetadata(

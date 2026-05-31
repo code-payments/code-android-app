@@ -382,4 +382,5 @@ sealed class ComputeVerifiedFiatError(
     class StaleRate : ComputeVerifiedFiatError("Reserve state unavailable or stale")
     data class ComputationFailed(override val cause: Throwable? = null) :
         ComputeVerifiedFiatError(message = cause?.message, cause = cause)
+    class AmountBelowMinimum : ComputeVerifiedFiatError("Amount is too small to transfer")
 }
