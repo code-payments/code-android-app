@@ -21,11 +21,11 @@ import kotlin.test.assertTrue
 @Config(manifest = Config.NONE)
 class AppRouterTest {
 
-    private var authState: AuthState = AuthState.LoggedInWithUser
+    private var authState: AuthState = AuthState.Ready
 
     private val router = AppRouter(authStateProvider = { authState })
 
-    private fun loggedIn() { authState = AuthState.LoggedInWithUser }
+    private fun loggedIn() { authState = AuthState.Ready }
     private fun loggedOut() { authState = AuthState.LoggedOut }
 
     // region classify — Login

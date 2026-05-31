@@ -30,16 +30,15 @@ class BuildNavGraphForLaunchTest {
         deepLink: DeepLink? = null,
     ): LaunchNavGraph? = buildNavGraphForLaunch(
         state = state,
-        userFlags = null,
         router = FakeRouter(action),
         deepLink = { deepLink },
     )
 
-    // -- LoggedInWithUser --
+    // -- Ready --
 
     @Test
     fun `logged in without deeplink navigates to Scanner`() {
-        val result = build(AuthState.LoggedInWithUser)!!
+        val result = build(AuthState.Ready)!!
         assertEquals(listOf(AppRoute.Main.Scanner), result.baseRoutes)
         assertTrue(result.deeplinkRoutes.isEmpty())
     }
@@ -48,7 +47,7 @@ class BuildNavGraphForLaunchTest {
     fun `logged in with Navigate deeplink includes deeplink routes`() {
         val routes = listOf(AppRoute.Main.Scanner)
         val result = build(
-            state = AuthState.LoggedInWithUser,
+            state = AuthState.Ready,
             action = DeeplinkAction.Navigate(routes),
             deepLink = dummyLink,
         )!!
@@ -59,7 +58,7 @@ class BuildNavGraphForLaunchTest {
     @Test
     fun `logged in with OpenCashLink defers to App for dispatch`() {
         val result = build(
-            state = AuthState.LoggedInWithUser,
+            state = AuthState.Ready,
             action = DeeplinkAction.OpenCashLink("testEntropy"),
             deepLink = dummyLink,
         )!!
@@ -70,7 +69,7 @@ class BuildNavGraphForLaunchTest {
     @Test
     fun `logged in with Login action defers to App for dispatch`() {
         val result = build(
-            state = AuthState.LoggedInWithUser,
+            state = AuthState.Ready,
             action = DeeplinkAction.Login("seed"),
             deepLink = dummyLink,
         )!!
@@ -81,7 +80,7 @@ class BuildNavGraphForLaunchTest {
     @Test
     fun `logged in with None action navigates to Scanner without deeplink routes`() {
         val result = build(
-            state = AuthState.LoggedInWithUser,
+            state = AuthState.Ready,
             action = DeeplinkAction.None,
             deepLink = dummyLink,
         )!!
@@ -124,26 +123,33 @@ class BuildNavGraphForLaunchTest {
         assertIs<AppRoute.OnboardingFlow>(result.baseRoutes.single())
     }
 
-    // -- Registered --
+    // -- Onboarding --
 
     @Test
-    fun `registered without seenAccessKey resumes at AccessKey`() {
-        val result = build(AuthState.Registered(seenAccessKey = false))!!
+    fun `onboarding at AccessKey resume point routes to AccessKey`() {
+        val result = build(AuthState.Onboarding(AuthState.ResumePoint.AccessKey))!!
         val route = assertIs<AppRoute.OnboardingFlow>(result.baseRoutes.single())
         assertEquals(AppRoute.OnboardingFlow.ResumePoint.AccessKey, route.resumeAt)
     }
 
     @Test
-    fun `registered with seenAccessKey resumes at PostAccessKey`() {
-        val result = build(AuthState.Registered(seenAccessKey = true))!!
+    fun `onboarding at PostAccessKey resume point routes to PostAccessKey`() {
+        val result = build(AuthState.Onboarding(AuthState.ResumePoint.PostAccessKey))!!
         val route = assertIs<AppRoute.OnboardingFlow>(result.baseRoutes.single())
         assertEquals(AppRoute.OnboardingFlow.ResumePoint.PostAccessKey, route.resumeAt)
     }
 
-    // -- LoggedInAwaitingUser --
+    @Test
+    fun `onboarding at AccessKeyThenPurchase resume point routes to AccessKeyThenPurchase`() {
+        val result = build(AuthState.Onboarding(AuthState.ResumePoint.AccessKeyThenPurchase))!!
+        val route = assertIs<AppRoute.OnboardingFlow>(result.baseRoutes.single())
+        assertEquals(AppRoute.OnboardingFlow.ResumePoint.AccessKeyThenPurchase, route.resumeAt)
+    }
+
+    // -- Authenticating --
 
     @Test
-    fun `awaiting user returns null`() {
-        assertNull(build(AuthState.LoggedInAwaitingUser))
+    fun `authenticating returns null`() {
+        assertNull(build(AuthState.Authenticating))
     }
 }
