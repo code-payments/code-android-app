@@ -173,6 +173,7 @@ class RealSessionController @Inject constructor(
             .mapNotNull { it.authState }
             .filter { it.isAtLeastRegistered }
             .distinctUntilChanged()
+            .filter { userManager.state.value.flags?.requiresIapForRegistration == true }
             .onEach { billingClient.connect() }
             .launchIn(scope)
 
@@ -242,7 +243,7 @@ class RealSessionController @Inject constructor(
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
         shareSheetController.checkForShare()
-        if (userManager.authState.isAtLeastRegistered) {
+        if (userManager.authState.isAtLeastRegistered && userManager.state.value.flags?.requiresIapForRegistration == true) {
             billingClient.connect()
         }
     }
