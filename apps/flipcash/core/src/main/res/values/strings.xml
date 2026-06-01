@@ -153,7 +153,7 @@
     <string name="title_shareDownloadLink">Get the Flipcash App</string>
     <string name="title_shareCashLink">Send %1$s</string>
     <string name="title_inviteContact">Invite to Flipcash</string>
-    <string name="message_invite_contact">Download Flipcash so I can send you money\n\n%1$s</string>
+    <string name="message_invite_contact">You should download Flipcash, a new way to send cash\n\n%1$s</string>
 
     <string name="title_enterAddress">Enter Solana address</string>
     <string name="subtitle_whereWithdrawTo">Where would you like to withdraw your %1$s to?</string>
