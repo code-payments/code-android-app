@@ -15,6 +15,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
@@ -134,6 +135,78 @@ class PhoneUtilsTest {
     fun `getCountryCode returns default for unknown prefix`() {
         val result = phoneUtils.getCountryCode("99999999999")
         assertTrue(result.isNotEmpty())
+    }
+
+    // endregion
+
+    // region toE164
+
+    @Test
+    fun `toE164 normalizes international number with plus`() {
+        val mockNumber = mockk<io.michaelrocks.libphonenumber.android.Phonenumber.PhoneNumber>(relaxed = true)
+        every { mockPhoneNumberUtil.parse("+12025551234", "US") } returns mockNumber
+        every { mockPhoneNumberUtil.isValidNumber(mockNumber) } returns true
+        every { mockPhoneNumberUtil.getNumberType(mockNumber) } returns PhoneNumberUtil.PhoneNumberType.FIXED_LINE_OR_MOBILE
+        every { mockPhoneNumberUtil.format(mockNumber, PhoneNumberUtil.PhoneNumberFormat.E164) } returns "+12025551234"
+
+        assertEquals("+12025551234", phoneUtils.toE164("+12025551234"))
+    }
+
+    @Test
+    fun `toE164 normalizes national number without country code`() {
+        val mockNumber = mockk<io.michaelrocks.libphonenumber.android.Phonenumber.PhoneNumber>(relaxed = true)
+        every { mockPhoneNumberUtil.parse("2025551234", "US") } returns mockNumber
+        every { mockPhoneNumberUtil.isValidNumber(mockNumber) } returns true
+        every { mockPhoneNumberUtil.getNumberType(mockNumber) } returns PhoneNumberUtil.PhoneNumberType.FIXED_LINE_OR_MOBILE
+        every { mockPhoneNumberUtil.format(mockNumber, PhoneNumberUtil.PhoneNumberFormat.E164) } returns "+12025551234"
+
+        assertEquals("+12025551234", phoneUtils.toE164("2025551234"))
+    }
+
+    @Test
+    fun `toE164 strips formatting characters`() {
+        val mockNumber = mockk<io.michaelrocks.libphonenumber.android.Phonenumber.PhoneNumber>(relaxed = true)
+        every { mockPhoneNumberUtil.parse("+12025551234", "US") } returns mockNumber
+        every { mockPhoneNumberUtil.isValidNumber(mockNumber) } returns true
+        every { mockPhoneNumberUtil.getNumberType(mockNumber) } returns PhoneNumberUtil.PhoneNumberType.FIXED_LINE_OR_MOBILE
+        every { mockPhoneNumberUtil.format(mockNumber, PhoneNumberUtil.PhoneNumberFormat.E164) } returns "+12025551234"
+
+        assertEquals("+12025551234", phoneUtils.toE164("+1 (202) 555-1234"))
+    }
+
+    @Test
+    fun `toE164 returns null for blank input`() {
+        assertNull(phoneUtils.toE164(""))
+        assertNull(phoneUtils.toE164("   "))
+    }
+
+    @Test
+    fun `toE164 returns null for invalid number`() {
+        val mockNumber = mockk<io.michaelrocks.libphonenumber.android.Phonenumber.PhoneNumber>(relaxed = true)
+        every { mockPhoneNumberUtil.parse("123", "US") } returns mockNumber
+        every { mockPhoneNumberUtil.isValidNumber(mockNumber) } returns false
+
+        assertNull(phoneUtils.toE164("123"))
+    }
+
+    @Test
+    fun `toE164 returns null for unparseable number`() {
+        every { mockPhoneNumberUtil.parse("abc", "US") } throws io.michaelrocks.libphonenumber.android.NumberParseException(
+            io.michaelrocks.libphonenumber.android.NumberParseException.ErrorType.NOT_A_NUMBER,
+            "not a number"
+        )
+
+        assertNull(phoneUtils.toE164("abc"))
+    }
+
+    @Test
+    fun `toE164 returns null for UNKNOWN number type`() {
+        val mockNumber = mockk<io.michaelrocks.libphonenumber.android.Phonenumber.PhoneNumber>(relaxed = true)
+        every { mockPhoneNumberUtil.parse("5551234567", "US") } returns mockNumber
+        every { mockPhoneNumberUtil.isValidNumber(mockNumber) } returns true
+        every { mockPhoneNumberUtil.getNumberType(mockNumber) } returns PhoneNumberUtil.PhoneNumberType.UNKNOWN
+
+        assertNull(phoneUtils.toE164("5551234567"))
     }
 
     // endregion

@@ -129,6 +129,21 @@ class PhoneUtils @Inject constructor(
         }
     }
 
+    fun toE164(rawNumber: String): String? {
+        val cleaned = rawNumber.filter { it.isDigit() || it == '+' }
+        if (cleaned.isBlank()) return null
+
+        return try {
+            val parsed = phoneNumberUtil.parse(cleaned, defaultCountryLocale.countryCode)
+            if (!phoneNumberUtil.isValidNumber(parsed)) return null
+            val type = phoneNumberUtil.getNumberType(parsed)
+            if (type == PhoneNumberUtil.PhoneNumberType.UNKNOWN) return null
+            phoneNumberUtil.format(parsed, PhoneNumberUtil.PhoneNumberFormat.E164)
+        } catch (_: NumberParseException) {
+            null
+        }
+    }
+
     fun toFlagEmoji(country: String): String {
         // 1. It first checks if the string consists of only 2 characters: ISO 3166-1 alpha-2 two-letter country codes (https://en.wikipedia.org/wiki/Regional_Indicator_Symbol).
         if (country.length != 2) {
