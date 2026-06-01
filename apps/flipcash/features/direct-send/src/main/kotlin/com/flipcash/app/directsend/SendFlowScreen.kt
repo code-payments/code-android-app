@@ -1,6 +1,7 @@
 package com.flipcash.app.directsend
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -17,6 +18,7 @@ import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.flow.FlowExitReason
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.results.NavResultStateRegistry
+import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
 
 @Composable
@@ -42,12 +44,23 @@ fun SendFlowScreen(resultStateRegistry: NavResultStateRegistry) {
 
 private fun sendEntryProvider(): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<SendStep.PhoneGate> {
+        SyncStep(it)
         PhoneGateLandingScreen()
     }
     annotatedEntry<SendStep.ContactsGate> {
+        SyncStep(it)
         ContactsPermissionGateScreen()
     }
     annotatedEntry<SendStep.ContactList> {
+        SyncStep(it)
         ContactListScreen()
+    }
+}
+
+@Composable
+private fun SyncStep(step: SendStep) {
+    val viewModel = flowSharedViewModel<SendFlowViewModel>()
+    LaunchedEffect(step) {
+        viewModel.dispatchEvent(SendFlowViewModel.Event.OnStepChanged(step))
     }
 }
