@@ -429,7 +429,7 @@ class ContactCoordinator @Inject constructor(
             )
 
             // 6. GetFlipcashContacts
-            fetchFlipcashContacts(newChecksum)
+            fetchFlipcashContacts(newE164s, newChecksum)
 
             _state.update { it.copy(syncState = SyncState.Synced, hasEverSynced = true) }
             trace(tag = TAG, message = "Contact sync complete", type = TraceType.Process)
@@ -465,7 +465,11 @@ class ContactCoordinator @Inject constructor(
         )
     }
 
-    private suspend fun fetchFlipcashContacts(checksum: Checksum) {
+    private suspend fun fetchFlipcashContacts(
+        e164s: Set<String>,
+        checksum: Checksum,
+        retried: Boolean = false,
+    ) {
         try {
             val result = contactListController.getFlipcashContacts(checksum)
                 .firstOrNull()
@@ -483,12 +487,24 @@ class ContactCoordinator @Inject constructor(
                 _state.update { it.copy(flipcashE164s = flipcashE164s) }
                 trace(tag = TAG, message = "Found ${flipcashE164s.size} contacts on Flipcash", type = TraceType.Process)
             }?.onFailure { error ->
-                if (error is GetContactsError.NotFound) {
-                    contactDataSource.clearFlipcashStatus()
-                    _state.update { it.copy(flipcashE164s = emptySet()) }
-                    trace(tag = TAG, message = "No contacts on Flipcash yet", type = TraceType.Process)
-                } else {
-                    trace(tag = TAG, message = "GetFlipcashContacts failed: ${error.message}", type = TraceType.Error)
+                when (error) {
+                    is GetContactsError.NotFound -> {
+                        contactDataSource.clearFlipcashStatus()
+                        _state.update { it.copy(flipcashE164s = emptySet()) }
+                        trace(tag = TAG, message = "No contacts on Flipcash yet", type = TraceType.Process)
+                    }
+                    is GetContactsError.ChecksumDrift -> {
+                        if (!retried) {
+                            trace(tag = TAG, message = "GetFlipcashContacts checksum drift, performing full upload and retrying", type = TraceType.Process)
+                            performFullUpload(e164s, checksum)
+                            fetchFlipcashContacts(e164s, checksum, retried = true)
+                        } else {
+                            trace(tag = TAG, message = "GetFlipcashContacts checksum drift persisted after retry", type = TraceType.Error)
+                        }
+                    }
+                    else -> {
+                        trace(tag = TAG, message = "GetFlipcashContacts failed: ${error.message}", type = TraceType.Error)
+                    }
                 }
             }
         } catch (e: Exception) {
