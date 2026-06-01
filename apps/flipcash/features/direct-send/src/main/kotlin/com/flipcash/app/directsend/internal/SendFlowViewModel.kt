@@ -46,6 +46,7 @@ internal class SendFlowViewModel @Inject constructor(
 
     data class State @OptIn(ExperimentalMaterial3Api::class) constructor(
         val steps: List<SendStep> = listOf(SendStep.ContactList),
+        val currentStep: SendStep? = null,
         val searchState: TextFieldState = TextFieldState(),
         val isPickerMode: Boolean = false,
         val contactSyncState: LoadingSuccessState = LoadingSuccessState(),
@@ -54,6 +55,7 @@ internal class SendFlowViewModel @Inject constructor(
 
     sealed interface Event {
         data class StepsUpdated(val steps: List<SendStep>, val isPickerMode: Boolean) : Event
+        data class OnStepChanged(val step: SendStep) : Event
 
         data object ContactsGranted : Event
         data class ContactsPicked(val contacts: List<PickedContact>) : Event
@@ -164,6 +166,7 @@ internal class SendFlowViewModel @Inject constructor(
 
         contactCoordinator.state
             .filter { it.hasDiscoveredFlipcashContacts && it.flipcashE164s.isNotEmpty() }
+            .filter { stateFlow.value.currentStep is SendStep.ContactList }
             .take(1)
             .onEach { contactState ->
                 val count = contactState.flipcashE164s.size
@@ -220,6 +223,10 @@ internal class SendFlowViewModel @Inject constructor(
             when (event) {
                 is Event.StepsUpdated -> { state ->
                     state.copy(steps = event.steps, isPickerMode = event.isPickerMode)
+                }
+
+                is Event.OnStepChanged -> { state ->
+                    state.copy(currentStep = event.step)
                 }
 
                 is Event.ContactsGranted -> { state -> state }
