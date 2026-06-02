@@ -20,7 +20,7 @@ class LabsScreenViewModel @Inject constructor(
 
     val isLoggedIn = userManager
         .state.map { it.authState }
-        .filterIsInstance<AuthState.LoggedInWithUser>()
+        .filterIsInstance<AuthState.Ready>()
         .map { true }
         .stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = false)
 

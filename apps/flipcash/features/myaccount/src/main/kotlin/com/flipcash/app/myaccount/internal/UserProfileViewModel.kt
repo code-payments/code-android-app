@@ -1,8 +1,7 @@
 package com.flipcash.app.myaccount.internal
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.core.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ContactVerificationController
@@ -27,8 +26,8 @@ import javax.inject.Inject
 internal class UserProfileViewModel @Inject constructor(
     private val userManager: UserManager,
     private val contactController: ContactVerificationController,
+    private val contactCoordinator: ContactCoordinator,
     private val profileController: ProfileController,
-    featureFlagController: FeatureFlagController,
     private val resources: ResourceHelper,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<UserProfileViewModel.State, UserProfileViewModel.Event>(
@@ -67,11 +66,9 @@ internal class UserProfileViewModel @Inject constructor(
     init {
         combine(
             userManager.state,
-            featureFlagController.observe(FeatureFlag.PhoneNumberSend),
-        ) { state, sendEnabled ->
+            contactCoordinator.isLinkedForPayment,
+        ) { state, linkedForPayment ->
             val profile = state.userProfile
-            val linkedForPayment = sendEnabled ||
-                state.flags?.enablePhoneNumberSend == true
 
             dispatchEvent(
                 Event.OnProfileUpdated(

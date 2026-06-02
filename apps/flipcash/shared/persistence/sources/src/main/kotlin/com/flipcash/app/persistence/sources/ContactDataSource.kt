@@ -60,6 +60,17 @@ class ContactDataSource @Inject constructor(
         )
     }
 
+    suspend fun hasDiscoveredFlipcashContacts(): Boolean =
+        getSyncState()?.hasDiscoveredFlipcashContacts ?: false
+
+    suspend fun markFlipcashContactsDiscovered() {
+        db?.contactDao()?.markFlipcashContactsDiscovered()
+    }
+
+    suspend fun clearFlipcashContactsDiscovered() {
+        db?.contactDao()?.clearFlipcashContactsDiscovered()
+    }
+
     // endregion
 
     // region Contact-specific operations
@@ -78,6 +89,9 @@ class ContactDataSource @Inject constructor(
 
     suspend fun getDisplayName(e164: String): String? =
         db?.contactDao()?.getDisplayName(e164)
+
+    suspend fun getPhotoUri(e164: String): String? =
+        db?.contactDao()?.getPhotoUri(e164)
 
     // endregion
 }

@@ -56,6 +56,8 @@ class PassphraseCredentialManager @Inject constructor(
         private fun userIdKey(entropy: String) = stringPreferencesKey("${entropy}_userId")
         private fun isUnregisteredKey(accountId: String) =
             booleanPreferencesKey("${accountId}_unregistered")
+        private fun completedOnboardingKey(accountId: String) =
+            booleanPreferencesKey("${accountId}_completedOnboarding")
     }
 
     private val credentialManager = CredentialManager.create(context)
@@ -99,9 +101,10 @@ class PassphraseCredentialManager @Inject constructor(
 
         storage.edit { preferences ->
             preferences[temporaryUserIdKey] = userId.base58
+            preferences[completedOnboardingKey(userId.base58)] = false
         }
 
-        updateUserManager(userId, AuthState.Registered(false))
+        updateUserManager(userId, AuthState.Onboarding(AuthState.ResumePoint.AccessKey))
 
         return Result.success(seedB64)
     }
@@ -127,6 +130,21 @@ class PassphraseCredentialManager @Inject constructor(
         val selectedId = storage.data.map { it[selectedAccountIdKey] }.firstOrNull()
             ?: return true
         return storage.data.map { it[seenAccessKeyKey(selectedId)] }.firstOrNull() ?: true
+    }
+
+    suspend fun markOnboardingCompleted() {
+        val accountId = storage.data.map { it[selectedAccountIdKey] }.firstOrNull()
+            ?: storage.data.map { it[temporaryUserIdKey] }.firstOrNull()
+            ?: return
+        storage.edit { it[completedOnboardingKey(accountId)] = true }
+    }
+
+    suspend fun hasCompletedOnboarding(): Boolean {
+        val accountId = storage.data.map { it[selectedAccountIdKey] }.firstOrNull()
+            ?: storage.data.map { it[temporaryUserIdKey] }.firstOrNull()
+            ?: return true
+        // Default true for backward compat — existing users who upgraded never had this flag.
+        return storage.data.map { it[completedOnboardingKey(accountId)] }.firstOrNull() ?: true
     }
 
     suspend fun presentSaveOption(): Result<AccountMetadata> {
@@ -197,9 +215,14 @@ class PassphraseCredentialManager @Inject constructor(
             if (entropy != null) {
                 val seenAccessKey =
                     storage.data.map { it[seenAccessKeyKey(temporaryAccount)] }.firstOrNull() ?: false
+                val resumePoint = if (seenAccessKey) {
+                    AuthState.ResumePoint.PostAccessKey
+                } else {
+                    AuthState.ResumePoint.AccessKey
+                }
                 return LookupResult.TemporaryAccountCreated(
                     entropy = entropy,
-                    seenAccessKey = seenAccessKey
+                    resumePoint = resumePoint
                 )
             }
         }
@@ -212,7 +235,7 @@ class PassphraseCredentialManager @Inject constructor(
         fromSelection: Boolean = false,
     ): Result<AccountMetadata> {
         userManager.establish(entropy)
-        userManager.set(AuthState.LoggedInAwaitingUser)
+        userManager.set(AuthState.Authenticating)
 
         val selectedMetadata = getSelectedMetadata()
         if (selectedMetadata != null && selectedMetadata.entropy == entropy) {

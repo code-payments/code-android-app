@@ -17,6 +17,7 @@ import com.getcode.opencode.model.financial.usdf
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.utils.TraceManager
 import com.getcode.utils.base58
+import com.getcode.utils.trace
 import com.hoc081098.channeleventbus.ChannelEventBus
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,32 +27,55 @@ import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Authentication state machine.
+ *
+ * ```
+ * Unknown ──→ Authenticating ──→ Ready ──→ LoggedOut
+ *    │              ↓              ↑
+ *    └─────→ Onboarding ──────────┘
+ * ```
+ *
+ * - **Unknown** — initial state before credential lookup completes.
+ * - **Onboarding** — account created on the server, user is mid-onboarding
+ *   (access key, purchase, permissions). [ResumePoint] determines where to resume.
+ * - **Authenticating** — credentials verified, loading profile/flags from storage.
+ *   Transient: the app shows a loading indicator while in this state.
+ * - **Ready** — fully authenticated, profile loaded, app is ready for use.
+ * - **LoggedOut** — session cleared.
+ */
 sealed interface AuthState {
-    // still to determine
+    // initial state before credential lookup completes
     data object Unknown : AuthState
 
-    // account has been created but not yet paid for (if required)
-    // seenAccessKey used as a flag whether to land them back on
-    // access key screen or purchase
-    data class Registered(val seenAccessKey: Boolean = true) : AuthState
+    enum class ResumePoint {
+        /** User created account but has not seen their access key. */
+        AccessKey,
+        /** User has seen their access key but must complete IAP before registration. */
+        AccessKeyThenPurchase,
+        /** User has seen their access key (and completed purchase if required). */
+        PostAccessKey,
+    }
+
+    // account created, user is mid-onboarding (access key / purchase / permissions)
+    data class Onboarding(val resumePoint: ResumePoint = ResumePoint.PostAccessKey) : AuthState
 
     sealed interface LoggedIn
 
-    // account has been created and paid for (if required)
-    // and we are waiting for metadata to be pulled from storage
-    data object LoggedInAwaitingUser : AuthState, LoggedIn
+    // credentials verified, loading profile from storage
+    data object Authenticating : AuthState, LoggedIn
 
-    // account is paid for (if required) and is ready for use in app
-    data object LoggedInWithUser : AuthState, LoggedIn
+    // fully authenticated and ready for use
+    data object Ready : AuthState, LoggedIn
 
-    // logged out
+    // session cleared
     data object LoggedOut : AuthState
 
     val canAccessAuthenticatedApis: Boolean
-        get() = this is LoggedInWithUser
+        get() = this is Ready
 
     val isAtLeastRegistered: Boolean
-        get() = this is LoggedInWithUser || this is Registered
+        get() = this is Ready || (this is Onboarding && this.resumePoint != ResumePoint.AccessKey)
 }
 
 @Singleton
@@ -127,13 +151,13 @@ class UserManager @Inject constructor(
     fun set(authState: AuthState) {
         val previous = _state.value.authState
         _state.update { it.copy(authState = authState) }
-
+        trace("authState change $previous => $authState")
         when (authState) {
             is AuthState.LoggedIn -> {
                 accountCluster?.let { owner ->
                     eventBus.send(Events.UpdateLimits(owner = owner, force = true))
-                    // Fire OnLoggedIn only on transition INTO LoggedInWithUser
-                    if (authState is AuthState.LoggedInWithUser && previous !is AuthState.LoggedInWithUser) {
+                    // Fire OnLoggedIn only on transition INTO Ready
+                    if (authState is AuthState.Ready && previous !is AuthState.Ready) {
                         eventBus.send(Events.OnLoggedIn(owner))
                     }
                 }

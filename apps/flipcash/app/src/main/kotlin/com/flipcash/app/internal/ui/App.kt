@@ -234,11 +234,14 @@ internal fun App(
                                     }
 
                                 val emailCodeChannel = LocalEmailCodeChannel.current
-                                LaunchedEffect(deepLink) {
+                                val currentRoute = codeNavigator.currentRouteKey
+                                LaunchedEffect(deepLink, currentRoute) {
                                     val link = deepLink ?: return@LaunchedEffect
 
-                                    if (codeNavigator.currentRouteKey is AppRoute.Loading) {
-                                        // Cold start — MainRoot handles it via the deepLink lambda
+                                    if (currentRoute is AppRoute.Loading) {
+                                        // Cold start — MainRoot handles Navigate actions;
+                                        // other actions (OpenCashLink, Login) wait until
+                                        // navigation leaves Loading.
                                         return@LaunchedEffect
                                     }
 

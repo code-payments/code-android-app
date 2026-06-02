@@ -23,6 +23,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -56,6 +57,7 @@ class AuthManagerTest {
     private val appSettings: AppSettingsCoordinator = mockk(relaxed = true)
     private val userFlags: UserFlagsCoordinator = mockk(relaxed = true)
     private val contactCoordinator: ContactCoordinator = mockk(relaxed = true)
+    private val userManagerState = MutableStateFlow(UserManager.State())
 
     private lateinit var authManager: AuthManager
 
@@ -63,6 +65,7 @@ class AuthManagerTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
 
+        every { userManager.state } returns userManagerState
         coEvery { pushTokenProvider.getToken() } returns "fake-token"
 
         // Default stubs for methods called during login/createAccount success paths
@@ -71,6 +74,7 @@ class AuthManagerTest {
         coEvery { pushController.addToken(any()) } returns Result.success(Unit)
         coEvery { pushController.deleteTokens() } returns Result.success(Unit)
         coEvery { credentialManager.hasSeenAccessKey() } returns true
+        coEvery { credentialManager.hasCompletedOnboarding() } returns true
 
         authManager = AuthManager(
             credentialManager = credentialManager,
@@ -243,11 +247,31 @@ class AuthManagerTest {
 
         assertTrue(result.isSuccess)
         verify { userManager.set(flags) }
-        verify { userManager.set(authState = AuthState.LoggedInWithUser) }
+        verify { userManager.set(authState = AuthState.Ready) }
     }
 
     @Test
-    fun `login falls back to Registered after all retries exhausted`() = runTest {
+    fun `login resumes at PostAccessKey when registered but onboarding not completed`() = runTest {
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        val accountMetadata: AccountMetadata = mockk(relaxed = true)
+        val testId = listOf<Byte>(1, 2, 3)
+        every { accountMetadata.id } returns testId
+
+        coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
+        coEvery { credentialManager.hasCompletedOnboarding() } returns false
+
+        val flags = UserFlags.Default.copy(isRegistered = true)
+        coEvery { accountController.getUserFlags() } returns Result.success(flags)
+
+        val result = authManager.login(entropyB64 = entropy)
+
+        assertTrue(result.isSuccess)
+        verify { userManager.set(flags) }
+        verify { userManager.set(AuthState.Onboarding(AuthState.ResumePoint.PostAccessKey)) }
+    }
+
+    @Test
+    fun `login falls back to Ready when flags exhausted but onboarding completed`() = runTest {
         val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
         val accountMetadata: AccountMetadata = mockk(relaxed = true)
         val testId = listOf<Byte>(1, 2, 3)
@@ -255,10 +279,86 @@ class AuthManagerTest {
 
         coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
         coEvery { accountController.getUserFlags() } returns Result.failure(RuntimeException("persistent failure"))
+        coEvery { credentialManager.hasCompletedOnboarding() } returns true
 
         val result = authManager.login(entropyB64 = entropy)
 
         assertTrue(result.isSuccess)
-        verify { userManager.set(authState = AuthState.Registered()) }
+        verify { userManager.set(authState = AuthState.Ready) }
+    }
+
+    @Test
+    fun `login falls back to Onboarding when flags exhausted and onboarding not completed`() = runTest {
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        val accountMetadata: AccountMetadata = mockk(relaxed = true)
+        val testId = listOf<Byte>(1, 2, 3)
+        every { accountMetadata.id } returns testId
+
+        coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
+        coEvery { accountController.getUserFlags() } returns Result.failure(RuntimeException("persistent failure"))
+        coEvery { credentialManager.hasCompletedOnboarding() } returns false
+
+        val result = authManager.login(entropyB64 = entropy)
+
+        assertTrue(result.isSuccess)
+        verify { userManager.set(authState = AuthState.Onboarding(AuthState.ResumePoint.PostAccessKey)) }
+    }
+
+    @Test
+    fun `onUserAccessKeySeen sets Onboarding resumePoint to PostAccessKey when no IAP required`() = runTest {
+        every { userManager.authState } returns AuthState.Unknown
+        every { userManager.userFlags } returns null
+        coEvery { credentialManager.onUserAccessKeySeen() } returns Result.success(Unit)
+
+        val result = authManager.onUserAccessKeySeen()
+
+        assertTrue(result.isSuccess)
+        verify { userManager.set(AuthState.Onboarding(AuthState.ResumePoint.PostAccessKey)) }
+    }
+
+    @Test
+    fun `onUserAccessKeySeen sets Onboarding resumePoint to AccessKeyThenPurchase when IAP required`() = runTest {
+        every { userManager.authState } returns AuthState.Unknown
+        every { userManager.userFlags } returns UserFlags.Default.copy(requiresIapForRegistration = true)
+        coEvery { credentialManager.onUserAccessKeySeen() } returns Result.success(Unit)
+
+        val result = authManager.onUserAccessKeySeen()
+
+        assertTrue(result.isSuccess)
+        verify { userManager.set(AuthState.Onboarding(AuthState.ResumePoint.AccessKeyThenPurchase)) }
+    }
+
+    @Test
+    fun `onUserAccessKeySeen does not change state if already LoggedIn`() = runTest {
+        every { userManager.authState } returns AuthState.Ready
+        coEvery { credentialManager.onUserAccessKeySeen() } returns Result.success(Unit)
+
+        val result = authManager.onUserAccessKeySeen()
+
+        assertTrue(result.isSuccess)
+        verify(exactly = 0) { userManager.set(match<AuthState> { it is AuthState.Onboarding }) }
+    }
+
+    @Test
+    fun `presentCredentialStorage does not set Ready — onboarding still in progress`() = runTest {
+        val flags = UserFlags.Default.copy(isRegistered = true)
+        coEvery { credentialManager.presentSaveOption() } returns Result.success(mockk(relaxed = true))
+        coEvery { accountController.getUserFlags() } returns Result.success(flags)
+
+        val result = authManager.presentCredentialStorage()
+
+        assertTrue(result.isSuccess)
+        verify { userManager.set(flags) }
+        verify(exactly = 0) { userManager.set(AuthState.Ready) }
+    }
+
+    @Test
+    fun `onAccountPurchased does not set Ready — onboarding still in progress`() = runTest {
+        coEvery { credentialManager.onAccountPurchased() } returns Result.success(mockk(relaxed = true))
+
+        val result = authManager.onAccountPurchased()
+
+        assertTrue(result.isSuccess)
+        verify(exactly = 0) { userManager.set(AuthState.Ready) }
     }
 }

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -84,7 +85,9 @@ import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.components.SearchInput
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.core.verticalScrollStateGradient
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.view.LoadingSuccessState
 import kotlin.math.abs
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.launch
@@ -103,6 +106,19 @@ internal fun ContactListScreen() {
             .filterIsInstance<SendFlowViewModel.Event.SendInvite>()
             .collect { event ->
                 navigator.show(AppRoute.Main.InviteContact(event.contact.e164))
+            }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.eventFlow
+            .filterIsInstance<SendFlowViewModel.Event.NavigateToAmountEntry>()
+            .collect { event ->
+                flowNavigator.navigateTo(
+                    SendStep.AmountEntry(
+                        e164 = event.e164,
+                        displayName = event.displayName,
+                    )
+                )
             }
     }
 

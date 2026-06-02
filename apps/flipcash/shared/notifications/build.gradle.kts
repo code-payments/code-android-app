@@ -23,4 +23,6 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(libs.robolectric)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

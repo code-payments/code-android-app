@@ -26,6 +26,10 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -47,6 +51,22 @@ class AuthManager @Inject constructor(
     private val contactCoordinator: ContactCoordinator,
 //    private val analytics: AnalyticsService,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
+
+    init {
+        // Persist onboarding completion when the composable transitions Onboarding → Ready.
+        var previous: AuthState = AuthState.Unknown
+        userManager.state
+            .map { it.authState }
+            .distinctUntilChanged()
+            .onEach { current ->
+                if (previous is AuthState.Onboarding && current is AuthState.Ready) {
+                    launch { credentialManager.markOnboardingCompleted() }
+                }
+                previous = current
+            }
+            .launchIn(this)
+    }
+
     private var softLoginDisabled: Boolean = false
 
     /**
@@ -80,7 +100,7 @@ class AuthManager @Inject constructor(
                 LookupResult.NoAccountFound -> Unit
                 is LookupResult.TemporaryAccountCreated -> {
                     userManager.establish(entropy = result.entropy)
-                    userManager.set(AuthState.Registered(result.seenAccessKey))
+                    userManager.set(AuthState.Onboarding(result.resumePoint))
                 }
             }
         }
@@ -114,7 +134,12 @@ class AuthManager @Inject constructor(
         return credentialManager.onUserAccessKeySeen()
             .onSuccess {
                 if (userManager.authState !is AuthState.LoggedIn) {
-                    userManager.set(AuthState.Registered(true))
+                    val resumePoint = if (userManager.userFlags?.requiresIapForRegistration == true) {
+                        AuthState.ResumePoint.AccessKeyThenPurchase
+                    } else {
+                        AuthState.ResumePoint.PostAccessKey
+                    }
+                    userManager.set(AuthState.Onboarding(resumePoint))
                 }
             }.map { Unit }
     }
@@ -124,9 +149,6 @@ class AuthManager @Inject constructor(
             .onSuccess {
                 accountController.getUserFlags().onSuccess { flags ->
                     userManager.set(flags)
-                    if (flags.isRegistered) {
-                        userManager.set(AuthState.LoggedInWithUser)
-                    }
                 }
             }.map { Unit }
     }
@@ -137,7 +159,6 @@ class AuthManager @Inject constructor(
                 onSuccess = {
                     val flagsResult = accountController.getUserFlags()
                         .onSuccess { userManager.set(it) }
-                    userManager.set(AuthState.LoggedInWithUser)
                     flagsResult
                 },
                 onFailure = { Result.failure(it) }
@@ -175,16 +196,28 @@ class AuthManager @Inject constructor(
                         }
 
                         val seenAccessKey = credentialManager.hasSeenAccessKey()
+                        val completedOnboarding = credentialManager.hasCompletedOnboarding()
                         if (flags != null) {
                             userManager.set(flags)
-                            if (flags.isRegistered && seenAccessKey) {
-                                userManager.set(AuthState.LoggedInWithUser)
+                            if (flags.isRegistered && seenAccessKey && completedOnboarding) {
+                                userManager.set(AuthState.Ready)
                             } else {
-                                userManager.set(AuthState.Registered(seenAccessKey))
+                                val resumePoint = when {
+                                    !seenAccessKey -> AuthState.ResumePoint.AccessKey
+                                    flags.requiresIapForRegistration -> AuthState.ResumePoint.AccessKeyThenPurchase
+                                    else -> AuthState.ResumePoint.PostAccessKey
+                                }
+                                userManager.set(AuthState.Onboarding(resumePoint))
                             }
                         } else {
                             taggedTrace("Failed to get user flags after retries", type = TraceType.Error)
-                            userManager.set(authState = AuthState.Registered(seenAccessKey))
+                            if (seenAccessKey && completedOnboarding) {
+                                userManager.set(authState = AuthState.Ready)
+                            } else {
+                                val resumePoint = if (seenAccessKey) AuthState.ResumePoint.PostAccessKey
+                                    else AuthState.ResumePoint.AccessKey
+                                userManager.set(authState = AuthState.Onboarding(resumePoint))
+                            }
                         }
 
                         profileController.updateUserProfile()

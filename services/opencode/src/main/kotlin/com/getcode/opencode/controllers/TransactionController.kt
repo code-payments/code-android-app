@@ -7,6 +7,7 @@ import com.getcode.opencode.internal.network.api.intents.IntentDistribution
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteReceive
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
 import com.getcode.opencode.internal.network.api.intents.IntentTransfer
+import com.getcode.opencode.internal.solana.extensions.newInstance
 import com.getcode.opencode.internal.network.api.intents.IntentWithdraw
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -20,6 +21,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapMetadata
@@ -38,7 +40,6 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.base64
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
-import com.hoc081098.channeleventbus.ChannelEventBus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -63,7 +64,6 @@ class TransactionController @Inject constructor(
     private val repository: TransactionRepository,
     private val swapRepository: SwapRepository,
     private val accountController: AccountController,
-    private val eventBus: ChannelEventBus,
 ) : TransactionOperations {
     val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -117,6 +117,35 @@ class TransactionController @Inject constructor(
             destination = destination,
             rendezvous = rendezvous,
             exchangeData = exchangeData,
+        )
+
+        return submitIntent(scope, intent, source.authority.keyPair)
+    }
+
+    /**
+     * Sends funds directly to another user's vault by resolving their
+     * [destinationOwner] into a timelock-derived vault address.
+     */
+    suspend fun directTransfer(
+        amount: VerifiedFiat,
+        token: Token,
+        source: AccountCluster,
+        destinationOwner: PublicKey,
+        scope: CoroutineScope = this.scope,
+    ): Result<IntentType> {
+        val verifiedState = amount.verifiedState
+            ?: return Result.failure(IllegalStateException("No verified state"))
+
+        val timelock = TimelockDerivedAccounts.newInstance(owner = destinationOwner, token = token)
+        val destinationVault = timelock.vault.publicKey
+
+        val intent = IntentTransfer.create(
+            amount = amount.localFiat,
+            mint = token.address,
+            sourceCluster = source,
+            destination = destinationVault,
+            destinationOwner = destinationOwner,
+            verifiedState = verifiedState,
         )
 
         return submitIntent(scope, intent, source.authority.keyPair)

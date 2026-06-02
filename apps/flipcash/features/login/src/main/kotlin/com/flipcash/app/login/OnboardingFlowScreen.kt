@@ -46,6 +46,7 @@ import com.flipcash.app.permissions.internal.notifications.NotificationScreenCon
 import com.flipcash.app.purchase.internal.PurchaseAccountScreenContent
 import com.flipcash.app.purchase.internal.PurchaseAccountViewModel
 import com.flipcash.features.login.R
+import com.flipcash.services.user.AuthState
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -178,6 +179,7 @@ private fun PermissionsPhaseFlowHost(
             when (reason) {
                 is FlowExitReason.Completed -> {
                     analytics.action(Action.CompletedOnboarding)
+                    userManager?.set(AuthState.Ready)
                     outerNavigator.navigate(
                         route = AppRoute.Main.Scanner,
                         options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll),
@@ -186,6 +188,7 @@ private fun PermissionsPhaseFlowHost(
 
                 FlowExitReason.BackedOutOfRoot -> {
                     // All permissions already granted
+                    userManager?.set(AuthState.Ready)
                     outerNavigator.navigate(
                         route = AppRoute.Main.Scanner,
                         options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll),

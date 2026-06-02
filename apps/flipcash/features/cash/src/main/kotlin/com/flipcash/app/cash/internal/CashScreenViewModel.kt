@@ -316,11 +316,19 @@ internal class CashScreenViewModel @Inject constructor(
                     token = token,
                     balance = balance.underlyingTokenAmount,
                     rate = rate,
-                ).getOrElse {
+                ).getOrElse { error ->
                     dispatchEvent(Event.UpdateLoadingState(loading = false))
+                    val (title, message) = when (error) {
+                        is ComputeVerifiedFiatError.AmountBelowMinimum -> {
+                            R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall
+                        }
+                        else -> {
+                            R.string.error_title_staleRates to R.string.error_description_staleRates
+                        }
+                    }
                     BottomBarManager.showAlert(
-                        title = resources.getString(R.string.error_title_staleRates),
-                        message = resources.getString(R.string.error_description_staleRates),
+                        title = resources.getString(title),
+                        message = resources.getString(message),
                     )
                     return@onEach
                 }

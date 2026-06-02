@@ -64,18 +64,5 @@ class FullAccessContactReader @Inject constructor(
         return Result.success(result)
     }
 
-    private fun normalizeToE164(rawNumber: String): String? {
-        val cleaned = rawNumber.filter { it.isDigit() || it == '+' }
-        if (cleaned.isBlank()) return null
-
-        val withPlus = if (cleaned.startsWith("+")) cleaned else "+$cleaned"
-        if (!phoneUtils.isPhoneNumberValid(withPlus)) return null
-
-        val countryCode = phoneUtils.getCountryCode(withPlus.removePrefix("+"))
-        val locale = phoneUtils.countryLocales.find { it.countryCode == countryCode }
-            ?: phoneUtils.defaultCountryLocale
-
-        val result = phoneUtils.cleanNumber(withPlus.removePrefix("+${locale.phoneCode}"), locale)
-        return result.ifBlank { null }
-    }
+    private fun normalizeToE164(rawNumber: String): String? = phoneUtils.toE164(rawNumber)
 }

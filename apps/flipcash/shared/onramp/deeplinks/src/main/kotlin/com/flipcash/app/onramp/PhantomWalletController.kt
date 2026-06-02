@@ -37,6 +37,7 @@ import dev.bmcreations.phantom.connect.ConnectResult
 import dev.bmcreations.phantom.connect.PhantomSdk
 import dev.bmcreations.phantom.connect.wallet.PhantomWalletConnector
 import dev.bmcreations.phantom.connect.wallet.PhantomWalletException
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
@@ -225,6 +226,8 @@ class PhantomWalletController @Inject constructor(
                     }
 
                 Result.success(transaction to swapId)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 trace("External swap failed", type = TraceType.Error, error = e)
                 Result.failure(

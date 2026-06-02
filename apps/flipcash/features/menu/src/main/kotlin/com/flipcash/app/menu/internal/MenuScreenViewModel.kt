@@ -88,7 +88,7 @@ internal class MenuScreenViewModel @Inject constructor(
         dispatchEvent(Event.OnStaffUserDetermined(false))
 
         userManager.state
-            .filter { it.authState is AuthState.LoggedInWithUser }
+            .filter { it.authState is AuthState.Ready }
             .flatMapLatest { userFlags.resolvedFlags }
             .mapNotNull { it.isStaff.effectiveValue }
             .onEach {

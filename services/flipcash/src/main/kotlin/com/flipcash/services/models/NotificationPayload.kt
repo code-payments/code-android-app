@@ -14,10 +14,12 @@ enum class NotificationCategory {
     CONTACT_JOIN,
 }
 
-data class Substitution(
-    val fallback: String,
-    val phoneNumber: String?,
-)
+sealed interface Substitution {
+    data class Phone(
+        val fallback: String,
+        val phoneNumber: String,
+    ): Substitution
+}
 
 data class NotificationPayload(
     val navigation: NavigationTrigger?,
