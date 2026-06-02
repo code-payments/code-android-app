@@ -1,45 +1,31 @@
-@file:OptIn(ExperimentalMaterialApi::class)
-
 package com.getcode.ui.components
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
+import androidx.compose.animation.splineBasedDecay
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.AnchoredDraggableState
+import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.FractionalThreshold
-import androidx.compose.material.SwipeProgress
-import androidx.compose.material.SwipeableDefaults
-import androidx.compose.material.SwipeableState
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowForward
-import androidx.compose.material.minimumInteractiveComponentSize
-import androidx.compose.material.rememberSwipeableState
-import androidx.compose.material.swipeable
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -47,13 +33,14 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shape
@@ -74,7 +61,6 @@ import com.getcode.theme.DesignSystem
 import com.getcode.theme.White20
 import com.getcode.theme.White50
 import com.getcode.ui.theme.CodeCircularProgressIndicator
-import com.getcode.ui.core.addIf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -116,7 +102,6 @@ private object Thumb {
 }
 
 private object Track {
-    val VelocityThreshold = SwipeableDefaults.VelocityThreshold * 10
     val Shape: Shape
         @Composable get() = CodeTheme.shapes.small
 
@@ -176,15 +161,33 @@ fun SlideToConfirm(
 ) {
     val currentIsLoading by rememberUpdatedState(isLoading)
     val hapticFeedback = LocalHapticFeedback.current
-    val swipeState = rememberSwipeableState(
-        initialValue = Anchor.Start,
-    )
+    val density = LocalDensity.current
+    val thumbSize = Thumb.Size
+    val horizontalPadding = CodeTheme.dimens.grid.x1
+    val overhead = with(density) { (2 * horizontalPadding + thumbSize).toPx() }
+
+    val swipeState = remember {
+        AnchoredDraggableState(
+            initialValue = Anchor.Start,
+            positionalThreshold = { totalDistance ->
+                SlideToConfirmDefaults.SnapThreshold * (totalDistance - overhead).coerceAtLeast(0f)
+            },
+            velocityThreshold = { with(density) { 1250.dp.toPx() } },
+            snapAnimationSpec = spring(),
+            decayAnimationSpec = splineBasedDecay(density),
+        )
+    }
 
     val composeScope = rememberCoroutineScope()
     val hintState = remember { SlideHintState(composeScope) }
 
     val swipeFraction by remember {
-        derivedStateOf { calculateSwipeFraction(swipeState.progress) }
+        derivedStateOf {
+            val offset = swipeState.offset
+            val end = swipeState.anchors.positionOf(Anchor.End)
+            if (offset.isNaN() || end.isNaN() || end <= 0f) 0f
+            else (offset / end).coerceIn(0f, 1f)
+        }
     }
 
     LaunchedEffect(swipeFraction, enabled) {
@@ -228,7 +231,7 @@ fun SlideToConfirm(
         shape = trackShape,
         color = trackColor,
     ) {
-        if (!isSuccess) {
+        if (!isSuccess && !isLoading) {
             hint(swipeFraction, PaddingValues(horizontal = Thumb.Size + CodeTheme.dimens.grid.x2), label)
         }
 
@@ -274,22 +277,12 @@ fun SlideToConfirm(
             modifier = Modifier
                 .alpha(thumbAlpha)
                 .offset {
-                    IntOffset(
-                        x = swipeState.offset.value.roundToInt() + bumpFactor.roundToPx(),
-                        y = 0
-                    )
+                    val rawOffset = swipeState.offset
+                    val x = if (rawOffset.isNaN()) 0
+                        else rawOffset.roundToInt() + bumpFactor.roundToPx()
+                    IntOffset(x = x, y = 0)
                 },
         )
-    }
-}
-
-private fun calculateSwipeFraction(progress: SwipeProgress<Anchor>): Float {
-    val atAnchor = progress.from == progress.to
-    val fromStart = progress.from == Anchor.Start
-    return if (atAnchor) {
-        if (fromStart) 0f else 1f
-    } else {
-        if (fromStart) progress.fraction else 1f - progress.fraction
     }
 }
 
@@ -297,30 +290,26 @@ enum class Anchor { Start, End }
 
 @Composable
 private fun Track(
-    swipeState: SwipeableState<Anchor>,
+    swipeState: AnchoredDraggableState<Anchor>,
     enabled: Boolean,
     modifier: Modifier = Modifier,
     shape: Shape = Track.Shape,
     color: Color = Track.Color,
     content: @Composable (BoxScope.() -> Unit),
 ) {
-    val density = LocalDensity.current
     var fullWidth by remember { mutableIntStateOf(0) }
 
     val horizontalPadding = CodeTheme.dimens.grid.x1
-
     val thumbSize = Thumb.Size
-    val startOfTrackPx = 0f
-    val endOfTrackPx = remember(fullWidth) {
-        with(density) { fullWidth - (2 * horizontalPadding + thumbSize).toPx() + thumbSize.value }
-    }
 
-    val snapThreshold = SlideToConfirmDefaults.SnapThreshold
-    val thresholds = { from: Anchor, _: Anchor ->
-        if (from == Anchor.Start) {
-            FractionalThreshold(snapThreshold)
-        } else {
-            FractionalThreshold(1f - snapThreshold)
+    LaunchedEffect(fullWidth) {
+        if (fullWidth > 0) {
+            swipeState.updateAnchors(
+                DraggableAnchors {
+                    Anchor.Start at 0f
+                    Anchor.End at fullWidth.toFloat()
+                }
+            )
         }
     }
 
@@ -329,21 +318,16 @@ private fun Track(
             .onSizeChanged { fullWidth = it.width }
             .height(thumbSize + CodeTheme.dimens.grid.x1)
             .fillMaxWidth()
-            .swipeable(
-                enabled = enabled,
+            .anchoredDraggable(
                 state = swipeState,
+                enabled = enabled,
                 orientation = Orientation.Horizontal,
-                anchors = mapOf(
-                    startOfTrackPx to Anchor.Start,
-                    endOfTrackPx to Anchor.End,
-                ),
-                thresholds = thresholds,
-                velocityThreshold = Track.VelocityThreshold,
             )
             .background(
                 color = color,
                 shape = shape,
             )
+            .clip(shape)
             .padding(
                 PaddingValues(
                     horizontal = horizontalPadding,
@@ -369,7 +353,7 @@ private fun Thumb(
         contentAlignment = Alignment.Center
     ) {
         Image(
-            Icons.Rounded.ArrowForward,
+            Icons.AutoMirrored.Rounded.ArrowForward,
             contentDescription = null,
         )
     }
@@ -384,63 +368,92 @@ private fun calculateHintTextColor(swipeFraction: Float): Color {
 
 @Preview
 @Composable
-private fun Preview() {
+private fun InteractivePreview() {
     var isLoading by remember { mutableStateOf(false) }
     var isSuccess by remember { mutableStateOf(false) }
     DesignSystem {
         Column(
-            verticalArrangement = Arrangement.Bottom,
             modifier = Modifier
-                .background(Color.White)
-                .fillMaxSize()
+                .background(Color.Black)
+                .padding(
+                    horizontal = CodeTheme.dimens.inset,
+                    vertical = CodeTheme.dimens.grid.x6
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
         ) {
-            Column(
-                modifier = Modifier
-                    .background(Color.Black)
-                    .padding(
-                        horizontal = CodeTheme.dimens.inset,
-                        vertical = CodeTheme.dimens.grid.x6
-                    ),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
-            ) {
-                SlideToConfirm(
-                    modifier = Modifier.addIf(isSuccess) {
-                        Modifier.clickable {
-                            isLoading = false
-                            isSuccess = false
-                        }
-                    },
-                    isLoading = isLoading,
-                    isSuccess = isSuccess,
-                    onConfirm = { isLoading = true },
-                )
-                AnimatedContent(
-                    targetState = !isLoading,
-                    transitionSpec = { fadeIn() togetherWith fadeOut() }
-                ) { show ->
-                    if (show) {
-                        TextButton(
-                            shape = CircleShape,
-                            onClick = { isLoading = false }) {
-                            Text(
-                                text = "Cancel",
-                                style = CodeTheme.typography.caption,
-                                color = White50
-                            )
-                        }
-                    } else {
-                        Spacer(modifier = Modifier.minimumInteractiveComponentSize())
-                    }
-                }
+            SlideToConfirm(
+                isLoading = isLoading,
+                isSuccess = isSuccess,
+                onConfirm = { isLoading = true },
+            )
 
-                LaunchedEffect(isLoading) {
-                    if (isLoading) {
-                        delay(1500)
-                        isSuccess = true
-                    }
+            LaunchedEffect(isLoading) {
+                if (isLoading) {
+                    delay(1500)
+                    isSuccess = true
                 }
             }
+
+            LaunchedEffect(isSuccess) {
+                if (isSuccess) {
+                    delay(1500)
+                    isLoading = false
+                    isSuccess = false
+                }
+            }
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun StatesPreview() {
+    DesignSystem {
+        Column(
+            modifier = Modifier
+                .background(Color.Black)
+                .padding(
+                    horizontal = CodeTheme.dimens.inset,
+                    vertical = CodeTheme.dimens.grid.x6
+                ),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
+        ) {
+            Text(
+                text = "Enabled",
+                color = White50,
+                style = CodeTheme.typography.caption,
+            )
+            SlideToConfirm(
+                onConfirm = {},
+            )
+            Text(
+                text = "Disabled",
+                color = White50,
+                style = CodeTheme.typography.caption,
+            )
+            SlideToConfirm(
+                onConfirm = {},
+                enabled = false,
+            )
+            Text(
+                text = "Loading",
+                color = White50,
+                style = CodeTheme.typography.caption,
+            )
+            SlideToConfirm(
+                onConfirm = {},
+                isLoading = true,
+            )
+            Text(
+                text = "Success",
+                color = White50,
+                style = CodeTheme.typography.caption,
+            )
+            SlideToConfirm(
+                onConfirm = {},
+                isSuccess = true,
+            )
         }
     }
 }

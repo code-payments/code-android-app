@@ -367,7 +367,7 @@ internal class SendFlowViewModel @Inject constructor(
                 is Event.OnContactClicked -> { state -> state }
                 is Event.SendInvite -> { state -> state }
                 is Event.SendCashToContact -> { state -> state }
-                is Event.NavigateToAmountEntry -> { state -> state }
+                is Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
                 is Event.ResolveCompleted -> { state -> state }
                 is Event.ResolveFailed -> { state -> state }
                 is Event.OnSendRequested -> { state -> state }
@@ -379,9 +379,7 @@ internal class SendFlowViewModel @Inject constructor(
                         )
                     )
                 }
-                is Event.SendComplete -> { state ->
-                    state.copy(sendProgress = LoadingSuccessState())
-                }
+                is Event.SendComplete -> { state -> state }
                 Event.ContactNotResolved -> { state -> state }
             }
         }
