@@ -196,7 +196,14 @@ class AuthManager @Inject constructor(
                         }
 
                         val seenAccessKey = credentialManager.hasSeenAccessKey()
-                        val completedOnboarding = credentialManager.hasCompletedOnboarding()
+                        // Interactive logins (seed input, deep link, credential picker)
+                        // always route through the onboarding permissions flow, which
+                        // sets Ready on completion. Don't trust the completedOnboarding
+                        // default (true for backward compat) here — it would skip the
+                        // permissions phase and set Ready too early.
+                        // Soft logins (app restart) can trust the persisted flag.
+                        val completedOnboarding = if (!isSoftLogin) false
+                            else credentialManager.hasCompletedOnboarding()
                         if (flags != null) {
                             userManager.set(flags)
                             if (flags.isRegistered && seenAccessKey && completedOnboarding) {

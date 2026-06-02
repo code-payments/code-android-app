@@ -243,7 +243,7 @@ class AuthManagerTest {
             Result.success(flags)
         )
 
-        val result = authManager.login(entropyB64 = entropy)
+        val result = authManager.login(entropyB64 = entropy, isSoftLogin = true)
 
         assertTrue(result.isSuccess)
         verify { userManager.set(flags) }
@@ -281,7 +281,7 @@ class AuthManagerTest {
         coEvery { accountController.getUserFlags() } returns Result.failure(RuntimeException("persistent failure"))
         coEvery { credentialManager.hasCompletedOnboarding() } returns true
 
-        val result = authManager.login(entropyB64 = entropy)
+        val result = authManager.login(entropyB64 = entropy, isSoftLogin = true)
 
         assertTrue(result.isSuccess)
         verify { userManager.set(authState = AuthState.Ready) }
