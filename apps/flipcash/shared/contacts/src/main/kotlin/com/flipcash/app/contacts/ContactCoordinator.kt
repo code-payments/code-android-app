@@ -211,29 +211,36 @@ class ContactCoordinator @Inject constructor(
      * | After logout → re-login                 | `reset()` clears flag, fires on first foreground if conditions met             |
      * | Phone number changed (unlink + re-verify) | Foreground path won't re-fire (flag is `true`), but the verification flow calls `linkForPayment` directly |
      */
+    private val linkMutex = kotlinx.coroutines.sync.Mutex()
+
     fun linkForPaymentIfNeeded() {
         scope.launch {
-            val featureFlag = featureFlagController.get(FeatureFlag.PhoneNumberSend)
-            val serverFlag = userManager.state.value.flags?.enablePhoneNumberSend == true
-            val enabled = featureFlag || serverFlag
-            if (!enabled) return@launch
+            if (!linkMutex.tryLock()) return@launch
+            try {
+                val featureFlag = featureFlagController.get(FeatureFlag.PhoneNumberSend)
+                val serverFlag = userManager.state.value.flags?.enablePhoneNumberSend == true
+                val enabled = featureFlag || serverFlag
+                if (!enabled) return@launch
 
-            val alreadyLinked = contactPrefs.data
-                .map { it[KEY_LINKED_FOR_PAYMENT] ?: false }
-                .first()
-            if (alreadyLinked) return@launch
+                val alreadyLinked = contactPrefs.data
+                    .map { it[KEY_LINKED_FOR_PAYMENT] ?: false }
+                    .first()
+                if (alreadyLinked) return@launch
 
-            // Profile may not be loaded yet on the first Ready transition;
-            // wait for the verified phone number to arrive.
-            val phone = userManager.state
-                .map { it.userProfile?.verifiedPhoneNumber }
-                .filterNotNull()
-                .first()
+                // Profile may not be loaded yet on the first Ready transition;
+                // wait for the verified phone number to arrive.
+                val phone = userManager.state
+                    .map { it.userProfile?.verifiedPhoneNumber }
+                    .filterNotNull()
+                    .first()
 
-            contactVerificationController.linkForPayment(ContactMethod.Phone(phone))
-                .onSuccess {
-                    contactPrefs.edit { it[KEY_LINKED_FOR_PAYMENT] = true }
-                }
+                contactVerificationController.linkForPayment(ContactMethod.Phone(phone))
+                    .onSuccess {
+                        contactPrefs.edit { it[KEY_LINKED_FOR_PAYMENT] = true }
+                    }
+            } finally {
+                linkMutex.unlock()
+            }
         }
     }
 
@@ -343,7 +350,7 @@ class ContactCoordinator @Inject constructor(
 
             if (deviceContacts.isEmpty()) {
                 trace(tag = TAG, message = "No device contacts found", type = TraceType.Process)
-                _state.update { it.copy(syncState = SyncState.Synced) }
+                _state.update { it.copy(syncState = SyncState.Synced, hasEverSynced = true) }
                 return Result.success(Unit)
             }
 
