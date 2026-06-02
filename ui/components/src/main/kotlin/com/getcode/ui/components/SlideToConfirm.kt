@@ -47,6 +47,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -70,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
+import com.getcode.theme.White20
 import com.getcode.theme.White50
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.core.addIf
@@ -103,9 +105,6 @@ object SlideToConfirmDefaults {
 
 
     const val SnapThreshold = 0.7f
-    val ThemedColor: Color
-        @Composable get() = Track.ThemedColor
-    val BlackTrackColor = Track.BlackColor
 }
 
 private object Thumb {
@@ -121,9 +120,7 @@ private object Track {
     val Shape: Shape
         @Composable get() = CodeTheme.shapes.small
 
-    val BlackColor = Color(0xFF201D1D)
-    val ThemedColor: Color
-        @Composable get() = CodeTheme.colors.trackColor
+    val Color = White20
 }
 
 
@@ -161,8 +158,9 @@ fun SlideToConfirm(
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
     trackShape: Shape = Track.Shape,
-    trackColor: Color = Track.ThemedColor,
+    trackColor: Color = Track.Color,
     thumbShape: Shape = Thumb.Shape,
+    enabled: Boolean = true,
     isLoading: Boolean = false,
     isSuccess: Boolean = false,
     label: String = stringResource(R.string.action_swipeToPay),
@@ -176,10 +174,7 @@ fun SlideToConfirm(
         )
     },
 ) {
-    var loading by remember(isLoading) {
-        mutableStateOf(isLoading)
-    }
-
+    val currentIsLoading by rememberUpdatedState(isLoading)
     val hapticFeedback = LocalHapticFeedback.current
     val swipeState = rememberSwipeableState(
         initialValue = Anchor.Start,
@@ -192,28 +187,44 @@ fun SlideToConfirm(
         derivedStateOf { calculateSwipeFraction(swipeState.progress) }
     }
 
-    LaunchedEffect(swipeFraction) {
-        when (swipeFraction) {
-            0f -> hintState.startTimer()
-            in 0.1f .. 0.99f -> hintState.cancelTimer()
+    LaunchedEffect(swipeFraction, enabled) {
+        when {
+            !enabled -> hintState.cancelTimer()
+            swipeFraction == 0f -> hintState.startTimer()
+            swipeFraction in 0.1f .. 0.99f -> hintState.cancelTimer()
         }
     }
     LaunchedEffect(swipeFraction) {
         if (swipeFraction == 1f) {
             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-            loading = true
             onConfirm()
+            // Give the caller a moment to set isLoading = true.
+            // If they don't, the confirmation was rejected — reset.
+            // Launch in composeScope so the animation isn't cancelled when
+            // swipeFraction changes (which would cancel this LaunchedEffect).
+            delay(200)
+            if (!currentIsLoading) {
+                composeScope.launch { swipeState.animateTo(Anchor.Start) }
+            }
         }
     }
 
-    LaunchedEffect(loading) {
-        swipeState.animateTo(if (loading) Anchor.End else Anchor.Start)
+    // Handle the loading → idle transition (e.g. after a network call completes)
+    LaunchedEffect(isLoading) {
+        if (!isLoading && swipeState.currentValue == Anchor.End) {
+            swipeState.animateTo(Anchor.Start)
+        }
     }
+
+    val disabledAlpha by animateFloatAsState(
+        targetValue = if (enabled || isLoading || isSuccess) 1f else 0.38f,
+        label = "disabled alpha"
+    )
 
     Track(
         swipeState = swipeState,
-        enabled = !loading,
-        modifier = modifier,
+        enabled = enabled && !isLoading,
+        modifier = modifier.alpha(disabledAlpha),
         shape = trackShape,
         color = trackColor,
     ) {
@@ -225,14 +236,14 @@ fun SlideToConfirm(
             Image(
                 painter = painterResource(id = R.drawable.ic_check),
                 contentDescription = "",
-                colorFilter = ColorFilter.tint(CodeTheme.colors.success),
+                colorFilter = ColorFilter.tint(Color.White),
                 modifier = Modifier
                     .size(CodeTheme.dimens.grid.x4)
                     .align(Alignment.Center),
             )
         } else {
             val loadingColor by animateColorAsState(
-                targetValue = if (loading) Color.White else Color.Transparent
+                targetValue = if (isLoading) Color.White else Color.Transparent
             )
 
             CodeCircularProgressIndicator(
@@ -245,7 +256,7 @@ fun SlideToConfirm(
         }
 
         val thumbAlpha by animateFloatAsState(
-            targetValue = if (loading || isSuccess) 0f else 1f,
+            targetValue = if (isLoading || isSuccess) 0f else 1f,
             label = "thumb alpha"
         )
 
@@ -290,7 +301,7 @@ private fun Track(
     enabled: Boolean,
     modifier: Modifier = Modifier,
     shape: Shape = Track.Shape,
-    color: Color = Track.BlackColor,
+    color: Color = Track.Color,
     content: @Composable (BoxScope.() -> Unit),
 ) {
     val density = LocalDensity.current
