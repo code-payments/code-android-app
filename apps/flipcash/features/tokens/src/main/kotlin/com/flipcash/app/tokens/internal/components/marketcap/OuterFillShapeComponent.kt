@@ -1,16 +1,17 @@
 package com.flipcash.app.tokens.internal.components.marketcap
 
 import android.graphics.Paint
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.patrykandpatrick.vico.compose.common.component.shapeComponent
-import com.patrykandpatrick.vico.compose.common.shape.markerCorneredShape
-import com.patrykandpatrick.vico.core.common.DrawingContext
-import com.patrykandpatrick.vico.core.common.Fill
-import com.patrykandpatrick.vico.core.common.Insets
-import com.patrykandpatrick.vico.core.common.component.Component
-import com.patrykandpatrick.vico.core.common.shape.CorneredShape
-import com.patrykandpatrick.vico.core.common.shape.Shape
+import com.patrykandpatrick.vico.compose.common.DrawingContext
+import com.patrykandpatrick.vico.compose.common.Fill
+import com.patrykandpatrick.vico.compose.common.Insets
+import com.patrykandpatrick.vico.compose.common.component.Component
+import com.patrykandpatrick.vico.compose.common.component.ShapeComponent
 
 class OuterFillShapeComponent(
     private val outerFill: Fill,
@@ -34,15 +35,15 @@ class OuterFillShapeComponent(
         val centerY = (top + bottom) / 2
 
         with(context) {
-            val outerLeft = left - outerInsets.startDp.pixels
-            val outerTop = top - outerInsets.topDp.pixels
-            val outerRight = right + outerInsets.endDp.pixels
-            val outerBottom = bottom + outerInsets.bottomDp.pixels
+            val outerLeft = left - outerInsets.start.pixels
+            val outerTop = top - outerInsets.top.pixels
+            val outerRight = right + outerInsets.end.pixels
+            val outerBottom = bottom + outerInsets.bottom.pixels
             val outerRadius = minOf(outerRight - outerLeft, outerBottom - outerTop) / 2
 
             // Draw outer fill
-            outerPaint.color = outerFill.color
-            canvas.drawCircle(centerX, centerY, outerRadius, outerPaint)
+            outerPaint.color = outerFill.color.toArgb()
+            canvas.nativeCanvas.drawCircle(centerX, centerY, outerRadius, outerPaint)
 
             // Draw inner component
             inner.draw(context, left, top, right, bottom)
@@ -52,13 +53,13 @@ class OuterFillShapeComponent(
 
 fun outerFillShapeComponent(
     outerFill: Fill,
-    margins: Insets = Insets(4f),
+    margins: Insets = Insets(4.dp),
     innerFill: Fill,
     strokeFill: Fill,
-    shape: Shape = markerCorneredShape(CorneredShape.Corner.Rounded),
+    shape: Shape = CircleShape,
     strokeThickness: Dp = 2.dp,
 ): Component {
-    val inner = shapeComponent(
+    val inner = ShapeComponent(
         fill = innerFill,
         shape = shape,
         strokeFill = strokeFill,

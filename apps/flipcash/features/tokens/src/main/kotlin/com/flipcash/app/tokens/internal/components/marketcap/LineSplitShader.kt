@@ -3,11 +3,14 @@ package com.flipcash.app.tokens.internal.components.marketcap
 import android.graphics.Paint
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import com.patrykandpatrick.vico.core.cartesian.CartesianDrawingContext
-import com.patrykandpatrick.vico.core.cartesian.axis.Axis
-import com.patrykandpatrick.vico.core.cartesian.layer.LineCartesianLayer
-import com.patrykandpatrick.vico.core.common.Fill
-import com.patrykandpatrick.vico.core.common.data.ExtraStore
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
+import com.patrykandpatrick.vico.compose.cartesian.CartesianDrawingContext
+import com.patrykandpatrick.vico.compose.cartesian.axis.Axis
+import com.patrykandpatrick.vico.compose.cartesian.layer.LineCartesianLayer
+import com.patrykandpatrick.vico.compose.common.Fill
+import com.patrykandpatrick.vico.compose.common.data.ExtraStore
 
 class SplitState {
     var canvasX: Float = Float.MAX_VALUE
@@ -35,18 +38,15 @@ class HorizontalSplitLineFill(
         verticalAxisPosition: Axis.Position.Vertical?,
     ) {
         with(context) {
-            val canvasSplitX = splitX(model.extraStore).coerceIn(layerBounds.left, layerBounds.right)
+            val canvasSplitX = splitX(extraStore).coerceIn(layerBounds.left, layerBounds.right)
+            val height = layerBounds.bottom + halfLineThickness - (layerBounds.top - halfLineThickness)
 
             // Left portion
-            paint.color = leftFill.color
-            paint.shader = leftFill.shaderProvider?.getShader(
-                this,
-                layerBounds.left,
-                layerBounds.top - halfLineThickness,
-                canvasSplitX,
-                layerBounds.bottom + halfLineThickness,
+            paint.color = leftFill.color.toArgb()
+            paint.shader = (leftFill.brush as? ShaderBrush)?.createShader(
+                androidx.compose.ui.geometry.Size(canvasSplitX - layerBounds.left, height)
             )
-            canvas.drawRect(
+            canvas.nativeCanvas.drawRect(
                 layerBounds.left,
                 layerBounds.top - halfLineThickness,
                 canvasSplitX,
@@ -55,15 +55,11 @@ class HorizontalSplitLineFill(
             )
 
             // Right portion
-            paint.color = rightFill.color
-            paint.shader = rightFill.shaderProvider?.getShader(
-                this,
-                canvasSplitX,
-                layerBounds.top - halfLineThickness,
-                layerBounds.right,
-                layerBounds.bottom + halfLineThickness,
+            paint.color = rightFill.color.toArgb()
+            paint.shader = (rightFill.brush as? ShaderBrush)?.createShader(
+                androidx.compose.ui.geometry.Size(layerBounds.right - canvasSplitX, height)
             )
-            canvas.drawRect(
+            canvas.nativeCanvas.drawRect(
                 canvasSplitX,
                 layerBounds.top - halfLineThickness,
                 layerBounds.right,
