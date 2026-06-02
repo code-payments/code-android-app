@@ -157,9 +157,6 @@ val MessageContent.localizedText: String
 
                     is GenericAmount.Partial -> {
                         FormatUtils.formatCurrency(kinAmount.fiat.amount, kinAmount.currencyCode)
-                            .let {
-                                "$it ${context.getString(R.string.core_ofKin)}"
-                            }
                     }
                 }
 
@@ -317,25 +314,4 @@ val Verb.localizedText: String
         }
 
         resId?.let { getString(it) } ?: this@localizedText.toString()
-    }
-
-val Title?.localized: String
-    @Composable get() = when (val t = this) {
-        is Title.Domain -> {
-            t.value.capitalize(Locale.getDefault())
-        }
-
-        is Title.Localized -> {
-            with(LocalContext.current) {
-                val resId = resources.getIdentifier(
-                    t.value,
-                    "string",
-                    packageName
-                ).let { if (it == 0) null else it }
-
-                resId?.let { getString(it) } ?: t.value
-            }
-        }
-
-        else -> ""
     }

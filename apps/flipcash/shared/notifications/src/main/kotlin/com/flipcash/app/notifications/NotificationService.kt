@@ -5,16 +5,20 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
 import android.media.RingtoneManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.Person
+import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.app.contacts.ContactResolver
 import com.flipcash.app.core.util.Linkify
-import com.flipcash.app.persistence.sources.ContactDataSource
-import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.NavigationTrigger
@@ -42,6 +46,7 @@ class NotificationService : FirebaseMessagingService(),
         private const val KEY_TITLE = "push_notification_title"
         private const val KEY_BODY = "push_notification_body"
         private const val KEY_PAYLOAD = "flipcash_payload"
+        private const val CONVERSATION_ID_OFFSET = 0x10000000
     }
 
     @Inject
@@ -60,13 +65,10 @@ class NotificationService : FirebaseMessagingService(),
     lateinit var tokenCoordinator: TokenCoordinator
 
     @Inject
-    lateinit var contactDataSource: ContactDataSource
-
-    @Inject
     lateinit var contactCoordinator: ContactCoordinator
 
     @Inject
-    lateinit var phoneUtils: PhoneUtils
+    lateinit var contactResolver: ContactResolver
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
@@ -106,48 +108,57 @@ class NotificationService : FirebaseMessagingService(),
             .takeIf { it.isNotEmpty() }
             ?.let { NotificationPayload.fromEncoded(it) }
 
-        when {
-            payload?.navigation is NavigationTrigger.CurrencyInfo -> {
-                launch { tokenCoordinator.update() }
-            }
-            payload?.category == NotificationCategory.CONTACT_JOIN -> {
-                launch { contactCoordinator.sync() }
-            }
+        if (payload?.navigation is NavigationTrigger.CurrencyInfo) {
+            launch { tokenCoordinator.update() }
         }
 
         launch {
-            val resolvedTitle = applySubstitutions(title, payload?.titleSubstitutions.orEmpty())
-            val resolvedBody = body?.let { applySubstitutions(it, payload?.bodySubstitutions.orEmpty()) }
-            postNotification(resolvedTitle, resolvedBody, payload)
+            try {
+                if (payload?.category == NotificationCategory.CONTACT_JOIN) {
+                    launch { contactCoordinator.sync() }
+                }
+                val resolvedTitle = applySubstitutions(title, payload?.titleSubstitutions.orEmpty())
+                val resolvedBody = body?.let { applySubstitutions(it, payload?.bodySubstitutions.orEmpty()) }
+                postNotification(resolvedTitle, resolvedBody, payload)
+            } catch (e: Exception) {
+                trace(tag = "NotificationService", message = "Failed to post notification", error = e)
+            }
         }
     }
 
-    private fun postNotification(title: String, body: String?, payload: NotificationPayload?) {
+    private suspend fun postNotification(title: String, body: String?, payload: NotificationPayload?) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) return
+
         val category = payload?.category ?: NotificationCategory.DEFAULT
         NotificationChannels.ensureChannelGroups(this, notificationManager)
         val channel = NotificationChannels.channelFor(this, category)
         notificationManager.createNotificationChannel(channel)
 
         val groupKey = payload?.groupKey?.takeIf { it.isNotEmpty() }
+        val isContactChat = groupKey?.startsWith("+") == true
 
-        val notification = NotificationCompat.Builder(this, channel.id)
+        val builder = NotificationCompat.Builder(this, channel.id)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
             .setSmallIcon(R.drawable.flipcash_logo)
             .setColor(getColor(R.color.notification_color))
             .setAutoCancel(true)
-            .setContentTitle(title)
-            .setContentText(body)
             .setContentIntent(buildContentIntent(payload?.navigation))
-            .apply { if (groupKey != null) setGroup(groupKey) }
-            .build()
+            .apply {
+                if (groupKey != null) setGroup(groupKey)
+            }
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-            != PackageManager.PERMISSION_GRANTED
-        ) return
+        val notificationId = if (isContactChat) {
+            applyContactChatStyle(builder, groupKey, body)
+        } else {
+            builder.setContentTitle(title).setContentText(body)
+            SecureRandom().nextInt(Int.MAX_VALUE)
+        }
 
-        val notificationId = SecureRandom().nextInt(Int.MAX_VALUE)
-        notificationManager.notify(notificationId, notification)
+        notificationManager.notify(notificationId, builder.build())
 
         if (groupKey != null) {
             val summary = NotificationCompat.Builder(this, channel.id)
@@ -155,17 +166,74 @@ class NotificationService : FirebaseMessagingService(),
                 .setColor(getColor(R.color.notification_color))
                 .setGroup(groupKey)
                 .setGroupSummary(true)
+                .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
                 .setAutoCancel(true)
                 .build()
             notificationManager.notify(groupKey.hashCode(), summary)
         }
     }
 
+    private suspend fun applyContactChatStyle(
+        builder: NotificationCompat.Builder,
+        groupKey: String,
+        body: String?,
+    ): Int {
+        val contactPhoto = resolveContactPhoto(groupKey)
+        val senderName = contactResolver.resolveName(groupKey)
+
+        val profile = userManager.profile
+        val selfPerson = Person.Builder()
+            .setName(
+                profile?.displayName?.takeIf { it.isNotEmpty() }
+                    ?: profile?.verifiedPhoneNumber?.takeIf { it.isNotEmpty() }
+                    ?: getString(R.string.notification_self_person_name)
+            )
+            .setKey("self")
+            .build()
+
+        val senderPerson = Person.Builder()
+            .setName(senderName)
+            .setKey(groupKey)
+            .apply {
+                if (contactPhoto != null) setIcon(IconCompat.createWithAdaptiveBitmap(contactPhoto))
+            }
+            .build()
+
+        val notificationId = groupKey.hashCode() xor CONVERSATION_ID_OFFSET
+
+        val style = notificationManager.activeNotifications
+            .firstOrNull { it.id == notificationId }
+            ?.notification
+            ?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it) }
+            ?: NotificationCompat.MessagingStyle(selfPerson)
+
+        style.addMessage(body.orEmpty(), System.currentTimeMillis(), senderPerson)
+
+        builder.setStyle(style)
+            .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
+
+        return notificationId
+    }
+
+    private suspend fun resolveContactPhoto(e164: String): Bitmap? {
+        val uriString = contactResolver.resolvePhotoUri(e164) ?: return null
+        return try {
+            val source = ImageDecoder.createSource(contentResolver, uriString.toUri())
+            ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            }
+        } catch (e: Exception) {
+            trace(tag = "NotificationService", message = "Failed to decode contact photo: ${e.message}", type = TraceType.Log)
+            null
+        }
+    }
+
     private suspend fun resolveSubstitution(substitution: Substitution): String {
-        val phoneNumber = substitution.phoneNumber ?: return substitution.fallback
-        val displayName = contactDataSource.getDisplayName(phoneNumber)
-        if (displayName != null) return displayName
-        return runCatching { phoneUtils.formatNumber(phoneNumber) }.getOrDefault(substitution.fallback)
+        return when (substitution) {
+            is Substitution.Phone -> {
+                contactResolver.resolveName(substitution.phoneNumber, substitution.fallback)
+            }
+        }
     }
 
     private suspend fun applySubstitutions(text: String, substitutions: List<Substitution>): String {
