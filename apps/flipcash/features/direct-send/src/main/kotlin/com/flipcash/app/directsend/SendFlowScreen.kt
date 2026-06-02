@@ -3,15 +3,11 @@ package com.flipcash.app.directsend
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
-import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.send.SendResult
 import com.flipcash.app.core.send.SendStep
@@ -35,7 +31,6 @@ import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.LocalResources
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -91,34 +86,28 @@ private fun SendAmountEntryScreen() {
     val sharedState by sharedVm.stateFlow.collectAsStateWithLifecycle()
     val resources = LocalResources.current
 
-    var contact by remember {
-        mutableStateOf<DeviceContact?>(null)
-    }
-
-    var resolvedAuthority by remember {
-        mutableStateOf<PublicKey?>(null)
-    }
-
-    LaunchedEffect(Unit) {
-        sharedVm.eventFlow
-            .filterIsInstance<SendFlowViewModel.Event.ResolveCompleted>()
-            .onEach {
-                contact = it.contact
-                resolvedAuthority = it.authority
-            }
-            .launchIn(this)
+    LaunchedEffect(sharedState.resolveState) {
+        if (sharedState.resolveState is SendFlowViewModel.ResolveState.Failed) {
+            BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_contactNotOnFlipcash),
+                message = resources.getString(R.string.error_description_contactNotOnFlipcash),
+                onDismiss = { flowNavigator.back() }
+            )
+        }
     }
 
     LaunchedEffect(sharedVm) {
         sharedVm.eventFlow
             .filterIsInstance<SendFlowViewModel.Event.SendComplete>()
             .onEach { event ->
+                val displayName = sharedState.resolveState.contact?.displayName
+                    ?: resources.getString(R.string.subtitle_yourSelectedRecipient)
                 BottomBarManager.showInfo(
                     title = resources.getString(R.string.prompt_title_fundsSentToContact),
                     message = resources.getString(
                         R.string.prompt_description_fundsSentToContact,
                         event.amount.formatted(rule = Fiat.FormattingRule.Truncated),
-                        contact?.displayName ?: "your selected recipient"
+                        displayName,
                     ),
                     onDismiss = { flowNavigator.back() }
                 )
@@ -143,21 +132,20 @@ private fun SendAmountEntryScreen() {
             when (result) {
                 AmountEntryResult.Cancelled -> flowNavigator.back()
                 is AmountEntryResult.Confirmed -> {
-                    val destination = resolvedAuthority
-                    if (destination == null) {
-                        BottomBarManager.showAlert(
-                            title = resources.getString(R.string.error_title_contactNotOnFlipcash),
-                            message = resources.getString(R.string.error_description_contactNotOnFlipcash),
-                            onDismiss = { flowNavigator.back() }
-                        )
-                    } else {
-                        sharedVm.dispatchEvent(
-                            SendFlowViewModel.Event.OnSendRequested(
-                                amount = result.amount,
-                                token = result.token,
-                                destinationOwner = destination,
+                    when (val resolve = sharedState.resolveState) {
+                        is SendFlowViewModel.ResolveState.Resolved -> {
+                            sharedVm.dispatchEvent(
+                                SendFlowViewModel.Event.OnSendRequested(
+                                    amount = result.amount,
+                                    token = result.token,
+                                    destinationOwner = resolve.authority,
+                                )
                             )
-                        )
+                        }
+                        // Resolve still in flight — slide resets, user can retry
+                        is SendFlowViewModel.ResolveState.Pending -> Unit
+                        // Failed case handled by LaunchedEffect above
+                        else -> Unit
                     }
                 }
             }

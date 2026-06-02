@@ -61,6 +61,14 @@ internal class SendFlowViewModel @Inject constructor(
     updateStateForEvent = updateStateForEvent,
 ) {
 
+    sealed interface ResolveState {
+        val contact: DeviceContact? get() = null
+        data object Idle : ResolveState
+        data class Pending(override val contact: DeviceContact) : ResolveState
+        data class Resolved(override val contact: DeviceContact, val authority: PublicKey) : ResolveState
+        data class Failed(override val contact: DeviceContact) : ResolveState
+    }
+
     data class State @OptIn(ExperimentalMaterial3Api::class) constructor(
         val steps: List<SendStep> = listOf(SendStep.ContactList),
         val currentStep: SendStep? = null,
@@ -69,6 +77,7 @@ internal class SendFlowViewModel @Inject constructor(
         val contactSyncState: LoadingSuccessState = LoadingSuccessState(),
         val listItems: List<ContactListItem> = emptyList(),
         val sendProgress: LoadingSuccessState = LoadingSuccessState(),
+        val resolveState: ResolveState = ResolveState.Idle,
     )
 
     sealed interface Event {
@@ -108,7 +117,6 @@ internal class SendFlowViewModel @Inject constructor(
             val success: Boolean = false,
         ) : Event
         data class SendComplete(val amount: Fiat) : Event
-        data object ContactNotResolved : Event
     }
 
     init {
@@ -223,11 +231,16 @@ internal class SendFlowViewModel @Inject constructor(
             .onEach { event -> contactCoordinator.removeContact(event.e164) }
             .launchIn(viewModelScope)
 
-        contactCoordinator.state
-            .filter { it.hasDiscoveredFlipcashContacts && it.flipcashE164s.isNotEmpty() }
-            .filter { stateFlow.value.currentStep is SendStep.ContactList }
+        combine(
+            contactCoordinator.state,
+            stateFlow.map { it.currentStep },
+        ) { contactState, currentStep ->
+            contactState to currentStep
+        }
+            .filter { (cs, _) -> cs.hasDiscoveredFlipcashContacts && cs.flipcashE164s.isNotEmpty() }
+            .filter { (_, step) -> step is SendStep.ContactList }
             .take(1)
-            .onEach { contactState ->
+            .onEach { (contactState, _) ->
                 val count = contactState.flipcashE164s.size
                 contactCoordinator.consumeContactsDiscovery()
                 BottomBarManager.showInfo(
@@ -283,15 +296,12 @@ internal class SendFlowViewModel @Inject constructor(
                         },
                         onFailure = { Result.failure(it) }
                     ).onSuccess { amount ->
-                        timber.log.Timber.d("directTransfer success, dispatching checkmark")
                         dispatchEvent(Event.SendStateUpdated(success = true))
                         delay(400)
-                        timber.log.Timber.d("dispatching SendComplete")
                         dispatchEvent(
                             Dispatchers.Main,
                             Event.SendComplete(amount.localFiat.nativeAmount)
                         )
-                        timber.log.Timber.d("SendComplete dispatched")
                     }.onFailure {
                         dispatchEvent(Event.SendStateUpdated())
                         BottomBarManager.showError(
@@ -362,10 +372,21 @@ internal class SendFlowViewModel @Inject constructor(
                 is Event.OnItemsPopulated -> { state -> state.copy(listItems = event.items) }
                 is Event.OnContactClicked -> { state -> state }
                 is Event.SendInvite -> { state -> state }
-                is Event.SendCashToContact -> { state -> state }
+                is Event.SendCashToContact -> { state ->
+                    state.copy(resolveState = ResolveState.Pending(event.contact))
+                }
                 is Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
-                is Event.ResolveCompleted -> { state -> state }
-                is Event.ResolveFailed -> { state -> state }
+                is Event.ResolveCompleted -> { state ->
+                    state.copy(resolveState = ResolveState.Resolved(event.contact, event.authority))
+                }
+                is Event.ResolveFailed -> { state ->
+                    val contact = state.resolveState.contact
+                    if (contact != null) {
+                        state.copy(resolveState = ResolveState.Failed(contact))
+                    } else {
+                        state
+                    }
+                }
                 is Event.OnSendRequested -> { state -> state }
                 is Event.SendStateUpdated -> { state ->
                     state.copy(
@@ -376,7 +397,6 @@ internal class SendFlowViewModel @Inject constructor(
                     )
                 }
                 is Event.SendComplete -> { state -> state }
-                Event.ContactNotResolved -> { state -> state }
             }
         }
     }
