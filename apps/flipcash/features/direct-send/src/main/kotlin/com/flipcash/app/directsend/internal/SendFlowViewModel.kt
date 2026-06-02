@@ -229,6 +229,7 @@ internal class SendFlowViewModel @Inject constructor(
             .take(1)
             .onEach { contactState ->
                 val count = contactState.flipcashE164s.size
+                contactCoordinator.consumeContactsDiscovery()
                 BottomBarManager.showInfo(
                     title = resources.getQuantityString(
                         R.plurals.prompt_title_contactsAlreadyOnFlipcash,
@@ -236,11 +237,6 @@ internal class SendFlowViewModel @Inject constructor(
                         count.toString(),
                     ),
                     message = resources.getString(R.string.prompt_description_contactsAlreadyOnFlipcash),
-                    onDismiss = {
-                        viewModelScope.launch {
-                            contactCoordinator.consumeContactsDiscovery()
-                        }
-                    }
                 )
             }
             .launchIn(viewModelScope)
