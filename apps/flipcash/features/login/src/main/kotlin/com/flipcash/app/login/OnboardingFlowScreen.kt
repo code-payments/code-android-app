@@ -39,6 +39,8 @@ import com.flipcash.app.login.internal.screens.LoginRouterScreenContent
 import com.flipcash.app.login.internal.screens.SeedInputContent
 import com.flipcash.app.login.router.LoginViewModel
 import com.flipcash.app.login.internal.SeedInputViewModel
+import androidx.compose.runtime.rememberCoroutineScope
+import com.flipcash.app.contacts.LocalContactCoordinator
 import com.flipcash.app.permissions.asContactAccessHandle
 import com.flipcash.app.permissions.internal.contacts.ContactScreenContent
 import com.flipcash.app.permissions.internal.notifications.NotificationRationalePermissionContent
@@ -64,6 +66,7 @@ import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.rememberContactPermission
 import com.getcode.util.permissions.rememberNotificationPermission
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -446,11 +449,14 @@ private fun PurchaseStepContent() {
 private fun ContactPermissionStepContent() {
     val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
     val analytics = LocalAnalytics.current
+    val contactCoordinator = LocalContactCoordinator.current
+    val scope = rememberCoroutineScope()
 
     val permissionState = rememberContactPermission { result ->
         when (result) {
             PermissionResult.Granted -> {
                 analytics.action(Button.AllowContacts)
+                scope.launch { contactCoordinator.sync() }
                 flowNavigator.proceed()
             }
             PermissionResult.Denied,

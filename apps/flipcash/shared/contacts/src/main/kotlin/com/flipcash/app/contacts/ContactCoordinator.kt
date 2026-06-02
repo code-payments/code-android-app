@@ -343,7 +343,7 @@ class ContactCoordinator @Inject constructor(
 
             if (deviceContacts.isEmpty()) {
                 trace(tag = TAG, message = "No device contacts found", type = TraceType.Process)
-                _state.update { it.copy(syncState = SyncState.Synced) }
+                _state.update { it.copy(syncState = SyncState.Synced, hasEverSynced = true) }
                 return Result.success(Unit)
             }
 
