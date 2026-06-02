@@ -46,8 +46,8 @@ internal fun PushModels.Payload.asPayload(): NotificationPayload {
         else -> NotificationCategory.DEFAULT
     }
 
-    val titleSubs = titleSubstitutionsList.map { it.asSubstitution() }
-    val bodySubs = bodySubstitutionsList.map { it.asSubstitution() }
+    val titleSubs = titleSubstitutionsList.mapNotNull { it.asSubstitution() }
+    val bodySubs = bodySubstitutionsList.mapNotNull { it.asSubstitution() }
 
     return NotificationPayload(
         navigation = navigationTrigger,
@@ -58,12 +58,15 @@ internal fun PushModels.Payload.asPayload(): NotificationPayload {
     )
 }
 
-internal fun PushModels.Substitution.asSubstitution(): Substitution {
-    val phoneNumber = when (kindCase) {
-        PushModels.Substitution.KindCase.CONTACT -> contact.value
+internal fun PushModels.Substitution.asSubstitution(): Substitution? {
+    return when (kindCase) {
+        PushModels.Substitution.KindCase.CONTACT -> {
+            val phoneNumber = contact.value
+            Substitution.Phone(fallback = fallback, phoneNumber = phoneNumber)
+        }
+
         else -> null
     }
-    return Substitution(fallback = fallback, phoneNumber = phoneNumber)
 }
 
 internal fun Common.Signature.toSignature(): Signature {

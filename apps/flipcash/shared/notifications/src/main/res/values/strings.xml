@@ -16,6 +16,9 @@
     <string name="notification_channel_chat_description">Incoming chat messages</string>
     <string name="notification_channel_contact_join_description">When someone you know joins Flipcash</string>
 
+    <!-- Person names -->
+    <string name="notification_self_person_name">Me</string>
+
     <!-- Channel group names -->
     <string name="notification_group_transactions">Transactions</string>
     <string name="notification_group_social">Social</string>

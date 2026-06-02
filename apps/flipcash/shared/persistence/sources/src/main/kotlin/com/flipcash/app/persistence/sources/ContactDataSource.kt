@@ -90,5 +90,8 @@ class ContactDataSource @Inject constructor(
     suspend fun getDisplayName(e164: String): String? =
         db?.contactDao()?.getDisplayName(e164)
 
+    suspend fun getPhotoUri(e164: String): String? =
+        db?.contactDao()?.getPhotoUri(e164)
+
     // endregion
 }
