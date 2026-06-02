@@ -52,6 +52,9 @@
     <string name="subtitle_giveCashHint">Enter up to %1$s</string>
     <string name="subtitle_giveCashHintLimitExceeded">You can only give up to %1$s</string>
 
+    <string name="subtitle_sendHint">Enter up to %1$s</string>
+    <string name="subtitle_sendHintLimitExceeded">You can only send up to %1$s</string>
+
     <string name="error_title_sendLimitReached">Transaction Limit Reached</string>
     <string name="error_description_sendLimitReached">Flipcash is designed for small, every day transactions. Send limits reset daily</string>
 
@@ -153,7 +156,7 @@
     <string name="title_shareDownloadLink">Get the Flipcash App</string>
     <string name="title_shareCashLink">Send %1$s</string>
     <string name="title_inviteContact">Invite to Flipcash</string>
-    <string name="message_invite_contact">Download Flipcash so I can send you money\n\n%1$s</string>
+    <string name="message_invite_contact">You should download Flipcash, a new way to send cash\n\n%1$s</string>
 
     <string name="title_enterAddress">Enter Solana address</string>
     <string name="subtitle_whereWithdrawTo">Where would you like to withdraw your %1$s to?</string>
@@ -679,6 +682,9 @@
     <string name="error_title_staleRates">Rate Unavailable</string>
     <string name="error_description_staleRates">Couldn\'t get a fresh rate. Please try again.</string>
 
+    <string name="error_title_amountTooSmall">Amount Too Small</string>
+    <string name="error_description_amountTooSmall">The amount you entered is too small to transfer\nPlease enter a larger amount</string>
+
     <string name="title_settings">Settings</string>
 
     <string name="title_withdrawUsdfAsUsdc">Withdraw as USDC</string>
@@ -728,4 +734,14 @@
         <item quantity="other">%1$s Contacts Already On Flipcash</item>
     </plurals>
     <string name="prompt_description_contactsAlreadyOnFlipcash">Send them money, or invite other contacts to sign up for Flipcash</string>
+
+    <string name="error_title_contactNotOnFlipcash">Something Went Wrong</string>
+    <string name="error_description_contactNotOnFlipcash">This contact isn\'t on Flipcash. Pick someone else to send cash</string>
+
+    <string name="prompt_title_fundsSentToContact">Cash Sent Successfully</string>
+    <string name="prompt_description_fundsSentToContact">%1$s is on its way to %2$s</string>
+
+    <string name="error_title_cashFailedToSend">Something Went Wrong</string>
+    <string name="error_description_cashFailedToSend">We were unable to send your cash. Please try again</string>
+    <string name="action_swipeToSend">Swipe to Send</string>
 </resources>

@@ -45,6 +45,9 @@ interface ContactDao {
     @Query("SELECT displayName FROM contact_mapping WHERE e164 = :e164 LIMIT 1")
     suspend fun getDisplayName(e164: String): String?
 
+    @Query("SELECT photoUri FROM contact_mapping WHERE e164 = :e164 LIMIT 1")
+    suspend fun getPhotoUri(e164: String): String?
+
     @Query("DELETE FROM contact_mapping WHERE e164 IN (:e164s)")
     suspend fun deleteMappings(e164s: List<String>)
 
@@ -59,9 +62,15 @@ interface ContactDao {
     @Query("DELETE FROM contact_mapping")
     suspend fun deleteAllMappings()
 
+    @Query("UPDATE contact_sync_state SET hasDiscoveredFlipcashContacts = 1 WHERE id = 0")
+    suspend fun markFlipcashContactsDiscovered()
+
+    @Query("UPDATE contact_sync_state SET hasDiscoveredFlipcashContacts = 0 WHERE id = 0")
+    suspend fun clearFlipcashContactsDiscovered()
+
     @Transaction
     suspend fun clearAll() {
         clearSyncState()
-        clearFlipcashStatus()
+        deleteAllMappings()
     }
 }

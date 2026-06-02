@@ -42,7 +42,7 @@ internal class BalanceViewModel @Inject constructor(
 
     init {
         userManager.state
-            .filter { it.authState is AuthState.LoggedInWithUser }
+            .filter { it.authState is AuthState.Ready }
             .flatMapLatest { userFlags.resolvedFlags }
             .mapNotNull { it.preferredOnRampProvider.effectiveValue }
             .filterIsInstance<OnRampProvider.Defined>()

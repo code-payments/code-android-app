@@ -87,7 +87,7 @@ class ContactCoordinator @Inject constructor(
         ),
         migrations = listOf(),
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-        produceFile = { context.preferencesDataStoreFile("app-settings") }
+        produceFile = { context.preferencesDataStoreFile("contact-prefs") }
     )
 
     data class ContactState(
@@ -95,6 +95,7 @@ class ContactCoordinator @Inject constructor(
         val flipcashE164s: Set<String> = emptySet(),
         val syncState: SyncState = SyncState.Idle,
         val hasEverSynced: Boolean = false,
+        val hasDiscoveredFlipcashContacts: Boolean = false,
     )
 
     enum class SyncState { Idle, Syncing, Synced, Error }
@@ -102,10 +103,14 @@ class ContactCoordinator @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val cluster = MutableStateFlow<AccountCluster?>(null)
     private val _state = MutableStateFlow(ContactState())
+    private val _isLinkedForPayment = MutableStateFlow(false)
     private var syncJob: Job? = null
 
     val state: StateFlow<ContactState>
         get() = _state.asStateFlow()
+
+    val isLinkedForPayment: StateFlow<Boolean>
+        get() = _isLinkedForPayment.asStateFlow()
 
     // region SessionListener
 
@@ -123,6 +128,13 @@ class ContactCoordinator @Inject constructor(
     init {
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
 
+        // Hydrate linked-for-payment flag from DataStore
+        contactPrefs.data
+            .map { it[KEY_LINKED_FOR_PAYMENT] ?: false }
+            .distinctUntilChanged()
+            .onEach { _isLinkedForPayment.value = it }
+            .launchIn(scope)
+
         cluster.filterNotNull()
             .flatMapLatest { networkObserver.state }
             .distinctUntilChanged()
@@ -136,9 +148,12 @@ class ContactCoordinator @Inject constructor(
 
     override fun onStart(owner: LifecycleOwner) {
         if (cluster.value != null) {
-            scope.launch { clearServerContactSetIfRevoked() }
-            trace(tag = TAG, message = "Lifecycle resumed, triggering contact sync", type = TraceType.Process)
-            launchSync()
+            syncJob?.cancel()
+            syncJob = scope.launch {
+                clearServerContactSetIfRevoked()
+                trace(tag = TAG, message = "Lifecycle resumed, triggering contact sync", type = TraceType.Process)
+                performSync()
+            }
         }
     }
 
@@ -197,20 +212,34 @@ class ContactCoordinator @Inject constructor(
      * | Phone number changed (unlink + re-verify) | Foreground path won't re-fire (flag is `true`), but the verification flow calls `linkForPayment` directly |
      */
     fun linkForPaymentIfNeeded() {
-        val phone = userManager.profile?.verifiedPhoneNumber ?: return
-        val enabled = featureFlagController.observe(FeatureFlag.PhoneNumberSend).value ||
-            userManager.state.value.flags?.enablePhoneNumberSend == true
-        if (!enabled) return
         scope.launch {
+            val featureFlag = featureFlagController.get(FeatureFlag.PhoneNumberSend)
+            val serverFlag = userManager.state.value.flags?.enablePhoneNumberSend == true
+            val enabled = featureFlag || serverFlag
+            if (!enabled) return@launch
+
             val alreadyLinked = contactPrefs.data
                 .map { it[KEY_LINKED_FOR_PAYMENT] ?: false }
                 .first()
             if (alreadyLinked) return@launch
+
+            // Profile may not be loaded yet on the first Ready transition;
+            // wait for the verified phone number to arrive.
+            val phone = userManager.state
+                .map { it.userProfile?.verifiedPhoneNumber }
+                .filterNotNull()
+                .first()
+
             contactVerificationController.linkForPayment(ContactMethod.Phone(phone))
                 .onSuccess {
                     contactPrefs.edit { it[KEY_LINKED_FOR_PAYMENT] = true }
                 }
         }
+    }
+
+    suspend fun consumeContactsDiscovery() {
+        contactDataSource.clearFlipcashContactsDiscovered()
+        _state.update { it.copy(hasDiscoveredFlipcashContacts = false) }
     }
 
     suspend fun reset() {
@@ -269,9 +298,10 @@ class ContactCoordinator @Inject constructor(
         val mappings = contactDataSource.get()
 
         val hasEverSynced = syncState != null || mappings.isNotEmpty()
+        val hasDiscoveredFlipcashContacts = syncState?.hasDiscoveredFlipcashContacts ?: false
         if (mappings.isEmpty()) {
             if (hasEverSynced) {
-                _state.update { it.copy(hasEverSynced = true) }
+                _state.update { it.copy(hasEverSynced = true, hasDiscoveredFlipcashContacts = hasDiscoveredFlipcashContacts) }
             }
             return
         }
@@ -288,7 +318,12 @@ class ContactCoordinator @Inject constructor(
         val flipcashE164s = mappings.filter { it.isOnFlipcash }.map { it.e164 }.toSet()
 
         _state.update {
-            it.copy(contacts = contacts, flipcashE164s = flipcashE164s, hasEverSynced = true)
+            it.copy(
+                contacts = contacts,
+                flipcashE164s = flipcashE164s,
+                hasEverSynced = true,
+                hasDiscoveredFlipcashContacts = hasDiscoveredFlipcashContacts,
+            )
         }
 
         trace(tag = TAG, message = "Hydrated ${mappings.size} contacts from persistence", type = TraceType.Process)
@@ -394,7 +429,7 @@ class ContactCoordinator @Inject constructor(
             )
 
             // 6. GetFlipcashContacts
-            fetchFlipcashContacts(newChecksum)
+            fetchFlipcashContacts(newE164s, newChecksum)
 
             _state.update { it.copy(syncState = SyncState.Synced, hasEverSynced = true) }
             trace(tag = TAG, message = "Contact sync complete", type = TraceType.Process)
@@ -430,7 +465,11 @@ class ContactCoordinator @Inject constructor(
         )
     }
 
-    private suspend fun fetchFlipcashContacts(checksum: Checksum) {
+    private suspend fun fetchFlipcashContacts(
+        e164s: Set<String>,
+        checksum: Checksum,
+        retried: Boolean = false,
+    ) {
         try {
             val result = contactListController.getFlipcashContacts(checksum)
                 .firstOrNull()
@@ -440,16 +479,32 @@ class ContactCoordinator @Inject constructor(
                 contactDataSource.clearFlipcashStatus()
                 if (flipcashE164s.isNotEmpty()) {
                     contactDataSource.markAsFlipcash(flipcashE164s.toList())
+                    if (!_state.value.hasDiscoveredFlipcashContacts && _state.value.flipcashE164s.isEmpty()) {
+                        contactDataSource.markFlipcashContactsDiscovered()
+                        _state.update { it.copy(hasDiscoveredFlipcashContacts = true) }
+                    }
                 }
                 _state.update { it.copy(flipcashE164s = flipcashE164s) }
                 trace(tag = TAG, message = "Found ${flipcashE164s.size} contacts on Flipcash", type = TraceType.Process)
             }?.onFailure { error ->
-                if (error is GetContactsError.NotFound) {
-                    contactDataSource.clearFlipcashStatus()
-                    _state.update { it.copy(flipcashE164s = emptySet()) }
-                    trace(tag = TAG, message = "No contacts on Flipcash yet", type = TraceType.Process)
-                } else {
-                    trace(tag = TAG, message = "GetFlipcashContacts failed: ${error.message}", type = TraceType.Error)
+                when (error) {
+                    is GetContactsError.NotFound -> {
+                        contactDataSource.clearFlipcashStatus()
+                        _state.update { it.copy(flipcashE164s = emptySet()) }
+                        trace(tag = TAG, message = "No contacts on Flipcash yet", type = TraceType.Process)
+                    }
+                    is GetContactsError.ChecksumDrift -> {
+                        if (!retried) {
+                            trace(tag = TAG, message = "GetFlipcashContacts checksum drift, performing full upload and retrying", type = TraceType.Process)
+                            performFullUpload(e164s, checksum)
+                            fetchFlipcashContacts(e164s, checksum, retried = true)
+                        } else {
+                            trace(tag = TAG, message = "GetFlipcashContacts checksum drift persisted after retry", type = TraceType.Error)
+                        }
+                    }
+                    else -> {
+                        trace(tag = TAG, message = "GetFlipcashContacts failed: ${error.message}", type = TraceType.Error)
+                    }
                 }
             }
         } catch (e: Exception) {

@@ -1,6 +1,8 @@
 package com.flipcash.app.contacts.inject
 
 import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.app.contacts.device.DeviceContactLookup
+import com.flipcash.app.contacts.device.internal.AndroidDeviceContactLookup
 import com.getcode.opencode.providers.SessionListener
 import dagger.Binds
 import dagger.Module
@@ -17,4 +19,9 @@ abstract class ContactModule {
     abstract fun bindSessionListener(
         coordinator: ContactCoordinator
     ): SessionListener
+
+    @Binds
+    internal abstract fun bindDeviceContactLookup(
+        impl: AndroidDeviceContactLookup
+    ): DeviceContactLookup
 }

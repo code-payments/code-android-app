@@ -29,7 +29,6 @@ import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.resolveRoutes
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
-import com.flipcash.services.models.UserFlags
 import com.flipcash.services.user.AuthState
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -88,9 +87,9 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
 
     LaunchedEffect(userManager) {
         userManager.state
-            .map { it.authState to it.flags }
+            .map { it.authState }
             .distinctUntilChanged()
-            .onEach { (state, flags) ->
+            .onEach { state ->
                 trace(
                     tag = "AuthStateRouter",
                     message = "Handling auth state change during app launch => $state",
@@ -100,18 +99,17 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
                 )
                 val launch = buildNavGraphForLaunch(
                     state = state,
-                    userFlags = flags,
                     router = router,
                     deepLink = deepLink
                 )
 
                 when (state) {
-                    AuthState.LoggedInAwaitingUser -> {
+                    AuthState.Authenticating -> {
                         delay(0.5.seconds)
                         showLoading = true
                     }
 
-                    AuthState.LoggedInWithUser -> {
+                    AuthState.Ready -> {
                         showLogo = false
                     }
 
@@ -143,7 +141,7 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
  * [deeplinkRoutes] are applied via navigateTo, which handles sheet wrapping
  * so deeplinks targeting screens inside sheets render correctly.
  */
-private data class LaunchNavGraph(
+internal data class LaunchNavGraph(
     val baseRoutes: List<NavKey>,
     val deeplinkRoutes: List<AppRoute> = emptyList(),
 ) {
@@ -171,24 +169,22 @@ private fun List<NavKey>.startsWith(prefix: List<NavKey>): Boolean {
     return prefix.indices.all { i -> this[i]::class == prefix[i]::class }
 }
 
-private fun buildNavGraphForLaunch(
+internal fun buildNavGraphForLaunch(
     state: AuthState,
-    userFlags: UserFlags?,
     router: Router,
     deepLink: () -> DeepLink?,
 ): LaunchNavGraph? {
     return when (state) {
-        is AuthState.Registered -> {
-            val resumePoint = when {
-                !state.seenAccessKey -> AppRoute.OnboardingFlow.ResumePoint.AccessKey
-                userFlags?.requiresIapForRegistration == true ->
-                    AppRoute.OnboardingFlow.ResumePoint.AccessKeyThenPurchase
-                else -> AppRoute.OnboardingFlow.ResumePoint.PostAccessKey
+        is AuthState.Onboarding -> {
+            val resumePoint = when (state.resumePoint) {
+                AuthState.ResumePoint.AccessKey -> AppRoute.OnboardingFlow.ResumePoint.AccessKey
+                AuthState.ResumePoint.AccessKeyThenPurchase -> AppRoute.OnboardingFlow.ResumePoint.AccessKeyThenPurchase
+                AuthState.ResumePoint.PostAccessKey -> AppRoute.OnboardingFlow.ResumePoint.PostAccessKey
             }
             LaunchNavGraph(listOf(AppRoute.OnboardingFlow(resumeAt = resumePoint)))
         }
 
-        AuthState.LoggedInWithUser -> {
+        AuthState.Ready -> {
             val link = deepLink()
             if (link != null) {
                 when (val action = router.dispatch(link)) {
@@ -196,8 +192,8 @@ private fun buildNavGraphForLaunch(
                         baseRoutes = listOf(AppRoute.Main.Scanner),
                         deeplinkRoutes = action.routes,
                     )
-                    // ExternalWallet/Login/OpenCashLink can't be handled on cold start
-                    // (encryption state lost, no session yet) — fall through to Scanner
+                    // OpenCashLink/Login/ExternalWallet are handled by App.kt's
+                    // LaunchedEffect(deepLink, currentRoute) once we leave Loading.
                     else -> LaunchNavGraph(listOf(AppRoute.Main.Scanner))
                 }
             } else {
@@ -218,6 +214,6 @@ private fun buildNavGraphForLaunch(
             }
         }
 
-        AuthState.LoggedInAwaitingUser -> null
+        AuthState.Authenticating -> null
     }
 }

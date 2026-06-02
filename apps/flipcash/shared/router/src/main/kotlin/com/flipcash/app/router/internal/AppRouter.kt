@@ -34,7 +34,7 @@ internal class AppRouter(
         val type = classify(deepLink) ?: return DeeplinkAction.None
 
         // Not logged in — redirect to login (or login deeplink itself)
-        if (authStateProvider() !is AuthState.LoggedInWithUser) {
+        if (authStateProvider() !is AuthState.Ready) {
             return when (type) {
                 is DeeplinkType.Login -> DeeplinkAction.Navigate(
                     listOf(AppRoute.OnboardingFlow(seed = type.entropy, fromDeeplink = true))
