@@ -9,19 +9,21 @@ import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.extensions.onResult
-import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.withdrawal.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.amountentry.AmountEntryAction
+import com.flipcash.shared.amountentry.AmountEntryConfig
+import com.flipcash.shared.amountentry.AmountEntryDelegate
+import com.flipcash.shared.amountentry.AmountEntryHint
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
-import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
@@ -31,8 +33,6 @@ import com.getcode.opencode.model.financial.plus
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.solana.keys.Mint
-import com.getcode.ui.components.text.AmountAnimatedInputUiModel
-import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import com.getcode.vendor.Base58
@@ -41,6 +41,8 @@ import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
@@ -52,15 +54,9 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-internal data class AmountEntryState(
-    val currencyModel: CurrencyHolder = CurrencyHolder(),
-    val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
-    val confirmingAmount: LoadingSuccessState = LoadingSuccessState(),
-    val selectedAmount: VerifiedFiat = VerifiedFiat(LocalFiat.Zero, null),
-)
 
 internal data class DestinationState(
     val textFieldState: TextFieldState = TextFieldState(),
@@ -86,20 +82,18 @@ internal class WithdrawalViewModel @Inject constructor(
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
-    private val numberInputHelper = NumberInputHelper()
+    val amountDelegate = AmountEntryDelegate(exchange, viewModelScope)
 
     internal data class State(
         val selectedTokenAddress: Mint? = null,
         val token: TokenWithBalance? = null,
         val entryRate: Rate? = null,
         val feeAmount: Fiat? = null,
-        val amountEntryState: AmountEntryState = AmountEntryState(),
+        val confirmingAmount: LoadingSuccessState = LoadingSuccessState(),
+        val selectedAmount: VerifiedFiat = VerifiedFiat(LocalFiat.Zero, null),
         val destinationState: DestinationState = DestinationState(),
         val withdrawalState: LoadingSuccessState = LoadingSuccessState(),
     ) {
-        val canWithdraw: Boolean
-            get() = (amountEntryState.amountAnimatedModel.amountData.amount) > 0.00
-
         val tokenBalance: Fiat
             get() = token?.balance ?: Fiat.Zero
 
@@ -112,39 +106,16 @@ internal class WithdrawalViewModel @Inject constructor(
 
         val minimumWithdrawalAmount: Fiat
             get() {
-                val amount = amountEntryState.selectedAmount.localFiat.nativeAmount
+                val amount = selectedAmount.localFiat.nativeAmount
                 val baseline = (feeInEntryCurrency ?: 0.00.toFiat(amount.currencyCode))
                 return baseline + baseline.smallestUnit
             }
 
         val netTransferAmount: Fiat
             get() {
-                val amount = amountEntryState.selectedAmount.localFiat.nativeAmount
+                val amount = selectedAmount.localFiat.nativeAmount
                 val fee = feeInEntryCurrency ?: 0.00.toFiat(amount.currencyCode)
                 return amount - fee
-            }
-
-        val error: EnteredAmountError
-            get() {
-                if (amountEntryState.amountAnimatedModel.amountData.isEmpty()) return EnteredAmountError.None
-
-                val enteredAmount = Fiat(
-                    fiat = amountEntryState.amountAnimatedModel.amountData.amount,
-                    currencyCode = tokenBalance.currencyCode
-                )
-                if (!enteredAmount.valueNonZero()) return EnteredAmountError.None
-
-                if (enteredAmount.valueGreaterThan(tokenBalance)) {
-                    return EnteredAmountError.InsufficientFunds
-                }
-
-                val fee = feeInEntryCurrency ?: 0.00.toFiat(tokenBalance.currencyCode)
-
-                if (enteredAmount.valueLessThanOrEqualTo(fee)) {
-                    return EnteredAmountError.TooLow
-                }
-
-                return EnteredAmountError.None
             }
     }
 
@@ -161,13 +132,7 @@ internal class WithdrawalViewModel @Inject constructor(
         data class OnTokenUpdated(val token: TokenWithBalance) : Event
 
         // amount
-        data class OnNumberPressed(val number: Int) : Event
-        data object OnDecimalPressed : Event
-        data object OnBackspace : Event
-        data class OnEnteredNumberChanged(val backspace: Boolean = false) : Event
-        data class OnAmountChanged(val amountAnimatedModel: AmountAnimatedInputUiModel) : Event
         data class OnFeeChanged(val fee: Fiat?): Event
-        data class OnCurrencyChanged(val currency: Currency) : Event
         data object OnAmountConfirmed : Event
         data class OnEntryRateUpdated(val rate: Rate) : Event
         data class OnAmountAccepted(val amount: VerifiedFiat) : Event
@@ -175,8 +140,7 @@ internal class WithdrawalViewModel @Inject constructor(
         data class UpdateConfirmingAmountState(
             val loading: Boolean = false,
             val success: Boolean = false
-        ) :
-            Event
+        ) : Event
 
         // destination
         data class OnAvailabilityChecked(val availability: WithdrawalAvailability?) : Event
@@ -205,8 +169,23 @@ internal class WithdrawalViewModel @Inject constructor(
         data object OnWithdrawSuccessful : Event
     }
 
+    private fun computeError(): EnteredAmountError {
+        val delegateState = amountDelegate.state.value
+        val state = stateFlow.value
+        if (delegateState.amountAnimatedModel.amountData.isEmpty()) return EnteredAmountError.None
+        val enteredAmount = Fiat(
+            fiat = delegateState.amountAnimatedModel.amountData.amount,
+            currencyCode = state.tokenBalance.currencyCode
+        )
+        if (!enteredAmount.valueNonZero()) return EnteredAmountError.None
+        if (enteredAmount.valueGreaterThan(state.tokenBalance)) return EnteredAmountError.InsufficientFunds
+        val fee = state.feeInEntryCurrency ?: 0.00.toFiat(state.tokenBalance.currencyCode)
+        if (enteredAmount.valueLessThanOrEqualTo(fee)) return EnteredAmountError.TooLow
+        return EnteredAmountError.None
+    }
+
     val checkBalanceLimit: () -> Boolean = {
-        val isOverBalance = stateFlow.value.error == EnteredAmountError.InsufficientFunds
+        val isOverBalance = computeError() == EnteredAmountError.InsufficientFunds
         if (isOverBalance) {
             BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_insufficientFunds),
@@ -217,7 +196,7 @@ internal class WithdrawalViewModel @Inject constructor(
     }
 
     val checkMinimumExceeded: () -> Boolean = {
-        val isUnderMinimum = stateFlow.value.error == EnteredAmountError.TooLow
+        val isUnderMinimum = computeError() == EnteredAmountError.TooLow
         if (isUnderMinimum) {
             BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_withdrawalTooSmall),
@@ -227,8 +206,51 @@ internal class WithdrawalViewModel @Inject constructor(
         isUnderMinimum
     }
 
+    val config: StateFlow<AmountEntryConfig> = combine(
+        amountDelegate.state,
+        stateFlow,
+    ) { delegateState, vmState ->
+        val error = run {
+            if (delegateState.amountAnimatedModel.amountData.isEmpty()) EnteredAmountError.None
+            else {
+                val enteredAmount = Fiat(
+                    fiat = delegateState.amountAnimatedModel.amountData.amount,
+                    currencyCode = vmState.tokenBalance.currencyCode
+                )
+                if (!enteredAmount.valueNonZero()) EnteredAmountError.None
+                else if (enteredAmount.valueGreaterThan(vmState.tokenBalance)) EnteredAmountError.InsufficientFunds
+                else {
+                    val fee = vmState.feeInEntryCurrency ?: 0.00.toFiat(vmState.tokenBalance.currencyCode)
+                    if (enteredAmount.valueLessThanOrEqualTo(fee)) EnteredAmountError.TooLow
+                    else EnteredAmountError.None
+                }
+            }
+        }
+
+        val hint = when (error) {
+            EnteredAmountError.InsufficientFunds -> AmountEntryHint.Error(
+                resources.getString(R.string.subtitle_withdrawHintLimitExceeded, vmState.tokenBalance.formatted())
+            )
+            EnteredAmountError.TooLow -> AmountEntryHint.Error(
+                resources.getString(R.string.subtitle_withdrawHintMinimumNotMet, vmState.minimumWithdrawalAmount.formatted())
+            )
+            EnteredAmountError.None -> AmountEntryHint.Info(
+                resources.getString(R.string.subtitle_withdrawHint, vmState.tokenBalance.formatted())
+            )
+        }
+
+        AmountEntryConfig(
+            hint = hint,
+            canConfirm = delegateState.enteredAmount > 0.00,
+            canChangeCurrency = true,
+            action = AmountEntryAction(
+                label = resources.getString(R.string.action_next),
+                loadingState = vmState.confirmingAmount,
+            ),
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AmountEntryConfig(action = AmountEntryAction(label = "")))
+
     init {
-        numberInputHelper.reset()
         dispatchEvent(Event.OnEntryRateUpdated(exchange.preferredRate))
 
         stateFlow
@@ -261,7 +283,7 @@ internal class WithdrawalViewModel @Inject constructor(
             }.mapNotNull { (token, balance) ->
                 exchange.getCurrency(balance.currencyCode.name)
             }.onEach {
-                dispatchEvent(Event.OnCurrencyChanged(it))
+                amountDelegate.onCurrencyChanged(it)
             }.launchIn(viewModelScope)
 
         userFlags.resolvedFlags
@@ -269,67 +291,14 @@ internal class WithdrawalViewModel @Inject constructor(
             .onEach { fee -> dispatchEvent(Event.OnFeeChanged(fee)) }
             .launchIn(viewModelScope)
 
-        eventFlow
-            .filterIsInstance<Event.OnCurrencyChanged>()
-            .map { it.currency }
-            .onEach {
-                numberInputHelper.fractionUnits = it.fractionUnits
-            }.launchIn(viewModelScope)
-
         exchange.observePreferredRate()
             .onEach {
-                // reset when entry rate changes
-                numberInputHelper.reset()
-                dispatchEvent(Event.OnAmountChanged(AmountAnimatedInputUiModel()))
                 dispatchEvent(Event.OnEntryRateUpdated(it))
             }.launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.OnNumberPressed>()
-            .map { it.number }
-            .onEach { number ->
-                numberInputHelper.fractionUnits =
-                    stateFlow.value.amountEntryState.currencyModel.fractionUnits
-                numberInputHelper.maxLength = 10 // 1 billion dollars
-                numberInputHelper.onNumber(number)
-                dispatchEvent(Event.OnEnteredNumberChanged())
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnDecimalPressed>()
-            .onEach {
-                numberInputHelper.onDot()
-                dispatchEvent(Event.OnEnteredNumberChanged())
-            }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnBackspace>()
-            .onEach {
-                numberInputHelper.onBackspace()
-                dispatchEvent(Event.OnEnteredNumberChanged(true))
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnEnteredNumberChanged>()
-            .map { it.backspace }
-            .onEach { backspace ->
-                val current = stateFlow.value.amountEntryState.amountAnimatedModel
-                val model = stateFlow.value.amountEntryState.amountAnimatedModel
-                val amount = numberInputHelper.getFormattedStringForAnimation(includeCommas = true)
-
-                val updated = model.copy(
-                    amountDataLast = current.amountData,
-                    amountData = amount,
-                    lastPressedBackspace = backspace
-                )
-
-                dispatchEvent(Event.OnAmountChanged(updated))
-            }.launchIn(viewModelScope)
-
-        eventFlow
             .filterIsInstance<Event.OnAmountConfirmed>()
-            .map { stateFlow.value.amountEntryState.amountAnimatedModel }
+            .map { amountDelegate.state.value.amountAnimatedModel }
             .filterNot { checkBalanceLimit() }
             .filterNot { checkMinimumExceeded() }
             .onEach { data ->
@@ -460,7 +429,7 @@ internal class WithdrawalViewModel @Inject constructor(
             .filterIsInstance<Event.ProceedWithWithdrawal>()
             .mapNotNull {
                 val token = stateFlow.value.token?.token
-                val amount = stateFlow.value.amountEntryState.selectedAmount
+                val amount = stateFlow.value.selectedAmount
                 val withdrawalChecks = stateFlow.value.destinationState.availability
                 val rawDestination = withdrawalChecks?.destination
                 val resolvedDestination = withdrawalChecks?.resolvedDestination
@@ -525,7 +494,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 onError = {
                     analytics.transfer(
                         event = Analytics.Transfer.Withdrawal,
-                        amount = stateFlow.value.amountEntryState.selectedAmount.localFiat,
+                        amount = stateFlow.value.selectedAmount.localFiat,
                         successful = false,
                         error = it,
                     )
@@ -538,7 +507,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 onSuccess = {
                     analytics.transfer(
                         event = Analytics.Transfer.Withdrawal,
-                        amount = stateFlow.value.amountEntryState.selectedAmount.localFiat,
+                        amount = stateFlow.value.selectedAmount.localFiat,
                     )
                     viewModelScope.launch {
                         coroutineScope {
@@ -556,7 +525,7 @@ internal class WithdrawalViewModel @Inject constructor(
             .filterIsInstance<Event.ProceedWithWithdrawalViaSwapper>()
             .mapNotNull {
                 val token = stateFlow.value.token?.token
-                val amount = stateFlow.value.amountEntryState.selectedAmount
+                val amount = stateFlow.value.selectedAmount
                 val withdrawalChecks = stateFlow.value.destinationState.availability
                 val rawDestination = withdrawalChecks?.destination
                 val resolvedDestination = withdrawalChecks?.resolvedDestination
@@ -624,7 +593,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 onSuccess = {
                     analytics.transfer(
                         event = Analytics.Transfer.Withdrawal,
-                        amount = stateFlow.value.amountEntryState.selectedAmount.localFiat,
+                        amount = stateFlow.value.selectedAmount.localFiat,
                     )
                     viewModelScope.launch {
                         coroutineScope {
@@ -638,7 +607,7 @@ internal class WithdrawalViewModel @Inject constructor(
                 onError = {
                     analytics.transfer(
                         event = Analytics.Transfer.Withdrawal,
-                        amount = stateFlow.value.amountEntryState.selectedAmount.localFiat,
+                        amount = stateFlow.value.selectedAmount.localFiat,
                         successful = false,
                         error = it,
                     )
@@ -667,15 +636,6 @@ internal class WithdrawalViewModel @Inject constructor(
                 }
                 is Event.OnTokenUpdated -> { state -> state.copy(token = event.token) }
 
-                is Event.OnAmountChanged -> { state ->
-                    val entryState = state.amountEntryState
-                    state.copy(
-                        amountEntryState = entryState.copy(
-                            amountAnimatedModel = event.amountAnimatedModel
-                        )
-                    )
-                }
-
                 is Event.OnFeeChanged -> { state ->
                     state.copy(feeAmount = event.fee)
                 }
@@ -690,44 +650,24 @@ internal class WithdrawalViewModel @Inject constructor(
                 Event.PasteFromClipboard,
                 Event.OnAmountConfirmed,
                 Event.OnDestinationConfirmed,
-                Event.OnWithdraw,
-                Event.OnBackspace,
-                is Event.OnEnteredNumberChanged,
-                is Event.OnNumberPressed,
-                Event.OnDecimalPressed -> { state -> state }
-
-                is Event.OnCurrencyChanged -> { state ->
-                    val entryState = state.amountEntryState
-                    state.copy(
-                        amountEntryState = entryState.copy(
-                            currencyModel = CurrencyHolder(event.currency)
-                        )
-                    )
-                }
+                Event.OnWithdraw -> { state -> state }
 
                 is Event.OnEntryRateUpdated -> { state ->
                     state.copy(entryRate = event.rate)
                 }
 
                 is Event.OnAmountAccepted -> { state ->
-                    val entryState = state.amountEntryState
                     state.copy(
-                        amountEntryState = entryState.copy(
-                            selectedAmount = event.amount,
-                            confirmingAmount = LoadingSuccessState()
-                        )
+                        selectedAmount = event.amount,
+                        confirmingAmount = LoadingSuccessState()
                     )
                 }
 
                 is Event.UpdateConfirmingAmountState -> { state ->
-                    val entryState = state.amountEntryState
-                    val loadingSuccess = entryState.confirmingAmount
                     state.copy(
-                        amountEntryState = entryState.copy(
-                            confirmingAmount = loadingSuccess.copy(
-                                loading = event.loading,
-                                success = event.success,
-                            )
+                        confirmingAmount = state.confirmingAmount.copy(
+                            loading = event.loading,
+                            success = event.success,
                         )
                     )
                 }

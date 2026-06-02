@@ -3,10 +3,8 @@ package com.flipcash.app.cash.internal
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
-import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.cash.R
-import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
@@ -21,16 +19,12 @@ import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.solana.keys.Mint
-import com.getcode.ui.components.text.AmountAnimatedInputUiModel
-import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.view.LoadingSuccessState
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -41,7 +35,6 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -122,16 +115,6 @@ class CashScreenViewModelTest {
     }
 
     @Test
-    fun `updateStateForEvent OnAmountChanged updates amountAnimatedModel`() {
-        val model = AmountAnimatedInputUiModel(
-            amountData = NumberInputHelper.AmountAnimatedData(amountText = "42"),
-        )
-        val state = CashScreenViewModel.State()
-        val updated = updateStateForEvent(CashScreenViewModel.Event.OnAmountChanged(model))(state)
-        assertEquals(model, updated.amountAnimatedModel)
-    }
-
-    @Test
     fun `updateStateForEvent OnMaxDetermined sets maxForGive`() {
         val state = CashScreenViewModel.State()
         val updated = updateStateForEvent(
@@ -170,58 +153,6 @@ class CashScreenViewModelTest {
     // ---------------------------------------------------------------
 
     @Test
-    fun `canGive is false when amount is zero`() {
-        val state = CashScreenViewModel.State(
-            amountAnimatedModel = AmountAnimatedInputUiModel(
-                amountData = NumberInputHelper.AmountAnimatedData(amountText = "0")
-            )
-        )
-        assertFalse(state.canGive)
-    }
-
-    @Test
-    fun `canGive is true when amount is positive`() {
-        val state = CashScreenViewModel.State(
-            amountAnimatedModel = AmountAnimatedInputUiModel(
-                amountData = NumberInputHelper.AmountAnimatedData(amountText = "5")
-            )
-        )
-        assertTrue(state.canGive)
-    }
-
-    @Test
-    fun `isError is false when amount is empty`() {
-        val state = CashScreenViewModel.State(
-            amountAnimatedModel = AmountAnimatedInputUiModel(
-                amountData = NumberInputHelper.AmountAnimatedData(amountText = "")
-            )
-        )
-        assertFalse(state.isError)
-    }
-
-    @Test
-    fun `isError is true when amount exceeds maxForGive`() {
-        val state = CashScreenViewModel.State(
-            amountAnimatedModel = AmountAnimatedInputUiModel(
-                amountData = NumberInputHelper.AmountAnimatedData(amountText = "200")
-            ),
-            maxForGive = 100.0 to CurrencyCode.USD,
-        )
-        assertTrue(state.isError)
-    }
-
-    @Test
-    fun `isError is false when amount is within maxForGive`() {
-        val state = CashScreenViewModel.State(
-            amountAnimatedModel = AmountAnimatedInputUiModel(
-                amountData = NumberInputHelper.AmountAnimatedData(amountText = "50")
-            ),
-            maxForGive = 100.0 to CurrencyCode.USD,
-        )
-        assertFalse(state.isError)
-    }
-
-    @Test
     fun `maxAvailableForGive formats from maxForGive pair`() {
         val state = CashScreenViewModel.State(
             maxForGive = 42.50 to CurrencyCode.USD,
@@ -253,20 +184,17 @@ class CashScreenViewModelTest {
 
             val vm = createViewModel()
 
-            // Set state: token + amount of $20 (over the $10 balance) + currencyModel with USD
+            // Set state: token + currencyModel with USD
             vm.dispatchEvent(CashScreenViewModel.Event.OnTokenUpdated(tokenWithBalance))
-            vm.dispatchEvent(
-                CashScreenViewModel.Event.OnAmountChanged(
-                    AmountAnimatedInputUiModel(
-                        amountData = NumberInputHelper.AmountAnimatedData(amountText = "20")
-                    )
-                )
-            )
             vm.dispatchEvent(
                 CashScreenViewModel.Event.OnCurrencyChanged(
                     Currency(code = "USD", name = "US Dollar")
                 )
             )
+            // Enter amount via delegate: $20 (over the $10 balance)
+            vm.amountDelegate.onCurrencyChanged(Currency(code = "USD", name = "US Dollar"))
+            vm.amountDelegate.onNumber(2)
+            vm.amountDelegate.onNumber(0)
             advanceUntilIdle()
 
             val result = vm.checkBalanceLimit()
@@ -295,17 +223,13 @@ class CashScreenViewModelTest {
 
             vm.dispatchEvent(CashScreenViewModel.Event.OnTokenUpdated(tokenWithBalance))
             vm.dispatchEvent(
-                CashScreenViewModel.Event.OnAmountChanged(
-                    AmountAnimatedInputUiModel(
-                        amountData = NumberInputHelper.AmountAnimatedData(amountText = "5")
-                    )
-                )
-            )
-            vm.dispatchEvent(
                 CashScreenViewModel.Event.OnCurrencyChanged(
                     Currency(code = "USD", name = "US Dollar")
                 )
             )
+            // Enter amount via delegate: $5 (within the $100 balance)
+            vm.amountDelegate.onCurrencyChanged(Currency(code = "USD", name = "US Dollar"))
+            vm.amountDelegate.onNumber(5)
             advanceUntilIdle()
 
             val result = vm.checkBalanceLimit()
@@ -328,17 +252,15 @@ class CashScreenViewModelTest {
 
             vm.dispatchEvent(CashScreenViewModel.Event.OnLimitsChanged(limits))
             vm.dispatchEvent(
-                CashScreenViewModel.Event.OnAmountChanged(
-                    AmountAnimatedInputUiModel(
-                        amountData = NumberInputHelper.AmountAnimatedData(amountText = "100")
-                    )
-                )
-            )
-            vm.dispatchEvent(
                 CashScreenViewModel.Event.OnCurrencyChanged(
                     Currency(code = "USD", name = "US Dollar")
                 )
             )
+            // Enter amount via delegate: $100 (over $50 limit)
+            vm.amountDelegate.onCurrencyChanged(Currency(code = "USD", name = "US Dollar"))
+            vm.amountDelegate.onNumber(1)
+            vm.amountDelegate.onNumber(0)
+            vm.amountDelegate.onNumber(0)
             advanceUntilIdle()
 
             val result = vm.checkSendLimit()
@@ -365,17 +287,14 @@ class CashScreenViewModelTest {
 
             vm.dispatchEvent(CashScreenViewModel.Event.OnLimitsChanged(limits))
             vm.dispatchEvent(
-                CashScreenViewModel.Event.OnAmountChanged(
-                    AmountAnimatedInputUiModel(
-                        amountData = NumberInputHelper.AmountAnimatedData(amountText = "10")
-                    )
-                )
-            )
-            vm.dispatchEvent(
                 CashScreenViewModel.Event.OnCurrencyChanged(
                     Currency(code = "USD", name = "US Dollar")
                 )
             )
+            // Enter amount via delegate: $10 (within $500 limit)
+            vm.amountDelegate.onCurrencyChanged(Currency(code = "USD", name = "US Dollar"))
+            vm.amountDelegate.onNumber(1)
+            vm.amountDelegate.onNumber(0)
             advanceUntilIdle()
 
             val result = vm.checkSendLimit()

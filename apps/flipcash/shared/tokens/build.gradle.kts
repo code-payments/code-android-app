@@ -18,6 +18,7 @@ dependencies {
 
     implementation(libs.androidx.lifecycle.process)
 
+    implementation(project(":apps:flipcash:shared:amount-entry"))
     implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:activityfeed"))
     implementation(project(":apps:flipcash:shared:analytics"))
