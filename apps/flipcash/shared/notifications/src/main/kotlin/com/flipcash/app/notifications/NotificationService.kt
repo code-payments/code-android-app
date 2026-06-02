@@ -7,7 +7,11 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.ImageDecoder
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.media.RingtoneManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -152,7 +156,7 @@ class NotificationService : FirebaseMessagingService(),
             }
 
         val notificationId = if (isContactChat) {
-            applyContactChatStyle(builder, groupKey, body)
+            builder.applyContactChatStyle(groupKey, body)
         } else {
             builder.setContentTitle(title).setContentText(body)
             SecureRandom().nextInt(Int.MAX_VALUE)
@@ -173,8 +177,7 @@ class NotificationService : FirebaseMessagingService(),
         }
     }
 
-    private suspend fun applyContactChatStyle(
-        builder: NotificationCompat.Builder,
+    private suspend fun NotificationCompat.Builder.applyContactChatStyle(
         groupKey: String,
         body: String?,
     ): Int {
@@ -195,7 +198,7 @@ class NotificationService : FirebaseMessagingService(),
             .setName(senderName)
             .setKey(groupKey)
             .apply {
-                if (contactPhoto != null) setIcon(IconCompat.createWithAdaptiveBitmap(contactPhoto))
+                if (contactPhoto != null) setIcon(IconCompat.createWithBitmap(contactPhoto.toCircularBitmap()))
             }
             .build()
 
@@ -209,7 +212,7 @@ class NotificationService : FirebaseMessagingService(),
 
         style.addMessage(body.orEmpty(), System.currentTimeMillis(), senderPerson)
 
-        builder.setStyle(style)
+        setStyle(style)
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
 
         return notificationId
@@ -251,6 +254,24 @@ class NotificationService : FirebaseMessagingService(),
         } else {
             block()
         }
+    }
+
+    private fun Bitmap.toCircularBitmap(): Bitmap {
+        val size = minOf(width, height)
+        val xOffset = (width - size) / 2
+        val yOffset = (height - size) / 2
+
+        val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
+
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val half = size / 2f
+        canvas.drawCircle(half, half, half, paint)
+
+        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+        canvas.drawBitmap(this, -xOffset.toFloat(), -yOffset.toFloat(), paint)
+
+        return output
     }
 
     internal fun Context.buildContentIntent(navigation: NavigationTrigger?): PendingIntent {
