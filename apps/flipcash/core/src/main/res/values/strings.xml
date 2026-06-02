@@ -740,6 +740,7 @@
 
     <string name="prompt_title_fundsSentToContact">Cash Sent Successfully</string>
     <string name="prompt_description_fundsSentToContact">%1$s is on its way to %2$s</string>
+    <string name="subtitle_yourSelectedRecipient">your selected recipient</string>
 
     <string name="error_title_cashFailedToSend">Something Went Wrong</string>
     <string name="error_description_cashFailedToSend">We were unable to send your cash. Please try again</string>
