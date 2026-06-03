@@ -16,6 +16,26 @@ class FullAccessContactReader @Inject constructor(
     private val phoneUtils: PhoneUtils,
 ) : DeviceContactReader {
 
+    /**
+     * Reads all device contacts and deduplicates by E.164-normalized phone number.
+     *
+     * The returned map is keyed by E.164, so each normalized number appears exactly once.
+     * When multiple rows resolve to the same E.164 (e.g. "+1 555-1234" and "5551234"),
+     * the **first occurrence wins** for `displayName` and `androidContactId`, with one
+     * exception: if the existing entry has no photo and a later row does, the later row's
+     * full record replaces the earlier one (photo promotion).
+     *
+     * A single Android contact with multiple phone numbers produces **separate** map entries,
+     * one per distinct E.164.
+     *
+     * | Scenario                              | Result                                          |
+     * |---------------------------------------|-------------------------------------------------|
+     * | First occurrence of an E.164          | Inserted as-is                                  |
+     * | Duplicate E.164, existing has photo   | Skipped (first-occurrence-wins)                 |
+     * | Duplicate E.164, existing lacks photo | Replaced (photo promotion)                      |
+     * | Raw number fails E.164 normalization  | Skipped entirely                                |
+     * | Multi-number contact                  | Each valid E.164 becomes its own entry          |
+     */
     override suspend fun readAll(): Result<Map<String, DeviceContact>> {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
             return Result.failure(SecurityException("READ_CONTACTS not granted"))
