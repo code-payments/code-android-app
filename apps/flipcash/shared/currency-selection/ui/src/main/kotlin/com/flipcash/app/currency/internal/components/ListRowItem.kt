@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.material.Divider
-import androidx.compose.material.Text
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.app.currency.internal.CurrencyListItem
 import com.flipcash.features.currency.R
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.SwipeToRevealItem
+import com.getcode.ui.components.SwipeActionRow
 import com.getcode.ui.core.rememberedClickable
 
 @Composable
@@ -91,28 +91,38 @@ internal fun ListRowItem(
                     contentDescription = ""
                 )
             }
-
-            Divider(
-                color = CodeTheme.colors.dividerVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .align(Alignment.BottomCenter)
-                    .padding(start = CodeTheme.dimens.inset)
-            )
         }
     }
 
     if (item.isRecent) {
-        SwipeToRevealItem(
-            modifier = modifier,
-            onDelete = onRemoved,
-        ) {
-            rowContent()
+        Column(modifier = modifier) {
+            SwipeActionRow(
+                modifier = Modifier.weight(1f),
+                onDelete = onRemoved,
+                stateKey = item.currency.code,
+            ) {
+                rowContent()
+            }
+            HorizontalDivider(
+                color = CodeTheme.colors.dividerVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .padding(start = CodeTheme.dimens.inset)
+            )
         }
     } else {
-        Box(modifier = modifier) {
-            rowContent()
+        Column(modifier = modifier) {
+            Box(modifier = Modifier.weight(1f)) {
+                rowContent()
+            }
+            HorizontalDivider(
+                color = CodeTheme.colors.dividerVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .padding(start = CodeTheme.dimens.inset)
+            )
         }
     }
 }
