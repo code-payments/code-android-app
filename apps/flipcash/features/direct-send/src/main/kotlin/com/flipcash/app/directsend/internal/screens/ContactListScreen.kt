@@ -5,11 +5,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.AnchoredDraggableState
-import androidx.compose.foundation.gestures.DraggableAnchors
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.anchoredDraggable
-import androidx.compose.foundation.gestures.snapTo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -19,7 +14,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
@@ -27,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material3.HorizontalDivider
@@ -36,24 +29,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -84,14 +69,13 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.components.SearchInput
+import com.getcode.ui.components.SwipeToRevealItem
 import com.getcode.ui.core.rememberedClickable
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.view.LoadingSuccessState
-import kotlin.math.abs
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.launch
 
 
 @Composable
@@ -286,101 +270,6 @@ private fun ContactList(
                     }
                 }
             }
-        }
-    }
-}
-
-private enum class RevealValue { Settled, Revealed, Dismissed }
-
-@Composable
-private fun SwipeToRevealItem(
-    onDelete: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    val density = LocalDensity.current
-    val scope = rememberCoroutineScope()
-    val actionWidth = CodeTheme.dimens.staticGrid.x10 + CodeTheme.dimens.inset * 2
-    val actionWidthPx = with(density) { actionWidth.toPx() }
-
-    val state = remember { AnchoredDraggableState(initialValue = RevealValue.Settled) }
-    var rowWidthPx by remember { mutableFloatStateOf(0f) }
-
-    LaunchedEffect(rowWidthPx, actionWidthPx) {
-        if (rowWidthPx > 0f) {
-            state.updateAnchors(DraggableAnchors {
-                RevealValue.Settled at 0f
-                RevealValue.Revealed at -actionWidthPx
-                RevealValue.Dismissed at -rowWidthPx
-            })
-        }
-    }
-
-    val currentOnDelete by rememberUpdatedState(onDelete)
-    LaunchedEffect(state.currentValue) {
-        if (state.currentValue == RevealValue.Dismissed) {
-            currentOnDelete()
-        }
-    }
-
-    val actionPadding = CodeTheme.dimens.inset
-    val minActionSize = CodeTheme.dimens.staticGrid.x10
-
-    Box(
-        modifier = modifier
-            .clipToBounds()
-            .onSizeChanged { rowWidthPx = it.width.toFloat() },
-    ) {
-        // Action area — grows from circle to rounded rect as swipe progresses
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .layout { measurable, constraints ->
-                    val absOffset = abs(state.offset)
-                    val paddingPx = actionPadding.roundToPx()
-                    val minPx = minActionSize.roundToPx()
-
-                    val w = (absOffset.toInt() - paddingPx * 2).coerceAtLeast(minPx)
-                    val h = (constraints.maxHeight - paddingPx * 2).coerceAtLeast(minPx)
-
-                    val placeable = measurable.measure(
-                        constraints.copy(
-                            minWidth = w, maxWidth = w,
-                            minHeight = h, maxHeight = h,
-                        )
-                    )
-                    layout(constraints.maxWidth, constraints.maxHeight) {
-                        placeable.place(
-                            constraints.maxWidth - placeable.width - paddingPx,
-                            (constraints.maxHeight - placeable.height) / 2,
-                        )
-                    }
-                }
-                .clip(RoundedCornerShape(50))
-                .background(CodeTheme.colors.error)
-                .rememberedClickable {
-                    scope.launch {
-                        state.snapTo(RevealValue.Settled)
-                    }
-                    onDelete()
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_delete),
-                contentDescription = stringResource(R.string.action_remove),
-                tint = Color.White,
-                modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5),
-            )
-        }
-
-        // Foreground content that slides
-        Box(
-            modifier = Modifier
-                .offset { IntOffset(state.offset.toInt(), 0) }
-                .anchoredDraggable(state, Orientation.Horizontal),
-        ) {
-            content()
         }
     }
 }
