@@ -20,7 +20,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.currency.internal.CurrencyListItem
+import com.flipcash.app.currency.internal.RegionListItem
 import com.flipcash.features.currency.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SwipeActionRow
@@ -28,7 +28,7 @@ import com.getcode.ui.core.rememberedClickable
 
 @Composable
 internal fun ListRowItem(
-    item: CurrencyListItem.RegionCurrencyItem,
+    item: RegionListItem.RegionCurrencyItem,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
     onRemoved: () -> Unit,

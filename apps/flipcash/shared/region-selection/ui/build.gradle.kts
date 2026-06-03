@@ -9,6 +9,6 @@ android {
 dependencies {
     implementation(libs.androidx.datastore)
 
-    implementation(project(":apps:flipcash:shared:currency-selection:core"))
+    implementation(project(":apps:flipcash:shared:region-selection:core"))
     implementation(project(":libs:datetime"))
 }
