@@ -41,7 +41,7 @@ fun ContactPermissionScreen(fromOnboarding: Boolean) {
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(permissionState.status) {
         when (permissionState.status) {
             PermissionResult.Granted -> navigator.navigate(
                 route = AppRoute.Main.Scanner,
