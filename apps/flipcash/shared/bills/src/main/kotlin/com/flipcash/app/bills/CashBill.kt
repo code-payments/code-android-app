@@ -612,13 +612,12 @@ private fun BillCode(
 
 @Composable
 private fun loadBillAsset(drawableRes: Int): ImageBitmap {
-    val option = BitmapFactory.Options()
-    option.inPreferredConfig = Bitmap.Config.ARGB_8888
-    return BitmapFactory.decodeResource(
-        LocalResources.current,
-        drawableRes,
-        option
-    ).asImageBitmap()
+    val resources = LocalResources.current
+    return remember(drawableRes) {
+        val option = BitmapFactory.Options()
+        option.inPreferredConfig = Bitmap.Config.ARGB_8888
+        BitmapFactory.decodeResource(resources, drawableRes, option).asImageBitmap()
+    }
 }
 
 private class BillPunchShape(

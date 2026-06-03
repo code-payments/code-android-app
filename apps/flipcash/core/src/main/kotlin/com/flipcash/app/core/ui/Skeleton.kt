@@ -5,12 +5,15 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import com.getcode.theme.CodeTheme
 
 @Composable
@@ -18,7 +21,17 @@ fun Modifier.shimmer(
     shape: Shape = CodeTheme.shapes.medium
 ): Modifier {
     val alpha = rememberShimmerAlpha()
-    return this.background(Color.White.copy(alpha = alpha), shape)
+    val density = LocalDensity.current
+    val layoutDirection = LocalLayoutDirection.current
+    return this.drawWithCache {
+        val outline = shape.createOutline(size, layoutDirection, density)
+        onDrawBehind {
+            drawOutline(
+                outline = outline,
+                color = Color.White.copy(alpha = alpha),
+            )
+        }
+    }
 }
 
 @Composable
