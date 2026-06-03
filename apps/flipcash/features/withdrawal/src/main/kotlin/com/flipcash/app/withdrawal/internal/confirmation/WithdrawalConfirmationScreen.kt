@@ -37,7 +37,7 @@ internal fun WithdrawalConfirmationScreen(viewModel: WithdrawalViewModel) {
 }
 
 @Composable
-private fun WithdrawalConfirmationScreenContent(
+internal fun WithdrawalConfirmationScreenContent(
     state: WithdrawalViewModel.State,
     dispatchEvent: (WithdrawalViewModel.Event) -> Unit
 ) {

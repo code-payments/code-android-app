@@ -9,6 +9,7 @@ android {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.bundles.compose.ui.testing)
     testImplementation(project(":libs:test-utils"))
 
     implementation(project(":apps:flipcash:shared:amount-entry"))

@@ -313,6 +313,7 @@ firebase = ["firebase-messaging", "firebase-installations"]
 kotlinx-serialization = ["kotlinx-serialization-core", "kotlinx-serialization-json"]
 testing = ["junit", "androidx-junit", "espresso-core"]
 unit-testing = ["kotlinx-coroutines-test", "mockk", "turbine", "testing-slf4j-simple", "testing-compose-uiTestManifest", "testing-androidx-compose-test-junit4", "testing-lifecycle", "testing-androidx-arch-core", "testing-androidx-test-rules"]
+compose-ui-testing = ["robolectric"]
 grpc = ["grpc-okhttp", "grpc-kotlin", "grpc-protobuf-lite", "grpc-stub"]
 
 [plugins]

@@ -36,6 +36,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
 
                 testOptions {
                     unitTests.isReturnDefaultValues = true
+                    unitTests.isIncludeAndroidResources = true
                 }
 
                 compileOptions {
