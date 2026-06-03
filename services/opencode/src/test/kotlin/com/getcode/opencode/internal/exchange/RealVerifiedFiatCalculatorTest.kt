@@ -420,6 +420,27 @@ class RealVerifiedFiatCalculatorTest {
         assertIs<ComputeVerifiedFiatError.AmountBelowMinimum>(result.exceptionOrNull())
     }
 
+    @Test
+    fun `one cent USD succeeds for established token`() = runTest {
+        // Regression: $0.01 USD on a high-supply (established) bonding-curve token
+        // would fail with AmountBelowMinimum due to round-trip precision loss through
+        // the bonding curve. The sell estimate quarks (e.g. 9987) fell just below the
+        // smallestUnit (10000) before rounding, even though formatted() shows "$0.01".
+        val supply = 50_000_000_000_000L // established token with high supply
+        val token = bondingCurveToken(supply = supply)
+        stubVerifiedState(CurrencyCode.USD, testMint, supply)
+
+        val result = calculator.compute(
+            amount = Fiat(fiat = 0.01, currencyCode = CurrencyCode.USD),
+            token = token,
+            rate = Rate.oneToOne,
+            trace = false,
+        )
+
+        assertTrue(result.isSuccess, "Expected success but got: ${result.exceptionOrNull()}")
+        assertTrue(result.getOrThrow().localFiat.underlyingTokenAmount.quarks > 0)
+    }
+
     // endregion
 
     // region helpers
