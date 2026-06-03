@@ -34,7 +34,6 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -115,17 +114,6 @@ class CashScreenViewModelTest {
     }
 
     @Test
-    fun `updateStateForEvent OnMaxDetermined sets maxForGive`() {
-        val state = CashScreenViewModel.State()
-        val updated = updateStateForEvent(
-            CashScreenViewModel.Event.OnMaxDetermined(max = 100.0, currencyCode = CurrencyCode.USD)
-        )(state)
-        assertNotNull(updated.maxForGive)
-        assertEquals(100.0, updated.maxForGive!!.first)
-        assertEquals(CurrencyCode.USD, updated.maxForGive!!.second)
-    }
-
-    @Test
     fun `updateStateForEvent OnLimitsChanged sets limits`() {
         val limits = Limits(
             sinceDate = 0L,
@@ -146,21 +134,6 @@ class CashScreenViewModelTest {
         )(state)
         assertTrue(updated.generatingBill.loading)
         assertFalse(updated.generatingBill.success)
-    }
-
-    // ---------------------------------------------------------------
-    // State computed property tests
-    // ---------------------------------------------------------------
-
-    @Test
-    fun `maxAvailableForGive formats from maxForGive pair`() {
-        val state = CashScreenViewModel.State(
-            maxForGive = 42.50 to CurrencyCode.USD,
-        )
-        // Fiat(42.50, USD).formatted() returns something like "$42.50"
-        val result = state.maxAvailableForGive
-        assertTrue(result.isNotEmpty(), "maxAvailableForGive should not be empty when maxForGive is set")
-        assertTrue(result.contains("42"), "maxAvailableForGive should contain the amount")
     }
 
     // ---------------------------------------------------------------

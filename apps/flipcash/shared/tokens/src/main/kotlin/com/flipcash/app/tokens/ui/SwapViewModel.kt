@@ -51,10 +51,8 @@ import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
-import com.flipcash.shared.amountentry.AmountEntryAction
-import com.flipcash.shared.amountentry.AmountEntryConfig
 import com.flipcash.shared.amountentry.AmountEntryDelegate
-import com.flipcash.shared.amountentry.AmountEntryHint
+import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -103,101 +101,53 @@ class SwapViewModel @Inject constructor(
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
-    val amountDelegate = AmountEntryDelegate(exchange, viewModelScope)
-
-    val config: StateFlow<AmountEntryConfig> by lazy {
-        combine(
-            amountDelegate.state,
-            stateFlow,
-        ) { delegateState, vmState ->
-            val enteredFiat = Fiat(
-                fiat = delegateState.enteredAmount,
-                currencyCode = vmState.tokenBalance.currencyCode,
-            )
-
-            val isBelowMinimum = run {
-                val min = vmState.minimumBuyAmount ?: return@run false
-                if (delegateState.isEmpty) return@run false
-                enteredFiat.valueLessThan(min)
-            }
-
-            val txLimit = when (vmState.purpose) {
-                is SwapPurpose.Buy -> {
-                    val sendLimit = enteredFiat.currencyCode.let {
-                        vmState.amountEntryState.limits?.sendLimitFor(it)
-                    } ?: SendLimit.Zero
-                    sendLimit.maxPerDay.toFiat(enteredFiat.currencyCode)
-                }
-                is SwapPurpose.Sell -> vmState.tokenBalance
-                null -> Fiat.Zero
-            }
-
-            val isError = run {
-                if (delegateState.isEmpty) false
-                else if (isBelowMinimum) true
-                else !enteredFiat.valueLessThanOrEqualTo(txLimit)
-            }
-
-            val maxAvailableToSwap = when (vmState.purpose) {
-                is SwapPurpose.Buy -> vmState.amountEntryState.maxToAdd?.let {
-                    Fiat(it.first, it.second).formatted()
-                }.orEmpty()
-                is SwapPurpose.Sell -> vmState.tokenBalance.formatted()
-                null -> ""
-            }
-
-            val canTransact = delegateState.enteredAmount > 0.00 &&
-                    vmState.buyProgress.isIdle &&
-                    vmState.sellProgress.isIdle &&
-                    vmState.processingProgress.isIdle
-
-            val hint = if (isBelowMinimum) {
-                AmountEntryHint.Error(
-                    resources.getString(
-                        R.string.subtitle_buyHintBelowMinimum,
-                        vmState.minimumBuyAmount?.formatted().orEmpty(),
-                    )
-                )
-            } else if (isError) {
-                when (vmState.purpose) {
-                    is SwapPurpose.BalanceIncrease -> AmountEntryHint.Error(
-                        resources.getString(R.string.subtitle_buyHintLimitExceeded, maxAvailableToSwap)
-                    )
-                    is SwapPurpose.BalanceDecrease -> AmountEntryHint.Error(
-                        resources.getString(R.string.subtitle_sellHintLimitExceeded, maxAvailableToSwap)
-                    )
-                    else -> AmountEntryHint.None
-                }
-            } else {
-                AmountEntryHint.Info(
-                    resources.getString(R.string.subtitle_buySellCashHint, maxAvailableToSwap)
-                )
-            }
-
-            val actionLabel = when (vmState.purpose) {
-                is SwapPurpose.Buy -> resources.getString(R.string.action_buy)
-                is SwapPurpose.Sell -> resources.getString(R.string.action_next)
-                else -> ""
-            }
-
-            val canChangeCurrency =
-                (vmState.purpose as? SwapPurpose.Buy)?.fundingSource != FundingSource.Phantom
-
-            AmountEntryConfig(
-                hint = hint,
-                canConfirm = canTransact,
-                canChangeCurrency = canChangeCurrency,
-                action = AmountEntryAction(
-                    label = actionLabel,
-                    loadingState = vmState.buyProgress,
-                ),
-            )
-        }.stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5_000),
-            AmountEntryConfig(action = AmountEntryAction(label = "")),
+    private val styleFlow: StateFlow<AmountEntryStyle> = stateFlow.map { vmState ->
+        val isBuy = vmState.purpose is SwapPurpose.Buy
+        AmountEntryStyle(
+            actionLabel = if (isBuy) resources.getString(R.string.action_buy) else resources.getString(R.string.action_next),
+            canChangeCurrency = (vmState.purpose as? SwapPurpose.Buy)?.fundingSource != FundingSource.Phantom,
+            infoHint = { resources.getString(R.string.subtitle_buySellCashHint, it) },
+            overMaxHint = {
+                if (vmState.purpose is SwapPurpose.BalanceIncrease)
+                    resources.getString(R.string.subtitle_buyHintLimitExceeded, it)
+                else resources.getString(R.string.subtitle_sellHintLimitExceeded, it)
+            },
+            belowMinHint = { resources.getString(R.string.subtitle_buyHintBelowMinimum, it) },
         )
-    }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AmountEntryStyle(actionLabel = ""))
+
+    private val maxAmountFlow: StateFlow<Fiat?> = combine(
+        stateFlow.map { it.purpose },
+        stateFlow.map { it.amountEntryState.maxToAdd },
+        stateFlow.map { it.tokenBalance },
+    ) { purpose, maxToAdd, tokenBalance ->
+        when (purpose) {
+            is SwapPurpose.Buy -> maxToAdd?.let { Fiat(it.first, it.second) }
+            is SwapPurpose.Sell -> tokenBalance
+            null -> null
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val minimumAmountFlow: StateFlow<Fiat?> = stateFlow
+        .map { it.minimumBuyAmount }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val combinedLoadingState: StateFlow<LoadingSuccessState> = stateFlow
+        .map { vmState ->
+            LoadingSuccessState(
+                loading = vmState.buyProgress.loading || vmState.sellProgress.loading || vmState.processingProgress.loading,
+                success = vmState.buyProgress.success || vmState.sellProgress.success || vmState.processingProgress.success,
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LoadingSuccessState())
+
+    val amountDelegate = AmountEntryDelegate(
+        exchange = exchange,
+        scope = viewModelScope,
+        style = styleFlow,
+        loadingState = combinedLoadingState,
+        maxAmount = maxAmountFlow,
+        minimumAmount = minimumAmountFlow,
+    )
 
     data class State(
         val loading: Boolean = false,

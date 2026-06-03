@@ -20,12 +20,12 @@ import com.getcode.ui.theme.CodeButton
 @Composable
 fun AmountEntryScreen(
     delegate: AmountEntryDelegate,
-    config: AmountEntryConfig,
     onConfirm: () -> Unit,
     onChangeCurrency: () -> Unit = {},
     appBar: (@Composable () -> Unit)? = null,
 ) {
     val delegateState by delegate.state.collectAsStateWithLifecycle()
+    val config by delegate.config.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -84,6 +84,7 @@ fun AmountEntryScreen(
                         enabled = config.canConfirm && config.action.loadingState.isIdle,
                         isLoading = config.action.loadingState.loading,
                         isSuccess = config.action.loadingState.success,
+                        label = config.action.label,
                     )
                 }
             }

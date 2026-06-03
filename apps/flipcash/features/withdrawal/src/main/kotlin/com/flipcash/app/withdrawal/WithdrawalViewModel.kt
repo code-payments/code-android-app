@@ -14,10 +14,8 @@ import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.withdrawal.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
-import com.flipcash.shared.amountentry.AmountEntryAction
-import com.flipcash.shared.amountentry.AmountEntryConfig
 import com.flipcash.shared.amountentry.AmountEntryDelegate
-import com.flipcash.shared.amountentry.AmountEntryHint
+import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
@@ -82,7 +80,30 @@ internal class WithdrawalViewModel @Inject constructor(
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
-    val amountDelegate = AmountEntryDelegate(exchange, viewModelScope)
+    private val tokenBalanceFlow: StateFlow<Fiat?> = stateFlow
+        .map { it.tokenBalance.takeIf { balance -> balance != Fiat.Zero } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val minimumWithdrawalAmountFlow: StateFlow<Fiat?> = stateFlow
+        .map { state ->
+            val fee = state.feeInEntryCurrency ?: return@map null
+            fee + fee.smallestUnit
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val amountDelegate = AmountEntryDelegate(
+        exchange = exchange,
+        scope = viewModelScope,
+        style = AmountEntryStyle(
+            actionLabel = resources.getString(R.string.action_next),
+            infoHint = { resources.getString(R.string.subtitle_withdrawHint, it) },
+            overMaxHint = { resources.getString(R.string.subtitle_withdrawHintLimitExceeded, it) },
+            belowMinHint = { resources.getString(R.string.subtitle_withdrawHintMinimumNotMet, it) },
+        ),
+        loadingState = stateFlow.map { it.confirmingAmount }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LoadingSuccessState()),
+        maxAmount = tokenBalanceFlow,
+        minimumAmount = minimumWithdrawalAmountFlow,
+    )
 
     internal data class State(
         val selectedTokenAddress: Mint? = null,
@@ -117,13 +138,6 @@ internal class WithdrawalViewModel @Inject constructor(
                 val fee = feeInEntryCurrency ?: 0.00.toFiat(amount.currencyCode)
                 return amount - fee
             }
-    }
-
-    enum class EnteredAmountError {
-        None,
-        InsufficientFunds,
-        TooLow,
-        ;
     }
 
     internal sealed interface Event {
@@ -169,23 +183,16 @@ internal class WithdrawalViewModel @Inject constructor(
         data object OnWithdrawSuccessful : Event
     }
 
-    private fun computeError(): EnteredAmountError {
+    val checkBalanceLimit: () -> Boolean = {
         val delegateState = amountDelegate.state.value
         val state = stateFlow.value
-        if (delegateState.amountAnimatedModel.amountData.isEmpty()) return EnteredAmountError.None
         val enteredAmount = Fiat(
-            fiat = delegateState.amountAnimatedModel.amountData.amount,
+            fiat = delegateState.enteredAmount,
             currencyCode = state.tokenBalance.currencyCode
         )
-        if (!enteredAmount.valueNonZero()) return EnteredAmountError.None
-        if (enteredAmount.valueGreaterThan(state.tokenBalance)) return EnteredAmountError.InsufficientFunds
-        val fee = state.feeInEntryCurrency ?: 0.00.toFiat(state.tokenBalance.currencyCode)
-        if (enteredAmount.valueLessThanOrEqualTo(fee)) return EnteredAmountError.TooLow
-        return EnteredAmountError.None
-    }
-
-    val checkBalanceLimit: () -> Boolean = {
-        val isOverBalance = computeError() == EnteredAmountError.InsufficientFunds
+        val isOverBalance = !delegateState.isEmpty &&
+            enteredAmount.valueNonZero() &&
+            enteredAmount.valueGreaterThan(state.tokenBalance)
         if (isOverBalance) {
             BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_insufficientFunds),
@@ -196,7 +203,16 @@ internal class WithdrawalViewModel @Inject constructor(
     }
 
     val checkMinimumExceeded: () -> Boolean = {
-        val isUnderMinimum = computeError() == EnteredAmountError.TooLow
+        val delegateState = amountDelegate.state.value
+        val state = stateFlow.value
+        val enteredAmount = Fiat(
+            fiat = delegateState.enteredAmount,
+            currencyCode = state.tokenBalance.currencyCode
+        )
+        val fee = state.feeInEntryCurrency ?: 0.00.toFiat(state.tokenBalance.currencyCode)
+        val isUnderMinimum = !delegateState.isEmpty &&
+            enteredAmount.valueNonZero() &&
+            enteredAmount.valueLessThanOrEqualTo(fee)
         if (isUnderMinimum) {
             BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_withdrawalTooSmall),
@@ -205,50 +221,6 @@ internal class WithdrawalViewModel @Inject constructor(
         }
         isUnderMinimum
     }
-
-    val config: StateFlow<AmountEntryConfig> = combine(
-        amountDelegate.state,
-        stateFlow,
-    ) { delegateState, vmState ->
-        val error = run {
-            if (delegateState.amountAnimatedModel.amountData.isEmpty()) EnteredAmountError.None
-            else {
-                val enteredAmount = Fiat(
-                    fiat = delegateState.amountAnimatedModel.amountData.amount,
-                    currencyCode = vmState.tokenBalance.currencyCode
-                )
-                if (!enteredAmount.valueNonZero()) EnteredAmountError.None
-                else if (enteredAmount.valueGreaterThan(vmState.tokenBalance)) EnteredAmountError.InsufficientFunds
-                else {
-                    val fee = vmState.feeInEntryCurrency ?: 0.00.toFiat(vmState.tokenBalance.currencyCode)
-                    if (enteredAmount.valueLessThanOrEqualTo(fee)) EnteredAmountError.TooLow
-                    else EnteredAmountError.None
-                }
-            }
-        }
-
-        val hint = when (error) {
-            EnteredAmountError.InsufficientFunds -> AmountEntryHint.Error(
-                resources.getString(R.string.subtitle_withdrawHintLimitExceeded, vmState.tokenBalance.formatted())
-            )
-            EnteredAmountError.TooLow -> AmountEntryHint.Error(
-                resources.getString(R.string.subtitle_withdrawHintMinimumNotMet, vmState.minimumWithdrawalAmount.formatted())
-            )
-            EnteredAmountError.None -> AmountEntryHint.Info(
-                resources.getString(R.string.subtitle_withdrawHint, vmState.tokenBalance.formatted())
-            )
-        }
-
-        AmountEntryConfig(
-            hint = hint,
-            canConfirm = delegateState.enteredAmount > 0.00,
-            canChangeCurrency = true,
-            action = AmountEntryAction(
-                label = resources.getString(R.string.action_next),
-                loadingState = vmState.confirmingAmount,
-            ),
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AmountEntryConfig(action = AmountEntryAction(label = "")))
 
     init {
         dispatchEvent(Event.OnEntryRateUpdated(exchange.preferredRate))

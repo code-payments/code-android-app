@@ -8,10 +8,8 @@ import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.cash.R
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.flipcash.shared.amountentry.AmountEntryAction
-import com.flipcash.shared.amountentry.AmountEntryConfig
 import com.flipcash.shared.amountentry.AmountEntryDelegate
-import com.flipcash.shared.amountentry.AmountEntryHint
+import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
@@ -63,7 +61,28 @@ internal class CashScreenViewModel @Inject constructor(
     defaultDispatcher = dispatchers.Default,
 ) {
 
-    val amountDelegate = AmountEntryDelegate(exchange, viewModelScope)
+    private val maxForGiveFlow: kotlinx.coroutines.flow.StateFlow<Fiat?> = stateFlow
+        .filter { it.limits != null }
+        .map { it.limits to (it.token?.balance ?: LocalFiat.Zero) }
+        .map { (limits, balance) ->
+            val sendLimit = limits?.sendLimitFor(balance.rate.currency) ?: SendLimit.Zero
+            val nextTransactionLimit = sendLimit.nextTransaction
+            val max = min(nextTransactionLimit, balance.nativeAmount.decimalValue)
+            Fiat(max, balance.rate.currency)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val amountDelegate = AmountEntryDelegate(
+        exchange = exchange,
+        scope = viewModelScope,
+        style = AmountEntryStyle(
+            actionLabel = resources.getString(R.string.action_next),
+            infoHint = { resources.getString(R.string.subtitle_giveCashHint, it) },
+            overMaxHint = { resources.getString(R.string.subtitle_giveCashHintLimitExceeded, it) },
+        ),
+        loadingState = stateFlow.map { it.generatingBill }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LoadingSuccessState()),
+        maxAmount = maxForGiveFlow,
+    )
     private val tokenInitialized = CompletableDeferred<Mint?>()
 
     internal data class State(
@@ -71,19 +90,14 @@ internal class CashScreenViewModel @Inject constructor(
         val token: TokenWithLocalizedBalance? = null,
         val currencyModel: CurrencyHolder = CurrencyHolder(),
         val limits: Limits? = null,
-        val maxForGive: Pair<Double, CurrencyCode>? = null,
         val generatingBill: LoadingSuccessState = LoadingSuccessState(),
-    ) {
-        val maxAvailableForGive: String
-            get() = maxForGive?.let { Fiat(it.first, it.second).formatted() }.orEmpty()
-    }
+    )
 
     sealed interface Event {
         data class InitializeToken(val mint: Mint?) : Event
         data class OnTokenSelected(val address: Mint) : Event
         data class OnTokenUpdated(val token: TokenWithLocalizedBalance) : Event
         data class OnCurrencyChanged(val model: com.getcode.opencode.model.financial.Currency) : Event
-        data class OnMaxDetermined(val max: Double, val currencyCode: CurrencyCode) : Event
         data class OnLimitsChanged(val limits: Limits?) : Event
         data object OnGive : Event
         data class PresentBill(val bill: Bill.Cash) : Event
@@ -210,16 +224,6 @@ internal class CashScreenViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnLimitsChanged(it)) }
             .launchIn(viewModelScope)
 
-        stateFlow
-            .filter { it.limits != null }
-            .map { it.limits to (it.token?.balance ?: LocalFiat.Zero) }
-            .onEach { (limits, balance) ->
-                val sendLimit = limits?.sendLimitFor(balance.rate.currency) ?: SendLimit.Zero
-                val nextTransactionLimit = sendLimit.nextTransaction
-                val max = min(nextTransactionLimit, balance.nativeAmount.decimalValue)
-                dispatchEvent(Event.OnMaxDetermined(max, balance.rate.currency))
-            }.launchIn(viewModelScope)
-
         eventFlow
             .filterIsInstance<Event.OnGive>()
             .filter { !(checkBalanceLimit() || checkSendLimit()) }
@@ -278,46 +282,6 @@ internal class CashScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
     }
 
-
-    val config: kotlinx.coroutines.flow.StateFlow<AmountEntryConfig> = combine(
-        amountDelegate.state,
-        stateFlow,
-    ) { delegateState, vmState ->
-        val isError = run {
-            if (delegateState.isEmpty) false
-            else if (vmState.maxForGive != null) {
-                val enteredAmount = Fiat(
-                    fiat = delegateState.enteredAmount,
-                    currencyCode = vmState.maxForGive.second
-                )
-                val limit = Fiat(vmState.maxForGive.first, vmState.maxForGive.second)
-                !enteredAmount.valueLessThanOrEqualTo(limit)
-            } else true
-        }
-
-        AmountEntryConfig(
-            hint = if (isError) {
-                AmountEntryHint.Error(
-                    resources.getString(R.string.subtitle_giveCashHintLimitExceeded, vmState.maxAvailableForGive)
-                )
-            } else {
-                AmountEntryHint.Info(
-                    resources.getString(R.string.subtitle_giveCashHint, vmState.maxAvailableForGive)
-                )
-            },
-            canConfirm = delegateState.enteredAmount > 0.00,
-            canChangeCurrency = true,
-            action = AmountEntryAction(
-                label = resources.getString(R.string.action_next),
-                loadingState = vmState.generatingBill,
-            ),
-        )
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        AmountEntryConfig(action = AmountEntryAction(label = "")),
-    )
-
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
@@ -351,9 +315,6 @@ internal class CashScreenViewModel @Inject constructor(
                 }
 
                 is Event.AddCashToWallet -> { state -> state }
-                is Event.OnMaxDetermined -> { state ->
-                    state.copy(maxForGive = event.max to event.currencyCode)
-                }
 
                 is Event.OnLimitsChanged -> { state -> state.copy(limits = event.limits) }
             }

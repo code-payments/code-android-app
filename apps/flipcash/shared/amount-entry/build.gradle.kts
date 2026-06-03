@@ -5,3 +5,9 @@ plugins {
 android {
     namespace = "${Gradle.flipcashNamespace}.shared.amountentry"
 }
+
+dependencies {
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(project(":libs:test-utils"))
+}

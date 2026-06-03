@@ -3,14 +3,19 @@ package com.flipcash.shared.amountentry
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
+import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlin.math.roundToInt
 
@@ -18,7 +23,21 @@ class AmountEntryDelegate(
     exchange: Exchange,
     scope: CoroutineScope,
     private val maxLength: Int = 10,
+    style: StateFlow<AmountEntryStyle>,
+    loadingState: StateFlow<LoadingSuccessState> = MutableStateFlow(LoadingSuccessState()),
+    maxAmount: StateFlow<Fiat?> = MutableStateFlow(null),
+    minimumAmount: StateFlow<Fiat?> = MutableStateFlow(null),
 ) {
+    constructor(
+        exchange: Exchange,
+        scope: CoroutineScope,
+        maxLength: Int = 10,
+        style: AmountEntryStyle,
+        loadingState: StateFlow<LoadingSuccessState> = MutableStateFlow(LoadingSuccessState()),
+        maxAmount: StateFlow<Fiat?> = MutableStateFlow(null),
+        minimumAmount: StateFlow<Fiat?> = MutableStateFlow(null),
+    ) : this(exchange, scope, maxLength, MutableStateFlow(style), loadingState, maxAmount, minimumAmount)
+
     data class State(
         val currency: CurrencyHolder = CurrencyHolder(),
         val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
@@ -33,6 +52,44 @@ class AmountEntryDelegate(
     private val numberInputHelper = NumberInputHelper()
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state.asStateFlow()
+
+    val config: StateFlow<AmountEntryConfig> = combine(
+        _state, style, loadingState, maxAmount, minimumAmount,
+    ) { delegateState, currentStyle, loading, max, min ->
+        val isBelowMin = min != null && currentStyle.belowMinHint != null &&
+            !delegateState.isEmpty && delegateState.enteredAmount > 0 &&
+            Fiat(delegateState.enteredAmount, min.currencyCode).valueLessThan(min)
+
+        val isOverMax = max != null && !delegateState.isEmpty &&
+            Fiat(delegateState.enteredAmount, max.currencyCode).valueGreaterThan(max)
+
+        val hint = when {
+            isBelowMin -> AmountEntryHint.Error(currentStyle.belowMinHint!!(min!!.formatted()))
+            isOverMax -> AmountEntryHint.Error(currentStyle.overMaxHint(max!!.formatted()))
+            max != null -> AmountEntryHint.Info(currentStyle.infoHint(max.formatted()))
+            else -> AmountEntryHint.None
+        }
+
+        AmountEntryConfig(
+            hint = hint,
+            canConfirm = delegateState.enteredAmount > 0.0,
+            canChangeCurrency = currentStyle.canChangeCurrency,
+            action = AmountEntryAction(
+                label = currentStyle.actionLabel,
+                style = currentStyle.actionStyle,
+                loadingState = loading,
+            ),
+        )
+    }.stateIn(
+        scope,
+        SharingStarted.WhileSubscribed(5000),
+        AmountEntryConfig(
+            action = AmountEntryAction(
+                label = style.value.actionLabel,
+                style = style.value.actionStyle,
+            ),
+        ),
+    )
 
     init {
         numberInputHelper.reset()

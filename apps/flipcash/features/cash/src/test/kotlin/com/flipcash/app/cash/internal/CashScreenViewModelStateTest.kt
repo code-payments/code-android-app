@@ -23,7 +23,6 @@ class CashScreenViewModelStateTest {
         assertNull(state.selectedTokenAddress)
         assertNull(state.token)
         assertNull(state.limits)
-        assertNull(state.maxForGive)
     }
 
     // --- State reducers ---
@@ -51,14 +50,6 @@ class CashScreenViewModelStateTest {
         )(CashScreenViewModel.State())
         assertTrue(updated.generatingBill.success)
         kotlin.test.assertFalse(updated.generatingBill.loading)
-    }
-
-    @Test
-    fun `OnMaxDetermined sets maxForGive`() {
-        val updated = reduce(
-            CashScreenViewModel.Event.OnMaxDetermined(max = 50.0, currencyCode = CurrencyCode.USD)
-        )(CashScreenViewModel.State())
-        assertEquals(50.0 to CurrencyCode.USD, updated.maxForGive)
     }
 
     @Test
@@ -105,17 +96,4 @@ class CashScreenViewModelStateTest {
         }
     }
 
-    // --- Computed: maxAvailableForGive ---
-
-    @Test
-    fun `maxAvailableForGive is empty when maxForGive is null`() {
-        val state = CashScreenViewModel.State(maxForGive = null)
-        assertEquals("", state.maxAvailableForGive)
-    }
-
-    @Test
-    fun `maxAvailableForGive is formatted when maxForGive is set`() {
-        val state = CashScreenViewModel.State(maxForGive = 100.0 to CurrencyCode.USD)
-        assertTrue(state.maxAvailableForGive.isNotEmpty())
-    }
 }
