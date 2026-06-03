@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,8 +43,8 @@ internal fun Scanner() {
     val router = LocalRouter.current!!
     val navigator = LocalCodeNavigator.current
     val session = LocalSessionController.current!!
-    val state by session.state.collectAsState()
-    val billState by session.billState.collectAsState()
+    val state by session.state.collectAsStateWithLifecycle()
+    val billState by session.billState.collectAsStateWithLifecycle()
     val analytics = rememberAnalytics()
 
     var isPaused by remember { mutableStateOf(false) }

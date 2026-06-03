@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -281,7 +280,7 @@ private fun onboardingEntryProvider(
 @Composable
 private fun LoginStepContent(seed: String?) {
     val vm = hiltViewModel<LoginViewModel>()
-    val state by vm.stateFlow.collectAsState()
+    val state by vm.stateFlow.collectAsStateWithLifecycle()
     val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
     val outerNavigator = LocalOuterCodeNavigator.current
     var visible by remember { mutableStateOf(false) }
@@ -427,7 +426,7 @@ private fun AccessKeyStepContent() {
 private fun PurchaseStepContent() {
     val viewModel = hiltViewModel<PurchaseAccountViewModel>()
     val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
-    val state by viewModel.stateFlow.collectAsState()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow

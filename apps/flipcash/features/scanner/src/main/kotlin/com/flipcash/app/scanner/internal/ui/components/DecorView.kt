@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -142,7 +141,7 @@ internal fun DecorView(
             }
 
             Column(modifier = Modifier.align(Alignment.BottomCenter)) {
-                val networkState by LocalNetworkObserver.current.state.collectAsState()
+                val networkState by LocalNetworkObserver.current.state.collectAsStateWithLifecycle()
 
                 AnimatedVisibility(
                     modifier = Modifier

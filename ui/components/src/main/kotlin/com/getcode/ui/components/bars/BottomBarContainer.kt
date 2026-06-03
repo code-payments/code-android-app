@@ -32,7 +32,7 @@ import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -70,7 +70,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.BottomBarMessage) -> Unit = {}) {
     val scope = rememberCoroutineScope()
-    val bottomBarMessage by barMessages.bottomBar.collectAsState()
+    val bottomBarMessage by barMessages.bottomBar.collectAsStateWithLifecycle()
     val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
     var bottomBarMessageDismissId by remember { mutableLongStateOf(0L) }
     val animationScale by rememberAnimationScale()

@@ -19,7 +19,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-var LocalSheetGesturesState = compositionLocalOf<(Boolean) -> Unit> { {  } }
+val LocalSheetGesturesState = compositionLocalOf<(Boolean) -> Unit> { {  } }
 
 @Composable
 fun DisableSheetGestures(
