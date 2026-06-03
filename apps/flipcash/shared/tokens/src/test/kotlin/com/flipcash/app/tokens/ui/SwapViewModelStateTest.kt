@@ -1,19 +1,18 @@
 package com.flipcash.app.tokens.ui
 
+import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.internal.solana.model.SwapId
-import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
-import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.view.LoadingSuccessState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -33,7 +32,7 @@ class SwapViewModelStateTest {
         assertNull(state.swapId)
         assertNull(state.confirmedNetTransferAmount)
         assertFalse(state.loading)
-        assertFalse(state.canTransact)
+        assertTrue(state.canTransact)
     }
 
     // --- State reducers ---
@@ -46,21 +45,18 @@ class SwapViewModelStateTest {
     }
 
     @Test
-    fun `OnAmountChanged updates amount model in entry state`() {
-        val model = AmountAnimatedInputUiModel(lastPressedBackspace = true)
-        val updated = reduce(SwapViewModel.Event.OnAmountChanged(model))(SwapViewModel.State())
-        assertEquals(model, updated.amountEntryState.amountAnimatedModel)
-    }
-
-    @Test
-    fun `OnAmountAccepted sets selectedAmount and confirmedNetTransferAmount`() {
+    fun `OnAmountAccepted sets selectedAmount, confirmedNetTransferAmount, enteredAmount, and feeAmount`() {
         val amount = VerifiedFiat(LocalFiat.Zero, null)
         val net = Fiat(10.0, CurrencyCode.USD)
+        val entered = Fiat(12.0, CurrencyCode.USD)
+        val fee = Fiat(2.0, CurrencyCode.USD)
         val updated = reduce(
-            SwapViewModel.Event.OnAmountAccepted(amount, net)
+            SwapViewModel.Event.OnAmountAccepted(amount, net, entered, fee)
         )(SwapViewModel.State())
         assertEquals(amount, updated.amountEntryState.selectedAmount)
         assertEquals(net, updated.confirmedNetTransferAmount)
+        assertEquals(entered, updated.confirmedEnteredAmount)
+        assertEquals(fee, updated.confirmedFeeAmount)
     }
 
     @Test
@@ -117,23 +113,50 @@ class SwapViewModelStateTest {
     }
 
     @Test
-    fun `OnCurrencyChanged sets currencyModel in entry state`() {
-        val currency = Currency(code = "GBP", name = "British Pound", symbol = "£", rate = 0.79)
-        val updated = reduce(
-            SwapViewModel.Event.OnCurrencyChanged(currency)
-        )(SwapViewModel.State())
-        assertNotNull(updated.amountEntryState.currencyModel.selected)
-        assertEquals("GBP", updated.amountEntryState.currencyModel.selected?.code)
-        assertEquals(CurrencyCode.GBP, updated.amountEntryState.currencyModel.code)
-    }
-
-    @Test
     fun `OnSwapIdChanged sets swapId`() {
         val swapId = SwapId(ByteArray(32) { 2 }.toList())
         val updated = reduce(
             SwapViewModel.Event.OnSwapIdChanged(swapId)
         )(SwapViewModel.State())
         assertEquals(swapId, updated.swapId)
+    }
+
+    @Test
+    fun `OnInitialAmountProvided sets minimumBuyAmount and pendingInitialAmount`() {
+        val amount = Fiat(5.0, CurrencyCode.USD)
+        val updated = reduce(
+            SwapViewModel.Event.OnInitialAmountProvided(amount)
+        )(SwapViewModel.State())
+        assertEquals(amount, updated.minimumBuyAmount)
+        assertEquals(amount, updated.pendingInitialAmount)
+    }
+
+    @Test
+    fun `OnInitialAmountEntered clears pendingInitialAmount`() {
+        val state = SwapViewModel.State(pendingInitialAmount = Fiat(5.0, CurrencyCode.USD))
+        val updated = reduce(SwapViewModel.Event.OnInitialAmountEntered)(state)
+        assertNull(updated.pendingInitialAmount)
+    }
+
+    @Test
+    fun `CoinbaseSelected sets Buy funding source to Coinbase`() {
+        val state = SwapViewModel.State(purpose = SwapPurpose.Buy(mint()))
+        val updated = reduce(SwapViewModel.Event.CoinbaseSelected)(state)
+        assertEquals(FundingSource.Coinbase, (updated.purpose as SwapPurpose.Buy).fundingSource)
+    }
+
+    @Test
+    fun `PhantomSelected sets Buy funding source to Phantom`() {
+        val state = SwapViewModel.State(purpose = SwapPurpose.Buy(mint()))
+        val updated = reduce(SwapViewModel.Event.PhantomSelected)(state)
+        assertEquals(FundingSource.Phantom, (updated.purpose as SwapPurpose.Buy).fundingSource)
+    }
+
+    @Test
+    fun `CoinbaseSelected is no-op for non-Buy purpose`() {
+        val state = SwapViewModel.State(purpose = SwapPurpose.Sell(mint()))
+        val updated = reduce(SwapViewModel.Event.CoinbaseSelected)(state)
+        assertEquals(state, updated)
     }
 
     // --- No-op events ---
@@ -143,11 +166,13 @@ class SwapViewModelStateTest {
         val state = SwapViewModel.State(purpose = SwapPurpose.Buy(mint()))
         val noOpEvents = listOf(
             SwapViewModel.Event.OnAmountConfirmed,
-            SwapViewModel.Event.OnBackspace,
-            SwapViewModel.Event.OnDecimalPressed,
-            SwapViewModel.Event.OnEnteredNumberChanged(),
-            SwapViewModel.Event.OnNumberPressed(3),
             SwapViewModel.Event.OnSellConfirmed,
+            SwapViewModel.Event.OtherWalletSelected,
+            SwapViewModel.Event.ConfirmPhantomTransaction,
+            SwapViewModel.Event.StartPhantomCeremony,
+            SwapViewModel.Event.PhantomConnected,
+            SwapViewModel.Event.PhantomCeremonyFailed,
+            SwapViewModel.Event.OnCurrencyChanged(Currency(code = "USD", name = "US Dollar", symbol = "$", rate = 1.0)),
             SwapViewModel.Event.ProceedWithPurchase(VerifiedFiat(LocalFiat.Zero, null)),
             SwapViewModel.Event.ProceedWithSale(VerifiedFiat(LocalFiat.Zero, null)),
             SwapViewModel.Event.OnTransactionSuccessful,
@@ -176,8 +201,8 @@ class SwapViewModelStateTest {
     // --- Computed: canTransact ---
 
     @Test
-    fun `canTransact is false when amount is zero`() {
-        assertFalse(SwapViewModel.State().canTransact)
+    fun `canTransact is true when all progress states are idle`() {
+        assertTrue(SwapViewModel.State().canTransact)
     }
 
     @Test
@@ -218,11 +243,25 @@ class SwapViewModelStateTest {
         assertEquals("", SwapViewModel.State().tokenName)
     }
 
-    // --- Computed: maxAvailableToSwap ---
+    // --- Computed: enteredAmount ---
 
     @Test
-    fun `maxAvailableToSwap is empty when purpose is null`() {
-        assertEquals("", SwapViewModel.State().maxAvailableToSwap)
+    fun `enteredAmount defaults to Zero when confirmedEnteredAmount is null`() {
+        assertEquals(Fiat.Zero, SwapViewModel.State().enteredAmount)
+    }
+
+    @Test
+    fun `enteredAmount returns confirmedEnteredAmount when set`() {
+        val amount = Fiat(42.0, CurrencyCode.USD)
+        val state = SwapViewModel.State(confirmedEnteredAmount = amount)
+        assertEquals(amount, state.enteredAmount)
+    }
+
+    // --- Computed: feeAmount ---
+
+    @Test
+    fun `feeAmount is Zero when confirmedFeeAmount is null`() {
+        assertEquals(Fiat.Zero, SwapViewModel.State().feeAmount)
     }
 
     // --- Computed: netTransferAmount ---
@@ -234,79 +273,8 @@ class SwapViewModelStateTest {
         assertEquals(confirmed, state.netTransferAmount)
     }
 
-    // --- Computed: netTransferAmount ---
-
     @Test
-    fun `netTransferAmount falls back to enteredAmount for BalanceIncrease purpose`() {
-        // Buy is a BalanceIncrease, so netTransferAmount = enteredAmount when confirmedNetTransferAmount is null
-        val state = SwapViewModel.State(purpose = SwapPurpose.Buy(mint()))
-        // Default enteredAmount is Fiat(0.0, CurrencyCode.USD) since tokenBalance is Zero
-        assertEquals(state.enteredAmount, state.netTransferAmount)
-    }
-
-    @Test
-    fun `netTransferAmount subtracts fee for non-BalanceIncrease purpose`() {
-        // Sell is BalanceDecrease, so netTransferAmount = enteredAmount - feeAmount
-        // With no tokenWithBalance, sellFee is null, feeAmount = Zero, so net = entered - 0 = entered
-        val state = SwapViewModel.State(purpose = SwapPurpose.Sell(mint()))
-        assertEquals(state.enteredAmount.decimalValue - state.feeAmount.decimalValue, state.netTransferAmount.decimalValue, 0.001)
-    }
-
-    // --- Computed: enteredAmount ---
-
-    @Test
-    fun `enteredAmount defaults to zero with USD currency`() {
-        val state = SwapViewModel.State()
-        assertEquals(0.0, state.enteredAmount.decimalValue, 0.001)
-        assertEquals(CurrencyCode.USD, state.enteredAmount.currencyCode)
-    }
-
-    // --- Computed: feeAmount ---
-
-    @Test
-    fun `feeAmount is Zero when sellFee is null`() {
-        assertEquals(Fiat.Zero, SwapViewModel.State().feeAmount)
-    }
-
-    // --- Computed: maxAvailableToSwap per purpose ---
-
-    @Test
-    fun `maxAvailableToSwap for Buy uses maxToAdd`() {
-        val state = SwapViewModel.State(
-            purpose = SwapPurpose.Buy(mint()),
-            amountEntryState = AmountEntryState(maxToAdd = 200.0 to CurrencyCode.USD)
-        )
-        assertTrue(state.maxAvailableToSwap.isNotEmpty())
-    }
-
-    @Test
-    fun `maxAvailableToSwap for Buy is empty when maxToAdd is null`() {
-        val state = SwapViewModel.State(
-            purpose = SwapPurpose.Buy(mint()),
-        )
-        assertEquals("", state.maxAvailableToSwap)
-    }
-
-    // --- Computed: transactionLimit per purpose ---
-
-    @Test
-    fun `transactionLimit for Sell is tokenBalance`() {
-        val state = SwapViewModel.State(purpose = SwapPurpose.Sell(mint()))
-        // tokenWithBalance is null → tokenBalance = Fiat.Zero
-        assertEquals(Fiat.Zero, state.transactionLimit)
-    }
-
-    // --- Computed: isError ---
-
-    @Test
-    fun `isError is false when amount is empty`() {
-        assertFalse(SwapViewModel.State().isError)
-    }
-
-    // --- Computed: transactionLimit ---
-
-    @Test
-    fun `transactionLimit is Zero when purpose is null`() {
-        assertEquals(Fiat.Zero, SwapViewModel.State().transactionLimit)
+    fun `netTransferAmount is Zero when confirmedNetTransferAmount is null`() {
+        assertEquals(Fiat.Zero, SwapViewModel.State().netTransferAmount)
     }
 }
