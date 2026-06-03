@@ -336,6 +336,17 @@ class ContactCoordinator @Inject constructor(
         trace(tag = TAG, message = "Hydrated ${mappings.size} contacts from persistence", type = TraceType.Process)
     }
 
+    /**
+     * End-to-end contact sync flow:
+     *
+     * 1. **Read** — device contacts via [ScopeAwareContactReader], already deduplicated
+     *    by E.164 (see [FullAccessContactReader.readAll]).
+     * 2. **Diff** — compares device E.164s against persisted [ContactMappingEntity] rows.
+     * 3. **Persist** — upserts all device contacts into Room. The `e164` primary key on
+     *    [ContactMappingEntity] provides the persistence-layer dedupe guarantee.
+     * 4. **Upload** — syncs the E.164 set with the server (delta or full upload).
+     * 5. **Discover** — fetches which contacts are also on Flipcash.
+     */
     private suspend fun performSync(): Result<Unit> {
         if (cluster.value == null) return Result.failure(IllegalStateException("No active session"))
 

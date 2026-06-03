@@ -30,6 +30,11 @@ class PickerContactReader @Inject constructor(
         pickedContacts.value = emptyList()
     }
 
+    /**
+     * Reads picked contacts and deduplicates by E.164-normalized phone number,
+     * using the same first-occurrence-wins + photo-promotion strategy as
+     * [FullAccessContactReader.readAll].
+     */
     override suspend fun readAll(): Result<Map<String, DeviceContact>> {
         val raw = pickedContacts.value
         if (raw.isEmpty()) return Result.success(emptyMap())
