@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -63,6 +64,7 @@ import com.getcode.theme.White50
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import java.util.Timer
 import java.util.TimerTask
@@ -190,26 +192,32 @@ fun SlideToConfirm(
         }
     }
 
-    LaunchedEffect(swipeFraction, enabled) {
-        when {
-            !enabled -> hintState.cancelTimer()
-            swipeFraction == 0f -> hintState.startTimer()
-            swipeFraction in 0.1f .. 0.99f -> hintState.cancelTimer()
+    LaunchedEffect(enabled) {
+        if (!enabled) {
+            hintState.cancelTimer()
+            return@LaunchedEffect
         }
-    }
-    LaunchedEffect(swipeFraction) {
-        if (swipeFraction == 1f) {
-            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-            onConfirm()
-            // Give the caller a moment to set isLoading = true.
-            // If they don't, the confirmation was rejected — reset.
-            // Launch in composeScope so the animation isn't cancelled when
-            // swipeFraction changes (which would cancel this LaunchedEffect).
-            delay(200)
-            if (!currentIsLoading) {
-                composeScope.launch { swipeState.animateTo(Anchor.Start) }
+        snapshotFlow { swipeFraction }
+            .collect { fraction ->
+                when {
+                    fraction == 0f -> hintState.startTimer()
+                    fraction in 0.1f .. 0.99f -> hintState.cancelTimer()
+                }
             }
-        }
+    }
+    LaunchedEffect(Unit) {
+        snapshotFlow { swipeFraction }
+            .filter { it == 1f }
+            .collect {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                onConfirm()
+                // Give the caller a moment to set isLoading = true.
+                // If they don't, the confirmation was rejected — reset.
+                delay(200)
+                if (!currentIsLoading) {
+                    composeScope.launch { swipeState.animateTo(Anchor.Start) }
+                }
+            }
     }
 
     // Handle the loading → idle transition (e.g. after a network call completes)

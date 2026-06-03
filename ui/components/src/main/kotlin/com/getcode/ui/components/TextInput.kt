@@ -29,6 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -141,9 +142,10 @@ fun TextInput(
         )
     }
 
+    val currentOnStateChanged by rememberUpdatedState(onStateChanged)
     LaunchedEffect(Unit) {
         snapshotFlow { state.text }
-            .onEach { onStateChanged() }
+            .onEach { currentOnStateChanged() }
             .launchIn(this)
     }
 
