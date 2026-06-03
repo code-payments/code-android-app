@@ -22,7 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SettingsBackupRestore
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -65,7 +65,7 @@ internal fun SeedInputContent(
     viewModel: SeedInputViewModel,
     onCantFind: () -> Unit,
 ) {
-    val dataState by viewModel.uiFlow.collectAsState()
+    val dataState by viewModel.uiFlow.collectAsStateWithLifecycle()
     SeedInputContent(
         state = dataState,
         onTextChange = { viewModel.onTextChange(it) },
@@ -86,7 +86,7 @@ private fun SeedInputContent(
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
     val featureFlags = LocalFeatureFlags.current
-    val restoreEnabled by featureFlags.observe(FeatureFlag.CredentialManager).collectAsState()
+    val restoreEnabled by featureFlags.observe(FeatureFlag.CredentialManager).collectAsStateWithLifecycle()
 
     val keyboardVisible by keyboardAsState()
     val ime = LocalSoftwareKeyboardController.current

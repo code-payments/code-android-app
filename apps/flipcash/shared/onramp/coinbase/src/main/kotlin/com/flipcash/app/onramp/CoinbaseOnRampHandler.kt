@@ -3,7 +3,7 @@ package com.flipcash.app.onramp
 import android.content.res.Resources
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalResources
 import com.flipcash.app.core.AppRoute
@@ -18,7 +18,7 @@ fun CoinbaseOnRampHandler(
     controller: CoinbaseOnRampController = LocalCoinbaseOnRampController.current,
     content: @Composable () -> Unit,
 ) {
-    val state by controller.state.collectAsState()
+    val state by controller.state.collectAsStateWithLifecycle()
     val resources = LocalResources.current
     when (val current = state) {
         is CoinbaseOnRampState.Paying -> {

@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,7 +57,7 @@ import com.getcode.util.permissions.rememberStoragePermission
 internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
     val context = LocalContext.current
     val resources = LocalResources.current
-    val dataState by viewModel.uiFlow.collectAsState()
+    val dataState by viewModel.uiFlow.collectAsStateWithLifecycle()
 
     var isExportSeedRequested by remember { mutableStateOf(false) }
     var isStoragePermissionGranted by remember { mutableStateOf(false) }

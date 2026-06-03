@@ -20,8 +20,7 @@ import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -95,12 +94,12 @@ internal fun BillContainer(
 
     val cameraPermission = rememberCameraPermission { onPermissionResult(it) }
 
-    SideEffect {
+    LaunchedEffect(cameraPermission.status) {
         onPermissionResult(cameraPermission.status)
     }
 
-    val state by session.state.collectAsState()
-    val billState by session.billState.collectAsState()
+    val state by session.state.collectAsStateWithLifecycle()
+    val billState by session.billState.collectAsStateWithLifecycle()
 
     val autoStart = state.autoStartCamera == true
     var cameraStarted by remember { mutableStateOf(autoStart) }

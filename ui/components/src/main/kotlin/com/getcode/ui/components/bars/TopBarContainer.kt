@@ -10,6 +10,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -27,28 +28,28 @@ import com.getcode.theme.*
 import com.getcode.ui.components.R
 import com.getcode.ui.components.VerticalDivider
 import com.getcode.ui.core.rememberedClickable
-import java.util.*
-import kotlin.concurrent.timerTask
+import kotlinx.coroutines.delay
 
 @Composable
 fun TopBarContainer(
     barMessages: BarMessages,
 ) {
-    val topBarMessage by barMessages.topBar.collectAsState()
+    val topBarMessage by barMessages.topBar.collectAsStateWithLifecycle()
     val topBarVisibleState = remember { MutableTransitionState(false) }
     var topBarMessageDismissId by remember { mutableLongStateOf(0L) }
 
-    if (!topBarVisibleState.targetState && !topBarVisibleState.currentState) {
-        Timer().schedule(timerTask {
+    LaunchedEffect(topBarMessage?.id) {
+        if (!topBarVisibleState.targetState && !topBarVisibleState.currentState) {
+            delay(50)
             topBarVisibleState.targetState = topBarMessage != null
-        }, 50)
 
-        if (topBarMessageDismissId == topBarMessage?.id) {
-            TopBarManager.setMessageShown(topBarMessage?.id ?: 0)
-            topBarMessageDismissId = 0
-        }
-        if (topBarMessage == null) {
-            topBarVisibleState.targetState = false
+            if (topBarMessageDismissId == topBarMessage?.id) {
+                TopBarManager.setMessageShown(topBarMessage?.id ?: 0)
+                topBarMessageDismissId = 0
+            }
+            if (topBarMessage == null) {
+                topBarVisibleState.targetState = false
+            }
         }
     }
 

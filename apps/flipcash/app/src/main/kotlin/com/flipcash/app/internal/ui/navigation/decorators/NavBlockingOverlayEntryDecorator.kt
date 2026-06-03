@@ -3,7 +3,7 @@ package com.flipcash.app.internal.ui.navigation.decorators
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -26,7 +26,7 @@ fun NavBlockingOverlayEntryDecorator(): NavEntryDecorator<NavKey> {
             entry.Content()
 
             val userManager = LocalUserManager.current
-            val userState by userManager!!.state.collectAsState()
+            val userState by userManager!!.state.collectAsStateWithLifecycle()
             val authState = userState.authState
 
             if (authState is AuthState.LoggedIn) {
