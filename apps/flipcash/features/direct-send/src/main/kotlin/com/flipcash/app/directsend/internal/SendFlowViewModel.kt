@@ -14,6 +14,7 @@ import com.flipcash.app.core.send.SendStep
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.permissions.PickedContact
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.directsend.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
@@ -56,6 +57,7 @@ internal class SendFlowViewModel @Inject constructor(
     private val exchange: Exchange,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val transactionController: TransactionController,
+    private val tokenCoordinator: TokenCoordinator,
 ) : BaseViewModel<SendFlowViewModel.State, SendFlowViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -264,9 +266,11 @@ internal class SendFlowViewModel @Inject constructor(
 
                     val source = owner.withTimelockForToken(token)
 
+                    val balance = tokenCoordinator.balanceForToken(token)
                     val verifiedFiat = verifiedFiatCalculator.compute(
                         amount = amount,
                         token = token,
+                        balance = balance,
                         rate = rate,
                     ).getOrElse { error ->
                         dispatchEvent(Event.SendStateUpdated())
