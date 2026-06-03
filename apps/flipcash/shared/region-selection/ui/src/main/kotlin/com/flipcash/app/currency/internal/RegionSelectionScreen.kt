@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun RegionSelectionModalContent(viewModel: CurrencyViewModel) {
+internal fun RegionSelectionScreen(viewModel: RegionSelectionViewModel) {
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val keyboard = rememberKeyboardController()
@@ -35,7 +35,7 @@ internal fun RegionSelectionModalContent(viewModel: CurrencyViewModel) {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<CurrencyViewModel.Event.OnSelectedCurrencyChanged>()
+            .filterIsInstance<RegionSelectionViewModel.Event.OnSelectedCurrencyChanged>()
             .onEach {
                 if (keyboard.visible) {
                     keyboard.hide()
@@ -65,13 +65,12 @@ internal fun RegionSelectionModalContent(viewModel: CurrencyViewModel) {
         RegionList(
             modifier = Modifier.weight(1f),
             items = state.listItems,
-            isLoading = state.loading,
             selected = state.selectedCurrency,
             onRemoved = { currency ->
-                viewModel.dispatchEvent(CurrencyViewModel.Event.OnRecentCurrencyRemoved(currency))
+                viewModel.dispatchEvent(RegionSelectionViewModel.Event.OnRecentCurrencyRemoved(currency))
             },
             onSelected = { currency ->
-                viewModel.dispatchEvent(CurrencyViewModel.Event.OnCurrencySelected(currency))
+                viewModel.dispatchEvent(RegionSelectionViewModel.Event.OnCurrencySelected(currency))
             }
         )
     }

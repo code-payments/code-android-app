@@ -7,8 +7,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.flipcash.app.currency.internal.CurrencyViewModel
-import com.flipcash.app.currency.internal.RegionSelectionModalContent
+import com.flipcash.app.currency.internal.RegionSelectionViewModel
+import com.flipcash.app.currency.internal.RegionSelectionScreen
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarWithTitle
@@ -30,7 +30,7 @@ fun RegionSelectionScreen() {
             }
         )
 
-        val viewModel = hiltViewModel<CurrencyViewModel>()
-        RegionSelectionModalContent(viewModel)
+        val viewModel = hiltViewModel<RegionSelectionViewModel>()
+        RegionSelectionScreen(viewModel)
     }
 }

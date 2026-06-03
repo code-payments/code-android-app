@@ -15,67 +15,50 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 @HiltViewModel
-class CurrencyViewModel @Inject constructor(
+class RegionSelectionViewModel @Inject constructor(
     exchange: Exchange,
     preferredCurrencyController: PreferredCurrencyController,
     private val resources: ResourceHelper,
     dispatchers: DispatcherProvider,
-) : BaseViewModel<CurrencyViewModel.State, CurrencyViewModel.Event>(
+) : BaseViewModel<RegionSelectionViewModel.State, RegionSelectionViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
-        val loading: Boolean = false,
-        val listItems: List<CurrencyListItem> = emptyList(),
-        val currencies: List<Currency> = emptyList(),
-        val recents: List<Currency>? = null,
+        val listItems: List<RegionListItem> = emptyList(),
         val wasLocalRemovedFromRecents: Boolean = false,
         val searchState: TextFieldState = TextFieldState(),
         val selectedCurrency: Currency? = null,
     )
 
     sealed interface Event {
-        data class OnLoadingChanged(val loading: Boolean) : Event
-        data class OnItemsPopulated(val currencies: List<CurrencyListItem>) : Event
-        data class OnCurrenciesUpdated(val currencies: List<Currency>): Event
-        data class OnRecentCurrenciesUpdated(val recents: List<Currency>) : Event
+        data class OnItemsPopulated(val items: List<RegionListItem>) : Event
         data class OnCurrencySelected(val currency: Currency, val fromUser: Boolean = true) : Event
         data object OnSelectedCurrencyChanged: Event
         data object RemovedLocalFromRecents : Event
-
         data class OnRecentCurrencyRemoved(val currency: Currency) : Event
     }
 
+    private val searchState = stateFlow.value.searchState
+
     init {
+        // Observe preferred currency selection for initial state
         combine(
             exchange.observeRates().distinctUntilChanged().map { exchange.getCurrenciesWithRates() },
             preferredCurrencyController.observePreferredCurrency().distinctUntilChanged(),
         ) { currenciesWithRates, preferredCurrency ->
-            dispatchEvent(Event.OnCurrenciesUpdated(currenciesWithRates))
             val preferredWithRate = currenciesWithRates.find { it.code == preferredCurrency }
             if (preferredWithRate != null) {
                 dispatchEvent(Event.OnCurrencySelected(preferredWithRate, false))
             }
         }.launchIn(viewModelScope)
-
-        preferredCurrencyController
-            .observeRecentCurrencies()
-            .distinctUntilChanged()
-            .map { recents ->
-                val currencies = exchange.getCurrenciesWithRates()
-                recents.mapNotNull { currencies.find { c -> c.code == it } }
-            }
-            .onEach { dispatchEvent(Event.OnRecentCurrenciesUpdated(it)) }
-            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnCurrencySelected>()
@@ -89,23 +72,23 @@ class CurrencyViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnRecentCurrencyRemoved>()
             .map { it.currency }
-            .map { selected ->
-                preferredCurrencyController.removeFromRecents(selected)
-            }.launchIn(viewModelScope)
+            .onEach { preferredCurrencyController.removeFromRecents(it) }
+            .launchIn(viewModelScope)
 
+        // Single combine from source flows directly to list items
         combine(
-            stateFlow.map { it.currencies },
-            stateFlow.map { it.recents },
-            stateFlow.map { it.searchState }.flatMapLatest { snapshotFlow { it.text } }
-        ) { currencies, recents, search ->
+            exchange.observeRates().distinctUntilChanged().map { exchange.getCurrenciesWithRates() },
+            preferredCurrencyController.observeRecentCurrencies().distinctUntilChanged(),
+            snapshotFlow { searchState.text },
+        ) { currencies, recentCodes, search ->
+            val recents = recentCodes.mapNotNull { code -> currencies.find { it.code == code } }
             generateListItems(
                 currencies = currencies,
-                recents = recents.orEmpty(),
-                searchString = search.toString()
+                recents = recents,
+                searchString = search.toString(),
             )
         }.onEach { items ->
             dispatchEvent(Event.OnItemsPopulated(items))
-            dispatchEvent(Event.OnLoadingChanged(false))
         }.launchIn(viewModelScope)
     }
 
@@ -113,7 +96,7 @@ class CurrencyViewModel @Inject constructor(
         currencies: List<Currency>,
         recents: List<Currency>,
         searchString: String
-    ): List<CurrencyListItem> = buildList {
+    ): List<RegionListItem> = buildList {
         val sortedCurrencies = currencies.sortedBy { it.name }
         val sortedRecents = recents.sortedBy { it.name }
         val isSearch = searchString.isNotBlank()
@@ -124,15 +107,15 @@ class CurrencyViewModel @Inject constructor(
             sortedRecents.isNotEmpty() -> R.string.title_recentRegions
             else -> R.string.title_otherRegions
         }
-        add(CurrencyListItem.TitleItem(resources.getString(titleRes)))
+        add(RegionListItem.TitleItem(resources.getString(titleRes)))
 
         // Add recent currencies (only if not searching)
         if (!isSearch && recents.isNotEmpty()) {
             sortedRecents.forEach { currency ->
-                add(CurrencyListItem.RegionCurrencyItem(currency, isRecent = true))
+                add(RegionListItem.RegionCurrencyItem(currency, isRecent = true))
             }
             // Add "Other Currencies" title if there are recent currencies
-            add(CurrencyListItem.TitleItem(resources.getString(R.string.title_otherRegions)))
+            add(RegionListItem.TitleItem(resources.getString(R.string.title_otherRegions)))
         }
 
         sortedCurrencies
@@ -143,7 +126,7 @@ class CurrencyViewModel @Inject constructor(
             }
             .forEach { currency ->
                 if (isSearch || !recents.contains(currency)) {
-                    add(CurrencyListItem.RegionCurrencyItem(currency, isRecent = false))
+                    add(RegionListItem.RegionCurrencyItem(currency, isRecent = false))
                 }
             }
     }
@@ -151,13 +134,10 @@ class CurrencyViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnItemsPopulated -> { state -> state.copy(listItems = event.currencies) }
-                is Event.OnLoadingChanged -> { state -> state.copy(loading = event.loading) }
-                is Event.OnCurrenciesUpdated -> { state -> state.copy(currencies = event.currencies) }
-                is Event.OnRecentCurrenciesUpdated -> { state -> state.copy(recents = event.recents) }
-                is Event.OnRecentCurrencyRemoved -> { state -> state }
+                is Event.OnItemsPopulated -> { state -> state.copy(listItems = event.items) }
                 is Event.OnSelectedCurrencyChanged -> { state -> state }
                 is Event.RemovedLocalFromRecents -> { state -> state.copy(wasLocalRemovedFromRecents = true) }
+                is Event.OnRecentCurrencyRemoved -> { state -> state }
                 is Event.OnCurrencySelected -> { state ->
                     if (event.fromUser) {
                         state
