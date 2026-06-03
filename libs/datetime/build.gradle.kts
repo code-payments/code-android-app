@@ -11,4 +11,5 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(libs.robolectric)
+    testImplementation(project(":libs:test-utils"))
 }

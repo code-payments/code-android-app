@@ -13,7 +13,7 @@ internal fun WithdrawalEntryScreen(
     onOpenRegionSelection: () -> Unit,
 ) {
     AmountEntryScreen(
-        delegate = viewModel.amountDelegate,
+        controller = viewModel.amountDelegate,
         onConfirm = { viewModel.dispatchEvent(WithdrawalViewModel.Event.OnAmountConfirmed) },
         onChangeCurrency = onOpenRegionSelection,
     )

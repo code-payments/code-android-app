@@ -10,7 +10,7 @@ internal fun GiveScreenContent(viewModel: CashScreenViewModel) {
     val navigator = LocalCodeNavigator.current
 
     AmountEntryScreen(
-        delegate = viewModel.amountDelegate,
+        controller = viewModel.amountDelegate,
         onConfirm = { viewModel.dispatchEvent(CashScreenViewModel.Event.OnGive) },
         onChangeCurrency = { navigator.push(AppRoute.Main.RegionSelection) },
     )

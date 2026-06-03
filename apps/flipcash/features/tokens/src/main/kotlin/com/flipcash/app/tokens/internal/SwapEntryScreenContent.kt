@@ -13,7 +13,7 @@ internal fun SwapEntryScreenContent(
     val navigator = LocalCodeNavigator.current
 
     AmountEntryScreen(
-        delegate = viewModel.amountDelegate,
+        controller = viewModel.amountDelegate,
         onConfirm = { viewModel.dispatchEvent(SwapViewModel.Event.OnAmountConfirmed) },
         onChangeCurrency = { navigator.push(AppRoute.Main.RegionSelection) },
     )

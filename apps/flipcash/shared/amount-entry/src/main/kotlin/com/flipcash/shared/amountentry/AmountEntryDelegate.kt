@@ -27,7 +27,7 @@ class AmountEntryDelegate(
     loadingState: StateFlow<LoadingSuccessState> = MutableStateFlow(LoadingSuccessState()),
     maxAmount: StateFlow<Fiat?> = MutableStateFlow(null),
     minimumAmount: StateFlow<Fiat?> = MutableStateFlow(null),
-) {
+) : AmountEntryController {
     constructor(
         exchange: Exchange,
         scope: CoroutineScope,
@@ -51,9 +51,9 @@ class AmountEntryDelegate(
 
     private val numberInputHelper = NumberInputHelper()
     private val _state = MutableStateFlow(State())
-    val state: StateFlow<State> = _state.asStateFlow()
+    override val state: StateFlow<State> = _state.asStateFlow()
 
-    val config: StateFlow<AmountEntryConfig> = combine(
+    override val config: StateFlow<AmountEntryConfig> = combine(
         _state, style, loadingState, maxAmount, minimumAmount,
     ) { delegateState, currentStyle, loading, max, min ->
         val isBelowMin = min != null && currentStyle.belowMinHint != null &&
@@ -108,19 +108,19 @@ class AmountEntryDelegate(
         _state.update { it.copy(currency = CurrencyHolder(currency)) }
     }
 
-    fun onNumber(number: Int) {
+    override fun onNumber(number: Int) {
         numberInputHelper.fractionUnits = _state.value.currency.fractionUnits
         numberInputHelper.maxLength = maxLength
         numberInputHelper.onNumber(number)
         updateAnimatedModel(backspace = false)
     }
 
-    fun onDecimal() {
+    override fun onDecimal() {
         numberInputHelper.onDot()
         updateAnimatedModel(backspace = false)
     }
 
-    fun onBackspace() {
+    override fun onBackspace() {
         numberInputHelper.onBackspace()
         updateAnimatedModel(backspace = true)
     }

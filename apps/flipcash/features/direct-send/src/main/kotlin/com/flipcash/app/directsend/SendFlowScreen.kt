@@ -116,7 +116,7 @@ private fun SendAmountEntryScreen() {
     }
 
     AmountEntryScreen(
-        delegate = sharedVm.amountDelegate,
+        controller = sharedVm.amountDelegate,
         onConfirm = { sharedVm.dispatchEvent(SendFlowViewModel.Event.OnConfirmRequested) },
         onChangeCurrency = { outerNavigator.push(AppRoute.Main.RegionSelection) },
         appBar = {
