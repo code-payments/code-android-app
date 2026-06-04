@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 
@@ -59,6 +62,8 @@ fun FlippableCard(
         }
     }
 
+    val showFront by remember { derivedStateOf { rotation.value <= 90f } }
+
     Box(
         modifier = modifier
             .graphicsLayer {
@@ -67,7 +72,7 @@ fun FlippableCard(
             }
     ) {
         if (cardFace != CardFace.Neither) {
-            if (rotation.value <= 90f) {
+            if (showFront) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

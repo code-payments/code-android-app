@@ -41,7 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -191,11 +191,13 @@ private fun TypingDots(
             Box(
                 modifier = Modifier
                     .size(CodeTheme.dimens.grid.x2)
-                    .scale(scale.value)
-                    .background(
-                        color = baseColor.copy(alpha = alpha.value),
-                        shape = CircleShape
-                    )
+                    .graphicsLayer {
+                        scaleX = scale.value
+                        scaleY = scale.value
+                    }
+                    .drawBehind {
+                        drawCircle(color = baseColor.copy(alpha = alpha.value))
+                    }
             )
         }
     }
