@@ -91,10 +91,13 @@ internal fun TextureControls(
             }
         }
 
+        val blendModes = remember(state.blendModes) {
+            state.blendModes.map { it.blendMode }
+        }
+
         val selectedTabIndex by remember(state.selectedBlendMode) {
             derivedStateOf {
-                val option = state.selectedBlendMode.blendMode
-                state.blendModes.map { it.blendMode }.indexOf(option).takeIf { it >= 0 } ?: 0
+                blendModes.indexOf(state.selectedBlendMode.blendMode).takeIf { it >= 0 } ?: 0
             }
         }
 
@@ -106,7 +109,7 @@ internal fun TextureControls(
             indicator = {}, // no indicator
             divider = {} // no divider
         ) {
-            state.blendModes.map { it.blendMode }.forEachIndexed { index, mode ->
+            blendModes.forEachIndexed { index, mode ->
                 BlendModeTab(
                     mode = mode,
                     isSelected = index == selectedTabIndex,

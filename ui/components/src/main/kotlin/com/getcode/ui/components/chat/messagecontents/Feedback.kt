@@ -67,9 +67,11 @@ internal fun Feedback(
                 )
             }
 
-            val rxns = reactions
-                .sortedBy { it.sentAt }
-                .groupBy { it.emoji }
+            val rxns = remember(reactions) {
+                reactions
+                    .sortedBy { it.sentAt }
+                    .groupBy { it.emoji }
+            }
 
             rxns.onEach { (emoji, occurrences) ->
                 EmojiCounter(
