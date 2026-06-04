@@ -14,12 +14,12 @@ import androidx.compose.ui.unit.Dp
 fun <T> SegmentedControl(
     options: List<T>,
     selected: T?,
+    onSelectionChanged: (T) -> Unit,
+    modifier: Modifier = Modifier,
     colors: SegmentedButtonColors = SegmentedButtonDefaults.colors(),
     contentPadding: PaddingValues = SegmentedButtonDefaults.ContentPadding,
-    mapper: @Composable SingleChoiceSegmentedButtonRowScope.(T) -> Unit,
     space: Dp = SegmentedButtonDefaults.BorderWidth,
-    modifier: Modifier = Modifier,
-    onSelectionChanged: (T) -> Unit,
+    mapper: @Composable SingleChoiceSegmentedButtonRowScope.(T) -> Unit,
 ) {
     SingleChoiceSegmentedButtonRow(
         modifier = modifier,

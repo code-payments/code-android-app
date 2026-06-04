@@ -40,9 +40,9 @@ object CodeToggleSwitchDefaults {
 
 @Composable
 fun CodeToggleSwitch(
+    checked: Boolean,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    checked: Boolean,
     onCheckedChange: ((Boolean) -> Unit)? = null,
 ) {
     val width = 51.dp
@@ -62,7 +62,7 @@ fun CodeToggleSwitch(
     val trackColor by colors.trackColor(enabled = enabled, checked = checked)
     val thumbColor by colors.thumbColor(enabled = enabled, checked = checked)
     Canvas(
-        modifier = Modifier
+        modifier = modifier
             .size(width = width, height = height)
             .addIf(onCheckedChange != null) {
                 Modifier.pointerInput(Unit) {
@@ -72,7 +72,7 @@ fun CodeToggleSwitch(
                         }
                     )
                 }
-            }.then(modifier)
+            }
     ) {
         drawRoundRect(
             color = trackColor,
