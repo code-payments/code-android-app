@@ -24,7 +24,7 @@ internal fun AppSettingsScreenContent() {
     val context = LocalContext.current
 
     LazyColumn {
-        items(appSettings) { option ->
+        items(appSettings, key = { it.setting.type.key }) { option ->
             if (option.visible) {
                 SettingsSwitchRow(
                     modifier = Modifier.animateItem(),

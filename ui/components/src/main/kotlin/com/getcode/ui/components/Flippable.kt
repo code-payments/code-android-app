@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 
 enum class CardFace(
     val angle: Float,
-    var noAnim: Boolean = false
 ) {
     Front(0f) {
         override val next: CardFace
@@ -47,7 +46,7 @@ fun FlippableCard(
         animateFloatAsState(
             targetValue = cardFace.angle,
             animationSpec = tween(
-                durationMillis = if (cardFace.noAnim) 0 else flipMs,
+                durationMillis = flipMs,
                 easing = FastOutSlowInEasing,
             )
         )
