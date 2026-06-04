@@ -21,13 +21,17 @@ class ContactResolverTest {
         formatted: String? = null,
         formatThrows: Boolean = false,
         photoUri: String? = null,
+        devicePhotoUri: String? = null,
     ): ContactResolver {
         val dataSource = mockk<ContactDataSource> {
             coEvery { getDisplayName(e164) } returns dbName
             coEvery { getPhotoUri(e164) } returns photoUri
+            coEvery { updateDisplayName(any(), any()) } returns Unit
+            coEvery { updatePhotoUri(any(), any()) } returns Unit
         }
         val deviceLookup = mockk<DeviceContactLookup> {
             every { lookupDisplayName(e164) } returns deviceName
+            every { lookupPhotoUri(e164) } returns devicePhotoUri
         }
         val phoneUtils = mockk<PhoneUtils> {
             if (formatThrows) {
@@ -42,19 +46,19 @@ class ContactResolverTest {
     // region resolveName
 
     @Test
-    fun `DB display name is returned when present`() = runTest {
-        val result = resolver(dbName = "Alice").resolveName(e164)
-        assertEquals("Alice", result)
+    fun `device name is returned when present`() = runTest {
+        val result = resolver(deviceName = "Alice Device").resolveName(e164)
+        assertEquals("Alice Device", result)
     }
 
     @Test
-    fun `device lookup is used when DB returns null`() = runTest {
-        val result = resolver(deviceName = "Bob Device").resolveName(e164)
-        assertEquals("Bob Device", result)
+    fun `DB name is used when device returns null`() = runTest {
+        val result = resolver(dbName = "Alice DB").resolveName(e164)
+        assertEquals("Alice DB", result)
     }
 
     @Test
-    fun `formatted number is used when DB and device both return null`() = runTest {
+    fun `formatted number is used when device and DB both return null`() = runTest {
         val result = resolver(formatted = "+1 (555) 123-4567").resolveName(e164)
         assertEquals("+1 (555) 123-4567", result)
     }
@@ -72,9 +76,9 @@ class ContactResolverTest {
     }
 
     @Test
-    fun `DB takes priority over device lookup`() = runTest {
+    fun `device takes priority over DB name`() = runTest {
         val result = resolver(dbName = "Alice DB", deviceName = "Alice Device").resolveName(e164)
-        assertEquals("Alice DB", result)
+        assertEquals("Alice Device", result)
     }
 
     // endregion
@@ -88,9 +92,22 @@ class ContactResolverTest {
     }
 
     @Test
-    fun `null photo URI when data source has none`() = runTest {
+    fun `device photo URI used when data source has none`() = runTest {
+        val result = resolver(devicePhotoUri = "content://photo/2").resolvePhotoUri(e164)
+        assertEquals("content://photo/2", result)
+    }
+
+    @Test
+    fun `null photo URI when both sources have none`() = runTest {
         val result = resolver().resolvePhotoUri(e164)
         assertNull(result)
+    }
+
+    @Test
+    fun `data source photo URI takes priority over device`() = runTest {
+        val result = resolver(photoUri = "content://photo/1", devicePhotoUri = "content://photo/2")
+            .resolvePhotoUri(e164)
+        assertEquals("content://photo/1", result)
     }
 
     // endregion

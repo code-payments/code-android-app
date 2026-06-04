@@ -45,8 +45,14 @@ interface ContactDao {
     @Query("SELECT displayName FROM contact_mapping WHERE e164 = :e164 LIMIT 1")
     suspend fun getDisplayName(e164: String): String?
 
+    @Query("UPDATE contact_mapping SET displayName = :displayName WHERE e164 = :e164")
+    suspend fun updateDisplayName(e164: String, displayName: String)
+
     @Query("SELECT photoUri FROM contact_mapping WHERE e164 = :e164 LIMIT 1")
     suspend fun getPhotoUri(e164: String): String?
+
+    @Query("UPDATE contact_mapping SET photoUri = :photoUri WHERE e164 = :e164")
+    suspend fun updatePhotoUri(e164: String, photoUri: String)
 
     @Query("DELETE FROM contact_mapping WHERE e164 IN (:e164s)")
     suspend fun deleteMappings(e164s: List<String>)
