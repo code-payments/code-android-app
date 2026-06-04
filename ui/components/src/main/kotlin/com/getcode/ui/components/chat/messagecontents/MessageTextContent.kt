@@ -352,7 +352,9 @@ private fun MarkupTextHandler(
 
         options.onMarkupClicked != null -> {
             val markupTextHelper = remember { MarkupTextHelper() }
-            val markups = options.markupsToResolve.map { Markup.create(it) }
+            val markups = remember(options.markupsToResolve) {
+                options.markupsToResolve.map { Markup.create(it) }
+            }
 
             val annotatedString = markupTextHelper.annotate(text.text, markups)
             val markupHoist = LocalTextLayoutResult.current
