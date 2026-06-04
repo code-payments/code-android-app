@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,10 +48,6 @@ internal fun RegionSelectionScreen(viewModel: RegionSelectionViewModel) {
         modifier = Modifier.imePadding(),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
-        LaunchedEffect(Unit) {
-            snapshotFlow { state.searchState.text }
-                .launchIn(this)
-        }
         SearchInput(
             modifier = Modifier
                 .padding(horizontal = CodeTheme.dimens.grid.x3)

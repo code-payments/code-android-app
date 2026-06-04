@@ -109,8 +109,9 @@ internal fun TextureControls(
             state.blendModes.map { it.blendMode }.forEachIndexed { index, mode ->
                 BlendModeTab(
                     mode = mode,
-                    isSelected = index == selectedTabIndex
-                ) { dispatchEvent(GraphicsEvent.CommitBlendMode(mode)) }
+                    isSelected = index == selectedTabIndex,
+                    onClick = { dispatchEvent(GraphicsEvent.CommitBlendMode(mode)) },
+                )
             }
         }
 
@@ -139,8 +140,8 @@ internal fun TextureControls(
 internal fun BlendModeTab(
     mode: BlendMode,
     isSelected: Boolean,
-    modifier: Modifier = Modifier,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val backgroundColor by animateColorAsState(
         if (isSelected) Color.White.copy(0.30f) else Color.Transparent

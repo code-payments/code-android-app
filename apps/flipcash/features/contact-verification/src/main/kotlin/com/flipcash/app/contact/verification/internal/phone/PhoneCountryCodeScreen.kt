@@ -58,7 +58,7 @@ private fun PhoneCountrySelectionList(
     onSelection: (CountryLocale) -> Unit
 ) {
     LazyColumn(modifier) {
-        items(availableLocales) { countryCode ->
+        items(availableLocales, key = { it.countryCode }) { countryCode ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
