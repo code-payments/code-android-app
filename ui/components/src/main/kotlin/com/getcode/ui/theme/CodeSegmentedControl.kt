@@ -14,9 +14,9 @@ import com.getcode.ui.components.SegmentedControl
 fun <T> CodeSegmentedControl(
     options: List<T>,
     selected: T?,
-    mapper: @Composable SingleChoiceSegmentedButtonRowScope.(T) -> Unit,
-    modifier: Modifier = Modifier,
     onSelectionChanged: (T) -> Unit,
+    modifier: Modifier = Modifier,
+    mapper: @Composable SingleChoiceSegmentedButtonRowScope.(T) -> Unit,
 ) {
     SegmentedControl(
         options = options,
