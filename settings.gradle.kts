@@ -37,6 +37,7 @@ rootProject.name = "Flipcash"
 include(
     // app containers
     ":apps:flipcash:app",
+    ":apps:flipcash:benchmark",
 
     // flipcash modules
     ":apps:flipcash:core",
