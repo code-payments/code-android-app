@@ -30,11 +30,11 @@ fun TileButton(
 ) {
     Box(
         modifier = modifier
+            .clip(CodeTheme.shapes.extraSmall)
             .background(
                 color = CodeTheme.colors.surfaceVariant,
                 shape = CodeTheme.shapes.extraSmall,
             )
-            .clip(CodeTheme.shapes.extraSmall)
             .clickable(onClick = onClick)
             .padding(contentPadding),
         contentAlignment = Alignment.Center,

@@ -4,7 +4,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,7 +19,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-val LocalSheetGesturesState = compositionLocalOf<(Boolean) -> Unit> { {  } }
+val LocalSheetGesturesState = staticCompositionLocalOf<(Boolean) -> Unit> { {  } }
 
 @Composable
 fun DisableSheetGestures(

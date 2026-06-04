@@ -33,10 +33,10 @@ fun ListItem(
 ) {
     Row(
         modifier = modifier
-            .clickable { onClick() }
-            .padding(CodeTheme.dimens.grid.x5)
             .fillMaxWidth()
-            .wrapContentHeight(),
+            .wrapContentHeight()
+            .clickable { onClick() }
+            .padding(CodeTheme.dimens.grid.x5),
         verticalAlignment = CenterVertically
     ) {
         if (icon != null) {
