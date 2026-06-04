@@ -24,7 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.userflags.internal.EditableEntry
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 internal fun EditableRow(
@@ -35,7 +35,7 @@ internal fun EditableRow(
 ) {
     Row(
         modifier = modifier
-            .rememberedClickable { onClick() }
+            .clickable { onClick() }
             .padding(horizontal = CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically,
     ) {

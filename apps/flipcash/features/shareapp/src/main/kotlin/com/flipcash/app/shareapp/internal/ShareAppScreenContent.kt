@@ -39,7 +39,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Cloudy
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
-import com.getcode.ui.core.rememberedLongClickable
+import com.getcode.ui.core.longClickable
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
@@ -123,7 +123,7 @@ internal fun ShareAppScreenContent() {
             Image(
                 modifier = Modifier
                     .onPlaced { contentRect = it.boundsInWindow() }
-                    .rememberedLongClickable {
+                    .longClickable {
                         onClick()
                     }
                     .scale(selectionState.scale.value),

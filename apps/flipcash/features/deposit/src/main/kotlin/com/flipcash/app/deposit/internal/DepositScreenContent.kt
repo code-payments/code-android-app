@@ -28,7 +28,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.extraSmall
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -95,7 +95,7 @@ private fun DepositScreenContent(
                 .fillMaxWidth()
                 .height(CodeTheme.dimens.grid.x10)
                 .background(White05)
-                .rememberedClickable { dispatchEvent(DepositViewModel.Event.CopyAddress) }
+                .clickable { dispatchEvent(DepositViewModel.Event.CopyAddress) }
                 .padding(
                     start = CodeTheme.dimens.grid.x3,
                     top = CodeTheme.dimens.grid.x2,

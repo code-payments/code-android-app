@@ -26,7 +26,7 @@ import com.getcode.theme.White
 import com.getcode.theme.bolded
 import com.getcode.ui.components.ConnectionStatus
 import com.getcode.ui.components.R
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.getcode.ui.utils.ConstraintMode
 import com.getcode.utils.network.LocalNetworkObserver
 import com.getcode.utils.network.NetworkState
@@ -57,7 +57,7 @@ fun AmountArea(
 ) {
     Column(
         modifier
-            .let { if (isClickable) it.rememberedClickable { onClick() } else it },
+            .let { if (isClickable) it.clickable { onClick() } else it },
         horizontalAlignment = CenterHorizontally
     ) {
         if (!isLoading) {

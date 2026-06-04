@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.bill.playground.R
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.getcode.ui.utils.Hsv
 import com.getcode.ui.utils.hsv
 
@@ -72,7 +72,7 @@ internal fun ColorPanel(
                     shape = CodeTheme.shapes.small
                 )
                 .clip(CodeTheme.shapes.small)
-                .rememberedClickable { onClose() }
+                .clickable { onClose() }
                 .padding(CodeTheme.dimens.grid.x3),
             contentAlignment = Alignment.Center
         ) {

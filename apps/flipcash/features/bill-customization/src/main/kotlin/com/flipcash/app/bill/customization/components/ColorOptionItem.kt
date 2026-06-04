@@ -10,7 +10,7 @@ import com.getcode.opencode.model.ui.BillBackground
 import com.flipcash.app.bill.customization.Event.Colors as ColorEvent
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.getcode.ui.utils.hexToColor
 import com.getcode.ui.utils.hsv
 
@@ -55,7 +55,7 @@ internal fun ColorOptionItem(
                         shape = CodeTheme.shapes.small
                     )
                 }
-                .rememberedClickable {
+                .clickable {
                     when (option) {
                         is BillBackground.Gradient -> dispatchEvent(
                             ColorEvent.LoadBackground(

@@ -24,7 +24,7 @@ import com.flipcash.app.currency.internal.RegionListItem
 import com.flipcash.features.currency.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SwipeActionRow
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 internal fun ListRowItem(
@@ -41,7 +41,7 @@ internal fun ListRowItem(
                 .background(CodeTheme.colors.background)
                 .let {
                     if (item.currency.rate > 0) {
-                        it.rememberedClickable { onClick() }
+                        it.clickable { onClick() }
                     } else it
                 }
         ) {

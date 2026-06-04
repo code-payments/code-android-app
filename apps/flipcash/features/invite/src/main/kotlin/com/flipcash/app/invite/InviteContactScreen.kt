@@ -23,7 +23,7 @@ import coil3.compose.AsyncImage
 import com.flipcash.core.R
 import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 fun InviteContactScreen(phoneNumber: String) {
@@ -71,7 +71,7 @@ private fun ChannelItem(
 ) {
     Column(
         modifier = Modifier
-            .rememberedClickable(onClick = onClick)
+            .clickable(onClick = onClick)
             .padding(CodeTheme.dimens.grid.x2),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),

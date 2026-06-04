@@ -11,7 +11,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,7 +58,8 @@ import com.getcode.theme.White
 import com.getcode.theme.White50
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.rememberAnimationScale
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
+import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.core.scaled
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -122,10 +123,7 @@ fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.Bott
                         .fillMaxSize()
                         .graphicsLayer { alpha = scrimAlpha }
                         .background(CodeTheme.colors.scrim)
-                        .rememberedClickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
+                        .noRippleClickable {
                             if (it.isDismissible) {
                                 scope.launch { onClose(SelectedBottomBarAction(-1), false) }
                             }
@@ -136,10 +134,7 @@ fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.Bott
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .rememberedClickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) {
+                            .noRippleClickable {
                                 scope.launch { onClose(SelectedBottomBarAction(-1), false) }
                             }
                     )
@@ -356,7 +351,7 @@ fun BottomBarView(
                     Text(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .rememberedClickable {
+                            .clickable {
                                 onClose(SelectedBottomBarAction(-1))
                             }
                             .padding(vertical = CodeTheme.dimens.grid.x3),

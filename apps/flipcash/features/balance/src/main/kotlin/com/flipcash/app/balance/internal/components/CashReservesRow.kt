@@ -16,7 +16,7 @@ import com.flipcash.features.balance.R
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.text.AnimatedNumberText
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 internal fun CashReservesRow(
@@ -26,7 +26,7 @@ internal fun CashReservesRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .rememberedClickable {
+            .clickable {
                 onClick()
             }
             .padding(

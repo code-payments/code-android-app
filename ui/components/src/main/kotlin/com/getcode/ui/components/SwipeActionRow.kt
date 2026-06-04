@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.IntOffset
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.White50
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.getcode.util.resources.R
 import kotlin.math.abs
 import kotlinx.coroutines.launch
@@ -166,7 +166,7 @@ fun SwipeActionRow(
                         modifier = Modifier
                             .clip(RoundedCornerShape(50))
                             .background(action.background)
-                            .rememberedClickable {
+                            .clickable {
                                 scope.launch { state.snapTo(SwipeState.Settled) }
                                 action.onTriggered()
                             },

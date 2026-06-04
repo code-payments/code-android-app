@@ -24,7 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.getcode.ui.components.BetaIndicator
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 internal fun AccountInfoHeader(
@@ -83,7 +83,7 @@ private fun CopyableTextEntry(
     onCopy: () -> Unit
 ) {
     Column(
-        modifier = modifier.rememberedClickable(onClick = onCopy)
+        modifier = modifier.clickable(onClick = onCopy)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically

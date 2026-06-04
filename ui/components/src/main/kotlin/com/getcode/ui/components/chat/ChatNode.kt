@@ -22,7 +22,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.getcode.util.DateUtils
 import com.getcode.util.formatTimeRelatively
 
@@ -45,7 +45,7 @@ fun ChatNode(
 ) {
     Row(
         modifier = modifier
-            .rememberedClickable { onClick() }
+            .clickable { onClick() }
             .padding(
                 vertical = CodeTheme.dimens.grid.x3,
                 horizontal = CodeTheme.dimens.inset
