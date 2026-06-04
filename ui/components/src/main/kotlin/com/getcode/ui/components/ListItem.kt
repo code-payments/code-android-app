@@ -20,7 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 fun ListItem(
@@ -33,7 +33,7 @@ fun ListItem(
 ) {
     Row(
         modifier = modifier
-            .rememberedClickable { onClick() }
+            .clickable { onClick() }
             .padding(CodeTheme.dimens.grid.x5)
             .fillMaxWidth()
             .wrapContentHeight(),

@@ -26,7 +26,7 @@ import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.bill.playground.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 internal fun HueControlButton(
@@ -39,7 +39,7 @@ internal fun HueControlButton(
             .fillMaxHeight()
             .rainbowBackground()
             .clip(CodeTheme.shapes.small)
-            .rememberedClickable { onClick() }
+            .clickable { onClick() }
             .padding(CodeTheme.dimens.thickBorder)
             .background(
                 color = Color.Black.copy(0.50f),

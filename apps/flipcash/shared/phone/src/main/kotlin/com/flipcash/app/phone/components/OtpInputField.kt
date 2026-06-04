@@ -34,7 +34,7 @@ import com.flipcash.app.theme.FlipcashPreview
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.WindowSizeClass
 import com.getcode.ui.components.TextInput
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
@@ -132,7 +132,7 @@ private fun OtpBox(
             .height(height)
             .width(CodeTheme.dimens.grid.x7)
             .clip(CodeTheme.shapes.small)
-            .rememberedClickable(onClick = onClick)
+            .clickable(onClick = onClick)
             .border(
                 border = if (isHighlighted)
                     BorderStroke(CodeTheme.dimens.thickBorder, color = Color.White.copy(0.34f))

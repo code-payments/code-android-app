@@ -39,7 +39,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.Transparent
 import com.getcode.theme.White10
 import com.getcode.ui.components.R
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import java.text.DecimalFormatSymbols
 
 
@@ -150,7 +150,7 @@ private fun KeyBoardButton(
                     }
                     buttonPressed
                 }
-                .rememberedClickable { buttonPressed = false },
+                .clickable { buttonPressed = false },
             contentAlignment = Alignment.Center
         ) {
             CompositionLocalProvider(LocalContentColor provides Color.White) {

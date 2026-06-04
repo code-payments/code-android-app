@@ -13,7 +13,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.getcode.ui.components.AppBarDefaults.IconSize
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 private val ButtonSize = 40.dp
 private val ButtonBackground = Color.White.copy(alpha = 0.1f)
@@ -31,7 +31,7 @@ fun CircularIconButton(
             .size(ButtonSize)
             .background(ButtonBackground, CircleShape)
             .clip(CircleShape)
-            .rememberedClickable { onClick() }
+            .clickable { onClick() }
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
         contentAlignment = Alignment.Center,
     ) {

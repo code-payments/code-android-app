@@ -72,7 +72,7 @@ import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.components.SearchInput
 import com.getcode.ui.components.SwipeAction
 import com.getcode.ui.components.SwipeActionRow
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
@@ -346,7 +346,7 @@ private fun ContactRowItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .rememberedClickable(onClick = onClick)
+                .clickable(onClick = onClick)
                 .padding(
                     vertical = CodeTheme.dimens.inset,
                     horizontal = CodeTheme.dimens.inset,

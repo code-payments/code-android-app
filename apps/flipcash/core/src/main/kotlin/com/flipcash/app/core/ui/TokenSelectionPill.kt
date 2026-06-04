@@ -16,7 +16,7 @@ import androidx.compose.ui.res.painterResource
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.R
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 fun TokenSelectionPill(token: Token?, onClick: () -> Unit) {
@@ -29,7 +29,7 @@ fun TokenSelectionPill(token: Token?, onClick: () -> Unit) {
         Row(
             modifier = Modifier
                 .clip(CircleShape)
-                .rememberedClickable { onClick() },
+                .clickable { onClick() },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(
                 space = CodeTheme.dimens.grid.x1,
@@ -71,7 +71,7 @@ fun TokenSelectionPill(
         Row(
             modifier = Modifier
                 .clip(CircleShape)
-                .rememberedClickable { onClick() },
+                .clickable { onClick() },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(
                 space = CodeTheme.dimens.grid.x1,

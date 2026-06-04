@@ -25,7 +25,7 @@ import com.flipcash.app.userflags.internal.EditableEntry
 import com.flipcash.app.userflags.internal.UserFlagsViewModel
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.TextInput
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCheckbox
 import com.getcode.ui.theme.CodeRadioButton
@@ -90,7 +90,7 @@ internal fun <T> MultiSelectContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .rememberedClickable {
+                .clickable {
                     if (value in selected) selected.remove(value) else selected.add(value)
                 }
                 .padding(vertical = CodeTheme.dimens.grid.x2),
@@ -135,7 +135,7 @@ internal fun <T> SingleSelectContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .rememberedClickable { selected = value }
+                .clickable { selected = value }
                 .padding(vertical = CodeTheme.dimens.grid.x2),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),

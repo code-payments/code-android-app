@@ -23,7 +23,7 @@ import com.flipcash.core.R
 import com.flipcash.services.models.SocialAccount
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.text.SectionHeader
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 internal fun UserProfileScreenContent(
@@ -139,7 +139,7 @@ private fun ContactMethodRow(
 ) {
     Row(
         modifier = Modifier
-            .rememberedClickable { onRowClick() }
+            .clickable { onRowClick() }
             .fillMaxWidth()
             .padding(
                 horizontal = CodeTheme.dimens.inset,
@@ -222,7 +222,7 @@ private fun AddContactMethodRow(
 ) {
     Row(
         modifier = Modifier
-            .rememberedClickable { onClick() }
+            .clickable { onClick() }
             .fillMaxWidth()
             .padding(
                 horizontal = CodeTheme.dimens.inset,

@@ -25,7 +25,7 @@ import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.Lifecycle
 import com.getcode.ui.core.addIf
-import com.getcode.ui.core.rememberedLongClickable
+import com.getcode.ui.core.longClickable
 import com.getcode.ui.core.swallowClicks
 import com.getcode.util.vibration.LocalVibrator
 
@@ -82,7 +82,7 @@ fun SelectionContainer(
                 .addIf(contentRect == null) {
                     Modifier
                         .onPlaced { _contentRect = it.boundsInParent() }
-                        .rememberedLongClickable {
+                        .longClickable {
                             onClick()
                         }
                 },

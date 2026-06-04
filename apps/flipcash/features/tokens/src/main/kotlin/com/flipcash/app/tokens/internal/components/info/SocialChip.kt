@@ -20,7 +20,7 @@ import com.getcode.opencode.model.financial.SocialLink
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White50
 import com.getcode.theme.extraSmall
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 internal fun SocialChip(
@@ -33,7 +33,7 @@ internal fun SocialChip(
         modifier = modifier
             .background(CodeTheme.colors.surfaceVariant, CodeTheme.shapes.extraSmall)
             .clip(CodeTheme.shapes.extraSmall)
-            .rememberedClickable {
+            .clickable {
                 uriHandler.openUri(socialLink.uri)
             }.padding(
                 horizontal = CodeTheme.dimens.grid.x3,

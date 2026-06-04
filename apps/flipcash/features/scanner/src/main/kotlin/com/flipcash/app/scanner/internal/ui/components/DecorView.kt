@@ -6,7 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,7 +48,7 @@ import com.flipcash.features.scanner.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
 import com.getcode.ui.components.Pill
-import com.getcode.ui.core.rememberedClickable
+import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.core.unboundedClickable
 import com.getcode.utils.network.LocalNetworkObserver
 
@@ -87,10 +87,7 @@ internal fun DecorView(
                     .padding(horizontal = CodeTheme.dimens.grid.x3)
                     .align(Alignment.TopStart)
                     .width(CodeTheme.dimens.staticGrid.x18)
-                    .rememberedClickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
+                    .noRippleClickable {
                         onAction(ScannerDecorItem.Logo)
                     }.testTag("flipcash_logo"),
                 painter = painterResource(R.drawable.ic_flipcash_logo_w_name),

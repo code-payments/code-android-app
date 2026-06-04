@@ -35,7 +35,7 @@ import com.flipcash.app.bill.customization.internal.features.BlendMode
 import com.flipcash.app.bill.customization.internal.features.GraphicState
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Pill
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.flipcash.app.bill.customization.Event.Graphics as GraphicsEvent
 
 @Composable
@@ -76,7 +76,7 @@ internal fun TextureControls(
                             shape = CodeTheme.shapes.large
                         )
                         .clip(CodeTheme.shapes.large)
-                        .rememberedClickable {
+                        .clickable {
                             dispatchEvent(GraphicsEvent.ApplyGraphic(index))
                         },
                     contentAlignment = Alignment.Center,
@@ -157,7 +157,7 @@ internal fun BlendModeTab(
     Pill(
         modifier = modifier
             .alpha(alpha)
-            .rememberedClickable(onClick = onClick),
+            .clickable(onClick = onClick),
         backgroundColor = backgroundColor,
         contentColor = Color.White,
         text = stringResource(mode.labelRes),
