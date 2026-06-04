@@ -162,6 +162,7 @@ fun SlideToConfirm(
     },
 ) {
     val currentIsLoading by rememberUpdatedState(isLoading)
+    val currentOnConfirm by rememberUpdatedState(onConfirm)
     val hapticFeedback = LocalHapticFeedback.current
     val density = LocalDensity.current
     val thumbSize = Thumb.Size
@@ -210,7 +211,7 @@ fun SlideToConfirm(
             .filter { it == 1f }
             .collect {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                onConfirm()
+                currentOnConfirm()
                 // Give the caller a moment to set isLoading = true.
                 // If they don't, the confirmation was rejected — reset.
                 delay(200)
