@@ -240,6 +240,22 @@ class SubmitIntentErrorTest {
     }
 
     @Test
+    fun invalidIntentWithPaymentNoOpIsNotNotifiable() {
+        val error = SubmitIntentError.InvalidIntent(listOf("payment is a no-op"))
+        assertTrue(error.isPaymentNoOp)
+        assertTrue(error.isExpected)
+        assertFalse(error.isNotifiable)
+    }
+
+    @Test
+    fun invalidIntentWithOtherReasonIsNotifiable() {
+        val error = SubmitIntentError.InvalidIntent(listOf("bad amount"))
+        assertFalse(error.isPaymentNoOp)
+        assertFalse(error.isExpected)
+        assertTrue(error.isNotifiable)
+    }
+
+    @Test
     fun otherWrausesCause() {
         val cause = RuntimeException("root cause")
         val error = SubmitIntentError.Other(cause)
