@@ -88,7 +88,7 @@ internal fun ContactListScreen() {
 
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SendFlowViewModel.Event.SendInvite>()
             .collect { event ->
@@ -96,7 +96,7 @@ internal fun ContactListScreen() {
             }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SendFlowViewModel.Event.NavigateToAmountEntry>()
             .collect { event ->

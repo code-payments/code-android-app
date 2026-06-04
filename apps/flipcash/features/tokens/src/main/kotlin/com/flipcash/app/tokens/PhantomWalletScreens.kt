@@ -47,7 +47,7 @@ internal fun PhantomConnectConfirmationScreen() {
             .launchIn(this)
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.PhantomConnected>()
             .onEach { flowNavigator.navigateTo(SwapStep.PhantomConfirmTransaction) }
