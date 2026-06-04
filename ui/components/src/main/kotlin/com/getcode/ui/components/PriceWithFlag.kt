@@ -15,11 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
-import com.getcode.model.CurrencyCode
-import com.getcode.model.KinAmount
 import com.getcode.theme.CodeTheme
-import com.getcode.utils.flagResId
-import com.getcode.extensions.formatted
 
 object PriceWithFlagDefaults {
 
@@ -31,24 +27,6 @@ object PriceWithFlagDefaults {
             style = style,
         )
     }
-}
-
-@Composable
-fun PriceWithFlag(
-    modifier: Modifier = Modifier,
-    currencyCode: CurrencyCode,
-    amount: KinAmount,
-    iconSize: Dp = CodeTheme.dimens.staticGrid.x4,
-    text: @Composable (String) -> Unit = { PriceWithFlagDefaults.Text(label = it) },
-) {
-    PriceWithFlag(
-        modifier = modifier,
-        currencyCode = currencyCode.name,
-        amount = amount.formatted(),
-        flag = currencyCode.flagResId,
-        iconSize = iconSize,
-        text = text
-    )
 }
 
 @Composable

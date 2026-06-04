@@ -3,7 +3,6 @@ package com.getcode.ui.components.chat.utils
 import android.os.Parcelable
 import androidx.compose.runtime.Stable
 import com.getcode.model.ID
-import com.getcode.model.KinAmount
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.Deleter
 import com.getcode.model.chat.MessageContent
@@ -30,8 +29,9 @@ data class ReplyMessageAnchor(
     val deletedBy: Deleter? = null,
 )
 
+// TODO(chat-v2): MessageTip will use OCP Fiat for amount
 @Parcelize
-data class MessageTip(val amount: KinAmount, val tipper: Sender): Parcelable
+data class MessageTip(val amountInQuarks: Long, val tipper: Sender): Parcelable
 
 @Parcelize
 data class MessageReaction(val messageId: ID, val sender: Sender, val emoji: String, val sentAt: Long): Parcelable

@@ -7,9 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -18,9 +15,9 @@ import androidx.compose.ui.unit.dp
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Verb
-import com.getcode.model.orOneToOne
-import com.getcode.network.exchange.LocalExchange
 import com.getcode.theme.CodeTheme
+import com.getcode.utils.FormatUtils
+import com.getcode.utils.flagResId
 import com.getcode.ui.components.PriceWithFlag
 import com.getcode.ui.components.chat.utils.localizedText
 import kotlin.time.Instant
@@ -42,15 +39,8 @@ internal fun MessagePayment(
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        val exchange = LocalExchange.current
-        val rate by remember(contents.amount.currencyCode) {
-            derivedStateOf {
-                exchange.rateFor(contents.amount.currencyCode).orOneToOne()
-            }
-        }
-        val amount by remember(rate) {
-            derivedStateOf { contents.amount.amountUsing(rate) }
-        }
+        // TODO(chat-v2): reimplement payment formatting with OCP Fiat
+        val formattedAmount = FormatUtils.formatCurrency(contents.amount, contents.currencyCode)
 
         Column(
             modifier = Modifier
@@ -61,8 +51,9 @@ internal fun MessagePayment(
         ) {
             if (contents.verb == Verb.Returned) {
                 PriceWithFlag(
-                    currencyCode = amount.rate.currency,
-                    amount = amount,
+                    currencyCode = contents.currencyCode.name,
+                    amount = formattedAmount,
+                    flag = contents.currencyCode.flagResId,
                     text = { price ->
                         Text(
                             text = price,
@@ -81,8 +72,9 @@ internal fun MessagePayment(
                     style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
                 )
                 PriceWithFlag(
-                    currencyCode = amount.rate.currency,
-                    amount = amount,
+                    currencyCode = contents.currencyCode.name,
+                    amount = formattedAmount,
+                    flag = contents.currencyCode.flagResId,
                     text = { price ->
                         Text(
                             text = price,

@@ -5,17 +5,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import com.getcode.ui.components.R
-import com.getcode.model.Currency
-import com.getcode.model.GenericAmount
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.Verb
-import com.getcode.utils.Kin
-import com.getcode.extensions.formatted
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import com.getcode.utils.FormatUtils
-import com.getcode.utils.LocalCurrencyUtils
 import java.util.Locale
 
 val LocalLocalizeCurrencyFormatting = staticCompositionLocalOf { true }
@@ -27,33 +22,8 @@ fun MessageContent.localizedText(
 ): String {
     return when (val content = this) {
         is MessageContent.Exchange -> {
-            val amount = when (val kinAmount = content.amount) {
-                is GenericAmount.Exact -> {
-                    val currency = if (localizeCurrency) {
-                        currencyUtils.getCurrency(kinAmount.currencyCode.name)
-                    } else {
-                        null
-                    }
-
-                    val amount = if (localizeCurrency) {
-                        kinAmount.amount.fiat
-                    } else {
-                        kinAmount.amount.kin.toKinValueDouble()
-                    }
-
-                    kinAmount.amount.formatted(
-                        resources = resources,
-                        amount = amount,
-                        currency = currency ?: Currency.Kin
-                    )
-                }
-
-                is GenericAmount.Partial -> {
-                    FormatUtils.formatCurrency(kinAmount.fiat.amount, kinAmount.currencyCode).let {
-                        "$it ${resources.getOfKinSuffix()}"
-                    }
-                }
-            }
+            // TODO(chat-v2): Exchange message amounts will use com.getcode.opencode.model.financial.Fiat
+            val amount = FormatUtils.formatCurrency(content.amount, content.currencyCode)
 
             val localized = content.verb.localizedText(resources)
 
@@ -134,31 +104,8 @@ val MessageContent.localizedText: String
         val context = LocalContext.current
         return when (val content = this) {
             is MessageContent.Exchange -> {
-                val amount = when (val kinAmount = content.amount) {
-                    is GenericAmount.Exact -> {
-                        val localizeCurrencyFormatting = LocalLocalizeCurrencyFormatting.current
-                        val currency = if (localizeCurrencyFormatting) {
-                            LocalCurrencyUtils.current?.getCurrency(kinAmount.currencyCode.name)
-                        } else {
-                            null
-                        }
-
-                        val amount = if (localizeCurrencyFormatting) {
-                            kinAmount.amount.fiat
-                        } else {
-                            kinAmount.amount.kin.toKinValueDouble()
-                        }
-
-                        kinAmount.amount.formatted(
-                            amount = amount,
-                            currency = currency ?: Currency.Kin
-                        )
-                    }
-
-                    is GenericAmount.Partial -> {
-                        FormatUtils.formatCurrency(kinAmount.fiat.amount, kinAmount.currencyCode)
-                    }
-                }
+                // TODO(chat-v2): reimplement Exchange amount formatting with OCP Fiat
+                val amount = FormatUtils.formatCurrency(content.amount, content.currencyCode)
 
                 val localized = content.verb.localizedText
 
