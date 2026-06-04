@@ -42,9 +42,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -121,7 +120,7 @@ fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.Bott
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .alpha(scrimAlpha)
+                        .graphicsLayer { alpha = scrimAlpha }
                         .background(CodeTheme.colors.scrim)
                         .rememberedClickable(
                             indication = null,
@@ -257,7 +256,7 @@ fun BottomBarView(
                                 color = LocalContentColor.current.copy(alpha = 0.8f),
                             )
                             Icon(
-                                modifier = Modifier.rotate(rotation),
+                                modifier = Modifier.graphicsLayer { rotationZ = rotation },
                                 imageVector = Icons.Rounded.ExpandMore,
                                 contentDescription = null,
                                 tint = LocalContentColor.current.copy(alpha = 0.8f),
