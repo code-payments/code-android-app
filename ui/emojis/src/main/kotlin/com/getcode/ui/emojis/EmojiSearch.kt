@@ -51,7 +51,10 @@ fun EmojiSearchResults(
             bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + CodeTheme.dimens.grid.x2
         )
     ) {
-        items(results.orEmpty()) { emoji ->
+        items(
+            items = results.orEmpty(),
+            key = { it.unicode },
+        ) { emoji ->
             Row(
                 modifier = Modifier
                     .clickable { onSelected(emoji.unicode) },
