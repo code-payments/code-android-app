@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.ImageDecoder
 import android.graphics.Paint
@@ -219,16 +220,21 @@ class NotificationService : FirebaseMessagingService(),
     }
 
     private suspend fun resolveContactPhoto(e164: String): Bitmap? {
-        val uriString = contactResolver.resolvePhotoUri(e164) ?: return null
-        return try {
-            val source = ImageDecoder.createSource(contentResolver, uriString.toUri())
-            ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
-                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+        val uriString = contactResolver.resolvePhotoUri(e164)
+        if (uriString != null) {
+            try {
+                val source = ImageDecoder.createSource(contentResolver, uriString.toUri())
+                return ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                    decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                }
+            } catch (e: Exception) {
+                trace(tag = "NotificationService", message = "Failed to decode contact photo: ${e.message}", type = TraceType.Log)
             }
-        } catch (e: Exception) {
-            trace(tag = "NotificationService", message = "Failed to decode contact photo: ${e.message}", type = TraceType.Log)
-            null
         }
+
+        // URI unavailable or decode failed — read directly from contacts provider
+        val bytes = contactResolver.resolvePhotoBytes(e164) ?: return null
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }
 
     private suspend fun resolveSubstitution(substitution: Substitution): String {
