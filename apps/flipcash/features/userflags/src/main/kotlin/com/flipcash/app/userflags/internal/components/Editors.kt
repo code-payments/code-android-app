@@ -37,7 +37,7 @@ internal fun <T> TextInputContent(
     dispatch: (UserFlagsViewModel.Event) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val textFieldState = remember {
+    val textFieldState = remember(entry) {
         TextFieldState(initialText = entry.formattedEditValue())
     }
 
@@ -80,7 +80,7 @@ internal fun <T> MultiSelectContent(
     dispatch: (UserFlagsViewModel.Event) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val selected = remember {
+    val selected = remember(entry) {
         mutableStateListOf<T>().apply {
             addAll(entry.resolved.effectiveValue)
         }
@@ -129,7 +129,7 @@ internal fun <T> SingleSelectContent(
     dispatch: (UserFlagsViewModel.Event) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var selected by remember { mutableStateOf(entry.resolved.effectiveValue) }
+    var selected by remember(entry) { mutableStateOf(entry.resolved.effectiveValue) }
 
     editor.options.forEach { (label, value) ->
         Row(

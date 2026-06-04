@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,10 +66,8 @@ internal fun TransactionReceipt(
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x4),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val netTransferAmount by remember(tokenWithBalance, fee) {
-            derivedStateOf {
-                tokenWithBalance.balance - (fee ?: 0.toFiat(tokenWithBalance.balance.currencyCode))
-            }
+        val netTransferAmount = remember(tokenWithBalance, fee) {
+            tokenWithBalance.balance - (fee ?: 0.toFiat(tokenWithBalance.balance.currencyCode))
         }
 
         LineItems(

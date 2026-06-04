@@ -95,7 +95,7 @@ internal fun TokenDetailsSection(
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset)
             ) {
-                items(links) { link ->
+                items(links, key = { it.uri }) { link ->
                     SocialChip(link)
                 }
             }
