@@ -32,8 +32,8 @@ internal fun UserProfileScreenContent(
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         // Display Name section
-        item { SectionHeader(stringResource(R.string.title_sectionDisplayName)) }
-        item {
+        item(contentType = "section_header") { SectionHeader(stringResource(R.string.title_sectionDisplayName)) }
+        item(contentType = "profile_value") {
             val name = state.displayName
             if (!name.isNullOrEmpty()) {
                 ProfileValueRow(value = name)
@@ -51,8 +51,8 @@ internal fun UserProfileScreenContent(
         }
 
         // Phone section
-        item { SectionHeader(stringResource(R.string.title_sectionPhone)) }
-        item {
+        item(contentType = "section_header") { SectionHeader(stringResource(R.string.title_sectionPhone)) }
+        item(contentType = "contact_method") {
             if (state.phoneNumber != null) {
                 ContactMethodRow(
                     value = state.phoneNumber,
@@ -71,8 +71,8 @@ internal fun UserProfileScreenContent(
         }
 
         // Email section
-        item { SectionHeader(stringResource(R.string.title_sectionEmail)) }
-        item {
+        item(contentType = "section_header") { SectionHeader(stringResource(R.string.title_sectionEmail)) }
+        item(contentType = "contact_method") {
             if (state.emailAddress != null) {
                 ContactMethodRow(
                     value = state.emailAddress,
@@ -89,9 +89,9 @@ internal fun UserProfileScreenContent(
         }
 
         // Social Accounts section
-        item { SectionHeader(stringResource(R.string.title_sectionSocialAccounts)) }
+        item(contentType = "section_header") { SectionHeader(stringResource(R.string.title_sectionSocialAccounts)) }
         if (state.socialAccounts.isEmpty()) {
-            item {
+            item(contentType = "empty_state") {
                 Text(
                     text = stringResource(R.string.subtitle_noSocialAccounts),
                     style = CodeTheme.typography.textMedium,
@@ -103,7 +103,7 @@ internal fun UserProfileScreenContent(
                 )
             }
         } else {
-            items(state.socialAccounts, key = { (it as? SocialAccount.TwitterX)?.id ?: it }) { account ->
+            items(state.socialAccounts, key = { (it as? SocialAccount.TwitterX)?.id ?: it }, contentType = { "social_account" }) { account ->
                 when (account) {
                     is SocialAccount.TwitterX -> SocialAccountRow(
                         account = account,
