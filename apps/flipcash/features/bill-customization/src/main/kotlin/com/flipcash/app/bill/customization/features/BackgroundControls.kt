@@ -126,7 +126,7 @@ internal fun BackgroundControls(
                             }
                         }
 
-                        items(state.colorOptions.size) { index ->
+                        items(state.colorOptions.size, key = { state.colorOptions[it].colorHex }) { index ->
                             ColorOptionItem(state.colorOptions, index) { event ->
                                 dispatchEvent(event)
                             }

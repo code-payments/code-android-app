@@ -57,16 +57,12 @@ fun TokenList(
 ) {
     val listState = rememberLazyListState()
 
-    val cashReserves by remember(tokens) {
-        derivedStateOf {
-            tokens?.find { it.token.address == Mint.usdf }?.balance ?: LocalFiat.Zero
-        }
+    val cashReserves = remember(tokens) {
+        tokens?.find { it.token.address == Mint.usdf }?.balance ?: LocalFiat.Zero
     }
-    val filteredTokens by remember(tokens, includeReserves) {
-        derivedStateOf {
-            if (includeReserves) tokens
-            else tokens?.filterNot { it.token.address == Mint.usdf }
-        }
+    val filteredTokens = remember(tokens, includeReserves) {
+        if (includeReserves) tokens
+        else tokens?.filterNot { it.token.address == Mint.usdf }
     }
 
     val footerSettled by remember {
