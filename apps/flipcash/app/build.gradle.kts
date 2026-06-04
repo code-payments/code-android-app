@@ -118,6 +118,12 @@ bugsnag {
     }
 }
 
+composeCompiler {
+    stabilityConfigurationFile.set(
+        rootProject.layout.projectDirectory.file("compose_compiler_config.conf")
+    )
+}
+
 kotlin {
     jvmToolchain {
         languageVersion.set(JavaLanguageVersion.of(libs.versions.android.java.get()))

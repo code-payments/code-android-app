@@ -32,10 +32,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.zIndex
-import com.getcode.extensions.formattedRaw
 import com.getcode.model.RandomId
 import com.getcode.model.chat.Sender
-import com.getcode.model.sum
+import com.getcode.utils.FormatUtils
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.UserAvatar
@@ -117,7 +116,8 @@ private fun TipCounter(
         }
     )
 
-    val totalTips = tips.map { it.amount }.sum().formattedRaw()
+    // TODO(chat-v2): reimplement tip formatting with OCP Fiat
+    val totalTips = FormatUtils.formatWholeRoundDown(tips.sumOf { it.amountInQuarks }.toDouble())
 
     Row(
         modifier = modifier
