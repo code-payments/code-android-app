@@ -216,7 +216,7 @@ fun SlideToConfirm(
                 // If they don't, the confirmation was rejected — reset.
                 delay(200)
                 if (!currentIsLoading) {
-                    composeScope.launch { swipeState.animateTo(Anchor.Start) }
+                    swipeState.animateTo(Anchor.Start)
                 }
             }
     }

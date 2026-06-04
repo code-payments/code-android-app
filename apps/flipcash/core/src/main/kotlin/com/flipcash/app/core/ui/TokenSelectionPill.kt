@@ -19,9 +19,9 @@ import com.getcode.ui.core.R
 import androidx.compose.foundation.clickable
 
 @Composable
-fun TokenSelectionPill(token: Token?, onClick: () -> Unit) {
+fun TokenSelectionPill(token: Token?, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .wrapContentHeight(),
         contentAlignment = Alignment.Center
@@ -60,10 +60,11 @@ fun TokenSelectionPill(
     tokenName: String,
     tokenImageUrl: String?,
     tokenSymbol: String,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .wrapContentHeight(),
         contentAlignment = Alignment.Center
