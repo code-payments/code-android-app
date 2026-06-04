@@ -32,6 +32,7 @@ class ContactResolverTest {
         val deviceLookup = mockk<DeviceContactLookup> {
             every { lookupDisplayName(e164) } returns deviceName
             every { lookupPhotoUri(e164) } returns devicePhotoUri
+            every { lookupPhotoBytes(e164) } returns null
         }
         val phoneUtils = mockk<PhoneUtils> {
             if (formatThrows) {

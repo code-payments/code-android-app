@@ -33,4 +33,7 @@ class ContactResolver @Inject constructor(
         contactDataSource.updatePhotoUri(e164, device)
         return device
     }
+
+    fun resolvePhotoBytes(e164: String): ByteArray? =
+        deviceContactLookup.lookupPhotoBytes(e164)
 }
