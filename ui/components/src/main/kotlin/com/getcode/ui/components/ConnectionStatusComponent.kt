@@ -16,8 +16,8 @@ import com.getcode.utils.network.NetworkState
 import com.getcode.utils.network.connectivity.NetworkStateProvider
 
 @Composable
-fun ConnectionStatus(state: NetworkState) {
-    Row {
+fun ConnectionStatus(state: NetworkState, modifier: Modifier = Modifier) {
+    Row(modifier = modifier) {
         when  {
             !state.connected && state.type != ConnectionType.Unknown -> {
                 CodeCircularProgressIndicator(
