@@ -49,7 +49,10 @@ fun FrequentlyUsedEmojis(
             .height(CodeTheme.dimens.grid.x9),
         contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset)
     ) {
-        items(frequentlyUsedEmojis) { emoji ->
+        items(
+            items = frequentlyUsedEmojis,
+            key = { it },
+        ) { emoji ->
             EmojiRender(
                 emoji = emoji,
                 size = DpSize(

@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,8 +79,8 @@ internal fun AccessKeyScreen(
 
     val composeScope = rememberCoroutineScope()
 
-    var isExportSeedRequested by remember { mutableStateOf(false) }
-    var isStoragePermissionGranted by remember { mutableStateOf(false) }
+    var isExportSeedRequested by rememberSaveable { mutableStateOf(false) }
+    var isStoragePermissionGranted by rememberSaveable { mutableStateOf(false) }
 
     val onPermissionResult = { result: PermissionResult ->
         isStoragePermissionGranted = result == PermissionResult.Granted

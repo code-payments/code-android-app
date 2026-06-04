@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,8 +60,8 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
     val resources = LocalResources.current
     val dataState by viewModel.uiFlow.collectAsStateWithLifecycle()
 
-    var isExportSeedRequested by remember { mutableStateOf(false) }
-    var isStoragePermissionGranted by remember { mutableStateOf(false) }
+    var isExportSeedRequested by rememberSaveable { mutableStateOf(false) }
+    var isStoragePermissionGranted by rememberSaveable { mutableStateOf(false) }
     val isAccessKeyVisible = remember { MutableTransitionState(false) }
 
     val onPermissionResult = { result: PermissionResult ->

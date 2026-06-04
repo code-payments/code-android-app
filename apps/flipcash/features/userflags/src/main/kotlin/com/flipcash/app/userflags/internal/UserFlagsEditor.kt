@@ -75,13 +75,19 @@ private fun UserFlagsEditor(
                 ) {
                     // Read-only section
                     item { SectionHeader("Read-Only") }
-                    items(state.readOnlyEntries) { entry ->
+                    items(
+                        items = state.readOnlyEntries,
+                        key = { it.label },
+                    ) { entry ->
                         ReadOnlyRow(entry)
                     }
 
                     // Editable section
                     item { SectionHeader("Overridable") }
-                    items(state.editableEntries) { entry ->
+                    items(
+                        items = state.editableEntries,
+                        key = { it.field.label },
+                    ) { entry ->
                         EditableRow(
                             modifier = Modifier.fillMaxWidth(),
                             entry = entry,

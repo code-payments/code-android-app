@@ -50,7 +50,7 @@ internal fun ContactsPermissionGateScreen() {
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SendFlowViewModel.Event.ContactSyncComplete>()
             .collect { flowNavigator.proceed() }

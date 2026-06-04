@@ -1,10 +1,10 @@
 package com.flipcash.app.updates
 
-import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-val LocalAppUpdater = compositionLocalOf<AppUpdateController> { StubAppUpdateController() }
+val LocalAppUpdater = staticCompositionLocalOf<AppUpdateController> { StubAppUpdateController() }
 
 class StubAppUpdateController(updateInfo: UpdateInfo? = null): AppUpdateController {
     override val availableUpdate: StateFlow<UpdateInfo?> = MutableStateFlow(updateInfo)
