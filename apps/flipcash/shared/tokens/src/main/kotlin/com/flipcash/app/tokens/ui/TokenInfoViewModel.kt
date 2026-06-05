@@ -224,6 +224,7 @@ class TokenInfoViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnBalanceUpdated>()
             .mapNotNull { stateFlow.value.mint }
+            .distinctUntilChanged()
             .flatMapLatest { mint ->
                 accountController.observeHasAccountFor(mint)
             }

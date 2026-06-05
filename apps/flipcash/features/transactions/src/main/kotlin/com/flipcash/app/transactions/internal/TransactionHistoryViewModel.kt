@@ -21,6 +21,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
@@ -131,6 +132,7 @@ class TransactionHistoryViewModel @Inject constructor(
     }
 
     val transactions = stateFlow.mapNotNull { it.mint }
+        .distinctUntilChanged()
         .flatMapLatest { mint -> feedCoordinator.transactions(mint) }
 
     companion object {

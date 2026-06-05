@@ -36,6 +36,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -182,7 +183,7 @@ internal class SendFlowViewModel @Inject constructor(
 
         combine(
             contactCoordinator.state,
-            stateFlow.map { it.searchState }.flatMapLatest { snapshotFlow { it.text } }
+            stateFlow.map { it.searchState }.distinctUntilChanged().flatMapLatest { snapshotFlow { it.text } }
         ) { contactState, searchText ->
             generateListItems(contactState, searchText.toString())
         }.onEach { items ->
