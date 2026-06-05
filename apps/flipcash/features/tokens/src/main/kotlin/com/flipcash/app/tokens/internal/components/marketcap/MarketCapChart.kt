@@ -47,7 +47,7 @@ import com.getcode.util.vibration.LocalVibrator
 import androidx.compose.ui.graphics.Brush
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
-import com.patrykandpatrick.vico.compose.cartesian.data.lineSeries
+import com.patrykandpatrick.vico.compose.cartesian.data.lineModel
 import com.patrykandpatrick.vico.compose.cartesian.layer.LineCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLine
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberLineCartesianLayer
@@ -105,7 +105,7 @@ internal fun MarketCapChart(
     LaunchedEffect(windowedData) {
         if (windowedData.isNotEmpty()) {
             modelProducer.runTransaction {
-                lineSeries {
+                lineModel {
                     series(
                         x = windowedData.indices.map { it.toDouble() },
                         y = windowedData.map { it.y },
@@ -298,7 +298,7 @@ private fun MarketCapChartContent(
                             )
                         )
                     },
-                    pointConnector = LineCartesianLayer.PointConnector.cubic(curvature = 0.25f),
+                    interpolator = LineCartesianLayer.Interpolator.cubic(curvature = 0.25f),
                 ),
             ),
         ),
@@ -392,7 +392,7 @@ private fun PreviewMarketCapChart() {
         // Use `runBlocking` only for previews, which don’t support asynchronous execution.
         runBlocking {
             modelProducer.runTransaction {
-                lineSeries { series(data.yValues) }
+                lineModel { series(data.yValues) }
             }
         }
 
