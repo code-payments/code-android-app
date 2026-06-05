@@ -17,7 +17,6 @@ import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.core.noRippleClickable
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -35,7 +34,6 @@ fun MyAccountScreen() {
         AppBarWithTitle(
             title = {
                 AppBarDefaults.Title(
-                    modifier = Modifier.noRippleClickable { viewModel.dispatchEvent(MyAccountScreenViewModel.Event.OnTitleClicked) },
                     text = stringResource(R.string.title_myAccount),
                 )
             },

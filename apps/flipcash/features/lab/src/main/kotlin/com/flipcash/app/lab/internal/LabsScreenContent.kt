@@ -52,11 +52,15 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
             .verticalScrollStateGradient(
                 scrollState = state,
                 isLongGradient = true,
-            ).sheetResignmentBehavior(state),
+            )
+            .sheetResignmentBehavior(state),
         contentPadding = PaddingValues(bottom = CodeTheme.dimens.grid.x3),
     ) {
-        item(contentType = "section_header") {
-            SectionHeader(stringResource(R.string.title_settingsSectionFeatures))
+       item(contentType = "section_header") {
+            SectionHeader(
+                modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                title = stringResource(R.string.title_settingsSectionFeatures)
+            )
         }
         items(betaFlags, key = { it.flag.key }, contentType = { "feature_flag" }) { feature ->
             if (feature.flag.isOptionFlag) {
@@ -113,7 +117,12 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
             }
         }
 
-        item(contentType = "section_header") { SectionHeader(stringResource(R.string.title_settingsSectionHomeScreen)) }
+         item(contentType = "section_header") {
+            SectionHeader(
+                modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                title = stringResource(R.string.title_settingsSectionHomeScreen)
+            )
+        }
         item(contentType = "list_item") {
             ListItem(
                 headline = stringResource(R.string.title_settingsButtonOrder),
@@ -124,7 +133,12 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
         }
 
         if (isStaff) {
-            item(contentType = "section_header") { SectionHeader(stringResource(R.string.title_settingsSectionDeveloper)) }
+            item(contentType = "section_header") {
+                SectionHeader(
+                    modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                    title = stringResource(R.string.title_settingsSectionDeveloper)
+                )
+            }
             item(contentType = "list_item") {
                 ListItem(
                     headline = stringResource(R.string.subtitle_settingsUserFlags),

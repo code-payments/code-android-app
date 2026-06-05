@@ -3,7 +3,6 @@ package com.flipcash.app.myaccount.internal
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class MyAccountScreenViewModelStateTest {
@@ -11,41 +10,9 @@ class MyAccountScreenViewModelStateTest {
     private val reduce = MyAccountScreenViewModel.Companion.updateStateForEvent
 
     @Test
-    fun `default state has null user info and beta disabled`() {
+    fun `default state has beta disabled`() {
         val state = MyAccountScreenViewModel.State()
-        assertNull(state.accountId)
-        assertNull(state.publicKey)
-        assertNull(state.pushToken)
         assertFalse(state.isBetaEnabled)
-        assertFalse(state.showAccountInfo)
-    }
-
-    @Test
-    fun `OnUserAssociated sets user fields`() {
-        val updated = reduce(
-            MyAccountScreenViewModel.Event.OnUserAssociated(
-                userId = "user-123",
-                publicKey = "pk-abc",
-                pushToken = "token-xyz"
-            )
-        )(MyAccountScreenViewModel.State())
-        assertEquals("user-123", updated.accountId)
-        assertEquals("pk-abc", updated.publicKey)
-        assertEquals("token-xyz", updated.pushToken)
-    }
-
-    @Test
-    fun `OnUserAssociated with null values`() {
-        val updated = reduce(
-            MyAccountScreenViewModel.Event.OnUserAssociated(
-                userId = null,
-                publicKey = null,
-                pushToken = null
-            )
-        )(MyAccountScreenViewModel.State())
-        assertNull(updated.accountId)
-        assertNull(updated.publicKey)
-        assertNull(updated.pushToken)
     }
 
     @Test
@@ -85,31 +52,14 @@ class MyAccountScreenViewModelStateTest {
     }
 
     @Test
-    fun `ToggleAccountInfo sets showAccountInfo`() {
-        val shown = reduce(
-            MyAccountScreenViewModel.Event.ToggleAccountInfo(true)
-        )(MyAccountScreenViewModel.State())
-        assertTrue(shown.showAccountInfo)
-
-        val hidden = reduce(
-            MyAccountScreenViewModel.Event.ToggleAccountInfo(false)
-        )(shown)
-        assertFalse(hidden.showAccountInfo)
-    }
-
-    @Test
     fun `no-op events return state unchanged`() {
-        val state = MyAccountScreenViewModel.State(accountId = "test", isBetaEnabled = true)
+        val state = MyAccountScreenViewModel.State(isBetaEnabled = true)
         val noOpEvents = listOf(
             MyAccountScreenViewModel.Event.OnLogOutClicked,
             MyAccountScreenViewModel.Event.OnLoggedOutCompletely,
             MyAccountScreenViewModel.Event.OnContactMethodsClicked,
             MyAccountScreenViewModel.Event.OnViewUserProfile,
             MyAccountScreenViewModel.Event.OnViewAccessKey,
-            MyAccountScreenViewModel.Event.CopyPublicKey,
-            MyAccountScreenViewModel.Event.CopyAccountId,
-            MyAccountScreenViewModel.Event.CopyPushToken,
-            MyAccountScreenViewModel.Event.OnTitleClicked,
             MyAccountScreenViewModel.Event.OnDeleteAccountClicked,
             MyAccountScreenViewModel.Event.OnAccountDeleted,
             MyAccountScreenViewModel.Event.OnAccessKeyClicked,

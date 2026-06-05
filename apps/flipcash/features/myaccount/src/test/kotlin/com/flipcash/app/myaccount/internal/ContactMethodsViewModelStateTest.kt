@@ -19,6 +19,9 @@ class ContactMethodsViewModelStateTest {
         assertNull(state.emailAddress)
         assertFalse(state.phoneLinkedForPayment)
         assertTrue(state.socialAccounts.isEmpty())
+        assertNull(state.publicKey)
+        assertNull(state.accountId)
+        assertNull(state.pushToken)
     }
 
     @Test
@@ -68,6 +71,34 @@ class ContactMethodsViewModelStateTest {
     }
 
     @Test
+    fun `OnAccountInfoUpdated sets account fields`() {
+        val updated = reduce(
+            UserProfileViewModel.Event.OnAccountInfoUpdated(
+                publicKey = "pk-abc",
+                accountId = "user-123",
+                pushToken = "token-xyz",
+            )
+        )(UserProfileViewModel.State())
+        assertEquals("pk-abc", updated.publicKey)
+        assertEquals("user-123", updated.accountId)
+        assertEquals("token-xyz", updated.pushToken)
+    }
+
+    @Test
+    fun `OnAccountInfoUpdated with null values`() {
+        val updated = reduce(
+            UserProfileViewModel.Event.OnAccountInfoUpdated(
+                publicKey = null,
+                accountId = null,
+                pushToken = null,
+            )
+        )(UserProfileViewModel.State())
+        assertNull(updated.publicKey)
+        assertNull(updated.accountId)
+        assertNull(updated.pushToken)
+    }
+
+    @Test
     fun `no-op events return state unchanged`() {
         val xAccount = SocialAccount.TwitterX(
             id = "123",
@@ -95,6 +126,9 @@ class ContactMethodsViewModelStateTest {
             UserProfileViewModel.Event.UnlinkSocialAccountClicked(xAccount),
             UserProfileViewModel.Event.NavigateToPhoneVerification,
             UserProfileViewModel.Event.NavigateToEmailVerification,
+            UserProfileViewModel.Event.CopyPublicKey,
+            UserProfileViewModel.Event.CopyAccountId,
+            UserProfileViewModel.Event.CopyPushToken,
         )
         noOpEvents.forEach { event ->
             assertEquals(state, reduce(event)(state), "Event $event should be no-op")
