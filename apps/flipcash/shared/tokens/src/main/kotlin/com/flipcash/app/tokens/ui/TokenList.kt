@@ -82,18 +82,19 @@ fun TokenList(
             state = listState
         ) {
             if (tokens != null && tokens.isEmpty() && emptyState != null) {
-                item {
+                item(contentType = "empty_state") {
                     emptyState()
                 }
             } else {
                 header?.let { content ->
-                    item {
+                    item(contentType = "header") {
                         content()
                     }
                 }
                 items(
                     items = filteredTokens.orEmpty(),
-                    key = { item -> item.token.address.base58() }) { item ->
+                    key = { item -> item.token.address.base58() },
+                    contentType = { "token_row" }) { item ->
                     TokenBalanceRow(
                         modifier = Modifier
                             .fillParentMaxWidth()
@@ -113,7 +114,7 @@ fun TokenList(
                             Fiat(0.0, cashReserves.rate.currency)
                         )
                     ) {
-                        item {
+                        item(contentType = "reserves") {
                             it(Mint.usdf, cashReserves)
                             HorizontalDivider(
                                 modifier = Modifier.padding(bottom = CodeTheme.dimens.inset),
@@ -124,7 +125,7 @@ fun TokenList(
                 }
 
                 footer?.let {
-                    item {
+                    item(contentType = "footer") {
                         Box(modifier = Modifier.alpha(if (footerSettled) 1f else 0f)) {
                             it(false)
                         }

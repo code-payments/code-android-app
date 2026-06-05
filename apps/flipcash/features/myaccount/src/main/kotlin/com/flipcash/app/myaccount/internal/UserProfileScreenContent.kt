@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
@@ -130,8 +131,8 @@ internal fun UserProfileScreenContent(
         }
 
         // Display Name section
-        item { SectionHeader(stringResource(R.string.title_sectionDisplayName)) }
-        item {
+        item(contentType = "section_header") { SectionHeader(stringResource(R.string.title_sectionDisplayName)) }
+        item(contentType = "profile_value") {
             val name = state.displayName
             if (!name.isNullOrEmpty()) {
                 CardRow { ProfileValueRow(value = name) }
@@ -151,8 +152,8 @@ internal fun UserProfileScreenContent(
         }
 
         // Phone section
-        item { SectionHeader(stringResource(R.string.title_sectionPhone)) }
-        item {
+        item(contentType = "section_header") { SectionHeader(stringResource(R.string.title_sectionPhone)) }
+        item(contentType = "contact_method") {
             if (state.phoneNumber != null) {
                 SwipeActionRow(
                     onDelete = { dispatch(UserProfileViewModel.Event.UnlinkPhoneClicked) },
@@ -178,8 +179,8 @@ internal fun UserProfileScreenContent(
         }
 
         // Email section
-        item { SectionHeader(stringResource(R.string.title_sectionEmail)) }
-        item {
+        item(contentType = "section_header") { SectionHeader(stringResource(R.string.title_sectionEmail)) }
+        item(contentType = "contact_method") {
             if (state.emailAddress != null) {
                 SwipeActionRow(
                     onDelete = { dispatch(UserProfileViewModel.Event.UnlinkEmailClicked) },
@@ -203,9 +204,9 @@ internal fun UserProfileScreenContent(
         }
 
         // Social Accounts section
-        item { SectionHeader(stringResource(R.string.title_sectionSocialAccounts)) }
+        item(contentType = "section_header") { SectionHeader(stringResource(R.string.title_sectionSocialAccounts)) }
         if (state.socialAccounts.isEmpty()) {
-            item {
+          item(contentType = "empty_state") {
                 CardRow {
                     Text(
                         text = stringResource(R.string.subtitle_noSocialAccounts),
@@ -219,9 +220,9 @@ internal fun UserProfileScreenContent(
                 }
             }
         } else {
-            state.socialAccounts.forEach { account ->
+            items(state.socialAccounts, key = { it.id }, contentType = { "social_account" }) { account ->
                 when (account) {
-                    is SocialAccount.TwitterX -> item(key = account.id) {
+                    is SocialAccount.TwitterX -> {
                         SwipeActionRow(
                             onDelete = {
                                 dispatch(

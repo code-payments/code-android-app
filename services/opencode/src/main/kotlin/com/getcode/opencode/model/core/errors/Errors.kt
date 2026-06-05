@@ -115,7 +115,16 @@ sealed class SubmitIntentError(
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
     data class InvalidIntent(private val reasons: List<String>) :
-        SubmitIntentError(message = reasons.joinToString()), NotifiableError
+        SubmitIntentError(message = reasons.joinToString()), ConditionallyNotifiable {
+        val isPaymentNoOp: Boolean
+            get() = reasons.any { it.contains("payment is a no-op") }
+
+        val isExpected: Boolean
+            get() = isPaymentNoOp
+
+        override val isNotifiable: Boolean
+            get() = !isExpected
+    }
 
     data class Signature(private val details: List<String> = emptyList()) :
         SubmitIntentError(message = buildString {
