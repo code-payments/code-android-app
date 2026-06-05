@@ -35,7 +35,7 @@ import com.flipcash.app.bill.customization.internal.features.BlendMode
 import com.flipcash.app.bill.customization.internal.features.GraphicState
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Pill
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.flipcash.app.bill.customization.Event.Graphics as GraphicsEvent
 
 @Composable
@@ -76,7 +76,7 @@ internal fun TextureControls(
                             shape = CodeTheme.shapes.large
                         )
                         .clip(CodeTheme.shapes.large)
-                        .rememberedClickable {
+                        .clickable {
                             dispatchEvent(GraphicsEvent.ApplyGraphic(index))
                         },
                     contentAlignment = Alignment.Center,
@@ -91,10 +91,13 @@ internal fun TextureControls(
             }
         }
 
+        val blendModes = remember(state.blendModes) {
+            state.blendModes.map { it.blendMode }
+        }
+
         val selectedTabIndex by remember(state.selectedBlendMode) {
             derivedStateOf {
-                val option = state.selectedBlendMode.blendMode
-                state.blendModes.map { it.blendMode }.indexOf(option).takeIf { it >= 0 } ?: 0
+                blendModes.indexOf(state.selectedBlendMode.blendMode).takeIf { it >= 0 } ?: 0
             }
         }
 
@@ -106,11 +109,12 @@ internal fun TextureControls(
             indicator = {}, // no indicator
             divider = {} // no divider
         ) {
-            state.blendModes.map { it.blendMode }.forEachIndexed { index, mode ->
+            blendModes.forEachIndexed { index, mode ->
                 BlendModeTab(
                     mode = mode,
-                    isSelected = index == selectedTabIndex
-                ) { dispatchEvent(GraphicsEvent.CommitBlendMode(mode)) }
+                    isSelected = index == selectedTabIndex,
+                    onClick = { dispatchEvent(GraphicsEvent.CommitBlendMode(mode)) },
+                )
             }
         }
 
@@ -139,8 +143,8 @@ internal fun TextureControls(
 internal fun BlendModeTab(
     mode: BlendMode,
     isSelected: Boolean,
-    modifier: Modifier = Modifier,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val backgroundColor by animateColorAsState(
         if (isSelected) Color.White.copy(0.30f) else Color.Transparent
@@ -153,7 +157,7 @@ internal fun BlendModeTab(
     Pill(
         modifier = modifier
             .alpha(alpha)
-            .rememberedClickable(onClick = onClick),
+            .clickable(onClick = onClick),
         backgroundColor = backgroundColor,
         contentColor = Color.White,
         text = stringResource(mode.labelRes),

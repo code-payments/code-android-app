@@ -145,7 +145,7 @@ fun EmojiGarden(onClick: (String) -> Unit) {
                         color = CodeTheme.colors.textSecondary
                     )
                 }
-                items(frequentEmojis) { emoji ->
+                items(frequentEmojis, key = { "freq_${it.unicode}" }) { emoji ->
                     EmojiRender(
                         emoji = emoji.unicode,
                         showBackground = false,
@@ -171,7 +171,7 @@ fun EmojiGarden(onClick: (String) -> Unit) {
                         color = CodeTheme.colors.textSecondary
                     )
                 }
-                items(emojis.values.flatten()) { (emoji, _) ->
+                items(emojis.values.flatten(), key = { "${category.name}_${it.unicode}" }) { (emoji, _) ->
                     EmojiRender(
                         emoji = emoji,
                         showBackground = false,

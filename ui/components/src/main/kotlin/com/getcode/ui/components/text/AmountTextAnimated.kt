@@ -100,8 +100,6 @@ internal fun AmountTextAnimated(
     }
     val digitDecimalVisibility = remember(totalDecimals) { mutableStateListOf(*Array(totalDecimals) { false }) }
     val digitDecimalZeroVisibility = remember(totalDecimals) { mutableStateListOf(*Array(totalDecimals) { false }) }
-    var firstDigit by remember(isInitiallyZero, initialAmount) { mutableStateOf(if (!isInitiallyZero && initialAmount.isNotEmpty()) initialAmount.first().toString() else "") }
-
     //Font states
     var textSize by remember { mutableStateOf(textStyle.fontSize) }
     val fontDecreasePoints = remember { HashMap<Int, Float>() }
@@ -116,8 +114,10 @@ internal fun AmountTextAnimated(
     val isDecimal = amountSplit.size > 1
     val isZero = amountSplit[0] == "0" || amountSplit[0].isEmpty()
 
-    if (amountSplit.firstOrNull() != null && !isZero) {
-        firstDigit = uiModel.amountData.amountText.first().toString()
+    val firstDigit = remember(uiModel.amountData.amountText, isZero) {
+        if (!isZero && uiModel.amountData.amountText.isNotEmpty())
+            uiModel.amountData.amountText.first().toString()
+        else ""
     }
 
     fun getValue(i1: Int, i2: Int): String? =

@@ -31,7 +31,7 @@ internal class HomeViewModel @Inject constructor(
     private val _requireBiometrics = MutableStateFlow<Boolean?>(null)
     val requireBiometrics = _requireBiometrics.stateIn(
         viewModelScope,
-        started = SharingStarted.Eagerly,
+        started = SharingStarted.WhileSubscribed(5_000),
         initialValue = null
     )
 

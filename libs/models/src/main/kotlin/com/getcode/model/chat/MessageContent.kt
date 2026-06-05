@@ -1,7 +1,7 @@
 package com.getcode.model.chat
 
+import com.getcode.model.CurrencyCode
 import com.getcode.model.EncryptedData
-import com.getcode.model.GenericAmount
 import com.getcode.model.ID
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -86,9 +86,11 @@ sealed interface MessageContent {
         override val content: String = value
     }
 
+    // TODO(chat-v2): Exchange message amounts will use com.getcode.opencode.model.financial.Fiat
     @Serializable
     data class Exchange(
-        val amount: GenericAmount,
+        val amount: Double,
+        val currencyCode: CurrencyCode,
         val verb: Verb,
         val reference: Reference?,
         override val isFromSelf: Boolean,
@@ -97,6 +99,7 @@ sealed interface MessageContent {
 
         override fun hashCode(): Int {
             var result = amount.hashCode()
+            result += currencyCode.hashCode()
             result += verb.hashCode()
             result += (reference?.hashCode() ?: 0)
             result += isFromSelf.hashCode()
@@ -112,6 +115,7 @@ sealed interface MessageContent {
             other as Exchange
 
             if (amount != other.amount) return false
+            if (currencyCode != other.currencyCode) return false
             if (verb != other.verb) return false
             if (reference != other.reference) return false
             if (isFromSelf != other.isFromSelf) return false
@@ -122,13 +126,14 @@ sealed interface MessageContent {
 
         @Serializable
         internal data class Content(
-            val amount: GenericAmount,
+            val amount: Double,
+            val currencyCode: CurrencyCode,
             val verb: Verb,
             val reference: Reference?,
         )
 
         @Transient
-        override val content: String = Json.encodeToString(Content(amount, verb, reference))
+        override val content: String = Json.encodeToString(Content(amount, currencyCode, verb, reference))
     }
 
     @Serializable
@@ -509,7 +514,7 @@ sealed interface MessageContent {
                 1 -> RawText(content, isFromSelf)
                 2 -> {
                     val data = Json.decodeFromString<Exchange.Content>(content)
-                    Exchange(data.amount, data.verb, data.reference, isFromSelf)
+                    Exchange(data.amount, data.currencyCode, data.verb, data.reference, isFromSelf)
                 }
                 3 -> {
                     val data = Json.decodeFromString<SodiumBox.Content>(content)

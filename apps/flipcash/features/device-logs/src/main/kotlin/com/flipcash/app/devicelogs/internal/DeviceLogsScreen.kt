@@ -196,7 +196,10 @@ private fun LogList(
             ),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            items(lines.asReversed()) { line ->
+            items(
+                items = lines.asReversed(),
+                key = { it.hashCode() },
+            ) { line ->
                 LogLine(line = line, filter = filter)
             }
         }

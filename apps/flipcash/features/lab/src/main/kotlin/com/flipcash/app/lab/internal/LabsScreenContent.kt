@@ -52,13 +52,17 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
             .verticalScrollStateGradient(
                 scrollState = state,
                 isLongGradient = true,
-            ).sheetResignmentBehavior(state),
+            )
+            .sheetResignmentBehavior(state),
         contentPadding = PaddingValues(bottom = CodeTheme.dimens.grid.x3),
     ) {
-        item {
-            SectionHeader(stringResource(R.string.title_settingsSectionFeatures))
+       item(contentType = "section_header") {
+            SectionHeader(
+                modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                title = stringResource(R.string.title_settingsSectionFeatures)
+            )
         }
-        items(betaFlags, key = { it.flag.key }) { feature ->
+        items(betaFlags, key = { it.flag.key }, contentType = { "feature_flag" }) { feature ->
             if (feature.flag.isOptionFlag) {
                 SettingsOptionRow(
                     title = feature.flag.title,
@@ -87,7 +91,7 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
         }
 
         if (betaFlags.isEmpty()) {
-            item {
+            item(contentType = "empty_state") {
                 Box {
                     Column(
                         modifier = Modifier.align(Alignment.Center),
@@ -113,8 +117,13 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
             }
         }
 
-        item { SectionHeader(stringResource(R.string.title_settingsSectionHomeScreen)) }
-        item {
+         item(contentType = "section_header") {
+            SectionHeader(
+                modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                title = stringResource(R.string.title_settingsSectionHomeScreen)
+            )
+        }
+        item(contentType = "list_item") {
             ListItem(
                 headline = stringResource(R.string.title_settingsButtonOrder),
                 icon = painterResource(R.drawable.ic_bottom_navigation),
@@ -124,8 +133,13 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
         }
 
         if (isStaff) {
-            item { SectionHeader(stringResource(R.string.title_settingsSectionDeveloper)) }
-            item {
+            item(contentType = "section_header") {
+                SectionHeader(
+                    modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                    title = stringResource(R.string.title_settingsSectionDeveloper)
+                )
+            }
+            item(contentType = "list_item") {
                 ListItem(
                     headline = stringResource(R.string.subtitle_settingsUserFlags),
                     icon = rememberVectorPainter(Icons.Default.Token),

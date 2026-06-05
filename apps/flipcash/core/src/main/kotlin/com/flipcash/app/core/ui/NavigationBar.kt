@@ -20,8 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -112,11 +110,8 @@ fun NavigationBar(
                                         fadeOut(animationSpec = tween(500, 100))
                             else fadeOut(animationSpec = tween(0)),
                         ) {
-                            val toastText by remember(state.toastText) {
-                                derivedStateOf { state.toastText }
-                            }
                             Pill(
-                                text = toastText.orEmpty(),
+                                text = state.toastText.orEmpty(),
                                 textStyle = CodeTheme.typography.textSmall.copy(
                                     fontWeight = FontWeight.Bold
                                 ),

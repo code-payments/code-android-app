@@ -27,7 +27,7 @@ import com.flipcash.app.phone.LocalPhoneUtils
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.shared.phone.R
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 internal fun PhoneCountryCodeScreen(
@@ -58,11 +58,11 @@ private fun PhoneCountrySelectionList(
     onSelection: (CountryLocale) -> Unit
 ) {
     LazyColumn(modifier) {
-        items(availableLocales) { countryCode ->
+        items(availableLocales, key = { it.countryCode }) { countryCode ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .rememberedClickable { onSelection(countryCode) },
+                    .clickable { onSelection(countryCode) },
             ) {
                 countryCode.resId?.let { resId ->
                     Image(

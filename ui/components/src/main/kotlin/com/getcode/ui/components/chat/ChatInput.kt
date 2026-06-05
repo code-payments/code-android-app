@@ -41,7 +41,7 @@ import com.getcode.theme.extraLarge
 import com.getcode.theme.inputColors
 import com.getcode.ui.components.R
 import com.getcode.ui.components.TextInput
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 fun ChatInput(
@@ -72,7 +72,7 @@ fun ChatInput(
                     .align(Alignment.Bottom)
                     .border(width = 1.dp, color = Color.White, shape = CircleShape)
                     .clip(CircleShape)
-                    .rememberedClickable { onSendCash() }
+                    .clickable { onSendCash() }
                     .size(ChatInput_Size)
                     .padding(8.dp),
                 contentAlignment = Alignment.Center,
@@ -126,7 +126,7 @@ fun ChatInput(
                         .align(Alignment.Bottom)
                         .background(CodeTheme.colors.tertiary, shape = CircleShape)
                         .clip(CircleShape)
-                        .rememberedClickable { onSendMessage() }
+                        .clickable { onSendMessage() }
                         .padding(8.dp),
                     contentAlignment = Alignment.Center,
                 ) {

@@ -1,6 +1,6 @@
 package com.flipcash.app.myaccount
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -17,7 +17,6 @@ import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.core.rememberedClickable
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -35,10 +34,6 @@ fun MyAccountScreen() {
         AppBarWithTitle(
             title = {
                 AppBarDefaults.Title(
-                    modifier = Modifier.rememberedClickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { viewModel.dispatchEvent(MyAccountScreenViewModel.Event.OnTitleClicked) },
                     text = stringResource(R.string.title_myAccount),
                 )
             },

@@ -34,7 +34,7 @@ internal fun BillCustomizationScreen() {
 
     BillCustomizationContent(state, viewModel::dispatchEvent)
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(state.customizations, state.purchaseAmount) {
         controller.dispatchEvent(
             Event.Load(
                 customizations = state.customizations,

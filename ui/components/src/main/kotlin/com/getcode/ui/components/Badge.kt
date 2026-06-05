@@ -23,8 +23,8 @@ import com.getcode.theme.CodeTheme
 
 @Composable
 fun Badge(
-    modifier: Modifier = Modifier,
     count: Int,
+    modifier: Modifier = Modifier,
     showMoreUnread: Boolean = count > 99,
     color: Color = CodeTheme.colors.brand,
     contentColor: Color = Color.White,

@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -109,7 +109,7 @@ internal fun App(
     }
 
     val session = LocalSessionController.current!!
-    val userState by userManager.state.collectAsState()
+    val userState by userManager.state.collectAsStateWithLifecycle()
 
     FlipcashTheme {
         rememberQrBitmapPainter(

@@ -12,6 +12,7 @@ import com.getcode.libs.code.detection.CodeScanResult
 import com.getcode.libs.qr.QrCodeAnalyzer
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -76,7 +77,10 @@ class MultiCodeAnalyzer(
     private var onError: (Throwable) -> Unit = { }
 
     private val job = SupervisorJob()
-    private val scope = CoroutineScope(Dispatchers.IO + job)
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        onError(throwable)
+    }
+    private val scope = CoroutineScope(Dispatchers.IO + job + exceptionHandler)
 
     fun listen(listener: CodeScanListener) {
         onCodeScanned = listener::onCodeScanned
@@ -111,7 +115,7 @@ class MultiCodeAnalyzer(
             } catch (e: Exception) {
                 onError(e)
             } finally {
-                image.close()
+                runCatching { image.close() }
             }
         }
     }

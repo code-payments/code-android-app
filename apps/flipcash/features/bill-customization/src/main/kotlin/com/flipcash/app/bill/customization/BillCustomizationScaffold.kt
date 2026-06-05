@@ -46,7 +46,7 @@ import com.flipcash.features.bill.playground.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.core.measured
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.getcode.ui.utils.AnimationUtils
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -192,7 +192,7 @@ private fun TopBar(
                 modifier = Modifier
                     .background(Color.Black.copy(0.19f), CircleShape)
                     .clip(CircleShape)
-                    .rememberedClickable(enabled = canUndo) { onUndo() }
+                    .clickable(enabled = canUndo) { onUndo() }
                     .padding(2.dp),
                 painter = painterResource(R.drawable.ic_undo),
                 colorFilter = ColorFilter.tint(Color.White.copy(undoAlpha)),
@@ -203,7 +203,7 @@ private fun TopBar(
                 modifier = Modifier
                     .background(Color.Black.copy(0.19f), CircleShape)
                     .clip(CircleShape)
-                    .rememberedClickable { onCopy() }
+                    .clickable { onCopy() }
                     .padding(
                         horizontal = CodeTheme.dimens.grid.x2,
                         vertical = CodeTheme.dimens.grid.x1
@@ -216,7 +216,7 @@ private fun TopBar(
                 modifier = Modifier
                     .background(Color.Black.copy(0.19f), CircleShape)
                     .clip(CircleShape)
-                    .rememberedClickable { onDone() }
+                    .clickable { onDone() }
                     .padding(
                         horizontal = CodeTheme.dimens.grid.x2,
                         vertical = CodeTheme.dimens.grid.x1

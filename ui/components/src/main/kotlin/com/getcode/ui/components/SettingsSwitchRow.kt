@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeToggleSwitch
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 fun SettingsSwitchRow(
@@ -41,7 +41,7 @@ fun SettingsSwitchRow(
 ) {
     Row(
         modifier = modifier
-            .rememberedClickable(enabled) { onClick() }
+            .clickable(enabled = enabled) { onClick() }
             .padding(horizontal = CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically
     ) {

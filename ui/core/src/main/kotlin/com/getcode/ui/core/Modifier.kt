@@ -68,14 +68,13 @@ inline fun Modifier.addIf(
     }
 }
 
-fun Modifier.noRippleClickable(enabled: Boolean = true, onClick: () -> Unit) = composed {
+fun Modifier.noRippleClickable(enabled: Boolean = true, onClick: () -> Unit) =
     this.clickable(
         enabled = enabled,
         indication = null,
-        interactionSource = remember { MutableInteractionSource() },
+        interactionSource = null,
         onClick = onClick
     )
-}
 
 fun Modifier.unboundedClickable(
     enabled: Boolean = true,
@@ -86,7 +85,7 @@ fun Modifier.unboundedClickable(
 ) = this.composed {
     val interaction = interactionSource ?: remember { MutableInteractionSource() }
 
-    rememberedClickable(
+    clickable(
         onClick = onClick,
         enabled = enabled,
         role = role,
@@ -99,58 +98,22 @@ fun Modifier.unboundedClickable(
 fun Modifier.debugBounds(color: Color = Color.Magenta, shape: Shape = RectangleShape) =
     this.border(1.dp, color, shape)
 
-fun Modifier.rememberedClickable(
-    enabled: Boolean = true,
-    onClickLabel: String? = null,
-    interactionSource: MutableInteractionSource? = null,
-    role: Role? = null,
-    onClick: () -> Unit
-) = composed {
-    val clicker = remember(enabled, onClickLabel, role, interactionSource, onClick) {
-        Modifier.clickable(enabled, onClickLabel, role, interactionSource, onClick)
-    }
-
-    this.then(clicker)
-}
-
 @OptIn(ExperimentalFoundationApi::class)
-fun Modifier.rememberedLongClickable(
+fun Modifier.longClickable(
     enabled: Boolean = true,
     onLongClickLabel: String? = null,
     indication: Indication? = null,
     role: Role? = null,
     onLongClick: () -> Unit
-) = composed {
-    val interactionSource = remember { MutableInteractionSource() }
-    val clicker = remember(enabled, onLongClickLabel, role, onLongClick) {
-        Modifier.combinedClickable(
-            interactionSource = interactionSource,
-            indication = indication,
-            enabled = enabled,
-            onLongClickLabel = onLongClickLabel,
-            onLongClick = onLongClick,
-            role = role,
-            onClick = {}
-        )
-    }
-
-    this.then(clicker)
-}
-
-fun Modifier.rememberedClickable(
-    interactionSource: MutableInteractionSource,
-    indication: Indication?,
-    enabled: Boolean = true,
-    onClickLabel: String? = null,
-    role: Role? = null,
-    onClick: () -> Unit
-) = composed {
-
-    val clicker = remember(interactionSource, indication, enabled, onClickLabel, role, onClick) {
-        Modifier.clickable(interactionSource, indication, enabled, onClickLabel, role, onClick)
-    }
-    this.then(clicker)
-}
+) = this.combinedClickable(
+    interactionSource = null,
+    indication = indication,
+    enabled = enabled,
+    onLongClickLabel = onLongClickLabel,
+    onLongClick = onLongClick,
+    role = role,
+    onClick = {}
+)
 
 fun Modifier.measured(block: (DpSize) -> Unit): Modifier = composed {
     val density = LocalDensity.current

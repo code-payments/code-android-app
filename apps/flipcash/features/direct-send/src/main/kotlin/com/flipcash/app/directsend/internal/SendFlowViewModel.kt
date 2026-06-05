@@ -333,9 +333,11 @@ internal class SendFlowViewModel @Inject constructor(
 
                     val source = owner.withTimelockForToken(token)
 
+                    val balance = tokenCoordinator.balanceForToken(token)
                     val verifiedFiat = verifiedFiatCalculator.compute(
                         amount = amount,
                         token = token,
+                        balance = balance,
                         rate = rate,
                     ).getOrElse { error ->
                         dispatchEvent(Event.SendStateUpdated())

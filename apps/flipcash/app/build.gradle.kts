@@ -84,6 +84,12 @@ android {
                 )
             }
         }
+        create("benchmark") {
+            initWith(getByName("debug"))
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("contributors")
+            matchingFallbacks += listOf("debug")
+        }
     }
 
     compileOptions {
@@ -118,6 +124,12 @@ bugsnag {
     }
 }
 
+composeCompiler {
+    stabilityConfigurationFile.set(
+        rootProject.layout.projectDirectory.file("compose_compiler_config.conf")
+    )
+}
+
 kotlin {
     jvmToolchain {
         languageVersion.set(JavaLanguageVersion.of(libs.versions.android.java.get()))
@@ -148,8 +160,8 @@ dependencies {
     implementation(project(":apps:flipcash:shared:router"))
     implementation(project(":apps:flipcash:shared:session"))
     implementation(project(":apps:flipcash:shared:google-play-billing"))
-    implementation(project(":apps:flipcash:shared:currency-selection:core"))
-    implementation(project(":apps:flipcash:shared:currency-selection:ui"))
+    implementation(project(":apps:flipcash:shared:region-selection:core"))
+    implementation(project(":apps:flipcash:shared:region-selection:ui"))
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:notifications"))
     implementation(project(":apps:flipcash:shared:onramp:coinbase"))
@@ -271,6 +283,8 @@ dependencies {
 
     implementation(libs.timber)
     implementation(libs.bugsnag)
+
+    implementation(libs.androidx.profileinstaller)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test.junit)

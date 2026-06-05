@@ -74,14 +74,22 @@ private fun UserFlagsEditor(
                     contentPadding = PaddingValues(bottom = CodeTheme.dimens.grid.x3),
                 ) {
                     // Read-only section
-                    item { SectionHeader("Read-Only") }
-                    items(state.readOnlyEntries) { entry ->
+                    item(contentType = "section_header") { SectionHeader("Read-Only") }
+                    items(
+                        items = state.readOnlyEntries,
+                        key = { it.label },
+                        contentType = { "read_only_row" },
+                    ) { entry ->
                         ReadOnlyRow(entry)
                     }
 
                     // Editable section
-                    item { SectionHeader("Overridable") }
-                    items(state.editableEntries) { entry ->
+                    item(contentType = "section_header") { SectionHeader("Overridable") }
+                    items(
+                        items = state.editableEntries,
+                        key = { it.field.label },
+                        contentType = { "editable_row" },
+                    ) { entry ->
                         EditableRow(
                             modifier = Modifier.fillMaxWidth(),
                             entry = entry,

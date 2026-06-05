@@ -32,7 +32,7 @@ import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.charts.LineTrend
 import com.getcode.ui.core.addIf
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 
 @Composable
@@ -43,7 +43,7 @@ internal fun RankedTokenMetricsRow(
     onClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.rememberedClickable(onClick = onClick).then(modifier),
+        modifier = Modifier.clickable(onClick = onClick).then(modifier),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RankBadge(rank)
@@ -61,7 +61,7 @@ internal fun TokenMetricsRow(
     Row(
         modifier = modifier
             .addIf(onClick != null) {
-                Modifier.rememberedClickable(onClick = { onClick?.invoke() })
+                Modifier.clickable(onClick = { onClick?.invoke() })
             },
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         verticalAlignment = Alignment.CenterVertically,

@@ -1,0 +1,43 @@
+# Baseline profile for Flipcash — covers cold start and Compose rendering.
+# Generated profiles from :apps:flipcash:benchmark will replace this file.
+
+# Application + Activity startup
+HSPLcom/flipcash/app/FlipcashApp;->onCreate()V
+HSPLcom/flipcash/app/MainActivity;->onCreate(Landroid/os/Bundle;)V
+
+# Hilt dependency injection (startup-critical)
+HSPLdagger/hilt/android/internal/**;->**(**)**
+HSPLcom/flipcash/app/FlipcashApp_GeneratedInjector;->**(**)**
+HSPLcom/flipcash/app/MainActivity_GeneratedInjector;->**(**)**
+
+# Jetpack Compose runtime (critical for first frame)
+HSPLandroidx/compose/runtime/**;->**(**)**
+HSPLandroidx/compose/ui/**;->**(**)**
+HSPLandroidx/compose/foundation/**;->**(**)**
+HSPLandroidx/compose/material/**;->**(**)**
+HSPLandroidx/compose/animation/**;->**(**)**
+
+# Compose layout and drawing
+HSPLandroidx/compose/ui/platform/AndroidComposeView;->**(**)**
+HSPLandroidx/compose/ui/node/**;->**(**)**
+
+# Navigation
+HSPLandroidx/navigation/**;->**(**)**
+
+# Lifecycle
+HSPLandroidx/lifecycle/**;->**(**)**
+HSPLandroidx/activity/**;->**(**)**
+
+# Kotlinx coroutines (startup flows)
+HSPLkotlinx/coroutines/**;->**(**)**
+
+# Kotlinx serialization (used in session/config deserialization)
+HSPLkotlinx/serialization/**;->**(**)**
+
+# Coil image loading
+HSPLcoil3/**;->**(**)**
+
+# App theme and UI setup
+HSPLcom/getcode/theme/**;->**(**)**
+HSPLcom/getcode/ui/core/**;->**(**)**
+HSPLcom/getcode/ui/components/**;->**(**)**

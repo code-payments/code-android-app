@@ -20,11 +20,11 @@ import com.getcode.theme.CodeTheme
 
 @Composable
 fun Pill(
+    text: String,
     modifier: Modifier = Modifier,
     backgroundColor: Color = Black50,
     contentColor: Color = Color.White,
     shape: CornerBasedShape = CircleShape,
-    text: String,
     textStyle: TextStyle = CodeTheme.typography.caption,
     contentPadding: PaddingValues = PaddingValues(
         horizontal = CodeTheme.dimens.grid.x2,
@@ -60,11 +60,10 @@ fun Pill(
     content: @Composable () -> Unit,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .wrapContentSize()
             .clip(shape)
             .background(backgroundColor)
-            .then(modifier)
             .padding(contentPadding)
     ) {
         CompositionLocalProvider(LocalContentColor provides contentColor) {

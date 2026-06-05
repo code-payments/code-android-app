@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 fun TileButton(
@@ -30,12 +30,12 @@ fun TileButton(
 ) {
     Box(
         modifier = modifier
+            .clip(CodeTheme.shapes.extraSmall)
             .background(
                 color = CodeTheme.colors.surfaceVariant,
                 shape = CodeTheme.shapes.extraSmall,
             )
-            .clip(CodeTheme.shapes.extraSmall)
-            .rememberedClickable(onClick = onClick)
+            .clickable(onClick = onClick)
             .padding(contentPadding),
         contentAlignment = Alignment.Center,
     ) {

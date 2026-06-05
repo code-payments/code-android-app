@@ -44,7 +44,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.TextInput
 import com.getcode.ui.components.VerticalDivider
 import com.getcode.ui.core.rememberAnimationScale
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.getcode.ui.core.scaled
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -84,7 +84,7 @@ fun PhoneInputField(
                 Row(
                     modifier = Modifier
                         .height(CodeTheme.dimens.grid.x12)
-                        .rememberedClickable {
+                        .clickable {
                             composeScope.launch {
                                 focusManager.clearFocus(true)
                                 delay(300.scaled(animationScale))

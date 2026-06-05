@@ -12,11 +12,28 @@ class ContactResolver @Inject constructor(
     private val deviceContactLookup: DeviceContactLookup,
     private val phoneUtils: PhoneUtils,
 ) {
-    suspend fun resolveName(e164: String, fallback: String = e164): String =
-        contactDataSource.getDisplayName(e164)
-            ?: deviceContactLookup.lookupDisplayName(e164)
-            ?: runCatching { phoneUtils.formatNumber(e164) }.getOrDefault(fallback)
+    suspend fun resolveName(e164: String, fallback: String = e164): String {
+        val cached = contactDataSource.getDisplayName(e164)
+        val device = deviceContactLookup.lookupDisplayName(e164)
 
-    suspend fun resolvePhotoUri(e164: String): String? =
-        contactDataSource.getPhotoUri(e164)
+        if (device != null) {
+            if (device != cached) contactDataSource.updateDisplayName(e164, device)
+            return device
+        }
+
+        return cached
+            ?: runCatching { phoneUtils.formatNumber(e164) }.getOrDefault(fallback)
+    }
+
+    suspend fun resolvePhotoUri(e164: String): String? {
+        val cached = contactDataSource.getPhotoUri(e164)
+        if (cached != null) return cached
+
+        val device = deviceContactLookup.lookupPhotoUri(e164) ?: return null
+        contactDataSource.updatePhotoUri(e164, device)
+        return device
+    }
+
+    fun resolvePhotoBytes(e164: String): ByteArray? =
+        deviceContactLookup.lookupPhotoBytes(e164)
 }

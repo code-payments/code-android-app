@@ -18,7 +18,7 @@ import com.getcode.ui.components.AppBarWithTitle
 @Composable
 fun LabsScreen() {
     val navigator = LocalCodeNavigator.current
-    val isSheetRoot = remember { navigator.backStack.size <= 1 }
+    val isSheetRoot = remember(navigator) { navigator.backStack.size <= 1 }
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,

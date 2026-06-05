@@ -37,6 +37,7 @@ rootProject.name = "Flipcash"
 include(
     // app containers
     ":apps:flipcash:app",
+    ":apps:flipcash:benchmark",
 
     // flipcash modules
     ":apps:flipcash:core",
@@ -56,8 +57,8 @@ include(
     ":apps:flipcash:shared:onramp:deeplinks",
     ":apps:flipcash:shared:appupdates",
     ":apps:flipcash:shared:google-play-billing",
-    ":apps:flipcash:shared:currency-selection:core",
-    ":apps:flipcash:shared:currency-selection:ui",
+    ":apps:flipcash:shared:region-selection:core",
+    ":apps:flipcash:shared:region-selection:ui",
     ":apps:flipcash:shared:featureflags",
     ":apps:flipcash:shared:ksp",
     ":apps:flipcash:shared:menu",

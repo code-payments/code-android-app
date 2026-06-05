@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.onEach
 fun TokenDiscoveryScreen() {
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<TokenDiscoveryViewModel>()
-    val isSheetRoot = remember { navigator.backStack.size <= 1 }
+    val isSheetRoot = remember(navigator) { navigator.backStack.size <= 1 }
 
     Column(
         modifier = Modifier.fillMaxSize(),

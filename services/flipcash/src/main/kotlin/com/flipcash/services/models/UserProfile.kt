@@ -8,8 +8,9 @@ data class UserProfile(
 )
 
 sealed interface SocialAccount {
+    val id: String
     data class TwitterX(
-        val id: String,
+        override val id: String,
         val username: String,
         val name: String,
         val description: String,

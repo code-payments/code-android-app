@@ -56,7 +56,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Pill
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.measured
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.getcode.ui.core.swallowClicks
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -196,7 +196,7 @@ private fun FeatureTab(
                 color = Color.White,
                 shape = CodeTheme.shapes.medium,
             )
-            .rememberedClickable(onClick = onClick),
+            .clickable(onClick = onClick),
         backgroundColor = backgroundColor,
         contentColor = contentColor,
         text = stringResource(feature.labelRes),

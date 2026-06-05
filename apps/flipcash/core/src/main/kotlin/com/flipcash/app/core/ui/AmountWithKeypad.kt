@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,7 +32,7 @@ fun AmountWithKeypad(
     onDecimal: () -> Unit = { },
 ) {
     val networkObserver = LocalNetworkObserver.current
-    val networkState by networkObserver.state.collectAsState()
+    val networkState by networkObserver.state.collectAsStateWithLifecycle()
 
     Column(
         modifier = modifier,

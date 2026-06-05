@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import com.getcode.libs.currency.R
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
-import com.getcode.model.KinAmount
 import com.getcode.util.resources.LocalResources
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
@@ -48,14 +47,6 @@ private fun getFlag(resourceHelper: ResourceHelper, countryCode: String): Int? {
     return resourceHelper.getIdentifier(
         resourceName,
         ResourceType.Drawable,
-    )
-}
-
-fun Currency.format(resources: ResourceHelper, amount: KinAmount): String {
-    return formatAmountString(
-        resources,
-        this,
-        amount.fiat
     )
 }
 

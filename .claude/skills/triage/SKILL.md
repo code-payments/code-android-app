@@ -86,6 +86,45 @@ Android stack frames use Java/Kotlin package-qualified class names (e.g.
 
 Only map frames where `inProject` is `true`.
 
+### 3a. Deobfuscate R8-obfuscated stacks
+
+If the stack trace contains obfuscated class/method names (short lowercase names
+like `ag3`, `b0`, `x2.a`, or `SourceFile` instead of real filenames), Bugsnag
+failed to apply the R8 mapping. Deobfuscate manually:
+
+1. **Identify the versionCode** from the event's `app.versionCode` field. If
+   only `versionName` is available, check `.well-known/release-manifest.json`
+   for the corresponding versionCode.
+
+2. **Download the R8 mapping** using the `r8-mapping` skill:
+   ```bash
+   bash .claude/skills/r8-mapping/scripts/r8-mapping.sh <versionCode>
+   ```
+   This returns JSON with `mapping_path` pointing to the local mapping file.
+
+3. **Look up obfuscated classes**:
+   ```bash
+   grep " -> <obfuscated_class>:" <mapping_path>
+   ```
+   Multiple results indicate R8 class merging — use stack trace line numbers
+   to disambiguate (each class section contains line-number ranges for methods).
+
+4. **Look up methods within a class section**:
+   ```bash
+   grep -A 200 "^com.original.ClassName -> <obfuscated>:" <mapping_path> | head -200
+   ```
+   Match the stack frame's line number against `obfuscated_line_start:obfuscated_line_end`
+   to find the original method and source line.
+
+5. **Replace** obfuscated frames with deobfuscated ones before proceeding to
+   Step 4.
+
+If the `r8-mapping` script needs a GitHub Actions run ID instead:
+```bash
+bash .claude/skills/build-lookup/scripts/build-lookup.sh <versionCode>
+```
+to find the run, then pass `--run-id <id>` to the r8-mapping script.
+
 ## Step 4 — Build the evidence timeline
 
 ### 4a. Version check

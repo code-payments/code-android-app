@@ -22,7 +22,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.components.Pill
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 
 @Composable
 internal fun BillManagementOptions(
@@ -46,7 +46,7 @@ internal fun BillManagementOptions(
             if (primaryAction != null) {
                 Pill(
                     modifier = Modifier
-                        .rememberedClickable(enabled = !isSending) { primaryAction.action() },
+                        .clickable(enabled = !isSending) { primaryAction.action() },
                     contentPadding = PaddingValues(0.dp),
                     backgroundColor = CodeTheme.colors.action,
                 ) {
@@ -89,7 +89,7 @@ internal fun BillManagementOptions(
             if (secondaryAction != null) {
                 Pill(
                     modifier = Modifier
-                        .rememberedClickable(enabled = isInteractable) { secondaryAction.action() },
+                        .clickable(enabled = isInteractable) { secondaryAction.action() },
                     contentPadding = PaddingValues(0.dp),
                     backgroundColor = CodeTheme.colors.action,
                 ) {

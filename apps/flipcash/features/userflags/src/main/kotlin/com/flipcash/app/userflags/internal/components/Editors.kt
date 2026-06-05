@@ -25,7 +25,7 @@ import com.flipcash.app.userflags.internal.EditableEntry
 import com.flipcash.app.userflags.internal.UserFlagsViewModel
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.TextInput
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCheckbox
 import com.getcode.ui.theme.CodeRadioButton
@@ -37,7 +37,7 @@ internal fun <T> TextInputContent(
     dispatch: (UserFlagsViewModel.Event) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val textFieldState = remember {
+    val textFieldState = remember(entry) {
         TextFieldState(initialText = entry.formattedEditValue())
     }
 
@@ -80,7 +80,7 @@ internal fun <T> MultiSelectContent(
     dispatch: (UserFlagsViewModel.Event) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val selected = remember {
+    val selected = remember(entry) {
         mutableStateListOf<T>().apply {
             addAll(entry.resolved.effectiveValue)
         }
@@ -90,7 +90,7 @@ internal fun <T> MultiSelectContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .rememberedClickable {
+                .clickable {
                     if (value in selected) selected.remove(value) else selected.add(value)
                 }
                 .padding(vertical = CodeTheme.dimens.grid.x2),
@@ -129,13 +129,13 @@ internal fun <T> SingleSelectContent(
     dispatch: (UserFlagsViewModel.Event) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var selected by remember { mutableStateOf(entry.resolved.effectiveValue) }
+    var selected by remember(entry) { mutableStateOf(entry.resolved.effectiveValue) }
 
     editor.options.forEach { (label, value) ->
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .rememberedClickable { selected = value }
+                .clickable { selected = value }
                 .padding(vertical = CodeTheme.dimens.grid.x2),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),

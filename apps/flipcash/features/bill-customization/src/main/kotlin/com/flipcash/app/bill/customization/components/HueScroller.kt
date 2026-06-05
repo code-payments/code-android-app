@@ -27,7 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -108,7 +108,10 @@ internal fun HueScroller(
             modifier = Modifier
                 .align(Alignment.Center)
                 .width(thumbWidth)
-                .scale(scale),
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                },
             hsv = currentHsv,
         )
     }

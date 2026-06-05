@@ -11,7 +11,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,7 +32,7 @@ import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -42,9 +42,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -59,7 +58,8 @@ import com.getcode.theme.White
 import com.getcode.theme.White50
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.rememberAnimationScale
-import com.getcode.ui.core.rememberedClickable
+import androidx.compose.foundation.clickable
+import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.core.scaled
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -70,7 +70,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.BottomBarMessage) -> Unit = {}) {
     val scope = rememberCoroutineScope()
-    val bottomBarMessage by barMessages.bottomBar.collectAsState()
+    val bottomBarMessage by barMessages.bottomBar.collectAsStateWithLifecycle()
     val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
     var bottomBarMessageDismissId by remember { mutableLongStateOf(0L) }
     val animationScale by rememberAnimationScale()
@@ -121,12 +121,9 @@ fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.Bott
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .alpha(scrimAlpha)
+                        .graphicsLayer { alpha = scrimAlpha }
                         .background(CodeTheme.colors.scrim)
-                        .rememberedClickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
+                        .noRippleClickable {
                             if (it.isDismissible) {
                                 scope.launch { onClose(SelectedBottomBarAction(-1), false) }
                             }
@@ -137,10 +134,7 @@ fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.Bott
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .rememberedClickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) {
+                            .noRippleClickable {
                                 scope.launch { onClose(SelectedBottomBarAction(-1), false) }
                             }
                     )
@@ -257,7 +251,7 @@ fun BottomBarView(
                                 color = LocalContentColor.current.copy(alpha = 0.8f),
                             )
                             Icon(
-                                modifier = Modifier.rotate(rotation),
+                                modifier = Modifier.graphicsLayer { rotationZ = rotation },
                                 imageVector = Icons.Rounded.ExpandMore,
                                 contentDescription = null,
                                 tint = LocalContentColor.current.copy(alpha = 0.8f),
@@ -357,7 +351,7 @@ fun BottomBarView(
                     Text(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .rememberedClickable {
+                            .clickable {
                                 onClose(SelectedBottomBarAction(-1))
                             }
                             .padding(vertical = CodeTheme.dimens.grid.x3),

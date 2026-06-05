@@ -13,6 +13,6 @@ dependencies {
     api(libs.google.play.billing.ktx)
 
     implementation(project(":apps:flipcash:shared:analytics"))
-    implementation(project(":apps:flipcash:shared:currency-selection:core"))
+    implementation(project(":apps:flipcash:shared:region-selection:core"))
     implementation(project(":libs:datetime"))
 }

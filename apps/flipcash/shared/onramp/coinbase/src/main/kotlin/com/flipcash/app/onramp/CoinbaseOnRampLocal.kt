@@ -1,6 +1,6 @@
 package com.flipcash.app.onramp
 
-import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 
 val LocalCoinbaseOnRampController =
-    compositionLocalOf<CoinbaseOnRampController> { throw IllegalStateException() }
+    staticCompositionLocalOf<CoinbaseOnRampController> { throw IllegalStateException() }

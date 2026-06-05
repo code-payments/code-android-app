@@ -163,7 +163,7 @@ data class Fiat(
 
     /** Whether this value would format as non-zero in its currency. */
     val hasDisplayableValue: Boolean
-        get() = this >= smallestUnit
+        get() = rounded(currencyCode.fractionDigits) >= smallestUnit
 
     fun valueLessThan(other: Fiat): Boolean = toDouble() < other.toDouble()
     fun valueGreaterThan(other: Fiat): Boolean = toDouble() > other.toDouble()
