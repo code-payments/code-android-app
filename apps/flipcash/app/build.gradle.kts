@@ -84,6 +84,12 @@ android {
                 )
             }
         }
+        create("benchmark") {
+            initWith(getByName("debug"))
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("contributors")
+            matchingFallbacks += listOf("debug")
+        }
     }
 
     compileOptions {
@@ -277,6 +283,8 @@ dependencies {
 
     implementation(libs.timber)
     implementation(libs.bugsnag)
+
+    implementation(libs.androidx.profileinstaller)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test.junit)
