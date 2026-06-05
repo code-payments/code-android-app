@@ -1,7 +1,7 @@
 package com.coinbase.onramp.data
 
 import com.getcode.serialization.InstantIso8601Serializer
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 
 

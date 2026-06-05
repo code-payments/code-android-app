@@ -15,7 +15,7 @@ import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 interface TransactionRepository {
 

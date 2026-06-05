@@ -17,7 +17,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import java.math.BigDecimal
 import javax.inject.Inject
 
