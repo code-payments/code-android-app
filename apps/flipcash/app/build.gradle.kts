@@ -230,7 +230,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.navigation.ui)
     implementation(libs.androidx.work)
-    implementation("androidx.webkit:webkit:1.14.0")
+    implementation("androidx.webkit:webkit:1.16.0")
 
     //hilt dependency injection
     implementation(libs.hilt.android)
