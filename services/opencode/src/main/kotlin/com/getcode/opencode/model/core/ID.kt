@@ -1,7 +1,5 @@
 package com.getcode.opencode.model.core
 
-import com.getcode.opencode.utils.generate
-import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.hexEncodedString
 import java.nio.ByteBuffer
 import java.util.UUID
@@ -10,7 +8,7 @@ typealias ID = List<Byte>
 
 val NoId: ID = emptyList()
 
-val RandomId: ID = PublicKey.generate().bytes.toList()
+val RandomId: ID get() = UUID.randomUUID().bytes
 
 val ID.uuid: UUID?
     get() {
