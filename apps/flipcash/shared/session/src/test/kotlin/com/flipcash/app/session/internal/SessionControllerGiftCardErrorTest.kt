@@ -113,6 +113,7 @@ class SessionControllerGiftCardErrorTest {
             analytics = analytics,
             usdcSweep = mockk(relaxed = true),
             appSettingsCoordinator = mockk(relaxed = true),
+            chatCoordinator = mockk(relaxed = true),
         )
     }
 

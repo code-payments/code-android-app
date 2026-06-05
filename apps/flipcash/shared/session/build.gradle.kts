@@ -11,6 +11,7 @@ dependencies {
     testImplementation(libs.bundles.unit.testing)
     testImplementation(project(":libs:test-utils"))
 
+    implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:activityfeed"))
     implementation(project(":apps:flipcash:shared:analytics"))

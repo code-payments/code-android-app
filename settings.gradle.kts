@@ -50,6 +50,7 @@ include(
     ":apps:flipcash:shared:activityfeed",
     ":apps:flipcash:shared:bills",
     ":apps:flipcash:shared:bill-customization",
+    ":apps:flipcash:shared:chat",
     ":apps:flipcash:shared:contacts",
     ":apps:flipcash:shared:currency-creator",
     ":apps:flipcash:shared:onramp:coinbase",

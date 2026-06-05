@@ -8,6 +8,7 @@ import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.PaymentValuation
@@ -125,6 +126,7 @@ class RealSessionController @Inject constructor(
     private val billingClient: BillingClient,
     private val tokenCoordinator: TokenCoordinator,
     private val contactCoordinator: ContactCoordinator,
+    private val chatCoordinator: ChatCoordinator,
     private val featureFlagController: FeatureFlagController,
     private val analytics: FlipcashAnalyticsService,
     private val usdcSweep: UsdcDepositSweep,
@@ -156,6 +158,7 @@ class RealSessionController @Inject constructor(
                         stopPolling()
                         cancelUpdates()
                         scope.launch { contactCoordinator.reset() }
+                        scope.launch { chatCoordinator.reset() }
                         _state.update { SessionState() }
                     }
                     authState is AuthState.Ready -> {
