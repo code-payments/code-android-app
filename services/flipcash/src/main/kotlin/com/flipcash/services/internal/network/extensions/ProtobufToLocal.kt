@@ -12,13 +12,28 @@ import com.flipcash.services.internal.extensions.toPublicKey
 import com.flipcash.services.models.NavigationTrigger
 import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
+import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.Substitution
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.ChatUpdate
+import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.MessagePointer
+import com.flipcash.services.models.chat.MetadataUpdate
+import com.flipcash.services.models.chat.PointerType
+import com.flipcash.services.models.chat.TypingNotification
+import com.flipcash.services.models.chat.TypingState
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
+import kotlin.time.Instant
 import com.codeinc.flipcash.gen.activity.v1.Model as ActivityModels
+import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
+import com.codeinc.flipcash.gen.events.v1.Model as EventModel
+import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
 
 internal fun ActivityModels.NotificationId.toId(): ID = value.toByteArray().toList()
 internal fun Common.UserId.toId(): ID = value.toByteArray().toList()
@@ -71,4 +86,130 @@ internal fun PushModels.Substitution.asSubstitution(): Substitution? {
 
 internal fun Common.Signature.toSignature(): Signature {
     return Signature(value.toByteArray().toList())
+}
+
+// -- ChatId --
+
+internal fun Common.ChatId.toChatId(): ChatId = ChatId(value.toByteArray())
+
+// -- PagingToken (proto → domain) --
+
+internal fun Common.PagingToken.toPagingToken(): PagingToken = value.toByteArray().toList()
+
+// -- Messaging models --
+
+internal fun MessagingModel.Content.toMessageContent(): MessageContent {
+    return when (typeCase) {
+        MessagingModel.Content.TypeCase.TEXT -> MessageContent.Text(text.text)
+        else -> MessageContent.Text("")
+    }
+}
+
+internal fun MessagingModel.Message.toChatMessage(): ChatMessage {
+    return ChatMessage(
+        messageId = messageId.value,
+        senderId = if (hasSenderId()) senderId.toId() else null,
+        content = contentList.map { it.toMessageContent() },
+        timestamp = Instant.fromEpochSeconds(ts.seconds, ts.nanos),
+        unreadSeq = unreadSeq,
+    )
+}
+
+internal fun MessagingModel.Pointer.toPointer(): MessagePointer {
+    return MessagePointer(
+        type = type.toPointerType(),
+        userId = userId.toId(),
+        value = value.value,
+    )
+}
+
+internal fun MessagingModel.Pointer.Type.toPointerType(): PointerType {
+    return when (this) {
+        MessagingModel.Pointer.Type.SENT -> PointerType.SENT
+        MessagingModel.Pointer.Type.DELIVERED -> PointerType.DELIVERED
+        MessagingModel.Pointer.Type.READ -> PointerType.READ
+        else -> PointerType.UNKNOWN
+    }
+}
+
+internal fun MessagingModel.IsTypingNotification.toTypingNotification(): TypingNotification {
+    return TypingNotification(
+        userId = userId.toId(),
+        state = state.toTypingState(),
+    )
+}
+
+internal fun MessagingModel.IsTypingNotification.State.toTypingState(): TypingState {
+    return when (this) {
+        MessagingModel.IsTypingNotification.State.STARTED_TYPING -> TypingState.STARTED_TYPING
+        MessagingModel.IsTypingNotification.State.STILL_TYPING -> TypingState.STILL_TYPING
+        MessagingModel.IsTypingNotification.State.STOPPED_TYPING -> TypingState.STOPPED_TYPING
+        MessagingModel.IsTypingNotification.State.TYPING_TIMED_OUT -> TypingState.TYPING_TIMED_OUT
+        else -> TypingState.UNKNOWN
+    }
+}
+
+// -- Chat metadata updates --
+
+internal fun ChatModel.MetadataUpdate.toMetadataUpdate(
+    metadataMapper: (ChatModel.Metadata) -> com.flipcash.services.models.chat.ChatMetadata,
+): MetadataUpdate {
+    return when (kindCase) {
+        ChatModel.MetadataUpdate.KindCase.FULL_REFRESH ->
+            MetadataUpdate.FullRefresh(metadataMapper(fullRefresh.metadata))
+        ChatModel.MetadataUpdate.KindCase.LAST_ACTIVITY_CHANGED ->
+            MetadataUpdate.LastActivityChanged(
+                Instant.fromEpochSeconds(
+                    lastActivityChanged.newLastActivity.seconds,
+                    lastActivityChanged.newLastActivity.nanos,
+                )
+            )
+        else -> MetadataUpdate.LastActivityChanged(Instant.fromEpochSeconds(0))
+    }
+}
+
+// -- Chat type --
+
+internal fun ChatModel.Metadata.ChatType.toChatType(): ChatType {
+    return when (this) {
+        ChatModel.Metadata.ChatType.DM -> ChatType.DM
+        else -> ChatType.UNKNOWN
+    }
+}
+
+// -- Chat metadata (simple, no injected mapper) --
+
+internal fun ChatModel.Metadata.toChatMetadata(): com.flipcash.services.models.chat.ChatMetadata {
+    return com.flipcash.services.models.chat.ChatMetadata(
+        chatId = chatId.toChatId(),
+        type = type.toChatType(),
+        members = membersList.map { member ->
+            com.flipcash.services.models.chat.ChatMember(
+                userId = member.userId.toId(),
+                userProfile = com.flipcash.services.models.UserProfile(
+                    displayName = member.userProfile.displayName,
+                    socialAccounts = emptyList(),
+                    verifiedPhoneNumber = null,
+                    verifiedEmailAddress = null,
+                ),
+                pointers = member.pointersList.map { it.toPointer() },
+            )
+        },
+        lastMessage = if (hasLastMessage()) lastMessage.toChatMessage() else null,
+        lastActivity = Instant.fromEpochSeconds(lastActivity.seconds, lastActivity.nanos),
+    )
+}
+
+// -- EventModel.ChatUpdate --
+
+internal fun EventModel.ChatUpdate.toChatUpdate(
+    metadataMapper: (ChatModel.Metadata) -> com.flipcash.services.models.chat.ChatMetadata = { it.toChatMetadata() },
+): ChatUpdate {
+    return ChatUpdate(
+        chatId = chat.toChatId(),
+        newMessages = if (hasNewMessages()) newMessages.messagesList.map { it.toChatMessage() } else emptyList(),
+        pointerUpdates = if (hasPointerUpdates()) pointerUpdates.pointersList.map { it.toPointer() } else emptyList(),
+        typingNotifications = if (hasIsTypingNotifications()) isTypingNotifications.isTypingNotificationsList.map { it.toTypingNotification() } else emptyList(),
+        metadataUpdates = metadataUpdatesList.map { it.toMetadataUpdate(metadataMapper) },
+    )
 }

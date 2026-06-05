@@ -127,6 +127,30 @@ class ErrorsTest {
         assertIs<CodeServerError>(PlacePoolBetError.MaxBetsReceived())
     }
 
+    // -- StreamEventsError --
+
+    @Test
+    fun `StreamEventsError subtypes are CodeServerError`() {
+        assertIs<CodeServerError>(StreamEventsError.Denied())
+        assertIs<CodeServerError>(StreamEventsError.InvalidTimestamp())
+        assertIs<CodeServerError>(StreamEventsError.Unrecognized())
+        assertIs<CodeServerError>(StreamEventsError.Other())
+    }
+
+    @Test
+    fun `StreamEventsError has expected messages`() {
+        assertEquals("Denied", StreamEventsError.Denied().message)
+        assertEquals("Invalid timestamp", StreamEventsError.InvalidTimestamp().message)
+    }
+
+    @Test
+    fun `StreamEventsError Other preserves cause`() {
+        val root = RuntimeException("stream broke")
+        val error = StreamEventsError.Other(root)
+        assertSame(root, error.cause)
+        assertEquals("stream broke", error.message)
+    }
+
     // -- GetJwtError --
 
     @Test

@@ -7,6 +7,7 @@ import com.codeinc.flipcash.gen.thirdparty.v1.Model as ThirdPartyModels
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.SocialAccountLinkRequest
+import com.flipcash.services.models.chat.ChatId
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.network.jwt.ApiProvider
 import com.getcode.opencode.model.core.ID
@@ -14,7 +15,7 @@ import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
 import com.google.protobuf.Timestamp
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 internal fun Checksum.asHash(): Common.Hash {
     return Common.Hash.newBuilder().setValue(byteArray.toByteString()).build()
@@ -71,6 +72,10 @@ internal fun Pair<ApiProvider, String>.asApiKey(): ThirdPartyModels.ApiKey {
         )
         .setValue(second)
         .build()
+}
+
+internal fun ChatId.asChatId(): Common.ChatId {
+    return Common.ChatId.newBuilder().setValue(bytes.toByteString()).build()
 }
 
 internal fun String.asCountryCode(): Common.CountryCode {

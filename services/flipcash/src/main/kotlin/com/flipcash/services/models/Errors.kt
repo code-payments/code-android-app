@@ -303,6 +303,16 @@ sealed class GetContactsError(
     data class Other(override val cause: Throwable? = null) : GetContactsError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class StreamEventsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : StreamEventsError("Denied")
+    class InvalidTimestamp : StreamEventsError("Invalid timestamp")
+    class Unrecognized : StreamEventsError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : StreamEventsError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class ResolveContactError(
     override val message: String? = null,
     override val cause: Throwable? = null
