@@ -28,7 +28,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-internal class MessagingApi @Inject constructor(
+internal class ChatMessagingApi @Inject constructor(
     @FlipcashManagedChannel
     managedChannel: ManagedChannel,
 ) : GrpcApi(managedChannel) {

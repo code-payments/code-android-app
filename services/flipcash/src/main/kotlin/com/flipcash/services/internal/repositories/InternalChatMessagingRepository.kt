@@ -1,7 +1,7 @@
 package com.flipcash.services.internal.repositories
 
 import com.flipcash.services.internal.network.extensions.toChatMessage
-import com.flipcash.services.internal.network.services.MessagingService
+import com.flipcash.services.internal.network.services.ChatMessagingService
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
@@ -9,13 +9,13 @@ import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
-import com.flipcash.services.repository.MessagingRepository
+import com.flipcash.services.repository.ChatMessagingRepository
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.utils.ErrorUtils
 
-internal class InternalMessagingRepository(
-    private val service: MessagingService,
-) : MessagingRepository {
+internal class InternalChatMessagingRepository(
+    private val service: ChatMessagingService,
+) : ChatMessagingRepository {
 
     override suspend fun getMessage(
         owner: KeyPair,

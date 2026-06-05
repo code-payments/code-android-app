@@ -7,14 +7,14 @@ import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
-import com.flipcash.services.repository.MessagingRepository
+import com.flipcash.services.repository.ChatMessagingRepository
 import com.flipcash.services.user.UserManager
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class MessagingController @Inject constructor(
-    private val repository: MessagingRepository,
+class ChatMessagingController @Inject constructor(
+    private val repository: ChatMessagingRepository,
     private val userManager: UserManager,
 ) {
     private fun requireOwner() = userManager.accountCluster?.authority?.keyPair

@@ -343,13 +343,13 @@ sealed class GetMessagesError(
     data class Other(override val cause: Throwable? = null) : GetMessagesError(message = cause?.message, cause = cause), NotifiableError
 }
 
-sealed class FlipcashSendMessageError(
+sealed class SendMessageError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
-    class Denied : FlipcashSendMessageError("Denied")
-    class Unrecognized : FlipcashSendMessageError("Unrecognized"), NotifiableError
-    data class Other(override val cause: Throwable? = null) : FlipcashSendMessageError(message = cause?.message, cause = cause), NotifiableError
+    class Denied : SendMessageError("Denied")
+    class Unrecognized : SendMessageError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SendMessageError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class AdvancePointerError(

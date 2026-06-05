@@ -9,7 +9,7 @@ import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
 import com.getcode.ed25519.Ed25519.KeyPair
 
-interface MessagingRepository {
+interface ChatMessagingRepository {
     suspend fun getMessage(
         owner: KeyPair,
         chatId: ChatId,

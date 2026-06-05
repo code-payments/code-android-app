@@ -147,13 +147,13 @@ class ErrorsTest {
         assertIs<CodeServerError>(GetMessagesError.Other())
     }
 
-    // -- FlipcashSendMessageError --
+    // -- SendMessageError --
 
     @Test
-    fun `FlipcashSendMessageError subtypes are CodeServerError`() {
-        assertIs<CodeServerError>(FlipcashSendMessageError.Denied())
-        assertIs<CodeServerError>(FlipcashSendMessageError.Unrecognized())
-        assertIs<CodeServerError>(FlipcashSendMessageError.Other())
+    fun `SendMessageError subtypes are CodeServerError`() {
+        assertIs<CodeServerError>(SendMessageError.Denied())
+        assertIs<CodeServerError>(SendMessageError.Unrecognized())
+        assertIs<CodeServerError>(SendMessageError.Other())
     }
 
     // -- AdvancePointerError --

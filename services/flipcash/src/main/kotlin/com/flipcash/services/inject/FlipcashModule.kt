@@ -14,7 +14,7 @@ import com.flipcash.services.internal.network.services.AccountService
 import com.flipcash.services.internal.network.services.ActivityFeedService
 import com.flipcash.services.internal.network.services.ChatService
 import com.flipcash.services.internal.network.services.EventStreamingService
-import com.flipcash.services.internal.network.services.MessagingService
+import com.flipcash.services.internal.network.services.ChatMessagingService
 import com.flipcash.services.internal.network.services.EmailVerificationService
 import com.flipcash.services.internal.network.services.ContactListService
 import com.flipcash.services.internal.network.services.ModerationService
@@ -29,7 +29,7 @@ import com.flipcash.services.internal.repositories.InternalAccountRepository
 import com.flipcash.services.internal.repositories.InternalActivityFeedRepository
 import com.flipcash.services.internal.repositories.InternalChatRepository
 import com.flipcash.services.internal.repositories.InternalEventStreamingRepository
-import com.flipcash.services.internal.repositories.InternalMessagingRepository
+import com.flipcash.services.internal.repositories.InternalChatMessagingRepository
 import com.flipcash.services.internal.repositories.InternalContactListRepository
 import com.flipcash.services.internal.repositories.InternalContactVerificationRepository
 import com.flipcash.services.internal.repositories.InternalModerationRepository
@@ -43,7 +43,7 @@ import com.flipcash.services.repository.AccountRepository
 import com.flipcash.services.repository.ActivityFeedRepository
 import com.flipcash.services.repository.ChatRepository
 import com.flipcash.services.repository.EventStreamingRepository
-import com.flipcash.services.repository.MessagingRepository
+import com.flipcash.services.repository.ChatMessagingRepository
 import com.flipcash.services.repository.ContactListRepository
 import com.flipcash.services.repository.ContactVerificationRepository
 import com.flipcash.services.repository.ModerationRepository
@@ -136,9 +136,9 @@ internal object FlipcashModule {
     ): EventStreamingRepository = InternalEventStreamingRepository(service)
 
     @Provides
-    internal fun providesFlipcashMessagingRepository(
-        service: MessagingService,
-    ): MessagingRepository = InternalMessagingRepository(service)
+    internal fun providesChatMessagingRepository(
+        service: ChatMessagingService,
+    ): ChatMessagingRepository = InternalChatMessagingRepository(service)
 
     @Provides
     internal fun providesContactListRepository(

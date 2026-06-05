@@ -2,9 +2,9 @@ package com.flipcash.services.internal.network.services
 
 import com.codeinc.flipcash.gen.messaging.v1.MessagingService as RpcMessagingService
 import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
-import com.flipcash.services.internal.network.api.MessagingApi
+import com.flipcash.services.internal.network.api.ChatMessagingApi
 import com.flipcash.services.models.AdvancePointerError
-import com.flipcash.services.models.FlipcashSendMessageError
+import com.flipcash.services.models.SendMessageError
 import com.flipcash.services.models.GetMessageError
 import com.flipcash.services.models.GetMessagesError
 import com.flipcash.services.models.NotifyIsTypingError
@@ -19,8 +19,8 @@ import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.utils.toValidationOrElse
 import javax.inject.Inject
 
-internal class MessagingService @Inject constructor(
-    private val api: MessagingApi,
+internal class ChatMessagingService @Inject constructor(
+    private val api: ChatMessagingApi,
 ) {
     suspend fun getMessage(
         owner: KeyPair,
@@ -105,13 +105,13 @@ internal class MessagingService @Inject constructor(
             onSuccess = { response ->
                 when (response.result) {
                     RpcMessagingService.SendMessageResponse.Result.OK -> Result.success(response.message)
-                    RpcMessagingService.SendMessageResponse.Result.DENIED -> Result.failure(FlipcashSendMessageError.Denied())
-                    RpcMessagingService.SendMessageResponse.Result.UNRECOGNIZED -> Result.failure(FlipcashSendMessageError.Unrecognized())
-                    else -> Result.failure(FlipcashSendMessageError.Other())
+                    RpcMessagingService.SendMessageResponse.Result.DENIED -> Result.failure(SendMessageError.Denied())
+                    RpcMessagingService.SendMessageResponse.Result.UNRECOGNIZED -> Result.failure(SendMessageError.Unrecognized())
+                    else -> Result.failure(SendMessageError.Other())
                 }
             },
             onFailure = { cause ->
-                Result.failure(cause.toValidationOrElse { FlipcashSendMessageError.Other(cause = it) })
+                Result.failure(cause.toValidationOrElse { SendMessageError.Other(cause = it) })
             }
         )
     }

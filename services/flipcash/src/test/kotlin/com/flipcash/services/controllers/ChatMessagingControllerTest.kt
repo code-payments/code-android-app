@@ -7,7 +7,7 @@ import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
-import com.flipcash.services.repository.MessagingRepository
+import com.flipcash.services.repository.ChatMessagingRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -23,11 +23,11 @@ import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class MessagingControllerTest {
+class ChatMessagingControllerTest {
 
-    private val repository = FakeMessagingRepository()
+    private val repository = FakeChatMessagingRepository()
     private val userManager = mockk<UserManager>(relaxed = true)
-    private val controller = MessagingController(repository, userManager)
+    private val controller = ChatMessagingController(repository, userManager)
 
     private val testChatId = ChatId(ByteArray(32) { 0x01 })
 
@@ -187,7 +187,7 @@ class MessagingControllerTest {
 
 // region Fakes
 
-private class FakeMessagingRepository : MessagingRepository {
+private class FakeChatMessagingRepository : ChatMessagingRepository {
     var getMessageResult: Result<ChatMessage> = Result.failure(RuntimeException("not configured"))
     var getMessagesResult: Result<List<ChatMessage>> = Result.failure(RuntimeException("not configured"))
     var getMessagesByIdsResult: Result<List<ChatMessage>> = Result.failure(RuntimeException("not configured"))
