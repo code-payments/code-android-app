@@ -10,7 +10,6 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.mockito.kotlin)
-    testImplementation(project(":libs:test-utils"))
 
     implementation(project(":apps:flipcash:shared:accesskey"))
     implementation(project(":apps:flipcash:shared:analytics"))

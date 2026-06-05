@@ -72,6 +72,10 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 // AGP's built-in Kotlin no longer auto-selects the kotlin-test
                 // JUnit variant, so provide it explicitly for all library modules.
                 "testImplementation"(libs.findLibrary("kotlin-test-junit").get())
+                // Provides robolectric.properties pinning SDK to 36 (latest Robolectric supports).
+                if (path != ":libs:test-utils") {
+                    "testImplementation"(project(":libs:test-utils"))
+                }
             }
         }
     }

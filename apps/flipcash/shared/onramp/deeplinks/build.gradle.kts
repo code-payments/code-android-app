@@ -9,7 +9,6 @@ android {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
-    testImplementation(project(":libs:test-utils"))
 
     implementation(libs.bundles.kotlinx.serialization)
     implementation(libs.phantom.connect) {

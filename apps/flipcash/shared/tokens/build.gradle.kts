@@ -10,7 +10,6 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.mockito.kotlin)
-    testImplementation(project(":libs:test-utils"))
 
     api(project(":apps:flipcash:shared:tokens:core"))
 

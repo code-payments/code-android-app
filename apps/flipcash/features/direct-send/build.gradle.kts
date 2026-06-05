@@ -11,7 +11,6 @@ dependencies {
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.robolectric)
-    testImplementation(project(":libs:test-utils"))
 
     implementation(libs.kotlin.stdlib)
     implementation(project(":apps:flipcash:shared:amount-entry"))
