@@ -244,7 +244,7 @@ dependencies {
     testImplementation(libs.hilt.android.test)
     kspTest(libs.hilt.android.compiler)
 
-    androidTestImplementation("io.mockk:mockk:1.14.6")
+    androidTestImplementation("io.mockk:mockk:1.14.11")
 
     //Jetpack compose
     implementation(platform(libs.compose.bom))
