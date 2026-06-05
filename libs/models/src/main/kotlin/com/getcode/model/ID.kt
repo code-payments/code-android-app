@@ -9,7 +9,7 @@ typealias ID = List<Byte>
 
 val NoId: ID = emptyList()
 
-val RandomId: ID = UUID.randomUUID().bytes
+val RandomId: ID get() = UUID.randomUUID().bytes
 
 val ID.uuid: UUID?
     get() {
