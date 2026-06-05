@@ -1,9 +1,7 @@
 package com.flipcash.app.myaccount.internal
 
-import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
-import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.StaffMenuItem
@@ -12,18 +10,14 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.base64
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -41,7 +35,6 @@ internal class MyAccountScreenViewModel @Inject constructor(
     featureFlagController: FeatureFlagController,
     resources: ResourceHelper,
     authManager: AuthManager,
-    clipboardManager: ClipboardManager,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<MyAccountScreenViewModel.State, MyAccountScreenViewModel.Event>(
     initialState = State(),
@@ -50,51 +43,22 @@ internal class MyAccountScreenViewModel @Inject constructor(
 ) {
     internal data class State(
         val isBetaEnabled: Boolean = false,
-        val showAccountInfo: Boolean = false,
-        val accountId: String? = null,
-        val publicKey: String? = null,
-        val pushToken: String? = null,
         val items: List<MenuItem<Event>> = FullMenuList
     )
 
     internal sealed interface Event {
-        data class OnUserAssociated(
-            val userId: String?,
-            val publicKey: String?,
-            val pushToken: String? = null,
-        ) : Event
-
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
-        data object OnTitleClicked : Event
-        data class ToggleAccountInfo(val show: Boolean) : Event
         data object OnAccessKeyClicked : Event
         data object OnViewAccessKey : Event
         data object OnContactMethodsClicked : Event
         data object OnViewUserProfile : Event
         data object OnDeleteAccountClicked : Event
         data object OnAccountDeleted : Event
-        data object CopyPublicKey : Event
-        data object CopyAccountId : Event
-        data object CopyPushToken : Event
         data object OnLogOutClicked : Event
         data object OnLoggedOutCompletely : Event
     }
 
     init {
-        userManager.state
-            .onEach { state ->
-                val userId = state.accountId?.base64
-                val publicKey = state.cluster?.authorityPublicKey?.base58()
-
-                dispatchEvent(
-                    Event.OnUserAssociated(
-                        userId = userId,
-                        publicKey = publicKey,
-                        pushToken = state.pushToken,
-                    )
-                )
-            }.launchIn(viewModelScope)
-
         combine(
             featureFlagController.observeOverride(),
             userManager.state.map { it.flags?.isStaff == true }
@@ -103,13 +67,6 @@ internal class MyAccountScreenViewModel @Inject constructor(
         }.map {
             dispatchEvent(Event.OnBetaFeaturesUnlocked(it))
         }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnTitleClicked>()
-            .filter { stateFlow.value.isBetaEnabled }
-            .map { stateFlow.value.showAccountInfo }
-            .onEach { dispatchEvent(Event.ToggleAccountInfo(!it)) }
-            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnDeleteAccountClicked>()
@@ -133,36 +90,6 @@ internal class MyAccountScreenViewModel @Inject constructor(
                         }
                     ),
                     showCancel = true,
-                )
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.CopyPublicKey>()
-            .mapNotNull { stateFlow.value.publicKey }
-            .onEach {
-                clipboardManager.setText(
-                    text = it,
-                    label = resources.getString(R.string.title_clipboardLabelPublicKey)
-                )
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.CopyAccountId>()
-            .mapNotNull { stateFlow.value.accountId }
-            .onEach {
-                clipboardManager.setText(
-                    text = it,
-                    label = resources.getString(R.string.title_clipboardLabelAccountId)
-                )
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.CopyPushToken>()
-            .mapNotNull { stateFlow.value.pushToken }
-            .onEach {
-                clipboardManager.setText(
-                    text = it,
-                    label = resources.getString(R.string.title_clipboardLabelPushToken)
                 )
             }.launchIn(viewModelScope)
 
@@ -230,23 +157,11 @@ internal class MyAccountScreenViewModel @Inject constructor(
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnUserAssociated -> { state ->
-                    state.copy(
-                        accountId = event.userId,
-                        publicKey = event.publicKey,
-                        pushToken = event.pushToken,
-                    )
-                }
-
                 Event.OnLogOutClicked,
                 Event.OnLoggedOutCompletely,
                 Event.OnContactMethodsClicked,
                 Event.OnViewUserProfile,
                 Event.OnViewAccessKey,
-                Event.CopyPublicKey,
-                Event.CopyAccountId,
-                Event.CopyPushToken,
-                Event.OnTitleClicked,
                 Event.OnDeleteAccountClicked,
                 Event.OnAccountDeleted,
                 Event.OnAccessKeyClicked -> { state -> state }
@@ -256,10 +171,6 @@ internal class MyAccountScreenViewModel @Inject constructor(
                         isBetaEnabled = event.unlocked,
                         items = buildItemList(event.unlocked)
                     )
-                }
-
-                is Event.ToggleAccountInfo -> { state ->
-                    state.copy(showAccountInfo = event.show)
                 }
             }
         }

@@ -5,7 +5,7 @@ import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
-import androidx.compose.foundation.gestures.snapTo
+import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,8 +25,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -34,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
@@ -57,11 +58,16 @@ import kotlinx.coroutines.launch
  * @param background Background color of the action button.
  * @param onTriggered Callback when the action is tapped, or when a full swipe
  *   triggers the rightmost action automatically.
+ * @param resetOnDismiss When true, a full swipe triggers [onTriggered] and animates
+ *   the row back instead of settling at the dismissed position. Callbacks used with
+ *   this flag should be idempotent (e.g. clipboard writes).
  * @param content Composable content displayed inside the action button (typically an [Icon]).
  */
+@Stable
 class SwipeAction(
     val background: Color,
     val onTriggered: () -> Unit,
+    val resetOnDismiss: Boolean = false,
     val content: @Composable () -> Unit,
 )
 
@@ -75,22 +81,29 @@ fun SwipeActionRow(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
     stateKey: Any? = null,
+    resetOnDismiss: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    SwipeActionRow(
-        actions = listOf(
+    val errorColor = CodeTheme.colors.error
+    val iconSize = CodeTheme.dimens.staticGrid.x5
+    val actions = remember(onDelete, resetOnDismiss, errorColor, iconSize) {
+        listOf(
             SwipeAction(
-                background = CodeTheme.colors.error,
+                background = errorColor,
                 onTriggered = onDelete,
+                resetOnDismiss = resetOnDismiss,
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_delete),
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5),
+                    modifier = Modifier.requiredSize(iconSize),
                 )
             }
-        ),
+        )
+    }
+    SwipeActionRow(
+        actions = actions,
         modifier = modifier,
         stateKey = stateKey,
         content = content,
@@ -128,9 +141,42 @@ fun SwipeActionRow(
     val totalRevealWidth = (minActionSize + actionPadding) * actions.size + actionPadding
     val totalRevealWidthPx = with(density) { totalRevealWidth.toPx() }
 
+    val dismissAction = actions.last()
+    val currentDismissCallback by rememberUpdatedState(dismissAction.onTriggered)
+    val currentDismissResets by rememberUpdatedState(dismissAction.resetOnDismiss)
+
+    var pendingResetCallback by remember(stateKey) { mutableStateOf(false) }
+
     val initialState = if (initiallyRevealed) SwipeState.Revealed else SwipeState.Settled
-    val state = remember(stateKey) { AnchoredDraggableState(initialValue = initialState) }
+    val state = remember(stateKey) {
+        AnchoredDraggableState(
+            initialValue = initialState,
+            confirmValueChange = { newValue ->
+                if (newValue == SwipeState.Dismissed && currentDismissResets) {
+                    pendingResetCallback = true
+                    false // reject settle, system animates back
+                } else {
+                    true
+                }
+            },
+        )
+    }
     var rowWidthPx by remember(stateKey) { mutableFloatStateOf(0f) }
+
+    // Fire callback once for rejected dismiss (reset case)
+    LaunchedEffect(pendingResetCallback) {
+        if (pendingResetCallback) {
+            currentDismissCallback()
+            pendingResetCallback = false
+        }
+    }
+
+    // Fire callback for accepted dismiss (non-reset case, e.g. delete)
+    LaunchedEffect(state.currentValue) {
+        if (state.currentValue == SwipeState.Dismissed) {
+            currentDismissCallback()
+        }
+    }
 
     LaunchedEffect(rowWidthPx, totalRevealWidthPx) {
         if (rowWidthPx > 0f) {
@@ -142,22 +188,12 @@ fun SwipeActionRow(
         }
     }
 
-    val dismissAction = actions.last()
-    val currentDismissCallback by rememberUpdatedState(dismissAction.onTriggered)
-    LaunchedEffect(state.currentValue) {
-        if (state.currentValue == SwipeState.Dismissed) {
-            currentDismissCallback()
-        }
-    }
-
     Box(
         modifier = modifier
-            .clipToBounds()
             .onSizeChanged { rowWidthPx = it.width.toFloat() },
     ) {
         // Actions panel behind the foreground content
         val actionPaddingDp = actionPadding
-        val minActionSizeDp = minActionSize
 
         Layout(
             content = {
@@ -167,8 +203,8 @@ fun SwipeActionRow(
                             .clip(RoundedCornerShape(50))
                             .background(action.background)
                             .clickable {
-                                scope.launch { state.snapTo(SwipeState.Settled) }
                                 action.onTriggered()
+                                scope.launch { state.animateTo(SwipeState.Settled) }
                             },
                         contentAlignment = Alignment.Center,
                     ) {
@@ -180,7 +216,7 @@ fun SwipeActionRow(
         ) { measurables, constraints ->
             val absOffset = abs(state.offset)
             val padPx = actionPaddingDp.roundToPx()
-            val minPx = minActionSizeDp.roundToPx()
+            val minPx = minActionSize.roundToPx()
             val n = measurables.size
             val actionH = (constraints.maxHeight - padPx * 2).coerceAtLeast(minPx)
 

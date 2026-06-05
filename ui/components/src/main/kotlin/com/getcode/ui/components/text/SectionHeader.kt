@@ -10,14 +10,12 @@ import com.getcode.theme.CodeTheme
 @Composable
 fun SectionHeader(title: String, modifier: Modifier = Modifier) {
     Text(
-        text = title.uppercase(),
+        text = title,
         style = CodeTheme.typography.textSmall,
         color = CodeTheme.colors.textSecondary,
         modifier = modifier
             .fillMaxWidth()
             .padding(
-                start = CodeTheme.dimens.inset,
-                end = CodeTheme.dimens.inset,
                 top = CodeTheme.dimens.grid.x4,
                 bottom = CodeTheme.dimens.grid.x1,
             )

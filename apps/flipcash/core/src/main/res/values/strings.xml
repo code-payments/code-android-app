@@ -339,6 +339,7 @@
     <string name="prompt_description_unlinkEmail">Your email address will be removed from your profile.</string>
     <string name="title_sectionDisplayName">Display Name</string>
     <string name="title_sectionSocialAccounts">Social Accounts</string>
+    <string name="title_sectionAccountInfo">Account Info</string>
     <string name="subtitle_noDisplayName">No display name set</string>
     <string name="subtitle_noSocialAccounts">No social accounts linked</string>
     <string name="prompt_title_unlinkSocialAccount">Unlink Account?</string>

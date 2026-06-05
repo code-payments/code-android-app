@@ -52,11 +52,15 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
             .verticalScrollStateGradient(
                 scrollState = state,
                 isLongGradient = true,
-            ).sheetResignmentBehavior(state),
+            )
+            .sheetResignmentBehavior(state),
         contentPadding = PaddingValues(bottom = CodeTheme.dimens.grid.x3),
     ) {
         item {
-            SectionHeader(stringResource(R.string.title_settingsSectionFeatures))
+            SectionHeader(
+                modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                title = stringResource(R.string.title_settingsSectionFeatures)
+            )
         }
         items(betaFlags, key = { it.flag.key }) { feature ->
             if (feature.flag.isOptionFlag) {
@@ -113,7 +117,12 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
             }
         }
 
-        item { SectionHeader(stringResource(R.string.title_settingsSectionHomeScreen)) }
+        item {
+            SectionHeader(
+                modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                title = stringResource(R.string.title_settingsSectionHomeScreen)
+            )
+        }
         item {
             ListItem(
                 headline = stringResource(R.string.title_settingsButtonOrder),
@@ -124,7 +133,12 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
         }
 
         if (isStaff) {
-            item { SectionHeader(stringResource(R.string.title_settingsSectionDeveloper)) }
+            item {
+                SectionHeader(
+                    modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                    title = stringResource(R.string.title_settingsSectionDeveloper)
+                )
+            }
             item {
                 ListItem(
                     headline = stringResource(R.string.subtitle_settingsUserFlags),
