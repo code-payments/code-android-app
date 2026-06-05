@@ -127,6 +127,87 @@ class ErrorsTest {
         assertIs<CodeServerError>(PlacePoolBetError.MaxBetsReceived())
     }
 
+    // -- GetMessageError --
+
+    @Test
+    fun `GetMessageError subtypes are CodeServerError`() {
+        assertIs<CodeServerError>(GetMessageError.Denied())
+        assertIs<CodeServerError>(GetMessageError.NotFound())
+        assertIs<CodeServerError>(GetMessageError.Unrecognized())
+        assertIs<CodeServerError>(GetMessageError.Other())
+    }
+
+    // -- GetMessagesError --
+
+    @Test
+    fun `GetMessagesError subtypes are CodeServerError`() {
+        assertIs<CodeServerError>(GetMessagesError.Denied())
+        assertIs<CodeServerError>(GetMessagesError.NotFound())
+        assertIs<CodeServerError>(GetMessagesError.Unrecognized())
+        assertIs<CodeServerError>(GetMessagesError.Other())
+    }
+
+    // -- FlipcashSendMessageError --
+
+    @Test
+    fun `FlipcashSendMessageError subtypes are CodeServerError`() {
+        assertIs<CodeServerError>(FlipcashSendMessageError.Denied())
+        assertIs<CodeServerError>(FlipcashSendMessageError.Unrecognized())
+        assertIs<CodeServerError>(FlipcashSendMessageError.Other())
+    }
+
+    // -- AdvancePointerError --
+
+    @Test
+    fun `AdvancePointerError has expected variants`() {
+        assertEquals("Denied", AdvancePointerError.Denied().message)
+        assertEquals("Message not found", AdvancePointerError.MessageNotFound().message)
+        assertIs<CodeServerError>(AdvancePointerError.Unrecognized())
+    }
+
+    // -- NotifyIsTypingError --
+
+    @Test
+    fun `NotifyIsTypingError subtypes are CodeServerError`() {
+        assertIs<CodeServerError>(NotifyIsTypingError.Denied())
+        assertIs<CodeServerError>(NotifyIsTypingError.Unrecognized())
+        assertIs<CodeServerError>(NotifyIsTypingError.Other())
+    }
+
+    // -- GetChatError --
+
+    @Test
+    fun `GetChatError subtypes are CodeServerError`() {
+        assertIs<CodeServerError>(GetChatError.Denied())
+        assertIs<CodeServerError>(GetChatError.NotFound())
+        assertIs<CodeServerError>(GetChatError.Unrecognized())
+        assertIs<CodeServerError>(GetChatError.Other())
+    }
+
+    @Test
+    fun `GetChatError has expected messages`() {
+        assertEquals("Denied", GetChatError.Denied().message)
+        assertEquals("Not found", GetChatError.NotFound().message)
+    }
+
+    // -- GetDmChatFeedError --
+
+    @Test
+    fun `GetDmChatFeedError subtypes are CodeServerError`() {
+        assertIs<CodeServerError>(GetDmChatFeedError.Denied())
+        assertIs<CodeServerError>(GetDmChatFeedError.NotFound())
+        assertIs<CodeServerError>(GetDmChatFeedError.Unrecognized())
+        assertIs<CodeServerError>(GetDmChatFeedError.Other())
+    }
+
+    @Test
+    fun `GetDmChatFeedError Other preserves cause`() {
+        val root = RuntimeException("feed broke")
+        val error = GetDmChatFeedError.Other(root)
+        assertSame(root, error.cause)
+        assertEquals("feed broke", error.message)
+    }
+
     // -- StreamEventsError --
 
     @Test

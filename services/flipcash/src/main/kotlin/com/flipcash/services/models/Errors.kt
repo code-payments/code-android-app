@@ -303,6 +303,74 @@ sealed class GetContactsError(
     data class Other(override val cause: Throwable? = null) : GetContactsError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class GetChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetChatError("Denied")
+    class NotFound : GetChatError("Not found")
+    class Unrecognized : GetChatError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetChatError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetDmChatFeedError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetDmChatFeedError("Denied")
+    class NotFound : GetDmChatFeedError("Not found")
+    class Unrecognized : GetDmChatFeedError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetDmChatFeedError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetMessageError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetMessageError("Denied")
+    class NotFound : GetMessageError("Not found")
+    class Unrecognized : GetMessageError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetMessageError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetMessagesError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetMessagesError("Denied")
+    class NotFound : GetMessagesError("Not found")
+    class Unrecognized : GetMessagesError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetMessagesError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class FlipcashSendMessageError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : FlipcashSendMessageError("Denied")
+    class Unrecognized : FlipcashSendMessageError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : FlipcashSendMessageError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class AdvancePointerError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : AdvancePointerError("Denied")
+    class MessageNotFound : AdvancePointerError("Message not found")
+    class Unrecognized : AdvancePointerError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : AdvancePointerError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class NotifyIsTypingError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : NotifyIsTypingError("Denied")
+    class Unrecognized : NotifyIsTypingError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : NotifyIsTypingError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class StreamEventsError(
     override val message: String? = null,
     override val cause: Throwable? = null

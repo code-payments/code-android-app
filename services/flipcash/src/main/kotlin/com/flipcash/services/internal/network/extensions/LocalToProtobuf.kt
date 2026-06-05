@@ -8,6 +8,10 @@ import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ClientMessageId
+import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.PointerType
+import com.flipcash.services.models.chat.TypingState
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.network.jwt.ApiProvider
 import com.getcode.opencode.model.core.ID
@@ -16,6 +20,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
 import com.google.protobuf.Timestamp
 import kotlin.time.Instant
+import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
 
 internal fun Checksum.asHash(): Common.Hash {
     return Common.Hash.newBuilder().setValue(byteArray.toByteString()).build()
@@ -92,4 +97,37 @@ internal fun SocialAccountLinkRequest.linkingToken(): ProfileService.LinkSocialA
     }
 
     return builder.build()
+}
+
+// -- Messaging extensions --
+
+internal fun ClientMessageId.asClientMessageId(): MessagingModel.ClientMessageId {
+    return MessagingModel.ClientMessageId.newBuilder().setValue(bytes.toByteString()).build()
+}
+
+internal fun MessageContent.asContent(): MessagingModel.Content {
+    return when (this) {
+        is MessageContent.Text -> MessagingModel.Content.newBuilder()
+            .setText(MessagingModel.TextContent.newBuilder().setText(text))
+            .build()
+    }
+}
+
+internal fun PointerType.asPointerType(): MessagingModel.Pointer.Type {
+    return when (this) {
+        PointerType.SENT -> MessagingModel.Pointer.Type.SENT
+        PointerType.DELIVERED -> MessagingModel.Pointer.Type.DELIVERED
+        PointerType.READ -> MessagingModel.Pointer.Type.READ
+        PointerType.UNKNOWN -> MessagingModel.Pointer.Type.UNKNOWN
+    }
+}
+
+internal fun TypingState.asTypingState(): MessagingModel.IsTypingNotification.State {
+    return when (this) {
+        TypingState.STARTED_TYPING -> MessagingModel.IsTypingNotification.State.STARTED_TYPING
+        TypingState.STILL_TYPING -> MessagingModel.IsTypingNotification.State.STILL_TYPING
+        TypingState.STOPPED_TYPING -> MessagingModel.IsTypingNotification.State.STOPPED_TYPING
+        TypingState.TYPING_TIMED_OUT -> MessagingModel.IsTypingNotification.State.TYPING_TIMED_OUT
+        TypingState.UNKNOWN -> MessagingModel.IsTypingNotification.State.UNKNOWN_TYPING_STATE
+    }
 }
