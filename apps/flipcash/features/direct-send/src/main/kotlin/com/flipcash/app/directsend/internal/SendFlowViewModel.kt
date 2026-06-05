@@ -8,25 +8,24 @@ import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.ContactCoordinator.ContactState
 import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.contacts.device.PickedContactData
-import com.flipcash.app.core.extensions.flatMapResult
-import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.send.SendStep
+import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.permissions.PickedContact
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.directsend.R
+import com.flipcash.shared.amountentry.AmountEntryDelegate
+import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
-import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.financial.toFiat
-import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
@@ -34,18 +33,22 @@ import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.min
 import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
@@ -62,6 +65,30 @@ internal class SendFlowViewModel @Inject constructor(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
 ) {
+    private val maxAmountFlow = combine(
+        transactionController.limits,
+        tokenCoordinator.observeSelectedTokenMint()
+            .flatMapLatest { mint -> tokenCoordinator.balanceForToken(mint) },
+        exchange.observePreferredRate(),
+    ) { limits, balance, rate ->
+        val balanceInLocal = balance.convertingTo(rate)
+        val sendLimit = limits?.sendLimitFor(rate.currency) ?: SendLimit.Zero
+        Fiat(min(sendLimit.nextTransaction, balanceInLocal.toDouble()), rate.currency)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val amountDelegate = AmountEntryDelegate(
+        exchange = exchange,
+        scope = viewModelScope,
+        style = AmountEntryStyle(
+            actionLabel = resources.getString(R.string.action_swipeToSend),
+            actionStyle = ConfirmationStyle.Slide,
+            infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
+            overMaxHint = { resources.getString(R.string.subtitle_sendHintLimitExceeded, it) },
+        ),
+        loadingState = stateFlow.map { it.sendProgress }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LoadingSuccessState()),
+        maxAmount = maxAmountFlow,
+    )
 
     sealed interface ResolveState {
         val contact: DeviceContact? get() = null
@@ -80,6 +107,8 @@ internal class SendFlowViewModel @Inject constructor(
         val listItems: List<ContactListItem> = emptyList(),
         val sendProgress: LoadingSuccessState = LoadingSuccessState(),
         val resolveState: ResolveState = ResolveState.Idle,
+        val token: Token? = null,
+        val limits: com.getcode.opencode.model.financial.Limits? = null,
     )
 
     sealed interface Event {
@@ -109,6 +138,8 @@ internal class SendFlowViewModel @Inject constructor(
         data class ResolveCompleted(val contact: DeviceContact, val authority: PublicKey) : Event
         data class ResolveFailed(val e164: String) : Event
 
+        data object OnConfirmRequested : Event
+
         data class OnSendRequested(
             val amount: Fiat,
             val token: Token,
@@ -119,9 +150,14 @@ internal class SendFlowViewModel @Inject constructor(
             val success: Boolean = false,
         ) : Event
         data class SendComplete(val amount: Fiat) : Event
+
+        data class TokenUpdated(val token: Token) : Event
+        data class LimitsChanged(val limits: com.getcode.opencode.model.financial.Limits?) : Event
     }
 
     init {
+        // --- Steps & contact flow ---
+
         combine(
             userManager.state,
             featureFlags.observe(FeatureFlag.PhoneNumberSend),
@@ -256,6 +292,37 @@ internal class SendFlowViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        // --- Amount entry ---
+
+        tokenCoordinator.observeSelectedTokenMint()
+            .flatMapLatest { mint ->
+                tokenCoordinator.tokenBalances.map { tokens ->
+                    tokens.find { it.token.address == mint }
+                }
+            }
+            .filterNotNull()
+            .onEach { tokenWithBalance ->
+                dispatchEvent(Event.TokenUpdated(tokenWithBalance.token))
+            }.launchIn(viewModelScope)
+
+        exchange.observePreferredRate()
+            .onEach { rate ->
+                val currency = exchange.getCurrency(rate.currency.name)
+                if (currency != null) {
+                    amountDelegate.onCurrencyChanged(currency)
+                }
+            }.launchIn(viewModelScope)
+
+        transactionController.limits
+            .onEach { dispatchEvent(Event.LimitsChanged(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.OnConfirmRequested>()
+            .onEach { onConfirmRequested() }
+            .launchIn(viewModelScope)
+
+        // --- Send ---
+
         eventFlow.filterIsInstance<Event.OnSendRequested>()
             .onEach { (amount, token, destination) ->
                 viewModelScope.launch {
@@ -317,6 +384,58 @@ internal class SendFlowViewModel @Inject constructor(
             }.launchIn(viewModelScope)
     }
 
+    private fun checkBalanceLimit(): Boolean {
+        val amount = amountDelegate.state.value.enteredAmount
+        val token = stateFlow.value.token ?: return false
+        val rate = exchange.preferredRate
+        val entered = Fiat(amount, rate.currency)
+        val balance = tokenCoordinator.balanceForToken(token)
+        val balanceInLocal = balance.convertingTo(rate)
+        val isOverBalance = entered.valueGreaterThan(balanceInLocal)
+        if (isOverBalance) {
+            BottomBarManager.showAlert(
+                resources.getString(R.string.error_title_insufficientFunds),
+                resources.getString(R.string.error_description_insufficientFunds),
+            )
+        }
+        return isOverBalance
+    }
+
+    private fun checkSendLimit(): Boolean {
+        val amount = amountDelegate.state.value.enteredAmount
+        val currency = amountDelegate.state.value.currency
+        val sendLimit =
+            currency.code?.let { stateFlow.value.limits?.sendLimitFor(it) } ?: SendLimit.Zero
+        val isOverLimit = amount > sendLimit.nextTransaction
+        if (isOverLimit) {
+            BottomBarManager.showAlert(
+                resources.getString(R.string.error_title_sendLimitReached),
+                resources.getString(R.string.error_description_sendLimitReached),
+            )
+        }
+        return isOverLimit
+    }
+
+    private fun onConfirmRequested() {
+        if (checkBalanceLimit() || checkSendLimit()) return
+
+        val enteredAmount = amountDelegate.state.value.enteredAmount
+        if (enteredAmount <= 0) return
+
+        val token = stateFlow.value.token ?: return
+        val rate = exchange.preferredRate
+        val amount = Fiat(enteredAmount, rate.currency)
+
+        val resolve = stateFlow.value.resolveState
+        if (resolve is ResolveState.Resolved) {
+            dispatchEvent(Event.OnSendRequested(
+                amount = amount,
+                token = token,
+                destinationOwner = resolve.authority,
+            ))
+        }
+    }
+
     private fun generateListItems(
         contactState: ContactState,
         searchString: String,
@@ -354,11 +473,9 @@ internal class SendFlowViewModel @Inject constructor(
                 is Event.StepsUpdated -> { state ->
                     state.copy(steps = event.steps, isPickerMode = event.isPickerMode)
                 }
-
                 is Event.OnStepChanged -> { state ->
                     state.copy(currentStep = event.step)
                 }
-
                 is Event.ContactsGranted -> { state -> state }
                 is Event.ContactsPicked -> { state -> state }
                 is Event.ContactSyncStateUpdated -> { state ->
@@ -370,7 +487,6 @@ internal class SendFlowViewModel @Inject constructor(
                         )
                     )
                 }
-
                 is Event.ContactRemoved -> { state -> state }
                 is Event.ContactSyncComplete -> { state -> state }
                 is Event.OnItemsPopulated -> { state -> state.copy(listItems = event.items) }
@@ -391,6 +507,7 @@ internal class SendFlowViewModel @Inject constructor(
                         state
                     }
                 }
+                is Event.OnConfirmRequested -> { state -> state }
                 is Event.OnSendRequested -> { state -> state }
                 is Event.SendStateUpdated -> { state ->
                     state.copy(
@@ -401,6 +518,12 @@ internal class SendFlowViewModel @Inject constructor(
                     )
                 }
                 is Event.SendComplete -> { state -> state }
+                is Event.TokenUpdated -> { state ->
+                    state.copy(token = event.token)
+                }
+                is Event.LimitsChanged -> { state ->
+                    state.copy(limits = event.limits)
+                }
             }
         }
     }

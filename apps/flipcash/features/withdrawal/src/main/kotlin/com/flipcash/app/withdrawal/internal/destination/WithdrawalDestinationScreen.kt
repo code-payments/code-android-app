@@ -44,7 +44,7 @@ internal fun WithdrawalDestinationScreen(viewModel: WithdrawalViewModel) {
 }
 
 @Composable
-private fun WithdrawalDestinationScreenContent(
+internal fun WithdrawalDestinationScreenContent(
     state: WithdrawalViewModel.State,
     dispatchEvent: (WithdrawalViewModel.Event) -> Unit
 ) {

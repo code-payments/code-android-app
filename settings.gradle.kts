@@ -43,6 +43,7 @@ include(
     ":apps:flipcash:core",
     ":libs:test-utils",
     // shared flipcash coordinators/controllers/viewmodels/services
+    ":apps:flipcash:shared:amount-entry",
     ":apps:flipcash:shared:accesskey",
     ":apps:flipcash:shared:analytics",
     ":apps:flipcash:shared:appsettings",

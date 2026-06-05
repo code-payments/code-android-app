@@ -20,5 +20,4 @@ dependencies {
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.work.testing)
-    testImplementation(project(":libs:test-utils"))
 }

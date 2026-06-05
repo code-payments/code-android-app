@@ -12,15 +12,13 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.send.SendResult
 import com.flipcash.app.core.send.SendStep
 import com.flipcash.app.core.tokens.TokenPurpose
-import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.core.ui.TokenSelectionPill
 import com.flipcash.app.directsend.internal.SendFlowViewModel
-import com.flipcash.app.directsend.internal.screens.AmountEntryResult
-import com.flipcash.app.directsend.internal.screens.AmountEntryScreen
 import com.flipcash.app.directsend.internal.screens.ContactListScreen
 import com.flipcash.app.directsend.internal.screens.ContactsPermissionGateScreen
 import com.flipcash.app.directsend.internal.screens.PhoneGateLandingScreen
 import com.flipcash.features.directsend.R
+import com.flipcash.shared.amountentry.AmountEntryScreen
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.flow.FlowExitReason
@@ -31,6 +29,8 @@ import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.ui.components.AppBarDefaults
+import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.util.resources.LocalResources
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -85,6 +85,7 @@ private fun SendAmountEntryScreen() {
     val sharedVm = flowSharedViewModel<SendFlowViewModel>()
     val sharedState by sharedVm.stateFlow.collectAsStateWithLifecycle()
     val resources = LocalResources.current
+    val outerNavigator = LocalOuterCodeNavigator.current
 
     LaunchedEffect(sharedState.resolveState) {
         if (sharedState.resolveState is SendFlowViewModel.ResolveState.Failed) {
@@ -115,40 +116,23 @@ private fun SendAmountEntryScreen() {
     }
 
     AmountEntryScreen(
-        title = { token ->
-            TokenSelectionPill(token) {
-                flowNavigator.navigate(
-                    AppRoute.Sheets.TokenSelection(TokenPurpose.Select)
-                )
-            }
-        },
-        // region lives outside the flow
-        // flow replaces LocalCodeNavigator for the flow as the "inner" navigator
-        navigator = LocalOuterCodeNavigator.current,
-        canChangeCurrency = true,
-        confirmationStyle = ConfirmationStyle.Slide,
-        confirmationState = sharedState.sendProgress,
-        onResult = { result ->
-            when (result) {
-                AmountEntryResult.Cancelled -> flowNavigator.back()
-                is AmountEntryResult.Confirmed -> {
-                    when (val resolve = sharedState.resolveState) {
-                        is SendFlowViewModel.ResolveState.Resolved -> {
-                            sharedVm.dispatchEvent(
-                                SendFlowViewModel.Event.OnSendRequested(
-                                    amount = result.amount,
-                                    token = result.token,
-                                    destinationOwner = resolve.authority,
-                                )
-                            )
-                        }
-                        // Resolve still in flight — slide resets, user can retry
-                        is SendFlowViewModel.ResolveState.Pending -> Unit
-                        // Failed case handled by LaunchedEffect above
-                        else -> Unit
+        controller = sharedVm.amountDelegate,
+        onConfirm = { sharedVm.dispatchEvent(SendFlowViewModel.Event.OnConfirmRequested) },
+        onChangeCurrency = { outerNavigator.push(AppRoute.Main.RegionSelection) },
+        appBar = {
+            AppBarWithTitle(
+                isInModal = true,
+                title = {
+                    TokenSelectionPill(sharedState.token) {
+                        flowNavigator.navigate(
+                            AppRoute.Sheets.TokenSelection(TokenPurpose.Select)
+                        )
                     }
-                }
-            }
+                },
+                leftIcon = {
+                    AppBarDefaults.UpNavigation { flowNavigator.back() }
+                },
+            )
         },
     )
 }

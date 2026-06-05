@@ -5,7 +5,6 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
-import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.view.LoadingSuccessState
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -44,13 +43,11 @@ class WithdrawalViewModelStateTest {
     fun `OnAmountAccepted updates selected amount and resets confirming state`() {
         val amount = VerifiedFiat(LocalFiat.Zero, null)
         val state = WithdrawalViewModel.State(
-            amountEntryState = AmountEntryState(
-                confirmingAmount = LoadingSuccessState(loading = true)
-            )
+            confirmingAmount = LoadingSuccessState(loading = true)
         )
         val updated = reduce(WithdrawalViewModel.Event.OnAmountAccepted(amount))(state)
-        assertEquals(amount, updated.amountEntryState.selectedAmount)
-        assertEquals(false, updated.amountEntryState.confirmingAmount.loading)
+        assertEquals(amount, updated.selectedAmount)
+        assertEquals(false, updated.confirmingAmount.loading)
     }
 
     @Test
@@ -58,7 +55,7 @@ class WithdrawalViewModelStateTest {
         val updated = reduce(
             WithdrawalViewModel.Event.UpdateConfirmingAmountState(loading = true)
         )(WithdrawalViewModel.State())
-        assertEquals(true, updated.amountEntryState.confirmingAmount.loading)
+        assertEquals(true, updated.confirmingAmount.loading)
     }
 
     @Test
@@ -66,8 +63,8 @@ class WithdrawalViewModelStateTest {
         val updated = reduce(
             WithdrawalViewModel.Event.UpdateConfirmingAmountState(loading = false, success = true)
         )(WithdrawalViewModel.State())
-        assertEquals(true, updated.amountEntryState.confirmingAmount.success)
-        assertEquals(false, updated.amountEntryState.confirmingAmount.loading)
+        assertEquals(true, updated.confirmingAmount.success)
+        assertEquals(false, updated.confirmingAmount.loading)
     }
 
     @Test
@@ -88,22 +85,11 @@ class WithdrawalViewModelStateTest {
     }
 
     @Test
-    fun `OnAmountChanged updates amount model`() {
-        val model = AmountAnimatedInputUiModel(lastPressedBackspace = true)
-        val updated = reduce(
-            WithdrawalViewModel.Event.OnAmountChanged(model)
-        )(WithdrawalViewModel.State())
-        assertEquals(model, updated.amountEntryState.amountAnimatedModel)
-    }
-
-    @Test
     fun `no-op events return state unchanged`() {
         val state = WithdrawalViewModel.State(entryRate = Rate.oneToOne)
         val noOpEvents = listOf(
             WithdrawalViewModel.Event.OnAmountConfirmed,
             WithdrawalViewModel.Event.OnWithdraw,
-            WithdrawalViewModel.Event.OnBackspace,
-            WithdrawalViewModel.Event.OnDecimalPressed,
             WithdrawalViewModel.Event.PasteFromClipboard,
             WithdrawalViewModel.Event.OnDestinationConfirmed,
             WithdrawalViewModel.Event.OnLearnAboutFee,
@@ -117,14 +103,6 @@ class WithdrawalViewModelStateTest {
         noOpEvents.forEach { event ->
             assertEquals(state, reduce(event)(state), "Event $event should be no-op")
         }
-    }
-
-    // --- State.canWithdraw ---
-
-    @Test
-    fun `canWithdraw false when amount is zero`() {
-        val state = WithdrawalViewModel.State()
-        assertEquals(false, state.canWithdraw)
     }
 
     // --- State.feeInEntryCurrency ---
