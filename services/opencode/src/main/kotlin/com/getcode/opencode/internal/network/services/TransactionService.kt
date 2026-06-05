@@ -39,7 +39,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import javax.inject.Inject
 
 

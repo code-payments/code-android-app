@@ -4,7 +4,7 @@ import android.text.format.DateFormat
 import android.text.format.DateUtils
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import java.util.Calendar
 import java.util.Locale
 import kotlin.time.Clock

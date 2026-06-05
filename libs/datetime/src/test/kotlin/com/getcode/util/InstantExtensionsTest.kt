@@ -1,8 +1,9 @@
 package com.getcode.util
 
 import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
@@ -27,8 +28,8 @@ class InstantExtensionsTest {
         val instant = Instant.fromEpochMilliseconds(1710504000000L)
         val date = instant.toLocalDate(utc)
         assertEquals(2024, date.year)
-        assertEquals(3, date.monthNumber)
-        assertEquals(15, date.dayOfMonth)
+        assertEquals(Month.MARCH, date.month)
+        assertEquals(15, date.day)
     }
 
     @Test
@@ -37,8 +38,8 @@ class InstantExtensionsTest {
         val instant = Instant.fromEpochMilliseconds(1704067200000L)
         val date = instant.toLocalDate(utc)
         assertEquals(2024, date.year)
-        assertEquals(1, date.monthNumber)
-        assertEquals(1, date.dayOfMonth)
+        assertEquals(Month.JANUARY, date.month)
+        assertEquals(1, date.day)
     }
 
     @Test
@@ -47,8 +48,8 @@ class InstantExtensionsTest {
         val instant = Instant.fromEpochMilliseconds(1704153599000L)
         val date = instant.toLocalDate(utc)
         assertEquals(2024, date.year)
-        assertEquals(1, date.monthNumber)
-        assertEquals(1, date.dayOfMonth)
+        assertEquals(Month.JANUARY, date.month)
+        assertEquals(1, date.day)
     }
 
     // --- atStartOfDay ---

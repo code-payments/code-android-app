@@ -21,7 +21,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.network.retryableOrThrow
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlin.time.Duration.Companion.seconds
 import javax.inject.Inject
 
