@@ -11,11 +11,18 @@ import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.flipcash.app.persistence.converters.ChatTypeConverters
 import com.flipcash.app.persistence.converters.TokenTypeConverters
+import com.flipcash.app.persistence.dao.ChatMemberDao
+import com.flipcash.app.persistence.dao.ChatMessageDao
+import com.flipcash.app.persistence.dao.ChatMetadataDao
 import com.flipcash.app.persistence.dao.ContactDao
 import com.flipcash.app.persistence.dao.CurrencyCreatorDraftDao
 import com.flipcash.app.persistence.dao.MessageDao
 import com.flipcash.app.persistence.dao.TokenDao
+import com.flipcash.app.persistence.entities.ChatMemberEntity
+import com.flipcash.app.persistence.entities.ChatMessageEntity
+import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.entities.ContactMappingEntity
 import com.flipcash.app.persistence.entities.ContactSyncStateEntity
 import com.flipcash.app.persistence.entities.CurrencyCreatorDraftEntity
@@ -37,6 +44,9 @@ import com.getcode.utils.subByteArray
         CurrencyCreatorDraftEntity::class,
         ContactSyncStateEntity::class,
         ContactMappingEntity::class,
+        ChatMetadataEntity::class,
+        ChatMessageEntity::class,
+        ChatMemberEntity::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = FlipcashDatabase.Migration1To2::class),
@@ -56,16 +66,20 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 15, to = 16),
         AutoMigration(from = 16, to = 17),
         AutoMigration(from = 17, to = 18),
+        AutoMigration(from = 18, to = 19),
     ],
-    version = 18,
+    version = 19,
 )
-@TypeConverters(TokenTypeConverters::class)
+@TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
 
     abstract fun messageDao(): MessageDao
     abstract fun tokenDao(): TokenDao
     abstract fun currencyCreatorDraftDao(): CurrencyCreatorDraftDao
     abstract fun contactDao(): ContactDao
+    abstract fun chatMetadataDao(): ChatMetadataDao
+    abstract fun chatMessageDao(): ChatMessageDao
+    abstract fun chatMemberDao(): ChatMemberDao
 
     class Migration1To2 : Migration(1, 2), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
