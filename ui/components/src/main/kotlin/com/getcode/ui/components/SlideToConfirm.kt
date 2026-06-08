@@ -44,6 +44,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -61,6 +62,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.White20
 import com.getcode.theme.White50
+import com.getcode.theme.inset
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -99,8 +101,6 @@ private object Thumb {
     val Size: Dp
         @Composable get() = CodeTheme.dimens.grid.x12
     val Color = androidx.compose.ui.graphics.Color.White
-    val Shape: Shape
-        @Composable get() = CodeTheme.shapes.small
 }
 
 private object Track {
@@ -146,7 +146,6 @@ fun SlideToConfirm(
     modifier: Modifier = Modifier,
     trackShape: Shape = Track.Shape,
     trackColor: Color = Track.Color,
-    thumbShape: Shape = Thumb.Shape,
     enabled: Boolean = true,
     isLoading: Boolean = false,
     isSuccess: Boolean = false,
@@ -167,6 +166,7 @@ fun SlideToConfirm(
     val density = LocalDensity.current
     val thumbSize = Thumb.Size
     val horizontalPadding = CodeTheme.dimens.grid.x1
+    val thumbShape = (trackShape as? CornerBasedShape)?.inset(horizontalPadding) ?: trackShape
     val overhead = with(density) { (2 * horizontalPadding + thumbSize).toPx() }
 
     val swipeState = remember {
@@ -352,7 +352,7 @@ private fun Thumb(
     modifier: Modifier = Modifier,
     size: Dp = Thumb.Size,
     color: Color = Thumb.Color,
-    shape: Shape = Thumb.Shape,
+    shape: Shape = Track.Shape,
 ) {
     Box(
         modifier = modifier
