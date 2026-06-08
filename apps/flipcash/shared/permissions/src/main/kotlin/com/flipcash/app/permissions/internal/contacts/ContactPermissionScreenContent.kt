@@ -58,6 +58,7 @@ fun ContactScreenContent(
                 Text(
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
+                        .padding(top = CodeTheme.dimens.grid.x2)
                         .padding(horizontal = CodeTheme.dimens.inset),
                     text = stringResource(R.string.permissions_description_contacts),
                     style = CodeTheme.typography.textSmall,
