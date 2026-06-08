@@ -112,6 +112,20 @@ internal fun ContactListScreen() {
             }
     }
 
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SendFlowViewModel.Event.NavigateToDirectSend>()
+            .map { it.contact }
+            .collect { contact ->
+                flowNavigator.navigate(
+                    AppRoute.Messaging.AmountEntry(
+                        e164 = contact.e164,
+                        displayName = contact.displayName,
+                    )
+                )
+            }
+    }
+
     val accessHandle = rememberContactAccessHandle(
         isPickerMode = state.isPickerMode,
     ) { result ->

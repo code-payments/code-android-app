@@ -71,7 +71,10 @@ internal class SendFlowViewModel @Inject constructor(
         data class SendInvite(val contact: DeviceContact) : Event
 
         data class NavigateToChat(val contact: DeviceContact) : Event
+        data class NavigateToDirectSend(val contact: DeviceContact) : Event
     }
+
+    private val messengerEnabled = featureFlags.observe(FeatureFlag.Messenger)
 
     init {
         combine(
@@ -153,7 +156,11 @@ internal class SendFlowViewModel @Inject constructor(
             .map { it.contact }
             .onEach { (contact, isOnFlipcash) ->
                 if (isOnFlipcash) {
-                    dispatchEvent(Event.NavigateToChat(contact))
+                    if (messengerEnabled.value) {
+                        dispatchEvent(Event.NavigateToChat(contact))
+                    } else {
+                        dispatchEvent(Event.NavigateToDirectSend(contact))
+                    }
                 } else {
                     dispatchEvent(Event.SendInvite(contact))
                 }
@@ -245,6 +252,7 @@ internal class SendFlowViewModel @Inject constructor(
                 is Event.OnContactClicked -> { state -> state }
                 is Event.SendInvite -> { state -> state }
                 is Event.NavigateToChat -> { state -> state }
+                is Event.NavigateToDirectSend -> { state -> state }
             }
         }
     }

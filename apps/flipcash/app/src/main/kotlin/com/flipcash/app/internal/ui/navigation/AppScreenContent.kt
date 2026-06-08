@@ -99,7 +99,7 @@ fun appEntryProvider(
         MessengerScreen(key.e164, key.displayName)
     }
     annotatedEntry<AppRoute.Messaging.AmountEntry> { key ->
-        ChatAmountEntryScreen(key.e164)
+        ChatAmountEntryScreen(key.e164, key.displayName)
     }
 
     // Tokens

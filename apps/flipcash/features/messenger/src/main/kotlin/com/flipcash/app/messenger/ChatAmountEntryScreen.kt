@@ -22,11 +22,17 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun ChatAmountEntryScreen(e164: String) {
+fun ChatAmountEntryScreen(e164: String, displayName: String) {
     val viewModel = flowScopedViewModel<ChatViewModel>(e164)
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
     val resources = LocalResources.current
+
+    LaunchedEffect(Unit) {
+        if (state.chattingWith == null) {
+            viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(e164, displayName))
+        }
+    }
 
     LaunchedEffect(state.resolveState) {
         if (state.resolveState is ChatViewModel.ResolveState.Failed) {
