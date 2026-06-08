@@ -9,4 +9,5 @@ data class ChatMessage(
     val content: List<MessageContent>,
     val timestamp: Instant,
     val unreadSeq: Long,
+    val isFromSelf: Boolean = false,
 )

@@ -2,7 +2,6 @@ package com.flipcash.app.core.send
 
 import android.os.Parcelable
 import com.getcode.navigation.flow.FlowStep
-import com.getcode.opencode.model.financial.Fiat
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 
@@ -23,18 +22,11 @@ sealed interface SendStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data object ContactList : SendStep
-
-    @Parcelize
-    @Serializable
-    data class AmountEntry(
-        val e164: String,
-        val displayName: String,
-    ) : SendStep
 }
 
 @Serializable
 sealed interface SendResult : Parcelable {
     @Parcelize
     @Serializable
-    data class Sent(val amount: Fiat) : SendResult
+    data class Sent(val amount: com.getcode.opencode.model.financial.Fiat) : SendResult
 }

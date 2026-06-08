@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White50
+import com.getcode.ui.core.unboundedClickable
 
 @Composable
 fun SearchInput(
@@ -32,24 +33,21 @@ fun SearchInput(
                 modifier = Modifier.padding(start = CodeTheme.dimens.grid.x3),
                 imageVector = Icons.Filled.Search,
                 contentDescription = null,
-                tint = CodeTheme.colors.textMain,
+                tint = CodeTheme.colors.textSecondary,
             )
         },
         placeholder = placeholder,
         placeholderStyle = CodeTheme.typography.textMedium,
         trailingIcon = {
             if (state.text.isNotEmpty()) {
-                IconButton(
-                    onClick = {
+                Icon(
+                    modifier = Modifier.unboundedClickable {
                         state.clearText()
-                    },
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = null,
-                        tint = White50,
-                    )
-                }
+                    }.padding(end = CodeTheme.dimens.grid.x3),
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = null,
+                    tint = White50,
+                )
             }
         },
         maxLines = 1,

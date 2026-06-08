@@ -1,5 +1,6 @@
 package com.flipcash.app.persistence.dao
 
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -13,6 +14,9 @@ interface ChatMessageDao {
 
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms ASC")
     fun observeMessages(chatIdHex: String): Flow<List<ChatMessageEntity>>
+
+    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms DESC")
+    fun observeMessagesPaged(chatIdHex: String): PagingSource<Int, ChatMessageEntity>
 
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms DESC LIMIT 1")
     suspend fun getLatest(chatIdHex: String): ChatMessageEntity?

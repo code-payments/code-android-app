@@ -98,6 +98,12 @@ internal class InternalFeatureFlagController @Inject constructor(
 
     override fun observe(): StateFlow<List<BetaFeature>> = betaFlags.data.map { prefs ->
         FeatureFlag.availableEntries
+            .filter { flag ->
+                if (flag is FeatureFlag.Messenger) {
+                    val req = flag.requiredFlag
+                    prefs[req.booleanPreferenceKey] ?: req.defaultEnabled
+                } else true
+            }
             .map { flag ->
                 if (flag.isOptionFlag) {
                     val option = prefs[flag.optionPreferenceKey] ?: flag.defaultOption

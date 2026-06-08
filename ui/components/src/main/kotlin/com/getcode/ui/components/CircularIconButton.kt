@@ -14,8 +14,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.getcode.ui.components.AppBarDefaults.IconSize
 import androidx.compose.foundation.clickable
+import com.getcode.theme.CodeTheme
 
-private val ButtonSize = 40.dp
+private val ButtonSize: Dp
+    @Composable get() = CodeTheme.dimens.staticGrid.x8
 private val ButtonBackground = Color.White.copy(alpha = 0.1f)
 
 

@@ -1,10 +1,14 @@
 package com.getcode.ui.components.chat
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandIn
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -17,12 +21,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -42,6 +47,10 @@ import com.getcode.theme.inputColors
 import com.getcode.ui.components.R
 import com.getcode.ui.components.TextInput
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.material.icons.rounded.ArrowUpward
+import com.getcode.theme.extraSmall
 
 @Composable
 fun ChatInput(
@@ -50,111 +59,98 @@ fun ChatInput(
     hint: String = "",
     state: TextFieldState = rememberTextFieldState(),
     focusRequester: FocusRequester = remember { FocusRequester() },
-    sendCashEnabled: Boolean = false,
     onSendMessage: () -> Unit,
-    onSendCash: () -> Unit,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .padding(
-                start = CodeTheme.dimens.grid.x2,
-                top = CodeTheme.dimens.grid.x2,
-                bottom = CodeTheme.dimens.grid.x2,
-            ),
+            .height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         verticalAlignment = Alignment.Bottom
     ) {
-        if (sendCashEnabled) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.Bottom)
-                    .border(width = 1.dp, color = Color.White, shape = CircleShape)
-                    .clip(CircleShape)
-                    .clickable { onSendCash() }
-                    .size(ChatInput_Size)
-                    .padding(8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    modifier = Modifier
-                        .size(CodeTheme.dimens.staticGrid.x6),
-                    painter = painterResource(id = R.drawable.ic_kin_white),
-                    tint = Color.White,
-                    contentDescription = "Send message"
-                )
-            }
-        }
-
         TextInput(
             modifier = Modifier
                 .weight(1f)
+                .background(CodeTheme.colors.background, shape = CodeTheme.shapes.medium)
                 .focusRequester(focusRequester),
             minHeight = 40.dp,
             enabled = enabled,
             state = state,
             placeholder = hint,
-            shape = CodeTheme.shapes.extraLarge,
+            shape = CodeTheme.shapes.medium,
             keyboardOptions = KeyboardOptions.Default.copy(
                 capitalization = KeyboardCapitalization.Sentences
             ),
             contentPadding = PaddingValues(
-                start = 8.dp + CodeTheme.dimens.staticGrid.x2,
-                top = 8.dp,
-                end = 8.dp + CodeTheme.dimens.staticGrid.x2,
-                bottom = 8.dp
+                start = CodeTheme.dimens.staticGrid.x3,
+                top = CodeTheme.dimens.staticGrid.x2,
+                end = CodeTheme.dimens.staticGrid.x3,
+                bottom = CodeTheme.dimens.staticGrid.x2,
             ),
             colors = inputColors(
-                backgroundColor = Color.White,
-                textColor = CodeTheme.colors.background,
-                cursorColor = CodeTheme.colors.brand,
-            )
-        )
-        AnimatedContent(
-            targetState = true, // TODO: state.text.isNotEmpty(),
-            label = "show/hide send button",
-            transitionSpec = {
-                slideInHorizontally { it } togetherWith slideOutHorizontally { it }
-            }
-        ) { show ->
-            if (show) {
-                Box(
-                    modifier = Modifier
-                        .padding(end = CodeTheme.dimens.grid.x2)
-                        .size(ChatInput_Size)
-                        .align(Alignment.Bottom)
-                        .background(CodeTheme.colors.tertiary, shape = CircleShape)
-                        .clip(CircleShape)
-                        .clickable { onSendMessage() }
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        modifier = Modifier
-                            .size(CodeTheme.dimens.staticGrid.x6),
-                        imageVector = Icons.AutoMirrored.Rounded.Send,
-                        tint = Color.White,
-                        contentDescription = "Send message"
-                    )
+                backgroundColor = Color(0xAD1E1E1E),
+                borderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+            ),
+            trailingIcon = {
+                AnimatedContent(
+                    targetState = state.text.isNotEmpty(),
+                    label = "show/hide send button",
+                    transitionSpec = {
+                        fadeIn(spring()) togetherWith fadeOut(spring())
+                    }
+                ) { show ->
+                    if (show) {
+                        Icon(
+                            modifier = Modifier
+                                .padding(vertical = CodeTheme.dimens.grid.x1)
+                                .padding(end = CodeTheme.dimens.staticGrid.x2)
+                                .background(
+                                    Color.White,
+                                    shape = CodeTheme.shapes.extraSmall
+                                ).clip(CodeTheme.shapes.extraSmall)
+                                .clickable { onSendMessage() }
+                                .padding(CodeTheme.dimens.staticGrid.x1)
+                                .size(CodeTheme.dimens.staticGrid.x5),
+                            imageVector = Icons.Rounded.ArrowUpward,
+                            tint = Color.Black,
+                            contentDescription = "Send message"
+                        )
+                    } else {
+                        Spacer(Modifier.requiredSize(CodeTheme.dimens.staticGrid.x9))
+                    }
                 }
             }
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun Preview_ChatInput_Empty() {
+    DesignSystem {
+        Box(modifier = Modifier.background(Color(0xFF19191A))) {
+            ChatInput(
+                modifier = Modifier.padding(15.dp),
+                onSendMessage = {},
+            )
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Preview
 @Composable
-private fun Preview_ChatInput() {
+private fun Preview_ChatInput_Typing() {
     DesignSystem {
-        ChatInput(
-            sendCashEnabled = true,
-            onSendMessage = {},
-            onSendCash = {}
-        )
+        Box(modifier = Modifier.background(Color(0xFF19191A))) {
+            ChatInput(
+                modifier = Modifier.padding(15.dp),
+                onSendMessage = {},
+                state = TextFieldState("That’s very kind of you. I ha")
+            )
+        }
     }
 }
 
-private val ChatInput_Size
-    @Composable get() = CodeTheme.dimens.grid.x8
+private val ChatInputButtonSize
+    @Composable get() = CodeTheme.dimens.staticGrid.x7

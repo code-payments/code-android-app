@@ -1,9 +1,9 @@
 package com.flipcash.services.models.chat
 
+import com.getcode.utils.base58
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 
 class ChatIdTest {
 
@@ -29,9 +29,10 @@ class ChatIdTest {
     }
 
     @Test
-    fun `toString includes byte size`() {
-        val id = ChatId(ByteArray(32))
-        assertTrue(id.toString().contains("32 bytes"))
+    fun `toString returns base58 encoding`() {
+        val bytes = byteArrayOf(1, 2, 3, 4, 5)
+        val id = ChatId(bytes)
+        assertEquals(bytes.base58, id.toString())
     }
 
     @Test

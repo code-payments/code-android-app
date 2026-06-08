@@ -62,7 +62,7 @@ fun TextInput(
     minLines: Int = 1,
     maxLines: Int = 4,
     state: TextFieldState,
-    minHeight: Dp = 56.dp,
+    minHeight: Dp = 40.dp,
     contentPadding: PaddingValues = PaddingValues(),
     onStateChanged: () -> Unit = { },
     keyboardOptions: KeyboardOptions = KeyboardOptions(),

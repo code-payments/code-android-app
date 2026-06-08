@@ -9,47 +9,27 @@ import com.flipcash.app.contacts.ContactCoordinator.ContactState
 import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.contacts.device.PickedContactData
 import com.flipcash.app.core.send.SendStep
-import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.permissions.PickedContact
-import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.directsend.R
-import com.flipcash.shared.amountentry.AmountEntryDelegate
-import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TransactionController
-import com.getcode.opencode.exchange.Exchange
-import com.getcode.opencode.exchange.VerifiedFiatCalculator
-import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
-import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.SendLimit
-import com.getcode.opencode.model.financial.Token
-import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
-import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.min
 import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
@@ -58,46 +38,10 @@ internal class SendFlowViewModel @Inject constructor(
     featureFlags: FeatureFlagController,
     private val contactCoordinator: ContactCoordinator,
     private val resources: ResourceHelper,
-    private val exchange: Exchange,
-    private val verifiedFiatCalculator: VerifiedFiatCalculator,
-    private val transactionController: TransactionController,
-    private val tokenCoordinator: TokenCoordinator,
 ) : BaseViewModel<SendFlowViewModel.State, SendFlowViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
 ) {
-    private val maxAmountFlow = combine(
-        transactionController.limits,
-        tokenCoordinator.observeSelectedTokenMint()
-            .flatMapLatest { mint -> tokenCoordinator.balanceForToken(mint) },
-        exchange.observePreferredRate(),
-    ) { limits, balance, rate ->
-        val balanceInLocal = balance.convertingTo(rate)
-        val sendLimit = limits?.sendLimitFor(rate.currency) ?: SendLimit.Zero
-        Fiat(min(sendLimit.nextTransaction, balanceInLocal.toDouble()), rate.currency)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-    val amountDelegate = AmountEntryDelegate(
-        exchange = exchange,
-        scope = viewModelScope,
-        style = AmountEntryStyle(
-            actionLabel = resources.getString(R.string.action_swipeToSend),
-            actionStyle = ConfirmationStyle.Slide,
-            infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
-            overMaxHint = { resources.getString(R.string.subtitle_sendHintLimitExceeded, it) },
-        ),
-        loadingState = stateFlow.map { it.sendProgress }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LoadingSuccessState()),
-        maxAmount = maxAmountFlow,
-    )
-
-    sealed interface ResolveState {
-        val contact: DeviceContact? get() = null
-        data object Idle : ResolveState
-        data class Pending(override val contact: DeviceContact) : ResolveState
-        data class Resolved(override val contact: DeviceContact, val authority: PublicKey) : ResolveState
-        data class Failed(override val contact: DeviceContact) : ResolveState
-    }
 
     data class State @OptIn(ExperimentalMaterial3Api::class) constructor(
         val steps: List<SendStep> = listOf(SendStep.ContactList),
@@ -106,10 +50,6 @@ internal class SendFlowViewModel @Inject constructor(
         val isPickerMode: Boolean = false,
         val contactSyncState: LoadingSuccessState = LoadingSuccessState(),
         val listItems: List<ContactListItem> = emptyList(),
-        val sendProgress: LoadingSuccessState = LoadingSuccessState(),
-        val resolveState: ResolveState = ResolveState.Idle,
-        val token: Token? = null,
-        val limits: com.getcode.opencode.model.financial.Limits? = null,
     )
 
     sealed interface Event {
@@ -129,36 +69,14 @@ internal class SendFlowViewModel @Inject constructor(
         data class OnContactClicked(val contact: ContactListItem.ContactRow) : Event
         data class ContactRemoved(val e164: String) : Event
         data class SendInvite(val contact: DeviceContact) : Event
-        data class SendCashToContact(val contact: DeviceContact) : Event
 
-        data class NavigateToAmountEntry(
-            val e164: String,
-            val displayName: String,
-        ) : Event
-
-        data class ResolveCompleted(val contact: DeviceContact, val authority: PublicKey) : Event
-        data class ResolveFailed(val e164: String) : Event
-
-        data object OnConfirmRequested : Event
-
-        data class OnSendRequested(
-            val amount: Fiat,
-            val token: Token,
-            val destinationOwner: PublicKey,
-        ) : Event
-        data class SendStateUpdated(
-            val loading: Boolean = false,
-            val success: Boolean = false,
-        ) : Event
-        data class SendComplete(val amount: Fiat) : Event
-
-        data class TokenUpdated(val token: Token) : Event
-        data class LimitsChanged(val limits: com.getcode.opencode.model.financial.Limits?) : Event
+        data class NavigateToChat(val contact: DeviceContact) : Event
+        data class NavigateToDirectSend(val contact: DeviceContact) : Event
     }
 
-    init {
-        // --- Steps & contact flow ---
+    private val messengerEnabled = featureFlags.observe(FeatureFlag.Messenger)
 
+    init {
         combine(
             userManager.state,
             featureFlags.observe(FeatureFlag.PhoneNumberSend),
@@ -238,30 +156,13 @@ internal class SendFlowViewModel @Inject constructor(
             .map { it.contact }
             .onEach { (contact, isOnFlipcash) ->
                 if (isOnFlipcash) {
-                    dispatchEvent(Event.SendCashToContact(contact))
+                    if (messengerEnabled.value) {
+                        dispatchEvent(Event.NavigateToChat(contact))
+                    } else {
+                        dispatchEvent(Event.NavigateToDirectSend(contact))
+                    }
                 } else {
                     dispatchEvent(Event.SendInvite(contact))
-                }
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.SendCashToContact>()
-            .map { it.contact }
-            .flatMapLatest { contact ->
-                flow {
-                    dispatchEvent(Event.NavigateToAmountEntry(
-                        e164 = contact.e164,
-                        displayName = contact.displayName,
-                    ))
-
-                    contactCoordinator.resolve(contact.e164)
-                        .onSuccess { authority ->
-                            dispatchEvent(Event.ResolveCompleted(contact, authority))
-                        }
-                        .onFailure {
-                            dispatchEvent(Event.ResolveFailed(contact.e164))
-                        }
-                    emit(Unit)
                 }
             }.launchIn(viewModelScope)
 
@@ -292,149 +193,6 @@ internal class SendFlowViewModel @Inject constructor(
                 )
             }
             .launchIn(viewModelScope)
-
-        // --- Amount entry ---
-
-        tokenCoordinator.observeSelectedTokenMint()
-            .flatMapLatest { mint ->
-                tokenCoordinator.tokenBalances.map { tokens ->
-                    tokens.find { it.token.address == mint }
-                }
-            }
-            .filterNotNull()
-            .onEach { tokenWithBalance ->
-                dispatchEvent(Event.TokenUpdated(tokenWithBalance.token))
-            }.launchIn(viewModelScope)
-
-        exchange.observePreferredRate()
-            .onEach { rate ->
-                val currency = exchange.getCurrency(rate.currency.name)
-                if (currency != null) {
-                    amountDelegate.onCurrencyChanged(currency)
-                }
-            }.launchIn(viewModelScope)
-
-        transactionController.limits
-            .onEach { dispatchEvent(Event.LimitsChanged(it)) }
-            .launchIn(viewModelScope)
-
-        eventFlow.filterIsInstance<Event.OnConfirmRequested>()
-            .onEach { onConfirmRequested() }
-            .launchIn(viewModelScope)
-
-        // --- Send ---
-
-        eventFlow.filterIsInstance<Event.OnSendRequested>()
-            .onEach { (amount, token, destination) ->
-                viewModelScope.launch {
-                    val owner = userManager.accountCluster ?: return@launch
-                    val rate = exchange.preferredRate
-
-                    dispatchEvent(Event.SendStateUpdated(loading = true))
-
-                    val source = owner.withTimelockForToken(token)
-
-                    val balance = tokenCoordinator.balanceForToken(token)
-                    val verifiedFiat = verifiedFiatCalculator.compute(
-                        amount = amount,
-                        token = token,
-                        balance = balance,
-                        rate = rate,
-                    ).getOrElse { error ->
-                        dispatchEvent(Event.SendStateUpdated())
-                        val (title, message) = when (error) {
-                            is ComputeVerifiedFiatError.AmountBelowMinimum -> {
-                                R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall
-                            }
-                            else -> {
-                                R.string.error_title_staleRates to R.string.error_description_staleRates
-                            }
-                        }
-                        BottomBarManager.showAlert(
-                            title = resources.getString(title),
-                            message = resources.getString(message),
-                        )
-                        return@launch
-                    }
-
-                    transactionController.directTransfer(
-                        amount = verifiedFiat,
-                        token = token,
-                        source = source,
-                        destinationOwner = destination,
-                    ).fold(
-                        onSuccess = {
-                            Result.success(verifiedFiat)
-                        },
-                        onFailure = { Result.failure(it) }
-                    ).onSuccess { amount ->
-                        dispatchEvent(Event.SendStateUpdated(success = true))
-                        delay(400)
-                        dispatchEvent(
-                            Dispatchers.Main,
-                            Event.SendComplete(amount.localFiat.nativeAmount)
-                        )
-                    }.onFailure {
-                        dispatchEvent(Event.SendStateUpdated())
-                        BottomBarManager.showError(
-                            title = resources.getString(R.string.error_title_cashFailedToSend),
-                            message = resources.getString(R.string.error_description_cashFailedToSend),
-                        )
-                    }
-                }
-            }.launchIn(viewModelScope)
-    }
-
-    private fun checkBalanceLimit(): Boolean {
-        val amount = amountDelegate.state.value.enteredAmount
-        val token = stateFlow.value.token ?: return false
-        val rate = exchange.preferredRate
-        val entered = Fiat(amount, rate.currency)
-        val balance = tokenCoordinator.balanceForToken(token)
-        val balanceInLocal = balance.convertingTo(rate)
-        val isOverBalance = entered.valueGreaterThan(balanceInLocal)
-        if (isOverBalance) {
-            BottomBarManager.showAlert(
-                resources.getString(R.string.error_title_insufficientFunds),
-                resources.getString(R.string.error_description_insufficientFunds),
-            )
-        }
-        return isOverBalance
-    }
-
-    private fun checkSendLimit(): Boolean {
-        val amount = amountDelegate.state.value.enteredAmount
-        val currency = amountDelegate.state.value.currency
-        val sendLimit =
-            currency.code?.let { stateFlow.value.limits?.sendLimitFor(it) } ?: SendLimit.Zero
-        val isOverLimit = amount > sendLimit.nextTransaction
-        if (isOverLimit) {
-            BottomBarManager.showAlert(
-                resources.getString(R.string.error_title_sendLimitReached),
-                resources.getString(R.string.error_description_sendLimitReached),
-            )
-        }
-        return isOverLimit
-    }
-
-    private fun onConfirmRequested() {
-        if (checkBalanceLimit() || checkSendLimit()) return
-
-        val enteredAmount = amountDelegate.state.value.enteredAmount
-        if (enteredAmount <= 0) return
-
-        val token = stateFlow.value.token ?: return
-        val rate = exchange.preferredRate
-        val amount = Fiat(enteredAmount, rate.currency)
-
-        val resolve = stateFlow.value.resolveState
-        if (resolve is ResolveState.Resolved) {
-            dispatchEvent(Event.OnSendRequested(
-                amount = amount,
-                token = token,
-                destinationOwner = resolve.authority,
-            ))
-        }
     }
 
     private fun generateListItems(
@@ -493,38 +251,8 @@ internal class SendFlowViewModel @Inject constructor(
                 is Event.OnItemsPopulated -> { state -> state.copy(listItems = event.items) }
                 is Event.OnContactClicked -> { state -> state }
                 is Event.SendInvite -> { state -> state }
-                is Event.SendCashToContact -> { state ->
-                    state.copy(resolveState = ResolveState.Pending(event.contact))
-                }
-                is Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
-                is Event.ResolveCompleted -> { state ->
-                    state.copy(resolveState = ResolveState.Resolved(event.contact, event.authority))
-                }
-                is Event.ResolveFailed -> { state ->
-                    val contact = state.resolveState.contact
-                    if (contact != null) {
-                        state.copy(resolveState = ResolveState.Failed(contact))
-                    } else {
-                        state
-                    }
-                }
-                is Event.OnConfirmRequested -> { state -> state }
-                is Event.OnSendRequested -> { state -> state }
-                is Event.SendStateUpdated -> { state ->
-                    state.copy(
-                        sendProgress = LoadingSuccessState(
-                            event.loading,
-                            event.success,
-                        )
-                    )
-                }
-                is Event.SendComplete -> { state -> state }
-                is Event.TokenUpdated -> { state ->
-                    state.copy(token = event.token)
-                }
-                is Event.LimitsChanged -> { state ->
-                    state.copy(limits = event.limits)
-                }
+                is Event.NavigateToChat -> { state -> state }
+                is Event.NavigateToDirectSend -> { state -> state }
             }
         }
     }

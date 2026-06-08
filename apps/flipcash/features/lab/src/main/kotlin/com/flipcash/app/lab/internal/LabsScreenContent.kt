@@ -63,31 +63,33 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
             )
         }
         items(betaFlags, key = { it.flag.key }, contentType = { "feature_flag" }) { feature ->
-            if (feature.flag.isOptionFlag) {
-                SettingsOptionRow(
-                    title = feature.flag.title,
-                    subtitle = feature.flag.message,
-                    options = feature.flag.options,
-                    selectedOption = feature.selectedOption ?: feature.flag.defaultOption,
-                    onOptionSelected = { optionKey ->
-                        betaFlagsController.setOption(feature.flag, optionKey)
-                    },
-                )
-            } else {
-                SettingsSwitchRow(
-                    title = feature.flag.title,
-                    subtitle = feature.flag.message,
-                    checked = feature.enabled
-                ) {
-                    betaFlagsController.set(feature.flag, !feature.enabled)
+            Column(modifier = Modifier.animateItem()) {
+                if (feature.flag.isOptionFlag) {
+                    SettingsOptionRow(
+                        title = feature.flag.title,
+                        subtitle = feature.flag.message,
+                        options = feature.flag.options,
+                        selectedOption = feature.selectedOption ?: feature.flag.defaultOption,
+                        onOptionSelected = { optionKey ->
+                            betaFlagsController.setOption(feature.flag, optionKey)
+                        },
+                    )
+                } else {
+                    SettingsSwitchRow(
+                        title = feature.flag.title,
+                        subtitle = feature.flag.message,
+                        checked = feature.enabled
+                    ) {
+                        betaFlagsController.set(feature.flag, !feature.enabled)
+                    }
                 }
-            }
 
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-                color = CodeTheme.colors.divider,
-                thickness = 0.5.dp
-            )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                    color = CodeTheme.colors.divider,
+                    thickness = 0.5.dp
+                )
+            }
         }
 
         if (betaFlags.isEmpty()) {

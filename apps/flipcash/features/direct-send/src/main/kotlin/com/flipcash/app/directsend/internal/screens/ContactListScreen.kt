@@ -73,11 +73,13 @@ import com.getcode.ui.components.SearchInput
 import com.getcode.ui.components.SwipeAction
 import com.getcode.ui.components.SwipeActionRow
 import androidx.compose.foundation.clickable
+import com.flipcash.app.contacts.ui.ContactAvatar
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.map
 
 
 @Composable
@@ -98,12 +100,27 @@ internal fun ContactListScreen() {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<SendFlowViewModel.Event.NavigateToAmountEntry>()
-            .collect { event ->
-                flowNavigator.navigateTo(
-                    SendStep.AmountEntry(
-                        e164 = event.e164,
-                        displayName = event.displayName,
+            .filterIsInstance<SendFlowViewModel.Event.NavigateToChat>()
+            .map { it.contact }
+            .collect { contact ->
+                flowNavigator.navigate(
+                    AppRoute.Messaging.Chat(
+                        e164 = contact.e164,
+                        displayName = contact.displayName,
+                    )
+                )
+            }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SendFlowViewModel.Event.NavigateToDirectSend>()
+            .map { it.contact }
+            .collect { contact ->
+                flowNavigator.navigate(
+                    AppRoute.Messaging.AmountEntry(
+                        e164 = contact.e164,
+                        displayName = contact.displayName,
                     )
                 )
             }
@@ -249,52 +266,12 @@ private fun ContactList(
                         index == items.lastIndex ||
                                 items[index + 1] is ContactListItem.Header
 
-                    if (isPickerMode) {
-                        Column(modifier = Modifier.animateItem()) {
-                            SwipeActionRow(
-                                actions = listOf(
-                                    SwipeAction(
-                                        background = CodeTheme.colors.error,
-                                        onTriggered = { onItemDismissed(item) },
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.PersonRemove,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5),
-                                        )
-                                    }
-                                ),
-                                stateKey = item.contact.e164,
-                            ) {
-                                ContactRowItem(
-                                    contact = item.contact,
-                                    isOnFlipcash = item.isOnFlipcash,
-                                    showDivider = false,
-                                    onClick = { onItemClick(item) },
-                                )
-                            }
-                            if (!isLastInSection) {
-                                HorizontalDivider(
-                                    color = CodeTheme.colors.divider,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(1.dp)
-                                        .padding(
-                                            start = CodeTheme.dimens.inset + CodeTheme.dimens.staticGrid.x8 + CodeTheme.dimens.grid.x3,
-                                            end = CodeTheme.dimens.inset,
-                                        ),
-                                )
-                            }
-                        }
-                    } else {
-                        ContactRowItem(
-                            contact = item.contact,
-                            isOnFlipcash = item.isOnFlipcash,
-                            showDivider = !isLastInSection,
-                        ) {
-                            onItemClick(item)
-                        }
+                    ContactRowItem(
+                        contact = item.contact,
+                        isOnFlipcash = item.isOnFlipcash,
+                        showDivider = !isLastInSection,
+                    ) {
+                        onItemClick(item)
                     }
                 }
             }
@@ -410,61 +387,6 @@ private fun ContactRowItem(
             )
         }
     }
-}
-
-@Composable
-private fun ContactAvatar(
-    photoUri: String?,
-    displayName: String,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier.background(
-            Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)
-        )
-    ) {
-        if (photoUri != null) {
-            var isError by rememberSaveable(photoUri) { mutableStateOf(false) }
-            if (!isError) {
-                val context = LocalContext.current
-                val request = remember(photoUri) {
-                    ImageRequest.Builder(context)
-                        .crossfade(true)
-                        .data(photoUri.toUri())
-                        .build()
-                }
-                AsyncImage(
-                    modifier = Modifier.matchParentSize(),
-                    model = request,
-                    contentDescription = null,
-                    onError = { isError = true },
-                )
-            }
-            if (isError) {
-                InitialsText(displayName)
-            }
-        } else {
-            InitialsText(displayName)
-        }
-    }
-}
-
-@Composable
-private fun BoxScope.InitialsText(displayName: String) {
-    val initials = remember(displayName) {
-        displayName.split(" ")
-            .take(2)
-            .mapNotNull { it.firstOrNull()?.uppercaseChar() }
-            .joinToString("")
-            .ifEmpty { "?" }
-    }
-    Text(
-        modifier = Modifier.align(Alignment.Center),
-        text = initials,
-        style = CodeTheme.typography.textSmall,
-        color = CodeTheme.colors.textSecondary,
-        textAlign = TextAlign.Center,
-    )
 }
 
 @Preview

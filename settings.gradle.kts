@@ -95,6 +95,7 @@ include(
     ":apps:flipcash:features:advanced",
     ":apps:flipcash:features:currency-creator",
     ":apps:flipcash:features:direct-send",
+    ":apps:flipcash:features:messenger",
     ":apps:flipcash:features:invite",
     ":apps:flipcash:features:device-logs",
     ":apps:flipcash:features:myaccount",
