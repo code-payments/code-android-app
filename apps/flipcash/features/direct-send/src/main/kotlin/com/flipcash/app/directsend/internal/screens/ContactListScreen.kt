@@ -266,52 +266,12 @@ private fun ContactList(
                         index == items.lastIndex ||
                                 items[index + 1] is ContactListItem.Header
 
-                    if (isPickerMode) {
-                        Column(modifier = Modifier.animateItem()) {
-                            SwipeActionRow(
-                                actions = listOf(
-                                    SwipeAction(
-                                        background = CodeTheme.colors.error,
-                                        onTriggered = { onItemDismissed(item) },
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.PersonRemove,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5),
-                                        )
-                                    }
-                                ),
-                                stateKey = item.contact.e164,
-                            ) {
-                                ContactRowItem(
-                                    contact = item.contact,
-                                    isOnFlipcash = item.isOnFlipcash,
-                                    showDivider = false,
-                                    onClick = { onItemClick(item) },
-                                )
-                            }
-                            if (!isLastInSection) {
-                                HorizontalDivider(
-                                    color = CodeTheme.colors.divider,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(1.dp)
-                                        .padding(
-                                            start = CodeTheme.dimens.inset + CodeTheme.dimens.staticGrid.x8 + CodeTheme.dimens.grid.x3,
-                                            end = CodeTheme.dimens.inset,
-                                        ),
-                                )
-                            }
-                        }
-                    } else {
-                        ContactRowItem(
-                            contact = item.contact,
-                            isOnFlipcash = item.isOnFlipcash,
-                            showDivider = !isLastInSection,
-                        ) {
-                            onItemClick(item)
-                        }
+                    ContactRowItem(
+                        contact = item.contact,
+                        isOnFlipcash = item.isOnFlipcash,
+                        showDivider = !isLastInSection,
+                    ) {
+                        onItemClick(item)
                     }
                 }
             }
