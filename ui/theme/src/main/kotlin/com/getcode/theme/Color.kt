@@ -98,3 +98,15 @@ data class GradientSpec(
         return 31 * colorsArray.contentHashCode() + stopsArray.contentHashCode()
     }
 }
+
+data class ChatColors(
+    val incomingBubble: Bubble,
+    val outgoingBubble: Bubble,
+)
+
+data class Bubble(
+    val background: Color,
+    val border: Color,
+) {
+    val hasBorder: Boolean get() = border != Color.Transparent && border != Color.Unspecified
+}

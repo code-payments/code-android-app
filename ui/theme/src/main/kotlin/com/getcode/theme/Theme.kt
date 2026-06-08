@@ -59,6 +59,10 @@ internal val CodeDefaultColorScheme = ColorScheme(
     scrim = Black40,
     accessKey = CodeAccessKey,
     contactAvatar = CodeContactAvatar,
+    chat = ChatColors(
+        incomingBubble = Bubble(background = White10, border = Color.Transparent),
+        outgoingBubble = Bubble(background = BrandDark, border = Color.Transparent),
+    ),
 )
 
 @Composable
@@ -150,6 +154,7 @@ class ColorScheme(
     scrim: Color,
     accessKey: GradientSpec,
     contactAvatar: GradientSpec,
+    chat: ChatColors,
 ) {
     var brand by mutableStateOf(brand)
         private set
@@ -234,7 +239,8 @@ class ColorScheme(
         private set
     var contactAvatar by mutableStateOf(contactAvatar)
         private set
-
+    var chat by mutableStateOf(chat)
+        private set
 
     fun update(other: ColorScheme) {
         brand = other.brand
@@ -277,6 +283,7 @@ class ColorScheme(
         scrim = other.scrim
         accessKey = other.accessKey
         contactAvatar = other.contactAvatar
+        chat = other.chat
     }
 
     fun copy(): ColorScheme = ColorScheme(
@@ -320,6 +327,7 @@ class ColorScheme(
         scrim = scrim,
         accessKey = accessKey,
         contactAvatar = contactAvatar,
+        chat = chat,
     )
 }
 

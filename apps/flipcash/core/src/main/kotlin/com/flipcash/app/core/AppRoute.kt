@@ -23,6 +23,7 @@ import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.PublicKey
 import com.getcode.ui.core.RestrictionType
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
@@ -241,6 +242,22 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object Lab : Menu
         @Serializable
         data object NavBarSettings : Menu, com.getcode.navigation.Sheet, com.getcode.navigation.WrapContentSheet
+    }
+
+    @Serializable
+    @Parcelize
+    sealed interface Messaging : AppRoute {
+        @Serializable
+        data class Chat(
+            val e164: String,
+            val displayName: String,
+        ) : Messaging
+
+        @Serializable
+        data class AmountEntry(
+            val e164: String,
+            val displayName: String,
+        ) : Messaging
     }
 
     @Serializable

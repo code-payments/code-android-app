@@ -746,4 +746,7 @@
     <string name="error_title_cashFailedToSend">Something Went Wrong</string>
     <string name="error_description_cashFailedToSend">We were unable to send your cash. Please try again</string>
     <string name="action_swipeToSend">Swipe to Send</string>
+
+    <string name="action_sendCash">Send Cash</string>
+    <string name="action_sendMessage">Send Message</string>
 </resources>

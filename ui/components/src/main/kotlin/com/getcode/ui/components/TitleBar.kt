@@ -243,7 +243,7 @@ private fun TopAppBarBase(
 
     val emptyLeftSlot = @Composable {
         Box(modifier = Modifier.padding(5.dp)) {
-            AppBarDefaults.UpNavigation() { }
+            AppBarDefaults.UpNavigation { }
         }
     }
     val leftSlot = @Composable {

@@ -12,8 +12,11 @@ dependencies {
 
     implementation(libs.bundles.kotlinx.serialization)
 
+    implementation(libs.androidx.paging.runtime)
+
     implementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":apps:flipcash:shared:persistence:db"))
+    implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":services:flipcash"))
     implementation(project(":libs:network:connectivity:public"))
     implementation(libs.androidx.lifecycle.process)

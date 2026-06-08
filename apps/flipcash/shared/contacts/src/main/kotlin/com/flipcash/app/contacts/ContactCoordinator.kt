@@ -192,6 +192,12 @@ class ContactCoordinator @Inject constructor(
         return resolverController.resolve(ContactMethod.Phone(e164))
     }
 
+    fun lookupContact(e164: String): Result<DeviceContact> {
+        val contact = _state.value.contacts[e164]
+            ?: return Result.failure(NoSuchElementException("No contact found for $e164"))
+        return Result.success(contact)
+    }
+
     /**
      * Ensures the user's verified phone number is linked for payment, calling the
      * server RPC at most once per account lifetime (persisted via DataStore).

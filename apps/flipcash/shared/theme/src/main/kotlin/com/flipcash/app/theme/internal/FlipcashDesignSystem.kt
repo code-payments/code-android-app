@@ -11,6 +11,8 @@ import com.getcode.theme.BrandDark
 import com.getcode.theme.BrandIndicator
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.BrandOverlay
+import com.getcode.theme.Bubble
+import com.getcode.theme.ChatColors
 import com.getcode.theme.ColorScheme
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.Error
@@ -60,6 +62,17 @@ object Flipcash2ColorSpec {
         ),
         stops = listOf(0f, 1f)
     )
+
+    val chatColors = ChatColors(
+        incomingBubble = Bubble(
+            background = Color.White.copy(alpha = 0.02f),
+            border = Color.White.copy(alpha = 0.03f),
+        ),
+        outgoingBubble = Bubble(
+            background = Color.White.copy(alpha = 0.08f),
+            border = Color.White.copy(alpha = 0.03f),
+        )
+    )
 }
 
 private val colors = with(Flipcash2ColorSpec) {
@@ -104,6 +117,7 @@ private val colors = with(Flipcash2ColorSpec) {
         scrim = Black40,
         accessKey = accessKey,
         contactAvatar = contactAvatar,
+        chat = chatColors,
     )
 }
 @Composable

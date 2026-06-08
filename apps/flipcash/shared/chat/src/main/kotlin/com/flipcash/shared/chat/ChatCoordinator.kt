@@ -2,10 +2,14 @@
 
 package com.flipcash.shared.chat
 
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.map
+import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
@@ -138,8 +142,24 @@ class ChatCoordinator @Inject constructor(
 
     // region Public API
 
+    fun getChatId(contact: DeviceContact): Result<ChatId> {
+        // TODO:
+        return Result.success(ChatId("b7e8cc8ac48cf661b1a32b09dfd4561c7c230c3b3c5cd65a85cc55381442ea0f"))
+    }
+
     fun observeMessages(chatId: ChatId): Flow<List<ChatMessage>> {
         return messageDataSource.observeMessages(chatId)
+    }
+
+    fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>> {
+        messageDataSource.setActiveChatId(chatId)
+        return Pager(
+            config = PagingConfig(pageSize = 50),
+        ) {
+            messageDataSource.observe()
+        }.flow.map { page ->
+            page.map { entity -> messageDataSource.toChatMessage(entity) }
+        }
     }
 
     fun observeTypingIndicators(chatId: ChatId): Flow<Set<ActiveTypist>> {
@@ -153,10 +173,11 @@ class ChatCoordinator @Inject constructor(
             }
     }
 
-    suspend fun sendMessage(chatId: ChatId, content: List<MessageContent>): Result<ChatMessage> {
+    suspend fun sendMessage(chatId: ChatId, content: String): Result<ChatMessage> {
         val senderId = userManager.accountId
             ?: return Result.failure(IllegalStateException("Cannot send message without an account"))
 
+        val content = listOf(MessageContent.Text(content))
         val (_, clientMessageId) = messageDataSource.insertPending(
             chatId = chatId,
             content = content,

@@ -32,7 +32,7 @@ fun SearchInput(
                 modifier = Modifier.padding(start = CodeTheme.dimens.grid.x3),
                 imageVector = Icons.Filled.Search,
                 contentDescription = null,
-                tint = CodeTheme.colors.textMain,
+                tint = CodeTheme.colors.textSecondary,
             )
         },
         placeholder = placeholder,
