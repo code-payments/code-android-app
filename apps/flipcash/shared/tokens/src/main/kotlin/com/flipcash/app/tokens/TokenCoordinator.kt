@@ -183,6 +183,12 @@ class TokenCoordinator @Inject constructor(
 
     // region Public API — Balances
 
+    fun hasGiveableBalance(): Boolean =
+        _state.value.balances
+            .filterKeys { it != Mint.usdf }
+            .values
+            .any { it.isPositive }
+
     fun balanceForToken(token: Token): Fiat = _state.value.balances[token.address] ?: Fiat.Zero
 
     fun balanceForToken(tokenAddress: Mint): Flow<Fiat> =

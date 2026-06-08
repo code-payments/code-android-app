@@ -193,10 +193,9 @@ class RealSessionController @Inject constructor(
             .launchIn(scope)
 
         tokenCoordinator.tokenBalances
-            .map { tokens -> tokens.filterNot { it.isReserves } }
-            .map { tokens -> tokens.map { it.balance } }
-            .map { balances -> balances.sum() }
-            .onEach { balance -> _state.update { it.copy(giveableBalance = balance) } }
+            .map { tokenCoordinator.hasGiveableBalance() }
+            .distinctUntilChanged()
+            .onEach { hasBalance -> _state.update { it.copy(hasGiveableBalance = hasBalance) } }
             .launchIn(scope)
 
         tokenCoordinator.tokens

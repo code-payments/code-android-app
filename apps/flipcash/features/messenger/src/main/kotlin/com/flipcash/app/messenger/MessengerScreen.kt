@@ -12,6 +12,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -38,6 +39,14 @@ fun MessengerScreen(e164: String, displayName: String) {
                     e164 = contact.e164,
                     displayName = contact.displayName,
                 ))
+            }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<ChatViewModel.Event.NavigateToDiscovery>()
+            .collect {
+                navigator.openAsSheet(AppRoute.Token.Discovery)
             }
     }
 
