@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -54,6 +54,7 @@ fun NotificationScreenContent(
                 Text(
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
+                        .padding(top = CodeTheme.dimens.grid.x2)
                         .padding(horizontal = CodeTheme.dimens.inset),
                     text = stringResource(R.string.permissions_description_push),
                     style = CodeTheme.typography.textSmall,
