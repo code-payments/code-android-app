@@ -23,6 +23,7 @@ import com.flipcash.shared.amountentry.AmountEntryDelegate
 import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.ChatCoordinator
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
@@ -110,6 +111,7 @@ internal class ChatViewModel @Inject constructor(
         data object SendMessage : Event
 
         data class NavigateToAmountEntry(val contact: DeviceContact) : Event
+        data object NavigateToDiscovery : Event
 
         data object OnConfirmRequested : Event
         data class OnSendRequested(
@@ -284,6 +286,21 @@ internal class ChatViewModel @Inject constructor(
         eventFlow.filterIsInstance<Event.OnSendCash>()
             .mapNotNull { stateFlow.value.chattingWith }
             .onEach { contact ->
+                if (!tokenCoordinator.hasGiveableBalance()) {
+                    BottomBarManager.showInfo(
+                        title = resources.getString(R.string.title_noBalanceYet),
+                        message = resources.getString(R.string.description_noBalanceYet),
+                        actions = listOf(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_discoverCurrencies)
+                            ) {
+                                dispatchEvent(Event.NavigateToDiscovery)
+                            },
+                        ),
+                        showCancel = true,
+                    )
+                    return@onEach
+                }
                 dispatchEvent(Event.NavigateToAmountEntry(contact))
             }.launchIn(viewModelScope)
 
@@ -427,6 +444,7 @@ internal class ChatViewModel @Inject constructor(
                 }
                 is Event.SendMessage -> { state -> state }
                 is Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
+                is Event.NavigateToDiscovery -> { state -> state }
                 is Event.OnConfirmRequested -> { state -> state }
                 is Event.OnSendRequested -> { state -> state }
                 is Event.SendStateUpdated -> { state ->

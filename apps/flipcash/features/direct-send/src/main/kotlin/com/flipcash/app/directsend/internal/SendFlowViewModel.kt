@@ -12,8 +12,10 @@ import com.flipcash.app.core.send.SendStep
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.permissions.PickedContact
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.directsend.R
 import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
@@ -37,6 +39,7 @@ internal class SendFlowViewModel @Inject constructor(
     private val userManager: UserManager,
     featureFlags: FeatureFlagController,
     private val contactCoordinator: ContactCoordinator,
+    private val tokenCoordinator: TokenCoordinator,
     private val resources: ResourceHelper,
 ) : BaseViewModel<SendFlowViewModel.State, SendFlowViewModel.Event>(
     initialState = State(),
@@ -72,6 +75,7 @@ internal class SendFlowViewModel @Inject constructor(
 
         data class NavigateToChat(val contact: DeviceContact) : Event
         data class NavigateToDirectSend(val contact: DeviceContact) : Event
+        data object NavigateToDiscovery : Event
     }
 
     private val messengerEnabled = featureFlags.observe(FeatureFlag.Messenger)
@@ -159,6 +163,21 @@ internal class SendFlowViewModel @Inject constructor(
                     if (messengerEnabled.value) {
                         dispatchEvent(Event.NavigateToChat(contact))
                     } else {
+                        if (!tokenCoordinator.hasGiveableBalance()) {
+                            BottomBarManager.showInfo(
+                                title = resources.getString(R.string.title_noBalanceYet),
+                                message = resources.getString(R.string.description_noBalanceYet),
+                                actions = listOf(
+                                    BottomBarAction(
+                                        text = resources.getString(R.string.action_discoverCurrencies)
+                                    ) {
+                                        dispatchEvent(Event.NavigateToDiscovery)
+                                    },
+                                ),
+                                showCancel = true,
+                            )
+                            return@onEach
+                        }
                         dispatchEvent(Event.NavigateToDirectSend(contact))
                     }
                 } else {
@@ -253,6 +272,7 @@ internal class SendFlowViewModel @Inject constructor(
                 is Event.SendInvite -> { state -> state }
                 is Event.NavigateToChat -> { state -> state }
                 is Event.NavigateToDirectSend -> { state -> state }
+                is Event.NavigateToDiscovery -> { state -> state }
             }
         }
     }

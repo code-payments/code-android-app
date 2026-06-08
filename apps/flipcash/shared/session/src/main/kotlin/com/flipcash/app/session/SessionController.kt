@@ -4,7 +4,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.session.BillDeterminationResult.ActedUpon
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
@@ -34,7 +33,7 @@ interface SessionController {
 
 data class SessionState(
     val vibrateOnScan: Boolean = false,
-    val giveableBalance: Fiat? = null,
+    val hasGiveableBalance: Boolean = false,
     val logScanTimes: Boolean = false,
     val showNetworkOffline: Boolean = false,
     val autoStartCamera: Boolean? = true,

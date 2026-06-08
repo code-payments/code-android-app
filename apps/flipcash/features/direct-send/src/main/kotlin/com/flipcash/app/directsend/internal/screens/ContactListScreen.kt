@@ -53,6 +53,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.send.SendResult
 import com.flipcash.app.core.send.SendStep
 import com.flipcash.app.directsend.internal.ContactListItem
@@ -123,6 +124,14 @@ internal fun ContactListScreen() {
                         displayName = contact.displayName,
                     )
                 )
+            }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SendFlowViewModel.Event.NavigateToDiscovery>()
+            .collect {
+                navigator.openAsSheet(AppRoute.Token.Discovery)
             }
     }
 

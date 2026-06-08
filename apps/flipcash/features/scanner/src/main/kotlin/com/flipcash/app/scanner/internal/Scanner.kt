@@ -22,7 +22,6 @@ import com.flipcash.features.scanner.R
 import com.getcode.libs.code.detection.CodeScanResult
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.opencode.model.financial.orZero
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.scanner.CodeScanner
@@ -87,8 +86,7 @@ internal fun Scanner() {
             when (it) {
                 ScannerDecorItem.Give -> {
                     // only allow navigation to give when there is something to give
-                    val hasBalance = state.giveableBalance.orZero().isPositive
-                    if (!hasBalance) {
+                    if (!state.hasGiveableBalance) {
                         BottomBarManager.showInfo(
                             title = context.getString(R.string.title_noBalanceYet),
                             message = context.getString(R.string.description_noBalanceYet),
