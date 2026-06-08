@@ -37,7 +37,10 @@ import kotlin.math.max
 
 object AppBarDefaults {
     val ContentPadding: PaddingValues
-        @Composable get() = PaddingValues(horizontal = CodeTheme.dimens.grid.x2)
+        @Composable get() = PaddingValues(
+            vertical = CodeTheme.dimens.grid.x1,
+            horizontal = CodeTheme.dimens.grid.x2
+        )
 
     internal val IconSize = 20.dp
 
