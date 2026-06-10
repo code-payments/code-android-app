@@ -13,6 +13,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
+import com.flipcash.app.onramp.CoinbaseOnRampCompletion
 import com.flipcash.app.onramp.LocalCoinbaseOnRampController
 import com.flipcash.app.tokens.internal.SwapEntryScreenContent
 import com.flipcash.app.tokens.ui.SwapViewModel
@@ -123,10 +124,17 @@ internal fun SwapEntryScreen(
     }
 
     LaunchedEffect(Unit) {
-        coinbaseOnRampController.pendingNavigation.collect { route ->
-            if (route is AppRoute.Token.TxProcessing) {
-                viewModel.dispatchEvent(SwapViewModel.Event.OnSwapIdChanged(route.swapId))
-                flowNavigator.navigateTo(SwapStep.Processing)
+        coinbaseOnRampController.pendingCompletion.collect { completion ->
+            when (completion) {
+                is CoinbaseOnRampCompletion.SwapSubmitted -> {
+                    viewModel.dispatchEvent(SwapViewModel.Event.OnSwapIdChanged(completion.swapId))
+                    flowNavigator.navigateTo(SwapStep.Processing)
+                }
+                is CoinbaseOnRampCompletion.DepositSubmitted -> {
+                    viewModel.dispatchEvent(SwapViewModel.Event.UpdateProcessingState(loading = true))
+                    viewModel.dispatchEvent(SwapViewModel.Event.DepositSubmitted)
+                    flowNavigator.navigateTo(SwapStep.Processing)
+                }
             }
         }
     }

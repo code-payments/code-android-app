@@ -66,9 +66,11 @@
     <string name="subtitle_balanceIsHeldInUsdStablecoins">Your balance is held in US dollar stablecoins</string>
     <string name="subtitle_currentValueOfAllCurrencies">The current value of your currencies</string>
     <string name="subtitle_ofUsdStablecoins">of US dollar stablecoins</string>
-    <string name="action_depositFunds">Deposit</string>
+    <string name="action_deposit">Deposit</string>
     <string name="title_deposit">Deposit</string>
     <string name="title_depositFunds">Deposit Funds</string>
+    <string name="action_depositFunds">Deposit Funds</string>
+
 
     <string name="title_withdraw">Withdraw</string>
     <string name="title_withdrawFunds">Withdraw Funds</string>
@@ -235,7 +237,7 @@
     <string name="title_tapAboveToAddCashToWallet">Tap above to Add Cash to your wallet</string>
     <string name="title_tapBelowToAddCashWallet">You don\'t have any cash yet.\nTap below to add cash to your wallet</string>
     <string name="title_noBalanceYet">No Balance Yet</string>
-    <string name="description_noBalanceYet">Buy a currency to get started, or get another Flipcash user to give you some cash</string>
+    <string name="description_noBalanceYet">Deposit funds to get started</string>
     <string name="description_noBalanceYetDiscover">Buy your first currency to get started</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="title_success">Success</string>

@@ -52,7 +52,6 @@ private fun SelectTokenScreenContent(
         ),
         showSelections = state.purpose is TokenPurpose.Select,
         showFlags = state.purpose !is TokenPurpose.Select,
-        includeReserves = state.purpose !is TokenPurpose.Select,
         emptyState = {
             Box(
                 modifier = Modifier

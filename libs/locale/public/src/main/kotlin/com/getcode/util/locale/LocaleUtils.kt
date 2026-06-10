@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 
 object LocaleUtils {
 
-    fun getLanguageTag() = Locale.getDefault().toLanguageTag()
+    fun getLanguageTag(): String = Locale.getDefault().toLanguageTag()
 
     suspend fun getDefaultCountry(context: Context): String? {
         val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager

@@ -16,7 +16,12 @@ data class OnrampOrder(
 
 sealed interface CoinbaseOnRampState {
     data object Idle : CoinbaseOnRampState
-    data class Paying(val order: OnrampOrder, val token: Token, val amount: VerifiedFiat, val swapId: SwapId) : CoinbaseOnRampState
-    data class Completed(val swapId: SwapId, val token: Token, val amount: VerifiedFiat) : CoinbaseOnRampState
+    data class Paying(val order: OnrampOrder, val token: Token, val amount: VerifiedFiat, val swapId: SwapId? = null) : CoinbaseOnRampState
+    data class Completed(val swapId: SwapId?, val token: Token, val amount: VerifiedFiat) : CoinbaseOnRampState
     data class Failed(val error: CoinbaseOnRampWebError) : CoinbaseOnRampState
+}
+
+sealed interface CoinbaseOnRampCompletion {
+    data class SwapSubmitted(val swapId: SwapId) : CoinbaseOnRampCompletion
+    data object DepositSubmitted : CoinbaseOnRampCompletion
 }

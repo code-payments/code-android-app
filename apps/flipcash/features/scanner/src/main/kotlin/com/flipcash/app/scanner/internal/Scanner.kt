@@ -92,9 +92,11 @@ internal fun Scanner() {
                             message = context.getString(R.string.description_noBalanceYet),
                             actions = listOf(
                                 BottomBarAction(
-                                    text = context.getString(R.string.action_discoverCurrencies)
+                                    text = context.getString(R.string.action_depositFunds)
                                 ) {
-                                    navigator.openAsSheet(AppRoute.Token.Discovery)
+                                    session.presentDepositOptions { route ->
+                                        navigator.openAsSheet(route)
+                                    }
                                 },
                             ),
                             showCancel = true,

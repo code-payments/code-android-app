@@ -17,6 +17,7 @@ data class PurchaseMethodMetadata(
     val mint: Mint? = null,
     val purchaseAmount: Fiat? = null,
     val feeAmount: Fiat? = null,
+    val showReserves: Boolean = true,
     val paymentAction: PaymentAction = PaymentAction.Buy,
     val canUseOtherWallets: Boolean = false,
 )

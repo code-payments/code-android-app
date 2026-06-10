@@ -4,10 +4,12 @@ import com.coinbase.onramp.data.OnRampOrderResponse
 import com.coinbase.onramp.data.OnRampPurchaseResponse
 import com.coinbase.onramp.data.SessionTokenRequest
 import com.coinbase.onramp.data.SessionTokenResponse
+import kotlinx.serialization.json.JsonObject
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Query
 import retrofit2.http.Url
 
 interface CoinbaseApi {
@@ -25,6 +27,14 @@ interface CoinbaseApi {
         @Url url: String,
         @Header("Authorization") jwt: String,
     ): OnRampOrderResponse
+
+    @GET
+    suspend fun getBuyOptions(
+        @Url url: String,
+        @Header("Authorization") jwt: String,
+        @Query("country") country: String? = null,
+        @Query("subdivision") subdivision: String? = null,
+    ): JsonObject
 
     @POST("/onramp/v1/token")
     suspend fun generateSessionToken(

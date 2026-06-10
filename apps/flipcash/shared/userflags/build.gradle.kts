@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library)
+    alias(libs.plugins.flipcash.android.library.compose)
 }
 
 android {

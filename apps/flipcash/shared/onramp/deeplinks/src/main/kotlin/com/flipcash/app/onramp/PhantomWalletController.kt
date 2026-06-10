@@ -9,6 +9,7 @@ import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.model.transactions.FundSwapPool
 import com.getcode.opencode.model.transactions.LiquidityPool
 import com.getcode.opencode.model.transactions.SwapFundingSource
@@ -43,6 +44,11 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
+sealed interface PhantomSwapResult {
+    data class WithSwapId(val swapId: SwapId) : PhantomSwapResult
+    data class DepositCompleted(val amount: Long) : PhantomSwapResult
+}
+
 class PhantomWalletController @Inject constructor(
     private val userManager: UserManager,
     private val userFlags: UserFlagsCoordinator,
@@ -70,7 +76,7 @@ class PhantomWalletController @Inject constructor(
         token: Token,
         onConnectLaunching: () -> Unit = {},
         onSignLaunching: (SwapId) -> Unit = {},
-    ): Result<SwapId> {
+    ): Result<PhantomSwapResult> {
         phantomConnector.beginCeremony()
         return try {
             onConnectLaunching()
@@ -117,12 +123,19 @@ class PhantomWalletController @Inject constructor(
         fee: LocalFiat,
         token: Token,
         onBeforeSign: (suspend (SwapId) -> Unit)? = null,
-    ): Result<SwapId> {
+    ): Result<PhantomSwapResult> {
         val sender = getSolanaAddress()
+        val quarks = amount.localFiat.underlyingTokenAmount.quarks
 
-        checkBalances(sender, amount.localFiat.underlyingTokenAmount.quarks)
+        checkBalances(sender, quarks)
             .getOrElse { return Result.failure(it) }
 
+        val isUsdfDeposit = token.address == Mint.usdf
+        if (isUsdfDeposit) {
+            return executeUsdfDeposit(sender, amount)
+        }
+
+        // Launchpad token buy — existing flow
         val (tx, swapId) = buildSwapTransaction(sender, amount)
             .getOrElse { return Result.failure(it) }
 
@@ -144,7 +157,29 @@ class PhantomWalletController @Inject constructor(
         sendSwapTransaction(signedTxBase58, signature, amount, fee, token, swapId)
             .getOrElse { return Result.failure(it) }
 
-        return Result.success(swapId)
+        return Result.success(PhantomSwapResult.WithSwapId(swapId))
+    }
+
+    private suspend fun executeUsdfDeposit(
+        sender: PublicKey,
+        amount: VerifiedFiat,
+    ): Result<PhantomSwapResult> {
+        val owner = requireNotNull(userManager.accountCluster) { "Owner is null" }
+        val quarks = amount.localFiat.underlyingTokenAmount.quarks
+
+        val tx = buildDepositTransaction(sender, owner.authorityPublicKey, quarks)
+            .getOrElse { return Result.failure(it) }
+
+        val signedTxBase58 = try {
+            phantomSdk.solana.signTransaction(tx.encode().base64)
+        } catch (e: Exception) {
+            return Result.failure(mapConnectorError(e))
+        }
+
+        sendUsdfDepositTransaction(signedTxBase58)
+            .getOrElse { return Result.failure(it) }
+
+        return Result.success(PhantomSwapResult.DepositCompleted(quarks))
     }
 
     internal suspend fun checkBalances(
@@ -234,6 +269,82 @@ class PhantomWalletController @Inject constructor(
                     DeeplinkOnRampError.FailedToCreateTransaction(message = e.message, cause = e)
                 )
             }
+        }
+    }
+
+    private suspend fun buildDepositTransaction(
+        sender: PublicKey,
+        owner: PublicKey,
+        amount: Long,
+    ): Result<SolanaTransaction> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val recentBlockhash = connection.getLatestBlockhash()
+
+                val poolAddress = FundSwapPool.CoinbaseStableSwapper.poolAddress
+                val poolData = driver.getAccountData(poolAddress).getOrThrow()
+                val pool = FundSwapPool.CoinbaseStableSwapper.fromAccountData(poolData)
+
+                val transaction = TransactionBuilder.usdfDeposit(
+                    owner = owner,
+                    sender = sender,
+                    amount = amount,
+                    feeRecipient = pool.feeRecipient,
+                    blockhash = Hash(recentBlockhash),
+                )
+
+                driver.simulateTransaction(transaction.encode().base64)
+                    .getOrElse { cause ->
+                        return@withContext Result.failure(
+                            DeeplinkOnRampError.FailedToSimulateTransaction(
+                                message = cause.message, cause = cause
+                            )
+                        )
+                    }
+
+                Result.success(transaction)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                trace("USDF deposit tx build failed", type = TraceType.Error, error = e)
+                Result.failure(
+                    DeeplinkOnRampError.FailedToCreateTransaction(message = e.message, cause = e)
+                )
+            }
+        }
+    }
+
+    private suspend fun sendUsdfDepositTransaction(
+        signedTxBase58: String,
+    ): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            // Submit USDC→USDF swap to Solana — USDF lands directly in the
+            // deposit PDA ATA, so no server-side USDC sweep is needed.
+            driver.sendTransaction(signedTxBase58)
+                .map { }
+                .onFailure { error ->
+                    val code = (error as? RpcException)?.code?.toLong()
+                    when {
+                        error is RpcException && error.isBlockhashNotFound -> {
+                            ErrorUtils.handleError(error)
+                            return@withContext Result.failure(
+                                DeeplinkOnRampError.TransactionExpired(
+                                    message = error.message, cause = error,
+                                )
+                            )
+                        }
+                        else -> {
+                            ErrorUtils.handleError(error)
+                            return@withContext Result.failure(
+                                DeeplinkOnRampError.FailedToSendTransaction(
+                                    code = code ?: -99L, message = error.message, cause = error,
+                                )
+                            )
+                        }
+                    }
+                }
+
+            Result.success(Unit)
         }
     }
 

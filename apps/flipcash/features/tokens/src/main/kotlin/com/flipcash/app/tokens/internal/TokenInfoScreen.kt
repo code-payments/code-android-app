@@ -325,7 +325,7 @@ private fun RowScope.ReserveButtonOptions(
     CodeButton(
         modifier = Modifier.weight(1f),
         buttonState = ButtonState.Filled,
-        text = stringResource(R.string.action_depositFunds),
+        text = stringResource(R.string.action_deposit),
     ) {
         dispatch(
             TokenInfoViewModel.Event.OpenScreen(

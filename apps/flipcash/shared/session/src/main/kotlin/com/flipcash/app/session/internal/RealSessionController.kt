@@ -9,6 +9,7 @@ import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.PaymentValuation
@@ -18,6 +19,7 @@ import com.flipcash.app.core.internal.updater.ProfileUpdater
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.session.BillDeterminationResult
 import com.flipcash.app.session.Grabbed
 import com.flipcash.app.session.PutInWallet
@@ -128,6 +130,7 @@ class RealSessionController @Inject constructor(
     private val contactCoordinator: ContactCoordinator,
     private val chatCoordinator: ChatCoordinator,
     private val featureFlagController: FeatureFlagController,
+    private val purchaseMethodController: PurchaseMethodController,
     private val analytics: FlipcashAnalyticsService,
     private val usdcSweep: UsdcDepositSweep,
     appSettingsCoordinator: AppSettingsCoordinator,
@@ -772,6 +775,12 @@ class RealSessionController @Inject constructor(
             giftCardClaimInProgress.value = entropy
             analytics.deeplinkRouted(DeeplinkType.CashLink()) // entropy omitted since not needed for analytics
             claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)
+        }
+    }
+
+    override fun presentDepositOptions(onRoute: ((AppRoute) -> Unit)?) {
+        scope.launch {
+            purchaseMethodController.presentDepositOptions()?.let { onRoute?.invoke(it) }
         }
     }
 

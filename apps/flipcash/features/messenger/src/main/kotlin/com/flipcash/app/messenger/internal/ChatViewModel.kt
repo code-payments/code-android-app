@@ -9,10 +9,12 @@ import androidx.paging.flatMap
 import androidx.paging.insertSeparators
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.device.DeviceContact
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.messenger.internal.screens.components.ChatListItem
 import com.flipcash.app.messenger.internal.screens.components.SeparatorConfig
+import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
@@ -67,6 +69,7 @@ internal class ChatViewModel @Inject constructor(
     private val tokenCoordinator: TokenCoordinator,
     private val exchange: Exchange,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
+    private val purchaseMethodController: PurchaseMethodController,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
@@ -111,7 +114,8 @@ internal class ChatViewModel @Inject constructor(
         data object SendMessage : Event
 
         data class NavigateToAmountEntry(val contact: DeviceContact) : Event
-        data object NavigateToDiscovery : Event
+        data object PresentDepositOptions : Event
+        data class NavigateToUsdfDepositOption(val route: AppRoute): Event
 
         data object OnConfirmRequested : Event
         data class OnSendRequested(
@@ -292,9 +296,9 @@ internal class ChatViewModel @Inject constructor(
                         message = resources.getString(R.string.description_noBalanceYet),
                         actions = listOf(
                             BottomBarAction(
-                                text = resources.getString(R.string.action_discoverCurrencies)
+                                text = resources.getString(R.string.action_depositFunds)
                             ) {
-                                dispatchEvent(Event.NavigateToDiscovery)
+                                dispatchEvent(Event.PresentDepositOptions)
                             },
                         ),
                         showCancel = true,
@@ -302,6 +306,14 @@ internal class ChatViewModel @Inject constructor(
                     return@onEach
                 }
                 dispatchEvent(Event.NavigateToAmountEntry(contact))
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PresentDepositOptions>()
+            .onEach {
+                purchaseMethodController.presentDepositOptions()?.let { route ->
+                    dispatchEvent(Event.NavigateToUsdfDepositOption(route))
+                }
             }.launchIn(viewModelScope)
 
         // Send cash
@@ -345,6 +357,7 @@ internal class ChatViewModel @Inject constructor(
                         destinationOwner = destination,
                     ).fold(
                         onSuccess = {
+                            tokenCoordinator.subtract(token, verifiedFiat.localFiat)
                             Result.success(verifiedFiat)
                         },
                         onFailure = { Result.failure(it) }
@@ -444,7 +457,8 @@ internal class ChatViewModel @Inject constructor(
                 }
                 is Event.SendMessage -> { state -> state }
                 is Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
-                is Event.NavigateToDiscovery -> { state -> state }
+                is Event.PresentDepositOptions -> { state -> state }
+                is Event.NavigateToUsdfDepositOption -> { state -> state }
                 is Event.OnConfirmRequested -> { state -> state }
                 is Event.OnSendRequested -> { state -> state }
                 is Event.SendStateUpdated -> { state ->

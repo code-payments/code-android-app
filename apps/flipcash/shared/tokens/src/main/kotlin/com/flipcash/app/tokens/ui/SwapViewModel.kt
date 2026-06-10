@@ -14,6 +14,7 @@ import com.flipcash.app.onramp.CoinbaseOnRampState
 import com.flipcash.app.onramp.DeeplinkError
 import com.flipcash.app.onramp.DeeplinkOnRampError
 import com.flipcash.app.onramp.OnRampAuthError
+import com.flipcash.app.onramp.PhantomSwapResult
 import com.flipcash.app.onramp.PhantomWalletController
 import com.flipcash.app.onramp.PurchaseGate
 import com.flipcash.app.onramp.isAlert
@@ -64,6 +65,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -228,8 +230,9 @@ class SwapViewModel @Inject constructor(
 
         data object StartPhantomCeremony : Event
         data object PhantomConnected : Event
-        data class PhantomNavigateToProcessing(val swapId: SwapId) : Event
+        data class PhantomNavigateToProcessing(val swapId: SwapId? = null) : Event
         data object PhantomCeremonyFailed : Event
+        data object DepositSubmitted : Event
 
         data class CreateAndSendTransactionToWallet(val token: Token, val amount: VerifiedFiat) :
             Event
@@ -519,12 +522,21 @@ class SwapViewModel @Inject constructor(
                                 purchaseAmount = Fiat(delegateState.enteredAmount, rate.currency),
                                 canUseOtherWallets = true, // allow external USDC deposit as a "purchase" option
                             )
-                            val methods = purchaseMethodController.state.value.availableMethods
-                            if (methods.size == 1) {
-                                // Single method — skip sheet, handle directly
-                                purchaseMethodController.select(methods.first(), metadata)
+                            val pinnedMethod = when (purpose.fundingSource) {
+                                FundingSource.Coinbase -> PurchaseMethod.CoinbaseOnRamp
+                                FundingSource.Phantom -> PurchaseMethod.PhantomWallet
+                                FundingSource.Flexible -> null
+                            }
+                            if (pinnedMethod != null) {
+                                purchaseMethodController.select(pinnedMethod, metadata)
                             } else {
-                                purchaseMethodController.present(metadata)
+                                val methods = purchaseMethodController.state.value.availableMethods
+                                if (methods.size == 1) {
+                                    // Single method — skip sheet, handle directly
+                                    purchaseMethodController.select(methods.first(), metadata)
+                                } else {
+                                    purchaseMethodController.present(metadata)
+                                }
                             }
                         }
                     }
@@ -601,6 +613,20 @@ class SwapViewModel @Inject constructor(
             .filterIsInstance<Event.StartPhantomCeremony>()
             .onEach { connectPhantomWallet() }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.DepositSubmitted>()
+            .map { tokenCoordinator.balanceForToken(Mint.usdf).first() }
+            .flatMapLatest { baseline ->
+                // Observe balance — UsdcDepositSweep handles the actual
+                // USDC→USDF sweep + polling, we just wait for the result.
+                tokenCoordinator.balanceForToken(Mint.usdf)
+                    .filter { it > baseline }
+            }
+            .onEach {
+                feedCoordinator.fetchSinceLatest()
+                dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnSellConfirmed>()
@@ -792,6 +818,14 @@ class SwapViewModel @Inject constructor(
                             return@onEach
                         }
 
+                        dispatchEvent(
+                            Event.OnAmountAccepted(
+                                amountFiat,
+                                netTransferAmount = amountFiat.localFiat.nativeAmount,
+                                enteredAmount = enteredAmount,
+                                feeAmount = feeAmount,
+                            )
+                        )
                         dispatchEvent(Event.UpdateBuyState(loading = true))
                         val token = stateFlow.value.tokenWithBalance?.token ?: return@onEach
 
@@ -961,10 +995,19 @@ class SwapViewModel @Inject constructor(
                         amount.localFiat.underlyingTokenAmount
                     )
                 },
-            ).onSuccess { swapId ->
-                dispatchEvent(Event.UpdateProcessingState(loading = true))
-                dispatchEvent(Event.PhantomNavigateToProcessing(swapId))
-                dispatchEvent(Event.OnSwapIdChanged(swapId))
+            ).onSuccess { result ->
+                when (result) {
+                    is PhantomSwapResult.WithSwapId -> {
+                        dispatchEvent(Event.UpdateProcessingState(loading = true))
+                        dispatchEvent(Event.PhantomNavigateToProcessing(result.swapId))
+                        dispatchEvent(Event.OnSwapIdChanged(result.swapId))
+                    }
+                    is PhantomSwapResult.DepositCompleted -> {
+                        dispatchEvent(Event.UpdateProcessingState(loading = true))
+                        dispatchEvent(Event.PhantomNavigateToProcessing())
+                        dispatchEvent(Event.DepositSubmitted)
+                    }
+                }
             }.onFailure { error ->
                 handlePhantomError(error)
             }
@@ -1090,6 +1133,7 @@ class SwapViewModel @Inject constructor(
                 Event.PhantomConnected,
                 is Event.PhantomNavigateToProcessing,
                 Event.PhantomCeremonyFailed,
+                Event.DepositSubmitted,
                 Event.OnAmountConfirmed -> { state -> state }
 
                 is Event.UpdateBuyState -> { state ->

@@ -30,6 +30,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.core.MainCoroutineRule
+import com.flipcash.app.payments.PurchaseMethodController
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.util.vibration.Vibrator
 import com.getcode.opencode.model.accounts.GiftCardAccount
@@ -114,6 +115,7 @@ class SessionControllerGiftCardErrorTest {
             usdcSweep = mockk(relaxed = true),
             appSettingsCoordinator = mockk(relaxed = true),
             chatCoordinator = mockk(relaxed = true),
+            purchaseMethodController = mockk(relaxed = true),
         )
     }
 

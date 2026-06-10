@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -97,29 +97,23 @@ private fun BalanceScreenContent(
 
                         Text(
                             modifier = Modifier.fillMaxWidth(0.6f),
-                            text = if (tokenState.discoveryEnabled) {
-                                stringResource(R.string.description_noBalanceYetDiscover)
-                            } else {
-                                stringResource(R.string.description_noBalanceYet)
-                            },
+                            text = stringResource(R.string.description_noBalanceYet),
                             style = CodeTheme.typography.textSmall,
                             color = CodeTheme.colors.textSecondary,
                             textAlign = TextAlign.Center,
                         )
 
-                        if (tokenState.discoveryEnabled) {
-                            CodeButton(
-                                onClick = {
-                                    dispatchEvent(
-                                        BalanceViewModel.Event.OpenScreen(AppRoute.Token.Discovery)
-                                    )
-                                },
-                                modifier = Modifier.align(Alignment.CenterHorizontally),
-                                contentPadding = PaddingValues(),
-                                text = stringResource(R.string.action_discoverCurrencies),
-                                shape = CircleShape,
-                            )
-                        }
+                        CodeButton(
+                            onClick = {
+                                dispatchEvent(BalanceViewModel.Event.PresentDepositOptions)
+                            },
+                            modifier = Modifier
+                                .padding(top = CodeTheme.dimens.grid.x2)
+                                .align(Alignment.CenterHorizontally),
+                            contentPadding = PaddingValues(),
+                            text = stringResource(R.string.action_depositFunds),
+                            shape = CircleShape,
+                        )
                     }
                 }
             },

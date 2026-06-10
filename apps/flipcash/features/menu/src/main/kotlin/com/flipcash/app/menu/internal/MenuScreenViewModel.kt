@@ -8,6 +8,7 @@ import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
+import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.updates.ReleaseStage
 import com.flipcash.app.updates.ReleaseStageProvider
 import com.flipcash.app.userflags.UserFlagsCoordinator
@@ -54,6 +55,7 @@ internal class MenuScreenViewModel @Inject constructor(
     featureFlags: FeatureFlagController,
     dispatchers: DispatcherProvider,
     releaseStageProvider: ReleaseStageProvider,
+    purchaseMethodController: PurchaseMethodController,
 ) :
     BaseViewModel<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
         initialState = State(),
@@ -78,6 +80,7 @@ internal class MenuScreenViewModel @Inject constructor(
         data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
         data class OnReleaseTrackDetermined(val stage: String): Event
         data class OnStaffUserDetermined(val staff: Boolean) : Event
+        data object PresentDepositOptions: Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object OnSwitchAccountsClicked : Event
         data class OnSwitchAccountTo(val entropy: String): Event
@@ -146,6 +149,12 @@ internal class MenuScreenViewModel @Inject constructor(
                 onError = { },
                 onSuccess = { dispatchEvent(Event.OnSwitchAccountTo(it)) }
             ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PresentDepositOptions>()
+            .mapNotNull { purchaseMethodController.presentDepositOptions() }
+            .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
+            .launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -217,6 +226,7 @@ internal class MenuScreenViewModel @Inject constructor(
                     )
                 }
 
+                Event.PresentDepositOptions,
                 Event.CheckForUpdate,
                 Event.OnSwitchAccountsClicked,
                 is Event.OpenScreen,

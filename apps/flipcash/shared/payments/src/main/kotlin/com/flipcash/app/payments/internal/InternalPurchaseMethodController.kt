@@ -2,6 +2,9 @@ package com.flipcash.app.payments.internal
 
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.FundingSource
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
@@ -15,6 +18,7 @@ import com.flipcash.shared.payments.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -24,12 +28,14 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -52,6 +58,8 @@ class InternalPurchaseMethodController @Inject constructor(
 
     private val _selections = MutableSharedFlow<PurchaseMethodSelection>()
     override val selections: Flow<PurchaseMethodSelection> = _selections.asSharedFlow()
+
+    private val _dismissals = MutableSharedFlow<Unit>()
 
     init {
         combine(
@@ -93,9 +101,11 @@ class InternalPurchaseMethodController @Inject constructor(
 
     override fun present(metadata: PurchaseMethodMetadata) {
         _state.update { it.copy(canUseOtherWallets = metadata.canUseOtherWallets) }
+        var selected = false
         BottomBarManager.showMessage(
             title = resources.getString(R.string.prompt_title_selectPurchaseMethod),
             actions = purchaseOptions(_state.value, metadata, resources) { method ->
+                selected = true
                 scope.launch {
                     val selection = PurchaseMethodSelection(method, metadata)
                     delay(300)
@@ -104,6 +114,33 @@ class InternalPurchaseMethodController @Inject constructor(
             },
             showCancel = false,
             showScrim = true,
+            onDismiss = {
+                if (!selected) {
+                    scope.launch { _dismissals.emit(Unit) }
+                }
+            },
         )
+    }
+
+    override suspend fun presentDepositOptions(): AppRoute? {
+        delay(150)
+        present(PurchaseMethodMetadata(mint = Mint.usdf, showReserves = false, canUseOtherWallets = true))
+
+        val result = merge(
+            selections.map { it.method },
+            _dismissals.map { null },
+        ).first()
+
+        return when (result) {
+            PurchaseMethod.CoinbaseOnRamp -> AppRoute.Token.Swap(
+                purpose = SwapPurpose.Buy(Mint.usdf, FundingSource.Coinbase)
+            )
+            PurchaseMethod.PhantomWallet -> AppRoute.Token.Swap(
+                purpose = SwapPurpose.Buy(Mint.usdf, FundingSource.Phantom)
+            )
+            PurchaseMethod.OtherWallet -> AppRoute.Transfers.Deposit(showOtherOptions = true)
+            is PurchaseMethod.CashReserves -> null
+            null -> null
+        }
     }
 }

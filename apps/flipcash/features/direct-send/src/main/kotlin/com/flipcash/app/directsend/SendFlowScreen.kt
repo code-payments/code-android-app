@@ -15,6 +15,7 @@ import com.flipcash.app.directsend.internal.screens.ContactListScreen
 import com.flipcash.app.directsend.internal.screens.ContactsPermissionGateScreen
 import com.flipcash.app.directsend.internal.screens.PhoneGateLandingScreen
 import com.getcode.navigation.annotatedEntry
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowExitReason
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.flowSharedViewModel
