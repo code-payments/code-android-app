@@ -12,16 +12,36 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
 import com.flipcash.shared.bills.R
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.utils.decodeBase64
 import com.kik.kikx.kincodes.KikCodeContentView
 
 @Composable
 internal fun ScannableCode(
-    modifier: Modifier = Modifier,
-    token: Token,
     data: List<Byte>,
+    token: Token,
+    modifier: Modifier = Modifier,
 ) {
     val tokenBillImageBase64 = token.billCustomizations?.icon
+    ScannableCode(modifier = modifier, data = data, icon = tokenBillImageBase64)
+}
+
+@Composable
+internal fun ScannableCode(
+    data: List<Byte>,
+    modifier: Modifier = Modifier,
+    billCustomizations: TokenBillCustomizations? = null,
+) {
+    val tokenBillImageBase64 = billCustomizations?.icon
+    ScannableCode(modifier = modifier, data = data, icon = tokenBillImageBase64)
+}
+
+@Composable
+internal fun ScannableCode(
+    data: List<Byte>,
+    modifier: Modifier = Modifier,
+    icon: ByteArray? = null,
+) {
     BoxWithConstraints(
         modifier = modifier,
         contentAlignment = Alignment.Center
@@ -31,8 +51,8 @@ internal fun ScannableCode(
                 .fillMaxWidth(),
             factory = { context ->
                 KikCodeContentView(context).apply {
-                    this.logo = if (tokenBillImageBase64 != null) {
-                        val bytes = tokenBillImageBase64.decodeBase64()
+                    this.logo = if (icon != null) {
+                        val bytes = icon.decodeBase64()
                         val bitmap: Bitmap? = BitmapFactory.decodeByteArray(
                             bytes,
                             0,

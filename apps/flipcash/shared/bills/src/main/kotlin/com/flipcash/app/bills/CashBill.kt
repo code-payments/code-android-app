@@ -84,6 +84,9 @@ import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.BillBackground
+import com.getcode.opencode.model.ui.BillTexture
+import com.getcode.opencode.model.ui.TokenBillCustomizations
+import com.getcode.solana.keys.Mint
 import com.getcode.opencode.model.ui.BlendMode as PlaygroundBlendMode
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
@@ -109,12 +112,12 @@ private object CashBillDefaults {
     const val AspectRatio = 0.555f
 
     fun billColor(
-        token: Token,
+        billCustomizations: TokenBillCustomizations?,
         alpha: Float = 1f,
         startY: Float = 0f,
         endY: Float = Float.POSITIVE_INFINITY,
     ): Brush {
-        val billCustomizations = token.billCustomizations ?: return Brush.verticalGradient(
+        val billCustomizations = billCustomizations ?: return Brush.verticalGradient(
             listOf(Color(0xFF06450F), Color(0xFF06450F))
         )
 
@@ -144,8 +147,8 @@ private object CashBillDefaults {
     const val CodeBackgroundOpacity = 0.8f
 
     @Composable
-    fun punchBrushIn(punch: Punch, token: Token): Brush {
-        val billCustomizations = token.billCustomizations
+    fun punchBrushIn(punch: Punch,billCustomizations: TokenBillCustomizations?): Brush {
+        val billCustomizations = billCustomizations
         if (billCustomizations?.background == null) {
             val color = Black.copy(0.15f)
                 .compositeOver(CodeTheme.colors.cashBillColor.copy(alpha = CodeBackgroundOpacity))
@@ -291,13 +294,32 @@ private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun CashBill(
-    modifier: Modifier = Modifier,
     payloadData: List<Byte>,
-    token: Token,
     amount: LocalFiat,
+    token: Token,
+    modifier: Modifier = Modifier,
+) {
+    CashBill(
+        payloadData = payloadData,
+        amount = amount,
+        mint = token.address.base58(),
+        billCustomizations = token.billCustomizations,
+        modifier = modifier,
+    )
+}
+
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun CashBill(
+    payloadData: List<Byte>,
+    amount: LocalFiat,
+    modifier: Modifier = Modifier,
+    billCustomizations: TokenBillCustomizations? = null,
+    mint: String,
 ) {
     val exchange = LocalExchange.current
-    val customTexture = token.billCustomizations?.texture
+    val customTexture = billCustomizations?.texture
     val hasCustomTexture = customTexture != null
 
     Box(
@@ -326,7 +348,7 @@ internal fun CashBill(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(CashBillDefaults.billColor(token), punchShape)
+                    .background(CashBillDefaults.billColor(billCustomizations), punchShape)
             )
 
             // Texture layers — clipped with even-odd punch
@@ -412,7 +434,7 @@ internal fun CashBill(
             }
 
             // Security strip
-            SecurityStrip(geometry = geometry, token = token)
+            SecurityStrip(geometry = geometry, billCustomizations = billCustomizations)
 
             // Bill Value Top Left
             BillAmount(
@@ -462,7 +484,7 @@ internal fun CashBill(
                 ) {
                     // Mint
                     Text(
-                        text = token.address.base58(),
+                        text = mint,
                         fontSize = geometry.mintFontSize,
                         color = CashBillDefaults.DecorColor,
                     )
@@ -508,7 +530,7 @@ internal fun CashBill(
                 modifier = Modifier.align(Alignment.Center),
                 geometry = geometry,
                 data = payloadData,
-                token = token
+                billCustomizations = billCustomizations
             )
         }
     }
@@ -518,13 +540,13 @@ internal fun CashBill(
 private fun SecurityStrip(
     modifier: Modifier = Modifier,
     geometry: CashBillGeometry,
-    token: Token,
+    billCustomizations: TokenBillCustomizations?,
 ) {
     Row(
         modifier = modifier
             .size(geometry.securityStripSize)
             .offset(geometry.securityStripPosition.x, geometry.securityStripPosition.y)
-            .punchRectangle(CashBillDefaults.punchBrushIn(punch = Punch.SecurityStrip, token)),
+            .punchRectangle(CashBillDefaults.punchBrushIn(punch = Punch.SecurityStrip, billCustomizations)),
     ) {
         repeat(CashBillDefaults.SecurityStripCount) {
             Image(
@@ -590,12 +612,12 @@ private fun BillCode(
     modifier: Modifier = Modifier,
     geometry: CashBillGeometry,
     data: List<Byte>,
-    token: Token
+    billCustomizations: TokenBillCustomizations?,
 ) {
     Box(
         modifier = modifier
             .punchCircle(
-                brush = CashBillDefaults.punchBrushIn(punch = Punch.Code, token),
+                brush = CashBillDefaults.punchBrushIn(punch = Punch.Code, billCustomizations),
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -604,7 +626,7 @@ private fun BillCode(
                 modifier = Modifier
                     .size(geometry.codeSize),
                 data = data,
-                token = token
+                billCustomizations = billCustomizations
             )
         }
     }

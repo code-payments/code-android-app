@@ -185,7 +185,6 @@ class TokenCoordinator @Inject constructor(
 
     fun hasGiveableBalance(): Boolean =
         _state.value.balances
-            .filterKeys { it != Mint.usdf }
             .values
             .any { it.isPositive }
 

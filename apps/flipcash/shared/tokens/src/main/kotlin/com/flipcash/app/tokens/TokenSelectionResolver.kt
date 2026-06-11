@@ -33,9 +33,8 @@ internal fun resolveTokenSelection(
         }
     }
 
-    // Fall back to highest non-USDF balance that meets the threshold
+    // Fall back to the highest balance that meets the threshold
     return balances
-        .filterKeys { it != Mint.usdf }
         .filter { it.value.meetsThreshold() }
         .maxByOrNull { it.value }
         ?.key

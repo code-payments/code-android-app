@@ -72,6 +72,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -445,6 +446,7 @@ class RealSessionController @Inject constructor(
                     }
                 }
             }
+
         }
     }
 
@@ -803,13 +805,12 @@ class RealSessionController @Inject constructor(
                 tokenCoordinator.add(token, amount)
                 giftCardClaimInProgress.value = null
                 analytics.transfer(Analytics.Transfer.ClaimedCashLink, amount = amount)
-                showBill(
-                    bill = Bill.Cash(
-                        amount = amount,
-                        token = token,
-                        didReceive = true,
-                    ),
+                val bill = Bill.Cash(
+                    amount = amount,
+                    token = token,
+                    didReceive = true,
                 )
+                showBill(bill)
                 checkPendingItemsInFeed()
                 bringActivityFeedCurrent()
             },
@@ -902,14 +903,13 @@ class RealSessionController @Inject constructor(
                     Clock.System.now().toEpochMilliseconds() - it
                 }
 
-                showBill(
-                    bill = Bill.Cash(
-                        amount = amount,
-                        token = token,
-                        didReceive = true,
-                        verifiedState = verifiedState
-                    ),
+                val bill = Bill.Cash(
+                    amount = amount,
+                    token = token,
+                    didReceive = true,
+                    verifiedState = verifiedState
                 )
+                showBill(bill)
 
                 analytics.transfer(Analytics.Transfer.GrabBill(grabTime), amount)
                 BottomBarManager.clear()
@@ -931,17 +931,16 @@ class RealSessionController @Inject constructor(
     private fun presentBillToUser(data: List<Byte>, nonce: List<Byte>, bill: Bill) {
         if (billController.state.value.bill != null) return
 
+        val presentedBill = when (bill) {
+            is Bill.Cash -> bill.copy(
+                data = data,
+                nonce = nonce,
+            )
+        }
+
         billController.update {
             it.copy(
-                bill = Bill.Cash(
-                    data = data,
-                    amount = bill.amount,
-                    didReceive = bill.didReceive,
-                    confirmationDelay = bill.confirmationDelay,
-                    token = bill.token,
-                    verifiedState = (bill as? Bill.Cash)?.verifiedState,
-                    nonce = nonce,
-                ),
+                bill = presentedBill,
                 valuation = PaymentValuation(bill.amount.nativeAmount),
             )
         }
