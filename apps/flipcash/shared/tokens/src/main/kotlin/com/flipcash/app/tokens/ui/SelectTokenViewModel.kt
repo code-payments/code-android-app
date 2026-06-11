@@ -41,7 +41,6 @@ import javax.inject.Inject
 class SelectTokenViewModel @Inject constructor(
     tokenCoordinator: TokenCoordinator,
     exchange: Exchange,
-    featureFlags: FeatureFlagController,
     resources: ResourceHelper,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<SelectTokenViewModel.State, SelectTokenViewModel.Event>(
@@ -85,16 +84,10 @@ class SelectTokenViewModel @Inject constructor(
 
         data object OnTokenChanged : Event
 
-        data class OnDiscoveryEnabled(val enabled: Boolean): Event
-
         data class OpenScreen(val route: AppRoute) : Event
     }
 
     init {
-        featureFlags.observe(FeatureFlag.TokenDiscovery)
-            .onEach { dispatchEvent(Event.OnDiscoveryEnabled(it)) }
-            .launchIn(viewModelScope)
-
         exchange.observePreferredRate()
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnRateChanged(it)) }
@@ -163,8 +156,6 @@ class SelectTokenViewModel @Inject constructor(
                             when (purpose) {
                                 // show all tokens we have accounts for as deposit targets
                                 TokenPurpose.Deposit -> true
-                                // prevent sending USDF directly (it's used for reserves)
-                                TokenPurpose.Select -> it.token.address != Mint.usdf && hasBalance
                                 // show all tokens with non-zero balance
                                 else -> hasBalance
                             }
@@ -191,10 +182,6 @@ class SelectTokenViewModel @Inject constructor(
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnDiscoveryEnabled -> { state ->
-                    state.copy(discoveryEnabled = event.enabled)
-                }
-
                 is Event.OnRateChanged -> { state ->
                     state.copy(rate = event.rate)
                 }

@@ -6,6 +6,7 @@ import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.codeinc.opencode.gen.transaction.v1.TransactionService
 import com.codeinc.opencode.gen.transaction.v1.clientExchangeDataOrNull
 import com.codeinc.opencode.gen.transaction.v1.destinationOrNull
+import com.codeinc.opencode.gen.transaction.v1.launchpadCurrencyReserveStateOrNull
 import com.getcode.opencode.internal.extensions.toHash
 import com.getcode.opencode.internal.extensions.toMint
 import com.getcode.opencode.internal.extensions.toPublicKey
@@ -76,7 +77,7 @@ internal fun TransactionService.VerifiedExchangeData.toModel(): ExchangeData.Ver
         nativeAmount = this.nativeAmount,
         verifiedState = VerifiedState(
             rateProto = this.coreMintFiatExchangeRate,
-            reserveProto = this.launchpadCurrencyReserveState,
+            reserveProto = this.launchpadCurrencyReserveStateOrNull,
         )
     )
 }

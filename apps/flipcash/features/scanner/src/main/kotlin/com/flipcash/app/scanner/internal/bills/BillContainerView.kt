@@ -279,7 +279,7 @@ internal fun BillContainer(
         //Bill Received Bottom Dialog
         AnimatedVisibility(
             modifier = Modifier.align(BottomCenter),
-            visible = (updatedBillState.bill as? Bill.Cash)?.didReceive ?: false,
+            visible = updatedBillState.bill?.didReceive ?: false,
             enter = AnimationUtils.modalEnter(billState.confirmationDelayMillis),
             exit = AnimationUtils.modalExit,
         ) {
@@ -288,7 +288,7 @@ internal fun BillContainer(
                     contentAlignment = BottomCenter
                 ) {
                     ReceivedFundsConfirmation(
-                        bill = updatedBillState.bill as Bill.Cash,
+                        bill = updatedBillState.bill!!,
                         onClaim = { session.dismissBill(PutInWallet) }
                     )
                 }
