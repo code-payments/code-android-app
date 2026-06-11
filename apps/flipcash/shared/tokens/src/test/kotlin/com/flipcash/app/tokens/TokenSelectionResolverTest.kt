@@ -148,10 +148,10 @@ class TokenSelectionResolverTest {
 
     // endregion
 
-    // region USDF exclusion
+    // region USDF selection
 
     @Test
-    fun `never selects USDF as fallback`() {
+    fun `selects USDF as fallback when it has highest balance`() {
         val result = resolveTokenSelection(
             balances = mapOf(
                 mintA to Fiat(0.0, CurrencyCode.USD),
@@ -160,11 +160,11 @@ class TokenSelectionResolverTest {
             currentSelection = mintA,
             rate = usdRate,
         )
-        assertNull(result)
+        assertEquals(Mint.usdf, result)
     }
 
     @Test
-    fun `skips USDF and selects next highest`() {
+    fun `selects USDF over lower balance tokens`() {
         val result = resolveTokenSelection(
             balances = mapOf(
                 mintA to Fiat(0.0, CurrencyCode.USD),
@@ -174,7 +174,7 @@ class TokenSelectionResolverTest {
             currentSelection = mintA,
             rate = usdRate,
         )
-        assertEquals(mintB, result)
+        assertEquals(Mint.usdf, result)
     }
 
     @Test
