@@ -72,7 +72,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         val seed: String? = null,
         val fromDeeplink: Boolean = false,
         val resumeAt: ResumePoint = ResumePoint.Login,
-        val skipContacts: Boolean = false,
+        val skipContacts: Boolean = true,
     ) : AppRoute, FlowRoute {
         enum class Phase { Account, Permissions }
         enum class ResumePoint { Login, AccessKey, AccessKeyThenPurchase, PostAccessKey }
@@ -86,7 +86,10 @@ sealed interface AppRoute : NavKey, Parcelable {
                         listOf(OnboardingStep.Start(), OnboardingStep.AccessKey, OnboardingStep.Purchase)
                     ResumePoint.PostAccessKey -> emptyList()
                 }
-                Phase.Permissions -> listOf(OnboardingStep.ContactPermission, OnboardingStep.NotificationPermission)
+                Phase.Permissions -> buildList {
+                    if (!skipContacts) add(OnboardingStep.ContactPermission)
+                    add(OnboardingStep.NotificationPermission)
+                }
             }
     }
 
