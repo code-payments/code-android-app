@@ -24,7 +24,7 @@ import com.getcode.ui.theme.CodeButton
 
 @Composable
 internal fun ReceivedFundsConfirmation(
-    bill: Bill.Cash,
+    bill: Bill,
     onClaim: () -> Unit,
 ) {
     val exchange = LocalExchange.current
