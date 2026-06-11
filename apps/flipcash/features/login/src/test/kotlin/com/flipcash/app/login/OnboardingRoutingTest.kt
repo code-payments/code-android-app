@@ -18,7 +18,7 @@ class OnboardingRoutingTest {
         )
         val flow = assertIs<AppRoute.OnboardingFlow>(route)
         assertEquals(AppRoute.OnboardingFlow.Phase.Permissions, flow.phase)
-        assertEquals(false, flow.skipContacts)
+        assertEquals(true, flow.skipContacts)
     }
 
     // -- LoggedIn routes to permissions --
@@ -30,7 +30,7 @@ class OnboardingRoutingTest {
         )
         val flow = assertIs<AppRoute.OnboardingFlow>(route)
         assertEquals(AppRoute.OnboardingFlow.Phase.Permissions, flow.phase)
-        assertEquals(false, flow.skipContacts)
+        assertEquals(true, flow.skipContacts)
     }
 
     // -- skipContacts is forwarded --
@@ -39,11 +39,11 @@ class OnboardingRoutingTest {
     fun `skipContacts is forwarded to permissions route`() {
         val route = resolvePostAccountRoute(
             result = OnboardingResult.ProceedToVerification,
-            skipContacts = true,
+            skipContacts = false,
         )
         val flow = assertIs<AppRoute.OnboardingFlow>(route)
         assertEquals(AppRoute.OnboardingFlow.Phase.Permissions, flow.phase)
-        assertEquals(true, flow.skipContacts)
+        assertEquals(false, flow.skipContacts)
     }
 
     // -- Completed (no-op) --
