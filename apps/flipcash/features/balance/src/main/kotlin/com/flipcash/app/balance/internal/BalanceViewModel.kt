@@ -54,7 +54,7 @@ internal class BalanceViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
-            .mapNotNull { purchaseMethodController.presentDepositOptions() }
+            .mapNotNull { purchaseMethodController.presentDepositOptions(popToRoot = true) }
             .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)
     }

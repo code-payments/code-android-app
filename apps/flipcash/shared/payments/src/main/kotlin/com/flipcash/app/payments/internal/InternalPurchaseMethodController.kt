@@ -122,7 +122,7 @@ class InternalPurchaseMethodController @Inject constructor(
         )
     }
 
-    override suspend fun presentDepositOptions(): AppRoute? {
+    override suspend fun presentDepositOptions(popToRoot: Boolean): AppRoute? {
         delay(150)
         present(PurchaseMethodMetadata(mint = Mint.usdf, showReserves = false, canUseOtherWallets = true))
 
@@ -133,10 +133,12 @@ class InternalPurchaseMethodController @Inject constructor(
 
         return when (result) {
             PurchaseMethod.CoinbaseOnRamp -> AppRoute.Token.Swap(
-                purpose = SwapPurpose.Buy(Mint.usdf, FundingSource.Coinbase)
+                purpose = SwapPurpose.Buy(Mint.usdf, FundingSource.Coinbase),
+                popToRoot = popToRoot,
             )
             PurchaseMethod.PhantomWallet -> AppRoute.Token.Swap(
-                purpose = SwapPurpose.Buy(Mint.usdf, FundingSource.Phantom)
+                purpose = SwapPurpose.Buy(Mint.usdf, FundingSource.Phantom),
+                popToRoot = popToRoot,
             )
             PurchaseMethod.OtherWallet -> AppRoute.Transfers.Deposit(showOtherOptions = true)
             is PurchaseMethod.CashReserves -> null

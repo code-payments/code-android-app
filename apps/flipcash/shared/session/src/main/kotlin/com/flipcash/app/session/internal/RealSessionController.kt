@@ -25,7 +25,7 @@ import com.flipcash.app.session.Grabbed
 import com.flipcash.app.session.PutInWallet
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.session.SessionState
-import com.flipcash.app.session.internal.toast.ToastController
+import com.flipcash.app.session.internal.toast.SessionToastController
 import com.flipcash.app.shareable.ShareConfirmationResult
 import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
@@ -125,7 +125,7 @@ class RealSessionController @Inject constructor(
     private val profileUpdater: ProfileUpdater,
     private val shareSheetController: ShareSheetController,
     private val shareConfirmationController: ShareableConfirmationController,
-    private val toastController: ToastController,
+    private val toastController: SessionToastController,
     private val billingClient: BillingClient,
     private val tokenCoordinator: TokenCoordinator,
     private val contactCoordinator: ContactCoordinator,
@@ -782,7 +782,7 @@ class RealSessionController @Inject constructor(
 
     override fun presentDepositOptions(onRoute: ((AppRoute) -> Unit)?) {
         scope.launch {
-            purchaseMethodController.presentDepositOptions()?.let { onRoute?.invoke(it) }
+            purchaseMethodController.presentDepositOptions(popToRoot = true)?.let { onRoute?.invoke(it) }
         }
     }
 

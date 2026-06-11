@@ -28,7 +28,8 @@ internal fun SwapProcessingScreen() {
         viewModel.eventFlow
             .filterIsInstance<Event.OnTransactionSuccessful>()
             .onEach {
-                flowNavigator.exitWithResult(SwapResult.Success)
+                val amount = viewModel.stateFlow.value.enteredAmount
+                flowNavigator.exitWithResult(SwapResult.Success(amount))
             }.launchIn(this)
     }
 

@@ -9,5 +9,5 @@ interface PurchaseMethodController {
     val selections: Flow<PurchaseMethodSelection>
     fun present(metadata: PurchaseMethodMetadata = PurchaseMethodMetadata())
     fun select(method: PurchaseMethod, metadata: PurchaseMethodMetadata)
-    suspend fun presentDepositOptions(): AppRoute?
+    suspend fun presentDepositOptions(popToRoot: Boolean = false): AppRoute?
 }

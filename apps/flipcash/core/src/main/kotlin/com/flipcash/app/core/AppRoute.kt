@@ -173,6 +173,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class Swap(
             val purpose: SwapPurpose,
             val shortfall: Fiat? = null,
+            val popToRoot: Boolean = false,
         ) : Token, FlowRouteWithResult<SwapResult> {
             override val initialStack: List<NavKey>
                 get() = listOf(SwapStep.Entry(purpose, initialAmount = shortfall))
