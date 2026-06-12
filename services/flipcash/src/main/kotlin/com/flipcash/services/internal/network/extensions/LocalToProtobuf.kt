@@ -110,6 +110,16 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
         is MessageContent.Text -> MessagingModel.Content.newBuilder()
             .setText(MessagingModel.TextContent.newBuilder().setText(text))
             .build()
+        is MessageContent.Cash -> MessagingModel.Content.newBuilder()
+            .setCash(
+                MessagingModel.CashContent.newBuilder()
+                    .setIntentId(Common.IntentId.newBuilder().setValue(intentId.toByteString()))
+                    .setAmount(
+                        Common.CryptoPaymentAmount.newBuilder()
+                            .setQuarks(amount.quarks)
+                    )
+            )
+            .build()
     }
 }
 

@@ -53,14 +53,16 @@ sealed interface NotificationMetadata {
     data object Unknown : NotificationMetadata
 
     @Serializable
-    data object GaveCrypto : NotificationMetadata
+    data class DirectlySentCrypto(
+        val phoneNumber: String? = null,
+    ) : NotificationMetadata
 
     /**
      * @param creator The vault of the gift card account that was created for the cash link
      * @param canCancel Whether the cancel action can be initiated by the user
      */
     @Serializable
-    data class SentCrypto(
+    data class IndirectlySentCrypto(
         val creator: PublicKey,
         val canCancel: Boolean,
     ) : NotificationMetadata
@@ -69,7 +71,9 @@ sealed interface NotificationMetadata {
     data object DepositedCrypto : NotificationMetadata
 
     @Serializable
-    data object ReceivedCrypto : NotificationMetadata
+    data class ReceivedCrypto(
+        val phoneNumber: String? = null,
+    ) : NotificationMetadata
 
     @Serializable
     data object WithdrewCrypto : NotificationMetadata

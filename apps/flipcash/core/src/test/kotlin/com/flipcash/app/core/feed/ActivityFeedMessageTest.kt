@@ -58,17 +58,17 @@ class ActivityFeedMessageTest {
     }
 
     @Test
-    fun metadataFromGaveCrypto() {
-        val json = """{"type":"com.flipcash.app.core.feed.MessageMetadata.GaveCrypto"}"""
+    fun metadataFromDirectlySentCrypto() {
+        val json = """{"type":"com.flipcash.app.core.feed.MessageMetadata.DirectlySentCrypto"}"""
         val result = MessageMetadata.from(json)
-        assertEquals(MessageMetadata.GaveCrypto, result)
+        assertEquals(MessageMetadata.DirectlySentCrypto(), result)
     }
 
     @Test
     fun metadataFromReceivedCrypto() {
         val json = """{"type":"com.flipcash.app.core.feed.MessageMetadata.ReceivedCrypto"}"""
         val result = MessageMetadata.from(json)
-        assertEquals(MessageMetadata.ReceivedCrypto, result)
+        assertEquals(MessageMetadata.ReceivedCrypto(), result)
     }
 
     @Test

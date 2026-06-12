@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.services
 
-import com.codeinc.opencode.gen.account.v1.AccountService
+import com.codeinc.opencode.gen.account.v1.OcpAccountService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.api.AccountApi
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
@@ -22,12 +22,12 @@ internal class AccountService @Inject constructor(
         }.fold(
             onSuccess = { response ->
                 when (response.result) {
-                    AccountService.IsOcpAccountResponse.Result.OK -> Result.success(true)
-                    AccountService.IsOcpAccountResponse.Result.NOT_FOUND -> Result.failure(
+                    OcpAccountService.IsOcpAccountResponse.Result.OK -> Result.success(true)
+                    OcpAccountService.IsOcpAccountResponse.Result.NOT_FOUND -> Result.failure(
                         CodeAccountCheckError.NotFound())
-                    AccountService.IsOcpAccountResponse.Result.UNLOCKED_TIMELOCK_ACCOUNT -> Result.failure(
+                    OcpAccountService.IsOcpAccountResponse.Result.UNLOCKED_TIMELOCK_ACCOUNT -> Result.failure(
                         CodeAccountCheckError.UnlockedTimelockAccount())
-                    AccountService.IsOcpAccountResponse.Result.UNRECOGNIZED -> Result.failure(
+                    OcpAccountService.IsOcpAccountResponse.Result.UNRECOGNIZED -> Result.failure(
                         CodeAccountCheckError.Unrecognized())
                     else -> Result.failure(CodeAccountCheckError.Other())
                 }
@@ -48,7 +48,7 @@ internal class AccountService @Inject constructor(
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
-                    AccountService.GetTokenAccountInfosResponse.Result.OK -> {
+                    OcpAccountService.GetTokenAccountInfosResponse.Result.OK -> {
                         val container = mutableMapOf<PublicKey, AccountInfo>()
 
                         for ((base58, info) in response.tokenAccountInfosMap) {
@@ -66,9 +66,9 @@ internal class AccountService @Inject constructor(
                             )
                         )
                     }
-                    AccountService.GetTokenAccountInfosResponse.Result.NOT_FOUND -> Result.failure(
+                    OcpAccountService.GetTokenAccountInfosResponse.Result.NOT_FOUND -> Result.failure(
                         GetAccountsError.NotFound())
-                    AccountService.GetTokenAccountInfosResponse.Result.UNRECOGNIZED -> Result.failure(
+                    OcpAccountService.GetTokenAccountInfosResponse.Result.UNRECOGNIZED -> Result.failure(
                         GetAccountsError.Unrecognized())
                     else -> Result.failure(GetAccountsError.Other())
                 }

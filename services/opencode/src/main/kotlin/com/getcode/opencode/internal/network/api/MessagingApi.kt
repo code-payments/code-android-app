@@ -2,7 +2,7 @@ package com.getcode.opencode.internal.network.api
 
 import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.messaging.v1.MessagingGrpcKt
-import com.codeinc.opencode.gen.messaging.v1.MessagingService
+import com.codeinc.opencode.gen.messaging.v1.OcpMessagingService
 import com.codeinc.opencode.gen.messaging.v1.validate
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -56,8 +56,8 @@ internal class MessagingApi @Inject constructor(
      */
     fun openMessageStream(
         rendezvous: KeyPair
-    ): Flow<MessagingService.OpenMessageStreamResponse> {
-        val request = MessagingService.OpenMessageStreamRequest.newBuilder()
+    ): Flow<OcpMessagingService.OpenMessageStreamResponse> {
+        val request = OcpMessagingService.OpenMessageStreamRequest.newBuilder()
             .setRendezvousKey(rendezvous.asRendezvousKey())
             .apply { setSignature(sign(rendezvous)) }
             .build()
@@ -103,8 +103,8 @@ internal class MessagingApi @Inject constructor(
      * @see openMessageStream
      */
     fun openMessageStreamWithKeepAlive(
-        requestFlow: Flow<MessagingService.OpenMessageStreamWithKeepAliveRequest>,
-    ): Flow<MessagingService.OpenMessageStreamWithKeepAliveResponse> {
+        requestFlow: Flow<OcpMessagingService.OpenMessageStreamWithKeepAliveRequest>,
+    ): Flow<OcpMessagingService.OpenMessageStreamWithKeepAliveResponse> {
         return api.openMessageStreamWithKeepAlive(requestFlow)
     }
 
@@ -121,11 +121,11 @@ internal class MessagingApi @Inject constructor(
      */
     suspend fun pollMessages(
         rendezvous: KeyPair
-    ): MessagingService.PollMessagesResponse {
+    ): OcpMessagingService.PollMessagesResponse {
         val channelState = managedChannels.first().getState(false)
         trace(tag = "gRPC", message = "pollMessages channel state: $channelState")
 
-        val request = MessagingService.PollMessagesRequest.newBuilder()
+        val request = OcpMessagingService.PollMessagesRequest.newBuilder()
             .setRendezvousKey(rendezvous.asRendezvousKey())
             .apply { setSignature(sign(rendezvous)) }
             .build()
@@ -140,9 +140,9 @@ internal class MessagingApi @Inject constructor(
      */
     suspend fun ackMessages(
         rendezvous: KeyPair,
-        messageIds: List<MessagingService.MessageId> = emptyList()
-    ): MessagingService.AckMesssagesResponse {
-        val request = MessagingService.AckMessagesRequest.newBuilder()
+        messageIds: List<OcpMessagingService.MessageId> = emptyList()
+    ): OcpMessagingService.AckMesssagesResponse {
+        val request = OcpMessagingService.AckMessagesRequest.newBuilder()
             .setRendezvousKey(rendezvous.asRendezvousKey())
             .addAllMessageIds(messageIds)
             .build()
@@ -156,16 +156,16 @@ internal class MessagingApi @Inject constructor(
      * Sends a message
      */
     suspend fun sendMessage(
-        message: MessagingService.Message.Builder,
+        message: OcpMessagingService.Message.Builder,
         rendezvous: KeyPair,
-    ): MessagingService.SendMessageResponse {
+    ): OcpMessagingService.SendMessageResponse {
         val signature = ByteArrayOutputStream().let {
             message.buildPartial().writeTo(it)
             val signed = Ed25519.sign(it.toByteArray(), rendezvous)
             Model.Signature.newBuilder().setValue(ByteString.copyFrom(signed))
         }
 
-        val request = MessagingService.SendMessageRequest.newBuilder()
+        val request = OcpMessagingService.SendMessageRequest.newBuilder()
             .setMessage(message)
             .setRendezvousKey(rendezvous.asRendezvousKey())
             .setSignature(signature)

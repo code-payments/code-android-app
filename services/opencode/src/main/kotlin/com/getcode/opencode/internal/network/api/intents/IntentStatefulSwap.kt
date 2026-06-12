@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api.intents
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.opencode.internal.network.extensions.asSignature
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
@@ -72,11 +72,11 @@ internal class IntentStatefulSwap(
         }
     }
 
-    fun initiate(): TransactionService.StatefulSwapRequest {
+    fun initiate(): OcpTransactionService.StatefulSwapRequest {
         val signer = request.owner.authority.keyPair
-        return TransactionService.StatefulSwapRequest.newBuilder()
+        return OcpTransactionService.StatefulSwapRequest.newBuilder()
             .setInitiate(
-                TransactionService.StatefulSwapRequest.Initiate.newBuilder()
+                OcpTransactionService.StatefulSwapRequest.Initiate.newBuilder()
                     .setOwner(request.owner.authorityPublicKey.asSolanaAccountId())
                     .setSwapAuthority(request.swapAuthority.toPublicKey().asSolanaAccountId())
                     .apply {
@@ -92,12 +92,12 @@ internal class IntentStatefulSwap(
 
     }
 
-    fun requestToSubmitSignatures(): TransactionService.StatefulSwapRequest {
+    fun requestToSubmitSignatures(): OcpTransactionService.StatefulSwapRequest {
         val params = parameters ?: throw IllegalStateException("parameters not set")
 
-        return TransactionService.StatefulSwapRequest.newBuilder()
+        return OcpTransactionService.StatefulSwapRequest.newBuilder()
             .setSubmitSignatures(
-                TransactionService.StatefulSwapRequest.SubmitSignatures.newBuilder()
+                OcpTransactionService.StatefulSwapRequest.SubmitSignatures.newBuilder()
                     .addAllTransactionSignatures(
                         sign(params).map { key -> key.asSignature() }
                     )

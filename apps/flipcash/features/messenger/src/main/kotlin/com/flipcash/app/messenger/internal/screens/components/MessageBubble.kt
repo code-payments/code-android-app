@@ -40,6 +40,7 @@ internal fun ContentBubble(
                 isFromSelf = item.isFromSelf,
                 position = position,
             )
+            is MessageContent.Cash -> Unit // TODO
         }
     }
 }

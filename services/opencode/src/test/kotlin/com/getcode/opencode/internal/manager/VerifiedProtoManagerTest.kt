@@ -1,7 +1,7 @@
 package com.getcode.opencode.internal.manager
 
 import app.cash.turbine.test
-import com.codeinc.opencode.gen.currency.v1.CurrencyService
+import com.codeinc.opencode.gen.currency.v1.OcpCurrencyService
 import com.codeinc.opencode.gen.currency.v1.coreMintFiatExchangeRate
 import com.codeinc.opencode.gen.currency.v1.verifiedCoreMintFiatExchangeRate
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -178,7 +178,7 @@ class VerifiedProtoManagerTest {
     private fun rateProto(
         code: String,
         fx: Double = 0.0,
-    ): CurrencyService.VerifiedCoreMintFiatExchangeRate {
+    ): OcpCurrencyService.VerifiedCoreMintFiatExchangeRate {
         return verifiedCoreMintFiatExchangeRate {
             exchangeRate = coreMintFiatExchangeRate {
                 currencyCode = code

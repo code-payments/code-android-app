@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api.intents.actions
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -44,15 +44,15 @@ internal class ActionFeePayment(
         }
     }
 
-    override fun action(): TransactionService.Action {
-        return TransactionService.Action.newBuilder()
+    override fun action(): OcpTransactionService.Action {
+        return OcpTransactionService.Action.newBuilder()
             .setId(id)
             .setFeePayment(
-                TransactionService.FeePaymentAction.newBuilder()
+                OcpTransactionService.FeePaymentAction.newBuilder()
                     .setSource(source.vaultPublicKey.asSolanaAccountId())
                     .setType(
                         when (fee.type) {
-                            FeeType.CreateOnSendWithdrawal -> TransactionService.FeePaymentAction.FeeType.CREATE_ON_SEND_WITHDRAWAL
+                            FeeType.CreateOnSendWithdrawal -> OcpTransactionService.FeePaymentAction.FeeType.CREATE_ON_SEND_WITHDRAWAL
                         }
                     )
                     .setAuthority(source.authority.keyPair.asSolanaAccountId())

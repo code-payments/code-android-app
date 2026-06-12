@@ -1,6 +1,6 @@
 package com.getcode.opencode.model.core.errors
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.StatefulSwapResponse
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.StatefulSwapResponse
 import com.codeinc.opencode.gen.transaction.v1.errorDetails
 import com.codeinc.opencode.gen.transaction.v1.reasonStringErrorDetails
 import com.codeinc.opencode.gen.transaction.v1.deniedErrorDetails

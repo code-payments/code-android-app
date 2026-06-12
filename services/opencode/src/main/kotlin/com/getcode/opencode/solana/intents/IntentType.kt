@@ -1,6 +1,6 @@
 package com.getcode.opencode.solana.intents
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.solana.intents.actions.ActionType
 import com.getcode.opencode.internal.network.extensions.asIntentId
@@ -52,19 +52,19 @@ abstract class IntentType {
     val signatures: List<Signature>
         get() = actions.map { it.signatures().firstOrNull() }.mapNotNull { it }
 
-    abstract fun metadata(): TransactionService.Metadata
+    abstract fun metadata(): OcpTransactionService.Metadata
 
-    fun requestToSubmitSignatures(): TransactionService.SubmitIntentRequest {
-        return TransactionService.SubmitIntentRequest.newBuilder()
+    fun requestToSubmitSignatures(): OcpTransactionService.SubmitIntentRequest {
+        return OcpTransactionService.SubmitIntentRequest.newBuilder()
             .setSubmitSignatures(
-                TransactionService.SubmitIntentRequest.SubmitSignatures.newBuilder()
+                OcpTransactionService.SubmitIntentRequest.SubmitSignatures.newBuilder()
                     .addAllSignatures(signatures.map { it.bytes.toByteArray().asSignature() })
             )
             .build()
     }
 
-    fun requestToSubmitActions(owner: Ed25519.KeyPair, deviceToken: String? = null): TransactionService.SubmitIntentRequest {
-        val submitActionsBuilder = TransactionService.SubmitIntentRequest.SubmitActions.newBuilder()
+    fun requestToSubmitActions(owner: Ed25519.KeyPair, deviceToken: String? = null): OcpTransactionService.SubmitIntentRequest {
+        val submitActionsBuilder = OcpTransactionService.SubmitIntentRequest.SubmitActions.newBuilder()
         submitActionsBuilder.owner = owner.asSolanaAccountId()
         submitActionsBuilder.id = id.asIntentId()
         submitActionsBuilder.metadata = metadata()
@@ -72,7 +72,7 @@ abstract class IntentType {
 
         submitActionsBuilder.signature = submitActionsBuilder.sign(owner)
 
-        return TransactionService.SubmitIntentRequest.newBuilder()
+        return OcpTransactionService.SubmitIntentRequest.newBuilder()
             .setSubmitActions(submitActionsBuilder)
             .build()
     }

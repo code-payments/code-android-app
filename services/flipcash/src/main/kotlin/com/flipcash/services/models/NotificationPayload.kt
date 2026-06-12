@@ -43,4 +43,5 @@ data class NotificationPayload(
 
 sealed interface NavigationTrigger {
     data class CurrencyInfo(val mint: Mint) : NavigationTrigger
+    data class Chat(val chatId: com.flipcash.services.models.chat.ChatId) : NavigationTrigger
 }

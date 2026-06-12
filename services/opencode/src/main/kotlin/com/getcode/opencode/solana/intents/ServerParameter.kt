@@ -1,6 +1,6 @@
 package com.getcode.opencode.solana.intents
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.opencode.internal.extensions.toHash
 import com.getcode.opencode.internal.extensions.toPublicKey
 import com.getcode.solana.keys.Hash
@@ -17,9 +17,9 @@ class ServerParameter(
         data class FeePayment(val publicKey: PublicKey): Parameter()
 
         companion object {
-            fun newInstance(proto: TransactionService.ServerParameter): Parameter? {
+            fun newInstance(proto: OcpTransactionService.ServerParameter): Parameter? {
                 return when (proto.typeCase) {
-                    TransactionService.ServerParameter.TypeCase.FEE_PAYMENT -> {
+                    OcpTransactionService.ServerParameter.TypeCase.FEE_PAYMENT -> {
                         val param = proto.feePayment
 
                         // PublicKey will be `nil` for .thirdParty fee payments
@@ -28,10 +28,10 @@ class ServerParameter(
                         )
                         FeePayment(optionalDestination)
                     }
-                    TransactionService.ServerParameter.TypeCase.OPEN_ACCOUNT,
-                    TransactionService.ServerParameter.TypeCase.NO_PRIVACY_WITHDRAW,
-                    TransactionService.ServerParameter.TypeCase.TYPE_NOT_SET,
-                    TransactionService.ServerParameter.TypeCase.NO_PRIVACY_TRANSFER -> null
+                    OcpTransactionService.ServerParameter.TypeCase.OPEN_ACCOUNT,
+                    OcpTransactionService.ServerParameter.TypeCase.NO_PRIVACY_WITHDRAW,
+                    OcpTransactionService.ServerParameter.TypeCase.TYPE_NOT_SET,
+                    OcpTransactionService.ServerParameter.TypeCase.NO_PRIVACY_TRANSFER -> null
                     else -> null
                 }
             }
@@ -39,7 +39,7 @@ class ServerParameter(
     }
 
     companion object {
-        fun newInstance(proto: TransactionService.ServerParameter): ServerParameter {
+        fun newInstance(proto: OcpTransactionService.ServerParameter): ServerParameter {
             return ServerParameter(
                 actionId = proto.actionId,
                 parameter = Parameter.newInstance(proto),

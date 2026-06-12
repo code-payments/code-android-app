@@ -1,11 +1,11 @@
 package com.flipcash.services.internal.domain
 
 import com.codeinc.flipcash.gen.activity.v1.Model
-import com.codeinc.flipcash.gen.activity.v1.gaveCryptoNotificationMetadata
+import com.codeinc.flipcash.gen.activity.v1.directlySentCryptoNotificationMetadata
 import com.codeinc.flipcash.gen.activity.v1.notification
 import com.codeinc.flipcash.gen.activity.v1.notificationId
 import com.codeinc.flipcash.gen.activity.v1.receivedCryptoNotificationMetadata
-import com.codeinc.flipcash.gen.activity.v1.sentCryptoNotificationMetadata
+import com.codeinc.flipcash.gen.activity.v1.indirectlySentCryptoNotificationMetadata
 import com.codeinc.flipcash.gen.activity.v1.withdrewCryptoNotificationMetadata
 import com.codeinc.flipcash.gen.activity.v1.depositedCryptoNotificationMetadata
 import com.codeinc.flipcash.gen.activity.v1.boughtCryptoNotificationMetadata
@@ -129,11 +129,11 @@ class ActivityFeedMessageMapperTest {
     // --- Metadata mapping ---
 
     @Test
-    fun `gave crypto metadata`() {
+    fun `directly sent crypto metadata`() {
         val proto = baseNotification {
-            gaveCrypto = gaveCryptoNotificationMetadata {}
+            directlySentCrypto = directlySentCryptoNotificationMetadata {}
         }
-        assertEquals(NotificationMetadata.GaveCrypto, mapper.map(proto).metadata)
+        assertEquals(NotificationMetadata.DirectlySentCrypto(), mapper.map(proto).metadata)
     }
 
     @Test
@@ -141,7 +141,7 @@ class ActivityFeedMessageMapperTest {
         val proto = baseNotification {
             receivedCrypto = receivedCryptoNotificationMetadata {}
         }
-        assertEquals(NotificationMetadata.ReceivedCrypto, mapper.map(proto).metadata)
+        assertEquals(NotificationMetadata.ReceivedCrypto(), mapper.map(proto).metadata)
     }
 
     @Test
@@ -177,17 +177,17 @@ class ActivityFeedMessageMapperTest {
     }
 
     @Test
-    fun `sent crypto metadata has creator and canCancel`() {
+    fun `indirectly sent crypto metadata has creator and canCancel`() {
         val vaultBytes = ByteArray(32) { 42 }
         val proto = baseNotification {
-            sentCrypto = sentCryptoNotificationMetadata {
+            indirectlySentCrypto = indirectlySentCryptoNotificationMetadata {
                 vault = publicKey { value = ByteString.copyFrom(vaultBytes) }
                 canInitiateCancelAction = true
             }
         }
 
         val metadata = mapper.map(proto).metadata
-        assertIs<NotificationMetadata.SentCrypto>(metadata)
+        assertIs<NotificationMetadata.IndirectlySentCrypto>(metadata)
         assertTrue(metadata.canCancel)
         assertEquals(vaultBytes.toList(), metadata.creator.bytes)
     }

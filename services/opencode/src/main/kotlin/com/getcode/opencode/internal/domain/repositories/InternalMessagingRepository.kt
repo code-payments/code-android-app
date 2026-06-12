@@ -14,7 +14,7 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.codeinc.opencode.gen.messaging.v1.MessagingService as RpcMessagingService
+import com.codeinc.opencode.gen.messaging.v1.OcpMessagingService as RpcMessagingService
 
 internal class InternalMessagingRepository @Inject constructor(
     private val service: MessagingService,

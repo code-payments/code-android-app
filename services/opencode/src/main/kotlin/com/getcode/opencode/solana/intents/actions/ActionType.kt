@@ -1,6 +1,6 @@
 package com.getcode.opencode.solana.intents.actions
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.solana.intents.CompactMessage
@@ -54,7 +54,7 @@ abstract class ActionType {
         }.orEmpty()
     }
 
-    abstract fun action(): TransactionService.Action
+    abstract fun action(): OcpTransactionService.Action
 
     companion object {
         const val kreIndex: Int = 268

@@ -1,6 +1,6 @@
 package com.getcode.opencode.model.accounts
 
-import com.codeinc.opencode.gen.account.v1.AccountService
+import com.codeinc.opencode.gen.account.v1.OcpAccountService
 import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.internal.network.extensions.toModel
 import com.getcode.opencode.internal.network.extensions.toPublicKey
@@ -103,7 +103,7 @@ data class AccountInfo(
     val usdCostBasis: Double,
 ) {
     companion object {
-        fun newInstance(info: AccountService.TokenAccountInfo): AccountInfo? {
+        fun newInstance(info: OcpAccountService.TokenAccountInfo): AccountInfo? {
             val accountType =
                 AccountType.newInstance(info.accountType) ?: return null
             val address = PublicKey(info.address.value.toByteArray().toList())
@@ -186,17 +186,17 @@ data class AccountInfo(
         Closed;
 
         companion object {
-            fun getInstance(state: AccountService.TokenAccountInfo.ManagementState): ManagementState? {
+            fun getInstance(state: OcpAccountService.TokenAccountInfo.ManagementState): ManagementState? {
                 return when (state) {
-                    AccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_UNKNOWN -> Unknown
-                    AccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_NONE -> None
-                    AccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_LOCKING -> Locking
-                    AccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_LOCKED -> Locked
-                    AccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_UNLOCKING -> Unlocking
-                    AccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_UNLOCKED -> Unlocked
-                    AccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_CLOSING -> Closing
-                    AccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_CLOSED -> Closed
-                    AccountService.TokenAccountInfo.ManagementState.UNRECOGNIZED -> null
+                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_UNKNOWN -> Unknown
+                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_NONE -> None
+                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_LOCKING -> Locking
+                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_LOCKED -> Locked
+                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_UNLOCKING -> Unlocking
+                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_UNLOCKED -> Unlocked
+                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_CLOSING -> Closing
+                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_CLOSED -> Closed
+                    OcpAccountService.TokenAccountInfo.ManagementState.UNRECOGNIZED -> null
                 }
 
             }
@@ -215,12 +215,12 @@ data class AccountInfo(
         Exists;
 
         companion object {
-            fun getInstance(state: AccountService.TokenAccountInfo.BlockchainState): BlockchainState? {
+            fun getInstance(state: OcpAccountService.TokenAccountInfo.BlockchainState): BlockchainState? {
                 return when (state) {
-                    AccountService.TokenAccountInfo.BlockchainState.BLOCKCHAIN_STATE_UNKNOWN -> Unknown
-                    AccountService.TokenAccountInfo.BlockchainState.BLOCKCHAIN_STATE_DOES_NOT_EXIST -> DoesntExist
-                    AccountService.TokenAccountInfo.BlockchainState.BLOCKCHAIN_STATE_EXISTS -> Exists
-                    AccountService.TokenAccountInfo.BlockchainState.UNRECOGNIZED -> null
+                    OcpAccountService.TokenAccountInfo.BlockchainState.BLOCKCHAIN_STATE_UNKNOWN -> Unknown
+                    OcpAccountService.TokenAccountInfo.BlockchainState.BLOCKCHAIN_STATE_DOES_NOT_EXIST -> DoesntExist
+                    OcpAccountService.TokenAccountInfo.BlockchainState.BLOCKCHAIN_STATE_EXISTS -> Exists
+                    OcpAccountService.TokenAccountInfo.BlockchainState.UNRECOGNIZED -> null
                 }
             }
         }
@@ -250,13 +250,13 @@ data class AccountInfo(
         Expired;
 
         companion object {
-            fun getInstance(state: AccountService.TokenAccountInfo.ClaimState): ClaimState? {
+            fun getInstance(state: OcpAccountService.TokenAccountInfo.ClaimState): ClaimState? {
                 return when (state) {
-                    AccountService.TokenAccountInfo.ClaimState.CLAIM_STATE_UNKNOWN -> Unknown
-                    AccountService.TokenAccountInfo.ClaimState.CLAIM_STATE_NOT_CLAIMED -> NotClaimed
-                    AccountService.TokenAccountInfo.ClaimState.CLAIM_STATE_CLAIMED -> Claimed
-                    AccountService.TokenAccountInfo.ClaimState.CLAIM_STATE_EXPIRED -> Expired
-                    AccountService.TokenAccountInfo.ClaimState.UNRECOGNIZED -> null
+                    OcpAccountService.TokenAccountInfo.ClaimState.CLAIM_STATE_UNKNOWN -> Unknown
+                    OcpAccountService.TokenAccountInfo.ClaimState.CLAIM_STATE_NOT_CLAIMED -> NotClaimed
+                    OcpAccountService.TokenAccountInfo.ClaimState.CLAIM_STATE_CLAIMED -> Claimed
+                    OcpAccountService.TokenAccountInfo.ClaimState.CLAIM_STATE_EXPIRED -> Expired
+                    OcpAccountService.TokenAccountInfo.ClaimState.UNRECOGNIZED -> null
                 }
             }
         }
@@ -282,12 +282,12 @@ data class AccountInfo(
         Cache;
 
         companion object {
-            fun getInstance(source: AccountService.TokenAccountInfo.BalanceSource): BalanceSource? {
+            fun getInstance(source: OcpAccountService.TokenAccountInfo.BalanceSource): BalanceSource? {
                 return when (source) {
-                    AccountService.TokenAccountInfo.BalanceSource.BALANCE_SOURCE_UNKNOWN -> Unknown
-                    AccountService.TokenAccountInfo.BalanceSource.BALANCE_SOURCE_BLOCKCHAIN -> Blockchain
-                    AccountService.TokenAccountInfo.BalanceSource.BALANCE_SOURCE_CACHE -> Cache
-                    AccountService.TokenAccountInfo.BalanceSource.UNRECOGNIZED -> null
+                    OcpAccountService.TokenAccountInfo.BalanceSource.BALANCE_SOURCE_UNKNOWN -> Unknown
+                    OcpAccountService.TokenAccountInfo.BalanceSource.BALANCE_SOURCE_BLOCKCHAIN -> Blockchain
+                    OcpAccountService.TokenAccountInfo.BalanceSource.BALANCE_SOURCE_CACHE -> Cache
+                    OcpAccountService.TokenAccountInfo.BalanceSource.UNRECOGNIZED -> null
                 }
             }
 

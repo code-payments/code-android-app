@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api.intents
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicWithdraw
 import com.getcode.opencode.internal.network.extensions.asProtobufMetadata
@@ -19,7 +19,7 @@ internal class IntentDistribution(
     override val metadata: TransactionMetadata,
     override val actionGroup: ActionGroup,
 ) : IntentType() {
-    override fun metadata(): TransactionService.Metadata {
+    override fun metadata(): OcpTransactionService.Metadata {
         return metadata.asProtobufMetadata()
     }
 

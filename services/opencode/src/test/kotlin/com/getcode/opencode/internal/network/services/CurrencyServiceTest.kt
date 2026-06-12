@@ -1,7 +1,7 @@
 package com.getcode.opencode.internal.network.services
 
 import com.codeinc.opencode.gen.common.v1.Model
-import com.codeinc.opencode.gen.currency.v1.CurrencyService as CurrencyProto
+import com.codeinc.opencode.gen.currency.v1.OcpCurrencyService as CurrencyProto
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.domain.mapping.HistoricalMintDataMapper
 import com.getcode.opencode.internal.domain.mapping.LiveMintDataMapper

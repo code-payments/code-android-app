@@ -1,19 +1,19 @@
 package com.getcode.opencode.internal.network.api
 
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.CanWithdrawToAccountRequest
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.CanWithdrawToAccountResponse
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.GetIntentMetadataRequest
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.GetIntentMetadataResponse
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.GetLimitsRequest
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.GetLimitsResponse
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.GetSwapRequest
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.GetSwapResponse
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.SubmitIntentRequest
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.SubmitIntentResponse
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.VoidGiftCardRequest
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.VoidGiftCardResponse
 import com.codeinc.opencode.gen.transaction.v1.TransactionGrpcKt
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.CanWithdrawToAccountRequest
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.CanWithdrawToAccountResponse
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.GetIntentMetadataRequest
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.GetIntentMetadataResponse
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.GetLimitsRequest
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.GetLimitsResponse
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.GetSwapRequest
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.GetSwapResponse
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentRequest
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentResponse
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.VoidGiftCardRequest
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.VoidGiftCardResponse
 import com.codeinc.opencode.gen.transaction.v1.validate
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
@@ -212,8 +212,8 @@ class TransactionApi @Inject constructor(
      */
     suspend fun getPendingSwaps(
         owner: KeyPair,
-    ): TransactionService.GetPendingSwapsResponse {
-        val request = TransactionService.GetPendingSwapsRequest.newBuilder()
+    ): OcpTransactionService.GetPendingSwapsResponse {
+        val request = OcpTransactionService.GetPendingSwapsRequest.newBuilder()
             .setOwner(owner.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()
@@ -243,10 +243,10 @@ class TransactionApi @Inject constructor(
      *
      */
     fun swap(
-        requestFlow: Flow<TransactionService.StatefulSwapRequest>
-    ): Flow<TransactionService.StatefulSwapResponse> = api.statefulSwap(requestFlow)
+        requestFlow: Flow<OcpTransactionService.StatefulSwapRequest>
+    ): Flow<OcpTransactionService.StatefulSwapResponse> = api.statefulSwap(requestFlow)
 
     fun statelessSwap(
-        requestFlow: Flow<TransactionService.StatelessSwapRequest>
-    ): Flow<TransactionService.StatelessSwapResponse> = api.statelessSwap(requestFlow)
+        requestFlow: Flow<OcpTransactionService.StatelessSwapRequest>
+    ): Flow<OcpTransactionService.StatelessSwapResponse> = api.statelessSwap(requestFlow)
 }

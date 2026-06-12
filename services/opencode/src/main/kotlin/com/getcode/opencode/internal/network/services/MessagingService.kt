@@ -1,9 +1,5 @@
 package com.getcode.opencode.internal.network.services
 
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ProcessLifecycleOwner
-import com.codeinc.opencode.gen.messaging.v1.MessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStreamForResult
@@ -13,7 +9,6 @@ import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.internal.network.extensions.openMessageStreamRequest
 import com.getcode.opencode.internal.network.extensions.toPublicKey
 import com.getcode.opencode.model.core.errors.AckMessagesError
-import com.getcode.opencode.model.core.errors.DiscoverTokensError
 import com.getcode.opencode.model.core.errors.PollMessagesError
 import com.getcode.opencode.model.core.errors.SendMessageError
 import com.getcode.opencode.utils.toValidationOrElse
@@ -23,9 +18,9 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.codeinc.opencode.gen.messaging.v1.MessagingService as RpcMessagingService
+import com.codeinc.opencode.gen.messaging.v1.OcpMessagingService
 
-typealias OcpMessageStreamReference = BidirectionalStreamReference<RpcMessagingService.OpenMessageStreamWithKeepAliveRequest, RpcMessagingService.OpenMessageStreamWithKeepAliveResponse>
+typealias OcpMessageStreamReference = BidirectionalStreamReference<OcpMessagingService.OpenMessageStreamWithKeepAliveRequest, OcpMessagingService.OpenMessageStreamWithKeepAliveResponse>
 
 internal class MessagingService @Inject constructor(
     private val api: MessagingApi,
@@ -33,8 +28,8 @@ internal class MessagingService @Inject constructor(
     fun openMessageStreamWithKeepAlive(
         scope: CoroutineScope,
         rendezvous: KeyPair,
-        messageFilter: (List<RpcMessagingService.Message>) -> Boolean = { true },
-        onEvent: (Result<List<RpcMessagingService.Message>>) -> Unit,
+        messageFilter: (List<OcpMessagingService.Message>) -> Boolean = { true },
+        onEvent: (Result<List<OcpMessagingService.Message>>) -> Unit,
     ): OcpMessageStreamReference {
         trace("Message Opening stream.")
         val streamReference = OcpMessageStreamReference(scope, "messaging")
@@ -65,14 +60,14 @@ internal class MessagingService @Inject constructor(
         scope: CoroutineScope,
         rendezvous: KeyPair,
         streamRef: OcpMessageStreamReference,
-        messageFilter: (List<RpcMessagingService.Message>) -> Boolean,
-        onEvent: (Result<List<RpcMessagingService.Message>>) -> Unit
+        messageFilter: (List<OcpMessagingService.Message>) -> Boolean,
+        onEvent: (Result<List<OcpMessagingService.Message>>) -> Unit
     ) {
         openBidirectionalStreamForResult(
             streamRef = streamRef,
             apiCall = api::openMessageStreamWithKeepAlive,
             initialRequest = {
-                MessagingService.OpenMessageStreamWithKeepAliveRequest.newBuilder()
+                OcpMessagingService.OpenMessageStreamWithKeepAliveRequest.newBuilder()
                     .setRequest(openMessageStreamRequest(rendezvous))
                     .build()
             },
@@ -85,16 +80,16 @@ internal class MessagingService @Inject constructor(
             },
             responseHandler = { response, onResult, requestChannel ->
                 when (response.responseOrPingCase) {
-                    MessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.RESPONSE -> {
+                    OcpMessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.RESPONSE -> {
                         val messages = response.response.messagesList
                         if (messageFilter(messages)) {
                             onResult(Result.success(messages))
                         }
                     }
 
-                    MessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.PING -> {
+                    OcpMessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.PING -> {
                         val request =
-                            MessagingService.OpenMessageStreamWithKeepAliveRequest.newBuilder()
+                            OcpMessagingService.OpenMessageStreamWithKeepAliveRequest.newBuilder()
                                 .setPong(clientPongWith(System.currentTimeMillis()))
                                 .build()
 
@@ -105,7 +100,7 @@ internal class MessagingService @Inject constructor(
                         )
                     }
 
-                    MessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.RESPONSEORPING_NOT_SET -> {
+                    OcpMessagingService.OpenMessageStreamWithKeepAliveResponse.ResponseOrPingCase.RESPONSEORPING_NOT_SET -> {
                         trace(
                             message = "Message Stream Server sent empty message. This is unexpected.",
                             type = TraceType.Error,
@@ -127,7 +122,7 @@ internal class MessagingService @Inject constructor(
 
     suspend fun pollMessages(
         rendezvous: KeyPair,
-    ): Result<List<MessagingService.Message>> {
+    ): Result<List<OcpMessagingService.Message>> {
         trace("Message polling.")
         return runCatching { api.pollMessages(rendezvous) }
             .foldWithSuppression(
@@ -142,14 +137,14 @@ internal class MessagingService @Inject constructor(
 
     suspend fun ackMessages(
         rendezvous: KeyPair,
-        messageIds: List<MessagingService.MessageId> = emptyList(),
+        messageIds: List<OcpMessagingService.MessageId> = emptyList(),
     ): Result<Unit> {
         return runCatching { api.ackMessages(rendezvous, messageIds) }
             .foldWithSuppression(
                 onSuccess = { response ->
                     when (response.result) {
-                        RpcMessagingService.AckMesssagesResponse.Result.OK -> Result.success(Unit)
-                        RpcMessagingService.AckMesssagesResponse.Result.UNRECOGNIZED -> {
+                        OcpMessagingService.AckMesssagesResponse.Result.OK -> Result.success(Unit)
+                        OcpMessagingService.AckMesssagesResponse.Result.UNRECOGNIZED -> {
                             Result.failure(AckMessagesError.Unrecognized())
                         }
 
@@ -164,21 +159,21 @@ internal class MessagingService @Inject constructor(
 
     suspend fun sendMessage(
         rendezvous: KeyPair,
-        message: RpcMessagingService.Message.Builder,
+        message: OcpMessagingService.Message.Builder,
     ): Result<PublicKey> {
         return runCatching { api.sendMessage(rendezvous = rendezvous, message = message) }
             .foldWithSuppression(
                 onSuccess = { response ->
                     when (response.result) {
-                        RpcMessagingService.SendMessageResponse.Result.OK -> {
+                        OcpMessagingService.SendMessageResponse.Result.OK -> {
                             Result.success(response.messageId.toPublicKey())
                         }
 
-                        RpcMessagingService.SendMessageResponse.Result.UNRECOGNIZED -> {
+                        OcpMessagingService.SendMessageResponse.Result.UNRECOGNIZED -> {
                             Result.failure(SendMessageError.Unrecognized())
                         }
 
-                        RpcMessagingService.SendMessageResponse.Result.NO_ACTIVE_STREAM -> {
+                        OcpMessagingService.SendMessageResponse.Result.NO_ACTIVE_STREAM -> {
                             Result.failure(SendMessageError.NoActiveStream())
                         }
 
