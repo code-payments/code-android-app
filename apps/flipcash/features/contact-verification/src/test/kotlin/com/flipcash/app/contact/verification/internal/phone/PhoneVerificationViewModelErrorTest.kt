@@ -1,6 +1,7 @@
 package com.flipcash.app.contact.verification.internal.phone
 
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.onramp.BuyOptionsCache
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.features.contact.verification.R
 import com.flipcash.services.controllers.ContactVerificationController
@@ -39,6 +40,7 @@ class PhoneVerificationViewModelErrorTest {
     private val userManager = mockk<UserManager>(relaxed = true)
     private val featureFlags = mockk<FeatureFlagController>(relaxed = true)
     private val resources = mockk<ResourceHelper>(relaxed = true)
+    private val buyOptionsCache = mockk<BuyOptionsCache>(relaxed = true)
 
     private lateinit var dispatchers: TestDispatchers
 
@@ -70,6 +72,7 @@ class PhoneVerificationViewModelErrorTest {
             featureFlags = featureFlags,
             resources = resources,
             dispatchers = dispatchers,
+            buyOptionsCache = buyOptionsCache,
         )
     }
 

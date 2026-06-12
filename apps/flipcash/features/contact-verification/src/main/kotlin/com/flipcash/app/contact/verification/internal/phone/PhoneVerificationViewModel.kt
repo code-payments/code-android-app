@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.onramp.BuyOptionsCache
 import com.flipcash.app.phone.CountryLocale
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.features.contact.verification.R
@@ -46,6 +47,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
     private val featureFlags: FeatureFlagController,
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
+    private val buyOptionsCache: BuyOptionsCache,
 ) : BaseViewModel<PhoneVerificationViewModel.State, PhoneVerificationViewModel.Event>(
     initialState = State(selectedLocale = phoneUtils.defaultCountryLocale),
     updateStateForEvent = updateStateForEvent,
@@ -181,6 +183,9 @@ internal class PhoneVerificationViewModel @Inject constructor(
                     dispatchEvent(Event.OnVerifyingCodeChanged(success = true))
                     viewModelScope.launch {
                         profileController.updateUserProfile()
+                    }
+                    viewModelScope.launch {
+                        buyOptionsCache.prefetchForCurrentUser()
                     }
 
                     viewModelScope.launch {

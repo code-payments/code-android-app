@@ -18,13 +18,9 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
-import io.mockk.slot
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -40,13 +36,14 @@ import kotlin.test.assertTrue
 @Config(manifest = Config.NONE)
 class CoinbaseOnRampControllerTest {
 
-    private val jwtProvider = mockk<OnRampJwtProvider>(relaxed = true)
+    private val jwtExecutor = mockk<CoinbaseJwtExecutor>(relaxed = true)
     private val api = mockk<CoinbaseApi>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true)
     private val exchange = mockk<Exchange>(relaxed = true)
     private val featureFlags = mockk<FeatureFlagController>(relaxed = true)
     private val googlePayReadiness = mockk<GooglePayReadiness>(relaxed = true)
     private val webViewChannelDetector = mockk<WebViewChannelDetector>(relaxed = true)
+    private val buyOptionsCache = mockk<BuyOptionsCache>(relaxed = true)
 
     private val onRampApiEndpoint = OnRampApiConfig(
         scheme = "https",
@@ -77,7 +74,7 @@ class CoinbaseOnRampControllerTest {
         every { webViewChannelDetector.detect() } returns null
 
         controller = CoinbaseOnRampController(
-            jwtProvider = jwtProvider,
+            jwtExecutor = jwtExecutor,
             onRampApiEndpoint = onRampApiEndpoint,
             api = api,
             userManager = userManager,
@@ -86,6 +83,7 @@ class CoinbaseOnRampControllerTest {
             transactionController = mockk(relaxed = true),
             googlePayReadiness = googlePayReadiness,
             webViewChannelDetector = webViewChannelDetector,
+            buyOptionsCache = buyOptionsCache,
         )
     }
 
@@ -263,160 +261,84 @@ class CoinbaseOnRampControllerTest {
 
     // endregion
 
-    // region checkBuyOptions
-
-    @Test
-    fun `checkBuyOptions passes country and subdivision to API`() = runTest {
-        val urlSlot = slot<String>()
-        val countrySlot = slot<String>()
-        val subdivisionSlot = slot<String>()
-
-        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.success("test-jwt")
-        coEvery {
-            api.getBuyOptions(
-                url = capture(urlSlot),
-                jwt = any(),
-                country = capture(countrySlot),
-                subdivision = capture(subdivisionSlot),
-            )
-        } returns JsonObject(emptyMap())
-
-        val result = controller.checkBuyOptions(country = "US", subdivision = "NY")
-
-        assertTrue(result.isSuccess)
-        assertEquals("https://api.developer.coinbase.com/onramp/v1/buy/options", urlSlot.captured)
-        assertEquals("US", countrySlot.captured)
-        assertEquals("NY", subdivisionSlot.captured)
-    }
-
-    @Test
-    fun `checkBuyOptions passes null params when omitted`() = runTest {
-        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.success("test-jwt")
-        coEvery {
-            api.getBuyOptions(
-                url = any(),
-                jwt = any(),
-                country = isNull(),
-                subdivision = isNull(),
-            )
-        } returns JsonObject(emptyMap())
-
-        val result = controller.checkBuyOptions()
-
-        assertTrue(result.isSuccess)
-        coVerify {
-            api.getBuyOptions(
-                url = any(),
-                jwt = any(),
-                country = isNull(),
-                subdivision = isNull(),
-            )
-        }
-    }
-
-    @Test
-    fun `checkBuyOptions fails when JWT fails`() = runTest {
-        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.failure(RuntimeException("jwt error"))
-
-        val result = controller.checkBuyOptions(country = "US")
-
-        assertTrue(result.isFailure)
-    }
-
-    // endregion
-
     // region resolveOnRampToken
 
-    private fun buyOptionsResponseWithUsdf(): JsonObject = JsonObject(
-        mapOf(
-            "purchase_currencies" to JsonArray(
-                listOf(
-                    JsonObject(mapOf("symbol" to JsonPrimitive("USDC"))),
-                    JsonObject(mapOf("symbol" to JsonPrimitive("USDF"))),
-                )
-            )
-        )
-    )
+    private val mintsWithUsdf = setOf(BuyOptionsMint("USDC"), BuyOptionsMint("USDF"))
+    private val mintsWithoutUsdf = setOf(BuyOptionsMint("USDC"), BuyOptionsMint("BTC"))
 
-    private fun buyOptionsResponseWithoutUsdf(): JsonObject = JsonObject(
-        mapOf(
-            "purchase_currencies" to JsonArray(
-                listOf(
-                    JsonObject(mapOf("symbol" to JsonPrimitive("USDC"))),
-                    JsonObject(mapOf("symbol" to JsonPrimitive("BTC"))),
-                )
-            )
-        )
-    )
-
-    private fun stubBuyOptionsApi(response: JsonObject) {
-        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.success("test-jwt")
-        coEvery {
-            api.getBuyOptions(url = any(), jwt = any(), country = any(), subdivision = any())
-        } returns response
-        coEvery {
-            api.getBuyOptions(url = any(), jwt = any(), country = any(), subdivision = isNull())
-        } returns response
+    private fun stubBuyOptionsCacheMints(mints: Set<BuyOptionsMint>?) {
+        coEvery { buyOptionsCache.getCached(any()) } returns mints
+        coEvery { buyOptionsCache.prefetch(any()) } returns mints
     }
 
     @Test
-    fun `resolveOnRampToken returns USDF for non-NYC US phone when USDF tradable`() = runTest {
+    fun `resolveOnRampToken always returns USDF without fallback`() = runTest {
+        stubProfile(phone = "+12125551234")
+        stubBuyOptionsCacheMints(mintsWithoutUsdf)
+        assertEquals(Token.usdf, controller.resolveOnRampToken(allowUsdcFallback = false))
+    }
+
+    @Test
+    fun `resolveOnRampToken skips cache lookup without fallback`() = runTest {
+        stubProfile(phone = "+12125551234")
+        stubBuyOptionsCacheMints(mintsWithoutUsdf)
+
+        controller.resolveOnRampToken(allowUsdcFallback = false)
+
+        coVerify(exactly = 0) { buyOptionsCache.getCached(any()) }
+        coVerify(exactly = 0) { buyOptionsCache.prefetch(any()) }
+    }
+
+    @Test
+    fun `resolveOnRampToken with fallback returns USDF when USDF tradable`() = runTest {
         stubProfile(phone = "+14155551234") // San Francisco
-        stubBuyOptionsApi(buyOptionsResponseWithUsdf())
-        assertEquals(Token.usdf, controller.resolveOnRampToken())
+        stubBuyOptionsCacheMints(mintsWithUsdf)
+        assertEquals(Token.usdf, controller.resolveOnRampToken(allowUsdcFallback = true))
     }
 
     @Test
-    fun `resolveOnRampToken returns USDF when phone is null`() = runTest {
+    fun `resolveOnRampToken with fallback returns USDF when phone is null`() = runTest {
         stubProfile(phone = null)
-        assertEquals(Token.usdf, controller.resolveOnRampToken())
+        assertEquals(Token.usdf, controller.resolveOnRampToken(allowUsdcFallback = true))
     }
 
     @Test
-    fun `resolveOnRampToken returns USDF for NYC phone when USDF is tradable`() = runTest {
+    fun `resolveOnRampToken with fallback returns USDC for NYC phone when USDF not tradable`() = runTest {
         stubProfile(phone = "+12125551234")
-        stubBuyOptionsApi(buyOptionsResponseWithUsdf())
-        assertEquals(Token.usdf, controller.resolveOnRampToken())
+        stubBuyOptionsCacheMints(mintsWithoutUsdf)
+        assertEquals(Token.usdc, controller.resolveOnRampToken(allowUsdcFallback = true))
     }
 
     @Test
-    fun `resolveOnRampToken returns USDC for NYC phone when USDF not tradable`() = runTest {
-        stubProfile(phone = "+12125551234")
-        stubBuyOptionsApi(buyOptionsResponseWithoutUsdf())
-        assertEquals(Token.usdc, controller.resolveOnRampToken())
-    }
-
-    @Test
-    fun `resolveOnRampToken returns USDC for Canadian phone when USDF not tradable`() = runTest {
+    fun `resolveOnRampToken with fallback returns USDC for Canadian phone when USDF not tradable`() = runTest {
         stubProfile(phone = "+14165551234") // Toronto
-        stubBuyOptionsApi(buyOptionsResponseWithoutUsdf())
-        assertEquals(Token.usdc, controller.resolveOnRampToken())
+        stubBuyOptionsCacheMints(mintsWithoutUsdf)
+        assertEquals(Token.usdc, controller.resolveOnRampToken(allowUsdcFallback = true))
     }
 
     @Test
-    fun `resolveOnRampToken returns USDF for international phone when USDF tradable`() = runTest {
+    fun `resolveOnRampToken with fallback returns USDF for international phone when USDF tradable`() = runTest {
         stubProfile(phone = "+442071234567") // UK
-        stubBuyOptionsApi(buyOptionsResponseWithUsdf())
-        assertEquals(Token.usdf, controller.resolveOnRampToken())
+        stubBuyOptionsCacheMints(mintsWithUsdf)
+        assertEquals(Token.usdf, controller.resolveOnRampToken(allowUsdcFallback = true))
     }
 
     @Test
-    fun `resolveOnRampToken defaults to USDF on API failure`() = runTest {
+    fun `resolveOnRampToken with fallback defaults to USDF when cache returns null`() = runTest {
         stubProfile(phone = "+12125551234")
-        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.failure(RuntimeException("fail"))
-        assertEquals(Token.usdf, controller.resolveOnRampToken())
+        coEvery { buyOptionsCache.getCached(any()) } returns null
+        coEvery { buyOptionsCache.prefetch(any()) } returns null
+        assertEquals(Token.usdf, controller.resolveOnRampToken(allowUsdcFallback = true))
     }
 
     @Test
-    fun `resolveOnRampToken caches buy-options result per region`() = runTest {
+    fun `resolveOnRampToken with fallback uses cached result without calling prefetch`() = runTest {
         stubProfile(phone = "+12125551234")
-        stubBuyOptionsApi(buyOptionsResponseWithoutUsdf())
+        coEvery { buyOptionsCache.getCached(any()) } returns mintsWithoutUsdf
 
-        controller.resolveOnRampToken()
-        controller.resolveOnRampToken()
+        controller.resolveOnRampToken(allowUsdcFallback = true)
 
-        // API should only be called once due to caching
-        coVerify(exactly = 1) { api.getBuyOptions(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { buyOptionsCache.prefetch(any()) }
     }
 
     // endregion

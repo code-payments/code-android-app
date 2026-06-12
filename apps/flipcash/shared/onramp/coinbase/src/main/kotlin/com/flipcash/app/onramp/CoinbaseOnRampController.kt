@@ -8,12 +8,8 @@ import com.coinbase.onramp.data.OnRampPurchaseRequest
 import com.coinbase.onramp.data.OnRampPurchaseResponse
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.services.models.GetJwtError
 import com.flipcash.services.user.UserManager
-import com.flipcash.shared.onramp.coinbase.BuildConfig
-import com.getcode.network.jwt.ApiProvider
 import com.getcode.network.jwt.Jwt
-import com.getcode.network.jwt.JwtSecuredEndpoint
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
@@ -45,17 +41,13 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import retrofit2.HttpException
 import javax.inject.Inject
 
 sealed class PurchaseGate : Throwable() {
     data class WebViewWarning(val channel: WebViewChannel) : PurchaseGate()
-    data object GooglePayNotSupported : PurchaseGate()
-    data object GooglePayNoPaymentMethod : PurchaseGate()
+    class GooglePayNotSupported : PurchaseGate()
+    class GooglePayNoPaymentMethod : PurchaseGate()
 }
 
 typealias OrderWithPaymentLink = Pair<String, OnRampPurchaseResponse.PaymentLink>
@@ -67,7 +59,7 @@ private val json = Json {
 
 @ActivityRetainedScoped
 class CoinbaseOnRampController @Inject constructor(
-    private val jwtProvider: OnRampJwtProvider,
+    private val jwtExecutor: CoinbaseJwtExecutor,
     private val onRampApiEndpoint: OnRampApiConfig,
     private val api: CoinbaseApi,
     private val userManager: UserManager,
@@ -76,6 +68,7 @@ class CoinbaseOnRampController @Inject constructor(
     private val transactionController: TransactionOperations,
     private val googlePayReadiness: GooglePayReadiness,
     private val webViewChannelDetector: WebViewChannelDetector,
+    private val buyOptionsCache: BuyOptionsCache,
 ) {
 
     private val _state = MutableStateFlow<CoinbaseOnRampState>(CoinbaseOnRampState.Idle)
@@ -115,8 +108,8 @@ class CoinbaseOnRampController @Inject constructor(
 
     suspend fun checkPurchaseGates(): Result<Unit> {
         when (googlePayReadiness.check()) {
-            GooglePayReadiness.Status.NotSupported -> return Result.failure(PurchaseGate.GooglePayNotSupported)
-            GooglePayReadiness.Status.NoPaymentMethod -> return Result.failure(PurchaseGate.GooglePayNoPaymentMethod)
+            GooglePayReadiness.Status.NotSupported -> return Result.failure(PurchaseGate.GooglePayNotSupported())
+            GooglePayReadiness.Status.NoPaymentMethod -> return Result.failure(PurchaseGate.GooglePayNoPaymentMethod())
             GooglePayReadiness.Status.Ready -> Unit
         }
 
@@ -132,56 +125,29 @@ class CoinbaseOnRampController @Inject constructor(
         return Result.success(Unit)
     }
 
-    private val buyOptionsCache: MutableMap<String, Boolean> = mutableMapOf()
-
     /**
      * Resolves the on-ramp token based on the user's phone number region.
-     * Calls the Coinbase buy-options API to check if USDF is tradable in the
-     * user's detected region. Falls back to USDC when USDF is unavailable.
      *
-     * Results are cached per region so the API is only called once per
-     * country+subdivision combination.
+     * When [allowUsdcFallback] is true (deposit flow), falls back to USDC when
+     * USDF is unavailable in the user's region. When false (launchpad token
+     * purchases), always returns USDF — there is no program to support a
+     * USDC swap for arbitrary tokens yet.
      */
-    suspend fun resolveOnRampToken(): Token {
+    suspend fun resolveOnRampToken(allowUsdcFallback: Boolean = false): Token {
+        if (!allowUsdcFallback) return Token.usdf
+
         val phone = userManager.profile?.verifiedPhoneNumber ?: return Token.usdf
         val region = regionFromPhone(phone) ?: return Token.usdf
 
-        val usdfAvailable = buyOptionsCache.getOrPut(region.cacheKey) {
-            checkBuyOptions(country = region.country, subdivision = region.subdivision)
-                .map { response -> isUsdfTradable(response) }
-                .getOrDefault(true) // default to USDF on API failure
+        // Fast path: check if already cached
+        val cached = buyOptionsCache.getCached(region)
+        if (cached != null) {
+            return if (BuyOptionsMint.USDF in cached) Token.usdf else Token.usdc
         }
 
-        return if (usdfAvailable) Token.usdf else Token.usdc
-    }
-
-    private fun isUsdfTradable(response: JsonObject): Boolean {
-        return response["purchase_currencies"]
-            ?.jsonArray
-            ?.any { it.jsonObject["symbol"]?.jsonPrimitive?.content == "USDF" }
-            ?: false
-    }
-
-    suspend fun checkBuyOptions(
-        country: String? = null,
-        subdivision: String? = null,
-    ): Result<JsonObject> {
-        return requestJwtAndExecute(
-            scheme = "https",
-            host = "api.developer.coinbase.com/",
-            path = "onramp/v1/buy/options",
-            method = "GET",
-            call = { jwt ->
-                runCatching {
-                    api.getBuyOptions(
-                        url = "https://api.developer.coinbase.com/onramp/v1/buy/options",
-                        jwt = "Bearer $jwt",
-                        country = country,
-                        subdivision = subdivision,
-                    )
-                }
-            }
-        )
+        // Slow path: fetch and cache; default to USDF on failure
+        val mints = buyOptionsCache.prefetch(region) ?: return Token.usdf
+        return if (BuyOptionsMint.USDF in mints) Token.usdf else Token.usdc
     }
 
     suspend fun placeOrderAndStartPayment(
@@ -192,9 +158,10 @@ class CoinbaseOnRampController @Inject constructor(
             .mapCatching { (orderId, paymentLink) ->
                 val order = OnrampOrder(orderId, paymentLink.url)
 
-                if (token.address == Mint.usdf) {
+                if (token.address == Mint.usdf || token.address == Mint.usdc) {
                     // USDF goes to the deposit address — server auto-detects it.
-                    // No stateful swap needed.
+                    // USDC goes to the owner's ATA — UsdcDepositSweep converts it.
+                    // Neither requires a stateful swap.
                     startPayment(order, token, verifiedFiat, null)
                 } else {
                     val owner = userManager.accountCluster
@@ -340,11 +307,13 @@ class CoinbaseOnRampController @Inject constructor(
     }
 
     private fun destinationForToken(owner: AccountCluster, token: Token): String {
-        return if (token.address == Mint.usdf) {
-            owner.depositAddressFor(token).base58()
-        } else {
-            val swapAccounts = Token.usdf.timelockSwapAccounts(owner.authorityPublicKey)
-            swapAccounts.pda.publicKey.base58()
+        return when (token.address) {
+            Mint.usdf -> owner.depositAddressFor(token).base58()
+            Mint.usdc -> owner.authorityPublicKey.base58()
+            else -> {
+                val swapAccounts = Token.usdf.timelockSwapAccounts(owner.authorityPublicKey)
+                swapAccounts.pda.publicKey.base58()
+            }
         }
     }
 
@@ -353,48 +322,8 @@ class CoinbaseOnRampController @Inject constructor(
         host: String,
         path: String,
         method: String,
-        call: suspend (Jwt) -> Result<T>
-    ): Result<T> {
-        val apiKey = BuildConfig.COINBASE_ONRAMP_API_KEY
-        return jwtProvider.provideJwtForEndpoint(
-            apiKey = apiKey,
-            endpoint = JwtSecuredEndpoint(
-                provider = ApiProvider.Coinbase,
-                scheme = scheme,
-                host = host,
-                path = path,
-                method = method,
-            ),
-        ).fold(
-            onSuccess = { call(it) },
-            onFailure = { error ->
-                trace(
-                    message = "JWT request failed",
-                    tag = "OnRamp",
-                    metadata = {
-                        "endpoint" to "$method $host$path"
-                        "errorType" to error::class.simpleName.orEmpty()
-                    },
-                    error = error,
-                )
-                when (error) {
-                    is GetJwtError.EmailVerificationRequired -> Result.failure(
-                        OnRampAuthError.VerificationRequired(
-                            email = true
-                        )
-                    )
-
-                    is GetJwtError.PhoneVerificationRequired -> Result.failure(
-                        OnRampAuthError.VerificationRequired(
-                            phone = true
-                        )
-                    )
-
-                    else -> Result.failure(error)
-                }
-            }
-        )
-    }
+        call: suspend (Jwt) -> Result<T>,
+    ): Result<T> = jwtExecutor.execute(scheme, host, path, method, call)
 
     private suspend fun requestJwtAndPlaceOrder(
         order: OnRampPurchaseRequest,

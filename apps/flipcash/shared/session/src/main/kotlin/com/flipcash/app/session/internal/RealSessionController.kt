@@ -8,6 +8,7 @@ import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.app.onramp.BuyOptionsCache
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
@@ -134,6 +135,7 @@ class RealSessionController @Inject constructor(
     private val purchaseMethodController: PurchaseMethodController,
     private val analytics: FlipcashAnalyticsService,
     private val usdcSweep: UsdcDepositSweep,
+    private val buyOptionsCache: BuyOptionsCache,
     appSettingsCoordinator: AppSettingsCoordinator,
 ) : SessionController {
 
@@ -249,6 +251,7 @@ class RealSessionController @Inject constructor(
         updateUserFlags()
         linkForPaymentIfNeeded()
         updateSettings()
+        prefetchBuyOptions()
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
         shareSheetController.checkForShare()
@@ -354,6 +357,14 @@ class RealSessionController @Inject constructor(
         if (userManager.authState.canAccessAuthenticatedApis) {
             scope.launch {
                 settingsController.update()
+            }
+        }
+    }
+
+    private fun prefetchBuyOptions() {
+        if (userManager.authState.canAccessAuthenticatedApis) {
+            scope.launch {
+                buyOptionsCache.prefetchForCurrentUser()
             }
         }
     }
