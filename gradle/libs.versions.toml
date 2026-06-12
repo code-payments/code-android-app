@@ -77,7 +77,7 @@ mockk = "1.14.11"
 turbine = "1.2.1"
 robolectric = "4.16.1"
 slf4j-simple = "2.0.18"
-androidxUiJUnit = "1.11.1"
+androidxUiJUnit = "1.11.2"
 mixpanel = "8.7.0"
 
 timber = "5.0.1"
