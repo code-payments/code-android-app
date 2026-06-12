@@ -491,6 +491,7 @@
     <string name="label_solanaUsdc">Solana USDC with</string>
     <string name="title_sellToken">Sell %1$s</string>
     <string name="title_purchasingToken">Purchasing %1$s</string>
+    <string name="title_depositingToken">Depositing %1$s</string>
     <string name="title_sellingToken">Selling %1$s</string>
     <string name="label_sellWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
 

@@ -86,7 +86,7 @@ data class AmountEntryState(
 
 @HiltViewModel
 class SwapViewModel @Inject constructor(
-    userManager: UserManager,
+    private val userManager: UserManager,
     private val exchange: Exchange,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     transactionController: TransactionOperations,
@@ -795,6 +795,15 @@ class SwapViewModel @Inject constructor(
                     PurchaseMethod.CoinbaseOnRamp -> {
                         analytics.buttonTapped(Button.TokenBuyWithCoinbase)
                         dispatchEvent(Event.CoinbaseSelected)
+
+                        val profile = userManager.profile
+                        val needsPhone = profile?.verifiedPhoneNumber == null
+                        val needsEmail = profile?.verifiedEmailAddress == null
+                        if (needsPhone || needsEmail) {
+                            dispatchEvent(Event.OnVerificationNeeded(needsPhone, needsEmail))
+                            return@onEach
+                        }
+
                         val amount = metadata.purchaseAmount ?: return@onEach
 
                         if (amount < minimumCoinbasePurchaseAmount) {

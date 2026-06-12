@@ -10,16 +10,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
+import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.onramp.CoinbaseOnRampCompletion
 import com.flipcash.app.onramp.LocalCoinbaseOnRampController
 import com.flipcash.app.tokens.internal.SwapEntryScreenContent
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
+import com.getcode.navigation.results.NavResultOrCanceled
+import com.getcode.navigation.results.navigateForResult
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
@@ -33,6 +38,7 @@ internal fun SwapEntryScreen(
     initialAmount: Fiat? = null,
 ) {
     val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
+    val navigator = LocalCodeNavigator.current
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val coinbaseOnRampController = LocalCoinbaseOnRampController.current
@@ -44,6 +50,8 @@ internal fun SwapEntryScreen(
         AppBarWithTitle(
             isInModal = true,
             title = when (purpose) {
+                is SwapPurpose.Buy if purpose.fundingSource != FundingSource.Flexible ->
+                    stringResource(R.string.title_amountToDeposit)
                 is SwapPurpose.BalanceIncrease -> stringResource(R.string.title_amountToBuy)
                 is SwapPurpose.BalanceDecrease -> stringResource(R.string.title_amountToSell)
             },
@@ -97,13 +105,18 @@ internal fun SwapEntryScreen(
             .filterIsInstance<SwapViewModel.Event.OnVerificationNeeded>()
             .onEach { (phone, email) ->
                 val mint = (viewModel.stateFlow.value.purpose as? SwapPurpose.Buy)?.mint ?: return@onEach
-                flowNavigator.navigate(
+                navigator.navigateForResult<VerificationResult>(
                     AppRoute.Verification(
                         origin = AppRoute.Token.Swap(SwapPurpose.Buy(mint)),
                         includePhone = phone,
                         includeEmail = email,
                     )
-                )
+                ) { result ->
+                    if (result is NavResultOrCanceled.ReturnValue &&
+                        result.value is VerificationResult.Success) {
+                        viewModel.dispatchEvent(SwapViewModel.Event.OnAmountConfirmed)
+                    }
+                }
             }.launchIn(this)
     }
 

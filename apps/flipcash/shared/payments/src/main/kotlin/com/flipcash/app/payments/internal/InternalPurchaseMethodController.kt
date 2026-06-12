@@ -14,6 +14,7 @@ import com.flipcash.app.tokens.core.ReservesBalanceProvider
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
+import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.exchange.Exchange
@@ -49,6 +50,7 @@ class InternalPurchaseMethodController @Inject constructor(
     reservesBalanceProvider: ReservesBalanceProvider,
     exchange: Exchange,
     private val resources: ResourceHelper,
+    private val userManager: UserManager,
 ) : PurchaseMethodController {
 
     private val scope = CoroutineScope(SupervisorJob())
@@ -132,10 +134,25 @@ class InternalPurchaseMethodController @Inject constructor(
         ).first()
 
         return when (result) {
-            PurchaseMethod.CoinbaseOnRamp -> AppRoute.Token.Swap(
-                purpose = SwapPurpose.Buy(Mint.usdf, FundingSource.Coinbase),
-                popToRoot = popToRoot,
-            )
+            PurchaseMethod.CoinbaseOnRamp -> {
+                val profile = userManager.profile
+                val needsPhone = profile?.verifiedPhoneNumber == null
+                val needsEmail = profile?.verifiedEmailAddress == null
+                val swapRoute = AppRoute.Token.Swap(
+                    purpose = SwapPurpose.Buy(Mint.usdf, FundingSource.Coinbase),
+                    popToRoot = popToRoot,
+                )
+                if (needsPhone || needsEmail) {
+                    AppRoute.Verification(
+                        origin = swapRoute,
+                        includePhone = needsPhone,
+                        includeEmail = needsEmail,
+                        target = swapRoute,
+                    )
+                } else {
+                    swapRoute
+                }
+            }
             PurchaseMethod.PhantomWallet -> AppRoute.Token.Swap(
                 purpose = SwapPurpose.Buy(Mint.usdf, FundingSource.Phantom),
                 popToRoot = popToRoot,

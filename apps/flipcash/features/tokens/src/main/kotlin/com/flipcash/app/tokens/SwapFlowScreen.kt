@@ -48,9 +48,9 @@ fun SwapFlowScreen(
                             toastController.showToast(result.amount, isDeposit = true)
                         }
                         outerNavigator.popAll()
-                    } else {
-                        outerNavigator.pop()
                     }
+                    // pop() at root triggers onRootReached → sheet dismiss
+                    outerNavigator.pop()
                 }
                 SwapResult.OpenDeposit,
                 SwapResult.Canceled -> outerNavigator.pop()
