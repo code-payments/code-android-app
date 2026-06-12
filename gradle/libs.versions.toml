@@ -81,7 +81,7 @@ androidxUiJUnit = "1.11.1"
 mixpanel = "8.7.0"
 
 timber = "5.0.1"
-voyager = "1.1.0-beta03"
+voyager = "2.2.21-1.10.3"
 
 sodium-bindings = "0.9.5"
 desugaring = "2.1.5"
