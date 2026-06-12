@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.executors
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStreamForResult
 import com.getcode.opencode.internal.network.api.TransactionApi
@@ -24,7 +24,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.resume
 
 private typealias StatelessSwapStreamReference =
-    BidirectionalStreamReference<TransactionService.StatelessSwapRequest, TransactionService.StatelessSwapResponse>
+    BidirectionalStreamReference<OcpTransactionService.StatelessSwapRequest, OcpTransactionService.StatelessSwapResponse>
 
 internal class StatelessSwapExecutor(
     private val api: TransactionApi,
@@ -78,7 +78,7 @@ internal class StatelessSwapExecutor(
         initialRequest = { intent.initiate() },
         responseHandler = { response, onResult, requestChannel ->
             when (response.responseCase) {
-                TransactionService.StatelessSwapResponse.ResponseCase.SERVER_PARAMETERS -> {
+                OcpTransactionService.StatelessSwapResponse.ResponseCase.SERVER_PARAMETERS -> {
                     handleServerParameters(
                         intent = intent,
                         serverParameters = response.serverParameters,
@@ -87,7 +87,7 @@ internal class StatelessSwapExecutor(
                     )
                 }
 
-                TransactionService.StatelessSwapResponse.ResponseCase.SUCCESS -> {
+                OcpTransactionService.StatelessSwapResponse.ResponseCase.SUCCESS -> {
                     streamRef.complete()
                     val code = response.success.toCode()
                     val signature = runCatching { response.success.transactionSignature.toSignature() }.getOrNull()
@@ -100,7 +100,7 @@ internal class StatelessSwapExecutor(
                     }
                 }
 
-                TransactionService.StatelessSwapResponse.ResponseCase.ERROR -> {
+                OcpTransactionService.StatelessSwapResponse.ResponseCase.ERROR -> {
                     val errors = handleErrors(response.error.errorDetailsList)
                     trace(
                         tag = TAG,
@@ -111,7 +111,7 @@ internal class StatelessSwapExecutor(
                     onResult(Result.failure(SwapError.typed(response.error)))
                 }
 
-                TransactionService.StatelessSwapResponse.ResponseCase.RESPONSE_NOT_SET -> Unit
+                OcpTransactionService.StatelessSwapResponse.ResponseCase.RESPONSE_NOT_SET -> Unit
             }
         }
     )
@@ -119,15 +119,15 @@ internal class StatelessSwapExecutor(
 
 private fun handleServerParameters(
     intent: IntentStatelessSwap,
-    serverParameters: TransactionService.StatelessSwapResponse.ServerParameters?,
-    requestChannel: (TransactionService.StatelessSwapRequest) -> Unit,
+    serverParameters: OcpTransactionService.StatelessSwapResponse.ServerParameters?,
+    requestChannel: (OcpTransactionService.StatelessSwapRequest) -> Unit,
     onResult: (StatelessSwapResult) -> Unit,
 ) {
     try {
         val params = when (serverParameters?.kindCase) {
-            TransactionService.StatelessSwapResponse.ServerParameters.KindCase.STABLECOIN ->
+            OcpTransactionService.StatelessSwapResponse.ServerParameters.KindCase.STABLECOIN ->
                 serverParameters.stablecoin.toProps()
-            TransactionService.StatelessSwapResponse.ServerParameters.KindCase.KIND_NOT_SET,
+            OcpTransactionService.StatelessSwapResponse.ServerParameters.KindCase.KIND_NOT_SET,
             null -> null
         }
 
@@ -147,16 +147,16 @@ private fun handleServerParameters(
 }
 
 private fun handleErrors(
-    errorDetails: List<TransactionService.ErrorDetails>
+    errorDetails: List<OcpTransactionService.ErrorDetails>
 ): List<String> {
     val errors = mutableListOf<String>()
     errorDetails.forEach { error ->
         when (error.typeCase) {
-            TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+            OcpTransactionService.ErrorDetails.TypeCase.REASON_STRING ->
                 errors.add("Reason: ${error.reasonString.reason}")
-            TransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE ->
+            OcpTransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE ->
                 errors.add("Action index: ${error.invalidSignature.actionId}")
-            TransactionService.ErrorDetails.TypeCase.DENIED ->
+            OcpTransactionService.ErrorDetails.TypeCase.DENIED ->
                 errors.add("Denied: ${error.denied.reason}")
             else -> Unit
         }

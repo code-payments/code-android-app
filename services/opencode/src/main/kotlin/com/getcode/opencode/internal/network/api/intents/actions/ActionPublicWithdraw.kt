@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api.intents.actions
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -40,11 +40,11 @@ class ActionPublicWithdraw(
         }
     }
 
-    override fun action(): TransactionService.Action {
-        return TransactionService.Action.newBuilder()
+    override fun action(): OcpTransactionService.Action {
+        return OcpTransactionService.Action.newBuilder()
             .setId(id)
             .setNoPrivacyWithdraw(
-                TransactionService.NoPrivacyWithdrawAction.newBuilder()
+                OcpTransactionService.NoPrivacyWithdrawAction.newBuilder()
                     .setSource(source.vaultPublicKey.asSolanaAccountId())
                     .setDestination(destination.asSolanaAccountId())
                     .setAuthority(signer.asSolanaAccountId())

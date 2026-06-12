@@ -25,6 +25,7 @@ import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingNotification
 import com.flipcash.services.models.chat.TypingState
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -47,6 +48,10 @@ internal fun PushModels.Payload.asPayload(): NotificationPayload {
             PushModels.Navigation.TypeCase.CURRENCY_INFO -> {
                 val mint = navigation.currencyInfo.toMint()
                 NavigationTrigger.CurrencyInfo(mint)
+            }
+            PushModels.Navigation.TypeCase.CHAT_ID -> {
+                val chatId = navigation.chatId.toChatId()
+                NavigationTrigger.Chat(chatId)
             }
             PushModels.Navigation.TypeCase.TYPE_NOT_SET -> null
         }
@@ -101,6 +106,10 @@ internal fun Common.PagingToken.toPagingToken(): PagingToken = value.toByteArray
 internal fun MessagingModel.Content.toMessageContent(): MessageContent {
     return when (typeCase) {
         MessagingModel.Content.TypeCase.TEXT -> MessageContent.Text(text.text)
+        MessagingModel.Content.TypeCase.CASH -> MessageContent.Cash(
+            intentId = cash.intentId.value.toByteArray().toList(),
+            amount = Fiat(quarks = cash.amount.quarks),
+        )
         else -> MessageContent.Text("")
     }
 }

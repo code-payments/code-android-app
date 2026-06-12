@@ -257,7 +257,7 @@ class RealVerifiedFiatCalculatorTest {
     @Test
     fun `USDF withdrawal with non-USD balance does not crash on fee subtraction`() = runTest {
         // End-to-end regression: reproduces the exact crash path in
-        // TransactionService.withdrawUsdf where amount - fee threw
+        // OcpTransactionService.withdrawUsdf where amount - fee threw
         // "Cannot subtract different currencies".
         val token = usdfToken()
         val gbpRate = Rate(fx = 0.79, currency = CurrencyCode.GBP)
@@ -277,7 +277,7 @@ class RealVerifiedFiatCalculatorTest {
             rate = verifiedAmount.rate,
         )
 
-        // This is the exact line that crashed in TransactionService.withdrawUsdf
+        // This is the exact line that crashed in OcpTransactionService.withdrawUsdf
         val netAmount = verifiedAmount - fee
         assertEquals(CurrencyCode.USD, netAmount.underlyingTokenAmount.currencyCode)
         assertEquals(CurrencyCode.GBP, netAmount.nativeAmount.currencyCode)

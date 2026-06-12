@@ -1,7 +1,7 @@
 package com.getcode.opencode.internal.network.api
 
 import com.codeinc.opencode.gen.currency.v1.CurrencyGrpcKt
-import com.codeinc.opencode.gen.currency.v1.CurrencyService
+import com.codeinc.opencode.gen.currency.v1.OcpCurrencyService
 import com.codeinc.opencode.gen.currency.v1.validate
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
@@ -48,12 +48,12 @@ internal class CurrencyApi @Inject constructor(
      *
      * @param mintAddresses The list of mint addresses to query
      *
-     * @return The [CurrencyService.GetMintsResponse] with mint account metadata by address
+     * @return The [OcpCurrencyService.GetMintsResponse] with mint account metadata by address
      */
     suspend fun getMints(
         mintAddresses: List<PublicKey>
-    ): CurrencyService.GetMintsResponse {
-        val request = CurrencyService.GetMintsRequest.newBuilder()
+    ): OcpCurrencyService.GetMintsResponse {
+        val request = OcpCurrencyService.GetMintsRequest.newBuilder()
             .apply {
                 mintAddresses.forEachIndexed { index, address ->
                     addAddresses(index, address.asSolanaAccountId())
@@ -71,17 +71,17 @@ internal class CurrencyApi @Inject constructor(
         mint: Mint,
         currencyCode: CurrencyCode,
         windowedRange: WindowedRange,
-    ): CurrencyService.GetHistoricalMintDataResponse {
-        val request = CurrencyService.GetHistoricalMintDataRequest.newBuilder()
+    ): OcpCurrencyService.GetHistoricalMintDataResponse {
+        val request = OcpCurrencyService.GetHistoricalMintDataRequest.newBuilder()
             .setAddress(mint.asSolanaAccountId())
             .setCurrencyCode(currencyCode.name.lowercase())
             .setPredefinedRange(
                 when (windowedRange) {
-                    WindowedRange.AllTime -> CurrencyService.PredefinedRange.ALL_TIME
-                    WindowedRange.LastDay -> CurrencyService.PredefinedRange.LAST_DAY
-                    WindowedRange.LastWeek -> CurrencyService.PredefinedRange.LAST_WEEK
-                    WindowedRange.LastMonth -> CurrencyService.PredefinedRange.LAST_MONTH
-                    WindowedRange.LastYear -> CurrencyService.PredefinedRange.LAST_YEAR
+                    WindowedRange.AllTime -> OcpCurrencyService.PredefinedRange.ALL_TIME
+                    WindowedRange.LastDay -> OcpCurrencyService.PredefinedRange.LAST_DAY
+                    WindowedRange.LastWeek -> OcpCurrencyService.PredefinedRange.LAST_WEEK
+                    WindowedRange.LastMonth -> OcpCurrencyService.PredefinedRange.LAST_MONTH
+                    WindowedRange.LastYear -> OcpCurrencyService.PredefinedRange.LAST_YEAR
                 }
             ).build()
 
@@ -93,13 +93,13 @@ internal class CurrencyApi @Inject constructor(
     }
 
     fun streamLiveMintData(
-        requests: Flow<CurrencyService.StreamLiveMintDataRequest>
-    ): Flow<CurrencyService.StreamLiveMintDataResponse> {
+        requests: Flow<OcpCurrencyService.StreamLiveMintDataRequest>
+    ): Flow<OcpCurrencyService.StreamLiveMintDataResponse> {
         return streamingApi.streamLiveMintData(requests)
     }
 
-    suspend fun checkTokenAvailability(name: String): CurrencyService.CheckAvailabilityResponse {
-        val request = CurrencyService.CheckAvailabilityRequest.newBuilder()
+    suspend fun checkTokenAvailability(name: String): OcpCurrencyService.CheckAvailabilityResponse {
+        val request = OcpCurrencyService.CheckAvailabilityRequest.newBuilder()
             .setName(name.trim())
             .build()
 
@@ -113,9 +113,9 @@ internal class CurrencyApi @Inject constructor(
     suspend fun launchToken(
         request: TokenCreateRequest,
         owner: Ed25519.KeyPair
-    ): CurrencyService.LaunchResponse {
+    ): OcpCurrencyService.LaunchResponse {
         println(request)
-        val request = CurrencyService.LaunchRequest.newBuilder()
+        val request = OcpCurrencyService.LaunchRequest.newBuilder()
             .setName(request.name.text)
             .setNameModerationAttestation(request.name.asProto())
             .apply apply@{
@@ -152,8 +152,8 @@ internal class CurrencyApi @Inject constructor(
     suspend fun updateIcon(
         update: TokenUpdateRequest.Icon,
         owner: Ed25519.KeyPair
-    ): CurrencyService.UpdateIconResponse {
-        val request = CurrencyService.UpdateIconRequest.newBuilder()
+    ): OcpCurrencyService.UpdateIconResponse {
+        val request = OcpCurrencyService.UpdateIconRequest.newBuilder()
             .setMint(update.token.address.asSolanaAccountId())
             .setIcon(update.icon.imageBytes.toByteString())
             .setModerationAttestation(update.icon.asProto())
@@ -171,14 +171,14 @@ internal class CurrencyApi @Inject constructor(
     suspend fun updateMetadata(
         update: TokenUpdateRequest.Metadata,
         owner: Ed25519.KeyPair
-    ): CurrencyService.UpdateMetadataResponse {
-        val request = CurrencyService.UpdateMetadataRequest.newBuilder()
+    ): OcpCurrencyService.UpdateMetadataResponse {
+        val request = OcpCurrencyService.UpdateMetadataRequest.newBuilder()
             .setMint(update.token.address.asSolanaAccountId())
             .setOwner(owner.asSolanaAccountId())
             .apply {
                 if (update.billCustomization != null) {
                     setNewBillCustomization(
-                        CurrencyService.UpdateMetadataRequest.BillCustomizationUpdate.newBuilder()
+                        OcpCurrencyService.UpdateMetadataRequest.BillCustomizationUpdate.newBuilder()
                             .setValue(update.billCustomization.asProto())
                             .build()
                     )
@@ -186,7 +186,7 @@ internal class CurrencyApi @Inject constructor(
 
                 if (update.description != null) {
                     setNewDescription(
-                        CurrencyService.UpdateMetadataRequest.DescriptionUpdate.newBuilder()
+                        OcpCurrencyService.UpdateMetadataRequest.DescriptionUpdate.newBuilder()
                             .setValue(update.description.text)
                             .setModerationAttestation(update.description.asProto())
                     )
@@ -194,10 +194,10 @@ internal class CurrencyApi @Inject constructor(
 
                 if (update.socialLinks != null) {
                     setNewSocialLinks(
-                        CurrencyService.UpdateMetadataRequest.SocialLinksUpdate.newBuilder()
+                        OcpCurrencyService.UpdateMetadataRequest.SocialLinksUpdate.newBuilder()
                             .apply {
                                 val proto =
-                                    CurrencyService.UpdateMetadataRequest.SocialLinksUpdate.newBuilder()
+                                    OcpCurrencyService.UpdateMetadataRequest.SocialLinksUpdate.newBuilder()
                                 update.socialLinks.mapIndexed { index, socialLink ->
                                     proto.setValue(index, socialLink.asProto())
                                 }
@@ -218,27 +218,27 @@ internal class CurrencyApi @Inject constructor(
 
     suspend fun discoverTokens(
         category: DiscoverCategory
-    ): CurrencyService.DiscoverResponse {
-        val request = CurrencyService.DiscoverRequest.newBuilder()
+    ): OcpCurrencyService.DiscoverResponse {
+        val request = OcpCurrencyService.DiscoverRequest.newBuilder()
             .setCategory(
                 when (category) {
-                    DiscoverCategory.Popular -> CurrencyService.DiscoverRequest.Category.POPULAR
-                    DiscoverCategory.New -> CurrencyService.DiscoverRequest.Category.NEW
+                    DiscoverCategory.Popular -> OcpCurrencyService.DiscoverRequest.Category.POPULAR
+                    DiscoverCategory.New -> OcpCurrencyService.DiscoverRequest.Category.NEW
                 }
             )
             .build()
 
         return withContext(Dispatchers.IO) {
             // Collect streamed responses into a single aggregated response
-            val allMints = mutableListOf<CurrencyService.Mint>()
-            var lastResult = CurrencyService.DiscoverResponse.Result.OK
+            val allMints = mutableListOf<OcpCurrencyService.Mint>()
+            var lastResult = OcpCurrencyService.DiscoverResponse.Result.OK
 
             streamingApi.discover(request).collect { response ->
                 lastResult = response.result
                 allMints += response.mintsList
             }
 
-            CurrencyService.DiscoverResponse.newBuilder()
+            OcpCurrencyService.DiscoverResponse.newBuilder()
                 .setResult(lastResult)
                 .addAllMints(allMints)
                 .build()

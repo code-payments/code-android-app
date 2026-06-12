@@ -100,7 +100,7 @@ private val sampleItem = ActivityFeedMessage(
     amount = oneDollarLocalized,
     timestamp = Instant.parse("2025-06-03T16:25:00-04:00"),
     state = MessageState.COMPLETED,
-    metadata = MessageMetadata.GaveCrypto
+    metadata = MessageMetadata.DirectlySentCrypto()
 )
 
 private val sampleItemWithToken = ActivityFeedMessageWithToken(

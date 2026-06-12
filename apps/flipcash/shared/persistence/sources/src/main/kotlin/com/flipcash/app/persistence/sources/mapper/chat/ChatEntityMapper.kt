@@ -20,6 +20,11 @@ import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.ClientMessageId
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.utils.base58
+import com.getcode.utils.base64
+import com.getcode.utils.decodeBase58
+import com.getcode.utils.decodeBase64
 import com.getcode.utils.hexEncodedString
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -163,10 +168,18 @@ class ChatEntityMapper @Inject constructor() {
 
 private fun MessageContent.toSerialized(): MessageContentSerialized = when (this) {
     is MessageContent.Text -> MessageContentSerialized.Text(text)
+    is MessageContent.Cash -> MessageContentSerialized.Cash(
+        intentId = intentId.base58,
+        quarks = amount.quarks,
+    )
 }
 
 private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
     is MessageContentSerialized.Text -> MessageContent.Text(text)
+    is MessageContentSerialized.Cash -> MessageContent.Cash(
+        intentId = intentId.decodeBase58().toList(),
+        amount = Fiat(quarks = quarks),
+    )
 }
 
 private fun MessagePointer.toSerialized(): MessagePointerSerialized = MessagePointerSerialized(

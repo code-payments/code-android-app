@@ -1,7 +1,7 @@
 package com.getcode.opencode.internal.network.streamers
 
 import com.codeinc.opencode.gen.common.v1.Model
-import com.codeinc.opencode.gen.currency.v1.CurrencyService
+import com.codeinc.opencode.gen.currency.v1.OcpCurrencyService
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStream
 import com.getcode.opencode.internal.network.api.CurrencyApi
@@ -14,7 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-typealias OcpMintStreamingReference = BidirectionalStreamReference<CurrencyService.StreamLiveMintDataRequest, CurrencyService.StreamLiveMintDataResponse>
+typealias OcpMintStreamingReference = BidirectionalStreamReference<OcpCurrencyService.StreamLiveMintDataRequest, OcpCurrencyService.StreamLiveMintDataResponse>
 
 internal class LiveMintDataStreamer @Inject constructor(
     private val currencyApi: CurrencyApi,
@@ -23,7 +23,7 @@ internal class LiveMintDataStreamer @Inject constructor(
         scope: CoroutineScope,
         mints: List<Mint>,
         tag: String? = null,
-        onUpdate: (CurrencyService.StreamLiveMintDataResponse.LiveData) -> Unit,
+        onUpdate: (OcpCurrencyService.StreamLiveMintDataResponse.LiveData) -> Unit,
     ): ManagedMintStream {
         trace(
             tag = "Mint Streamer",
@@ -48,7 +48,7 @@ class ManagedMintStream internal constructor(
     private val scope: CoroutineScope,
     private val tag: String?,
     private val mints: List<Mint>,
-    private val onUpdate: (CurrencyService.StreamLiveMintDataResponse.LiveData) -> Unit,
+    private val onUpdate: (OcpCurrencyService.StreamLiveMintDataResponse.LiveData) -> Unit,
     private val api: CurrencyApi,
 ) {
     private var activeReference: OcpMintStreamingReference? = null
@@ -101,7 +101,7 @@ class ManagedMintStream internal constructor(
     private fun openStream(
         reference: OcpMintStreamingReference,
         mints: List<Mint>,
-        onUpdate: (CurrencyService.StreamLiveMintDataResponse.LiveData) -> Unit,
+        onUpdate: (OcpCurrencyService.StreamLiveMintDataResponse.LiveData) -> Unit,
     ) = openBidirectionalStream(
         streamRef = reference,
         apiCall = api::streamLiveMintData,
@@ -109,20 +109,20 @@ class ManagedMintStream internal constructor(
         reconnectOnUnavailable = true,
         reconnectOnDeadlineExceeded = true,
         initialRequest = {
-            CurrencyService.StreamLiveMintDataRequest.newBuilder()
+            OcpCurrencyService.StreamLiveMintDataRequest.newBuilder()
                 .setRequest(
-                    CurrencyService.StreamLiveMintDataRequest.Request.newBuilder()
+                    OcpCurrencyService.StreamLiveMintDataRequest.Request.newBuilder()
                         .addAllMints(mints.map { it.asSolanaAccountId() })
                         .build()
                 ).build()
         },
         responseHandler = { response, requestChannel ->
             when (response.typeCase) {
-                CurrencyService.StreamLiveMintDataResponse.TypeCase.DATA -> {
+                OcpCurrencyService.StreamLiveMintDataResponse.TypeCase.DATA -> {
                     onUpdate(response.data)
                 }
-                CurrencyService.StreamLiveMintDataResponse.TypeCase.PING -> {
-                    val pong = CurrencyService.StreamLiveMintDataRequest.newBuilder()
+                OcpCurrencyService.StreamLiveMintDataResponse.TypeCase.PING -> {
+                    val pong = OcpCurrencyService.StreamLiveMintDataRequest.newBuilder()
                         .setPong(
                             Model.ClientPong.newBuilder()
                                 .setTimestamp(
@@ -134,7 +134,7 @@ class ManagedMintStream internal constructor(
                     reference.receivedPing(updatedTimeout = response.ping.pingDelay.seconds * 1_000L)
                     requestChannel(pong)
                 }
-                CurrencyService.StreamLiveMintDataResponse.TypeCase.TYPE_NOT_SET -> Unit
+                OcpCurrencyService.StreamLiveMintDataResponse.TypeCase.TYPE_NOT_SET -> Unit
             }
         }
     )

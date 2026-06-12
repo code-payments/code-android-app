@@ -1,6 +1,6 @@
 package com.getcode.opencode.model.financial
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import kotlin.time.Instant
 import kotlin.time.Duration.Companion.hours
 
@@ -38,7 +38,7 @@ data class Limits(
         fun newInstance(
             sinceDate: Long,
             fetchDate: Long,
-            sendLimits: Map<String, TransactionService.SendLimit>,
+            sendLimits: Map<String, OcpTransactionService.SendLimit>,
             usdTransactedSinceConsumption: Double
         ): Limits {
             val sends = sendLimits

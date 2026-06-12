@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.services
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.codeinc.opencode.gen.transaction.v1.feeAmountOrNull
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -8,7 +8,6 @@ import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.executors.IntentExecutor
-import com.getcode.opencode.internal.network.api.intents.IntentStatelessSwap
 import com.getcode.opencode.internal.network.executors.StatelessSwapExecutor
 import com.getcode.opencode.internal.network.executors.SwapExecutor
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
@@ -24,11 +23,10 @@ import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.StatelessSwapRequest
-import com.getcode.opencode.model.transactions.StatelessSwapResult
 import com.getcode.opencode.model.transactions.SwapDirection
 import com.getcode.opencode.model.transactions.SwapFundingSource
-import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.SwapStartKind
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
@@ -39,8 +37,8 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
-import kotlin.time.Instant
 import javax.inject.Inject
+import kotlin.time.Instant
 
 
 internal class TransactionService @Inject constructor(
@@ -66,19 +64,19 @@ internal class TransactionService @Inject constructor(
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
-                    TransactionService.GetIntentMetadataResponse.Result.OK -> {
+                    OcpTransactionService.GetIntentMetadataResponse.Result.OK -> {
                         Result.success(transactionMetadataMapper.map(response.metadata))
                     }
 
-                    TransactionService.GetIntentMetadataResponse.Result.NOT_FOUND -> Result.failure(
+                    OcpTransactionService.GetIntentMetadataResponse.Result.NOT_FOUND -> Result.failure(
                         GetIntentMetadataError.NotFound()
                     )
 
-                    TransactionService.GetIntentMetadataResponse.Result.UNRECOGNIZED -> Result.failure(
+                    OcpTransactionService.GetIntentMetadataResponse.Result.UNRECOGNIZED -> Result.failure(
                         GetIntentMetadataError.Unrecognized()
                     )
 
-                    TransactionService.GetIntentMetadataResponse.Result.DENIED -> Result.failure(
+                    OcpTransactionService.GetIntentMetadataResponse.Result.DENIED -> Result.failure(
                         GetIntentMetadataError.Denied()
                     )
 
@@ -100,7 +98,7 @@ internal class TransactionService @Inject constructor(
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
-                    TransactionService.GetLimitsResponse.Result.OK -> {
+                    OcpTransactionService.GetLimitsResponse.Result.OK -> {
                         val limits = Limits.newInstance(
                             sinceDate = consumedSince.toEpochMilliseconds(),
                             fetchDate = System.currentTimeMillis(),
@@ -110,7 +108,7 @@ internal class TransactionService @Inject constructor(
                         Result.success(limits)
                     }
 
-                    TransactionService.GetLimitsResponse.Result.UNRECOGNIZED -> Result.failure(
+                    OcpTransactionService.GetLimitsResponse.Result.UNRECOGNIZED -> Result.failure(
                         GetLimitsError.Unrecognized()
                     )
 
@@ -158,11 +156,11 @@ internal class TransactionService @Inject constructor(
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
-                    TransactionService.VoidGiftCardResponse.Result.OK -> Result.success(Unit)
-                    TransactionService.VoidGiftCardResponse.Result.DENIED -> Result.failure(VoidGiftCardError.Denied())
-                    TransactionService.VoidGiftCardResponse.Result.CLAIMED_BY_OTHER_USER -> Result.failure(VoidGiftCardError.AlreadyClaimed())
-                    TransactionService.VoidGiftCardResponse.Result.NOT_FOUND -> Result.failure(VoidGiftCardError.NotFound())
-                    TransactionService.VoidGiftCardResponse.Result.UNRECOGNIZED -> Result.failure(VoidGiftCardError.Unrecognized())
+                    OcpTransactionService.VoidGiftCardResponse.Result.OK -> Result.success(Unit)
+                    OcpTransactionService.VoidGiftCardResponse.Result.DENIED -> Result.failure(VoidGiftCardError.Denied())
+                    OcpTransactionService.VoidGiftCardResponse.Result.CLAIMED_BY_OTHER_USER -> Result.failure(VoidGiftCardError.AlreadyClaimed())
+                    OcpTransactionService.VoidGiftCardResponse.Result.NOT_FOUND -> Result.failure(VoidGiftCardError.NotFound())
+                    OcpTransactionService.VoidGiftCardResponse.Result.UNRECOGNIZED -> Result.failure(VoidGiftCardError.Unrecognized())
                     else -> Result.failure(VoidGiftCardError.Other())
                 }
             },

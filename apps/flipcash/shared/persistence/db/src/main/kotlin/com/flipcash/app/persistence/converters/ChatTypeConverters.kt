@@ -72,6 +72,10 @@ sealed interface MessageContentSerialized {
     @Serializable
     @SerialName("text")
     data class Text(val text: String) : MessageContentSerialized
+
+    @Serializable
+    @SerialName("cash")
+    data class Cash(val intentId: String, val quarks: Long) : MessageContentSerialized
 }
 
 @Serializable

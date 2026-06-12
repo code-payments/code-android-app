@@ -76,7 +76,7 @@ class TransactionHistoryViewModel @Inject constructor(
             .filterIsInstance<Event.OnCancelRequested>()
             .map { it.message }
             .onEach { message ->
-                val metadata = message.metadata as? MessageMetadata.SentCrypto ?: return@onEach
+                val metadata = message.metadata as? MessageMetadata.IndirectlySentCrypto ?: return@onEach
                 val formattedAmount = message.amount?.formatted()
                 val title = formattedAmount?.let {
                     resources.getString(R.string.prompt_title_cancelTransferWithAmount, it)

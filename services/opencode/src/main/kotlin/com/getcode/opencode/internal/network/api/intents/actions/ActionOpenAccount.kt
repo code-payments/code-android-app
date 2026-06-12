@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api.intents.actions
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -24,13 +24,13 @@ internal class ActionOpenAccount(
 ) : ActionType() {
 
     override fun transactions(): List<SolanaTransaction> = listOf()
-    override fun action(): TransactionService.Action {
-        return TransactionService.Action.newBuilder()
+    override fun action(): OcpTransactionService.Action {
+        return OcpTransactionService.Action.newBuilder()
             .apply trx@{
                 val index = this@ActionOpenAccount.index
                 val owner = this@ActionOpenAccount.owner
                 this.id = id
-                this.setOpenAccount(TransactionService.OpenAccountAction.newBuilder()
+                this.setOpenAccount(OcpTransactionService.OpenAccountAction.newBuilder()
                     .setIndex(index)
                     .setOwner(owner.authorityPublicKey.asSolanaAccountId())
                     .setAccountType(accountType.getAccountType())

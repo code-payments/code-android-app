@@ -1,7 +1,7 @@
 package com.getcode.opencode.model.core.errors
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentResponse
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.SubmitIntentResponse
 import com.getcode.opencode.model.core.errors.SubmitIntentError.Denied
 import com.getcode.opencode.model.core.errors.SubmitIntentError.InvalidIntent
 import com.getcode.opencode.model.core.errors.SubmitIntentError.Other
@@ -171,7 +171,7 @@ sealed class SubmitIntentError(
         fun typed(proto: SubmitIntentResponse.Error): SubmitIntentError {
             val reasonStrings = proto.errorDetailsList.mapNotNull {
                 when (it.typeCase) {
-                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+                    OcpTransactionService.ErrorDetails.TypeCase.REASON_STRING ->
                         it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
 
                     else -> null
@@ -191,9 +191,9 @@ sealed class SubmitIntentError(
                 SubmitIntentResponse.Error.Code.SIGNATURE_ERROR -> {
                     val details = proto.errorDetailsList.mapNotNull {
                         when (it.typeCase) {
-                            TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+                            OcpTransactionService.ErrorDetails.TypeCase.REASON_STRING ->
                                 it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
-                            TransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE ->
+                            OcpTransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE ->
                                 "action=${it.invalidSignature.actionId}"
                             else -> null
                         }
@@ -281,10 +281,10 @@ sealed class SwapError(
     data class Other(override val cause: Throwable? = null) : SwapError(message = cause?.message, cause = cause), NotifiableError
 
     companion object {
-        fun typed(proto: TransactionService.StatefulSwapResponse.Error): SwapError {
+        fun typed(proto: OcpTransactionService.StatefulSwapResponse.Error): SwapError {
             val reasonStrings = proto.errorDetailsList.mapNotNull {
                 when (it.typeCase) {
-                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+                    OcpTransactionService.ErrorDetails.TypeCase.REASON_STRING ->
                         it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
 
                     else -> null
@@ -292,7 +292,7 @@ sealed class SwapError(
             }
 
             return when (proto.code) {
-                TransactionService.StatefulSwapResponse.Error.Code.DENIED -> {
+                OcpTransactionService.StatefulSwapResponse.Error.Code.DENIED -> {
                     val reasons = proto.errorDetailsList.mapNotNull {
                         if (!it.hasDenied()) return@mapNotNull null
                         it.denied.reason
@@ -301,33 +301,33 @@ sealed class SwapError(
                     Denied(reasons)
                 }
 
-                TransactionService.StatefulSwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
-                TransactionService.StatefulSwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
-                TransactionService.StatefulSwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
+                OcpTransactionService.StatefulSwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
+                OcpTransactionService.StatefulSwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
+                OcpTransactionService.StatefulSwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
             }
         }
 
-        fun typed(proto: TransactionService.StatelessSwapResponse.Error): SwapError {
+        fun typed(proto: OcpTransactionService.StatelessSwapResponse.Error): SwapError {
             val reasonStrings = proto.errorDetailsList.mapNotNull {
                 when (it.typeCase) {
-                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+                    OcpTransactionService.ErrorDetails.TypeCase.REASON_STRING ->
                         it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
                     else -> null
                 }
             }
 
             return when (proto.code) {
-                TransactionService.StatelessSwapResponse.Error.Code.DENIED -> {
+                OcpTransactionService.StatelessSwapResponse.Error.Code.DENIED -> {
                     val reasons = proto.errorDetailsList.mapNotNull {
                         if (!it.hasDenied()) return@mapNotNull null
                         it.denied.reason
                     }
                     Denied(reasons)
                 }
-                TransactionService.StatelessSwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
-                TransactionService.StatelessSwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
-                TransactionService.StatelessSwapResponse.Error.Code.TRANSACTION_FAILED -> TransactionFailed(reasonStrings)
-                TransactionService.StatelessSwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
+                OcpTransactionService.StatelessSwapResponse.Error.Code.SIGNATURE_ERROR -> Signature()
+                OcpTransactionService.StatelessSwapResponse.Error.Code.INVALID_SWAP -> InvalidSwap(reasonStrings)
+                OcpTransactionService.StatelessSwapResponse.Error.Code.TRANSACTION_FAILED -> TransactionFailed(reasonStrings)
+                OcpTransactionService.StatelessSwapResponse.Error.Code.UNRECOGNIZED -> Unrecognized()
             }
         }
     }

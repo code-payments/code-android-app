@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api.intents
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.intents.actions.ActionOpenAccount
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
@@ -13,7 +13,6 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.solana.intents.ActionGroup
 import com.getcode.opencode.solana.intents.IntentType
-import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 
 internal class IntentRemoteSend(
@@ -21,7 +20,7 @@ internal class IntentRemoteSend(
     override val metadata: TransactionMetadata,
     override val actionGroup: ActionGroup
 ): IntentType() {
-    override fun metadata(): TransactionService.Metadata {
+    override fun metadata(): OcpTransactionService.Metadata {
         return metadata.asProtobufMetadata()
     }
 
@@ -72,7 +71,7 @@ internal class IntentRemoteSend(
                     destination = giftCard.cluster.vaultPublicKey,
                     amount = amount,
                     mint = token.address,
-                    isRemoteSend = true,
+                    isIndirect = true,
                     isWithdrawal = false,
                     verifiedState = verifiedState,
                 ),

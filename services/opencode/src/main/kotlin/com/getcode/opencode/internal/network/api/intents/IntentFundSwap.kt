@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api.intents
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
 import com.getcode.opencode.internal.network.extensions.asProtobufMetadata
@@ -20,7 +20,7 @@ internal class IntentFundSwap(
     override val actionGroup: ActionGroup,
 ) : IntentType() {
 
-    override fun metadata(): TransactionService.Metadata {
+    override fun metadata(): OcpTransactionService.Metadata {
         return metadata.asProtobufMetadata()
     }
 
@@ -54,7 +54,7 @@ internal class IntentFundSwap(
                     amount = amount,
                     verifiedState = verifiedState,
                     mint = fromMint.address,
-                    isRemoteSend = false,
+                    isIndirect = false,
                     isWithdrawal = true,
                 ),
                 actionGroup = buildActionGroup { add(transfer) },
