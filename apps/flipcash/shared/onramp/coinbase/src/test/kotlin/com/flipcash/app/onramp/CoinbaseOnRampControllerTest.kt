@@ -11,15 +11,20 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.model.financial.usdf
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -58,9 +63,16 @@ class CoinbaseOnRampControllerTest {
         // mock the extension property and timelockSwapAccounts to avoid the native call
         mockkStatic("com.getcode.opencode.model.financial.MintMetadataKt")
         mockkStatic("com.getcode.opencode.internal.solana.extensions.TokenKt")
-        val fakeToken = mockk<Token>(relaxed = true)
-        every { Token.usdf } returns fakeToken
-        every { fakeToken.timelockSwapAccounts(any()) } returns mockk(relaxed = true)
+        val fakeUsdf = mockk<Token>(relaxed = true) {
+            every { symbol } returns "USDF"
+        }
+        val fakeUsdc = mockk<Token>(relaxed = true) {
+            every { symbol } returns "USDC"
+        }
+        every { Token.usdf } returns fakeUsdf
+        every { Token.usdc } returns fakeUsdc
+        every { fakeUsdf.timelockSwapAccounts(any()) } returns mockk(relaxed = true)
+        every { fakeUsdc.timelockSwapAccounts(any()) } returns mockk(relaxed = true)
 
         every { webViewChannelDetector.detect() } returns null
 
@@ -247,6 +259,164 @@ class CoinbaseOnRampControllerTest {
 
         coVerify(exactly = 0) { googlePayReadiness.check() }
         coVerify(exactly = 0) { webViewChannelDetector.detect() }
+    }
+
+    // endregion
+
+    // region checkBuyOptions
+
+    @Test
+    fun `checkBuyOptions passes country and subdivision to API`() = runTest {
+        val urlSlot = slot<String>()
+        val countrySlot = slot<String>()
+        val subdivisionSlot = slot<String>()
+
+        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.success("test-jwt")
+        coEvery {
+            api.getBuyOptions(
+                url = capture(urlSlot),
+                jwt = any(),
+                country = capture(countrySlot),
+                subdivision = capture(subdivisionSlot),
+            )
+        } returns JsonObject(emptyMap())
+
+        val result = controller.checkBuyOptions(country = "US", subdivision = "NY")
+
+        assertTrue(result.isSuccess)
+        assertEquals("https://api.developer.coinbase.com/onramp/v1/buy/options", urlSlot.captured)
+        assertEquals("US", countrySlot.captured)
+        assertEquals("NY", subdivisionSlot.captured)
+    }
+
+    @Test
+    fun `checkBuyOptions passes null params when omitted`() = runTest {
+        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.success("test-jwt")
+        coEvery {
+            api.getBuyOptions(
+                url = any(),
+                jwt = any(),
+                country = isNull(),
+                subdivision = isNull(),
+            )
+        } returns JsonObject(emptyMap())
+
+        val result = controller.checkBuyOptions()
+
+        assertTrue(result.isSuccess)
+        coVerify {
+            api.getBuyOptions(
+                url = any(),
+                jwt = any(),
+                country = isNull(),
+                subdivision = isNull(),
+            )
+        }
+    }
+
+    @Test
+    fun `checkBuyOptions fails when JWT fails`() = runTest {
+        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.failure(RuntimeException("jwt error"))
+
+        val result = controller.checkBuyOptions(country = "US")
+
+        assertTrue(result.isFailure)
+    }
+
+    // endregion
+
+    // region resolveOnRampToken
+
+    private fun buyOptionsResponseWithUsdf(): JsonObject = JsonObject(
+        mapOf(
+            "purchase_currencies" to JsonArray(
+                listOf(
+                    JsonObject(mapOf("symbol" to JsonPrimitive("USDC"))),
+                    JsonObject(mapOf("symbol" to JsonPrimitive("USDF"))),
+                )
+            )
+        )
+    )
+
+    private fun buyOptionsResponseWithoutUsdf(): JsonObject = JsonObject(
+        mapOf(
+            "purchase_currencies" to JsonArray(
+                listOf(
+                    JsonObject(mapOf("symbol" to JsonPrimitive("USDC"))),
+                    JsonObject(mapOf("symbol" to JsonPrimitive("BTC"))),
+                )
+            )
+        )
+    )
+
+    private fun stubBuyOptionsApi(response: JsonObject) {
+        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.success("test-jwt")
+        coEvery {
+            api.getBuyOptions(url = any(), jwt = any(), country = any(), subdivision = any())
+        } returns response
+        coEvery {
+            api.getBuyOptions(url = any(), jwt = any(), country = any(), subdivision = isNull())
+        } returns response
+    }
+
+    @Test
+    fun `resolveOnRampToken returns USDF for non-NYC US phone when USDF tradable`() = runTest {
+        stubProfile(phone = "+14155551234") // San Francisco
+        stubBuyOptionsApi(buyOptionsResponseWithUsdf())
+        assertEquals(Token.usdf, controller.resolveOnRampToken())
+    }
+
+    @Test
+    fun `resolveOnRampToken returns USDF when phone is null`() = runTest {
+        stubProfile(phone = null)
+        assertEquals(Token.usdf, controller.resolveOnRampToken())
+    }
+
+    @Test
+    fun `resolveOnRampToken returns USDF for NYC phone when USDF is tradable`() = runTest {
+        stubProfile(phone = "+12125551234")
+        stubBuyOptionsApi(buyOptionsResponseWithUsdf())
+        assertEquals(Token.usdf, controller.resolveOnRampToken())
+    }
+
+    @Test
+    fun `resolveOnRampToken returns USDC for NYC phone when USDF not tradable`() = runTest {
+        stubProfile(phone = "+12125551234")
+        stubBuyOptionsApi(buyOptionsResponseWithoutUsdf())
+        assertEquals(Token.usdc, controller.resolveOnRampToken())
+    }
+
+    @Test
+    fun `resolveOnRampToken returns USDC for Canadian phone when USDF not tradable`() = runTest {
+        stubProfile(phone = "+14165551234") // Toronto
+        stubBuyOptionsApi(buyOptionsResponseWithoutUsdf())
+        assertEquals(Token.usdc, controller.resolveOnRampToken())
+    }
+
+    @Test
+    fun `resolveOnRampToken returns USDF for international phone when USDF tradable`() = runTest {
+        stubProfile(phone = "+442071234567") // UK
+        stubBuyOptionsApi(buyOptionsResponseWithUsdf())
+        assertEquals(Token.usdf, controller.resolveOnRampToken())
+    }
+
+    @Test
+    fun `resolveOnRampToken defaults to USDF on API failure`() = runTest {
+        stubProfile(phone = "+12125551234")
+        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.failure(RuntimeException("fail"))
+        assertEquals(Token.usdf, controller.resolveOnRampToken())
+    }
+
+    @Test
+    fun `resolveOnRampToken caches buy-options result per region`() = runTest {
+        stubProfile(phone = "+12125551234")
+        stubBuyOptionsApi(buyOptionsResponseWithoutUsdf())
+
+        controller.resolveOnRampToken()
+        controller.resolveOnRampToken()
+
+        // API should only be called once due to caching
+        coVerify(exactly = 1) { api.getBuyOptions(any(), any(), any(), any()) }
     }
 
     // endregion

@@ -2,6 +2,8 @@ package com.flipcash.app.session.internal.toast
 
 import com.flipcash.app.core.bill.BillToast
 import com.flipcash.app.core.internal.bill.BillController
+import com.flipcash.app.core.toast.ToastController
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,9 +17,9 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @Singleton
-class ToastController @Inject constructor(
+class SessionToastController @Inject constructor(
     private val billController: BillController
-) {
+) : ToastController {
     companion object {
         val INITIAL_DELAY = 500.milliseconds
         val SHOW_DELAY = 3.seconds
@@ -106,5 +108,19 @@ class ToastController @Inject constructor(
             }
         }
         isConsumingQueue = false
+    }
+
+    override fun showToast(amount: Fiat, isDeposit: Boolean) {
+        if (amount.decimalValue == 0.0) return
+        scope.launch {
+            delay(INITIAL_DELAY)
+            billController.update {
+                it.copy(showToast = true, toast = BillToast(amount = amount, isDeposit = isDeposit))
+            }
+            delay(SHOW_DELAY)
+            billController.update { it.copy(showToast = false) }
+            delay(INITIAL_DELAY)
+            billController.update { it.copy(toast = null) }
+        }
     }
 }

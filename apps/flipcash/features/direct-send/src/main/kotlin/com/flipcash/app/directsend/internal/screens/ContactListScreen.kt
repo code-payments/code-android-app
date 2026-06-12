@@ -53,7 +53,6 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.send.SendResult
 import com.flipcash.app.core.send.SendStep
 import com.flipcash.app.directsend.internal.ContactListItem
@@ -79,6 +78,7 @@ import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.view.LoadingSuccessState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 
@@ -129,9 +129,10 @@ internal fun ContactListScreen() {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<SendFlowViewModel.Event.NavigateToDiscovery>()
-            .collect {
-                navigator.openAsSheet(AppRoute.Token.Discovery)
+            .filterIsInstance<SendFlowViewModel.Event.NavigateToUsdfDepositOption>()
+            .map { it.route }
+            .collect { route ->
+                flowNavigator.navigate(route)
             }
     }
 

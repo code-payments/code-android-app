@@ -5,8 +5,10 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.toast.LocalToastController
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flowAnnotatedEntry
@@ -23,6 +25,7 @@ fun SwapFlowScreen(
     resultStateRegistry: NavResultStateRegistry,
 ) {
     val outerNavigator = LocalCodeNavigator.current
+    val toastController = LocalToastController.current
     val initialStack = route.rememberInitialStack<SwapStep>()
 
     FlowHost<SwapStep, SwapResult>(
@@ -39,9 +42,15 @@ fun SwapFlowScreen(
                 value = NavResultOrCanceled.ReturnValue(result),
             )
             when (result) {
-                SwapResult.Success -> {
-                    if (route.shortfall != null) outerNavigator.popAll()
-                    else outerNavigator.popUntil { it is AppRoute.Token.Info }
+                is SwapResult.Success -> {
+                    if (route.shortfall != null || route.popToRoot) {
+                        if (result.amount > Fiat.Zero) {
+                            toastController.showToast(result.amount, isDeposit = true)
+                        }
+                        outerNavigator.popAll()
+                    }
+                    // pop() at root triggers onRootReached → sheet dismiss
+                    outerNavigator.pop()
                 }
                 SwapResult.OpenDeposit,
                 SwapResult.Canceled -> outerNavigator.pop()

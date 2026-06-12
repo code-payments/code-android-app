@@ -322,21 +322,20 @@ private fun RowScope.ReserveButtonOptions(
     state: TokenInfoViewModel.State,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
-    CodeButton(
-        modifier = Modifier.weight(1f),
-        buttonState = ButtonState.Filled,
-        text = stringResource(R.string.action_depositFunds),
-    ) {
-        dispatch(
-            TokenInfoViewModel.Event.OpenScreen(
-                AppRoute.Transfers.Deposit()
-            )
-        )
-    }
-
     val hasBalance = state.balance.nativeAmount.isPositive
 
     if (hasBalance) {
+        CodeButton(
+            modifier = Modifier.weight(1f),
+            buttonState = ButtonState.Filled,
+            text = stringResource(R.string.action_give),
+        ) {
+            dispatch(
+                TokenInfoViewModel.Event.OpenScreen(
+                    AppRoute.Sheets.Give(mint = mint, fromTokenInfo = true)
+                )
+            )
+        }
         CodeButton(
             modifier = Modifier.weight(1f),
             buttonState = ButtonState.Filled20,
@@ -348,6 +347,14 @@ private fun RowScope.ReserveButtonOptions(
                 )
             )
         }
+    }
+
+    CodeButton(
+        modifier = Modifier.weight(1f),
+        buttonState = ButtonState.Filled20,
+        text = stringResource(R.string.action_deposit),
+    ) {
+        dispatch(TokenInfoViewModel.Event.PresentDepositOptions)
     }
 }
 
@@ -377,10 +384,7 @@ private fun RowScope.ButtonOptions(
         ) {
             dispatch(
                 TokenInfoViewModel.Event.OpenScreen(
-                    AppRoute.Sheets.Give(
-                        mint = mint,
-                        fromTokenInfo = true
-                    )
+                    AppRoute.Sheets.Give(mint = mint, fromTokenInfo = true)
                 )
             )
         }

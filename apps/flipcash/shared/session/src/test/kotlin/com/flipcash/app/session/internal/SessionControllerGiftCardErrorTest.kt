@@ -1,38 +1,24 @@
 package com.flipcash.app.session.internal
 
-import com.flipcash.app.activityfeed.ActivityFeedCoordinator
-import com.flipcash.app.activityfeed.ActivityFeedUpdater
 import com.flipcash.app.analytics.FlipcashAnalyticsService
-import com.flipcash.app.appsettings.AppSettingsCoordinator
+import com.flipcash.app.core.MainCoroutineRule
+import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.internal.bill.BillController
-import com.flipcash.app.session.internal.toast.ToastController
-import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.ShareResult
+import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
-import com.flipcash.app.shareable.ShareableConfirmationController
 import com.flipcash.app.tokens.TokenCoordinator
-import com.flipcash.app.tokens.TokenUpdater
-import com.flipcash.services.controllers.AccountController
-import com.flipcash.app.core.internal.updater.ProfileUpdater
-import com.flipcash.services.controllers.SettingsController
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.session.R
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
-import com.flipcash.app.core.bill.Bill
-import com.flipcash.app.core.bill.BillState
-import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.financial.Token
-import com.getcode.util.resources.ResourceHelper
-import com.flipcash.app.billing.BillingClient
-import com.flipcash.app.core.MainCoroutineRule
-import com.getcode.utils.network.NetworkConnectivityListener
-import com.getcode.util.vibration.Vibrator
 import com.getcode.opencode.model.accounts.GiftCardAccount
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.network.NetworkConnectivityListener
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -114,6 +100,7 @@ class SessionControllerGiftCardErrorTest {
             usdcSweep = mockk(relaxed = true),
             appSettingsCoordinator = mockk(relaxed = true),
             chatCoordinator = mockk(relaxed = true),
+            purchaseMethodController = mockk(relaxed = true),
         )
     }
 

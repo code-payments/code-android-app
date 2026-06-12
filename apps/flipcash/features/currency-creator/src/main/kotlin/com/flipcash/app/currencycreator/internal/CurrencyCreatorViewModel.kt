@@ -14,6 +14,7 @@ import com.flipcash.app.currencycreator.CurrencyCreatorCoordinator
 import com.flipcash.app.currencycreator.internal.components.CurrencyCreatorTopBarController
 import com.flipcash.app.onramp.DeeplinkError
 import com.flipcash.app.onramp.DeeplinkOnRampError
+import com.flipcash.app.onramp.PhantomSwapResult
 import com.flipcash.app.onramp.PhantomWalletController
 import com.flipcash.app.onramp.isAlert
 import com.flipcash.app.onramp.isNetworkCause
@@ -542,7 +543,8 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                         amount = totalAmount,
                         fee = feeAmount,
                         token = token,
-                    ).onSuccess { swapId ->
+                    ).onSuccess { result ->
+                        val swapId = (result as PhantomSwapResult.WithSwapId).swapId
                         dispatchEvent(Event.PurchaseSubmitted(swapId, token.address))
                     }.onFailure { error ->
                         handlePhantomError(error)

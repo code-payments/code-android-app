@@ -15,15 +15,10 @@ import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.flipcash.app.core.onboarding.OnboardingStep
-import com.getcode.navigation.NonDismissableRoute
-import com.getcode.navigation.NonDraggableRoute
 import com.getcode.navigation.flow.FlowRoute
 import com.getcode.navigation.flow.FlowRouteWithResult
-import com.getcode.opencode.exchange.VerifiedFiat
-import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
-import com.getcode.solana.keys.PublicKey
 import com.getcode.ui.core.RestrictionType
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
@@ -181,6 +176,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class Swap(
             val purpose: SwapPurpose,
             val shortfall: Fiat? = null,
+            val popToRoot: Boolean = false,
         ) : Token, FlowRouteWithResult<SwapResult> {
             override val initialStack: List<NavKey>
                 get() = listOf(SwapStep.Entry(purpose, initialAmount = shortfall))
@@ -192,13 +188,6 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data object PhantomConfirmTransaction: Token
 
-        @Serializable
-        data class TxProcessing(
-            val swapId: SwapId,
-            val swapPurpose: SwapPurpose? = null,
-            val amount: VerifiedFiat? = null,
-            val isFundingShortfall: Boolean = false,
-        ) : Token, NonDismissableRoute, NonDraggableRoute
 
         @Serializable
         data object Discovery: AppRoute

@@ -7,7 +7,9 @@ plugins {
     alias(libs.plugins.protobuf.validate)
 }
 
-val archSuffix = if (Os.isFamily(Os.FAMILY_MAC)) ":osx-x86_64" else ""
+val archSuffix = if (Os.isFamily(Os.FAMILY_MAC)) {
+    if (System.getProperty("os.arch") == "aarch64") ":osx-aarch_64" else ":osx-x86_64"
+} else ""
 
 version = "0.0.1"
 group = "com.codeinc.flipcash.gen"

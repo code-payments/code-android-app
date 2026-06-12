@@ -8,9 +8,11 @@ import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.ContactCoordinator.ContactState
 import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.contacts.device.PickedContactData
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.send.SendStep
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.permissions.PickedContact
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.directsend.R
@@ -31,6 +33,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
@@ -41,6 +44,7 @@ internal class SendFlowViewModel @Inject constructor(
     private val contactCoordinator: ContactCoordinator,
     private val tokenCoordinator: TokenCoordinator,
     private val resources: ResourceHelper,
+    purchaseMethodController: PurchaseMethodController,
 ) : BaseViewModel<SendFlowViewModel.State, SendFlowViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -75,7 +79,8 @@ internal class SendFlowViewModel @Inject constructor(
 
         data class NavigateToChat(val contact: DeviceContact) : Event
         data class NavigateToDirectSend(val contact: DeviceContact) : Event
-        data object NavigateToDiscovery : Event
+        data object PresentDepositOptions : Event
+        data class NavigateToUsdfDepositOption(val route: AppRoute): Event
     }
 
     private val messengerEnabled = featureFlags.observe(FeatureFlag.Messenger)
@@ -169,9 +174,9 @@ internal class SendFlowViewModel @Inject constructor(
                                 message = resources.getString(R.string.description_noBalanceYet),
                                 actions = listOf(
                                     BottomBarAction(
-                                        text = resources.getString(R.string.action_discoverCurrencies)
+                                        text = resources.getString(R.string.action_depositFunds)
                                     ) {
-                                        dispatchEvent(Event.NavigateToDiscovery)
+                                        dispatchEvent(Event.PresentDepositOptions)
                                     },
                                 ),
                                 showCancel = true,
@@ -182,6 +187,14 @@ internal class SendFlowViewModel @Inject constructor(
                     }
                 } else {
                     dispatchEvent(Event.SendInvite(contact))
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PresentDepositOptions>()
+            .onEach {
+                purchaseMethodController.presentDepositOptions()?.let { route ->
+                    dispatchEvent(Event.NavigateToUsdfDepositOption(route))
                 }
             }.launchIn(viewModelScope)
 
@@ -272,7 +285,8 @@ internal class SendFlowViewModel @Inject constructor(
                 is Event.SendInvite -> { state -> state }
                 is Event.NavigateToChat -> { state -> state }
                 is Event.NavigateToDirectSend -> { state -> state }
-                is Event.NavigateToDiscovery -> { state -> state }
+                is Event.PresentDepositOptions -> { state -> state }
+                is Event.NavigateToUsdfDepositOption -> { state -> state }
             }
         }
     }

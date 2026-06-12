@@ -48,6 +48,7 @@ class TokenInfoViewModel @Inject constructor(
     private val exchange: Exchange,
     private val shareController: ShareSheetController,
     private val resources: ResourceHelper,
+    private val purchaseMethodController: PurchaseMethodController,
     features: FeatureFlagController,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
@@ -95,6 +96,7 @@ class TokenInfoViewModel @Inject constructor(
         data class ExpandDescription(val expand: Boolean) : Event
         data object Share : Event
         data class OnBuy(val shortFall: Fiat? = null) : Event
+        data object PresentDepositOptions: Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object Exit : Event
     }
@@ -273,6 +275,12 @@ class TokenInfoViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.PresentDepositOptions>()
+            .mapNotNull { purchaseMethodController.presentDepositOptions(popToRoot = true) }
+            .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.Share>()
             .mapNotNull { stateFlow.value.token.dataOrNull }
             .map { Shareable.TokenInfo(it) }
@@ -290,6 +298,7 @@ class TokenInfoViewModel @Inject constructor(
                 is Event.OnBalanceUpdated -> { state -> state.copy(balance = event.balance) }
                 is Event.OnAppreciationUpdated -> { state -> state.copy(appreciation = event.amount) }
                 is Event.ExpandDescription -> { state -> state.copy(descriptionExpanded = event.expand) }
+                is Event.PresentDepositOptions -> { state -> state }
                 is Event.OnHistoricalMarketCapDataUpdated -> { state ->
                     val historicalData = state.historicalMarketCapData.toMutableMap()
                     historicalData[event.period] = event.data

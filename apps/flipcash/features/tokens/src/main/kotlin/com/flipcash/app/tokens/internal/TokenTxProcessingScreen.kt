@@ -14,6 +14,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.ui.buildNotifyButtonLabel
 import com.flipcash.app.core.ui.processing.FlowProcessingScreen
@@ -54,7 +55,10 @@ private fun TokenTxProcessingScreen(
         topBar = {
             AppBarWithTitle(
                 isInModal = true,
-                title = when (state.purpose) {
+                title = when (val purpose = state.purpose) {
+                    is SwapPurpose.Buy if purpose.fundingSource != FundingSource.Flexible ->
+                        stringResource(R.string.title_depositingToken, state.tokenName)
+
                     is SwapPurpose.BalanceIncrease -> stringResource(
                         R.string.title_purchasingToken,
                         state.tokenName

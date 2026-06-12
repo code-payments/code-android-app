@@ -12,7 +12,9 @@ import com.getcode.opencode.solana.swap.buildNewCurrencyBuyInstructions
 import com.getcode.opencode.solana.swap.buildSellInstructions
 import com.getcode.opencode.solana.swap.buildStablecoinSwapperInstructions
 import com.getcode.opencode.solana.swap.buildStatelessSwapInstructions
+import com.getcode.opencode.solana.swap.buildUsdcDepositInstructions
 import com.getcode.opencode.solana.swap.buildUsdcToUsdfSwapInstructions
+import com.getcode.opencode.solana.swap.buildUsdfDepositInstructions
 import com.getcode.opencode.model.transactions.StatelessSwapServerParameters
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
@@ -200,6 +202,75 @@ object TransactionBuilder {
             amount = amount,
             pool = pool,
             swapId = swapId,
+        )
+
+        return SolanaTransaction.newV0Instance(
+            payer = sender,
+            recentBlockhash = blockhash,
+            addressLookupTables = emptyList(),
+            instructions = instructions,
+        )
+    }
+
+    /**
+     * Constructs a Solana transaction that transfers USDC from an external wallet
+     * (e.g. Phantom) to the owner's USDC ATA. The server's auto-sweep will detect
+     * the deposit and convert it to USDF.
+     *
+     * @param owner The authority public key of the app wallet owner.
+     * @param sender The public key of the external wallet (Phantom).
+     * @param amount The amount of USDC to transfer (in quarks).
+     * @param blockhash A recent blockhash for the transaction.
+     * @return A constructed [SolanaTransaction] (V0) ready to be signed.
+     */
+    fun usdcDeposit(
+        owner: PublicKey,
+        sender: PublicKey,
+        amount: Long,
+        blockhash: Hash?,
+    ): SolanaTransaction {
+        val instructions = buildUsdcDepositInstructions(
+            sender = sender,
+            owner = owner,
+            amount = amount,
+        )
+
+        return SolanaTransaction.newV0Instance(
+            payer = sender,
+            recentBlockhash = blockhash,
+            addressLookupTables = emptyList(),
+            instructions = instructions,
+        )
+    }
+
+    /**
+     * Constructs a Solana transaction that swaps USDC→USDF via the Coinbase
+     * Stable Swapper and deposits the USDF directly into the owner's USDF VM
+     * deposit PDA ATA.
+     *
+     * Designed for Phantom-signed deposits: the sender (Phantom wallet) pays
+     * for compute and ATA rent. The Geyser watcher detects USDF in the deposit
+     * PDA ATA and sweeps it into the VM — no server-side USDC sweep needed.
+     *
+     * @param owner The public key of the app wallet owner.
+     * @param sender The public key of the external wallet (Phantom).
+     * @param amount The amount of USDC to swap into USDF (in quarks).
+     * @param feeRecipient The Coinbase pool fee recipient address.
+     * @param blockhash A recent blockhash for the transaction.
+     * @return A constructed [SolanaTransaction] (V0) ready to be signed.
+     */
+    fun usdfDeposit(
+        owner: PublicKey,
+        sender: PublicKey,
+        amount: Long,
+        feeRecipient: PublicKey,
+        blockhash: Hash?,
+    ): SolanaTransaction {
+        val instructions = buildUsdfDepositInstructions(
+            sender = sender,
+            owner = owner,
+            amount = amount,
+            feeRecipient = feeRecipient,
         )
 
         return SolanaTransaction.newV0Instance(

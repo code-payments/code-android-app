@@ -46,7 +46,7 @@ import com.flipcash.app.shareapp.ShareAppScreen
 import com.flipcash.app.tokens.SwapFlowScreen
 import com.flipcash.app.tokens.TokenInfoScreen
 import com.flipcash.app.tokens.TokenSelectScreen
-import com.flipcash.app.tokens.TokenTxProcessingScreen
+
 import com.flipcash.app.transactions.TransactionHistoryScreen
 import com.flipcash.app.userflags.UserFlagsScreen
 import com.flipcash.app.withdrawal.WithdrawalFlowScreen
@@ -109,10 +109,6 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Token.Transactions> { key -> TransactionHistoryScreen(key.mint) }
     annotatedEntry<AppRoute.Token.Swap> { key ->
         SwapFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
-    }
-    // TODO: fold this into above entry
-    annotatedEntry<AppRoute.Token.TxProcessing> { key ->
-        TokenTxProcessingScreen(key.swapId, key.swapPurpose, key.amount, key.isFundingShortfall)
     }
     annotatedEntry<AppRoute.Token.Discovery> { TokenDiscoveryScreen() }
     annotatedEntry<AppRoute.Token.CurrencyCreator> { key ->

@@ -195,10 +195,6 @@ compose-view-models = { module = "androidx.lifecycle:lifecycle-viewmodel-compose
 compose-paging = { module = "androidx.paging:paging-compose", version.ref = "compose-paging" }
 compose-webview = { module = "io.github.kevinnzou:compose-webview-multiplatform", version.ref = "compose-webview" }
 
-# RxJava
-rxjava = { module = "io.reactivex.rxjava3:rxjava", version.ref = "rxjava" }
-rxandroid = { module = "io.reactivex.rxjava3:rxandroid", version.ref = "rxandroid" }
-
 # Networking / gRPC / Protobuf
 slf4j = { module = "org.slf4j:slf4j-android", version.ref = "slf4j" }
 grpc-android = { module = "io.grpc:grpc-android", version.ref = "grpc-android" }

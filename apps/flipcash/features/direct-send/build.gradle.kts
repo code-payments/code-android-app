@@ -19,6 +19,7 @@ dependencies {
     implementation(project(":libs:messaging"))
     implementation(project(":libs:permissions:bindings"))
     implementation(project(":apps:flipcash:shared:featureflags"))
+    implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:permissions"))
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:tokens"))

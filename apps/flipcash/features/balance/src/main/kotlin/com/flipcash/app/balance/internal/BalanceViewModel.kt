@@ -2,6 +2,7 @@ package com.flipcash.app.balance.internal
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.AuthState
@@ -23,6 +24,7 @@ internal class BalanceViewModel @Inject constructor(
     userManager: UserManager,
     userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
+    purchaseMethodController: PurchaseMethodController,
 ) : BaseViewModel<BalanceViewModel.State, BalanceViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -38,6 +40,7 @@ internal class BalanceViewModel @Inject constructor(
         data object OpenCurrencySelection : Event
 
         data class OpenScreen(val screen: AppRoute) : Event
+        data object PresentDepositOptions: Event
     }
 
     init {
@@ -46,9 +49,13 @@ internal class BalanceViewModel @Inject constructor(
             .flatMapLatest { userFlags.resolvedFlags }
             .mapNotNull { it.preferredOnRampProvider.effectiveValue }
             .filterIsInstance<OnRampProvider.Defined>()
-            .onEach { provider ->
-                dispatchEvent(Event.OnPreferredOnRampProviderChanged(provider))
-            }
+            .onEach { provider -> dispatchEvent(Event.OnPreferredOnRampProviderChanged(provider)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PresentDepositOptions>()
+            .mapNotNull { purchaseMethodController.presentDepositOptions(popToRoot = true) }
+            .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)
     }
 
@@ -59,6 +66,7 @@ internal class BalanceViewModel @Inject constructor(
                 is Event.OnPreferredOnRampProviderChanged -> { state ->
                     state.copy(preferredOnRampProvider = event.provider)
                 }
+                Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
             }
         }

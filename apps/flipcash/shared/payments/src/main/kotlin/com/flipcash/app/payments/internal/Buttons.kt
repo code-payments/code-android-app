@@ -54,7 +54,7 @@ internal fun purchaseOptions(
                 )
             )
         }
-        if (state.hasReserves) {
+        if (state.hasReserves && metadata.showReserves) {
             val minimumAmountNeeded = metadata.purchaseAmount ?: Fiat.MIN_VALUE
             if (state.reservesBalance.nativeAmount >= minimumAmountNeeded) {
                 add(

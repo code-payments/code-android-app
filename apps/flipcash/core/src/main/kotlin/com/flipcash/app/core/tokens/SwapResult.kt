@@ -1,6 +1,7 @@
 package com.flipcash.app.core.tokens
 
 import android.os.Parcelable
+import com.getcode.opencode.model.financial.Fiat
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 
@@ -8,7 +9,7 @@ import kotlinx.serialization.Serializable
 sealed interface SwapResult : Parcelable {
     @Parcelize
     @Serializable
-    data object Success : SwapResult
+    data class Success(val amount: Fiat = Fiat.Zero) : SwapResult
 
     @Parcelize
     @Serializable

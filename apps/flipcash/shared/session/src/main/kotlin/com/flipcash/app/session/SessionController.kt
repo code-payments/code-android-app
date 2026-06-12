@@ -6,6 +6,7 @@ import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.session.BillDeterminationResult.ActedUpon
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
+import com.flipcash.app.core.AppRoute
 import com.getcode.ui.core.RestrictionType
 import com.getcode.util.permissions.PermissionResult
 import com.kik.kikx.models.ScannableKikCode
@@ -29,6 +30,7 @@ interface SessionController {
     fun dismissBill(action: BillDeterminationResult)
     fun onCodeScan(code: ScannableKikCode)
     fun openCashLink(cashLink: String?)
+    fun presentDepositOptions(onRoute: ((AppRoute) -> Unit)? = null)
 }
 
 data class SessionState(

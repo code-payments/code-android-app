@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Modifier
@@ -28,8 +29,12 @@ import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.contact.verification.R
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.flow.LocalOuterCodeNavigator
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.AppBarDefaults
+import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -56,10 +61,28 @@ private fun VerificationFlowIntroScreenContent(
     isForOnRamp: Boolean,
     onClick: () -> Unit,
 ) {
+    val navigator = LocalOuterCodeNavigator.current
+    val isSheetRoot = remember { navigator.backStack.size <= 1 }
     CodeScaffold(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.navigationBars),
+        topBar = {
+            if (isSheetRoot) {
+                AppBarWithTitle(
+                    isInModal = true,
+                    endContent = {
+                        AppBarDefaults.Close { navigator.hide() }
+                    },
+                )
+            } else {
+                AppBarWithTitle(
+                    isInModal = true,
+                    backButton = true,
+                    onBackIconClicked = { navigator.pop() },
+                )
+            }
+        },
         bottomBar = {
             CodeButton(
                 modifier = Modifier

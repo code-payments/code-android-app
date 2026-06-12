@@ -19,13 +19,15 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.model.SwapId
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapFundingSource
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
@@ -43,6 +45,10 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import retrofit2.HttpException
 import javax.inject.Inject
 
@@ -75,14 +81,14 @@ class CoinbaseOnRampController @Inject constructor(
     private val _state = MutableStateFlow<CoinbaseOnRampState>(CoinbaseOnRampState.Idle)
     val state: StateFlow<CoinbaseOnRampState> = _state.asStateFlow()
 
-    private val _pendingNavigation = MutableSharedFlow<AppRoute>(extraBufferCapacity = 1)
-    val pendingNavigation: SharedFlow<AppRoute> = _pendingNavigation.asSharedFlow()
+    private val _pendingCompletion = MutableSharedFlow<CoinbaseOnRampCompletion>(extraBufferCapacity = 1)
+    val pendingCompletion: SharedFlow<CoinbaseOnRampCompletion> = _pendingCompletion.asSharedFlow()
 
-    fun emitPendingNavigation(route: AppRoute) {
-        _pendingNavigation.tryEmit(route)
+    fun emitCompletion(completion: CoinbaseOnRampCompletion) {
+        _pendingCompletion.tryEmit(completion)
     }
 
-    fun startPayment(order: OnrampOrder, token: Token, amount: VerifiedFiat, swapId: SwapId) {
+    private fun startPayment(order: OnrampOrder, token: Token, amount: VerifiedFiat, swapId: SwapId?) {
         _state.value = CoinbaseOnRampState.Paying(order, token, amount, swapId)
     }
 
@@ -126,30 +132,90 @@ class CoinbaseOnRampController @Inject constructor(
         return Result.success(Unit)
     }
 
+    private val buyOptionsCache: MutableMap<String, Boolean> = mutableMapOf()
+
+    /**
+     * Resolves the on-ramp token based on the user's phone number region.
+     * Calls the Coinbase buy-options API to check if USDF is tradable in the
+     * user's detected region. Falls back to USDC when USDF is unavailable.
+     *
+     * Results are cached per region so the API is only called once per
+     * country+subdivision combination.
+     */
+    suspend fun resolveOnRampToken(): Token {
+        val phone = userManager.profile?.verifiedPhoneNumber ?: return Token.usdf
+        val region = regionFromPhone(phone) ?: return Token.usdf
+
+        val usdfAvailable = buyOptionsCache.getOrPut(region.cacheKey) {
+            checkBuyOptions(country = region.country, subdivision = region.subdivision)
+                .map { response -> isUsdfTradable(response) }
+                .getOrDefault(true) // default to USDF on API failure
+        }
+
+        return if (usdfAvailable) Token.usdf else Token.usdc
+    }
+
+    private fun isUsdfTradable(response: JsonObject): Boolean {
+        return response["purchase_currencies"]
+            ?.jsonArray
+            ?.any { it.jsonObject["symbol"]?.jsonPrimitive?.content == "USDF" }
+            ?: false
+    }
+
+    suspend fun checkBuyOptions(
+        country: String? = null,
+        subdivision: String? = null,
+    ): Result<JsonObject> {
+        return requestJwtAndExecute(
+            scheme = "https",
+            host = "api.developer.coinbase.com/",
+            path = "onramp/v1/buy/options",
+            method = "GET",
+            call = { jwt ->
+                runCatching {
+                    api.getBuyOptions(
+                        url = "https://api.developer.coinbase.com/onramp/v1/buy/options",
+                        jwt = "Bearer $jwt",
+                        country = country,
+                        subdivision = subdivision,
+                    )
+                }
+            }
+        )
+    }
+
     suspend fun placeOrderAndStartPayment(
         token: Token,
         verifiedFiat: VerifiedFiat,
     ): Result<Unit> {
-        return placeOrderInclusiveOfFees(verifiedFiat.localFiat.underlyingTokenAmount)
+        return placeOrderInclusiveOfFees(verifiedFiat.localFiat.underlyingTokenAmount, token)
             .mapCatching { (orderId, paymentLink) ->
-                val owner = userManager.accountCluster
-                    ?: throw IllegalStateException("No account cluster")
-
-                val swapId = transactionController.buy(
-                    owner = owner,
-                    amount = verifiedFiat,
-                    of = token,
-                    source = SwapFundingSource.CoinbaseOnramp(orderId = orderId),
-                    fund = { Result.success(Unit) }
-                ).getOrThrow()
-
                 val order = OnrampOrder(orderId, paymentLink.url)
-                startPayment(order, token, verifiedFiat, swapId)
+
+                if (token.address == Mint.usdf) {
+                    // USDF goes to the deposit address — server auto-detects it.
+                    // No stateful swap needed.
+                    startPayment(order, token, verifiedFiat, null)
+                } else {
+                    val owner = userManager.accountCluster
+                        ?: throw IllegalStateException("No account cluster")
+
+                    val swapId = transactionController.buy(
+                        owner = owner,
+                        amount = verifiedFiat,
+                        of = token,
+                        source = SwapFundingSource.CoinbaseOnramp(orderId = orderId),
+                        fund = { Result.success(Unit) }
+                    ).getOrThrow()
+
+                    startPayment(order, token, verifiedFiat, swapId)
+                }
             }
     }
 
     suspend fun placeOrderInclusiveOfFees(
         amount: Fiat,
+        token: Token = Token.usdf,
     ): Result<OrderWithPaymentLink> {
         val usdAmount = if (amount.currencyCode == CurrencyCode.USD) {
             amount.decimalValue.toInt().toString()
@@ -162,9 +228,8 @@ class CoinbaseOnRampController @Inject constructor(
         val owner = userManager.accountCluster
             ?: return Result.failure(Throwable("Owner not found"))
         val userRef = owner.authorityPublicKey.base58()
-        val usdfSwapAccounts = Token.usdf.timelockSwapAccounts(owner.authorityPublicKey)
 
-        val destination = usdfSwapAccounts.pda.publicKey.base58()
+        val destination = destinationForToken(owner, token)
 
         val email = userManager.profile?.verifiedEmailAddress
         val phone = userManager.profile?.verifiedPhoneNumber
@@ -195,6 +260,7 @@ class CoinbaseOnRampController @Inject constructor(
 
     suspend fun placeOrderExclusiveOfFees(
         amount: Fiat,
+        token: Token = Token.usdf,
     ): Result<OrderWithPaymentLink> {
         val usdAmount = if (amount.currencyCode == CurrencyCode.USD) {
             amount.decimalValue.toInt().toString()
@@ -207,9 +273,8 @@ class CoinbaseOnRampController @Inject constructor(
         val owner = userManager.accountCluster
             ?: return Result.failure(Throwable("Owner not found"))
         val userRef = owner.authorityPublicKey.base58()
-        val usdfSwapAccounts = Token.usdf.timelockSwapAccounts(owner.authorityPublicKey)
 
-        val destination = usdfSwapAccounts.pda.publicKey.base58()
+        val destination = destinationForToken(owner, token)
 
         val email = userManager.profile?.verifiedEmailAddress
         val phone = userManager.profile?.verifiedPhoneNumber
@@ -272,6 +337,15 @@ class CoinbaseOnRampController @Inject constructor(
                 }.map { it.order }
             }
         )
+    }
+
+    private fun destinationForToken(owner: AccountCluster, token: Token): String {
+        return if (token.address == Mint.usdf) {
+            owner.depositAddressFor(token).base58()
+        } else {
+            val swapAccounts = Token.usdf.timelockSwapAccounts(owner.authorityPublicKey)
+            swapAccounts.pda.publicKey.base58()
+        }
     }
 
     private suspend fun <T> requestJwtAndExecute(

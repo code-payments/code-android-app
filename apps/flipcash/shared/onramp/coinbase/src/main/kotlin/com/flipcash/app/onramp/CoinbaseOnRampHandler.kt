@@ -6,8 +6,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalResources
-import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
 import com.flipcash.shared.onramp.coinbase.R
 import com.getcode.manager.BottomBarManager
@@ -39,9 +37,13 @@ fun CoinbaseOnRampHandler(
 
         is CoinbaseOnRampState.Completed -> {
             LaunchedEffect(current) {
-                controller.emitPendingNavigation(
-                    AppRoute.Token.TxProcessing(current.swapId, SwapPurpose.Buy(current.token.address), current.amount)
-                )
+                val swapId = current.swapId
+                val completion = if (swapId != null) {
+                    CoinbaseOnRampCompletion.SwapSubmitted(swapId)
+                } else {
+                    CoinbaseOnRampCompletion.DepositSubmitted
+                }
+                controller.emitCompletion(completion)
                 controller.reset()
             }
         }
