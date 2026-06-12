@@ -224,7 +224,6 @@ dependencies {
     coreLibraryDesugaring(libs.android.desugaring)
 
     //standard libraries
-    implementation(libs.kotlinx.collections.immutable)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.core)
     implementation(libs.androidx.lifecycle.runtime)

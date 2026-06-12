@@ -26,5 +26,4 @@ dependencies {
     implementation(libs.compose.animation)
     implementation(libs.compose.material)
     implementation(libs.compose.material.icons.extended)
-    implementation(libs.voyager.navigator)
 }
