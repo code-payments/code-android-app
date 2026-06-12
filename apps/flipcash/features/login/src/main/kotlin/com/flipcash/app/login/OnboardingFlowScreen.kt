@@ -233,7 +233,7 @@ private fun AccountPhaseFlowHost(
 
 internal fun resolvePostAccountRoute(
     result: OnboardingResult,
-    skipContacts: Boolean = false,
+    skipContacts: Boolean = true,
 ): AppRoute? {
     val permissionsRoute = AppRoute.OnboardingFlow(
         phase = AppRoute.OnboardingFlow.Phase.Permissions,

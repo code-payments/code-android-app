@@ -45,12 +45,12 @@ compose-coil = "3.4.0"
 
 hilt = "2.59.2"
 hilt-jetpack = "1.3.0"
-okhttp = "5.3.2"
+okhttp = "5.4.0"
 retrofit = "3.0.0"
 kin-sdk = "2.1.2"
-grpc-android = "1.81.0"
+grpc-android = "1.82.0"
 slf4j = "1.7.36"
-firebase-bom = "34.14.0"
+firebase-bom = "34.14.1"
 play-service-ml-barcode = "18.3.1"
 google-play-billing = "9.0.0"
 google-play-updates = "2.1.0"
@@ -58,11 +58,11 @@ google-play-updates = "2.1.0"
 grpc = "1.81.0"
 grpc-okhttp = "1.81.0"
 grpc-kotlin = "1.5.0"
-protobuf = "4.35.0"
+protobuf = "4.35.1"
 protobuf-plugin = "0.10.0"
 protovalidate-kt = "0.1.1"
 
-lib-phone-number-port = "9.0.31"
+lib-phone-number-port = "9.0.32"
 lib-phone-number-google = "9.0.32"
 zxing = "3.5.4"
 
@@ -77,11 +77,10 @@ mockk = "1.14.11"
 turbine = "1.2.1"
 robolectric = "4.16.1"
 slf4j-simple = "2.0.18"
-androidxUiJUnit = "1.11.1"
+androidxUiJUnit = "1.11.2"
 mixpanel = "8.7.0"
 
 timber = "5.0.1"
-voyager = "1.1.0-beta03"
 
 sodium-bindings = "0.9.5"
 desugaring = "2.1.5"
@@ -167,7 +166,7 @@ kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref =
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlinx-coroutines" }
-kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version = "0.4.0" }
+kotlinx-coroutines-rx3 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-rx3", version.ref = "kotlinx-coroutines" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinx-serialization" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
@@ -196,12 +195,9 @@ compose-view-models = { module = "androidx.lifecycle:lifecycle-viewmodel-compose
 compose-paging = { module = "androidx.paging:paging-compose", version.ref = "compose-paging" }
 compose-webview = { module = "io.github.kevinnzou:compose-webview-multiplatform", version.ref = "compose-webview" }
 
-# Voyager
-voyager-navigator = { module = "cafe.adriel.voyager:voyager-navigator", version.ref = "voyager" }
-voyager-hilt = { module = "cafe.adriel.voyager:voyager-hilt", version.ref = "voyager" }
-voyager-bottomsheet = { module = "cafe.adriel.voyager:voyager-bottom-sheet-navigator", version.ref = "voyager" }
-voyager-tabs = { module = "cafe.adriel.voyager:voyager-tab-navigator", version.ref = "voyager" }
-voyager-transitions = { module = "cafe.adriel.voyager:voyager-transitions", version.ref = "voyager" }
+# RxJava
+rxjava = { module = "io.reactivex.rxjava3:rxjava", version.ref = "rxjava" }
+rxandroid = { module = "io.reactivex.rxjava3:rxandroid", version.ref = "rxandroid" }
 
 # Networking / gRPC / Protobuf
 slf4j = { module = "org.slf4j:slf4j-android", version.ref = "slf4j" }
