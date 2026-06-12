@@ -10,6 +10,7 @@ import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
 import com.flipcash.app.payments.PurchaseMethodSelection
 import com.flipcash.app.payments.PurchaseMethodState
+import com.flipcash.app.payments.PurchasePurpose
 import com.flipcash.app.tokens.core.ReservesBalanceProvider
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -103,9 +104,16 @@ class InternalPurchaseMethodController @Inject constructor(
 
     override fun present(metadata: PurchaseMethodMetadata) {
         _state.update { it.copy(canUseOtherWallets = metadata.canUseOtherWallets) }
+
         var selected = false
+
+        val title = when (metadata.purpose) {
+            PurchasePurpose.Buy -> resources.getString(R.string.prompt_title_selectPurchaseMethod)
+            PurchasePurpose.Deposit -> resources.getString(R.string.prompt_title_selectMethod)
+        }
+
         BottomBarManager.showMessage(
-            title = resources.getString(R.string.prompt_title_selectPurchaseMethod),
+            title = title,
             actions = purchaseOptions(_state.value, metadata, resources) { method ->
                 selected = true
                 scope.launch {
@@ -126,7 +134,12 @@ class InternalPurchaseMethodController @Inject constructor(
 
     override suspend fun presentDepositOptions(popToRoot: Boolean): AppRoute? {
         delay(150)
-        present(PurchaseMethodMetadata(mint = Mint.usdf, showReserves = false, canUseOtherWallets = true))
+        present(PurchaseMethodMetadata(
+            mint = Mint.usdf,
+            purpose = PurchasePurpose.Deposit,
+            showReserves = false,
+            canUseOtherWallets = true)
+        )
 
         val result = merge(
             selections.map { it.method },

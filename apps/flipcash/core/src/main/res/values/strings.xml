@@ -509,6 +509,7 @@
     <string name="label_marketCapYearShort">1Y</string>
     <string name="label_marketCapYear">this year</string>
 
+    <string name="prompt_title_selectMethod">Select Method</string>
     <string name="prompt_title_selectPurchaseMethod">Select Purchase Method</string>
     <string name="action_useCashReservesWithBalance">USDF (%1$s)</string>
     <string name="action_debitCardWithPrefix">Debit Card with</string>

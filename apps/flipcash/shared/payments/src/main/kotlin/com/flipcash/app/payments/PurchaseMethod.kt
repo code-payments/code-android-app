@@ -5,6 +5,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
 
 enum class PaymentAction { Buy, Pay }
+enum class PurchasePurpose { Buy, Deposit }
 
 sealed interface PurchaseMethod {
     data object CoinbaseOnRamp : PurchaseMethod
@@ -19,6 +20,7 @@ data class PurchaseMethodMetadata(
     val feeAmount: Fiat? = null,
     val showReserves: Boolean = true,
     val paymentAction: PaymentAction = PaymentAction.Buy,
+    val purpose: PurchasePurpose = PurchasePurpose.Buy,
     val canUseOtherWallets: Boolean = false,
 )
 
