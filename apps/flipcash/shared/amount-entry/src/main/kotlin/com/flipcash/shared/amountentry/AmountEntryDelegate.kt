@@ -13,8 +13,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlin.math.roundToInt
@@ -80,7 +82,17 @@ class AmountEntryDelegate(
                 loadingState = loading,
             ),
         )
-    }.stateIn(
+    }.scan(null as AmountEntryConfig?) { prev, current ->
+        // Freeze hint and confirm state while send is in progress;
+        // only the action's loadingState is allowed to update.
+        val loading = current.action.loadingState
+        if (prev != null && (loading.loading || loading.success)) {
+            prev.copy(action = current.action)
+        } else {
+            current
+        }
+    }.filterNotNull()
+    .stateIn(
         scope,
         SharingStarted.WhileSubscribed(5000),
         AmountEntryConfig(

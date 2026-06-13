@@ -1,9 +1,12 @@
 package com.flipcash.app.messenger.internal.screens
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -216,12 +219,17 @@ private fun UserControlBottomBar(
                             buttonState = ButtonState.Filled,
                             text = stringResource(R.string.action_sendCash),
                         ) { dispatch(ChatViewModel.Event.OnSendCash) }
-                        if (state.hasPayment) {
+                        AnimatedVisibility(
+                            visible = state.hasPayment,
+                            modifier = Modifier.weight(1f),
+                            enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
+                            exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut(),
+                        ) {
                             val material = HazeMaterials.ultraThin(
                                 containerColor = CodeTheme.colors.background
                             )
                             CodeButton(
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier
                                     .hazeEffect(hazeState) {
                                         blurEffect {
                                             style = material

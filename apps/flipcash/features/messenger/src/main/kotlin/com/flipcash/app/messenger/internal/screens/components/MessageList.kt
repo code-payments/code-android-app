@@ -1,6 +1,10 @@
 package com.flipcash.app.messenger.internal.screens.components
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -125,7 +129,11 @@ internal fun MessageList(
             val item = messages[index] ?: return@items
             val bottomSpacing = bottomSpacingFor(index, item, messages, separatorConfig)
 
-            Box(modifier = Modifier.padding(bottom = bottomSpacing)) {
+            Box(
+                modifier = Modifier
+                    .padding(bottom = bottomSpacing)
+                    .animateItem(),
+            ) {
                 when (item) {
                     is ChatListItem.DateSeparator -> DateSeparatorRow(item.label)
                     is ChatListItem.ContentBubble -> {
@@ -296,15 +304,21 @@ private fun shouldShowReceiptLabel(
 
 @Composable
 private fun ReceiptLabel(status: ReceiptStatus, modifier: Modifier = Modifier) {
-    val text = when (status) {
-        ReceiptStatus.SENT -> "Delivered"
-        ReceiptStatus.READ -> "Read"
-        else -> return
-    }
-    Text(
-        text = text,
-        style = CodeTheme.typography.caption,
-        color = CodeTheme.colors.textSecondary,
+    AnimatedContent(
+        targetState = status,
         modifier = modifier.padding(top = CodeTheme.dimens.grid.x1),
-    )
+        transitionSpec = { fadeIn() togetherWith fadeOut() },
+        label = "receiptStatus",
+    ) { animatedStatus ->
+        val text = when (animatedStatus) {
+            ReceiptStatus.SENT -> "Delivered"
+            ReceiptStatus.READ -> "Read"
+            else -> return@AnimatedContent
+        }
+        Text(
+            text = text,
+            style = CodeTheme.typography.caption,
+            color = CodeTheme.colors.textSecondary,
+        )
+    }
 }
