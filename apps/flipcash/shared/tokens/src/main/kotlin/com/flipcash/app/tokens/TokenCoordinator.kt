@@ -186,7 +186,7 @@ class TokenCoordinator @Inject constructor(
     fun hasGiveableBalance(): Boolean =
         _state.value.balances
             .values
-            .any { it.isPositive }
+            .any { it.hasDisplayableValue }
 
     fun balanceForToken(token: Token): Fiat = _state.value.balances[token.address] ?: Fiat.Zero
 
