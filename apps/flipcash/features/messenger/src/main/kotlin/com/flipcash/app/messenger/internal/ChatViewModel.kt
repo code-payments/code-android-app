@@ -9,8 +9,9 @@ import androidx.paging.flatMap
 import androidx.paging.insertSeparators
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.device.DeviceContact
+import androidx.compose.runtime.snapshotFlow
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.AppRoute.ChatIdentifier
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.messenger.internal.screens.components.ChatListItem
@@ -23,6 +24,7 @@ import com.flipcash.services.models.buildDmPaymentMetadata
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.amountentry.AmountEntryDelegate
 import com.flipcash.shared.amountentry.AmountEntryStyle
@@ -52,6 +54,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -60,10 +63,19 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.min
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
+
+data class TypingConstraints(
+    val enabled: Boolean = false,
+    val interval: Duration = 3.seconds,
+    val timeout: Duration = 5.seconds,
+)
 
 @HiltViewModel
 internal class ChatViewModel @Inject constructor(
@@ -100,9 +112,10 @@ internal class ChatViewModel @Inject constructor(
         val typists: Set<ActiveTypist> = emptySet(),
         val resolveState: ResolveState = ResolveState.Pending,
         val sendProgress: LoadingSuccessState = LoadingSuccessState(),
+        val isSelfTyping: Boolean = false,
+        val typingConstraints: TypingConstraints = TypingConstraints(),
         val token: Token? = null,
         val limits: Limits? = null,
-        val hasPayment: Boolean = false,
     )
 
     sealed interface Event {
@@ -134,9 +147,13 @@ internal class ChatViewModel @Inject constructor(
         ) : Event
         data class SendComplete(val amount: Fiat) : Event
 
+        data object OnSelfTypingStarted : Event
+        data object OnSelfTypingStill : Event
+        data object OnSelfTypingStopped : Event
+        data class TypingEnabled(val enabled: Boolean) : Event
+
         data class TokenUpdated(val token: Token) : Event
         data class LimitsChanged(val limits: Limits?) : Event
-        data class HasPaymentBeenMade(val hasPayment: Boolean) : Event
         data class AdvanceReadPointer(val messageId: Long) : Event
     }
 
@@ -258,6 +275,7 @@ internal class ChatViewModel @Inject constructor(
 
                 if (chatId != null) {
                     dispatchEvent(Event.ChatFound(chatId))
+                    chatCoordinator.setActiveChatId(chatId)
                     chatCoordinator.dismissNotifications(chatId)
                 }
 
@@ -317,6 +335,67 @@ internal class ChatViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        // Dispatch typing notifications based on text changes.
+        // transformLatest auto-cancels the previous block on each new emission,
+        // replacing manual Job tracking for idle timeout and heartbeats.
+        @OptIn(ExperimentalCoroutinesApi::class)
+        snapshotFlow { stateFlow.value.chatInputState.text.toString() }
+            .drop(1)
+            .distinctUntilChanged()
+            .transformLatest { text ->
+                if (!stateFlow.value.typingConstraints.enabled) return@transformLatest
+
+                if (text.isEmpty()) {
+                    if (stateFlow.value.isSelfTyping) {
+                        emit(Event.OnSelfTypingStopped)
+                    }
+                    return@transformLatest
+                }
+
+                if (!stateFlow.value.isSelfTyping) {
+                    emit(Event.OnSelfTypingStarted)
+                }
+
+                val constraints = stateFlow.value.typingConstraints
+                var elapsed = Duration.ZERO
+                while (elapsed < constraints.timeout) {
+                    val wait = minOf(constraints.interval, constraints.timeout - elapsed)
+                    delay(wait)
+                    elapsed += wait
+                    if (elapsed < constraints.timeout) {
+                        emit(Event.OnSelfTypingStill)
+                    }
+                }
+                emit(Event.OnSelfTypingStopped)
+            }
+            .onEach { dispatchEvent(it) }
+            .launchIn(viewModelScope)
+
+        // Send STOPPED_TYPING when keyboard is dismissed
+        eventFlow.filterIsInstance<Event.OnStopMessageInput>()
+            .onEach {
+                if (stateFlow.value.isSelfTyping) {
+                    dispatchEvent(Event.OnSelfTypingStopped)
+                }
+            }
+            .launchIn(viewModelScope)
+
+        // Notify server of typing state changes
+        eventFlow.filterIsInstance<Event.OnSelfTypingStarted>()
+            .mapNotNull { stateFlow.value.chatId }
+            .onEach { chatCoordinator.notifyTyping(it, TypingState.STARTED_TYPING) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.OnSelfTypingStill>()
+            .mapNotNull { stateFlow.value.chatId }
+            .onEach { chatCoordinator.notifyTyping(it, TypingState.STILL_TYPING) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.OnSelfTypingStopped>()
+            .mapNotNull { stateFlow.value.chatId }
+            .onEach { chatCoordinator.notifyTyping(it, TypingState.STOPPED_TYPING) }
+            .launchIn(viewModelScope)
+
         // Observe typing indicators once chatId is known
         stateFlow.map { it.chatId }
             .filterNotNull()
@@ -324,7 +403,7 @@ internal class ChatViewModel @Inject constructor(
             .onEach { typists -> dispatchEvent(Event.TypistsUpdated(typists)) }
             .launchIn(viewModelScope)
 
-        // Track whether any payment has been exchanged in this chat
+        // Enable typing notifications once a payment has been exchanged
         stateFlow.map { it.chatId }
             .filterNotNull()
             .distinctUntilChanged()
@@ -335,7 +414,7 @@ internal class ChatViewModel @Inject constructor(
                     }
                     .distinctUntilChanged()
             }
-            .onEach { dispatchEvent(Event.HasPaymentBeenMade(it)) }
+            .onEach { dispatchEvent(Event.TypingEnabled(it)) }
             .launchIn(viewModelScope)
 
         // Send text message
@@ -462,6 +541,11 @@ internal class ChatViewModel @Inject constructor(
             }.launchIn(viewModelScope)
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        chatCoordinator.setActiveChatId(null)
+    }
+
     private fun checkBalanceLimit(): Boolean {
         val amount = amountDelegate.state.value.enteredAmount
         val token = stateFlow.value.token ?: return false
@@ -553,9 +637,16 @@ internal class ChatViewModel @Inject constructor(
                     )
                 }
                 is Event.SendComplete -> { state -> state }
+                Event.OnSelfTypingStarted -> { state -> state.copy(isSelfTyping = true) }
+                Event.OnSelfTypingStill -> { state -> state }
+                Event.OnSelfTypingStopped -> { state -> state.copy(isSelfTyping = false) }
+                is Event.TypingEnabled -> { state ->
+                    state.copy(
+                        typingConstraints = state.typingConstraints.copy(enabled = event.enabled)
+                    )
+                }
                 is Event.TokenUpdated -> { state -> state.copy(token = event.token) }
                 is Event.LimitsChanged -> { state -> state.copy(limits = event.limits) }
-                is Event.HasPaymentBeenMade -> { state -> state.copy(hasPayment = event.hasPayment) }
                 is Event.AdvanceReadPointer -> { state -> state }
             }
         }

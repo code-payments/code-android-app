@@ -43,4 +43,5 @@ dependencies {
     implementation(libs.compose.accompanist)
     implementation(libs.compose.paging)
     api(libs.vico.compose)
+    implementation(libs.bundles.haze)
 }

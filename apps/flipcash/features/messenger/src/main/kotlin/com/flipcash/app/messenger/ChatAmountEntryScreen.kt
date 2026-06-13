@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.TokenSelectionPill
 import com.flipcash.app.messenger.internal.ChatViewModel
@@ -29,7 +30,7 @@ import kotlinx.coroutines.flow.onEach
  * (messenger disabled). Creates its own [ChatViewModel] scoped to this nav entry.
  */
 @Composable
-fun ChatAmountEntryScreen(identifier: AppRoute.ChatIdentifier) {
+fun ChatAmountEntryScreen(identifier: ChatIdentifier) {
     val viewModel = hiltViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 

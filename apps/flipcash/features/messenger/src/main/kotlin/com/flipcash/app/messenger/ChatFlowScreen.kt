@@ -9,6 +9,7 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
@@ -40,7 +41,7 @@ fun ChatFlowScreen(
 
 @Composable
 private fun chatEntryProvider(
-    identifier: AppRoute.ChatIdentifier,
+    identifier: ChatIdentifier,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<ChatStep.Conversation> {
         FlowConversationScreen(identifier)
@@ -51,7 +52,7 @@ private fun chatEntryProvider(
 }
 
 @Composable
-private fun FlowConversationScreen(identifier: AppRoute.ChatIdentifier) {
+private fun FlowConversationScreen(identifier: ChatIdentifier) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
 

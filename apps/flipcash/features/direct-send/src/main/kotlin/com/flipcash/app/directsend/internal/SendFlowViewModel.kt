@@ -9,6 +9,7 @@ import com.flipcash.app.contacts.ContactCoordinator.ContactState
 import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.contacts.device.PickedContactData
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.send.SendStep
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
@@ -43,7 +44,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
@@ -89,7 +89,7 @@ internal class SendFlowViewModel @Inject constructor(
         data class ContactRemoved(val e164: String) : Event
         data class SendInvite(val contact: DeviceContact) : Event
 
-        data class NavigateToChat(val identifier: AppRoute.ChatIdentifier) : Event
+        data class NavigateToChat(val identifier: ChatIdentifier) : Event
         data class NavigateToDirectSend(val contact: DeviceContact) : Event
         data object PresentDepositOptions : Event
         data class NavigateToUsdfDepositOption(val route: AppRoute): Event
@@ -182,9 +182,9 @@ internal class SendFlowViewModel @Inject constructor(
                 if (isOnFlipcash) {
                     if (featureFlags.get(FeatureFlag.Messenger)) {
                         val identifier = if (contact.e164.isNotEmpty()) {
-                            AppRoute.ChatIdentifier.ByContact(contact.e164, contact.displayName, row.chatId)
+                            ChatIdentifier.ByContact(contact.e164, contact.displayName, row.chatId)
                         } else {
-                            AppRoute.ChatIdentifier.ByChatId(row.chatId!!)
+                            ChatIdentifier.ByChatId(row.chatId!!)
                         }
                         dispatchEvent(Event.NavigateToChat(identifier))
                     } else {

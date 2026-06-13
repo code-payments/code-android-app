@@ -2,6 +2,7 @@ package com.flipcash.app.router.internal
 
 import androidx.core.net.toUri
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.models.chat.ChatId
@@ -59,7 +60,7 @@ internal class AppRouter(
 
             is DeeplinkType.EmailVerification -> resolveEmailVerification(type)
             is DeeplinkType.Chat -> DeeplinkAction.Navigate(
-                listOf(AppRoute.Sheets.Send(), AppRoute.Messaging.Chat(AppRoute.ChatIdentifier.ByChatId(type.chatId)))
+                listOf(AppRoute.Sheets.Send(), AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(type.chatId)))
             )
         }
     }
