@@ -24,6 +24,7 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.ContactResolver
 import com.flipcash.app.core.util.Linkify
+import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.NavigationTrigger
@@ -73,6 +74,9 @@ class NotificationService : FirebaseMessagingService(),
 
     @Inject
     lateinit var contactResolver: ContactResolver
+
+    @Inject
+    lateinit var chatCoordinator: ChatCoordinator
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
@@ -142,6 +146,8 @@ class NotificationService : FirebaseMessagingService(),
         notificationManager.createNotificationChannel(channel)
 
         val chatId = (payload?.navigation as? NavigationTrigger.Chat)?.chatId
+        if (chatId != null && chatCoordinator.isActiveChat(chatId)) return
+
         val groupKey = payload?.groupKey?.takeIf { it.isNotEmpty() }
 
         val builder = NotificationCompat.Builder(this, channel.id)

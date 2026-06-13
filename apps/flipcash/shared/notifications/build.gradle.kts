@@ -9,6 +9,7 @@ android {
 
 dependencies {
     implementation(project(":apps:flipcash:shared:authentication"))
+    implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":apps:flipcash:shared:phone"))
