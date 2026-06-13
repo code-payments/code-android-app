@@ -14,10 +14,12 @@ import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
+import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.onboarding.OnboardingStep
 import com.getcode.navigation.flow.FlowRoute
 import com.getcode.navigation.flow.FlowRouteWithResult
 import com.getcode.opencode.model.financial.Fiat
+import com.flipcash.services.models.chat.ChatId
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
 import kotlinx.parcelize.Parcelize
@@ -238,18 +240,33 @@ sealed interface AppRoute : NavKey, Parcelable {
 
     @Serializable
     @Parcelize
-    sealed interface Messaging : AppRoute {
-        @Serializable
-        data class Chat(
-            val e164: String,
-            val displayName: String,
-        ) : Messaging
+    sealed interface ChatIdentifier : Parcelable {
+        val key: String
 
         @Serializable
-        data class AmountEntry(
-            val e164: String,
-            val displayName: String,
-        ) : Messaging
+        @Parcelize
+        data class ByChatId(val chatId: ChatId) : ChatIdentifier {
+            override val key: String get() = chatId.toString()
+        }
+
+        @Serializable
+        @Parcelize
+        data class ByContact(val e164: String, val displayName: String, val chatId: ChatId? = null) : ChatIdentifier {
+            override val key: String get() = e164
+        }
+    }
+
+    @Serializable
+    @Parcelize
+    sealed interface Messaging : AppRoute {
+        @Serializable
+        data class Chat(val identifier: ChatIdentifier) : Messaging, FlowRoute {
+            override val initialStack: List<NavKey>
+                get() = listOf(ChatStep.Conversation)
+        }
+
+        @Serializable
+        data class AmountEntry(val identifier: ChatIdentifier) : Messaging
     }
 
     @Serializable

@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.rounded.PersonRemove
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -102,13 +103,9 @@ internal fun ContactListScreen() {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SendFlowViewModel.Event.NavigateToChat>()
-            .map { it.contact }
-            .collect { contact ->
+            .collect { event ->
                 flowNavigator.navigate(
-                    AppRoute.Messaging.Chat(
-                        e164 = contact.e164,
-                        displayName = contact.displayName,
-                    )
+                    AppRoute.Messaging.Chat(identifier = event.identifier)
                 )
             }
     }
@@ -120,8 +117,10 @@ internal fun ContactListScreen() {
             .collect { contact ->
                 flowNavigator.navigate(
                     AppRoute.Messaging.AmountEntry(
-                        e164 = contact.e164,
-                        displayName = contact.displayName,
+                        identifier = AppRoute.ChatIdentifier.ByContact(
+                            e164 = contact.e164,
+                            displayName = contact.displayName,
+                        )
                     )
                 )
             }
@@ -261,7 +260,7 @@ private fun ContactList(
             key = { _, item ->
                 when (item) {
                     is ContactListItem.Header -> item.title
-                    is ContactListItem.ContactRow -> item.contact.e164
+                    is ContactListItem.ContactRow -> item.chatId?.toString() ?: item.contact.e164
                 }
             }
         ) { index, item ->
@@ -279,6 +278,9 @@ private fun ContactList(
                     ContactRowItem(
                         contact = item.contact,
                         isOnFlipcash = item.isOnFlipcash,
+                        isNonContactDm = item.contact.isUnknown,
+                        lastMessagePreview = item.lastMessagePreview,
+                        unreadCount = item.unreadCount,
                         showDivider = !isLastInSection,
                     ) {
                         onItemClick(item)
@@ -322,6 +324,9 @@ private fun ContactRowItem(
     contact: DeviceContact,
     isOnFlipcash: Boolean,
     modifier: Modifier = Modifier,
+    isNonContactDm: Boolean = false,
+    lastMessagePreview: String? = null,
+    unreadCount: Int = 0,
     showDivider: Boolean = true,
     onClick: () -> Unit,
 ) {
@@ -341,13 +346,30 @@ private fun ContactRowItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         ) {
-            ContactAvatar(
-                photoUri = contact.photoUri,
-                displayName = contact.displayName,
-                modifier = Modifier
-                    .requiredSize(CodeTheme.dimens.staticGrid.x8)
-                    .clip(CircleShape),
-            )
+            if (isNonContactDm && contact.photoUri == null) {
+                Box(
+                    modifier = Modifier
+                        .requiredSize(CodeTheme.dimens.staticGrid.x8)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = CodeTheme.colors.textSecondary,
+                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
+                    )
+                }
+            } else {
+                ContactAvatar(
+                    photoUri = contact.photoUri,
+                    displayName = contact.displayName,
+                    modifier = Modifier
+                        .requiredSize(CodeTheme.dimens.staticGrid.x8)
+                        .clip(CircleShape),
+                )
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = contact.displayName,
@@ -355,18 +377,28 @@ private fun ContactRowItem(
                     color = CodeTheme.colors.textMain,
                 )
                 Text(
-                    text = contact.displayNumber.ifEmpty { contact.e164 },
+                    text = if (isOnFlipcash && !lastMessagePreview.isNullOrEmpty()) {
+                        lastMessagePreview
+                    } else {
+                        contact.displayNumber.ifEmpty { contact.e164 }
+                    },
                     style = CodeTheme.typography.textSmall,
                     color = CodeTheme.colors.textSecondary,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
 
             if (isOnFlipcash) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_chevron_right),
-                    contentDescription = null,
-                    tint = CodeTheme.colors.textSecondary,
-                )
+                if (unreadCount > 0) {
+                    UnreadBadge(count = unreadCount)
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_chevron_right),
+                        contentDescription = null,
+                        tint = CodeTheme.colors.textSecondary,
+                    )
+                }
             } else {
                 Text(
                     modifier = Modifier
@@ -397,6 +429,18 @@ private fun ContactRowItem(
             )
         }
     }
+}
+
+@Composable
+private fun UnreadBadge(count: Int, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(CodeTheme.dimens.grid.x4)
+            .background(
+                color = CodeTheme.colors.indicator,
+                shape = CircleShape,
+            ),
+    )
 }
 
 @Preview

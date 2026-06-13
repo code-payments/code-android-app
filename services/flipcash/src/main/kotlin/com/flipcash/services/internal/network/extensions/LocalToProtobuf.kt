@@ -117,6 +117,7 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                     .setAmount(
                         Common.CryptoPaymentAmount.newBuilder()
                             .setQuarks(amount.quarks)
+                            .setMint(Common.PublicKey.newBuilder().setValue(mint.bytes.toByteString()))
                     )
             )
             .build()

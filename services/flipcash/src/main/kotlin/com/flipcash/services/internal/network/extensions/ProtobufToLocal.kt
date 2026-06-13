@@ -14,8 +14,11 @@ import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.Substitution
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.MessageContent
@@ -25,6 +28,7 @@ import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingNotification
 import com.flipcash.services.models.chat.TypingState
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.Mint
@@ -108,7 +112,11 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
         MessagingModel.Content.TypeCase.TEXT -> MessageContent.Text(text.text)
         MessagingModel.Content.TypeCase.CASH -> MessageContent.Cash(
             intentId = cash.intentId.value.toByteArray().toList(),
-            amount = Fiat(quarks = cash.amount.quarks),
+            amount = Fiat(
+                fiat = cash.amount.nativeAmount,
+                currencyCode = CurrencyCode.tryValueOf(cash.amount.currency) ?: CurrencyCode.USD,
+            ),
+            mint = cash.amount.mint.value.toByteArray().toMint(),
         )
         else -> MessageContent.Text("")
     }
@@ -161,7 +169,7 @@ internal fun MessagingModel.IsTypingNotification.State.toTypingState(): TypingSt
 // -- Chat metadata updates --
 
 internal fun ChatModel.MetadataUpdate.toMetadataUpdate(
-    metadataMapper: (ChatModel.Metadata) -> com.flipcash.services.models.chat.ChatMetadata,
+    metadataMapper: (ChatModel.Metadata) -> ChatMetadata,
 ): MetadataUpdate {
     return when (kindCase) {
         ChatModel.MetadataUpdate.KindCase.FULL_REFRESH ->
@@ -188,19 +196,21 @@ internal fun ChatModel.Metadata.ChatType.toChatType(): ChatType {
 
 // -- Chat metadata (simple, no injected mapper) --
 
-internal fun ChatModel.Metadata.toChatMetadata(): com.flipcash.services.models.chat.ChatMetadata {
-    return com.flipcash.services.models.chat.ChatMetadata(
+internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
+    return ChatMetadata(
         chatId = chatId.toChatId(),
         type = type.toChatType(),
         members = membersList.map { member ->
-            com.flipcash.services.models.chat.ChatMember(
+            ChatMember(
                 userId = member.userId.toId(),
-                userProfile = com.flipcash.services.models.UserProfile(
-                    displayName = member.userProfile.displayName,
-                    socialAccounts = emptyList(),
-                    verifiedPhoneNumber = null,
-                    verifiedEmailAddress = null,
-                ),
+                userProfile = with (member.userProfile) {
+                    UserProfile(
+                        displayName = displayName,
+                        socialAccounts = emptyList(),
+                        verifiedPhoneNumber = phoneNumber.value.takeIf { it.isNotEmpty() },
+                        verifiedEmailAddress = emailAddress.value.takeIf { it.isNotEmpty() },
+                    )
+                },
                 pointers = member.pointersList.map { it.toPointer() },
             )
         },
@@ -212,7 +222,7 @@ internal fun ChatModel.Metadata.toChatMetadata(): com.flipcash.services.models.c
 // -- EventModel.ChatUpdate --
 
 internal fun EventModel.ChatUpdate.toChatUpdate(
-    metadataMapper: (ChatModel.Metadata) -> com.flipcash.services.models.chat.ChatMetadata = { it.toChatMetadata() },
+    metadataMapper: (ChatModel.Metadata) -> ChatMetadata = { it.toChatMetadata() },
 ): ChatUpdate {
     return ChatUpdate(
         chatId = chat.toChatId(),

@@ -79,6 +79,11 @@ class ChatMessageDataSource @Inject constructor(
 
     // endregion
 
+    fun observeForChat(chatId: ChatId): PagingSource<Int, ChatMessageEntity> {
+        return db?.chatMessageDao()?.observeMessagesPaged(mapper.chatIdHex(chatId))
+            ?: emptyPagingSource()
+    }
+
     fun observeMessages(chatId: ChatId): Flow<List<ChatMessage>> =
         db?.chatMessageDao()?.observeMessages(mapper.chatIdHex(chatId))?.map { entities ->
             entities.map { toChatMessage(it) }
@@ -89,7 +94,14 @@ class ChatMessageDataSource @Inject constructor(
 
     suspend fun upsert(chatId: ChatId, messages: List<ChatMessage>) {
         val hex = mapper.chatIdHex(chatId)
-        db?.chatMessageDao()?.upsert(messages.map { mapper.toEntity(hex, it) })
+        val entities = messages.map { mapper.toEntity(hex, it) }
+        val selfId = userManager.accountId
+        val hasSelfMessage = selfId != null && messages.any { it.senderId == selfId }
+        if (hasSelfMessage) {
+            db?.chatMessageDao()?.upsertAndClearPending(hex, entities)
+        } else {
+            db?.chatMessageDao()?.upsert(entities)
+        }
     }
 
     suspend fun insertPending(
@@ -111,11 +123,12 @@ class ChatMessageDataSource @Inject constructor(
         )
     }
 
-    suspend fun confirmPending(chatId: ChatId, clientMessageId: ClientMessageId, serverMessageId: Long) {
+    suspend fun confirmPending(chatId: ChatId, clientMessageId: ClientMessageId, serverMessage: ChatMessage) {
+        val hex = mapper.chatIdHex(chatId)
         db?.chatMessageDao()?.confirmPendingMessage(
-            mapper.chatIdHex(chatId),
+            hex,
             mapper.clientMessageIdHex(clientMessageId),
-            serverMessageId,
+            mapper.toEntity(hex, serverMessage),
         )
     }
 

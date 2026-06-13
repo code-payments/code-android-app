@@ -93,6 +93,7 @@ class ContactCoordinator @Inject constructor(
     data class ContactState(
         val contacts: Map<String, DeviceContact> = emptyMap(),
         val flipcashE164s: Set<String> = emptySet(),
+        val dmChatIds: Map<String, String> = emptyMap(),
         val syncState: SyncState = SyncState.Idle,
         val hasEverSynced: Boolean = false,
         val hasDiscoveredFlipcashContacts: Boolean = false,
@@ -111,6 +112,9 @@ class ContactCoordinator @Inject constructor(
 
     val isLinkedForPayment: StateFlow<Boolean>
         get() = _isLinkedForPayment.asStateFlow()
+
+    val selfPhone: String?
+        get() = userManager.profile?.verifiedPhoneNumber
 
     // region SessionListener
 
@@ -329,11 +333,15 @@ class ContactCoordinator @Inject constructor(
             )
         }
         val flipcashE164s = mappings.filter { it.isOnFlipcash }.map { it.e164 }.toSet()
+        val dmChatIds = mappings
+            .filter { it.dmChatId.isNotEmpty() }
+            .associate { it.e164 to it.dmChatId }
 
         _state.update {
             it.copy(
                 contacts = contacts,
                 flipcashE164s = flipcashE164s,
+                dmChatIds = dmChatIds,
                 hasEverSynced = true,
                 hasDiscoveredFlipcashContacts = hasDiscoveredFlipcashContacts,
             )
@@ -498,8 +506,8 @@ class ContactCoordinator @Inject constructor(
             val result = contactListController.getFlipcashContacts(checksum)
                 .firstOrNull()
 
-            result?.onSuccess { phones ->
-                val flipcashE164s = phones.map { it.phoneNumber }.toSet()
+            result?.onSuccess { entries ->
+                val flipcashE164s = entries.map { it.phoneNumber }.toSet()
                 contactDataSource.clearFlipcashStatus()
                 if (flipcashE164s.isNotEmpty()) {
                     contactDataSource.markAsFlipcash(flipcashE164s.toList())
@@ -508,7 +516,13 @@ class ContactCoordinator @Inject constructor(
                         _state.update { it.copy(hasDiscoveredFlipcashContacts = true) }
                     }
                 }
-                _state.update { it.copy(flipcashE164s = flipcashE164s) }
+                val dmChatIds = mutableMapOf<String, String>()
+                entries.forEach { entry ->
+                    val chatIdStr = entry.dmChatId?.toString() ?: return@forEach
+                    contactDataSource.updateDmChatId(entry.phoneNumber, chatIdStr)
+                    dmChatIds[entry.phoneNumber] = chatIdStr
+                }
+                _state.update { it.copy(flipcashE164s = flipcashE164s, dmChatIds = it.dmChatIds + dmChatIds) }
                 trace(tag = TAG, message = "Found ${flipcashE164s.size} contacts on Flipcash", type = TraceType.Process)
             }?.onFailure { error ->
                 when (error) {

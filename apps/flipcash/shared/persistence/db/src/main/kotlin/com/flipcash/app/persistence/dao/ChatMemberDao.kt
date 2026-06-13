@@ -22,6 +22,9 @@ interface ChatMemberDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entities: List<ChatMemberEntity>)
 
+    @Query("SELECT * FROM chat_members WHERE chat_id_hex = :chatIdHex AND user_id_hex = :userIdHex LIMIT 1")
+    suspend fun getMember(chatIdHex: String, userIdHex: String): ChatMemberEntity?
+
     @Query("UPDATE chat_members SET pointers_json = :pointersJson WHERE chat_id_hex = :chatIdHex AND user_id_hex = :userIdHex")
     suspend fun updatePointers(chatIdHex: String, userIdHex: String, pointersJson: String)
 

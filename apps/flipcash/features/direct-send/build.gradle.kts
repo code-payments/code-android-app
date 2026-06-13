@@ -21,7 +21,9 @@ dependencies {
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:permissions"))
+    implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:contacts"))
+    implementation(project(":apps:flipcash:shared:phone"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":services:flipcash"))
 }

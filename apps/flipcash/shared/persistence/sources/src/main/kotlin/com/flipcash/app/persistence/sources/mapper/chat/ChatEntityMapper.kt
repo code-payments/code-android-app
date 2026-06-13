@@ -11,6 +11,7 @@ import com.flipcash.app.persistence.entities.MessageStatus
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
@@ -20,7 +21,10 @@ import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.ClientMessageId
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
 import com.getcode.utils.base64
 import com.getcode.utils.decodeBase58
@@ -81,6 +85,11 @@ class ChatEntityMapper @Inject constructor() {
             content = entity.contentJson?.map { it.toDomain() } ?: emptyList(),
             timestamp = Instant.fromEpochMilliseconds(entity.timestampEpochMs),
             unreadSeq = entity.unreadSeq,
+            deliveryStatus = when (entity.status) {
+                MessageStatus.SENDING -> DeliveryStatus.SENDING
+                MessageStatus.SENT -> DeliveryStatus.SENT
+                MessageStatus.FAILED -> DeliveryStatus.FAILED
+            },
         )
     }
 
@@ -146,6 +155,12 @@ class ChatEntityMapper @Inject constructor() {
         )
     }
 
+    fun pointerSerialized(pointer: MessagePointer): MessagePointerSerialized =
+        pointer.toSerialized()
+
+    fun pointersToJson(pointers: List<MessagePointerSerialized>): String =
+        kotlinx.serialization.json.Json.encodeToString(pointers)
+
     fun userIdHex(userId: ID): String = userId.hexEncodedString()
 
     private fun String.hexToByteArray(): ByteArray {
@@ -171,6 +186,10 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
     is MessageContent.Cash -> MessageContentSerialized.Cash(
         intentId = intentId.base58,
         quarks = amount.quarks,
+        currencyCode = amount.currencyCode.name,
+        mint = mint.base58(),
+        tokenName = tokenName,
+        tokenImageUrl = tokenImageUrl,
     )
 }
 
@@ -178,7 +197,13 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
     is MessageContentSerialized.Text -> MessageContent.Text(text)
     is MessageContentSerialized.Cash -> MessageContent.Cash(
         intentId = intentId.decodeBase58().toList(),
-        amount = Fiat(quarks = quarks),
+        amount = Fiat(
+            quarks = quarks,
+            currencyCode = CurrencyCode.tryValueOf(currencyCode) ?: CurrencyCode.USD,
+        ),
+        mint = Mint(mint.decodeBase58().toList()),
+        tokenName = tokenName,
+        tokenImageUrl = tokenImageUrl,
     )
 }
 

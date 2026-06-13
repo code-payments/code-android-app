@@ -13,13 +13,23 @@ import com.flipcash.app.core.send.SendStep
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.payments.PurchaseMethodController
+import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.permissions.PickedContact
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.directsend.R
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.ChatSummary
+import com.getcode.opencode.model.financial.Token
+import com.getcode.solana.keys.Mint
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.model.core.ID
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.decodeBase58
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,7 +52,9 @@ internal class SendFlowViewModel @Inject constructor(
     private val userManager: UserManager,
     featureFlags: FeatureFlagController,
     private val contactCoordinator: ContactCoordinator,
+    chatCoordinator: ChatCoordinator,
     private val tokenCoordinator: TokenCoordinator,
+    private val phoneUtils: PhoneUtils,
     private val resources: ResourceHelper,
     purchaseMethodController: PurchaseMethodController,
 ) : BaseViewModel<SendFlowViewModel.State, SendFlowViewModel.Event>(
@@ -77,13 +89,11 @@ internal class SendFlowViewModel @Inject constructor(
         data class ContactRemoved(val e164: String) : Event
         data class SendInvite(val contact: DeviceContact) : Event
 
-        data class NavigateToChat(val contact: DeviceContact) : Event
+        data class NavigateToChat(val identifier: AppRoute.ChatIdentifier) : Event
         data class NavigateToDirectSend(val contact: DeviceContact) : Event
         data object PresentDepositOptions : Event
         data class NavigateToUsdfDepositOption(val route: AppRoute): Event
     }
-
-    private val messengerEnabled = featureFlags.observe(FeatureFlag.Messenger)
 
     init {
         combine(
@@ -110,9 +120,13 @@ internal class SendFlowViewModel @Inject constructor(
 
         combine(
             contactCoordinator.state,
-            stateFlow.map { it.searchState }.distinctUntilChanged().flatMapLatest { snapshotFlow { it.text } }
-        ) { contactState, searchText ->
-            generateListItems(contactState, searchText.toString())
+            stateFlow.map { it.searchState }.distinctUntilChanged().flatMapLatest { snapshotFlow { it.text } },
+            chatCoordinator.feed,
+            tokenCoordinator.tokens,
+            featureFlags.observe(FeatureFlag.Messenger),
+        ) { contactState, searchText, chatFeed, tokens, messengerOn ->
+            val tokensByMint = tokens.associateBy { it.address }
+            generateListItems(contactState, searchText.toString(), chatFeed, tokensByMint, messengerOn)
         }.onEach { items ->
             dispatchEvent(Event.OnItemsPopulated(items))
         }.launchIn(viewModelScope)
@@ -163,10 +177,16 @@ internal class SendFlowViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnContactClicked>()
             .map { it.contact }
-            .onEach { (contact, isOnFlipcash) ->
+            .onEach { row ->
+                val (contact, isOnFlipcash) = row
                 if (isOnFlipcash) {
-                    if (messengerEnabled.value) {
-                        dispatchEvent(Event.NavigateToChat(contact))
+                    if (featureFlags.get(FeatureFlag.Messenger)) {
+                        val identifier = if (contact.e164.isNotEmpty()) {
+                            AppRoute.ChatIdentifier.ByContact(contact.e164, contact.displayName, row.chatId)
+                        } else {
+                            AppRoute.ChatIdentifier.ByChatId(row.chatId!!)
+                        }
+                        dispatchEvent(Event.NavigateToChat(identifier))
                     } else {
                         if (!tokenCoordinator.hasGiveableBalance()) {
                             BottomBarManager.showInfo(
@@ -230,6 +250,9 @@ internal class SendFlowViewModel @Inject constructor(
     private fun generateListItems(
         contactState: ContactState,
         searchString: String,
+        chatFeed: List<ChatSummary>,
+        tokensByMint: Map<Mint, Token>,
+        messengerEnabled: Boolean,
     ): List<ContactListItem> = buildList {
         val allContacts = contactState.contacts.values.toList()
         val filtered = if (searchString.isBlank()) {
@@ -241,20 +264,117 @@ internal class SendFlowViewModel @Inject constructor(
             }
         }
 
-        val flipcash = filtered
-            .filter { it.e164 in contactState.flipcashE164s }
-            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+        val selfId = userManager.accountId
+        val contactsByE164 = contactState.contacts
+
+        val flipcashRows = if (messengerEnabled) {
+            val dmChats = chatFeed.filter { it.metadata.type == ChatType.DM }
+            // Index chat feed by chatId (base58) for reliable lookup via dmChatIds
+            val chatById = dmChats.associateBy { it.metadata.chatId.toString() }
+            // Track which chat IDs are consumed by device-contact rows
+            val consumedChatIds = mutableSetOf<String>()
+
+            // 1. Device contacts on Flipcash — enriched with chat preview when a DM exists
+            val deviceContactRows = filtered
+                .filter { it.e164 in contactState.flipcashE164s }
+                .map { contact ->
+                    val chatIdStr = contactState.dmChatIds[contact.e164]
+                    val chat = chatIdStr?.let { chatById[it] }
+                    if (chatIdStr != null) consumedChatIds += chatIdStr
+                    val preview = chat?.let { formatPreview(it, selfId, tokensByMint) }
+                    val chatId = chat?.metadata?.chatId
+                        ?: chatIdStr?.let { runCatching { ChatId(it.decodeBase58()) }.getOrNull() }
+                    ContactListItem.ContactRow(
+                        contact = contact,
+                        isOnFlipcash = true,
+                        lastMessagePreview = preview,
+                        unreadCount = chat?.unreadCount ?: 0,
+                        chatId = chatId,
+                        lastActivity = chat?.metadata?.lastActivity,
+                    )
+                }
+
+            // 2. Non-contact DMs (chats not matched to a device contact)
+            val nonContactRows = dmChats
+                .filter { it.metadata.chatId.toString() !in consumedChatIds }
+                .mapNotNull { summary ->
+                    val otherMember = summary.metadata.members
+                        .firstOrNull { it.userId != selfId } ?: return@mapNotNull null
+                    val phone = otherMember.userProfile.verifiedPhoneNumber
+                    val formattedPhone = phone?.let { phoneUtils.formatNumber(it) }
+                    val displayName = otherMember.userProfile.displayName?.takeIf { it.isNotBlank() }
+                        ?: formattedPhone
+                        ?: "Unknown Contact"
+
+                    val contact = DeviceContact.unknownContact(
+                        e164 = phone.orEmpty(),
+                        displayName = displayName,
+                        displayNumber = formattedPhone,
+                    )
+                    if (searchString.isNotBlank() &&
+                        !contact.displayName.contains(searchString, ignoreCase = true)) {
+                        return@mapNotNull null
+                    }
+                    val preview = formatPreview(summary, selfId, tokensByMint)
+                    ContactListItem.ContactRow(
+                        contact = contact,
+                        isOnFlipcash = true,
+                        lastMessagePreview = preview,
+                        unreadCount = summary.unreadCount,
+                        chatId = summary.metadata.chatId,
+                        lastActivity = summary.metadata.lastActivity,
+                    )
+                }
+
+            (deviceContactRows + nonContactRows)
+                .sortedWith(
+                    compareByDescending<ContactListItem.ContactRow> { it.lastActivity }
+                        .thenBy(String.CASE_INSENSITIVE_ORDER) { it.contact.displayName }
+                )
+        } else {
+            // Driven by device contacts on Flipcash
+            filtered
+                .filter { it.e164 in contactState.flipcashE164s }
+                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+                .map { ContactListItem.ContactRow(contact = it, isOnFlipcash = true) }
+        }
+
+        val flipcashE164s = flipcashRows.mapTo(mutableSetOf()) { it.contact.e164 }
+            .plus(contactState.flipcashE164s)
+
         val other = filtered
-            .filter { it.e164 !in contactState.flipcashE164s }
+            .filter { it.e164 !in flipcashE164s }
             .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
 
-        if (flipcash.isNotEmpty()) {
+        if (flipcashRows.isNotEmpty()) {
             add(ContactListItem.Header(resources.getString(R.string.title_flipcashContacts)))
-            flipcash.forEach { add(ContactListItem.ContactRow(it, isOnFlipcash = true)) }
+            addAll(flipcashRows)
         }
         if (other.isNotEmpty()) {
             add(ContactListItem.Header(resources.getString(R.string.title_nonFlipcashContacts)))
             other.forEach { add(ContactListItem.ContactRow(it, isOnFlipcash = false)) }
+        }
+    }
+
+    private fun formatPreview(
+        summary: ChatSummary,
+        selfId: ID?,
+        tokensByMint: Map<Mint, Token>,
+    ): String? {
+        val lastMsg = summary.metadata.lastMessage ?: return null
+        val sentBySelf = lastMsg.senderId != null && lastMsg.senderId == selfId
+        return lastMsg.content.firstOrNull()?.let { content ->
+            when (content) {
+                is MessageContent.Text -> content.text.takeIf { it.isNotEmpty() }
+                is MessageContent.Cash -> {
+                    val formatted = content.amount.formatted()
+                    val name = content.tokenName.ifBlank {
+                        tokensByMint[content.mint]?.name.orEmpty()
+                    }
+                    val label = if (name.isNotBlank()) "$formatted of $name" else formatted
+                    if (sentBySelf) "You sent $label" else "You received $label"
+                }
+            }
         }
     }
 

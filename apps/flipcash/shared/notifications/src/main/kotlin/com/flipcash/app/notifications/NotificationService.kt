@@ -286,6 +286,10 @@ class NotificationService : FirebaseMessagingService(),
                 data = Linkify.tokenInfo(navigation.mint).toUri()
             }
 
+            is NavigationTrigger.Chat -> Intent(Intent.ACTION_VIEW).apply {
+                data = Linkify.chat(navigation.chatId).toUri()
+            }
+
             else -> packageManager.getLaunchIntentForPackage(packageName)
         }
 

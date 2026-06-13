@@ -14,4 +14,6 @@ data class ContactMappingEntity(
     val isOnFlipcash: Boolean = false,
     @ColumnInfo(defaultValue = "")
     val displayNumber: String = "",
+    @ColumnInfo(defaultValue = "")
+    val dmChatId: String = "",
 )

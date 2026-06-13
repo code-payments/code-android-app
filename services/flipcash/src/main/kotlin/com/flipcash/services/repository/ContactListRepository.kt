@@ -1,6 +1,7 @@
 package com.flipcash.services.repository
 
 import com.flipcash.services.models.ContactMethod
+import com.flipcash.services.models.FlipcashContactEntry
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.solana.keys.Checksum
 import kotlinx.coroutines.flow.Flow
@@ -28,5 +29,5 @@ interface ContactListRepository {
     fun getFlipcashContacts(
         owner: KeyPair,
         checksum: Checksum,
-    ): Flow<Result<List<ContactMethod.Phone>>>
+    ): Flow<Result<List<FlipcashContactEntry>>>
 }

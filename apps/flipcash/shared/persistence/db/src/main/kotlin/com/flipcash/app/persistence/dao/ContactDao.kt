@@ -63,6 +63,12 @@ interface ContactDao {
     @Query("UPDATE contact_mapping SET isOnFlipcash = 1 WHERE e164 IN (:e164s)")
     suspend fun markAsFlipcash(e164s: List<String>)
 
+    @Query("SELECT dmChatId FROM contact_mapping WHERE e164 = :e164 LIMIT 1")
+    suspend fun getDmChatId(e164: String): String?
+
+    @Query("UPDATE contact_mapping SET dmChatId = :dmChatId WHERE e164 = :e164")
+    suspend fun updateDmChatId(e164: String, dmChatId: String)
+
     // endregion
 
     @Query("DELETE FROM contact_mapping")
