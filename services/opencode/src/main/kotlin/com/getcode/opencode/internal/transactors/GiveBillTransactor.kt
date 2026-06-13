@@ -144,7 +144,7 @@ internal class GiveBillTransactor(
                 val freshExchange = freshState.exchangeDataFor(
                     amount = sendingAmount,
                     mint = desiredToken.address,
-                    billExchangeDataTimeout = exchangeDataTimeout
+                    billExchangeDataTimeout = null // relaxed — we just fetched this rate
                 ) ?: return logAndFail(GiveTransactorError.ExchangeRateExpiredException())
 
                 freshState to freshExchange

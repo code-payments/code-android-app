@@ -19,6 +19,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -29,6 +30,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GiveBillTransactorTest {
@@ -130,6 +133,45 @@ class GiveBillTransactorTest {
         assertTrue(result.isFailure)
         // Should NOT be ExchangeRateExpiredException — it recovered via fresh state
         assertIs<GiveBillTransactor.GiveTransactorError.NoGrabReceived>(result.exceptionOrNull())
+
+        unmockkStatic("com.getcode.opencode.internal.extensions.VerifiedStateKt")
+    }
+
+    @Test
+    fun `retry uses relaxed timeout for freshly resolved exchange data`() = runTest {
+        val transactor = createTransactor(this)
+        val staleState = mockk<VerifiedState>(relaxed = true)
+        // Set a strict 30s timeout — mirrors the server-configured value
+        setupWith(transactor, verifiedState = staleState, billExchangeDataTimeout = 30.seconds)
+
+        mockkStatic("com.getcode.opencode.internal.extensions.VerifiedStateKt")
+        // Initial: rate expired with strict 30s timeout
+        every { staleState.exchangeDataFor(any<LocalFiat>(), any<Mint>(), any()) } returns null
+
+        // Fresh state: valid exchange data available
+        val freshState = mockk<VerifiedState>(relaxed = true)
+        every { freshState.exchangeDataFor(any<LocalFiat>(), any<Mint>(), any()) } returns mockk<ExchangeData.Verified>(relaxed = true)
+        coEvery {
+            verifiedFiatCalculator.resolveVerifiedState(any<CurrencyCode>(), any<Mint>())
+        } returns freshState
+
+        coEvery {
+            messagingController.sendRequestToGiveBill(any(), any(), any())
+        } returns Result.success(mockk(relaxed = true))
+
+        coEvery {
+            messagingController.awaitRequestToGrabBill(any(), any())
+        } returns null
+
+        val result = transactor.start()
+
+        // Should proceed past exchange resolution and fail at grab — NOT ExchangeRateExpiredException
+        assertTrue(result.isFailure)
+        assertIs<GiveBillTransactor.GiveTransactorError.NoGrabReceived>(result.exceptionOrNull())
+
+        // Verify the retry path called exchangeDataFor with null (relaxed) timeout,
+        // NOT the strict 30s billExchangeDataTimeout
+        verify { freshState.exchangeDataFor(any<LocalFiat>(), any<Mint>(), isNull()) }
 
         unmockkStatic("com.getcode.opencode.internal.extensions.VerifiedStateKt")
     }
@@ -268,6 +310,7 @@ class GiveBillTransactorTest {
         transactor: GiveBillTransactor,
         verifiedState: VerifiedState? = null,
         nonce: List<Byte>? = null,
+        billExchangeDataTimeout: Duration? = null,
     ) {
         val token = mockk<Token>(relaxed = true) {
             every { address } returns Mint.usdf
@@ -288,7 +331,7 @@ class GiveBillTransactorTest {
             token = token,
             amount = amount,
             owner = owner,
-            billExchangeDataTimeout = null,
+            billExchangeDataTimeout = billExchangeDataTimeout,
             verifiedState = verifiedState,
             providedNonce = nonce,
         )
