@@ -82,7 +82,6 @@ class ChatCoordinator @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val cluster = MutableStateFlow<AccountCluster?>(null)
     private val _state = MutableStateFlow(ChatState())
-
     private var syncJob: Job? = null
     private var eventStreamCollectJob: Job? = null
     private var eventStreamRetryJob: Job? = null
@@ -262,6 +261,14 @@ class ChatCoordinator @Inject constructor(
         }
 
         return messagingController.advancePointer(chatId, PointerType.READ, messageId)
+    }
+
+    fun setActiveChatId(chatId: ChatId?) {
+        _state.update { it.copy(activeChat = chatId) }
+    }
+
+    fun isActiveChat(chatId: ChatId): Boolean {
+        return _state.value.activeChat == chatId
     }
 
     fun dismissNotifications(chatId: ChatId) {
