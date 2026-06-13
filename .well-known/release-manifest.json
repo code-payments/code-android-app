@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-13T20:07:25Z",
+  "updated": "2026-06-13T20:50:11Z",
   "tracks": {
     "production": {
       "versionCode": 3740,
@@ -8,7 +8,7 @@
     "beta": null,
     "alpha": null,
     "internal": {
-      "versionCode": 3866,
+      "versionCode": 3868,
       "versionName": "2026.6.1"
     }
   }
