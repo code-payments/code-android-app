@@ -108,5 +108,8 @@ class ContactDataSource @Inject constructor(
         db?.contactDao()?.updateDmChatId(e164, dmChatId)
     }
 
+    suspend fun getContactByDmChatId(dmChatId: String): ContactMappingEntity? =
+        db?.contactDao()?.getContactByDmChatId(dmChatId)
+
     // endregion
 }

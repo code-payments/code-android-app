@@ -2,6 +2,7 @@
 
 package com.flipcash.shared.chat
 
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -18,7 +19,9 @@ import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.EventStreamingController
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MetadataUpdate
@@ -68,6 +71,7 @@ class ChatCoordinator @Inject constructor(
     private val memberDataSource: ChatMemberDataSource,
     private val contactDataSource: ContactDataSource,
     private val networkObserver: NetworkConnectivityListener,
+    private val notificationManager: NotificationManagerCompat,
     private val userManager: UserManager,
 ) : SessionListener, DefaultLifecycleObserver {
 
@@ -228,7 +232,38 @@ class ChatCoordinator @Inject constructor(
     }
 
     suspend fun advanceReadPointer(chatId: ChatId, messageId: Long): Result<Unit> {
+        val selfId = userManager.accountId ?: return Result.failure(
+            IllegalStateException("No account")
+        )
+
+        // Optimistically update local pointer so the feed unread count clears immediately
+        val pointer = MessagePointer(
+            type = PointerType.READ,
+            userId = selfId,
+            value = messageId,
+        )
+        memberDataSource.updatePointers(chatId, pointer)
+        _state.update { state ->
+            val updatedFeed = state.feed.map { meta ->
+                if (meta.chatId == chatId) {
+                    meta.copy(members = meta.members.map { member ->
+                        if (member.userId == selfId) {
+                            val updated = member.pointers
+                                .filter { it.type != PointerType.READ }
+                                .plus(pointer)
+                            member.copy(pointers = updated)
+                        } else member
+                    })
+                } else meta
+            }
+            state.copy(feed = updatedFeed)
+        }
+
         return messagingController.advancePointer(chatId, PointerType.READ, messageId)
+    }
+
+    fun dismissNotifications(chatId: ChatId) {
+        notificationManager.cancel(chatId.hashCode())
     }
 
     suspend fun notifyTyping(chatId: ChatId, typingState: TypingState): Result<Unit> {

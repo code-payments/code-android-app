@@ -202,6 +202,18 @@ class ContactCoordinator @Inject constructor(
         return Result.success(contact)
     }
 
+    suspend fun lookupContactByDmChatId(dmChatId: String): DeviceContact? {
+        val entity = contactDataSource.getContactByDmChatId(dmChatId) ?: return null
+        // Prefer the in-memory contact (has latest device data), fall back to entity
+        return _state.value.contacts[entity.e164] ?: DeviceContact(
+            e164 = entity.e164,
+            androidContactId = entity.androidContactId,
+            displayName = entity.displayName,
+            photoUri = entity.photoUri,
+            displayNumber = entity.displayNumber,
+        )
+    }
+
     /**
      * Ensures the user's verified phone number is linked for payment, calling the
      * server RPC at most once per account lifetime (persisted via DataStore).

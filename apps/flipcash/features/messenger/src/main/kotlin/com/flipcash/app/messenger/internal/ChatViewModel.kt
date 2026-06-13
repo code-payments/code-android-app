@@ -258,38 +258,29 @@ internal class ChatViewModel @Inject constructor(
 
                 if (chatId != null) {
                     dispatchEvent(Event.ChatFound(chatId))
+                    chatCoordinator.dismissNotifications(chatId)
                 }
 
                 // 2. Resolve contact
-                val contact = when (identifier) {
+                when (identifier) {
                     is ChatIdentifier.ByContact -> {
-                        contactCoordinator.lookupContact(identifier.e164).getOrElse {
+                        val contact = contactCoordinator.lookupContact(identifier.e164).getOrElse {
                             DeviceContact.unknownContact(
                                 e164 = identifier.e164,
                                 displayName = identifier.displayName.takeIf { it.isNotBlank() },
                             )
                         }
+                        dispatchEvent(Event.OnContactFound(contact))
                     }
                     is ChatIdentifier.ByChatId -> {
-                        val selfId = userManager.accountId
-                        val otherMember = chatCoordinator.state.value.feed
-                            .firstOrNull { it.chatId == identifier.chatId }
-                            ?.members
-                            ?.firstOrNull { it.userId != selfId }
-
-                        val otherPhone = otherMember?.userProfile?.verifiedPhoneNumber
-                        if (otherPhone != null) {
-                            contactCoordinator.lookupContact(otherPhone).getOrElse {
-                                DeviceContact.unknownContact(otherPhone)
-                            }
-                        } else {
-                            val displayName = otherMember?.userProfile?.displayName
-                                ?.takeIf { it.isNotBlank() }
-                            DeviceContact.unknownContact(displayName = displayName)
+                        val contact = contactCoordinator.lookupContactByDmChatId(
+                            identifier.chatId.toString()
+                        )
+                        if (contact != null) {
+                            dispatchEvent(Event.OnContactFound(contact))
                         }
                     }
                 }
-                dispatchEvent(Event.OnContactFound(contact))
             }
             .launchIn(viewModelScope)
 
@@ -308,11 +299,13 @@ internal class ChatViewModel @Inject constructor(
                 }
             ).launchIn(viewModelScope)
 
-        // trigger message update fetch
+        // trigger message update fetch on open
         stateFlow.map { it.chatId }
             .filterNotNull()
             .distinctUntilChanged()
-            .onEach { chatCoordinator.loadMessages(it) }
+            .onEach { chatId ->
+                chatCoordinator.loadMessages(chatId)
+            }
             .launchIn(viewModelScope)
 
         // Advance read pointer when user scrolls to messages

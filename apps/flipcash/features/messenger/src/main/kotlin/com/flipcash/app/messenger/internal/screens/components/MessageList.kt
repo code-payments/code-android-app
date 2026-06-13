@@ -32,6 +32,7 @@ import com.getcode.ui.utils.sheetResignmentBehavior
 import com.getcode.util.toLocalDate
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.mapNotNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
@@ -205,29 +206,21 @@ private fun HandleMessageReads(
     LaunchedEffect(listState, messages) {
         snapshotFlow {
             val layout = listState.layoutInfo
+            val count = messages.itemCount
             val visibleRange = layout.visibleItemsInfo
-            if (visibleRange.isEmpty() || messages.itemCount == 0) return@snapshotFlow null
-
-            // Content area excludes content padding (app bar / input bar)
-            val contentStart = layout.beforeContentPadding
-            val contentEnd = layout.viewportEndOffset - layout.afterContentPadding
+            if (visibleRange.isEmpty() || count == 0) return@snapshotFlow null
 
             var highestId = 0L
             for (info in visibleRange) {
-                // Skip items hidden behind content padding (bars)
-                if (info.offset + info.size <= contentStart || info.offset >= contentEnd) continue
-
-                val item = if (info.index in 0 until messages.itemCount) {
-                    messages.peek(info.index)
-                } else null
-                val bubble = item as? ChatListItem.ContentBubble ?: continue
+                if (info.index !in 0 until count) continue
+                val bubble = messages.peek(info.index) as? ChatListItem.ContentBubble ?: continue
                 if (!bubble.isFromSelf && bubble.messageId > highestId) {
                     highestId = bubble.messageId
                 }
             }
             if (highestId > 0L) highestId else null
         }
-            .mapNotNull { it }
+            .filterNotNull()
             .distinctUntilChanged()
             .collectLatest { messageId ->
                 if (messageId > lastAdvanced) {

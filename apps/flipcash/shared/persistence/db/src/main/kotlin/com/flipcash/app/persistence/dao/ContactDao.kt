@@ -69,6 +69,9 @@ interface ContactDao {
     @Query("UPDATE contact_mapping SET dmChatId = :dmChatId WHERE e164 = :e164")
     suspend fun updateDmChatId(e164: String, dmChatId: String)
 
+    @Query("SELECT * FROM contact_mapping WHERE dmChatId = :dmChatId LIMIT 1")
+    suspend fun getContactByDmChatId(dmChatId: String): ContactMappingEntity?
+
     // endregion
 
     @Query("DELETE FROM contact_mapping")
