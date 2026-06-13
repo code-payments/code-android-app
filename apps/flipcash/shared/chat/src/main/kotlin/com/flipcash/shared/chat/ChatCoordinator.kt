@@ -99,8 +99,9 @@ class ChatCoordinator @Inject constructor(
                     ?.firstOrNull { it.type == PointerType.READ }
                     ?.value ?: 0L
 
+                val selfId = userManager.accountId
                 val unreadCount = metadata.lastMessage?.let { lastMsg ->
-                    if (lastMsg.messageId > readPointer) 1 else 0
+                    if (lastMsg.messageId > readPointer && lastMsg.senderId != selfId) 1 else 0
                 } ?: 0
 
                 ChatSummary(metadata = metadata, unreadCount = unreadCount)
@@ -210,6 +211,7 @@ class ChatCoordinator @Inject constructor(
         return messagingController.sendMessage(chatId, content, clientMessageId)
             .onSuccess { serverMessage ->
                 messageDataSource.confirmPending(chatId, clientMessageId, serverMessage)
+                advanceReadPointer(chatId, serverMessage.messageId)
 
                 // Update feed metadata so the contact list shows the latest message
                 metadataDataSource.updateLastMessageId(chatId, serverMessage.messageId)
