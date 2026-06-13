@@ -132,7 +132,7 @@ internal fun MessageList(
             Box(
                 modifier = Modifier
                     .padding(bottom = bottomSpacing)
-                    .animateItem(),
+                    .animateItem(placementSpec = null),
             ) {
                 when (item) {
                     is ChatListItem.DateSeparator -> DateSeparatorRow(item.label)

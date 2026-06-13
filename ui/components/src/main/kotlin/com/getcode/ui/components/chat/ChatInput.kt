@@ -36,6 +36,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
@@ -61,8 +63,12 @@ fun ChatInput(
     focusRequester: FocusRequester = remember { FocusRequester() },
     onSendMessage: () -> Unit,
 ) {
+    val shape = CodeTheme.shapes.medium
     Row(
-        modifier = modifier
+        modifier = Modifier
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .clip(shape)
+            .then(modifier)
             .fillMaxWidth()
             .height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
@@ -71,7 +77,7 @@ fun ChatInput(
         TextInput(
             modifier = Modifier
                 .weight(1f)
-                .background(CodeTheme.colors.background, shape = CodeTheme.shapes.medium)
+                .background(Color.Transparent, shape = CodeTheme.shapes.medium)
                 .focusRequester(focusRequester),
             minHeight = 40.dp,
             enabled = enabled,

@@ -62,6 +62,11 @@ internal val CodeDefaultColorScheme = ColorScheme(
     chat = ChatColors(
         incomingBubble = Bubble(background = White10, border = Color.Transparent),
         outgoingBubble = Bubble(background = BrandDark, border = Color.Transparent),
+        typingIndicator = TypingIndicator(
+            background = White05,
+            border = White05,
+            dots = White20
+        )
     ),
 )
 

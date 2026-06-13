@@ -2,6 +2,7 @@ package com.flipcash.app.core
 
 import android.os.Parcelable
 import androidx.navigation3.runtime.NavKey
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.deposit.DepositResult
 import com.flipcash.app.core.deposit.DepositStep
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
@@ -19,7 +20,6 @@ import com.flipcash.app.core.onboarding.OnboardingStep
 import com.getcode.navigation.flow.FlowRoute
 import com.getcode.navigation.flow.FlowRouteWithResult
 import com.getcode.opencode.model.financial.Fiat
-import com.flipcash.services.models.chat.ChatId
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
 import kotlinx.parcelize.Parcelize
@@ -236,24 +236,6 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object Lab : Menu
         @Serializable
         data object NavBarSettings : Menu, com.getcode.navigation.Sheet, com.getcode.navigation.WrapContentSheet
-    }
-
-    @Serializable
-    @Parcelize
-    sealed interface ChatIdentifier : Parcelable {
-        val key: String
-
-        @Serializable
-        @Parcelize
-        data class ByChatId(val chatId: ChatId) : ChatIdentifier {
-            override val key: String get() = chatId.toString()
-        }
-
-        @Serializable
-        @Parcelize
-        data class ByContact(val e164: String, val displayName: String, val chatId: ChatId? = null) : ChatIdentifier {
-            override val key: String get() = e164
-        }
     }
 
     @Serializable

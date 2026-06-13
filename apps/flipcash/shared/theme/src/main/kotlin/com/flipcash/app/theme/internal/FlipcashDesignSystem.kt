@@ -19,6 +19,7 @@ import com.getcode.theme.Error
 import com.getcode.theme.GradientSpec
 import com.getcode.theme.Gray50
 import com.getcode.theme.TextError
+import com.getcode.theme.TypingIndicator
 import com.getcode.theme.Warning
 import com.getcode.theme.White
 import com.getcode.theme.White05
@@ -72,6 +73,11 @@ object Flipcash2ColorSpec {
         outgoingBubble = Bubble(
             background = Color.White.copy(alpha = 0.08f),
             border = Color.White.copy(alpha = 0.03f),
+        ),
+        typingIndicator = TypingIndicator(
+            background = Color.White.copy(alpha = 0.02f),
+            border = Color.White.copy(alpha = 0.03f),
+            dots = Color.White.copy(alpha = 0.30f),
         )
     )
 }
