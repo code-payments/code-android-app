@@ -4,18 +4,21 @@ import androidx.core.net.toUri
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.app.core.navigation.Key
 import com.flipcash.app.core.navigation.fragments
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.app.router.Router
 import com.flipcash.app.router.internal.AppRouter.Companion.cashLink
+import com.flipcash.app.router.internal.AppRouter.Companion.chat
 import com.flipcash.app.router.internal.AppRouter.Companion.login
 import com.flipcash.app.router.internal.AppRouter.Companion.token
 import com.flipcash.app.router.internal.AppRouter.Companion.verification
 import com.flipcash.services.user.AuthState
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.decodeBase64
+import com.getcode.utils.decodeBase64UrlSafe
 import com.getcode.utils.urlDecode
 import dev.theolm.rinku.DeepLink
 import org.json.JSONObject
@@ -28,6 +31,7 @@ internal class AppRouter(
         val cashLink = listOf("c", "cash")
         val verification = listOf("verify")
         val token = listOf("token")
+        val chat = listOf("chat")
     }
 
     override fun dispatch(deepLink: DeepLink): DeeplinkAction {
@@ -54,6 +58,9 @@ internal class AppRouter(
             )
 
             is DeeplinkType.EmailVerification -> resolveEmailVerification(type)
+            is DeeplinkType.Chat -> DeeplinkAction.Navigate(
+                listOf(AppRoute.Sheets.Send(), AppRoute.Messaging.Chat(AppRoute.ChatIdentifier.ByChatId(type.chatId)))
+            )
         }
     }
 
@@ -63,6 +70,7 @@ internal class AppRouter(
             deepLink.isCashLink() -> deepLink.handleCashLink()
             deepLink.isToken() -> deepLink.handleTokenLink()
             deepLink.isEmailVerification() -> deepLink.handleEmailVerification()
+            deepLink.isChat() -> deepLink.handleChat()
             else -> null
         }
     }
@@ -116,6 +124,8 @@ private fun DeepLink.isToken(): Boolean = token.contains(pathSegments.getOrNull(
 private fun DeepLink.isEmailVerification(): Boolean = verification.contains(pathSegments.getOrNull(0))
         && data.toUri().getQueryParameter("email") != null
 
+private fun DeepLink.isChat(): Boolean = chat.contains(pathSegments.getOrNull(0))
+
 private fun DeepLink.handleLoginLink(): DeeplinkType.Login? {
     val uri = data.toUri()
     var entropy = uri.fragments[Key.entropy]
@@ -138,6 +148,13 @@ private fun DeepLink.handleTokenLink(): DeeplinkType.TokenInfo? {
     val uri = data.toUri()
     val mint = uri.pathSegments.getOrNull(1) ?: return null
     return DeeplinkType.TokenInfo(Mint(mint))
+}
+
+private fun DeepLink.handleChat(): DeeplinkType.Chat? {
+    val uri = data.toUri()
+    val chatIdBase64 = uri.pathSegments.getOrNull(1) ?: return null
+    val chatId = ChatId(chatIdBase64.decodeBase64UrlSafe().toList())
+    return DeeplinkType.Chat(chatId)
 }
 
 //  https://app.flipcash.com/verify?email={email}&code={code}&client_data={data}

@@ -30,6 +30,10 @@ fun String.decodeBase64(): ByteArray {
     return Base64.decode(this, Base64.NO_WRAP)
 }
 
+fun String.decodeBase64UrlSafe(): ByteArray {
+    return Base64.decode(this, Base64.NO_WRAP or Base64.URL_SAFE)
+}
+
 fun ByteArray.decodeBase64(): ByteArray {
     return Base64.decode(this, Base64.NO_WRAP)
 }

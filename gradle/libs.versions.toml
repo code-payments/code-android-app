@@ -90,7 +90,7 @@ bugsnag = "6.26.0"
 bugsnag-agp = "8.2.0"
 bugsnag-gradle-plugin = "1.1.0"
 rinku = "1.6.0"
-haze = "2.0.0-alpha02"
+haze = "2.0.0-alpha03"
 cloudy = "0.5.0"
 phantom-connect-kmp = "2.0.2-1.0.0"
 vico = "3.2.2"
@@ -258,7 +258,7 @@ cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
 fingerprint-pro = { module = "com.fingerprint.android:pro", version = "2.4.0" }
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 haze-blur = { module = "dev.chrisbanes.haze:haze-blur", version.ref = "haze" }
-haze-materials = { module = "dev.chrisbanes.haze:haze-materials", version.ref = "haze" }
+haze-materials = { module = "dev.chrisbanes.haze:haze-blur-materials", version.ref = "haze" }
 phantom-connect = { module = "dev.bmcreations:phantom-connect", version.ref = "phantom-connect-kmp" }
 phantom-connect-wallet = { module = "dev.bmcreations:phantom-connect-wallet", version.ref = "phantom-connect-kmp" }
 rinku = { module = "dev.theolm:rinku", version.ref = "rinku" }
@@ -306,7 +306,7 @@ androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", vers
 compose = ["compose-ui", "compose-foundation", "compose-material", "compose-material-icons-extended", "compose-animation", "compose-activities"]
 hilt = ["hilt-android", "javax-inject"]
 hilt-compiler = ["hilt-android-compiler", "hilt-compiler"]
-haze = ["haze", "haze-blur"]
+haze = ["haze", "haze-blur", "haze-materials"]
 room = ["androidx-room-runtime", "androidx-room-ktx", "androidx-room-paging"]
 firebase = ["firebase-messaging", "firebase-installations"]
 kotlinx-serialization = ["kotlinx-serialization-core", "kotlinx-serialization-json"]

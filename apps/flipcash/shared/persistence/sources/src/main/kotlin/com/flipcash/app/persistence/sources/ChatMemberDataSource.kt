@@ -24,6 +24,9 @@ class ChatMemberDataSource @Inject constructor(
             entities.map { mapper.toMember(it) }
         } ?: emptyFlow()
 
+    suspend fun getMembersForChat(chatId: ChatId): List<ChatMember> =
+        getMembersForChat(mapper.chatIdHex(chatId))
+
     suspend fun getMembersForChat(chatIdHex: String): List<ChatMember> =
         db?.chatMemberDao()?.getMembersForChat(chatIdHex)?.map { mapper.toMember(it) } ?: emptyList()
 
@@ -33,11 +36,18 @@ class ChatMemberDataSource @Inject constructor(
     }
 
     suspend fun updatePointers(chatId: ChatId, pointer: MessagePointer) {
-        db?.chatMemberDao()?.updatePointers(
-            mapper.chatIdHex(chatId),
-            mapper.userIdHex(pointer.userId),
-            mapper.pointerToJson(pointer),
-        )
+        val dao = db?.chatMemberDao() ?: return
+        val chatIdHex = mapper.chatIdHex(chatId)
+        val userIdHex = mapper.userIdHex(pointer.userId)
+
+        val existing = dao.getMember(chatIdHex, userIdHex)
+        val existingPointers = existing?.pointersJson ?: emptyList()
+
+        val merged = existingPointers
+            .filter { it.type != pointer.type.name }
+            .plus(mapper.pointerSerialized(pointer))
+
+        dao.updatePointers(chatIdHex, userIdHex, mapper.pointersToJson(merged))
     }
 
     suspend fun deleteForChat(chatId: ChatId) {

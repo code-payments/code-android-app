@@ -26,10 +26,13 @@ class EventStreamingController @Inject constructor(
 
     private var streamRef: EventStreamReference? = null
 
-    fun open(scope: CoroutineScope) {
+    fun open(
+        scope: CoroutineScope,
+        onStreamError: (() -> Unit)? = null,
+    ): Boolean {
         val owner = userManager.accountCluster?.authority?.keyPair ?: run {
             trace("EventStreamingController: No account cluster, cannot open stream")
-            return
+            return false
         }
 
         close()
@@ -38,12 +41,15 @@ class EventStreamingController @Inject constructor(
             scope = scope,
             owner = owner,
             onEvent = { update ->
+                trace("EventStreamingController: Received chat update, messages=${update.newMessages.size}")
                 _chatUpdates.tryEmit(update)
             },
             onError = { error ->
                 trace("EventStreamingController: Stream error: ${error.message}")
+                onStreamError?.invoke()
             },
         )
+        return true
     }
 
     fun close() {

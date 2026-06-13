@@ -1,8 +1,10 @@
 package com.flipcash.services.internal.network.services
 
 import com.flipcash.services.models.ContactMethod
+import com.flipcash.services.models.FlipcashContactEntry
 import com.flipcash.services.internal.network.api.ContactListApi
 import com.flipcash.services.internal.network.extensions.toChecksum
+import com.flipcash.services.internal.network.extensions.toChatId
 import com.flipcash.services.models.CheckSyncError
 import com.flipcash.services.models.DeltaUploadError
 import com.flipcash.services.models.FullUploadError
@@ -110,11 +112,18 @@ internal class ContactListService @Inject constructor(
     fun getContacts(
         owner: KeyPair,
         checksum: Checksum,
-    ): Flow<Result<List<ContactMethod.Phone>>> {
+    ): Flow<Result<List<FlipcashContactEntry>>> {
         return api.getFlipcashContacts(owner, checksum).map { response ->
             when (response.result) {
                 RpcContactListService.GetFlipcashContactsResponse.Result.OK ->
-                    Result.success(response.contactsList.map { ContactMethod.Phone(it.phone.value) })
+                    Result.success(response.contactsList.map { proto ->
+                        FlipcashContactEntry(
+                            phoneNumber = proto.phone.value,
+                            dmChatId = proto.dmChatId
+                                .takeIf { !it.value.isEmpty }
+                                ?.toChatId(),
+                        )
+                    })
                 RpcContactListService.GetFlipcashContactsResponse.Result.DENIED ->
                     Result.failure(GetContactsError.Denied())
                 RpcContactListService.GetFlipcashContactsResponse.Result.NOT_FOUND ->

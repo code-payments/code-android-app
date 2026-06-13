@@ -54,6 +54,7 @@ sealed interface TransactionMetadata {
         override val verifiedExchangeData: ExchangeData.Verified? = null,
         val isIndirect: Boolean,
         val isWithdrawal: Boolean,
+        val appMetadata: ByteArray? = null,
     ): PublicPayment {
         constructor(
             source: PublicKey,
@@ -87,6 +88,7 @@ sealed interface TransactionMetadata {
             mint: Mint,
             isIndirect: Boolean,
             isWithdrawal: Boolean,
+            appMetadata: ByteArray? = null,
         ) : this(
             source = source,
             destination = destination,
@@ -106,6 +108,7 @@ sealed interface TransactionMetadata {
             ),
             isIndirect = isIndirect,
             isWithdrawal = isWithdrawal,
+            appMetadata = appMetadata,
         )
 
         constructor(

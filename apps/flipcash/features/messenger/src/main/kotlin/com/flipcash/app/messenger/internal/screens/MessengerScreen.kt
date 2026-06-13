@@ -1,12 +1,16 @@
 package com.flipcash.app.messenger.internal.screens
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.layout.onSizeChanged
@@ -45,7 +50,9 @@ import com.flipcash.app.messenger.internal.screens.components.SeparatorConfig
 import com.flipcash.features.messenger.R
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.results.key
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White10
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.chat.ChatInput
@@ -56,29 +63,43 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.utils.rememberKeyboardController
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
+import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 @Composable
 internal fun MessengerScreen(viewModel: ChatViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val messages = viewModel.messages.collectAsLazyPagingItems()
+    val otherReadPointer by viewModel.otherReadPointer.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
+
+    val hazeState = rememberHazeState()
 
     ChatInputScaffold(
         topBar = { ChatTopBar(navigator, state.chattingWith) },
         bottomBar = {
             UserControlBottomBar(
                 state = state,
+                hazeState = hazeState,
                 dispatch = viewModel::dispatchEvent,
             )
         },
     ) { overlapPadding ->
         MessageList(
             modifier = Modifier
-                .fillMaxSize(),
+                .fillMaxSize()
+                .hazeSource(hazeState),
             contentPadding = overlapPadding,
             messages = messages,
             separatorConfig = SeparatorConfig.TimeGap(),
+            otherReadPointer = otherReadPointer,
+            onAdvanceReadPointer = { messageId ->
+                viewModel.dispatchEvent(ChatViewModel.Event.AdvanceReadPointer(messageId))
+            },
         )
     }
 }
@@ -143,17 +164,19 @@ private fun ChatTopBar(
 @Composable
 private fun UserControlBottomBar(
     state: ChatViewModel.State,
+    hazeState: HazeState,
     dispatch: (ChatViewModel.Event) -> Unit,
 ) {
     val keyboard = rememberKeyboardController()
     val focusRequester = remember { FocusRequester() }
     var buttonHeight by remember { mutableStateOf(0.dp) }
-    val fadeMultiplier by animateFloatAsState(
-        when (state.userState) {
-            ChatViewModel.UserState.Reading -> 0.20f
-            ChatViewModel.UserState.Typing -> 0.9f
+
+    LaunchedEffect(keyboard.visible) {
+        if (!keyboard.visible) {
+            dispatch(ChatViewModel.Event.OnStopMessageInput)
         }
-    )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth(),
@@ -162,10 +185,10 @@ private fun UserControlBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(buttonHeight)
+                .align(Alignment.BottomCenter)
                 .drawWithGradient(
                     color = CodeTheme.colors.background,
                     startY = { 0f },
-                    endY = { size.height * fadeMultiplier }
                 ),
         )
         AnimatedContent(
@@ -196,11 +219,26 @@ private fun UserControlBottomBar(
                             buttonState = ButtonState.Filled,
                             text = stringResource(R.string.action_sendCash),
                         ) { dispatch(ChatViewModel.Event.OnSendCash) }
-                        CodeButton(
+                        AnimatedVisibility(
+                            visible = state.hasPayment,
                             modifier = Modifier.weight(1f),
-                            buttonState = ButtonState.Filled10,
-                            text = stringResource(R.string.action_sendMessage),
-                        ) { dispatch(ChatViewModel.Event.OnStartMessageInput) }
+                            enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
+                            exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut(),
+                        ) {
+                            val material = HazeMaterials.ultraThin(
+                                containerColor = CodeTheme.colors.background
+                            )
+                            CodeButton(
+                                modifier = Modifier
+                                    .hazeEffect(hazeState) {
+                                        blurEffect {
+                                            style = material
+                                        }
+                                    },
+                                buttonState = ButtonState.Filled10,
+                                text = stringResource(R.string.action_sendMessage),
+                            ) { dispatch(ChatViewModel.Event.OnStartMessageInput) }
+                        }
                     }
                 }
 

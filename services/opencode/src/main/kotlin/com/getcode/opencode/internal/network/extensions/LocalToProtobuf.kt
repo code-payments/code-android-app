@@ -165,6 +165,12 @@ internal fun TransactionMetadata.asProtobufMetadata(): OcpTransactionService.Met
                     .setIsWithdrawal(isWithdrawal)
                     .build()
             )
+            if (appMetadata != null) {
+                builder.setAppMetadata(
+                    OcpTransactionService.AppMetadata.newBuilder()
+                        .setValue(appMetadata.toByteString())
+                )
+            }
         }
 
         is TransactionMetadata.PublicDistribution -> {

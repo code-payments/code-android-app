@@ -76,6 +76,7 @@ internal class IntentTransfer(
             destination: PublicKey,
             destinationOwner: PublicKey,
             verifiedState: VerifiedState,
+            appMetadata: ByteArray? = null,
         ): IntentTransfer {
             val transfer = ActionPublicTransfer.newInstance(
                 owner = sourceCluster.authority.keyPair,
@@ -96,6 +97,7 @@ internal class IntentTransfer(
                     mint = mint,
                     isIndirect = false,
                     isWithdrawal = false,
+                    appMetadata = appMetadata,
                 ),
                 actionGroup = ActionGroup().apply {
                     actions = listOf(transfer)

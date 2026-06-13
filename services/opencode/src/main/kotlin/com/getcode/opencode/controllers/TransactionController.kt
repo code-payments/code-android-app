@@ -131,6 +131,7 @@ class TransactionController @Inject constructor(
         token: Token,
         source: AccountCluster,
         destinationOwner: PublicKey,
+        appMetadata: ByteArray? = null,
         scope: CoroutineScope = this.scope,
     ): Result<IntentType> {
         val verifiedState = amount.verifiedState
@@ -146,6 +147,7 @@ class TransactionController @Inject constructor(
             destination = destinationVault,
             destinationOwner = destinationOwner,
             verifiedState = verifiedState,
+            appMetadata = appMetadata,
         )
 
         return submitIntent(scope, intent, source.authority.keyPair)

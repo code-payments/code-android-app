@@ -10,4 +10,5 @@ data class ChatMessage(
     val timestamp: Instant,
     val unreadSeq: Long,
     val isFromSelf: Boolean = false,
+    val deliveryStatus: DeliveryStatus = DeliveryStatus.SENT,
 )
