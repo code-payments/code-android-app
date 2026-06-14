@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api.intents.actions
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.model.financial.Fiat
@@ -42,11 +42,11 @@ internal class ActionPublicTransfer(
     }
 
 
-    override fun action(): TransactionService.Action {
-        return TransactionService.Action.newBuilder()
+    override fun action(): OcpTransactionService.Action {
+        return OcpTransactionService.Action.newBuilder()
             .setId(id)
             .setNoPrivacyTransfer(
-                TransactionService.NoPrivacyTransferAction.newBuilder()
+                OcpTransactionService.NoPrivacyTransferAction.newBuilder()
                     .setSource(source.asSolanaAccountId())
                     .setDestination(destination.asSolanaAccountId())
                     .setAuthority(signer.asSolanaAccountId())

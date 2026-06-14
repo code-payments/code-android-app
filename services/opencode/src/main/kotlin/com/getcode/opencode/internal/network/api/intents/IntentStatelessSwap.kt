@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api.intents
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.opencode.internal.network.extensions.asSignature
 import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
 import com.getcode.opencode.internal.network.extensions.sign
@@ -33,12 +33,12 @@ internal class IntentStatelessSwap(
         )
     }
 
-    fun initiate(): TransactionService.StatelessSwapRequest {
+    fun initiate(): OcpTransactionService.StatelessSwapRequest {
         val owner = request.owner.authority.keyPair
-        val initiate = TransactionService.StatelessSwapRequest.Initiate.newBuilder()
+        val initiate = OcpTransactionService.StatelessSwapRequest.Initiate.newBuilder()
             .setOwner(owner.asSolanaAccountId())
             .setStablecoin(
-                TransactionService.StatelessSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.newBuilder()
+                OcpTransactionService.StatelessSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.newBuilder()
                     .setFromMint(request.fromMint.asSolanaAccountId())
                     .setToMint(request.toMint.asSolanaAccountId())
                     .setSwapAmount(request.amount)
@@ -48,17 +48,17 @@ internal class IntentStatelessSwap(
             .apply { setSignature(sign(owner)) }
             .build()
 
-        return TransactionService.StatelessSwapRequest.newBuilder()
+        return OcpTransactionService.StatelessSwapRequest.newBuilder()
             .setInitiate(initiate)
             .build()
     }
 
-    fun requestToSubmitSignatures(): TransactionService.StatelessSwapRequest {
+    fun requestToSubmitSignatures(): OcpTransactionService.StatelessSwapRequest {
         val params = parameters ?: throw IllegalStateException("parameters not set")
 
-        return TransactionService.StatelessSwapRequest.newBuilder()
+        return OcpTransactionService.StatelessSwapRequest.newBuilder()
             .setSubmitSignatures(
-                TransactionService.StatelessSwapRequest.SubmitSignatures.newBuilder()
+                OcpTransactionService.StatelessSwapRequest.SubmitSignatures.newBuilder()
                     .addAllTransactionSignatures(sign(params).map { it.asSignature() })
                     .build()
             )

@@ -12,7 +12,22 @@ data class DeviceContact(
     val displayName: String,
     val photoUri: String?,
     val displayNumber: String = "",
-)
+) {
+    val isUnknown = androidContactId == -1L
+    companion object {
+        fun unknownContact(
+            e164: String = "",
+            displayName: String? = null,
+            displayNumber: String? = null,
+        ) = DeviceContact(
+            e164 = e164,
+            androidContactId = -1,
+            displayName = displayName ?: e164,
+            displayNumber = displayNumber ?: e164,
+            photoUri = null,
+        )
+    }
+}
 
 data class PickedContactData(
     val phoneNumber: String,

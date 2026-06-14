@@ -19,6 +19,7 @@ import com.getcode.theme.Error
 import com.getcode.theme.GradientSpec
 import com.getcode.theme.Gray50
 import com.getcode.theme.TextError
+import com.getcode.theme.TypingIndicator
 import com.getcode.theme.Warning
 import com.getcode.theme.White
 import com.getcode.theme.White05
@@ -32,6 +33,7 @@ object Flipcash2ColorSpec {
     val secondary = Color(115, 129, 121)
     val secondaryText = Color.White.copy(alpha = 0.5f)
     val cashBill = Color(0xFF06450F)
+    val notification = Color(0xFF009EE7)
     val trackColor = Color.White.copy(alpha = 0.07f)
     val bannerThemed = Color(0xFF252526)
     val success = Color(0xFF1AC86A)
@@ -71,6 +73,11 @@ object Flipcash2ColorSpec {
         outgoingBubble = Bubble(
             background = Color.White.copy(alpha = 0.08f),
             border = Color.White.copy(alpha = 0.03f),
+        ),
+        typingIndicator = TypingIndicator(
+            background = Color.White.copy(alpha = 0.02f),
+            border = Color.White.copy(alpha = 0.03f),
+            dots = Color.White.copy(alpha = 0.30f),
         )
     )
 }
@@ -86,7 +93,7 @@ private val colors = with(Flipcash2ColorSpec) {
         brandContainer = primary,
         secondary = secondary,
         tertiary = BrandAccent,
-        indicator = BrandIndicator,
+        indicator = notification,
         action = Gray50,
         onAction = White,
         background = primary,

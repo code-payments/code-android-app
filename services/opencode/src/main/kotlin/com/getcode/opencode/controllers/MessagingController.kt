@@ -1,6 +1,6 @@
 package com.getcode.opencode.controllers
 
-import com.codeinc.opencode.gen.messaging.v1.MessagingService
+import com.codeinc.opencode.gen.messaging.v1.OcpMessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.domain.mapping.BillCustomizationMapper
 import com.getcode.opencode.internal.domain.mapping.HolderMetricsMapper
@@ -60,8 +60,8 @@ class MessagingController @Inject constructor(
         cancelAwaitForBillGrab()
         delay(500)
 
-        fun extractRequestToGrabBill(messages: List<MessagingService.Message>): GrabRequest?  {
-            val message = messages.firstOrNull { it.kindCase == MessagingService.Message.KindCase.REQUEST_TO_GRAB_BILL } ?: return null
+        fun extractRequestToGrabBill(messages: List<OcpMessagingService.Message>): GrabRequest?  {
+            val message = messages.firstOrNull { it.kindCase == OcpMessagingService.Message.KindCase.REQUEST_TO_GRAB_BILL } ?: return null
             val account =
                 message.requestToGrabBill.requestorAccount.value.toByteArray().toPublicKey()
             val signature =
@@ -83,7 +83,7 @@ class MessagingController @Inject constructor(
                                 ackFilter = {
                                     // do NOT ack the give requests as the sender
                                     // doing so will delete the messages before the recipient can get them
-                                    it.kindCase != MessagingService.Message.KindCase.REQUEST_TO_GIVE_BILL
+                                    it.kindCase != OcpMessagingService.Message.KindCase.REQUEST_TO_GIVE_BILL
                                 },
                                 transformer = { extractRequestToGrabBill(it) }
                             ) { result ->
@@ -151,10 +151,10 @@ class MessagingController @Inject constructor(
         destination: PublicKey,
         payload: OpenCodePayload,
     ): Result<PublicKey> {
-        val paymentRequest = MessagingService.RequestToGrabBill.newBuilder()
+        val paymentRequest = OcpMessagingService.RequestToGrabBill.newBuilder()
             .setRequestorAccount(destination.asSolanaAccountId())
 
-        val message = MessagingService.Message.newBuilder()
+        val message = OcpMessagingService.Message.newBuilder()
             .setRequestToGrabBill(paymentRequest)
 
         return repository.sendMessage(
@@ -171,7 +171,7 @@ class MessagingController @Inject constructor(
             .map { messages ->
                 messages.filter {
                     trace(message = "Polled message kind: ${it.kindCase}")
-                    it.kindCase == MessagingService.Message.KindCase.REQUEST_TO_GIVE_BILL
+                    it.kindCase == OcpMessagingService.Message.KindCase.REQUEST_TO_GIVE_BILL
                 }
             }.mapCatching { messages ->
                 val message = messages.firstOrNull() ?: throw IllegalStateException("No message found")
@@ -193,12 +193,12 @@ class MessagingController @Inject constructor(
         rendezvous: KeyPair,
         exchangeRate: ExchangeData.Verified,
     ): Result<PublicKey> {
-        val paymentRequest = MessagingService.RequestToGiveBill.newBuilder()
+        val paymentRequest = OcpMessagingService.RequestToGiveBill.newBuilder()
             .setMint(tokenMint.asSolanaAccountId())
             .setExchangeData(exchangeRate.asProtobufExchangeData())
             .build()
 
-        val message = MessagingService.Message.newBuilder()
+        val message = OcpMessagingService.Message.newBuilder()
             .setRequestToGiveBill(paymentRequest)
 
         return repository.sendMessage(

@@ -15,6 +15,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.Button
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
@@ -62,22 +62,18 @@ fun TypingIndicator(
     userImages: List<Any> = emptyList(),
 ) {
     Row(
-        modifier = modifier
-            .padding(top = 4.dp)
-            .graphicsLayer {
-                compositingStrategy = CompositingStrategy.Offscreen
-                clip = false
-            },
+        modifier = Modifier
+            .padding(top = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Avatar Row
-        AvatarRow(
-            modifier = Modifier.weight(1f, fill = false),
-            userImages = userImages,
-        )
+        if (userImages.isNotEmpty()) {
+            AvatarRow(
+                modifier = Modifier.weight(1f, fill = false),
+                userImages = userImages,
+            )
+        }
 
-        // Typing Dots
-        TypingDots()
+        TypingDots(modifier = modifier)
     }
 }
 
@@ -130,19 +126,26 @@ private fun AvatarRow(
 
 @Composable
 private fun TypingDots(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
+    val shape = CodeTheme.shapes.medium
     Row(
-        modifier = modifier
+        modifier = Modifier
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .clip(shape)
+            .then(modifier)
+            .border(
+                color = CodeTheme.colors.chat.typingIndicator.border,
+                width = CodeTheme.dimens.border,
+                shape = CodeTheme.shapes.medium,
+            )
             .background(
-                color = CodeTheme.colors.brandDark,
-                shape = CodeTheme.shapes.small.copy(
-                    topStart = CornerSize(3.dp)
-                )
+                color = CodeTheme.colors.chat.typingIndicator.background,
+                shape = CodeTheme.shapes.medium,
             )
             .padding(
                 horizontal = CodeTheme.dimens.grid.x2,
-                vertical = CodeTheme.dimens.grid.x3
+                vertical = CodeTheme.dimens.grid.x3,
             ),
         horizontalArrangement = Arrangement.spacedBy(
             space = CodeTheme.dimens.grid.x1,
@@ -150,7 +153,7 @@ private fun TypingDots(
         ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val baseColor = CodeTheme.colors.onSurface
+        val baseColor = CodeTheme.colors.chat.typingIndicator.dots
         var currentIndex by remember { mutableIntStateOf(0) }
 
         val animatedAlphas = List(DotCount) { index ->

@@ -1,8 +1,8 @@
 package com.getcode.opencode.internal.network.executors
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentRequest
-import com.codeinc.opencode.gen.transaction.v1.TransactionService.SubmitIntentResponse
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.SubmitIntentRequest
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.SubmitIntentResponse
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStreamForResult
@@ -145,7 +145,7 @@ class IntentExecutor(
 
     private fun handleServerParameters(
         intent: IntentType,
-        serverParameters: List<TransactionService.ServerParameter>,
+        serverParameters: List<OcpTransactionService.ServerParameter>,
         requestChannel: (SubmitIntentRequest) -> Unit,
         onResult: (Result<IntentType>) -> Unit,
     ) {
@@ -175,17 +175,17 @@ class IntentExecutor(
 
     private fun handleErrors(
         intent: IntentType,
-        errorDetails: List<TransactionService.ErrorDetails>
+        errorDetails: List<OcpTransactionService.ErrorDetails>
     ): List<String> {
         val errors = mutableListOf<String>()
 
         errorDetails.forEach { error ->
             when (error.typeCase) {
-                TransactionService.ErrorDetails.TypeCase.REASON_STRING -> {
+                OcpTransactionService.ErrorDetails.TypeCase.REASON_STRING -> {
                     errors.add("Reason: ${error.reasonString.reason}")
                 }
 
-                TransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE -> {
+                OcpTransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE -> {
                     val expected = SolanaTransaction.fromList(error.invalidSignature.expectedTransaction.value.toByteArray().toList())
                     val produced = intent.transaction()
                     errors.addAll(
@@ -204,7 +204,7 @@ class IntentExecutor(
                     expected?.diff(produced)
                 }
 
-                TransactionService.ErrorDetails.TypeCase.DENIED -> {
+                OcpTransactionService.ErrorDetails.TypeCase.DENIED -> {
                     errors.add("Denied: ${error.denied.reason}")
                 }
 

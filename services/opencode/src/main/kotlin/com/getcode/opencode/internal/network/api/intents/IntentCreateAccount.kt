@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api.intents
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.opencode.internal.network.api.intents.actions.ActionOpenAccount
 import com.getcode.opencode.internal.network.extensions.asProtobufMetadata
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -19,7 +19,7 @@ internal class IntentCreateAccount(
     override val actionGroup: ActionGroup,
 ) : IntentType() {
 
-    override fun metadata(): TransactionService.Metadata {
+    override fun metadata(): OcpTransactionService.Metadata {
         return metadata.asProtobufMetadata()
     }
 

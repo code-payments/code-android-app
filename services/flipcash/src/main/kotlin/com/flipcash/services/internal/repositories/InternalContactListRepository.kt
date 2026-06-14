@@ -2,6 +2,7 @@ package com.flipcash.services.internal.repositories
 
 import com.flipcash.services.internal.network.services.ContactListService
 import com.flipcash.services.models.ContactMethod
+import com.flipcash.services.models.FlipcashContactEntry
 import com.flipcash.services.repository.ContactListRepository
 import com.getcode.ed25519.Ed25519
 import com.getcode.solana.keys.Checksum
@@ -36,5 +37,5 @@ internal class InternalContactListRepository(
     override fun getFlipcashContacts(
         owner: Ed25519.KeyPair,
         checksum: Checksum,
-    ): Flow<Result<List<ContactMethod.Phone>>> = service.getContacts(owner, checksum)
+    ): Flow<Result<List<FlipcashContactEntry>>> = service.getContacts(owner, checksum)
 }

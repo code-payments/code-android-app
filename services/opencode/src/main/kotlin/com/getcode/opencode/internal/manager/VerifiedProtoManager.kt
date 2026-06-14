@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.manager
 
-import com.codeinc.opencode.gen.currency.v1.CurrencyService
+import com.codeinc.opencode.gen.currency.v1.OcpCurrencyService
 import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
@@ -35,7 +35,7 @@ class VerifiedProtoManager @Inject constructor() {
      * and the value is the corresponding [com.getcode.opencode.model.financial.VerifiedResponseData.ExchangeRate] object,
      * which includes the rate and the timestamp of when it was fetched.
      */
-    private val exchangeData = MutableStateFlow<Map<CurrencyCode, CurrencyService.VerifiedCoreMintFiatExchangeRate>>(emptyMap())
+    private val exchangeData = MutableStateFlow<Map<CurrencyCode, OcpCurrencyService.VerifiedCoreMintFiatExchangeRate>>(emptyMap())
     /**
      * A [MutableStateFlow] holding a map of launchpad reserve states, keyed by their respective [Mint] address.
      *
@@ -43,16 +43,16 @@ class VerifiedProtoManager @Inject constructor() {
      * allowing observers to be notified of updates. The data originates from the OpenCodeProtocol and is
      * populated via the `save` method.
      */
-    private val reserveStates = MutableStateFlow<Map<Mint, CurrencyService.VerifiedLaunchpadCurrencyReserveState>>(emptyMap())
+    private val reserveStates = MutableStateFlow<Map<Mint, OcpCurrencyService.VerifiedLaunchpadCurrencyReserveState>>(emptyMap())
 
-    fun saveRates(exchangeData: List<CurrencyService.VerifiedCoreMintFiatExchangeRate>) {
+    fun saveRates(exchangeData: List<OcpCurrencyService.VerifiedCoreMintFiatExchangeRate>) {
         val incoming = exchangeData.mapNotNull { data ->
             CurrencyCode.tryValueOf(data.exchangeRate.currencyCode)?.let { it to data }
         }.toMap()
         this.exchangeData.update { it + incoming }
     }
 
-    fun saveReserveStates(reserveStates: List<CurrencyService.VerifiedLaunchpadCurrencyReserveState>) {
+    fun saveReserveStates(reserveStates: List<OcpCurrencyService.VerifiedLaunchpadCurrencyReserveState>) {
         val incoming = reserveStates.associateBy { it.reserveState.mint.toMint() }
         this.reserveStates.update { it + incoming }
     }
@@ -100,11 +100,11 @@ class VerifiedProtoManager @Inject constructor() {
         reserveStates.value = emptyMap()
     }
 
-    private fun get(currencyCode: CurrencyCode): CurrencyService.VerifiedCoreMintFiatExchangeRate? {
+    private fun get(currencyCode: CurrencyCode): OcpCurrencyService.VerifiedCoreMintFiatExchangeRate? {
         return exchangeData.value[currencyCode]
     }
 
-    private fun getOrEvict(currencyCode: CurrencyCode): CurrencyService.VerifiedCoreMintFiatExchangeRate? {
+    private fun getOrEvict(currencyCode: CurrencyCode): OcpCurrencyService.VerifiedCoreMintFiatExchangeRate? {
         val now = Clock.System.now()
         val stored = get(currencyCode) ?: return null
         val ts = Instant.fromEpochSeconds(stored.exchangeRate.timestamp.seconds, stored.exchangeRate.timestamp.nanos)
@@ -117,11 +117,11 @@ class VerifiedProtoManager @Inject constructor() {
         return stored
     }
 
-    private fun get(mint: Mint): CurrencyService.VerifiedLaunchpadCurrencyReserveState? {
+    private fun get(mint: Mint): OcpCurrencyService.VerifiedLaunchpadCurrencyReserveState? {
         return reserveStates.value[mint]
     }
 
-    private fun getOrEvict(mint: Mint): CurrencyService.VerifiedLaunchpadCurrencyReserveState? {
+    private fun getOrEvict(mint: Mint): OcpCurrencyService.VerifiedLaunchpadCurrencyReserveState? {
         val now = Clock.System.now()
         val stored = get(mint) ?: return null
         val ts = Instant.fromEpochSeconds(stored.reserveState.timestamp.seconds, stored.reserveState.timestamp.nanos)
@@ -143,6 +143,6 @@ class VerifiedProtoManager @Inject constructor() {
 }
 
 data class VerifiedState(
-    val rateProto: CurrencyService.VerifiedCoreMintFiatExchangeRate,
-    val reserveProto: CurrencyService.VerifiedLaunchpadCurrencyReserveState?,
+    val rateProto: OcpCurrencyService.VerifiedCoreMintFiatExchangeRate,
+    val reserveProto: OcpCurrencyService.VerifiedLaunchpadCurrencyReserveState?,
 )

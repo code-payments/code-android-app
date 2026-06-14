@@ -1,6 +1,6 @@
 package com.getcode.opencode.repositories
 
-import com.codeinc.opencode.gen.messaging.v1.MessagingService
+import com.codeinc.opencode.gen.messaging.v1.OcpMessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.services.OcpMessageStreamReference
 import com.getcode.opencode.model.transactions.GrabRequest
@@ -12,14 +12,14 @@ interface MessagingRepository {
     fun <R: TransferRequest> openMessageStreamWithKeepAlive(
         scope: CoroutineScope,
         rendezvous: KeyPair,
-        ackFilter: (MessagingService.Message) -> Boolean = { true },
-        transformer: (List<MessagingService.Message>) -> R?,
+        ackFilter: (OcpMessagingService.Message) -> Boolean = { true },
+        transformer: (List<OcpMessagingService.Message>) -> R?,
         onEvent: (Result<R>) -> Unit,
     ): OcpMessageStreamReference
 
     suspend fun pollMessages(
         rendezvous: KeyPair,
-    ): Result<List<MessagingService.Message>>
+    ): Result<List<OcpMessagingService.Message>>
 
     suspend fun ackMessages(
         rendezvous: KeyPair,
@@ -28,6 +28,6 @@ interface MessagingRepository {
 
     suspend fun sendMessage(
         rendezvous: KeyPair,
-        message: MessagingService.Message.Builder,
+        message: OcpMessagingService.Message.Builder,
     ): Result<PublicKey>
 }

@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.domain.mapping
 
-import com.codeinc.opencode.gen.currency.v1.CurrencyService
+import com.codeinc.opencode.gen.currency.v1.OcpCurrencyService
 import com.codeinc.opencode.gen.currency.v1.billCustomizationOrNull
 import com.codeinc.opencode.gen.currency.v1.holderMetricsOrNull
 import com.codeinc.opencode.gen.currency.v1.launchpadMetadataOrNull
@@ -22,8 +22,8 @@ internal class MintMapper @Inject constructor(
     private val socialLinkMapper: SocialLinkMapper,
     private val customizationMapper: BillCustomizationMapper,
     private val holderMetricsMapper: HolderMetricsMapper,
-) : Mapper<CurrencyService.Mint, MintMetadata> {
-    override fun map(from: CurrencyService.Mint): MintMetadata {
+) : Mapper<OcpCurrencyService.Mint, MintMetadata> {
+    override fun map(from: OcpCurrencyService.Mint): MintMetadata {
         val mint = from.address.toMint()
         val vmMetadata = vmMetadataMapper.map(from.vmMetadata)
         val launchpadMetadata = from.launchpadMetadataOrNull?.let {

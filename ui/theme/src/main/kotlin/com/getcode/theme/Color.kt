@@ -102,6 +102,13 @@ data class GradientSpec(
 data class ChatColors(
     val incomingBubble: Bubble,
     val outgoingBubble: Bubble,
+    val typingIndicator: TypingIndicator,
+)
+
+data class TypingIndicator(
+    val background: Color,
+    val border: Color,
+    val dots: Color,
 )
 
 data class Bubble(

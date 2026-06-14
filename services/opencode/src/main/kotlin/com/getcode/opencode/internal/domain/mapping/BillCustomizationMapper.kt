@@ -1,13 +1,13 @@
 package com.getcode.opencode.internal.domain.mapping
 
-import com.codeinc.opencode.gen.currency.v1.CurrencyService
+import com.codeinc.opencode.gen.currency.v1.OcpCurrencyService
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.ui.BillBackground
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import javax.inject.Inject
 
-internal class BillCustomizationMapper @Inject constructor(): Mapper<CurrencyService.BillCustomization?, TokenBillCustomizations?> {
-    override fun map(from: CurrencyService.BillCustomization?): TokenBillCustomizations? {
+internal class BillCustomizationMapper @Inject constructor(): Mapper<OcpCurrencyService.BillCustomization?, TokenBillCustomizations?> {
+    override fun map(from: OcpCurrencyService.BillCustomization?): TokenBillCustomizations? {
         if (from == null) return null
         val colors = from.colorsList.map { it.hex }
         val background = if (colors.count() == 1) {

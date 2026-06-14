@@ -60,12 +60,16 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                 null -> NotificationState.UNKNOWN
             },
             metadata = when (from.additionalMetadataCase) {
-                Model.Notification.AdditionalMetadataCase.GAVE_CRYPTO -> NotificationMetadata.GaveCrypto
-                Model.Notification.AdditionalMetadataCase.RECEIVED_CRYPTO -> NotificationMetadata.ReceivedCrypto
+                Model.Notification.AdditionalMetadataCase.DIRECTLY_SENT_CRYPTO -> NotificationMetadata.DirectlySentCrypto(
+                    phoneNumber = from.directlySentCrypto.takeIf { it.hasPhone() }?.phone?.value
+                )
+                Model.Notification.AdditionalMetadataCase.RECEIVED_CRYPTO -> NotificationMetadata.ReceivedCrypto(
+                    phoneNumber = from.receivedCrypto.takeIf { it.hasPhone() }?.phone?.value
+                )
                 Model.Notification.AdditionalMetadataCase.WITHDREW_CRYPTO -> NotificationMetadata.WithdrewCrypto
-                Model.Notification.AdditionalMetadataCase.SENT_CRYPTO -> NotificationMetadata.SentCrypto(
-                    creator = from.sentCrypto.vault.value.toByteArray().toPublicKey(),
-                    canCancel = from.sentCrypto.canInitiateCancelAction
+                Model.Notification.AdditionalMetadataCase.INDIRECTLY_SENT_CRYPTO -> NotificationMetadata.IndirectlySentCrypto(
+                    creator = from.indirectlySentCrypto.vault.value.toByteArray().toPublicKey(),
+                    canCancel = from.indirectlySentCrypto.canInitiateCancelAction
                 )
                 Model.Notification.AdditionalMetadataCase.DEPOSITED_CRYPTO -> NotificationMetadata.DepositedCrypto
                 Model.Notification.AdditionalMetadataCase.BOUGHT_CRYPTO -> NotificationMetadata.BoughtToken

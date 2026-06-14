@@ -24,6 +24,7 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.ContactResolver
 import com.flipcash.app.core.util.Linkify
+import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.NavigationTrigger
@@ -51,7 +52,6 @@ class NotificationService : FirebaseMessagingService(),
         private const val KEY_TITLE = "push_notification_title"
         private const val KEY_BODY = "push_notification_body"
         private const val KEY_PAYLOAD = "flipcash_payload"
-        private const val CONVERSATION_ID_OFFSET = 0x10000000
     }
 
     @Inject
@@ -74,6 +74,9 @@ class NotificationService : FirebaseMessagingService(),
 
     @Inject
     lateinit var contactResolver: ContactResolver
+
+    @Inject
+    lateinit var chatCoordinator: ChatCoordinator
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
@@ -142,8 +145,10 @@ class NotificationService : FirebaseMessagingService(),
         val channel = NotificationChannels.channelFor(this, category)
         notificationManager.createNotificationChannel(channel)
 
+        val chatId = (payload?.navigation as? NavigationTrigger.Chat)?.chatId
+        if (chatId != null && chatCoordinator.isActiveChat(chatId)) return
+
         val groupKey = payload?.groupKey?.takeIf { it.isNotEmpty() }
-        val isContactChat = groupKey?.startsWith("+") == true
 
         val builder = NotificationCompat.Builder(this, channel.id)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -156,8 +161,8 @@ class NotificationService : FirebaseMessagingService(),
                 if (groupKey != null) setGroup(groupKey)
             }
 
-        val notificationId = if (isContactChat) {
-            builder.applyContactChatStyle(groupKey, body)
+        val notificationId = if (chatId != null) {
+            builder.applyContactChatStyle(chatId.hashCode(), groupKey, body)
         } else {
             builder.setContentTitle(title).setContentText(body)
             SecureRandom().nextInt(Int.MAX_VALUE)
@@ -179,11 +184,13 @@ class NotificationService : FirebaseMessagingService(),
     }
 
     private suspend fun NotificationCompat.Builder.applyContactChatStyle(
-        groupKey: String,
+        notificationId: Int,
+        groupKey: String?,
         body: String?,
     ): Int {
-        val contactPhoto = resolveContactPhoto(groupKey)
-        val senderName = contactResolver.resolveName(groupKey)
+        val e164 = groupKey?.takeIf { it.startsWith("+") }
+        val contactPhoto = e164?.let { resolveContactPhoto(it) }
+        val senderName = e164?.let { contactResolver.resolveName(it) } ?: ""
 
         val profile = userManager.profile
         val selfPerson = Person.Builder()
@@ -197,13 +204,11 @@ class NotificationService : FirebaseMessagingService(),
 
         val senderPerson = Person.Builder()
             .setName(senderName)
-            .setKey(groupKey)
+            .setKey(groupKey ?: "unknown")
             .apply {
                 if (contactPhoto != null) setIcon(IconCompat.createWithBitmap(contactPhoto.toCircularBitmap()))
             }
             .build()
-
-        val notificationId = groupKey.hashCode() xor CONVERSATION_ID_OFFSET
 
         val style = notificationManager.activeNotifications
             .firstOrNull { it.id == notificationId }
@@ -284,6 +289,10 @@ class NotificationService : FirebaseMessagingService(),
         val target = when (navigation) {
             is NavigationTrigger.CurrencyInfo -> Intent(Intent.ACTION_VIEW).apply {
                 data = Linkify.tokenInfo(navigation.mint).toUri()
+            }
+
+            is NavigationTrigger.Chat -> Intent(Intent.ACTION_VIEW).apply {
+                data = Linkify.chat(navigation.chatId).toUri()
             }
 
             else -> packageManager.getLaunchIntentForPackage(packageName)

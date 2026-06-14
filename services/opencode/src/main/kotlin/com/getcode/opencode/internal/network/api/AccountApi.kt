@@ -1,7 +1,7 @@
 package com.getcode.opencode.internal.network.api
 
 import com.codeinc.opencode.gen.account.v1.AccountGrpcKt
-import com.codeinc.opencode.gen.account.v1.AccountService
+import com.codeinc.opencode.gen.account.v1.OcpAccountService
 import com.codeinc.opencode.gen.account.v1.validate
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
@@ -31,12 +31,12 @@ internal class AccountApi @Inject constructor(
      * etc.
      *
      * @param owner The owner account to check against.
-     * @return The [AccountService.IsOcpAccountResponse]
+     * @return The [OcpAccountService.IsOcpAccountResponse]
      */
     suspend fun isCodeAccount(
         owner: KeyPair,
-    ): AccountService.IsOcpAccountResponse {
-        val request = AccountService.IsOcpAccountRequest.newBuilder()
+    ): OcpAccountService.IsOcpAccountResponse {
+        val request = OcpAccountService.IsOcpAccountRequest.newBuilder()
             .setOwner(owner.asSolanaAccountId())
             .apply { setSignature(sign(owner)) }
             .build()
@@ -59,14 +59,14 @@ internal class AccountApi @Inject constructor(
      *   use case includes a user owner account requesting account info for a gift card
      *   owner account.
      * @param filter Filter to apply to limit response sizes
-     * @return The [AccountService.GetTokenAccountInfosResponse] for the owner account.
+     * @return The [OcpAccountService.GetTokenAccountInfosResponse] for the owner account.
      */
     suspend fun getTokenAccounts(
         accountOwner: KeyPair,
         requestingOwner: KeyPair,
         filter: AccountFilter? = null,
-    ): AccountService.GetTokenAccountInfosResponse {
-        val request = AccountService.GetTokenAccountInfosRequest.newBuilder()
+    ): OcpAccountService.GetTokenAccountInfosResponse {
+        val request = OcpAccountService.GetTokenAccountInfosRequest.newBuilder()
             .setOwner(accountOwner.asSolanaAccountId())
             .setRequestingOwner(requestingOwner.asSolanaAccountId())
             .apply {

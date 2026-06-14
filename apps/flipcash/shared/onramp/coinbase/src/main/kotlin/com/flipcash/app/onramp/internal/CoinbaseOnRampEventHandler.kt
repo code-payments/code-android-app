@@ -1,5 +1,6 @@
 package com.flipcash.app.onramp.internal
 
+import com.getcode.utils.ConditionallyNotifiable
 import com.getcode.utils.NotifiableError
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -268,12 +269,14 @@ internal class CoinbaseOnRampEventHandler(
 }
 
 /** @see [Docs](https://docs.cdp.coinbase.com/onramp/headless-onramp/overview#events-names) */
-sealed class CoinbaseOnRampWebError(val data: String? = null) : Throwable(data) {
+sealed class CoinbaseOnRampWebError(val data: String? = null) : Throwable(data), ConditionallyNotifiable {
+    override val isNotifiable: Boolean get() = false
 
     // --- Grouped errors (shared UI) ---
 
     /** "Something Went Wrong" — unknown / unmapped error codes */
     sealed class UnknownFailure(data: String?) : CoinbaseOnRampWebError(data), NotifiableError {
+        override val isNotifiable: Boolean get() = true
         class Unknown(data: String? = null) : UnknownFailure(data)
         class MissingTransactionUuid(data: String? = null) : UnknownFailure(data)
     }
@@ -294,6 +297,7 @@ sealed class CoinbaseOnRampWebError(val data: String? = null) : Throwable(data) 
 
     /** "Something Went Wrong" — internal / infra failures */
     sealed class InternalFailure(data: String?) : CoinbaseOnRampWebError(data), NotifiableError {
+        override val isNotifiable: Boolean get() = true
         class Internal(data: String? = null) : InternalFailure(data)
         class GooglePayButtonNotFound(data: String? = null) : InternalFailure(data)
         class WebViewTimeout(data: String? = null) : InternalFailure(data)
@@ -303,8 +307,12 @@ sealed class CoinbaseOnRampWebError(val data: String? = null) : Throwable(data) 
     /** "Something Went Wrong" — transaction processing failure */
     sealed class TransactionFailed(data: String?) : CoinbaseOnRampWebError(data) {
         class GooglePayError(data: String? = null) : TransactionFailed(data)
-        class SendFailed(data: String? = null) : TransactionFailed(data), NotifiableError
-        class ProcessingFailed(data: String? = null) : TransactionFailed(data), NotifiableError
+        class SendFailed(data: String? = null) : TransactionFailed(data), NotifiableError {
+            override val isNotifiable: Boolean get() = true
+        }
+        class ProcessingFailed(data: String? = null) : TransactionFailed(data), NotifiableError {
+            override val isNotifiable: Boolean get() = true
+        }
     }
 
     /** "Your Region Isn't Supported" — region / asset availability */

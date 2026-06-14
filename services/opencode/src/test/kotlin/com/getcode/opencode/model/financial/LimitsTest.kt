@@ -154,7 +154,7 @@ class LimitsTest {
             nextTransaction: Double,
             maxPerTransaction: Double,
             maxPerDay: Double,
-        ): com.codeinc.opencode.gen.transaction.v1.TransactionService.SendLimit {
+        ): com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.SendLimit {
             return com.codeinc.opencode.gen.transaction.v1.sendLimit {
                 this.nextTransaction = nextTransaction.toFloat()
                 this.maxPerTransaction = maxPerTransaction.toFloat()

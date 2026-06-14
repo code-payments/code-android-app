@@ -43,7 +43,7 @@ sealed interface TransactionMetadata {
      * @param destination The destination token account to send funds to. This cannot be a Code
      * temporary account.
      * @param exchangeData The exchange data of total funds being sent to the destination
-     * @param isRemoteSend Is the payment a remote send?
+     * @param isIndirect Is the payment a remote send?
      * @param isWithdrawal Is the payment a withdrawal?
      */
     data class SendPublicPayment(
@@ -52,8 +52,9 @@ sealed interface TransactionMetadata {
         val destinationOwner: PublicKey? = null,
         override val exchangeData: ExchangeData.WithRate,
         override val verifiedExchangeData: ExchangeData.Verified? = null,
-        val isRemoteSend: Boolean,
+        val isIndirect: Boolean,
         val isWithdrawal: Boolean,
+        val appMetadata: ByteArray? = null,
     ): PublicPayment {
         constructor(
             source: PublicKey,
@@ -61,7 +62,7 @@ sealed interface TransactionMetadata {
             destinationOwner: PublicKey? = null,
             amount: LocalFiat,
             mint: Mint,
-            isRemoteSend: Boolean,
+            isIndirect: Boolean,
             isWithdrawal: Boolean,
         ) : this(
             source = source,
@@ -74,7 +75,7 @@ sealed interface TransactionMetadata {
                 quarks = amount.underlyingTokenAmount.quarks,
                 mint = mint,
             ),
-            isRemoteSend = isRemoteSend,
+            isIndirect = isIndirect,
             isWithdrawal = isWithdrawal,
         )
 
@@ -85,8 +86,9 @@ sealed interface TransactionMetadata {
             amount: LocalFiat,
             verifiedState: VerifiedState,
             mint: Mint,
-            isRemoteSend: Boolean,
+            isIndirect: Boolean,
             isWithdrawal: Boolean,
+            appMetadata: ByteArray? = null,
         ) : this(
             source = source,
             destination = destination,
@@ -104,8 +106,9 @@ sealed interface TransactionMetadata {
                 nativeAmount = amount.nativeAmount.decimalValue,
                 verifiedState = verifiedState,
             ),
-            isRemoteSend = isRemoteSend,
+            isIndirect = isIndirect,
             isWithdrawal = isWithdrawal,
+            appMetadata = appMetadata,
         )
 
         constructor(
@@ -115,7 +118,7 @@ sealed interface TransactionMetadata {
             amount: LocalFiat,
             exchangeData: ExchangeData.Verified,
             mint: Mint,
-            isRemoteSend: Boolean,
+            isIndirect: Boolean,
             isWithdrawal: Boolean,
         ) : this(
             source = source,
@@ -129,7 +132,7 @@ sealed interface TransactionMetadata {
                 mint = mint,
             ),
             verifiedExchangeData = exchangeData,
-            isRemoteSend = isRemoteSend,
+            isIndirect = isIndirect,
             isWithdrawal = isWithdrawal,
         )
     }
@@ -150,16 +153,16 @@ sealed interface TransactionMetadata {
      *
      * @param source The remote send gift card to receive funds from
      * @param quarks The exact amount of Kin in quarks being received
-     * @param isRemoteSend Is the receipt of funds from a remote send gift card? Currently, this is
+     * @param isIndirect Is the receipt of funds from a remote send gift card? Currently, this is
      * the only use case for this intent and validation enforces the flag to true.
-     * @param exchangeData If [isRemoteSend] is true, the original exchange data that was provided as
+     * @param exchangeData If [isIndirect] is true, the original exchange data that was provided as
      * part of creating the gift card account. This is purely a server-provided value.
      * SubmitIntent will disallow this being set.
      */
     data class ReceivePublicPayment(
         override val source: PublicKey,
         val quarks: Long,
-        val isRemoteSend: Boolean,
+        val isIndirect: Boolean,
         override val exchangeData: ExchangeData.WithRate,
         override val verifiedExchangeData: ExchangeData.Verified? = null,
         val mint: Mint,
@@ -168,11 +171,11 @@ sealed interface TransactionMetadata {
             source: PublicKey,
             amount: LocalFiat,
             mint: Mint,
-            isRemoteSend: Boolean,
+            isIndirect: Boolean,
         ) : this(
             source = source,
             quarks = amount.underlyingTokenAmount.quarks,
-            isRemoteSend = isRemoteSend,
+            isIndirect = isIndirect,
             exchangeData = ExchangeData.WithRate(
                 currencyCode = amount.rate.currency.name,
                 exchangeRate = amount.rate.fx,

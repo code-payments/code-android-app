@@ -2,6 +2,7 @@ package com.flipcash.app.core
 
 import android.os.Parcelable
 import androidx.navigation3.runtime.NavKey
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.deposit.DepositResult
 import com.flipcash.app.core.deposit.DepositStep
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
@@ -14,6 +15,7 @@ import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
+import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.onboarding.OnboardingStep
 import com.getcode.navigation.flow.FlowRoute
 import com.getcode.navigation.flow.FlowRouteWithResult
@@ -240,16 +242,13 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Parcelize
     sealed interface Messaging : AppRoute {
         @Serializable
-        data class Chat(
-            val e164: String,
-            val displayName: String,
-        ) : Messaging
+        data class Chat(val identifier: ChatIdentifier) : Messaging, FlowRoute {
+            override val initialStack: List<NavKey>
+                get() = listOf(ChatStep.Conversation)
+        }
 
         @Serializable
-        data class AmountEntry(
-            val e164: String,
-            val displayName: String,
-        ) : Messaging
+        data class AmountEntry(val identifier: ChatIdentifier) : Messaging
     }
 
     @Serializable

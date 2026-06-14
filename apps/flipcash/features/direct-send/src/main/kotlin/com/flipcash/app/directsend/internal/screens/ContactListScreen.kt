@@ -7,7 +7,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,34 +22,24 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GroupAdd
-import androidx.compose.material.icons.rounded.PersonRemove
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.crossfade
 import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.send.SendResult
@@ -70,15 +59,11 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.components.SearchInput
-import com.getcode.ui.components.SwipeAction
-import com.getcode.ui.components.SwipeActionRow
 import androidx.compose.foundation.clickable
 import com.flipcash.app.contacts.ui.ContactAvatar
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.getcode.ui.core.verticalScrollStateGradient
-import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.view.LoadingSuccessState
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 
@@ -102,13 +87,9 @@ internal fun ContactListScreen() {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SendFlowViewModel.Event.NavigateToChat>()
-            .map { it.contact }
-            .collect { contact ->
+            .collect { event ->
                 flowNavigator.navigate(
-                    AppRoute.Messaging.Chat(
-                        e164 = contact.e164,
-                        displayName = contact.displayName,
-                    )
+                    AppRoute.Messaging.Chat(identifier = event.identifier)
                 )
             }
     }
@@ -120,8 +101,10 @@ internal fun ContactListScreen() {
             .collect { contact ->
                 flowNavigator.navigate(
                     AppRoute.Messaging.AmountEntry(
-                        e164 = contact.e164,
-                        displayName = contact.displayName,
+                        identifier = ChatIdentifier.ByContact(
+                            e164 = contact.e164,
+                            displayName = contact.displayName,
+                        )
                     )
                 )
             }
@@ -261,7 +244,7 @@ private fun ContactList(
             key = { _, item ->
                 when (item) {
                     is ContactListItem.Header -> item.title
-                    is ContactListItem.ContactRow -> item.contact.e164
+                    is ContactListItem.ContactRow -> item.chatId?.toString() ?: item.contact.e164
                 }
             }
         ) { index, item ->
@@ -279,6 +262,9 @@ private fun ContactList(
                     ContactRowItem(
                         contact = item.contact,
                         isOnFlipcash = item.isOnFlipcash,
+                        isNonContactDm = item.contact.isUnknown,
+                        lastMessagePreview = item.lastMessagePreview,
+                        unreadCount = item.unreadCount,
                         showDivider = !isLastInSection,
                     ) {
                         onItemClick(item)
@@ -322,6 +308,9 @@ private fun ContactRowItem(
     contact: DeviceContact,
     isOnFlipcash: Boolean,
     modifier: Modifier = Modifier,
+    isNonContactDm: Boolean = false,
+    lastMessagePreview: String? = null,
+    unreadCount: Int = 0,
     showDivider: Boolean = true,
     onClick: () -> Unit,
 ) {
@@ -341,13 +330,30 @@ private fun ContactRowItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         ) {
-            ContactAvatar(
-                photoUri = contact.photoUri,
-                displayName = contact.displayName,
-                modifier = Modifier
-                    .requiredSize(CodeTheme.dimens.staticGrid.x8)
-                    .clip(CircleShape),
-            )
+            if (isNonContactDm && contact.photoUri == null) {
+                Box(
+                    modifier = Modifier
+                        .requiredSize(CodeTheme.dimens.staticGrid.x8)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = CodeTheme.colors.textSecondary,
+                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
+                    )
+                }
+            } else {
+                ContactAvatar(
+                    photoUri = contact.photoUri,
+                    displayName = contact.displayName,
+                    modifier = Modifier
+                        .requiredSize(CodeTheme.dimens.staticGrid.x8)
+                        .clip(CircleShape),
+                )
+            }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = contact.displayName,
@@ -355,18 +361,28 @@ private fun ContactRowItem(
                     color = CodeTheme.colors.textMain,
                 )
                 Text(
-                    text = contact.displayNumber.ifEmpty { contact.e164 },
+                    text = if (isOnFlipcash && !lastMessagePreview.isNullOrEmpty()) {
+                        lastMessagePreview
+                    } else {
+                        contact.displayNumber.ifEmpty { contact.e164 }
+                    },
                     style = CodeTheme.typography.textSmall,
                     color = CodeTheme.colors.textSecondary,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
 
             if (isOnFlipcash) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_chevron_right),
-                    contentDescription = null,
-                    tint = CodeTheme.colors.textSecondary,
-                )
+                if (unreadCount > 0) {
+                    UnreadBadge(count = unreadCount)
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_chevron_right),
+                        contentDescription = null,
+                        tint = CodeTheme.colors.textSecondary,
+                    )
+                }
             } else {
                 Text(
                     modifier = Modifier
@@ -397,6 +413,18 @@ private fun ContactRowItem(
             )
         }
     }
+}
+
+@Composable
+private fun UnreadBadge(count: Int, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(CodeTheme.dimens.grid.x4)
+            .background(
+                color = CodeTheme.colors.indicator,
+                shape = CircleShape,
+            ),
+    )
 }
 
 @Preview

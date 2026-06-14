@@ -88,17 +88,17 @@ class PhoneUtils @Inject constructor(
     }
 
     fun cleanNumber(number: String, locale: CountryLocale): String {
+        val countryCode = locale.countryCode
+        val javaLocale = Locale(Locale.getDefault().language, countryCode)
+
+        if (number.trimStart().startsWith("+")) {
+            // Already has country code (e.g. from autofill), parse as-is
+            return number.makeE164(javaLocale)
+        }
+
         val areaCode = locale.phoneCode
-        val countryCode =locale.countryCode
-        val phoneInput = number
-
-        val phoneNumberCombined = areaCode.toString() + phoneInput
-
-        val phoneNumber = phoneNumberCombined.makeE164(
-            Locale(Locale.getDefault().language, countryCode)
-        )
-
-        return phoneNumber
+        val phoneNumberCombined = areaCode.toString() + number
+        return phoneNumberCombined.makeE164(javaLocale)
     }
 
     private fun String.makeE164(locale: Locale? = null): String {

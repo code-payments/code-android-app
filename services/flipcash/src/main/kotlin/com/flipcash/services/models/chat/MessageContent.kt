@@ -1,5 +1,16 @@
 package com.flipcash.services.models.chat
 
+import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Mint
+
 sealed interface MessageContent {
     data class Text(val text: String) : MessageContent
+    data class Cash(
+        val intentId: ID,
+        val amount: Fiat,
+        val mint: Mint,
+        val tokenName: String = "",
+        val tokenImageUrl: String = "",
+    ) : MessageContent
 }

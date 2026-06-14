@@ -1,6 +1,7 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.models.ContactMethod
+import com.flipcash.services.models.FlipcashContactEntry
 import com.flipcash.services.repository.ContactListRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.solana.keys.Checksum
@@ -37,7 +38,7 @@ class ContactListController @Inject constructor(
         return repository.fullUpload(owner, phones, expectedChecksum)
     }
 
-    fun getFlipcashContacts(checksum: Checksum): Flow<Result<List<ContactMethod.Phone>>> {
+    fun getFlipcashContacts(checksum: Checksum): Flow<Result<List<FlipcashContactEntry>>> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: throw IllegalStateException("No account cluster in UserManager")
         return repository.getFlipcashContacts(owner, checksum)

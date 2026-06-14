@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.network.api.intents
 
-import com.codeinc.opencode.gen.transaction.v1.TransactionService
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
 import com.getcode.opencode.model.accounts.AccountCluster
@@ -29,7 +29,7 @@ internal class IntentTransfer(
     override val  metadata: TransactionMetadata,
     override val actionGroup: ActionGroup,
 ) : IntentType() {
-    override fun metadata(): TransactionService.Metadata {
+    override fun metadata(): OcpTransactionService.Metadata {
         return metadata.asProtobufMetadata()
     }
 
@@ -58,7 +58,7 @@ internal class IntentTransfer(
                     destination = destination,
                     amount = amount,
                     mint = mint,
-                    isRemoteSend = false,
+                    isIndirect = false,
                     isWithdrawal = false,
                     exchangeData = exchangeData,
                 ),
@@ -76,6 +76,7 @@ internal class IntentTransfer(
             destination: PublicKey,
             destinationOwner: PublicKey,
             verifiedState: VerifiedState,
+            appMetadata: ByteArray? = null,
         ): IntentTransfer {
             val transfer = ActionPublicTransfer.newInstance(
                 owner = sourceCluster.authority.keyPair,
@@ -94,8 +95,9 @@ internal class IntentTransfer(
                     amount = amount,
                     verifiedState = verifiedState,
                     mint = mint,
-                    isRemoteSend = false,
+                    isIndirect = false,
                     isWithdrawal = false,
+                    appMetadata = appMetadata,
                 ),
                 actionGroup = ActionGroup().apply {
                     actions = listOf(transfer)

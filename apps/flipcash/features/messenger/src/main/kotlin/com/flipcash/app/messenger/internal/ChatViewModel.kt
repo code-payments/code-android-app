@@ -9,15 +9,20 @@ import androidx.paging.flatMap
 import androidx.paging.insertSeparators
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.device.DeviceContact
+import androidx.compose.runtime.snapshotFlow
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.messenger.internal.screens.components.ChatListItem
+import com.flipcash.app.messenger.internal.screens.components.ReceiptStatus
 import com.flipcash.app.messenger.internal.screens.components.SeparatorConfig
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.buildDmPaymentMetadata
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.user.UserManager
@@ -32,6 +37,7 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.PublicKey
@@ -48,6 +54,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -56,10 +63,19 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.min
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
+
+data class TypingConstraints(
+    val enabled: Boolean = false,
+    val interval: Duration = 3.seconds,
+    val timeout: Duration = 5.seconds,
+)
 
 @HiltViewModel
 internal class ChatViewModel @Inject constructor(
@@ -96,12 +112,14 @@ internal class ChatViewModel @Inject constructor(
         val typists: Set<ActiveTypist> = emptySet(),
         val resolveState: ResolveState = ResolveState.Pending,
         val sendProgress: LoadingSuccessState = LoadingSuccessState(),
+        val isSelfTyping: Boolean = false,
+        val typingConstraints: TypingConstraints = TypingConstraints(),
         val token: Token? = null,
-        val limits: com.getcode.opencode.model.financial.Limits? = null,
+        val limits: Limits? = null,
     )
 
     sealed interface Event {
-        data class OnChatOpened(val e164: String, val displayName: String) : Event
+        data class OnChatOpened(val identifier: ChatIdentifier) : Event
         data class OnContactFound(val contact: DeviceContact): Event
         data class ChatFound(val chatId: ChatId) : Event
         data object OnSendCash: Event
@@ -129,29 +147,57 @@ internal class ChatViewModel @Inject constructor(
         ) : Event
         data class SendComplete(val amount: Fiat) : Event
 
+        data object OnSelfTypingStarted : Event
+        data object OnSelfTypingStill : Event
+        data object OnSelfTypingStopped : Event
+        data class TypingEnabled(val enabled: Boolean) : Event
+
         data class TokenUpdated(val token: Token) : Event
-        data class LimitsChanged(val limits: com.getcode.opencode.model.financial.Limits?) : Event
+        data class LimitsChanged(val limits: Limits?) : Event
+        data class AdvanceReadPointer(val messageId: Long) : Event
     }
 
     private val separatorConfig = SeparatorConfig.TimeGap()
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val messages: Flow<PagingData<ChatListItem>> = stateFlow
+    private val messageStream = stateFlow.mapNotNull { it.chatId }.distinctUntilChanged()
+        .flatMapLatest { chatCoordinator.observeMessagesPaged(it) }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val otherReadPointer = stateFlow
         .map { it.chatId }
         .filterNotNull()
         .distinctUntilChanged()
-        .flatMapLatest { chatId ->
-            chatCoordinator.observeMessagesPaged(chatId)
-        }
+        .flatMapLatest { chatCoordinator.observeOtherReadPointer(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val messages: Flow<PagingData<ChatListItem>> = messageStream
         .map { pagingData ->
             pagingData.flatMap { message ->
                 message.content.mapIndexed { index, content ->
+                    val enriched = if (content is MessageContent.Cash && content.tokenName.isBlank()) {
+                        val token = tokenCoordinator.getTokenMetadata(content.mint).getOrNull()?.token
+                        if (token != null) {
+                            content.copy(tokenName = token.name, tokenImageUrl = token.imageUrl)
+                        } else content
+                    } else content
+
+                    val receiptStatus = if (message.isFromSelf) {
+                        when (message.deliveryStatus) {
+                            DeliveryStatus.SENDING -> ReceiptStatus.SENDING
+                            DeliveryStatus.FAILED -> ReceiptStatus.FAILED
+                            DeliveryStatus.SENT -> ReceiptStatus.SENT
+                        }
+                    } else null
+
                     ChatListItem.ContentBubble(
                         messageId = message.messageId,
                         contentIndex = index,
-                        content = content,
+                        content = enriched,
                         isFromSelf = message.isFromSelf,
                         timestamp = message.timestamp,
+                        receiptStatus = receiptStatus,
                     )
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->
@@ -188,77 +234,6 @@ internal class ChatViewModel @Inject constructor(
     )
 
     init {
-        eventFlow
-            .filterIsInstance<Event.OnChatOpened>()
-            .map { (e164, _) -> contactCoordinator.lookupContact(e164) }
-            .onResult(
-                onSuccess = { contact ->
-                    dispatchEvent(Event.OnContactFound(contact))
-                },
-                onError = {
-                    // TODO:
-                }
-            ).launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnContactFound>()
-            .map { it.contact }
-            .map {
-                contactCoordinator.resolve(it.e164)
-            }.onResult(
-                onSuccess = {
-                    dispatchEvent(Event.ResolveCompleted(it))
-                },
-                onError = {
-                    dispatchEvent(Event.ResolveFailed)
-                }
-            ).launchIn(viewModelScope)
-
-        stateFlow
-            .mapNotNull { it.chattingWith }
-            .map { chatCoordinator.getChatId(it) }
-            .onResult(
-                onSuccess = { chatId ->
-                    trace("chatID found => $chatId")
-                    dispatchEvent(Event.ChatFound(chatId))
-                },
-                onError = {
-                    // TODO:
-                }
-            ).launchIn(viewModelScope)
-
-        stateFlow.map { it.chatId }
-
-            .filterNotNull()
-
-            .onEach { chatCoordinator.loadMessages(it) }
-            .launchIn(viewModelScope)
-
-        // Observe typing indicators once chatId is known
-        stateFlow.map { it.chatId }
-            .filterNotNull()
-            .flatMapLatest { chatId -> chatCoordinator.observeTypingIndicators(chatId) }
-            .onEach { typists -> dispatchEvent(Event.TypistsUpdated(typists)) }
-            .launchIn(viewModelScope)
-
-        // Send text message
-        eventFlow.filterIsInstance<Event.SendMessage>()
-            .map { stateFlow.value.chatInputState }
-            .mapNotNull { textInput ->
-                val textToSend = textInput.text.toString()
-                val chatId = stateFlow.value.chatId ?: return@mapNotNull null
-                stateFlow.value.chatInputState.clearText()
-                chatCoordinator.sendMessage(chatId, textToSend)
-            }.onResult(
-                onSuccess = {
-                    trace("message sent successfully")
-                },
-                onError = {
-                    trace("message failed to send - ${it.localizedMessage}")
-                }
-            )
-            .launchIn(viewModelScope)
-
         // Token observation
         tokenCoordinator.observeSelectedTokenMint()
             .flatMapLatest { mint ->
@@ -283,6 +258,184 @@ internal class ChatViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.LimitsChanged(it)) }
             .launchIn(viewModelScope)
 
+        // Unified chat open handler — resolves chatId and contact from the identifier
+        eventFlow
+            .filterIsInstance<Event.OnChatOpened>()
+            .onEach { event ->
+                val identifier = event.identifier
+
+                // 1. Resolve chatId
+                val chatId = when (identifier) {
+                    is ChatIdentifier.ByContact -> identifier.chatId
+                        ?: chatCoordinator.getChatId(
+                            DeviceContact.unknownContact(identifier.e164)
+                        ).getOrNull()
+                    is ChatIdentifier.ByChatId -> identifier.chatId
+                }
+
+                if (chatId != null) {
+                    dispatchEvent(Event.ChatFound(chatId))
+                    chatCoordinator.setActiveChatId(chatId)
+                    chatCoordinator.dismissNotifications(chatId)
+                }
+
+                // 2. Resolve contact
+                when (identifier) {
+                    is ChatIdentifier.ByContact -> {
+                        val contact = contactCoordinator.lookupContact(identifier.e164).getOrElse {
+                            DeviceContact.unknownContact(
+                                e164 = identifier.e164,
+                                displayName = identifier.displayName.takeIf { it.isNotBlank() },
+                            )
+                        }
+                        dispatchEvent(Event.OnContactFound(contact))
+                    }
+                    is ChatIdentifier.ByChatId -> {
+                        val contact = contactCoordinator.lookupContactByDmChatId(
+                            identifier.chatId.toString()
+                        )
+                        if (contact != null) {
+                            dispatchEvent(Event.OnContactFound(contact))
+                        }
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
+
+        // Resolve owner authority for sending cash
+        eventFlow
+            .filterIsInstance<Event.OnContactFound>()
+            .map { it.contact }
+            .map {
+                contactCoordinator.resolve(it.e164)
+            }.onResult(
+                onSuccess = {
+                    dispatchEvent(Event.ResolveCompleted(it))
+                },
+                onError = {
+                    dispatchEvent(Event.ResolveFailed)
+                }
+            ).launchIn(viewModelScope)
+
+        // trigger message update fetch on open
+        stateFlow.map { it.chatId }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .onEach { chatId ->
+                chatCoordinator.loadMessages(chatId)
+            }
+            .launchIn(viewModelScope)
+
+        // Advance read pointer when user scrolls to messages
+        eventFlow
+            .filterIsInstance<Event.AdvanceReadPointer>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                chatCoordinator.advanceReadPointer(chatId, event.messageId)
+            }
+            .launchIn(viewModelScope)
+
+        // Dispatch typing notifications based on text changes.
+        // transformLatest auto-cancels the previous block on each new emission,
+        // replacing manual Job tracking for idle timeout and heartbeats.
+        @OptIn(ExperimentalCoroutinesApi::class)
+        snapshotFlow { stateFlow.value.chatInputState.text.toString() }
+            .drop(1)
+            .distinctUntilChanged()
+            .transformLatest { text ->
+                if (!stateFlow.value.typingConstraints.enabled) return@transformLatest
+
+                if (text.isEmpty()) {
+                    if (stateFlow.value.isSelfTyping) {
+                        emit(Event.OnSelfTypingStopped)
+                    }
+                    return@transformLatest
+                }
+
+                if (!stateFlow.value.isSelfTyping) {
+                    emit(Event.OnSelfTypingStarted)
+                }
+
+                val constraints = stateFlow.value.typingConstraints
+                var elapsed = Duration.ZERO
+                while (elapsed < constraints.timeout) {
+                    val wait = minOf(constraints.interval, constraints.timeout - elapsed)
+                    delay(wait)
+                    elapsed += wait
+                    if (elapsed < constraints.timeout) {
+                        emit(Event.OnSelfTypingStill)
+                    }
+                }
+                emit(Event.OnSelfTypingStopped)
+            }
+            .onEach { dispatchEvent(it) }
+            .launchIn(viewModelScope)
+
+        // Send STOPPED_TYPING when keyboard is dismissed
+        eventFlow.filterIsInstance<Event.OnStopMessageInput>()
+            .onEach {
+                if (stateFlow.value.isSelfTyping) {
+                    dispatchEvent(Event.OnSelfTypingStopped)
+                }
+            }
+            .launchIn(viewModelScope)
+
+        // Notify server of typing state changes
+        eventFlow.filterIsInstance<Event.OnSelfTypingStarted>()
+            .mapNotNull { stateFlow.value.chatId }
+            .onEach { chatCoordinator.notifyTyping(it, TypingState.STARTED_TYPING) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.OnSelfTypingStill>()
+            .mapNotNull { stateFlow.value.chatId }
+            .onEach { chatCoordinator.notifyTyping(it, TypingState.STILL_TYPING) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.OnSelfTypingStopped>()
+            .mapNotNull { stateFlow.value.chatId }
+            .onEach { chatCoordinator.notifyTyping(it, TypingState.STOPPED_TYPING) }
+            .launchIn(viewModelScope)
+
+        // Observe typing indicators once chatId is known
+        stateFlow.map { it.chatId }
+            .filterNotNull()
+            .flatMapLatest { chatId -> chatCoordinator.observeTypingIndicators(chatId) }
+            .onEach { typists -> dispatchEvent(Event.TypistsUpdated(typists)) }
+            .launchIn(viewModelScope)
+
+        // Enable typing notifications once a payment has been exchanged
+        stateFlow.map { it.chatId }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .flatMapLatest { chatId ->
+                chatCoordinator.observeMessages(chatId)
+                    .map { messages ->
+                        messages.any { msg -> msg.content.any { it is MessageContent.Cash } }
+                    }
+                    .distinctUntilChanged()
+            }
+            .onEach { dispatchEvent(Event.TypingEnabled(it)) }
+            .launchIn(viewModelScope)
+
+        // Send text message
+        eventFlow.filterIsInstance<Event.SendMessage>()
+            .map { stateFlow.value.chatInputState }
+            .mapNotNull { textInput ->
+                val textToSend = textInput.text.toString()
+                val chatId = stateFlow.value.chatId ?: return@mapNotNull null
+                stateFlow.value.chatInputState.clearText()
+                chatCoordinator.sendMessage(chatId, textToSend)
+            }.onResult(
+                onSuccess = {
+                    trace("message sent successfully")
+                },
+                onError = {
+                    trace("message failed to send - ${it.localizedMessage}")
+                }
+            )
+            .launchIn(viewModelScope)
+
+        // confirmation of amount and checks
         eventFlow.filterIsInstance<Event.OnConfirmRequested>()
             .onEach { onConfirmRequested() }
             .launchIn(viewModelScope)
@@ -305,6 +458,7 @@ internal class ChatViewModel @Inject constructor(
                     )
                     return@onEach
                 }
+                amountDelegate.reset()
                 dispatchEvent(Event.NavigateToAmountEntry(contact))
             }.launchIn(viewModelScope)
 
@@ -350,11 +504,18 @@ internal class ChatViewModel @Inject constructor(
                         return@launch
                     }
 
+                    val appMetadataBytes = buildDmPaymentMetadata(
+                        chatId = stateFlow.value.chatId,
+                        sourcePhone = contactCoordinator.selfPhone,
+                        destinationPhone = stateFlow.value.chattingWith?.e164,
+                    )
+
                     transactionController.directTransfer(
                         amount = verifiedFiat,
                         token = token,
                         source = source,
                         destinationOwner = destination,
+                        appMetadata = appMetadataBytes,
                     ).fold(
                         onSuccess = {
                             tokenCoordinator.subtract(token, verifiedFiat.localFiat)
@@ -363,6 +524,7 @@ internal class ChatViewModel @Inject constructor(
                         onFailure = { Result.failure(it) }
                     ).onSuccess { amount ->
                         dispatchEvent(Event.SendStateUpdated(success = true))
+                        stateFlow.value.chatId?.let { chatCoordinator.loadMessages(it) }
                         delay(400)
                         dispatchEvent(
                             Dispatchers.Main,
@@ -377,6 +539,11 @@ internal class ChatViewModel @Inject constructor(
                     }
                 }
             }.launchIn(viewModelScope)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        chatCoordinator.setActiveChatId(null)
     }
 
     private fun checkBalanceLimit(): Boolean {
@@ -470,8 +637,17 @@ internal class ChatViewModel @Inject constructor(
                     )
                 }
                 is Event.SendComplete -> { state -> state }
+                Event.OnSelfTypingStarted -> { state -> state.copy(isSelfTyping = true) }
+                Event.OnSelfTypingStill -> { state -> state }
+                Event.OnSelfTypingStopped -> { state -> state.copy(isSelfTyping = false) }
+                is Event.TypingEnabled -> { state ->
+                    state.copy(
+                        typingConstraints = state.typingConstraints.copy(enabled = event.enabled)
+                    )
+                }
                 is Event.TokenUpdated -> { state -> state.copy(token = event.token) }
                 is Event.LimitsChanged -> { state -> state.copy(limits = event.limits) }
+                is Event.AdvanceReadPointer -> { state -> state }
             }
         }
     }

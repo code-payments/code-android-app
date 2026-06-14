@@ -28,7 +28,7 @@ data class ActivityFeedMessage(
         get() {
             metadata ?: return false
             val metadata =
-                (metadata as? MessageMetadata.SentCrypto) ?: return false
+                (metadata as? MessageMetadata.IndirectlySentCrypto) ?: return false
             return metadata.canCancel
         }
 }
@@ -53,16 +53,20 @@ sealed interface MessageMetadata {
     data object Unknown : MessageMetadata
 
     @Serializable
-    data object GaveCrypto : MessageMetadata
+    data class DirectlySentCrypto(
+        val phoneNumber: String? = null,
+    ) : MessageMetadata
 
     @Serializable
-    data class SentCrypto(
+    data class IndirectlySentCrypto(
         val creator: PublicKey,
         val canCancel: Boolean,
     ) : MessageMetadata
 
     @Serializable
-    data object ReceivedCrypto : MessageMetadata
+    data class ReceivedCrypto(
+        val phoneNumber: String? = null,
+    ) : MessageMetadata
 
     @Serializable
     data object WithdrewCrypto : MessageMetadata

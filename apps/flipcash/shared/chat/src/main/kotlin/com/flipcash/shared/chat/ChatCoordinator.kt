@@ -2,6 +2,7 @@
 
 package com.flipcash.shared.chat
 
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -13,11 +14,14 @@ import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.ContactDataSource
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.EventStreamingController
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MetadataUpdate
@@ -29,12 +33,14 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.providers.SessionListener
 import com.getcode.utils.TraceType
 import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.utils.decodeBase58
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,7 +69,9 @@ class ChatCoordinator @Inject constructor(
     private val metadataDataSource: ChatMetadataDataSource,
     private val messageDataSource: ChatMessageDataSource,
     private val memberDataSource: ChatMemberDataSource,
+    private val contactDataSource: ContactDataSource,
     private val networkObserver: NetworkConnectivityListener,
+    private val notificationManager: NotificationManagerCompat,
     private val userManager: UserManager,
 ) : SessionListener, DefaultLifecycleObserver {
 
@@ -74,9 +82,9 @@ class ChatCoordinator @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val cluster = MutableStateFlow<AccountCluster?>(null)
     private val _state = MutableStateFlow(ChatState())
-
     private var syncJob: Job? = null
     private var eventStreamCollectJob: Job? = null
+    private var eventStreamRetryJob: Job? = null
 
     val state: StateFlow<ChatState>
         get() = _state.asStateFlow()
@@ -90,8 +98,9 @@ class ChatCoordinator @Inject constructor(
                     ?.firstOrNull { it.type == PointerType.READ }
                     ?.value ?: 0L
 
+                val selfId = userManager.accountId
                 val unreadCount = metadata.lastMessage?.let { lastMsg ->
-                    if (lastMsg.messageId > readPointer) 1 else 0
+                    if (lastMsg.messageId > readPointer && lastMsg.senderId != selfId) 1 else 0
                 } ?: 0
 
                 ChatSummary(metadata = metadata, unreadCount = unreadCount)
@@ -142,9 +151,12 @@ class ChatCoordinator @Inject constructor(
 
     // region Public API
 
-    fun getChatId(contact: DeviceContact): Result<ChatId> {
-        // TODO:
-        return Result.success(ChatId("b7e8cc8ac48cf661b1a32b09dfd4561c7c230c3b3c5cd65a85cc55381442ea0f"))
+    suspend fun getChatId(contact: DeviceContact): Result<ChatId> {
+        val raw = contactDataSource.getDmChatId(contact.e164)
+        if (raw.isNullOrEmpty()) {
+            return Result.failure(NoDmChatInitializedException(contact.e164))
+        }
+        return runCatching { ChatId(raw.decodeBase58()) }
     }
 
     fun observeMessages(chatId: ChatId): Flow<List<ChatMessage>> {
@@ -152,11 +164,10 @@ class ChatCoordinator @Inject constructor(
     }
 
     fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>> {
-        messageDataSource.setActiveChatId(chatId)
         return Pager(
             config = PagingConfig(pageSize = 50),
         ) {
-            messageDataSource.observe()
+            messageDataSource.observeForChat(chatId)
         }.flow.map { page ->
             page.map { entity -> messageDataSource.toChatMessage(entity) }
         }
@@ -164,6 +175,18 @@ class ChatCoordinator @Inject constructor(
 
     fun observeTypingIndicators(chatId: ChatId): Flow<Set<ActiveTypist>> {
         return _state.map { it.typingIndicators[chatId] ?: emptySet() }
+    }
+
+    fun observeOtherReadPointer(chatId: ChatId): Flow<Long> {
+        val selfId = userManager.accountId
+        return memberDataSource.observeMembers(chatId)
+            .map { members ->
+                members.firstOrNull { it.userId != selfId }
+                    ?.pointers
+                    ?.firstOrNull { it.type == PointerType.READ }
+                    ?.value ?: 0L
+            }
+            .distinctUntilChanged()
     }
 
     suspend fun loadMessages(chatId: ChatId, limit: Int = 100) {
@@ -186,7 +209,23 @@ class ChatCoordinator @Inject constructor(
 
         return messagingController.sendMessage(chatId, content, clientMessageId)
             .onSuccess { serverMessage ->
-                messageDataSource.confirmPending(chatId, clientMessageId, serverMessage.messageId)
+                messageDataSource.confirmPending(chatId, clientMessageId, serverMessage)
+                advanceReadPointer(chatId, serverMessage.messageId)
+
+                // Update feed metadata so the contact list shows the latest message
+                metadataDataSource.updateLastMessageId(chatId, serverMessage.messageId)
+                metadataDataSource.updateLastActivity(chatId, serverMessage.timestamp.toEpochMilliseconds())
+                _state.update { state ->
+                    val updatedFeed = state.feed.map { meta ->
+                        if (meta.chatId == chatId) {
+                            meta.copy(
+                                lastMessage = serverMessage,
+                                lastActivity = serverMessage.timestamp,
+                            )
+                        } else meta
+                    }
+                    state.copy(feed = updatedFeed)
+                }
             }
             .onFailure {
                 messageDataSource.failPending(chatId, clientMessageId)
@@ -194,7 +233,46 @@ class ChatCoordinator @Inject constructor(
     }
 
     suspend fun advanceReadPointer(chatId: ChatId, messageId: Long): Result<Unit> {
+        val selfId = userManager.accountId ?: return Result.failure(
+            IllegalStateException("No account")
+        )
+
+        // Optimistically update local pointer so the feed unread count clears immediately
+        val pointer = MessagePointer(
+            type = PointerType.READ,
+            userId = selfId,
+            value = messageId,
+        )
+        memberDataSource.updatePointers(chatId, pointer)
+        _state.update { state ->
+            val updatedFeed = state.feed.map { meta ->
+                if (meta.chatId == chatId) {
+                    meta.copy(members = meta.members.map { member ->
+                        if (member.userId == selfId) {
+                            val updated = member.pointers
+                                .filter { it.type != PointerType.READ }
+                                .plus(pointer)
+                            member.copy(pointers = updated)
+                        } else member
+                    })
+                } else meta
+            }
+            state.copy(feed = updatedFeed)
+        }
+
         return messagingController.advancePointer(chatId, PointerType.READ, messageId)
+    }
+
+    fun setActiveChatId(chatId: ChatId?) {
+        _state.update { it.copy(activeChat = chatId) }
+    }
+
+    fun isActiveChat(chatId: ChatId): Boolean {
+        return _state.value.activeChat == chatId
+    }
+
+    fun dismissNotifications(chatId: ChatId) {
+        notificationManager.cancel(chatId.hashCode())
     }
 
     suspend fun notifyTyping(chatId: ChatId, typingState: TypingState): Result<Unit> {
@@ -257,14 +335,30 @@ class ChatCoordinator @Inject constructor(
     }
 
     private fun openEventStream() {
-        eventStreamingController.open(scope)
-        eventStreamCollectJob?.cancel()
-        eventStreamCollectJob = scope.launch {
-            eventStreamingController.chatUpdates.collect { applyUpdate(it) }
+        eventStreamRetryJob?.cancel()
+        val opened = eventStreamingController.open(scope) {
+            // Stream died after exhausting retries — schedule a re-open
+            eventStreamRetryJob = scope.launch {
+                delay(5_000)
+                trace(tag = TAG, message = "Retrying event stream after failure", type = TraceType.Process)
+                openEventStream()
+            }
+        }
+        if (!opened) {
+            trace(tag = TAG, message = "Event stream failed to open", type = TraceType.Error)
+        }
+        // Always ensure a collector is running so events are processed
+        // as soon as the stream (re)connects.
+        if (eventStreamCollectJob?.isActive != true) {
+            eventStreamCollectJob = scope.launch {
+                eventStreamingController.chatUpdates.collect { applyUpdate(it) }
+            }
         }
     }
 
     private fun closeEventStream() {
+        eventStreamRetryJob?.cancel()
+        eventStreamRetryJob = null
         eventStreamCollectJob?.cancel()
         eventStreamCollectJob = null
         eventStreamingController.close()
@@ -272,21 +366,61 @@ class ChatCoordinator @Inject constructor(
 
     private suspend fun applyUpdate(update: ChatUpdate) {
         val chatId = update.chatId
+        trace(
+            tag = TAG,
+            message = "applyUpdate: chatId=$chatId, newMessages=${update.newMessages.size}, pointers=${update.pointerUpdates.size}, typing=${update.typingNotifications.size}",
+            type = TraceType.Process,
+        )
 
         // New messages
         if (update.newMessages.isNotEmpty()) {
+            trace(tag = TAG, message = "Upserting ${update.newMessages.size} new messages for $chatId", type = TraceType.Process)
             messageDataSource.upsert(chatId, update.newMessages)
 
             val lastMsg = update.newMessages.maxByOrNull { it.messageId }
             if (lastMsg != null) {
                 metadataDataSource.updateLastMessageId(chatId, lastMsg.messageId)
                 metadataDataSource.updateLastActivity(chatId, lastMsg.timestamp.toEpochMilliseconds())
+
+                _state.update { state ->
+                    val updatedFeed = state.feed.map { meta ->
+                        if (meta.chatId == chatId) {
+                            meta.copy(
+                                lastMessage = lastMsg,
+                                lastActivity = lastMsg.timestamp,
+                            )
+                        } else meta
+                    }
+                    state.copy(feed = updatedFeed)
+                }
             }
         }
 
         // Pointer updates
         for (pointer in update.pointerUpdates) {
             memberDataSource.updatePointers(chatId, pointer)
+        }
+
+        if (update.pointerUpdates.isNotEmpty()) {
+            _state.update { state ->
+                val updatedFeed = state.feed.map { meta ->
+                    if (meta.chatId == chatId) {
+                        meta.copy(members = meta.members.map { member ->
+                            val memberPointerUpdates = update.pointerUpdates
+                                .filter { it.userId == member.userId }
+                            if (memberPointerUpdates.isNotEmpty()) {
+                                val updated = member.pointers.toMutableList()
+                                for (p in memberPointerUpdates) {
+                                    updated.removeAll { it.type == p.type }
+                                    updated.add(p)
+                                }
+                                member.copy(pointers = updated)
+                            } else member
+                        })
+                    } else meta
+                }
+                state.copy(feed = updatedFeed)
+            }
         }
 
         // Typing notifications (ephemeral, in-memory only)
@@ -346,3 +480,5 @@ class ChatCoordinator @Inject constructor(
 
     // endregion
 }
+
+class NoDmChatInitializedException(e164: String) : Exception("No DM chat for $e164")

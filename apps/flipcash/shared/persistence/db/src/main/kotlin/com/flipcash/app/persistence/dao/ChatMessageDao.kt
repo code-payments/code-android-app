@@ -5,6 +5,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.flipcash.app.persistence.entities.ChatMessageEntity
 import com.flipcash.app.persistence.entities.MessageStatus
 import kotlinx.coroutines.flow.Flow
@@ -30,12 +31,23 @@ interface ChatMessageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entities: List<ChatMessageEntity>)
 
-    @Query(
-        """UPDATE chat_messages
-           SET message_id = :serverMessageId, pending_client_id_hex = NULL, status = 'SENT'
-           WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex"""
-    )
-    suspend fun confirmPendingMessage(chatIdHex: String, clientIdHex: String, serverMessageId: Long)
+    @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex")
+    suspend fun deletePending(chatIdHex: String, clientIdHex: String)
+
+    @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND status = 'SENDING'")
+    suspend fun deleteAllPending(chatIdHex: String)
+
+    @Transaction
+    suspend fun confirmPendingMessage(chatIdHex: String, clientIdHex: String, serverMessage: ChatMessageEntity) {
+        deletePending(chatIdHex, clientIdHex)
+        upsert(serverMessage)
+    }
+
+    @Transaction
+    suspend fun upsertAndClearPending(chatIdHex: String, entities: List<ChatMessageEntity>) {
+        deleteAllPending(chatIdHex)
+        upsert(entities)
+    }
 
     @Query("UPDATE chat_messages SET status = :status WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex")
     suspend fun updatePendingStatus(chatIdHex: String, clientIdHex: String, status: MessageStatus)

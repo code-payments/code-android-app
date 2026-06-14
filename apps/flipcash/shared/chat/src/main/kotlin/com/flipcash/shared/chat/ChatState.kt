@@ -9,6 +9,7 @@ data class ChatState(
     val feed: List<ChatMetadata> = emptyList(),
     val typingIndicators: Map<ChatId, Set<ActiveTypist>> = emptyMap(),
     val feedSyncState: FeedSyncState = FeedSyncState.Idle,
+    val activeChat: ChatId? = null,
 )
 
 data class ChatSummary(
