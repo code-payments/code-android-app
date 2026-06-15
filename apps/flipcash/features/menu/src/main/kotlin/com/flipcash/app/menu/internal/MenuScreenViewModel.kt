@@ -7,6 +7,7 @@ import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.payments.PurchaseMethodController
@@ -19,7 +20,6 @@ import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.managers.MnemonicManager
-import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.manager.BottomBarAction
 import com.getcode.view.BaseViewModel
@@ -53,6 +53,7 @@ internal class MenuScreenViewModel @Inject constructor(
     versionInfo: VersionInfo,
     mnemonicManager: MnemonicManager,
     featureFlags: FeatureFlagController,
+    private val toastController: SystemToastController,
     dispatchers: DispatcherProvider,
     releaseStageProvider: ReleaseStageProvider,
     purchaseMethodController: PurchaseMethodController,
@@ -120,10 +121,24 @@ internal class MenuScreenViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnVersionInfoClicked>()
-            .map { stateFlow.value.logoTapCount }
-            .filter { it > TAP_THRESHOLD }
-            .filterNot { stateFlow.value.unlockedBetaFeaturesManually }
-            .onEach { featureFlags.enableBetaFeatures() }
+            .onEach {
+                if (stateFlow.value.unlockedBetaFeaturesManually) {
+                    if (stateFlow.value.logoTapCount - TAP_THRESHOLD > COUNTDOWN_START) {
+                        toastController.showToast(R.string.toast_betaOverrideAlready, replacePrevious = true)
+                    }
+                    return@onEach
+                }
+                val remaining = TAP_THRESHOLD - stateFlow.value.logoTapCount + 1
+                when {
+                    remaining <= 0 -> {
+                        featureFlags.enableBetaFeatures()
+                        toastController.showToast(R.string.toast_betaOverrideEnabled, replacePrevious = true)
+                    }
+                    remaining <= COUNTDOWN_START -> {
+                        toastController.showQuantityToast(R.plurals.toast_betaOverrideCountdown, remaining, remaining, replacePrevious = true)
+                    }
+                }
+            }
             .launchIn(viewModelScope)
 
         @OptIn(FlowPreview::class)
@@ -165,6 +180,7 @@ internal class MenuScreenViewModel @Inject constructor(
 
     internal companion object {
         private const val TAP_THRESHOLD = 6
+        private const val COUNTDOWN_START = 3
 
         private fun buildItemList(
             isStaff: Boolean,
