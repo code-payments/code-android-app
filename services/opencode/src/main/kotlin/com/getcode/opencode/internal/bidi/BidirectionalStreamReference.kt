@@ -18,6 +18,8 @@ class BidirectionalStreamReference<Request, Response>(
     private val supervisorJob = SupervisorJob()
     val coroutineScope = CoroutineScope(supervisorJob + scope.coroutineContext)
 
+    val isActive: Boolean get() = isStreamActive
+
     private var isStreamActive: Boolean = false
         set(value) {
             if (field != value) {
