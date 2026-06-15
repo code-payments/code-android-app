@@ -764,4 +764,8 @@
 
     <string name="action_sendCash">Send Cash</string>
     <string name="action_sendMessage">Send Message</string>
+
+    <string name="subtitle_verb_youSent">You sent</string>
+    <string name="subtitle_verb_youReceived">You received</string>
+
 </resources>

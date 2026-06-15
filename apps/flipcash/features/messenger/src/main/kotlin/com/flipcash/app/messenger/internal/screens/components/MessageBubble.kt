@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.Dp
@@ -28,6 +29,7 @@ import androidx.paging.compose.LazyPagingItems
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.shared.flags.R
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
@@ -118,20 +120,34 @@ private fun CashBubble(
                 )
             }
 
-            PriceWithFlag(
+            Column(
                 modifier = Modifier
                     .padding(vertical = CodeTheme.dimens.grid.x5),
-                amount = amount.formatted(),
-                currencyCode = amount.currencyCode.name,
-                flag = exchange.getFlagByCurrency(amount.currencyCode.name),
-                text = { text ->
-                    Text(
-                        text = text,
-                        style = CodeTheme.typography.displayMedium,
-                        color = CodeTheme.colors.textMain,
-                    )
-                }
-            )
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = if (isFromSelf) {
+                        stringResource(R.string.subtitle_youSent)
+                    } else {
+                        stringResource(R.string.subtitle_youReceived)
+                    },
+                    style = CodeTheme.typography.caption,
+                    color = CodeTheme.colors.textSecondary,
+                )
+                PriceWithFlag(
+                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
+                    amount = amount.formatted(),
+                    currencyCode = amount.currencyCode.name,
+                    flag = exchange.getFlagByCurrency(amount.currencyCode.name),
+                    text = { text ->
+                        Text(
+                            text = text,
+                            style = CodeTheme.typography.displayMedium,
+                            color = CodeTheme.colors.textMain,
+                        )
+                    }
+                )
+            }
         }
     }
 }
