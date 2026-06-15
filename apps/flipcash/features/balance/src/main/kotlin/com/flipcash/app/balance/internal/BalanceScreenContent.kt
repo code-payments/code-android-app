@@ -43,8 +43,10 @@ internal fun BalanceScreen(
     viewModel: BalanceViewModel,
     tokenViewModel: SelectTokenViewModel,
 ) {
+    val balanceState by viewModel.stateFlow.collectAsStateWithLifecycle()
     val tokenState by tokenViewModel.stateFlow.collectAsStateWithLifecycle()
     BalanceScreenContent(
+        depositFirstUx = balanceState.depositFirstUx,
         tokenState = tokenState,
         dispatchEvent = viewModel::dispatchEvent
     )
@@ -52,6 +54,7 @@ internal fun BalanceScreen(
 
 @Composable
 private fun BalanceScreenContent(
+    depositFirstUx: Boolean = false,
     tokenState: SelectTokenViewModel.State,
     dispatchEvent: (BalanceViewModel.Event) -> Unit
 ) {
@@ -97,7 +100,11 @@ private fun BalanceScreenContent(
 
                         Text(
                             modifier = Modifier.fillMaxWidth(0.6f),
-                            text = stringResource(R.string.description_noBalanceYet),
+                            text = if (depositFirstUx) {
+                                stringResource(R.string.description_noBalanceYet)
+                            } else {
+                                stringResource(R.string.description_noBalanceYetDiscover)
+                            },
                             style = CodeTheme.typography.textSmall,
                             color = CodeTheme.colors.textSecondary,
                             textAlign = TextAlign.Center,
@@ -111,7 +118,11 @@ private fun BalanceScreenContent(
                                 .padding(top = CodeTheme.dimens.grid.x2)
                                 .align(Alignment.CenterHorizontally),
                             contentPadding = PaddingValues(),
-                            text = stringResource(R.string.action_depositFunds),
+                            text = if (depositFirstUx) {
+                                stringResource(R.string.action_depositFunds)
+                            } else {
+                                stringResource(R.string.action_discoverCurrencies)
+                            },
                             shape = CircleShape,
                         )
                     }

@@ -70,7 +70,7 @@ private fun FlowConversationScreen(identifier: ChatIdentifier) {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<ChatViewModel.Event.NavigateToUsdfDepositOption>()
+            .filterIsInstance<ChatViewModel.Event.OpenScreen>()
             .map { it.route }
             .collect { route ->
                 flowNavigator.navigate(route)

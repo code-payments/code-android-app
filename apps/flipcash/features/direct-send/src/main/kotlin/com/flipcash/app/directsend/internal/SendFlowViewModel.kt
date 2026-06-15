@@ -52,10 +52,9 @@ internal class SendFlowViewModel @Inject constructor(
     featureFlags: FeatureFlagController,
     private val contactCoordinator: ContactCoordinator,
     chatCoordinator: ChatCoordinator,
-    private val tokenCoordinator: TokenCoordinator,
+    tokenCoordinator: TokenCoordinator,
     private val phoneUtils: PhoneUtils,
     private val resources: ResourceHelper,
-    purchaseMethodController: PurchaseMethodController,
 ) : BaseViewModel<SendFlowViewModel.State, SendFlowViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -89,9 +88,6 @@ internal class SendFlowViewModel @Inject constructor(
         data class SendInvite(val contact: DeviceContact) : Event
 
         data class NavigateToChat(val identifier: ChatIdentifier) : Event
-        data class NavigateToDirectSend(val contact: DeviceContact) : Event
-        data object PresentDepositOptions : Event
-        data class NavigateToUsdfDepositOption(val route: AppRoute): Event
     }
 
     init {
@@ -186,14 +182,6 @@ internal class SendFlowViewModel @Inject constructor(
                     dispatchEvent(Event.NavigateToChat(identifier))
                 } else {
                     dispatchEvent(Event.SendInvite(contact))
-                }
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.PresentDepositOptions>()
-            .onEach {
-                purchaseMethodController.presentDepositOptions()?.let { route ->
-                    dispatchEvent(Event.NavigateToUsdfDepositOption(route))
                 }
             }.launchIn(viewModelScope)
 
@@ -375,9 +363,6 @@ internal class SendFlowViewModel @Inject constructor(
                 is Event.OnContactClicked -> { state -> state }
                 is Event.SendInvite -> { state -> state }
                 is Event.NavigateToChat -> { state -> state }
-                is Event.NavigateToDirectSend -> { state -> state }
-                is Event.PresentDepositOptions -> { state -> state }
-                is Event.NavigateToUsdfDepositOption -> { state -> state }
             }
         }
     }

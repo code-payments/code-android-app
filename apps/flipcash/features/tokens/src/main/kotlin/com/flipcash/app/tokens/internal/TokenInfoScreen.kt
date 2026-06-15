@@ -325,17 +325,20 @@ private fun RowScope.ReserveButtonOptions(
     val hasBalance = state.balance.nativeAmount.isPositive
 
     if (hasBalance) {
-        CodeButton(
-            modifier = Modifier.weight(1f),
-            buttonState = ButtonState.Filled,
-            text = stringResource(R.string.action_give),
-        ) {
-            dispatch(
-                TokenInfoViewModel.Event.OpenScreen(
-                    AppRoute.Sheets.Give(mint = mint, fromTokenInfo = true)
+        if (mint == Mint.usdf && state.canGiveUsdf || mint != Mint.usdf) {
+            CodeButton(
+                modifier = Modifier.weight(1f),
+                buttonState = ButtonState.Filled,
+                text = stringResource(R.string.action_give),
+            ) {
+                dispatch(
+                    TokenInfoViewModel.Event.OpenScreen(
+                        AppRoute.Sheets.Give(mint = mint, fromTokenInfo = true)
+                    )
                 )
-            )
+            }
         }
+
         CodeButton(
             modifier = Modifier.weight(1f),
             buttonState = ButtonState.Filled20,
