@@ -129,6 +129,27 @@ class PhoneUtils @Inject constructor(
         }
     }
 
+    /**
+     * Parse an international phone number (e.g. "+15551234567") into its country locale
+     * and national number digits. Returns null if parsing fails.
+     */
+    fun parseInternationalNumber(number: String): Pair<CountryLocale, String>? {
+        val cleaned = number.filter { it.isDigit() || it == '+' }
+        if (cleaned.isBlank() || !cleaned.startsWith("+")) return null
+
+        return try {
+            val parsed = phoneNumberUtil.parse(cleaned, defaultCountryLocale.countryCode)
+            if (!phoneNumberUtil.isValidNumber(parsed)) return null
+
+            val regionCode = phoneNumberUtil.getRegionCodeForNumber(parsed) ?: return null
+            val locale = countryLocales.find { it.countryCode == regionCode } ?: return null
+            val nationalNumber = parsed.nationalNumber.toString()
+            locale to nationalNumber
+        } catch (_: NumberParseException) {
+            null
+        }
+    }
+
     fun toE164(rawNumber: String): String? {
         val cleaned = rawNumber.filter { it.isDigit() || it == '+' }
         if (cleaned.isBlank()) return null
