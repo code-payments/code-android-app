@@ -217,6 +217,15 @@ sealed interface FeatureFlag<T: Any> {
     }
 
     @FeatureFlagMarker
+    data object GiveUsdf: FeatureFlag<Boolean> {
+        override val key: String = "give_usdf_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
+    @FeatureFlagMarker
     data object NavBar : FeatureFlag<NavBarConfig> {
         override val key: String = "nav_bar_config"
         override val default: NavBarConfig = NavBarConfig.Default
@@ -260,6 +269,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.OnboardingPhoneVerification -> "Onboarding Phone Verification"
         FeatureFlag.Messenger -> "Messenger"
         FeatureFlag.NavBar -> "Navigation Bar"
+        FeatureFlag.GiveUsdf -> "Give USDF"
     }
 
 val FeatureFlag<*>.message: String
@@ -285,6 +295,7 @@ val FeatureFlag<*>.message: String
         FeatureFlag.OnboardingPhoneVerification -> "When enabled, new accounts will be prompted to verify their phone number during onboarding"
         FeatureFlag.Messenger -> "When enabled, tapping a contact will open the chat messenger instead of navigating directly to send"
         FeatureFlag.NavBar -> "Customize the order and labels of navigation bar buttons"
+        FeatureFlag.GiveUsdf -> "When enabled, you'll gain the ability to send USDF directly"
     }
 
 

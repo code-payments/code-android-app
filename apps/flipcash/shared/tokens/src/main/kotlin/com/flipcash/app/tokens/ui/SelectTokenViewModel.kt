@@ -43,6 +43,7 @@ class SelectTokenViewModel @Inject constructor(
     exchange: Exchange,
     resources: ResourceHelper,
     dispatchers: DispatcherProvider,
+    featureFlags: FeatureFlagController,
 ) : BaseViewModel<SelectTokenViewModel.State, SelectTokenViewModel.Event>(
     initialState = State(purpose = TokenPurpose.Balance),
     updateStateForEvent = updateStateForEvent,
@@ -52,6 +53,7 @@ class SelectTokenViewModel @Inject constructor(
     data class State(
         val purpose: TokenPurpose,
         val rate: Rate = Rate.oneToOne,
+        val canGiveUsdf: Boolean = false,
         val discoveryEnabled: Boolean = false,
         val tokens: List<TokenWithLocalizedBalance>? = null,
         val selectedToken: Mint? = null,
@@ -85,12 +87,18 @@ class SelectTokenViewModel @Inject constructor(
         data object OnTokenChanged : Event
 
         data class OpenScreen(val route: AppRoute) : Event
+
+        data class OnCanGiveUsdf(val enabled: Boolean): Event
     }
 
     init {
         exchange.observePreferredRate()
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnRateChanged(it)) }
+            .launchIn(viewModelScope)
+
+        featureFlags.observe(FeatureFlag.GiveUsdf)
+            .onEach { dispatchEvent(Event.OnCanGiveUsdf(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -156,6 +164,13 @@ class SelectTokenViewModel @Inject constructor(
                             when (purpose) {
                                 // show all tokens we have accounts for as deposit targets
                                 TokenPurpose.Deposit -> true
+                                TokenPurpose.Select -> {
+                                    if (it.token.address == Mint.usdf) {
+                                        stateFlow.value.canGiveUsdf && hasBalance
+                                    } else {
+                                        hasBalance
+                                    }
+                                }
                                 // show all tokens with non-zero balance
                                 else -> hasBalance
                             }
@@ -191,6 +206,7 @@ class SelectTokenViewModel @Inject constructor(
                 is Event.OnTokenSelected -> { state -> state.copy(selectedToken = event.mint) }
                 is Event.OnTokenChanged -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
+                is Event.OnCanGiveUsdf -> { state -> state.copy(canGiveUsdf = event.enabled) }
             }
         }
     }
