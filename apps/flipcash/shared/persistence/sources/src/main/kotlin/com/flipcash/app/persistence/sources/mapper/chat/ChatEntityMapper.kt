@@ -211,12 +211,14 @@ private fun MessagePointer.toSerialized(): MessagePointerSerialized = MessagePoi
     type = type.name,
     userIdHex = userId.hexEncodedString(),
     value = value,
+    timestampEpochSeconds = timestamp.epochSeconds,
 )
 
 private fun MessagePointerSerialized.toDomain(): MessagePointer = MessagePointer(
     type = PointerType.entries.firstOrNull { it.name == type } ?: PointerType.UNKNOWN,
     userId = userIdHex.hexToIdExt(),
     value = value,
+    timestamp = Instant.fromEpochSeconds(timestampEpochSeconds),
 )
 
 private fun UserProfile.toSerialized(): UserProfileSerialized = UserProfileSerialized(

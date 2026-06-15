@@ -137,6 +137,7 @@ internal fun MessagingModel.Pointer.toPointer(): MessagePointer {
         type = type.toPointerType(),
         userId = userId.toId(),
         value = value.value,
+        timestamp = Instant.fromEpochSeconds(ts.seconds, ts.nanos),
     )
 }
 

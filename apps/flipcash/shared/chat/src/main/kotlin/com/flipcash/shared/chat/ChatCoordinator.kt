@@ -246,6 +246,7 @@ class ChatCoordinator @Inject constructor(
             type = PointerType.READ,
             userId = selfId,
             value = messageId,
+            timestamp = Clock.System.now(),
         )
         memberDataSource.updatePointers(chatId, pointer)
         _state.update { state ->
