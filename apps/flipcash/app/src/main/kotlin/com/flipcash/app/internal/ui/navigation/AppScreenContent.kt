@@ -122,7 +122,7 @@ fun appEntryProvider(
 
     // Menu
     annotatedEntry<AppRoute.Menu.AppSettings> { AppSettingsScreen() }
-    annotatedEntry<AppRoute.Menu.Lab> { LabsScreen() }
+    annotatedEntry<AppRoute.Menu.Lab> { key -> LabsScreen(onboarding = key.onboarding) }
     annotatedEntry<AppRoute.Menu.NavBarSettings> { NavBarSettingsScreen() }
     annotatedEntry<AppRoute.Menu.UserProfile> { UserProfileScreen() }
     annotatedEntry<AppRoute.Menu.MyAccount> { MyAccountScreen() }

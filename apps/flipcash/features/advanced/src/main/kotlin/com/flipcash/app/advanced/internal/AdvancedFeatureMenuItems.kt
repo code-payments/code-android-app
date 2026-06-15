@@ -36,5 +36,5 @@ internal data object BetaFlags : FullMenuItem<AdvancedFeaturesScreenViewModel.Ev
     override val name: String
         @Composable get() = stringResource(R.string.title_betaFlags)
     override val action: AdvancedFeaturesScreenViewModel.Event =
-        AdvancedFeaturesScreenViewModel.Event.OpenScreen(AppRoute.Menu.Lab)
+        AdvancedFeaturesScreenViewModel.Event.OpenScreen(AppRoute.Menu.Lab())
 }

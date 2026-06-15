@@ -45,7 +45,7 @@ import com.getcode.ui.theme.CodeSegmentedControl
 import com.getcode.ui.utils.sheetResignmentBehavior
 
 @Composable
-internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
+internal fun LabsScreenContent(viewModel: LabsScreenViewModel, onboarding: Boolean = false) {
     val betaFlagsController = LocalFeatureFlags.current
     val allFlags by betaFlagsController.observe().collectAsStateWithLifecycle()
     val betaOverride by viewModel.betaOverride.collectAsStateWithLifecycle()
@@ -58,9 +58,11 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
         if (betaOverride) showAllFlags = true
     }
 
-    val betaFlags = remember(allFlags, showAllFlags) {
+    val betaFlags = remember(allFlags, showAllFlags, onboarding) {
         if (showAllFlags) allFlags
-        else allFlags.filter { it.flag.minTrack == FeatureTrack.Production }
+        else allFlags.filter {
+            it.flag.minTrack == FeatureTrack.Production || (onboarding && it.flag.onboarding)
+        }
     }
 
     val state = rememberLazyListState()

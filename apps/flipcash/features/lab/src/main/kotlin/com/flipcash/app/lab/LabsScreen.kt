@@ -16,7 +16,7 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 
 @Composable
-fun LabsScreen() {
+fun LabsScreen(onboarding: Boolean = false) {
     val navigator = LocalCodeNavigator.current
     val isSheetRoot = remember(navigator) { navigator.backStack.size <= 1 }
     Column(
@@ -44,6 +44,6 @@ fun LabsScreen() {
 
         val viewModel = getActivityScopedViewModel<LabsScreenViewModel>()
 
-        LabsScreenContent(viewModel)
+        LabsScreenContent(viewModel, onboarding)
     }
 }

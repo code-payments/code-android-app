@@ -22,6 +22,7 @@ sealed interface FeatureFlag<T: Any> {
     val visible: Boolean
     val persistLogOut: Boolean
     val minTrack: FeatureTrack get() = FeatureTrack.Internal
+    val onboarding: Boolean get() = false
     val options: List<FlagOption> get() = emptyList()
     val defaultOption: String
         get() = if (default is Enum<*>) (default as Enum<*>).name else ""
@@ -40,6 +41,7 @@ sealed interface FeatureFlag<T: Any> {
         override val launched: Boolean = false
         override val visible: Boolean = true
         override val persistLogOut: Boolean = true
+        override val onboarding: Boolean = true
     }
 
     @FeatureFlagMarker
@@ -205,6 +207,7 @@ sealed interface FeatureFlag<T: Any> {
         override val launched: Boolean = false
         override val visible: Boolean = true
         override val persistLogOut: Boolean = true
+        override val onboarding: Boolean = true
     }
 
     @FeatureFlagMarker
