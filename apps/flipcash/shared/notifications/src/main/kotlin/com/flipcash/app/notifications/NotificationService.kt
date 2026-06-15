@@ -27,6 +27,7 @@ import com.flipcash.app.core.util.Linkify
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.PushController
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.NavigationTrigger
 import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
@@ -162,7 +163,7 @@ class NotificationService : FirebaseMessagingService(),
             }
 
         val notificationId = if (chatId != null) {
-            builder.applyContactChatStyle(chatId.hashCode(), groupKey, body)
+            builder.applyContactChatStyle(chatId, groupKey, body)
         } else {
             builder.setContentTitle(title).setContentText(body)
             SecureRandom().nextInt(Int.MAX_VALUE)
@@ -184,11 +185,13 @@ class NotificationService : FirebaseMessagingService(),
     }
 
     private suspend fun NotificationCompat.Builder.applyContactChatStyle(
-        notificationId: Int,
+        chatId: ChatId,
         groupKey: String?,
         body: String?,
     ): Int {
+        val notificationId = chatId.hashCode()
         val e164 = groupKey?.takeIf { it.startsWith("+") }
+            ?: contactCoordinator.lookupContactByDmChatId(chatId.toString())?.e164
         val contactPhoto = e164?.let { resolveContactPhoto(it) }
         val senderName = e164?.let { contactResolver.resolveName(it) } ?: ""
 
