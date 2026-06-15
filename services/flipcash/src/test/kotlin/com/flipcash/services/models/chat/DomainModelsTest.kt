@@ -57,7 +57,7 @@ class DomainModelsTest {
                 ChatMessage(1, null, listOf(MessageContent.Text("hi")), Instant.fromEpochSeconds(0), 1)
             ),
             pointerUpdates = listOf(
-                MessagePointer(PointerType.READ, listOf(1.toByte()), 5)
+                MessagePointer(PointerType.READ, listOf(1.toByte()), 5, Instant.fromEpochSeconds(0))
             ),
             typingNotifications = listOf(
                 TypingNotification(listOf(1.toByte()), TypingState.STARTED_TYPING)
@@ -91,7 +91,7 @@ class DomainModelsTest {
         val member = ChatMember(
             userId = listOf(1.toByte()),
             userProfile = UserProfile("Test", emptyList(), null, null),
-            pointers = listOf(MessagePointer(PointerType.READ, listOf(1.toByte()), 10)),
+            pointers = listOf(MessagePointer(PointerType.READ, listOf(1.toByte()), 10, Instant.fromEpochSeconds(0))),
         )
         assertEquals("Test", member.userProfile.displayName)
         assertEquals(1, member.pointers.size)

@@ -90,6 +90,7 @@ data class MessagePointerSerialized(
     val type: String,
     val userIdHex: String,
     val value: Long,
+    val timestampEpochSeconds: Long = 0L,
 )
 
 @Serializable
