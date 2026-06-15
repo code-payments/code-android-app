@@ -203,12 +203,10 @@ sealed interface FeatureFlag<T: Any> {
     @FeatureFlagMarker
     data object Messenger : FeatureFlag<Boolean> {
         override val key: String = "messenger_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
         override val visible: Boolean = true
         override val persistLogOut: Boolean = false
-        /** Messenger only makes sense when [PhoneNumberSend] is enabled at runtime. */
-        val requiredFlag: FeatureFlag<Boolean> get() = PhoneNumberSend
     }
 
     @FeatureFlagMarker
@@ -275,7 +273,7 @@ val FeatureFlag<*>.message: String
         FeatureFlag.DepositUsdc -> "When enabled, you'll gain the ability to deposit USDC directly from any external wallet app instead of purchasing a currency first and sell"
         FeatureFlag.BackgroundReset -> "Automatically returns the app to the camera screen after a period of inactivity with the app in the background"
         FeatureFlag.ContactPickerMode -> "When enabled, contacts will be accessed via the system contact picker instead of requesting full READ_CONTACTS permission"
-        FeatureFlag.PhoneNumberSend -> "When enabled, you'll gain the ability to send cash directly to contacts via phone number"
+        FeatureFlag.PhoneNumberSend -> "When enabled, you'll gain the ability to send cash directly to contacts via phone number and chat with them using the messenger"
         FeatureFlag.Messenger -> "When enabled, tapping a contact will open the chat messenger instead of navigating directly to send"
         FeatureFlag.NavBar -> "Customize the order and labels of navigation bar buttons"
     }
