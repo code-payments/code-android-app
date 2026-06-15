@@ -10,6 +10,8 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.sources.TokenDataSource
 import com.flipcash.app.tokens.core.ReservesBalanceProvider
 import com.getcode.opencode.controllers.AccountController
@@ -85,6 +87,7 @@ class TokenCoordinator @Inject constructor(
     private val exchange: Exchange,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val dataSource: TokenDataSource,
+    private val featureFlags: FeatureFlagController,
 ) : TokenMetadataProvider, SessionListener, DefaultLifecycleObserver, ReservesBalanceProvider {
 
     companion object {
@@ -165,6 +168,12 @@ class TokenCoordinator @Inject constructor(
                 trace(tag = TAG, message = "Syncing ${mints.size} mints with exchange", type = TraceType.Process)
                 exchange.updateUserMints(mints)
             }
+            .launchIn(scope)
+
+        // Re-evaluate selected token when GiveUsdf flag changes
+        featureFlags.observe(FeatureFlag.GiveUsdf)
+            .filter { _hydrated.value }
+            .onEach { ensureValidTokenSelection() }
             .launchIn(scope)
     }
 
@@ -516,10 +525,14 @@ class TokenCoordinator @Inject constructor(
             ?.get(mintPreferenceKey)
             ?.let { Mint(it) }
 
+        val canGiveUsdf = featureFlags.get(FeatureFlag.GiveUsdf)
+        val excludedMints = if (!canGiveUsdf) setOf(Mint.usdf) else emptySet()
+
         val resolved = resolveTokenSelection(
             balances = _state.value.balances,
             currentSelection = currentSelection,
             rate = exchange.preferredRate,
+            excludedMints = excludedMints,
         )
 
         if (resolved != null && resolved != currentSelection) {

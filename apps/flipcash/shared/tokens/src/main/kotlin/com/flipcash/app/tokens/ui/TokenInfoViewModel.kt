@@ -68,6 +68,7 @@ class TokenInfoViewModel @Inject constructor(
         val descriptionExpanded: Boolean = false,
         val historicalMarketCapData: Map<Period, Loadable<List<MarketCapPoint>>> = emptyMap(),
         val selectedPeriod: Period = Period.All,
+        val canGiveUsdf: Boolean = false,
     ) {
         val canSell: Boolean
             get() = balance.underlyingTokenAmount.valueNonZero()
@@ -77,6 +78,7 @@ class TokenInfoViewModel @Inject constructor(
     }
 
     sealed interface Event {
+        data class CanGiveUsdf(val enabled: Boolean): Event
         data class MarketCapChartEnabled(val enabled: Boolean) : Event
         data class OnMintProvided(val mint: Mint, val shortFall: Fiat? = null) : Event
         data class OnTokenChanged(val token: Loadable<Token>, val shortFall: Fiat? = null) : Event
@@ -102,6 +104,11 @@ class TokenInfoViewModel @Inject constructor(
     }
 
     init {
+        features.observe(FeatureFlag.GiveUsdf)
+            .onEach {
+                dispatchEvent(Event.CanGiveUsdf(it))
+            }.launchIn(viewModelScope)
+
         features.observe(FeatureFlag.MarketCapChart)
             .onEach {
                 dispatchEvent(Event.MarketCapChartEnabled(it))
@@ -276,7 +283,13 @@ class TokenInfoViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
-            .mapNotNull { purchaseMethodController.presentDepositOptions(popToRoot = true) }
+            .mapNotNull {
+                val depositFirstUx = features.get(FeatureFlag.DepositFirstUX)
+                if (!depositFirstUx) {
+                    return@mapNotNull AppRoute.Transfers.Deposit(showOtherOptions = false)
+                }
+
+                purchaseMethodController.presentDepositOptions(popToRoot = true) }
             .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)
 
@@ -314,6 +327,7 @@ class TokenInfoViewModel @Inject constructor(
                 is Event.LoadHistoricalDataForPeriod -> { state -> state }
                 is Event.Share -> { state -> state }
                 is Event.Exit -> { state -> state }
+                is Event.CanGiveUsdf -> { state -> state.copy(canGiveUsdf = event.enabled) }
             }
         }
     }

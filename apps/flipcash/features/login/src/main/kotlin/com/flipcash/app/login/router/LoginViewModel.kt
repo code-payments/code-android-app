@@ -66,9 +66,9 @@ class LoginViewModel @Inject constructor(
     init {
         combine(
             userManager.state,
-            featureFlags.observe(FeatureFlag.PhoneNumberSend),
-        ) { userState, phoneNumberSendFlag ->
-            val enabled = phoneNumberSendFlag || userState.flags?.enablePhoneNumberSend == true
+            featureFlags.observe(FeatureFlag.OnboardingPhoneVerification),
+        ) { userState, phoneVerificationFlag ->
+            val enabled = phoneVerificationFlag || userState.flags?.enablePhoneNumberSend == true
             val hasLinkedPhone = userState.userProfile?.verifiedPhoneNumber != null
             enabled && !hasLinkedPhone
         }.onEach { needed ->

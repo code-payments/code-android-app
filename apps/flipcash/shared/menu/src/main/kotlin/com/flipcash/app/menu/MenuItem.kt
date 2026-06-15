@@ -18,6 +18,8 @@ sealed interface MenuItem<T> {
 
     val isStaffOnly: Boolean
 
+    val showBetaIndicator: Boolean get() = isStaffOnly
+
     val featureFlag: FeatureFlag<*>?
 }
 

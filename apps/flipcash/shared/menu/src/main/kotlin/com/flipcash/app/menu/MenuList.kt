@@ -60,6 +60,6 @@ private fun <T> ListItem(
         modifier = modifier,
         onClick = onClick,
         showChevron = showChevron,
-        showBetaIndicator = item.isStaffOnly,
+        showBetaIndicator = item.showBetaIndicator,
     )
 }

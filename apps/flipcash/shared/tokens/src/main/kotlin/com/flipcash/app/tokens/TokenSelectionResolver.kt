@@ -15,8 +15,11 @@ internal fun resolveTokenSelection(
     balances: Map<Mint, Fiat>,
     currentSelection: Mint?,
     rate: Rate,
+    excludedMints: Set<Mint> = emptySet(),
 ): Mint? {
     if (balances.isEmpty()) return null
+
+    val eligible = balances.filterKeys { it !in excludedMints }
 
     val baseline = 0.01.toFiat(rate.currency)
 
@@ -26,15 +29,15 @@ internal fun resolveTokenSelection(
     }
 
     // Keep current selection if it still meets the threshold
-    if (currentSelection != null) {
-        val balance = balances[currentSelection]
+    if (currentSelection != null && currentSelection !in excludedMints) {
+        val balance = eligible[currentSelection]
         if (balance != null && balance.meetsThreshold()) {
             return currentSelection
         }
     }
 
     // Fall back to the highest balance that meets the threshold
-    return balances
+    return eligible
         .filter { it.value.meetsThreshold() }
         .maxByOrNull { it.value }
         ?.key

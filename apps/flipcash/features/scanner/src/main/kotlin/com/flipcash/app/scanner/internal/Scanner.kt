@@ -87,20 +87,10 @@ internal fun Scanner() {
                 ScannerDecorItem.Give -> {
                     // only allow navigation to give when there is something to give
                     if (!state.hasGiveableBalance) {
-                        BottomBarManager.showInfo(
-                            title = context.getString(R.string.title_noBalanceYet),
-                            message = context.getString(R.string.description_noBalanceYet),
-                            actions = listOf(
-                                BottomBarAction(
-                                    text = context.getString(R.string.action_depositFunds)
-                                ) {
-                                    session.presentDepositOptions { route ->
-                                        navigator.openAsSheet(route)
-                                    }
-                                },
-                            ),
-                            showCancel = true,
-                        )
+                        session.presentDepositOptions { route ->
+                            navigator.openAsSheet(route)
+                        }
+
                         return@BillContainer 
                     }
                 }

@@ -16,6 +16,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -24,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.featureflags.FeatureTrack
 import com.flipcash.app.featureflags.FlagOption
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.featureflags.message
@@ -41,9 +43,15 @@ import com.getcode.ui.utils.sheetResignmentBehavior
 @Composable
 internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
     val betaFlagsController = LocalFeatureFlags.current
-    val betaFlags by betaFlagsController.observe().collectAsStateWithLifecycle()
+    val allFlags by betaFlagsController.observe().collectAsStateWithLifecycle()
+    val betaOverride by viewModel.betaOverride.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
     val isStaff by viewModel.isStaff.collectAsStateWithLifecycle()
+
+    val betaFlags = remember(allFlags, betaOverride) {
+        if (betaOverride) allFlags
+        else allFlags.filter { it.flag.minTrack == FeatureTrack.Production }
+    }
 
     val state = rememberLazyListState()
     LazyColumn(
@@ -119,22 +127,24 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel) {
             }
         }
 
-         item(contentType = "section_header") {
-            SectionHeader(
-                modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-                title = stringResource(R.string.title_settingsSectionHomeScreen)
-            )
-        }
-        item(contentType = "list_item") {
-            ListItem(
-                headline = stringResource(R.string.title_settingsButtonOrder),
-                icon = painterResource(R.drawable.ic_bottom_navigation),
-            ) {
-                navigator.navigate(AppRoute.Menu.NavBarSettings)
+        if (betaOverride) {
+            item(contentType = "section_header") {
+                SectionHeader(
+                    modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                    title = stringResource(R.string.title_settingsSectionHomeScreen)
+                )
+            }
+            item(contentType = "list_item") {
+                ListItem(
+                    headline = stringResource(R.string.title_settingsButtonOrder),
+                    icon = painterResource(R.drawable.ic_bottom_navigation),
+                ) {
+                    navigator.navigate(AppRoute.Menu.NavBarSettings)
+                }
             }
         }
 
-        if (isStaff) {
+        if (betaOverride && isStaff) {
             item(contentType = "section_header") {
                 SectionHeader(
                     modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),

@@ -14,6 +14,8 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.ConfirmationStyle
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.messenger.internal.screens.components.ChatListItem
 import com.flipcash.app.messenger.internal.screens.components.ReceiptStatus
 import com.flipcash.app.messenger.internal.screens.components.SeparatorConfig
@@ -88,6 +90,7 @@ internal class ChatViewModel @Inject constructor(
     private val purchaseMethodController: PurchaseMethodController,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
+    private val featureFlags: FeatureFlagController,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -133,8 +136,7 @@ internal class ChatViewModel @Inject constructor(
 
         data class NavigateToAmountEntry(val contact: DeviceContact) : Event
         data object PresentDepositOptions : Event
-        data class NavigateToUsdfDepositOption(val route: AppRoute): Event
-
+        data class OpenScreen(val route: AppRoute): Event
         data object OnConfirmRequested : Event
         data class OnSendRequested(
             val amount: Fiat,
@@ -444,14 +446,29 @@ internal class ChatViewModel @Inject constructor(
             .mapNotNull { stateFlow.value.chattingWith }
             .onEach { contact ->
                 if (!tokenCoordinator.hasGiveableBalance()) {
+                    val depositFirst = featureFlags.get(FeatureFlag.DepositFirstUX)
+                    val message = if (depositFirst) {
+                        resources.getString(R.string.description_noBalanceYet)
+                    } else {
+                        resources.getString(R.string.description_noBalanceYetDiscover)
+                    }
+                    val cta = if (depositFirst) {
+                        resources.getString(R.string.action_depositFunds)
+                    } else {
+                        resources.getString(R.string.action_discover)
+                    }
                     BottomBarManager.showInfo(
                         title = resources.getString(R.string.title_noBalanceYet),
-                        message = resources.getString(R.string.description_noBalanceYet),
+                        message = message,
                         actions = listOf(
                             BottomBarAction(
-                                text = resources.getString(R.string.action_depositFunds)
+                                text = cta
                             ) {
-                                dispatchEvent(Event.PresentDepositOptions)
+                                if (depositFirst) {
+                                    dispatchEvent(Event.PresentDepositOptions)
+                                } else {
+                                    dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery))
+                                }
                             },
                         ),
                         showCancel = true,
@@ -466,7 +483,7 @@ internal class ChatViewModel @Inject constructor(
             .filterIsInstance<Event.PresentDepositOptions>()
             .onEach {
                 purchaseMethodController.presentDepositOptions()?.let { route ->
-                    dispatchEvent(Event.NavigateToUsdfDepositOption(route))
+                    dispatchEvent(Event.OpenScreen(route))
                 }
             }.launchIn(viewModelScope)
 
@@ -625,7 +642,7 @@ internal class ChatViewModel @Inject constructor(
                 is Event.SendMessage -> { state -> state }
                 is Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
                 is Event.PresentDepositOptions -> { state -> state }
-                is Event.NavigateToUsdfDepositOption -> { state -> state }
+                is Event.OpenScreen -> { state -> state }
                 is Event.OnConfirmRequested -> { state -> state }
                 is Event.OnSendRequested -> { state -> state }
                 is Event.SendStateUpdated -> { state ->

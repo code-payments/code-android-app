@@ -98,7 +98,7 @@ import kotlinx.coroutines.flow.onEach
  *   **and** [FeatureFlag.ContactPickerMode] is off. When ContactPickerMode is on,
  *   contacts are accessed via the system picker at call site (no READ_CONTACTS needed).
  *   Already-granted permissions are auto-skipped via [PermissionsPhaseFlowHost].
- * ² Phone verification is shown only when [FeatureFlag.PhoneNumberSend] is enabled
+ * ² Phone verification is shown only when [FeatureFlag.OnboardingPhoneVerification] is enabled
  *   and no phone is linked. Skipped entirely when the flag is off.
  *   Uses `target` to replace the nav stack with AccessKey on success.
  */

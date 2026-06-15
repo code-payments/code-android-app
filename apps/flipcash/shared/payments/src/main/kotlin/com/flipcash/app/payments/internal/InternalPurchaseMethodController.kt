@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class InternalPurchaseMethodController @Inject constructor(
@@ -133,7 +134,7 @@ class InternalPurchaseMethodController @Inject constructor(
     }
 
     override suspend fun presentDepositOptions(popToRoot: Boolean): AppRoute? {
-        delay(150)
+        delay(150.milliseconds)
         present(PurchaseMethodMetadata(
             mint = Mint.usdf,
             purpose = PurchasePurpose.Deposit,

@@ -52,10 +52,9 @@ internal class SendFlowViewModel @Inject constructor(
     featureFlags: FeatureFlagController,
     private val contactCoordinator: ContactCoordinator,
     chatCoordinator: ChatCoordinator,
-    private val tokenCoordinator: TokenCoordinator,
+    tokenCoordinator: TokenCoordinator,
     private val phoneUtils: PhoneUtils,
     private val resources: ResourceHelper,
-    purchaseMethodController: PurchaseMethodController,
 ) : BaseViewModel<SendFlowViewModel.State, SendFlowViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -89,9 +88,6 @@ internal class SendFlowViewModel @Inject constructor(
         data class SendInvite(val contact: DeviceContact) : Event
 
         data class NavigateToChat(val identifier: ChatIdentifier) : Event
-        data class NavigateToDirectSend(val contact: DeviceContact) : Event
-        data object PresentDepositOptions : Event
-        data class NavigateToUsdfDepositOption(val route: AppRoute): Event
     }
 
     init {
@@ -122,10 +118,9 @@ internal class SendFlowViewModel @Inject constructor(
             stateFlow.map { it.searchState }.distinctUntilChanged().flatMapLatest { snapshotFlow { it.text } },
             chatCoordinator.feed,
             tokenCoordinator.tokens,
-            featureFlags.observe(FeatureFlag.Messenger),
-        ) { contactState, searchText, chatFeed, tokens, messengerOn ->
+        ) { contactState, searchText, chatFeed, tokens ->
             val tokensByMint = tokens.associateBy { it.address }
-            generateListItems(contactState, searchText.toString(), chatFeed, tokensByMint, messengerOn)
+            generateListItems(contactState, searchText.toString(), chatFeed, tokensByMint)
         }.onEach { items ->
             dispatchEvent(Event.OnItemsPopulated(items))
         }.launchIn(viewModelScope)
@@ -179,41 +174,14 @@ internal class SendFlowViewModel @Inject constructor(
             .onEach { row ->
                 val (contact, isOnFlipcash) = row
                 if (isOnFlipcash) {
-                    if (featureFlags.get(FeatureFlag.Messenger)) {
-                        val identifier = if (contact.e164.isNotEmpty()) {
-                            ChatIdentifier.ByContact(contact.e164, contact.displayName, row.chatId)
-                        } else {
-                            ChatIdentifier.ByChatId(row.chatId!!)
-                        }
-                        dispatchEvent(Event.NavigateToChat(identifier))
+                    val identifier = if (contact.e164.isNotEmpty()) {
+                        ChatIdentifier.ByContact(contact.e164, contact.displayName, row.chatId)
                     } else {
-                        if (!tokenCoordinator.hasGiveableBalance()) {
-                            BottomBarManager.showInfo(
-                                title = resources.getString(R.string.title_noBalanceYet),
-                                message = resources.getString(R.string.description_noBalanceYet),
-                                actions = listOf(
-                                    BottomBarAction(
-                                        text = resources.getString(R.string.action_depositFunds)
-                                    ) {
-                                        dispatchEvent(Event.PresentDepositOptions)
-                                    },
-                                ),
-                                showCancel = true,
-                            )
-                            return@onEach
-                        }
-                        dispatchEvent(Event.NavigateToDirectSend(contact))
+                        ChatIdentifier.ByChatId(row.chatId!!)
                     }
+                    dispatchEvent(Event.NavigateToChat(identifier))
                 } else {
                     dispatchEvent(Event.SendInvite(contact))
-                }
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.PresentDepositOptions>()
-            .onEach {
-                purchaseMethodController.presentDepositOptions()?.let { route ->
-                    dispatchEvent(Event.NavigateToUsdfDepositOption(route))
                 }
             }.launchIn(viewModelScope)
 
@@ -251,7 +219,6 @@ internal class SendFlowViewModel @Inject constructor(
         searchString: String,
         chatFeed: List<ChatSummary>,
         tokensByMint: Map<Mint, Token>,
-        messengerEnabled: Boolean,
     ): List<ContactListItem> = buildList {
         val allContacts = contactState.contacts.values.toList()
         val filtered = if (searchString.isBlank()) {
@@ -265,109 +232,86 @@ internal class SendFlowViewModel @Inject constructor(
 
         val selfId = userManager.accountId
 
-        if (messengerEnabled) {
-            val dmChats = chatFeed.filter { it.metadata.type == ChatType.DM }
-            // Build a reverse lookup: e164 -> chatId string for contacts with DMs
-            val e164ToChatId = contactState.dmChatIds
+        val dmChats = chatFeed.filter { it.metadata.type == ChatType.DM }
+        // Build a reverse lookup: e164 -> chatId string for contacts with DMs
+        val e164ToChatId = contactState.dmChatIds
 
-            // Recents — driven by the chat feed, enriched with contact info
-            val recentsE164s = mutableSetOf<String>()
-            val recentRows = dmChats.mapNotNull { summary ->
-                val chatId = summary.metadata.chatId
-                val chatIdStr = chatId.toString()
+        // Recents — driven by the chat feed, enriched with contact info
+        val recentsE164s = mutableSetOf<String>()
+        val recentRows = dmChats.mapNotNull { summary ->
+            val chatId = summary.metadata.chatId
+            val chatIdStr = chatId.toString()
 
-                // Try to match this chat to a device contact
-                val e164 = e164ToChatId.entries
-                    .firstOrNull { it.value == chatIdStr }?.key
-                val deviceContact = e164?.let { contactState.contacts[it] }
+            // Try to match this chat to a device contact
+            val e164 = e164ToChatId.entries
+                .firstOrNull { it.value == chatIdStr }?.key
+            val deviceContact = e164?.let { contactState.contacts[it] }
 
-                val contact = if (deviceContact != null) {
-                    if (searchString.isNotBlank() &&
-                        !deviceContact.displayName.contains(searchString, ignoreCase = true) &&
-                        !deviceContact.e164.contains(searchString, ignoreCase = true)) {
-                        return@mapNotNull null
-                    }
-                    recentsE164s += deviceContact.e164
-                    deviceContact
-                } else {
-                    // Non-contact DM — build contact from chat member profile
-                    val otherMember = summary.metadata.members
-                        .firstOrNull { it.userId != selfId } ?: return@mapNotNull null
-                    val phone = otherMember.userProfile.verifiedPhoneNumber
-                    val formattedPhone = phone?.let { phoneUtils.formatNumber(it) }
-                    val displayName = otherMember.userProfile.displayName?.takeIf { it.isNotBlank() }
-                        ?: formattedPhone
-                        ?: "Unknown Contact"
-
-                    val unknown = DeviceContact.unknownContact(
-                        e164 = phone.orEmpty(),
-                        displayName = displayName,
-                        displayNumber = formattedPhone,
-                    )
-                    if (searchString.isNotBlank() &&
-                        !unknown.displayName.contains(searchString, ignoreCase = true)) {
-                        return@mapNotNull null
-                    }
-                    unknown
+            val contact = if (deviceContact != null) {
+                if (searchString.isNotBlank() &&
+                    !deviceContact.displayName.contains(searchString, ignoreCase = true) &&
+                    !deviceContact.e164.contains(searchString, ignoreCase = true)) {
+                    return@mapNotNull null
                 }
+                recentsE164s += deviceContact.e164
+                deviceContact
+            } else {
+                // Non-contact DM — build contact from chat member profile
+                val otherMember = summary.metadata.members
+                    .firstOrNull { it.userId != selfId } ?: return@mapNotNull null
+                val phone = otherMember.userProfile.verifiedPhoneNumber
+                val formattedPhone = phone?.let { phoneUtils.formatNumber(it) }
+                val displayName = otherMember.userProfile.displayName?.takeIf { it.isNotBlank() }
+                    ?: formattedPhone
+                    ?: "Unknown Contact"
 
-                ContactListItem.ContactRow(
-                    contact = contact,
-                    isOnFlipcash = true,
-                    lastMessagePreview = formatPreview(summary, selfId, tokensByMint),
-                    unreadCount = summary.unreadCount,
-                    chatId = chatId,
-                    lastActivity = summary.metadata.lastActivity,
+                val unknown = DeviceContact.unknownContact(
+                    e164 = phone.orEmpty(),
+                    displayName = displayName,
+                    displayNumber = formattedPhone,
                 )
-            }.sortedWith(
-                compareByDescending<ContactListItem.ContactRow> { it.lastActivity }
-                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.contact.displayName }
+                if (searchString.isNotBlank() &&
+                    !unknown.displayName.contains(searchString, ignoreCase = true)) {
+                    return@mapNotNull null
+                }
+                unknown
+            }
+
+            ContactListItem.ContactRow(
+                contact = contact,
+                isOnFlipcash = true,
+                lastMessagePreview = formatPreview(summary, selfId, tokensByMint),
+                unreadCount = summary.unreadCount,
+                chatId = chatId,
+                lastActivity = summary.metadata.lastActivity,
             )
+        }.sortedWith(
+            compareByDescending<ContactListItem.ContactRow> { it.lastActivity }
+                .thenBy(String.CASE_INSENSITIVE_ORDER) { it.contact.displayName }
+        )
 
-            // On Flipcash — contacts that haven't chatted yet
-            val flipcashRows = filtered
-                .filter { it.e164 in contactState.flipcashE164s && it.e164 !in recentsE164s }
-                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
-                .map { ContactListItem.ContactRow(contact = it, isOnFlipcash = true) }
+        // On Flipcash — contacts that haven't chatted yet
+        val flipcashRows = filtered
+            .filter { it.e164 in contactState.flipcashE164s && it.e164 !in recentsE164s }
+            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+            .map { ContactListItem.ContactRow(contact = it, isOnFlipcash = true) }
 
-            val excludedE164s = recentsE164s + contactState.flipcashE164s
-            val other = filtered
-                .filter { it.e164 !in excludedE164s }
-                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+        val excludedE164s = recentsE164s + contactState.flipcashE164s
+        val other = filtered
+            .filter { it.e164 !in excludedE164s }
+            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
 
-            if (recentRows.isNotEmpty()) {
-                add(ContactListItem.Header(resources.getString(R.string.title_recents)))
-                addAll(recentRows)
-            }
-            if (flipcashRows.isNotEmpty()) {
-                add(ContactListItem.Header(resources.getString(R.string.title_flipcashContacts)))
-                addAll(flipcashRows)
-            }
-            if (other.isNotEmpty()) {
-                add(ContactListItem.Header(resources.getString(R.string.title_nonFlipcashContacts)))
-                other.forEach { add(ContactListItem.ContactRow(it, isOnFlipcash = false)) }
-            }
-        } else {
-            val flipcashRows = filtered
-                .filter { it.e164 in contactState.flipcashE164s }
-                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
-                .map { ContactListItem.ContactRow(contact = it, isOnFlipcash = true) }
-
-            val flipcashE164s = flipcashRows.mapTo(mutableSetOf()) { it.contact.e164 }
-                .plus(contactState.flipcashE164s)
-
-            val other = filtered
-                .filter { it.e164 !in flipcashE164s }
-                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
-
-            if (flipcashRows.isNotEmpty()) {
-                add(ContactListItem.Header(resources.getString(R.string.title_flipcashContacts)))
-                addAll(flipcashRows)
-            }
-            if (other.isNotEmpty()) {
-                add(ContactListItem.Header(resources.getString(R.string.title_nonFlipcashContacts)))
-                other.forEach { add(ContactListItem.ContactRow(it, isOnFlipcash = false)) }
-            }
+        if (recentRows.isNotEmpty()) {
+            add(ContactListItem.Header(resources.getString(R.string.title_recents)))
+            addAll(recentRows)
+        }
+        if (flipcashRows.isNotEmpty()) {
+            add(ContactListItem.Header(resources.getString(R.string.title_flipcashContacts)))
+            addAll(flipcashRows)
+        }
+        if (other.isNotEmpty()) {
+            add(ContactListItem.Header(resources.getString(R.string.title_nonFlipcashContacts)))
+            other.forEach { add(ContactListItem.ContactRow(it, isOnFlipcash = false)) }
         }
     }
 
@@ -419,9 +363,6 @@ internal class SendFlowViewModel @Inject constructor(
                 is Event.OnContactClicked -> { state -> state }
                 is Event.SendInvite -> { state -> state }
                 is Event.NavigateToChat -> { state -> state }
-                is Event.NavigateToDirectSend -> { state -> state }
-                is Event.PresentDepositOptions -> { state -> state }
-                is Event.NavigateToUsdfDepositOption -> { state -> state }
             }
         }
     }

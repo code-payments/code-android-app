@@ -94,31 +94,6 @@ internal fun ContactListScreen() {
             }
     }
 
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<SendFlowViewModel.Event.NavigateToDirectSend>()
-            .map { it.contact }
-            .collect { contact ->
-                flowNavigator.navigate(
-                    AppRoute.Messaging.AmountEntry(
-                        identifier = ChatIdentifier.ByContact(
-                            e164 = contact.e164,
-                            displayName = contact.displayName,
-                        )
-                    )
-                )
-            }
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<SendFlowViewModel.Event.NavigateToUsdfDepositOption>()
-            .map { it.route }
-            .collect { route ->
-                flowNavigator.navigate(route)
-            }
-    }
-
     val accessHandle = rememberContactAccessHandle(
         isPickerMode = state.isPickerMode,
     ) { result ->

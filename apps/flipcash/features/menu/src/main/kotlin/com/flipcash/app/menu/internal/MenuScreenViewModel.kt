@@ -6,6 +6,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.featureflags.BetaFeature
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.payments.PurchaseMethodController
@@ -42,7 +43,6 @@ private val FullMenuList = buildList {
     add(AppSettings)
     add(AdvancedFeatures)
     add(SwitchAccount)
-    add(Labs)
 }
 
 @HiltViewModel
@@ -152,8 +152,14 @@ internal class MenuScreenViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
-            .mapNotNull { purchaseMethodController.presentDepositOptions(popToRoot = true) }
-            .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
+            .mapNotNull {
+                val depositFirstUx = featureFlags.get(FeatureFlag.DepositFirstUX)
+                if (!depositFirstUx) {
+                    return@mapNotNull AppRoute.Transfers.Deposit()
+                }
+
+                purchaseMethodController.presentDepositOptions(popToRoot = true)
+            }.onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)
     }
 

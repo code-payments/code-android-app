@@ -2,6 +2,7 @@ package com.flipcash.app.lab.internal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -12,8 +13,11 @@ import javax.inject.Inject
 @HiltViewModel
 class LabsScreenViewModel @Inject constructor(
     userFlags: UserFlagsCoordinator,
+    featureFlagController: FeatureFlagController,
 ) : ViewModel() {
 
     val isStaff = userFlags.resolvedFlags.map { it.isStaff.effectiveValue }
         .stateIn(viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = false)
+
+    val betaOverride = featureFlagController.observeOverride()
 }

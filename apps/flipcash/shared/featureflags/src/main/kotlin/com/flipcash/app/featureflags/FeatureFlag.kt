@@ -4,8 +4,15 @@ import android.os.Build
 import com.flipcash.app.featureflags.model.BackgroundResetTimeout
 import com.flipcash.app.core.navigation.NavBarConfig
 import com.flipcash.app.ksp.annotations.FeatureFlagMarker
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
+
+enum class FeatureTrack {
+    /** Visible to all users including production. */
+    Production,
+    Alpha,
+    Beta,
+    /** Only visible on internal builds (or with beta override). */
+    Internal,
+}
 
 data class FlagOption(val key: String, val label: String, val isDisabled: Boolean = false)
 sealed interface FeatureFlag<T: Any> {
@@ -14,6 +21,7 @@ sealed interface FeatureFlag<T: Any> {
     val launched: Boolean
     val visible: Boolean
     val persistLogOut: Boolean
+    val minTrack: FeatureTrack get() = FeatureTrack.Internal
     val options: List<FlagOption> get() = emptyList()
     val defaultOption: String
         get() = if (default is Enum<*>) (default as Enum<*>).name else ""
@@ -187,17 +195,34 @@ sealed interface FeatureFlag<T: Any> {
         override val launched: Boolean = false
         override val visible: Boolean = true
         override val persistLogOut: Boolean = true
+        override val minTrack: FeatureTrack = FeatureTrack.Production
+    }
+
+    @FeatureFlagMarker
+    data object OnboardingPhoneVerification : FeatureFlag<Boolean> {
+        override val key: String = "phone_verification_onboarding_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = true
     }
 
     @FeatureFlagMarker
     data object Messenger : FeatureFlag<Boolean> {
         override val key: String = "messenger_enabled"
+        override val default: Boolean = true
+        override val launched: Boolean = true
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
+    @FeatureFlagMarker
+    data object GiveUsdf: FeatureFlag<Boolean> {
+        override val key: String = "give_usdf_enabled"
         override val default: Boolean = false
         override val launched: Boolean = false
         override val visible: Boolean = true
         override val persistLogOut: Boolean = false
-        /** Messenger only makes sense when [PhoneNumberSend] is enabled at runtime. */
-        val requiredFlag: FeatureFlag<Boolean> get() = PhoneNumberSend
     }
 
     @FeatureFlagMarker
@@ -208,6 +233,15 @@ sealed interface FeatureFlag<T: Any> {
         override val visible: Boolean = false
         override val persistLogOut: Boolean = false
         override val defaultOption: String get() = default.serialize()
+    }
+
+    @FeatureFlagMarker
+    data object DepositFirstUX: FeatureFlag<Boolean> {
+        override val key: String = "deposit_first_ux_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
     }
 
     companion object {
@@ -241,8 +275,11 @@ val FeatureFlag<*>.title: String
         FeatureFlag.BackgroundReset -> "Background Reset"
         FeatureFlag.ContactPickerMode -> "Contact Picker Mode"
         FeatureFlag.PhoneNumberSend -> "Phone Number Send"
+        FeatureFlag.OnboardingPhoneVerification -> "Onboarding Phone Verification"
         FeatureFlag.Messenger -> "Messenger"
         FeatureFlag.NavBar -> "Navigation Bar"
+        FeatureFlag.GiveUsdf -> "Give USDF"
+        FeatureFlag.DepositFirstUX -> "Deposit First UX"
     }
 
 val FeatureFlag<*>.message: String
@@ -264,9 +301,12 @@ val FeatureFlag<*>.message: String
         FeatureFlag.DepositUsdc -> "When enabled, you'll gain the ability to deposit USDC directly from any external wallet app instead of purchasing a currency first and sell"
         FeatureFlag.BackgroundReset -> "Automatically returns the app to the camera screen after a period of inactivity with the app in the background"
         FeatureFlag.ContactPickerMode -> "When enabled, contacts will be accessed via the system contact picker instead of requesting full READ_CONTACTS permission"
-        FeatureFlag.PhoneNumberSend -> "When enabled, you'll gain the ability to send cash directly to contacts via phone number"
+        FeatureFlag.PhoneNumberSend -> "When enabled, you'll gain the ability to send cash directly to contacts via phone number and chat with them using the messenger"
+        FeatureFlag.OnboardingPhoneVerification -> "When enabled, new accounts will be prompted to verify their phone number during onboarding"
         FeatureFlag.Messenger -> "When enabled, tapping a contact will open the chat messenger instead of navigating directly to send"
         FeatureFlag.NavBar -> "Customize the order and labels of navigation bar buttons"
+        FeatureFlag.GiveUsdf -> "When enabled, you'll gain the ability to send USDF directly"
+        FeatureFlag.DepositFirstUX -> "When enabled, the user experience for new and empty accounts will be centered around depositing funds"
     }
 
 

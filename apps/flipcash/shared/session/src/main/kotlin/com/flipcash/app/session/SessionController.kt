@@ -46,6 +46,7 @@ data class SessionState(
     val notificationUnreadCount: Int = 0,
     val tokens: List<Token> = emptyList(),
     val isPhoneNumberSendEnabled: Boolean = false,
+    val depositFirstUx: Boolean = false,
 )
 
 val LocalSessionController = staticCompositionLocalOf<SessionController?> { null }

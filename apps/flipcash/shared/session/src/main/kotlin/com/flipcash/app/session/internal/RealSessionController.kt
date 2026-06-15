@@ -13,6 +13,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.PaymentValuation
+import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.app.core.internal.updater.ProfileUpdater
@@ -165,9 +166,11 @@ class RealSessionController @Inject constructor(
                         scope.launch { chatCoordinator.reset() }
                         _state.update { SessionState() }
                     }
+
                     authState is AuthState.Ready -> {
                         onAppInForeground()
                     }
+
                     authState.isAtLeastRegistered -> {
                         updateUserFlags()
                     }
@@ -190,6 +193,10 @@ class RealSessionController @Inject constructor(
         appSettingsCoordinator
             .observeValue(AppSettingValue.CameraStartByDefault)
             .onEach { autoStart -> _state.update { it.copy(autoStartCamera = autoStart) } }
+            .launchIn(scope)
+
+        featureFlagController.observe(FeatureFlag.DepositFirstUX)
+            .onEach { enabled -> _state.update { it.copy(depositFirstUx = enabled) } }
             .launchIn(scope)
 
         featureFlagController.observe(FeatureFlag.VibrateOnScan)
@@ -318,7 +325,7 @@ class RealSessionController @Inject constructor(
                             // Don't promote during onboarding — the permissions
                             // completion flow sets Ready when navigating to Scanner.
                             flags.isRegistered && !currentState.canAccessAuthenticatedApis
-                                && currentState !is AuthState.Onboarding -> {
+                                    && currentState !is AuthState.Onboarding -> {
                                 userManager.set(authState = AuthState.Ready)
                             }
                             // Reconcile resume point with freshly-loaded flags.
@@ -328,10 +335,12 @@ class RealSessionController @Inject constructor(
                                         if (flags.requiresIapForRegistration)
                                             AuthState.ResumePoint.AccessKeyThenPurchase
                                         else currentState.resumePoint
+
                                     AuthState.ResumePoint.AccessKeyThenPurchase ->
                                         if (!flags.requiresIapForRegistration)
                                             AuthState.ResumePoint.PostAccessKey
                                         else currentState.resumePoint
+
                                     AuthState.ResumePoint.AccessKey -> currentState.resumePoint
                                 }
                                 if (corrected != currentState.resumePoint) {
@@ -430,7 +439,8 @@ class RealSessionController @Inject constructor(
                                                 // Use the state-enriched bill which carries the
                                                 // nonce from the first presentation, so the
                                                 // restarted give reuses the same rendezvous.
-                                                val currentBill = billController.state.value.bill ?: bill
+                                                val currentBill =
+                                                    billController.state.value.bill ?: bill
                                                 awaitBillGrab(currentBill, owner)
                                             }
                                         }
@@ -748,7 +758,10 @@ class RealSessionController @Inject constructor(
                 message = "Cash link not provided",
                 type = TraceType.Silent
             )
-            analytics.deeplinkRouted(DeeplinkType.CashLink(), error = IllegalArgumentException("Cash link not provided"))
+            analytics.deeplinkRouted(
+                DeeplinkType.CashLink(),
+                error = IllegalArgumentException("Cash link not provided")
+            )
             return
         }
         val owner = userManager.accountCluster
@@ -759,7 +772,10 @@ class RealSessionController @Inject constructor(
                 message = "No owner found",
                 type = TraceType.Silent
             )
-            analytics.deeplinkRouted(DeeplinkType.CashLink(), error = IllegalStateException("No owner found"))
+            analytics.deeplinkRouted(
+                DeeplinkType.CashLink(),
+                error = IllegalStateException("No owner found")
+            )
             return
         }
 
@@ -769,7 +785,10 @@ class RealSessionController @Inject constructor(
                 message = "Cash link empty",
                 type = TraceType.Silent
             )
-            analytics.deeplinkRouted(DeeplinkType.CashLink(), error = IllegalArgumentException("Cash link empty"))
+            analytics.deeplinkRouted(
+                DeeplinkType.CashLink(),
+                error = IllegalArgumentException("Cash link empty")
+            )
             return
         }
 
@@ -781,9 +800,44 @@ class RealSessionController @Inject constructor(
     }
 
     override fun presentDepositOptions(onRoute: ((AppRoute) -> Unit)?) {
-        scope.launch {
-            purchaseMethodController.presentDepositOptions(popToRoot = true)?.let { onRoute?.invoke(it) }
+        val depositFirstUx = state.value.depositFirstUx
+
+        val navigate = { route: AppRoute ->
+            onRoute?.invoke(route)
         }
+
+        val message = if (depositFirstUx) {
+            resources.getString(R.string.description_noBalanceYet)
+        } else {
+            resources.getString(R.string.description_noBalanceYetDiscover)
+        }
+        val cta = if (depositFirstUx) {
+            resources.getString(R.string.action_depositFunds)
+        } else {
+            resources.getString(R.string.action_discoverCurrencies)
+        }
+
+        BottomBarManager.showInfo(
+            title = resources.getString(R.string.title_noBalanceYet),
+            message = message,
+            actions = listOf(
+                BottomBarAction(
+                    text = cta
+                ) {
+                    scope.launch {
+                        if (depositFirstUx) {
+                            val destination = purchaseMethodController.presentDepositOptions(popToRoot = true)
+                            if (destination != null) {
+                                navigate(destination)
+                            }
+                        } else {
+                            navigate(AppRoute.Token.Discovery)
+                        }
+                    }
+                },
+            ),
+            showCancel = true,
+        )
     }
 
     private fun claimGiftCard(
