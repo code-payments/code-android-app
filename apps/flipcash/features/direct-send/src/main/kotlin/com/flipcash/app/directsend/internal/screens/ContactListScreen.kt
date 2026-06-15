@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -41,6 +43,7 @@ import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.contacts.device.DeviceContact
+import com.flipcash.app.contacts.ui.ContactAvatar
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.send.SendResult
 import com.flipcash.app.core.send.SendStep
@@ -59,13 +62,9 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.components.SearchInput
-import androidx.compose.foundation.clickable
-import com.flipcash.app.contacts.ui.ContactAvatar
-import com.flipcash.app.core.chat.ChatIdentifier
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeScaffold
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.map
 
 
 @Composable
@@ -298,37 +297,50 @@ private fun ContactRowItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
-                .padding(
-                    vertical = CodeTheme.dimens.inset,
-                    horizontal = CodeTheme.dimens.inset,
-                ),
+                .padding(vertical = CodeTheme.dimens.inset)
+                .padding(end = CodeTheme.dimens.inset),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         ) {
-            if (isNonContactDm && contact.photoUri == null) {
-                Box(
-                    modifier = Modifier
-                        .requiredSize(CodeTheme.dimens.staticGrid.x8)
-                        .clip(CircleShape)
-                        .background(Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = CodeTheme.colors.textSecondary,
-                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (unreadCount > 0) {
+                    UnreadBadge(
+                        modifier = Modifier.padding(
+                            start = CodeTheme.dimens.grid.x1,
+                            end = CodeTheme.dimens.grid.x1,
+                        ),
+                        count = unreadCount)
+                } else {
+                    Box(modifier = Modifier.requiredWidth(CodeTheme.dimens.inset))
+                }
+                if (isNonContactDm && contact.photoUri == null) {
+                    Box(
+                        modifier = Modifier
+                            .requiredSize(CodeTheme.dimens.staticGrid.x8)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = CodeTheme.colors.textSecondary,
+                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
+                        )
+                    }
+                } else {
+                    ContactAvatar(
+                        photoUri = contact.photoUri,
+                        displayName = contact.displayName,
+                        modifier = Modifier
+                            .requiredSize(CodeTheme.dimens.staticGrid.x8)
+                            .clip(CircleShape),
                     )
                 }
-            } else {
-                ContactAvatar(
-                    photoUri = contact.photoUri,
-                    displayName = contact.displayName,
-                    modifier = Modifier
-                        .requiredSize(CodeTheme.dimens.staticGrid.x8)
-                        .clip(CircleShape),
-                )
             }
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = contact.displayName,
@@ -349,15 +361,11 @@ private fun ContactRowItem(
             }
 
             if (isOnFlipcash) {
-                if (unreadCount > 0) {
-                    UnreadBadge(count = unreadCount)
-                } else {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_chevron_right),
-                        contentDescription = null,
-                        tint = CodeTheme.colors.textSecondary,
-                    )
-                }
+                 Icon(
+                    painter = painterResource(id = R.drawable.ic_chevron_right),
+                    contentDescription = null,
+                    tint = CodeTheme.colors.textSecondary,
+                )
             } else {
                 Text(
                     modifier = Modifier
@@ -394,7 +402,7 @@ private fun ContactRowItem(
 private fun UnreadBadge(count: Int, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .size(CodeTheme.dimens.grid.x4)
+            .size(CodeTheme.dimens.grid.x2)
             .background(
                 color = CodeTheme.colors.indicator,
                 shape = CircleShape,
