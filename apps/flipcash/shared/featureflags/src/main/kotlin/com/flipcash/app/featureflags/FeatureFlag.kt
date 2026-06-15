@@ -7,6 +7,15 @@ import com.flipcash.app.ksp.annotations.FeatureFlagMarker
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
+enum class FeatureTrack {
+    /** Visible to all users including production. */
+    Production,
+    Alpha,
+    Beta,
+    /** Only visible on internal builds (or with beta override). */
+    Internal,
+}
+
 data class FlagOption(val key: String, val label: String, val isDisabled: Boolean = false)
 sealed interface FeatureFlag<T: Any> {
     val key: String
@@ -14,6 +23,7 @@ sealed interface FeatureFlag<T: Any> {
     val launched: Boolean
     val visible: Boolean
     val persistLogOut: Boolean
+    val minTrack: FeatureTrack get() = FeatureTrack.Internal
     val options: List<FlagOption> get() = emptyList()
     val defaultOption: String
         get() = if (default is Enum<*>) (default as Enum<*>).name else ""
@@ -187,6 +197,7 @@ sealed interface FeatureFlag<T: Any> {
         override val launched: Boolean = false
         override val visible: Boolean = true
         override val persistLogOut: Boolean = true
+        override val minTrack: FeatureTrack = FeatureTrack.Production
     }
 
     @FeatureFlagMarker

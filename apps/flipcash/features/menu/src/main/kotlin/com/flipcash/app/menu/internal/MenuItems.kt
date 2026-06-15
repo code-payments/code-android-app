@@ -1,10 +1,7 @@
 package com.flipcash.app.menu.internal
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Science
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.AppRoute
@@ -53,12 +50,3 @@ internal data object SwitchAccount : StaffMenuItem<MenuScreenViewModel.Event>() 
     override val featureFlag: FeatureFlag<*> = FeatureFlag.CredentialManager
 }
 
-internal data object Labs : StaffMenuItem<MenuScreenViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = rememberVectorPainter(Icons.Filled.Science)
-    override val name: String
-        @Composable get() = stringResource(R.string.title_betaFlags)
-    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        AppRoute.Menu.Lab
-    )
-}
