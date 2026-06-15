@@ -14,6 +14,7 @@ class OnRampPurchaseRequestTest {
         email = "test@example.com",
         phoneNumber = "+12125551234",
         destinationAddress = "some-sol-address",
+        purchaseCurrency = "USDF",
     )
 
     private fun exclusiveOf() = OnRampPurchaseRequest.ExclusiveOfFees(
@@ -23,6 +24,7 @@ class OnRampPurchaseRequestTest {
         email = "apple@example.com",
         phoneNumber = "+12125559876",
         destinationAddress = "another-sol-address",
+        purchaseCurrency = "USDF",
     )
 
     // --- InclusiveOfFees ---
@@ -43,7 +45,7 @@ class OnRampPurchaseRequestTest {
     }
 
     @Test
-    fun inclusiveHardcodesPurchaseCurrency() {
+    fun inclusivePassesThroughPurchaseCurrency() {
         assertEquals("USDF", inclusiveOf().asMap()["purchaseCurrency"])
     }
 

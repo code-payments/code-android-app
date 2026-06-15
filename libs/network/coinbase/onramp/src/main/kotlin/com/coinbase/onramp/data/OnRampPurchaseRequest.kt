@@ -30,9 +30,9 @@ sealed interface OnRampPurchaseRequest {
         override val email: String,
         override val phoneNumber: String,
         override val destinationAddress: String,
+        override val purchaseCurrency: String,
     ): OnRampPurchaseRequest {
         override val paymentCurrency: String = "USD"
-        override val purchaseCurrency: String = "USDF"
         override val destinationNetwork: String = "solana"
     }
 
@@ -54,9 +54,9 @@ sealed interface OnRampPurchaseRequest {
         override val email: String,
         override val phoneNumber: String,
         override val destinationAddress: String,
+        override val purchaseCurrency: String,
     ): OnRampPurchaseRequest {
         override val paymentCurrency: String = "USD"
-        override val purchaseCurrency: String = "USDF"
         override val destinationNetwork: String = "solana"
     }
 

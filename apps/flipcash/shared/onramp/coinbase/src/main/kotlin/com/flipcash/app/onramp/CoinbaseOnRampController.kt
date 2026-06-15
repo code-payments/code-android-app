@@ -154,15 +154,21 @@ class CoinbaseOnRampController @Inject constructor(
         token: Token,
         verifiedFiat: VerifiedFiat,
     ): Result<Unit> {
-        return placeOrderInclusiveOfFees(verifiedFiat.localFiat.underlyingTokenAmount, token)
+        val resolvedToken = if (token.address == Mint.usdf) {
+            resolveOnRampToken(allowUsdcFallback = true)
+        } else {
+            token
+        }
+
+        return placeOrderInclusiveOfFees(verifiedFiat.localFiat.underlyingTokenAmount, resolvedToken)
             .mapCatching { (orderId, paymentLink) ->
                 val order = OnrampOrder(orderId, paymentLink.url)
 
-                if (token.address == Mint.usdf || token.address == Mint.usdc) {
+                if (resolvedToken.address == Mint.usdf || resolvedToken.address == Mint.usdc) {
                     // USDF goes to the deposit address — server auto-detects it.
                     // USDC goes to the owner's ATA — UsdcDepositSweep converts it.
                     // Neither requires a stateful swap.
-                    startPayment(order, token, verifiedFiat, null)
+                    startPayment(order, resolvedToken, verifiedFiat, null)
                 } else {
                     val owner = userManager.accountCluster
                         ?: throw IllegalStateException("No account cluster")
@@ -175,7 +181,7 @@ class CoinbaseOnRampController @Inject constructor(
                         fund = { Result.success(Unit) }
                     ).getOrThrow()
 
-                    startPayment(order, token, verifiedFiat, swapId)
+                    startPayment(order, resolvedToken, verifiedFiat, swapId)
                 }
             }
     }
@@ -219,7 +225,8 @@ class CoinbaseOnRampController @Inject constructor(
             paymentMethod = OnRampPaymentMethod.GUEST_CHECKOUT_GOOGLE_PAY,
             email = email,
             phoneNumber = phone,
-            destinationAddress = destination
+            destinationAddress = destination,
+            purchaseCurrency = token.symbol.uppercase(),
         )
 
         return requestJwtAndPlaceOrder(order, onRampApiEndpoint)
@@ -264,7 +271,8 @@ class CoinbaseOnRampController @Inject constructor(
             paymentMethod = OnRampPaymentMethod.GUEST_CHECKOUT_GOOGLE_PAY,
             email = email,
             phoneNumber = phone,
-            destinationAddress = destination
+            destinationAddress = destination,
+            purchaseCurrency = token.symbol.uppercase(),
         )
 
         return requestJwtAndPlaceOrder(order, onRampApiEndpoint)

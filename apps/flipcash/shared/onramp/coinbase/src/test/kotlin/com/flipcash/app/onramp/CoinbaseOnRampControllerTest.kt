@@ -13,6 +13,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.model.financial.usdf
+import com.getcode.solana.keys.Mint
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -62,9 +63,11 @@ class CoinbaseOnRampControllerTest {
         mockkStatic("com.getcode.opencode.internal.solana.extensions.TokenKt")
         val fakeUsdf = mockk<Token>(relaxed = true) {
             every { symbol } returns "USDF"
+            every { address } returns Mint.usdf
         }
         val fakeUsdc = mockk<Token>(relaxed = true) {
             every { symbol } returns "USDC"
+            every { address } returns Mint.usdc
         }
         every { Token.usdf } returns fakeUsdf
         every { Token.usdc } returns fakeUsdc
@@ -257,6 +260,45 @@ class CoinbaseOnRampControllerTest {
 
         coVerify(exactly = 0) { googlePayReadiness.check() }
         coVerify(exactly = 0) { webViewChannelDetector.detect() }
+    }
+
+    // endregion
+
+    // region placeOrderAndStartPayment token resolution
+
+    @Test
+    fun `placeOrderAndStartPayment resolves on-ramp token for USDF deposits`() = runTest {
+        stubAccountCluster()
+        stubProfile(phone = "+14155551234") // valid US number for region resolution
+        stubBuyOptionsCacheMints(mintsWithUsdf)
+
+        runCatching {
+            controller.placeOrderAndStartPayment(
+                token = Token.usdf,
+                verifiedFiat = mockk(relaxed = true),
+            )
+        }
+
+        coVerify { buyOptionsCache.getCached(any()) }
+    }
+
+    @Test
+    fun `placeOrderAndStartPayment skips token resolution for launchpad tokens`() = runTest {
+        stubValidUser()
+        val launchpadToken = mockk<Token>(relaxed = true) {
+            every { symbol } returns "JEFFY"
+            every { address } returns Mint("54ggcQ23uen5b9QXMAns99MQNTKn7iyzq4wvCW6e8r25")
+        }
+
+        runCatching {
+            controller.placeOrderAndStartPayment(
+                token = launchpadToken,
+                verifiedFiat = mockk(relaxed = true),
+            )
+        }
+
+        coVerify(exactly = 0) { buyOptionsCache.getCached(any()) }
+        coVerify(exactly = 0) { buyOptionsCache.prefetch(any()) }
     }
 
     // endregion
