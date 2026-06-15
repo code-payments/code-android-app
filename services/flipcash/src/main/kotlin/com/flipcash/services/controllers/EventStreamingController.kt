@@ -26,6 +26,8 @@ class EventStreamingController @Inject constructor(
 
     private var streamRef: EventStreamReference? = null
 
+    val isConnected: Boolean get() = streamRef?.isActive == true
+
     fun open(
         scope: CoroutineScope,
         onStreamError: (() -> Unit)? = null,

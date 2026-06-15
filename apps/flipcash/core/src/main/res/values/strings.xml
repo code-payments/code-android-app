@@ -732,6 +732,7 @@
     <string name="title_noContacts">No Contacts Yet</string>
     <string name="subtitle_noContacts">Tap the + button to add contacts</string>
 
+    <string name="title_recents">Recents</string>
     <string name="title_flipcashContacts">On Flipcash</string>
     <string name="title_nonFlipcashContacts">Not On Flipcash Yet</string>
     <plurals name="prompt_title_contactsAlreadyOnFlipcash">

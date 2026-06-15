@@ -465,9 +465,11 @@ private fun ContactListPreview() {
     }
 
     val items = buildList {
-        add(ContactListItem.Header("Flipcash Contacts"))
-        addAll(flipcashContacts)
-        add(ContactListItem.Header("Other Contacts"))
+        add(ContactListItem.Header("Recents"))
+        addAll(flipcashContacts.take(3))
+        add(ContactListItem.Header("On Flipcash"))
+        addAll(flipcashContacts.drop(3))
+        add(ContactListItem.Header("Not On Flipcash Yet"))
         addAll(otherContacts)
     }
 

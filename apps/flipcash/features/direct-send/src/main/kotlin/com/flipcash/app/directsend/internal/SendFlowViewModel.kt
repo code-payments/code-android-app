@@ -30,7 +30,6 @@ import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.decodeBase58
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -265,39 +264,33 @@ internal class SendFlowViewModel @Inject constructor(
         }
 
         val selfId = userManager.accountId
-        val contactsByE164 = contactState.contacts
 
-        val flipcashRows = if (messengerEnabled) {
+        if (messengerEnabled) {
             val dmChats = chatFeed.filter { it.metadata.type == ChatType.DM }
-            // Index chat feed by chatId (base58) for reliable lookup via dmChatIds
-            val chatById = dmChats.associateBy { it.metadata.chatId.toString() }
-            // Track which chat IDs are consumed by device-contact rows
-            val consumedChatIds = mutableSetOf<String>()
+            // Build a reverse lookup: e164 -> chatId string for contacts with DMs
+            val e164ToChatId = contactState.dmChatIds
 
-            // 1. Device contacts on Flipcash — enriched with chat preview when a DM exists
-            val deviceContactRows = filtered
-                .filter { it.e164 in contactState.flipcashE164s }
-                .map { contact ->
-                    val chatIdStr = contactState.dmChatIds[contact.e164]
-                    val chat = chatIdStr?.let { chatById[it] }
-                    if (chatIdStr != null) consumedChatIds += chatIdStr
-                    val preview = chat?.let { formatPreview(it, selfId, tokensByMint) }
-                    val chatId = chat?.metadata?.chatId
-                        ?: chatIdStr?.let { runCatching { ChatId(it.decodeBase58()) }.getOrNull() }
-                    ContactListItem.ContactRow(
-                        contact = contact,
-                        isOnFlipcash = true,
-                        lastMessagePreview = preview,
-                        unreadCount = chat?.unreadCount ?: 0,
-                        chatId = chatId,
-                        lastActivity = chat?.metadata?.lastActivity,
-                    )
-                }
+            // Recents — driven by the chat feed, enriched with contact info
+            val recentsE164s = mutableSetOf<String>()
+            val recentRows = dmChats.mapNotNull { summary ->
+                val chatId = summary.metadata.chatId
+                val chatIdStr = chatId.toString()
 
-            // 2. Non-contact DMs (chats not matched to a device contact)
-            val nonContactRows = dmChats
-                .filter { it.metadata.chatId.toString() !in consumedChatIds }
-                .mapNotNull { summary ->
+                // Try to match this chat to a device contact
+                val e164 = e164ToChatId.entries
+                    .firstOrNull { it.value == chatIdStr }?.key
+                val deviceContact = e164?.let { contactState.contacts[it] }
+
+                val contact = if (deviceContact != null) {
+                    if (searchString.isNotBlank() &&
+                        !deviceContact.displayName.contains(searchString, ignoreCase = true) &&
+                        !deviceContact.e164.contains(searchString, ignoreCase = true)) {
+                        return@mapNotNull null
+                    }
+                    recentsE164s += deviceContact.e164
+                    deviceContact
+                } else {
+                    // Non-contact DM — build contact from chat member profile
                     val otherMember = summary.metadata.members
                         .firstOrNull { it.userId != selfId } ?: return@mapNotNull null
                     val phone = otherMember.userProfile.verifiedPhoneNumber
@@ -306,53 +299,75 @@ internal class SendFlowViewModel @Inject constructor(
                         ?: formattedPhone
                         ?: "Unknown Contact"
 
-                    val contact = DeviceContact.unknownContact(
+                    val unknown = DeviceContact.unknownContact(
                         e164 = phone.orEmpty(),
                         displayName = displayName,
                         displayNumber = formattedPhone,
                     )
                     if (searchString.isNotBlank() &&
-                        !contact.displayName.contains(searchString, ignoreCase = true)) {
+                        !unknown.displayName.contains(searchString, ignoreCase = true)) {
                         return@mapNotNull null
                     }
-                    val preview = formatPreview(summary, selfId, tokensByMint)
-                    ContactListItem.ContactRow(
-                        contact = contact,
-                        isOnFlipcash = true,
-                        lastMessagePreview = preview,
-                        unreadCount = summary.unreadCount,
-                        chatId = summary.metadata.chatId,
-                        lastActivity = summary.metadata.lastActivity,
-                    )
+                    unknown
                 }
 
-            (deviceContactRows + nonContactRows)
-                .sortedWith(
-                    compareByDescending<ContactListItem.ContactRow> { it.lastActivity }
-                        .thenBy(String.CASE_INSENSITIVE_ORDER) { it.contact.displayName }
+                ContactListItem.ContactRow(
+                    contact = contact,
+                    isOnFlipcash = true,
+                    lastMessagePreview = formatPreview(summary, selfId, tokensByMint),
+                    unreadCount = summary.unreadCount,
+                    chatId = chatId,
+                    lastActivity = summary.metadata.lastActivity,
                 )
+            }.sortedWith(
+                compareByDescending<ContactListItem.ContactRow> { it.lastActivity }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.contact.displayName }
+            )
+
+            // On Flipcash — contacts that haven't chatted yet
+            val flipcashRows = filtered
+                .filter { it.e164 in contactState.flipcashE164s && it.e164 !in recentsE164s }
+                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+                .map { ContactListItem.ContactRow(contact = it, isOnFlipcash = true) }
+
+            val excludedE164s = recentsE164s + contactState.flipcashE164s
+            val other = filtered
+                .filter { it.e164 !in excludedE164s }
+                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+
+            if (recentRows.isNotEmpty()) {
+                add(ContactListItem.Header(resources.getString(R.string.title_recents)))
+                addAll(recentRows)
+            }
+            if (flipcashRows.isNotEmpty()) {
+                add(ContactListItem.Header(resources.getString(R.string.title_flipcashContacts)))
+                addAll(flipcashRows)
+            }
+            if (other.isNotEmpty()) {
+                add(ContactListItem.Header(resources.getString(R.string.title_nonFlipcashContacts)))
+                other.forEach { add(ContactListItem.ContactRow(it, isOnFlipcash = false)) }
+            }
         } else {
-            // Driven by device contacts on Flipcash
-            filtered
+            val flipcashRows = filtered
                 .filter { it.e164 in contactState.flipcashE164s }
                 .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
                 .map { ContactListItem.ContactRow(contact = it, isOnFlipcash = true) }
-        }
 
-        val flipcashE164s = flipcashRows.mapTo(mutableSetOf()) { it.contact.e164 }
-            .plus(contactState.flipcashE164s)
+            val flipcashE164s = flipcashRows.mapTo(mutableSetOf()) { it.contact.e164 }
+                .plus(contactState.flipcashE164s)
 
-        val other = filtered
-            .filter { it.e164 !in flipcashE164s }
-            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
+            val other = filtered
+                .filter { it.e164 !in flipcashE164s }
+                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
 
-        if (flipcashRows.isNotEmpty()) {
-            add(ContactListItem.Header(resources.getString(R.string.title_flipcashContacts)))
-            addAll(flipcashRows)
-        }
-        if (other.isNotEmpty()) {
-            add(ContactListItem.Header(resources.getString(R.string.title_nonFlipcashContacts)))
-            other.forEach { add(ContactListItem.ContactRow(it, isOnFlipcash = false)) }
+            if (flipcashRows.isNotEmpty()) {
+                add(ContactListItem.Header(resources.getString(R.string.title_flipcashContacts)))
+                addAll(flipcashRows)
+            }
+            if (other.isNotEmpty()) {
+                add(ContactListItem.Header(resources.getString(R.string.title_nonFlipcashContacts)))
+                other.forEach { add(ContactListItem.ContactRow(it, isOnFlipcash = false)) }
+            }
         }
     }
 

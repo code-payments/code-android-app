@@ -234,15 +234,23 @@ private fun UserControlBottomBar(
         ) { s ->
             when (s) {
                 ChatViewModel.UserState.Reading -> {
+                    val isUnknownContact = state.chattingWith?.isUnknown == true || state.chattingWith == null
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                     ) {
-                        CodeButton(
+                        AnimatedVisibility(
+                            visible = !isUnknownContact,
                             modifier = Modifier.weight(1f),
-                            buttonState = ButtonState.Filled,
-                            text = stringResource(R.string.action_sendCash),
-                        ) { dispatch(ChatViewModel.Event.OnSendCash) }
+                            enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
+                            exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut(),
+                        ) {
+                            CodeButton(
+                                modifier = Modifier.weight(1f),
+                                buttonState = ButtonState.Filled,
+                                text = stringResource(R.string.action_sendCash),
+                            ) { dispatch(ChatViewModel.Event.OnSendCash) }
+                        }
                         AnimatedVisibility(
                             visible = state.typingConstraints.enabled,
                             modifier = Modifier.weight(1f),
