@@ -77,6 +77,7 @@ class ChatCoordinator @Inject constructor(
 
     companion object {
         private const val TAG = "ChatCoordinator"
+        private val HEARTBEAT_INTERVAL = 30.seconds
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -85,6 +86,7 @@ class ChatCoordinator @Inject constructor(
     private var syncJob: Job? = null
     private var eventStreamCollectJob: Job? = null
     private var eventStreamRetryJob: Job? = null
+    private var heartbeatJob: Job? = null
 
     val state: StateFlow<ChatState>
         get() = _state.asStateFlow()
@@ -140,10 +142,12 @@ class ChatCoordinator @Inject constructor(
             trace(tag = TAG, message = "Lifecycle resumed, syncing chat feed", type = TraceType.Process)
             syncFeed()
             openEventStream()
+            startHeartbeat()
         }
     }
 
     override fun onStop(owner: LifecycleOwner) {
+        stopHeartbeat()
         closeEventStream()
     }
 
@@ -280,6 +284,7 @@ class ChatCoordinator @Inject constructor(
     }
 
     suspend fun reset() {
+        stopHeartbeat()
         closeEventStream()
         syncJob?.cancel()
         _state.value = ChatState()
@@ -364,6 +369,26 @@ class ChatCoordinator @Inject constructor(
         eventStreamingController.close()
     }
 
+    private fun startHeartbeat() {
+        stopHeartbeat()
+        heartbeatJob = scope.launch {
+            while (true) {
+                delay(HEARTBEAT_INTERVAL)
+                trace(tag = TAG, message = "Heartbeat: syncing feed", type = TraceType.Process)
+                syncFeed()
+                if (!eventStreamingController.isConnected) {
+                    trace(tag = TAG, message = "Heartbeat: event stream dead, reconnecting", type = TraceType.Process)
+                    openEventStream()
+                }
+            }
+        }
+    }
+
+    private fun stopHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+    }
+
     private suspend fun applyUpdate(update: ChatUpdate) {
         val chatId = update.chatId
         trace(
@@ -383,13 +408,20 @@ class ChatCoordinator @Inject constructor(
                 metadataDataSource.updateLastActivity(chatId, lastMsg.timestamp.toEpochMilliseconds())
 
                 _state.update { state ->
-                    val updatedFeed = state.feed.map { meta ->
-                        if (meta.chatId == chatId) {
-                            meta.copy(
-                                lastMessage = lastMsg,
-                                lastActivity = lastMsg.timestamp,
-                            )
-                        } else meta
+                    val exists = state.feed.any { it.chatId == chatId }
+                    val updatedFeed = if (exists) {
+                        state.feed.map { meta ->
+                            if (meta.chatId == chatId) {
+                                meta.copy(
+                                    lastMessage = lastMsg,
+                                    lastActivity = lastMsg.timestamp,
+                                )
+                            } else meta
+                        }
+                    } else {
+                        // New chat not yet in feed — trigger a sync to pick up full metadata
+                        syncFeed()
+                        state.feed
                     }
                     state.copy(feed = updatedFeed)
                 }
@@ -445,8 +477,13 @@ class ChatCoordinator @Inject constructor(
                     memberDataSource.upsert(metaUpdate.metadata.chatId, metaUpdate.metadata.members)
 
                     _state.update { state ->
-                        val updatedFeed = state.feed.map {
-                            if (it.chatId == metaUpdate.metadata.chatId) metaUpdate.metadata else it
+                        val exists = state.feed.any { it.chatId == metaUpdate.metadata.chatId }
+                        val updatedFeed = if (exists) {
+                            state.feed.map {
+                                if (it.chatId == metaUpdate.metadata.chatId) metaUpdate.metadata else it
+                            }
+                        } else {
+                            state.feed + metaUpdate.metadata
                         }
                         state.copy(feed = updatedFeed)
                     }
