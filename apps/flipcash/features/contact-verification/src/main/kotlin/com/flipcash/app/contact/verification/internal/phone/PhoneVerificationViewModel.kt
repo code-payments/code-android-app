@@ -109,8 +109,23 @@ internal class PhoneVerificationViewModel @Inject constructor(
             .flatMapLatest { ts -> snapshotFlow { ts.text } }
             .distinctUntilChanged()
             .onEach { enteredNumber ->
+                val raw = enteredNumber.toString()
+
+                // Handle autofilled international numbers (e.g. "+15551234567")
+                if (raw.contains("+")) {
+                    val result = phoneUtils.parseInternationalNumber(raw)
+                    if (result != null) {
+                        val (locale, nationalNumber) = result
+                        dispatchEvent(Event.OnCountrySelected(locale))
+                        stateFlow.value.numberTextFieldState.edit {
+                            replace(0, length, nationalNumber)
+                        }
+                        return@onEach
+                    }
+                }
+
                 val countryCode = stateFlow.value.selectedLocale.phoneCode.toString()
-                val phoneInputFiltered = enteredNumber.toString().replace("+$countryCode", "")
+                val phoneInputFiltered = raw.replace("+$countryCode", "")
                 val phoneNumber = "+$countryCode$phoneInputFiltered"
                 val formattedNumber = phoneUtils.formatNumber(
                     number = phoneNumber,

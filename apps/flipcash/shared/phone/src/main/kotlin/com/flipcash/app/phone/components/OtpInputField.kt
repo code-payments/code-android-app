@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.theme.FlipcashPreview
+import androidx.compose.ui.autofill.ContentType
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.WindowSizeClass
 import com.getcode.ui.components.TextInput
@@ -73,6 +74,7 @@ fun OtpInputField(
                 }
             },
             state = state,
+            contentType = ContentType.SmsOtpCode,
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
         )
 

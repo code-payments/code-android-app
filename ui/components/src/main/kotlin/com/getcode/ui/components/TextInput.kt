@@ -42,6 +42,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.datasource.LoremIpsum
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
@@ -80,6 +83,7 @@ fun TextInput(
     constraintMode: ConstraintMode = ConstraintMode.Free,
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
+    contentType: ContentType? = null,
     scrollState: ScrollState = rememberScrollState(),
 ) {
     val backgroundColor by colors.backgroundColor(enabled = enabled)
@@ -93,9 +97,20 @@ fun TextInput(
 
     var textSize by remember(style.fontSize) { mutableStateOf(style.fontSize) }
 
+    // Capture outside semantics lambda to avoid shadowing by
+    // SemanticsPropertyReceiver.contentType extension property.
+    val autofillContentType = contentType
+
     Box(modifier = modifier) {
         BasicTextField(
             modifier = Modifier
+                .then(
+                    if (autofillContentType != null) {
+                        Modifier.semantics { this.contentType = autofillContentType }
+                    } else {
+                        Modifier
+                    }
+                )
                 .background(backgroundColor, shape)
                 .defaultMinSize(minHeight = minHeight)
                 .constrain(

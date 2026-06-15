@@ -41,6 +41,7 @@ import com.flipcash.shared.phone.R
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.theme.CodeTheme
+import androidx.compose.ui.autofill.ContentType
 import com.getcode.ui.components.TextInput
 import com.getcode.ui.components.VerticalDivider
 import com.getcode.ui.core.rememberAnimationScale
@@ -78,6 +79,7 @@ fun PhoneInputField(
         onKeyboardAction = { onSubmit() },
         maxLines = 1,
         placeholder = placeholder,
+        contentType = ContentType.PhoneNumber + ContentType.PhoneNumberDevice,
         outputTransformation = outputTransformation,
         leadingIcon = {
             Row {
