@@ -181,14 +181,13 @@ class ChatCoordinator @Inject constructor(
         return _state.map { it.typingIndicators[chatId] ?: emptySet() }
     }
 
-    fun observeOtherReadPointer(chatId: ChatId): Flow<Long> {
+    fun observeOtherReadPointer(chatId: ChatId): Flow<MessagePointer?> {
         val selfId = userManager.accountId
         return memberDataSource.observeMembers(chatId)
             .map { members ->
                 members.firstOrNull { it.userId != selfId }
                     ?.pointers
                     ?.firstOrNull { it.type == PointerType.READ }
-                    ?.value ?: 0L
             }
             .distinctUntilChanged()
     }
