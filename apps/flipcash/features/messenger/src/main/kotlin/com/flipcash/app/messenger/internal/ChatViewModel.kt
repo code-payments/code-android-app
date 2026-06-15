@@ -26,6 +26,7 @@ import com.flipcash.services.models.buildDmPaymentMetadata
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.amountentry.AmountEntryDelegate
@@ -162,16 +163,15 @@ internal class ChatViewModel @Inject constructor(
     private val separatorConfig = SeparatorConfig.TimeGap()
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val messageStream = stateFlow.mapNotNull { it.chatId }.distinctUntilChanged()
+    private val messageStream = stateFlow.mapNotNull { it.chatId }
+        .distinctUntilChanged()
         .flatMapLatest { chatCoordinator.observeMessagesPaged(it) }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val otherReadPointer = stateFlow
-        .map { it.chatId }
-        .filterNotNull()
+    val otherReadPointer = stateFlow.mapNotNull { it.chatId }
         .distinctUntilChanged()
         .flatMapLatest { chatCoordinator.observeOtherReadPointer(it) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val messages: Flow<PagingData<ChatListItem>> = messageStream

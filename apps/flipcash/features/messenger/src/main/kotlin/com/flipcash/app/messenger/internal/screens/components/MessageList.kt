@@ -1,17 +1,12 @@
 package com.flipcash.app.messenger.internal.screens.components
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -27,10 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import com.flipcash.services.models.chat.MessageContent
-import androidx.compose.ui.unit.dp
+import com.flipcash.services.models.chat.MessagePointer
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.sheetResignmentBehavior
 import com.getcode.util.toLocalDate
@@ -94,7 +90,7 @@ internal fun MessageList(
     contentPadding: PaddingValues,
     messages: LazyPagingItems<ChatListItem>,
     separatorConfig: SeparatorConfig,
-    otherReadPointer: Long = 0L,
+    otherReadPointer: MessagePointer? = null,
     onAdvanceReadPointer: ((Long) -> Unit)? = null,
 ) {
     val listAlpha by animateFloatAsState(
@@ -149,7 +145,7 @@ internal fun MessageList(
                             val showReceipt =
                                 shouldShowReceiptLabel(index, item, messages, otherReadPointer)
                             if (showReceipt && effectiveStatus != null) {
-                                ReceiptLabel(effectiveStatus)
+                                ReceiptLabel(effectiveStatus, otherReadPointer)
                             }
                         }
                     }
@@ -241,10 +237,11 @@ private fun HandleMessageReads(
 
 private fun effectiveReceiptStatus(
     bubble: ChatListItem.ContentBubble,
-    otherReadPointer: Long,
+    otherReadPointer: MessagePointer?,
 ): ReceiptStatus? {
     val base = bubble.receiptStatus ?: return null
-    if (base == ReceiptStatus.SENT && bubble.messageId in 1..otherReadPointer) {
+    val pointerValue = otherReadPointer?.value ?: 0L
+    if (base == ReceiptStatus.SENT && bubble.messageId in 1..pointerValue) {
         return ReceiptStatus.READ
     }
     return base
@@ -262,7 +259,7 @@ private fun shouldShowReceiptLabel(
     index: Int,
     item: ChatListItem.ContentBubble,
     messages: LazyPagingItems<ChatListItem>,
-    otherReadPointer: Long,
+    otherReadPointer: MessagePointer?,
 ): Boolean {
     if (!item.isFromSelf) return false
     val status = effectiveReceiptStatus(item, otherReadPointer) ?: return false
@@ -302,23 +299,3 @@ private fun shouldShowReceiptLabel(
     return true
 }
 
-@Composable
-private fun ReceiptLabel(status: ReceiptStatus, modifier: Modifier = Modifier) {
-    AnimatedContent(
-        targetState = status,
-        modifier = modifier.padding(top = CodeTheme.dimens.grid.x1),
-        transitionSpec = { fadeIn() togetherWith fadeOut() },
-        label = "receiptStatus",
-    ) { animatedStatus ->
-        val text = when (animatedStatus) {
-            ReceiptStatus.SENT -> "Delivered"
-            ReceiptStatus.READ -> "Read"
-            else -> return@AnimatedContent
-        }
-        Text(
-            text = text,
-            style = CodeTheme.typography.caption,
-            color = CodeTheme.colors.textSecondary,
-        )
-    }
-}

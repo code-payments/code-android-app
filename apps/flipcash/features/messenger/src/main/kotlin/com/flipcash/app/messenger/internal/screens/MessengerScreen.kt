@@ -72,7 +72,7 @@ import dev.chrisbanes.haze.rememberHazeState
 internal fun MessengerScreen(viewModel: ChatViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val messages = viewModel.messages.collectAsLazyPagingItems()
-    val otherReadPointer by viewModel.otherReadPointer.collectAsStateWithLifecycle()
+    val otherReadPointer by viewModel.otherReadPointer.collectAsStateWithLifecycle(null)
     val navigator = LocalCodeNavigator.current
 
     val hazeState = rememberHazeState()
