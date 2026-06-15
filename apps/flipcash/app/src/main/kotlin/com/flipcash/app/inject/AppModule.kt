@@ -7,6 +7,8 @@ import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.annotations.AccountType
+import com.flipcash.app.core.toast.SystemToastController
+import com.flipcash.app.internal.toast.AndroidSystemToastController
 import com.getcode.util.resources.AndroidContentReader
 import com.getcode.util.resources.AndroidResources
 import com.getcode.util.resources.AndroidSettingsHelper
@@ -66,4 +68,10 @@ object AppModule {
     fun providesBiometricsManager(
         @ApplicationContext context: Context
     ): BiometricManager = BiometricManager.from(context)
+
+    @Provides
+    @Singleton
+    fun providesSystemToastController(
+        @ApplicationContext context: Context
+    ): SystemToastController = AndroidSystemToastController(context)
 }

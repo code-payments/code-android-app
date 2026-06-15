@@ -131,6 +131,16 @@
     <string name="title_labsAreEmpty">Nothing Cooking in the Lab Right Now</string>
     <string name="subtitle_labsAreEmpty">Check back in the next app update.</string>
 
+    <string name="title_betaOverride">Beta Overrides</string>
+    <string name="subtitle_betaOverride">All flags are visible. Toggle off to reset flags to defaults.</string>
+    <string name="toast_betaOverrideDisabled">Flags reset to defaults. Changes take effect on next visit.</string>
+    <string name="toast_betaOverrideEnabled">You are now a developer!</string>
+    <string name="toast_betaOverrideAlready">No need, you are already a developer</string>
+    <plurals name="toast_betaOverrideCountdown">
+        <item quantity="one">You are now %1$d step away from being a developer</item>
+        <item quantity="other">You are now %1$d steps away from being a developer</item>
+    </plurals>
+
     <string name="prompt_title_deleteAccount">Permanently Delete Account?</string>
     <string name="prompt_description_deleteAccount">This will permanently delete your Flipcash account</string>
     <string name="action_deleteAccount">Delete Account</string>

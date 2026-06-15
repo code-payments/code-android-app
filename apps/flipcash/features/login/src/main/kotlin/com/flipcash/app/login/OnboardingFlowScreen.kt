@@ -354,7 +354,7 @@ private fun LoginStepContent(seed: String?) {
             login = { flowNavigator.navigateTo(OnboardingStep.SeedInput) },
             isLabsOpen = state.betaOptionsVisible,
             onLogoTapped = { vm.dispatchEvent(LoginViewModel.Event.OnLogoTapped) },
-            openBetaFlags = { outerNavigator.openAsSheet(AppRoute.Menu.Lab) },
+            openBetaFlags = { outerNavigator.openAsSheet(AppRoute.Menu.Lab(onboarding = true)) },
         )
     }
 }

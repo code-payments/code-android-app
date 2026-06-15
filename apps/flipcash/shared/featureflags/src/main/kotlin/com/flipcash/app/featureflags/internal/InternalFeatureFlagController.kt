@@ -73,6 +73,20 @@ internal class InternalFeatureFlagController @Inject constructor(
         }
     }
 
+    override fun disableBetaFeatures() {
+        dataScope.launch(Dispatchers.IO) {
+            betaFlags.edit { prefs ->
+                prefs[betaOverrideKey] = false
+                FeatureFlag.availableEntries.forEach { flag ->
+                    prefs.remove(flag.booleanPreferenceKey)
+                    if (flag.isOptionFlag) {
+                        prefs.remove(flag.optionPreferenceKey)
+                    }
+                }
+            }
+        }
+    }
+
     override fun observeOverride(): StateFlow<Boolean> =
         betaFlags.data.map { prefs -> prefs[betaOverrideKey] ?: false }
             .stateIn(dataScope, SharingStarted.Eagerly, false)
