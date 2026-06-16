@@ -738,6 +738,9 @@
     <string name="action_invite">Invite</string>
     <string name="action_remove">Remove</string>
     <string name="action_inviteMoreOptions">More</string>
+    <string name="title_addMoreContacts">Add More Contacts</string>
+    <string name="action_add">Add</string>
+    <string name="action_settings">Settings</string>
 
     <string name="title_noContacts">No Contacts Yet</string>
     <string name="subtitle_noContacts">Tap the + button to add contacts</string>
