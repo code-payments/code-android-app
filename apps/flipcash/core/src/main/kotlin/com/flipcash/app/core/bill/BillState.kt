@@ -9,6 +9,7 @@ import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.solana.keys.Mint
 import kotlin.time.Duration
 
@@ -125,6 +126,7 @@ sealed interface Bill {
         val kind: Kind = Kind.cash,
         val verifiedState: VerifiedState? = null,
         val nonce: List<Byte> = emptyList(),
+        val renderAsBill: Boolean = token.address != Mint.usdf,
     ) : Bill {
         override val canFlip: Boolean = false
     }
