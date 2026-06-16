@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.phone.components.OtpInputField
+import com.flipcash.app.phone.components.SmsOtpAutofill
 import com.flipcash.features.contact.verification.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.OnWindowFocusedRequester
@@ -53,6 +54,12 @@ private fun PhoneCodeScreenContent(
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboard = rememberKeyboardController()
+
+    SmsOtpAutofill(
+        otpState = state.codeTextFieldState,
+        otpLength = state.otpLength,
+        attempts = state.attempts,
+    )
 
     CodeScaffold(
         modifier = Modifier
