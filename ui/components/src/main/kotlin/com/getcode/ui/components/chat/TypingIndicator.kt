@@ -2,10 +2,14 @@ package com.getcode.ui.components.chat
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -154,52 +158,41 @@ private fun TypingDots(
         verticalAlignment = Alignment.CenterVertically
     ) {
         val baseColor = CodeTheme.colors.chat.typingIndicator.dots
-        var currentIndex by remember { mutableIntStateOf(0) }
 
-        val animatedAlphas = List(DotCount) { index ->
-            val targetAlpha = if (index == currentIndex) 1f else 0.4f
-            animateFloatAsState(
-                targetValue = targetAlpha,
-                animationSpec = tween(durationMillis = StepDuration),
-                label = "dotAlpha_$index"
+        val easeIn = CubicBezierEasing(0.42f, 0f, 1f, 1f)
+        val easeOut = CubicBezierEasing(0f, 0f, 0.58f, 1f)
+
+        val infiniteTransition = rememberInfiniteTransition(label = "typingWave")
+
+        val dotOpacities = List(DotCount) { index ->
+            val delayMs = WaveLeadIn + index * WaveStagger
+            val riseEnd = delayMs + DotRise
+            val fallEnd = riseEnd + DotFall
+
+            infiniteTransition.animateFloat(
+                initialValue = WaveBaseOpacity,
+                targetValue = WaveBaseOpacity,
+                animationSpec = infiniteRepeatable(
+                    animation = keyframes {
+                        durationMillis = WavePeriod
+                        WaveBaseOpacity at 0 using easeOut
+                        WaveBaseOpacity at delayMs using easeIn
+                        WavePeakOpacity at riseEnd using easeOut
+                        WaveBaseOpacity at fallEnd using easeOut
+                        WaveBaseOpacity at WavePeriod using easeOut
+                    },
+                    repeatMode = RepeatMode.Restart,
+                ),
+                label = "dotOpacity_$index"
             )
         }
 
-        val animatedScales = List(DotCount) { index ->
-            val targetScale = if (index == currentIndex) 1f else 0.6f
-            animateFloatAsState(
-                targetValue = targetScale,
-                animationSpec = tween(durationMillis = StepDuration),
-                label = "dotScale_$index"
-            )
-        }
-
-        LaunchedEffect(Unit) {
-            while (true) {
-                delay(StepDuration.toLong())
-                currentIndex = when (currentIndex) {
-                    DotCount -> 0
-                    DotCount - 1 -> DotCount
-                    else -> currentIndex + 1
-                }
-
-                // Add extra delay when resetting
-                if (currentIndex == DotCount) {
-                    delay(StepDuration.toLong())
-                }
-            }
-        }
-
-        animatedAlphas.zip(animatedScales).forEach { (alpha, scale) ->
+        dotOpacities.forEach { opacity ->
             Box(
                 modifier = Modifier
-                    .size(CodeTheme.dimens.grid.x2)
-                    .graphicsLayer {
-                        scaleX = scale.value
-                        scaleY = scale.value
-                    }
+                    .size(DotSize)
                     .drawBehind {
-                        drawCircle(color = baseColor.copy(alpha = alpha.value))
+                        drawCircle(color = baseColor.copy(alpha = opacity.value))
                     }
             )
         }
@@ -208,7 +201,16 @@ private fun TypingDots(
 
 private const val MaxAvatars = 10
 private const val DotCount = 3
-private const val StepDuration = 500
+private val DotSize = 7.dp
+
+// Wave animation parameters
+private const val WavePeriod = 1300       // ms — full cycle length
+private const val WaveLeadIn = 200        // ms — silence before first dot rises
+private const val WaveStagger = 160       // ms — delay between successive dots
+private const val DotRise = 200           // ms — time to rise to peak opacity
+private const val DotFall = 300           // ms — time to fall back to base opacity
+private const val WaveBaseOpacity = 0.3f
+private const val WavePeakOpacity = 0.85f
 
 @Composable
 @Preview

@@ -8,9 +8,8 @@ import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -179,17 +179,17 @@ private fun UserControlBottomBar(
         modifier = Modifier
             .fillMaxWidth(),
     ) {
+        // Typing indicator entry/exit — scale from 0.95 anchored leading + opacity
+        // (same as message bubble insertion, no vertical slide)
         AnimatedContent(
             modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
             targetState = state.typists.isNotEmpty(),
             transitionSpec = {
-                slideInVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                ) { it } + scaleIn() + fadeIn() togetherWith
-                        fadeOut() + slideOutVertically { it }
+                val insertSpec = spring<Float>(dampingRatio = 0.73f, stiffness = Spring.StiffnessHigh)
+                (scaleIn(insertSpec, initialScale = 0.95f, transformOrigin = TransformOrigin(0f, 0.5f))
+                    + fadeIn(insertSpec)) togetherWith
+                    (scaleOut(insertSpec, targetScale = 0.95f, transformOrigin = TransformOrigin(0f, 0.5f))
+                        + fadeOut(insertSpec))
             }
         ) { show ->
             if (show) {
@@ -220,12 +220,19 @@ private fun UserControlBottomBar(
                     .navigationBarsPadding(),
                 targetState = state.userState,
                 transitionSpec = {
+                    // Action bar <-> composer swap
+                    // Buttons: scale from 0.95 + opacity; Composer: opacity only
+                    val swapSpec = spring<Float>(dampingRatio = 0.69f, stiffness = Spring.StiffnessHigh)
                     when (targetState) {
                         ChatViewModel.UserState.Typing ->
-                            slideInVertically { it } + fadeIn() togetherWith fadeOut()
+                            // Composer fades in; buttons scale+fade out
+                            fadeIn(swapSpec) togetherWith
+                                (scaleOut(swapSpec, targetScale = 0.95f) + fadeOut(swapSpec))
 
                         ChatViewModel.UserState.Reading ->
-                            fadeIn() togetherWith slideOutVertically { it } + fadeOut()
+                            // Buttons scale+fade in; composer fades out
+                            (scaleIn(swapSpec, initialScale = 0.95f) + fadeIn(swapSpec)) togetherWith
+                                fadeOut(swapSpec)
                     }
                 },
             ) { s ->

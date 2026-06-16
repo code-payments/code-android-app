@@ -2,18 +2,30 @@ package com.flipcash.app.messenger.internal.screens.components
 
 import android.text.format.DateFormat
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
+import kotlinx.coroutines.delay
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.MessagePointer
@@ -24,6 +36,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
 @Composable
@@ -32,25 +45,52 @@ internal fun ReceiptLabel(
     readPointer: MessagePointer?,
     modifier: Modifier = Modifier,
 ) {
-    AnimatedContent(
-        targetState = status,
-        modifier = modifier.padding(top = CodeTheme.dimens.grid.x1),
-        transitionSpec = { fadeIn() togetherWith fadeOut() },
-        label = "receiptStatus",
-    ) { animatedStatus ->
-        val text = when (animatedStatus) {
-            ReceiptStatus.SENT -> stringResource(R.string.label_chatReceipt_delivered)
-            ReceiptStatus.READ -> {
-                val readAtFormatted = readPointer?.timestamp?.let { formatReadTimestamp(it) } ?: ""
-                stringResource(R.string.label_chatReceipt_read, readAtFormatted)
-            }
-            else -> return@AnimatedContent
+    // Delayed pop for "Delivered" — wait 700ms before showing, instant removal
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(status) {
+        if (status == ReceiptStatus.SENT) {
+            visible = false
+            delay(700.milliseconds)
+            visible = true
+        } else {
+            visible = true
         }
-        Text(
-            text = text,
-            style = CodeTheme.typography.caption,
-            color = CodeTheme.colors.textSecondary,
-        )
+    }
+
+    val deliveredSpec = spring<Float>(dampingRatio = 0.88f, stiffness = 600f)
+
+    AnimatedVisibility(
+        visible = visible,
+        modifier = modifier.padding(top = CodeTheme.dimens.grid.x1),
+        enter = scaleIn(deliveredSpec, initialScale = 0.95f) + fadeIn(deliveredSpec),
+        exit = fadeOut(snap()),
+    ) {
+        // Delivered -> Read directional swap with scale
+        val readSwapSpec = spring<Float>(dampingRatio = 0.74f, stiffness = Spring.StiffnessHigh)
+        AnimatedContent(
+            targetState = status,
+            transitionSpec = {
+                (scaleIn(readSwapSpec, initialScale = 0.9f) + fadeIn(readSwapSpec)) togetherWith
+                    (scaleOut(readSwapSpec, targetScale = 0.9f) + fadeOut(readSwapSpec))
+            },
+            label = "receiptStatus",
+        ) { animatedStatus ->
+            val text = when (animatedStatus) {
+                ReceiptStatus.SENT -> stringResource(R.string.label_chatReceipt_delivered)
+                ReceiptStatus.READ -> {
+                    val readAtFormatted =
+                        readPointer?.timestamp?.let { formatReadTimestamp(it) } ?: ""
+                    stringResource(R.string.label_chatReceipt_read, readAtFormatted)
+                }
+
+                else -> return@AnimatedContent
+            }
+            Text(
+                text = text,
+                style = CodeTheme.typography.caption,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
     }
 }
 
