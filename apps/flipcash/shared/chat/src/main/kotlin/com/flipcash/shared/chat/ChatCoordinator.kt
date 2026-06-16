@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalCoroutinesApi::class)
+@file:OptIn(ExperimentalCoroutinesApi::class, ExperimentalPagingApi::class)
 
 package com.flipcash.shared.chat
 
@@ -6,12 +6,14 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
 import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
+import com.flipcash.app.persistence.sources.mediator.ChatMessageRemoteMediator
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.ContactDataSource
@@ -173,6 +175,7 @@ class ChatCoordinator @Inject constructor(
     fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>> {
         return Pager(
             config = PagingConfig(pageSize = 50),
+            remoteMediator = ChatMessageRemoteMediator(chatId, messagingController, messageDataSource),
         ) {
             messageDataSource.observeForChat(chatId)
         }.flow.map { page ->
@@ -195,7 +198,7 @@ class ChatCoordinator @Inject constructor(
             .distinctUntilChanged()
     }
 
-    suspend fun loadMessages(chatId: ChatId, limit: Int = 100) {
+    suspend fun loadMessages(chatId: ChatId) {
         messagingController.getMessages(chatId)
             .onSuccess { messages ->
                 messageDataSource.upsert(chatId, messages)
@@ -335,6 +338,11 @@ class ChatCoordinator @Inject constructor(
 
                 _state.update { it.copy(feed = page.chats, feedSyncState = FeedSyncState.Synced) }
                 trace(tag = TAG, message = "Feed synced: ${page.chats.size} chats", type = TraceType.Process)
+
+                // Prefetch first page of messages for chats with no cached messages
+                page.chats
+                    .filterNot { messageDataSource.hasMessages(it.chatId) }
+                    .forEach { chat -> loadMessages(chat.chatId) }
             }
             .onFailure { error ->
                 _state.update { it.copy(feedSyncState = FeedSyncState.Error) }

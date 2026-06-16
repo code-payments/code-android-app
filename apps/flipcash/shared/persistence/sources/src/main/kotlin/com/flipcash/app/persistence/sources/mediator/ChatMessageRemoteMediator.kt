@@ -11,6 +11,7 @@ import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
 
 @OptIn(ExperimentalPagingApi::class)
 class ChatMessageRemoteMediator(
@@ -28,14 +29,19 @@ class ChatMessageRemoteMediator(
         state: PagingState<Int, ChatMessageEntity>,
     ): MediatorResult {
         return try {
-            when (loadType) {
-                LoadType.REFRESH -> Unit
+            val token = when (loadType) {
+                LoadType.REFRESH -> null
                 LoadType.PREPEND -> return MediatorResult.Success(endOfPaginationReached = true)
-                LoadType.APPEND -> Unit
+                LoadType.APPEND -> {
+                    val lastItem = state.lastItemOrNull()
+                        ?: return MediatorResult.Success(endOfPaginationReached = true)
+                    lastItem.messageId.toPagingToken()
+                }
             }
 
             val queryOptions = QueryOptions(
                 limit = state.config.pageSize,
+                token = token,
                 descending = true,
             )
 
@@ -51,4 +57,8 @@ class ChatMessageRemoteMediator(
             MediatorResult.Error(e)
         }
     }
+}
+
+private fun Long.toPagingToken(): List<Byte> {
+    return ByteBuffer.allocate(Long.SIZE_BYTES).putLong(this).array().toList()
 }

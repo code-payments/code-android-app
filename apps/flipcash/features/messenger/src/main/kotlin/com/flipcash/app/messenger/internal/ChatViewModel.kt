@@ -70,6 +70,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.min
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
@@ -277,6 +278,7 @@ internal class ChatViewModel @Inject constructor(
                 if (chatId != null) {
                     dispatchEvent(Event.ChatFound(chatId))
                     chatCoordinator.setActiveChatId(chatId)
+                    chatCoordinator.loadMessages(chatId)
                     chatCoordinator.dismissNotifications(chatId)
                 }
 
@@ -317,15 +319,6 @@ internal class ChatViewModel @Inject constructor(
                     dispatchEvent(Event.ResolveFailed)
                 }
             ).launchIn(viewModelScope)
-
-        // trigger message update fetch on open
-        stateFlow.map { it.chatId }
-            .filterNotNull()
-            .distinctUntilChanged()
-            .onEach { chatId ->
-                chatCoordinator.loadMessages(chatId)
-            }
-            .launchIn(viewModelScope)
 
         // Advance read pointer when user scrolls to messages
         eventFlow
@@ -541,7 +534,7 @@ internal class ChatViewModel @Inject constructor(
                     ).onSuccess { amount ->
                         dispatchEvent(Event.SendStateUpdated(success = true))
                         stateFlow.value.chatId?.let { chatCoordinator.loadMessages(it) }
-                        delay(400)
+                        delay(400.milliseconds)
                         dispatchEvent(
                             Dispatchers.Main,
                             Event.SendComplete(amount.localFiat.nativeAmount)
