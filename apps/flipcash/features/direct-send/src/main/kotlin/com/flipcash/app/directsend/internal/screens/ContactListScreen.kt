@@ -324,11 +324,26 @@ private fun ContactRowItem(
             }
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = contact.displayName,
-                    style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textMain,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+                ) {
+                    Text(
+                        modifier = Modifier.weight(1f, fill = false),
+                        text = contact.displayName,
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textMain,
+                    )
+                    if (contact.isUnknown) {
+                        Icon(
+                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3),
+                            painter = painterResource(R.drawable.ic_unknown_contact),
+                            contentDescription = null,
+                            tint = CodeTheme.colors.textMain,
+                        )
+                    }
+                }
+
                 Text(
                     text = if (isOnFlipcash && !lastMessagePreview.isNullOrEmpty()) {
                         lastMessagePreview
