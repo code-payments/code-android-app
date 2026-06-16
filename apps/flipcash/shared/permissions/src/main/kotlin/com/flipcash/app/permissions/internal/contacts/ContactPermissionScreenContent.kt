@@ -42,8 +42,12 @@ fun ContactScreenContent(
                 isSuccess = isSuccess,
             )
         }
-    ) {
-        Box(Modifier.fillMaxSize()) {
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
             Column(
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally,
