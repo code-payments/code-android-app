@@ -155,14 +155,16 @@ internal fun MessageList(
             }
         }
 
-        // Chat start shows contact info container
-        item {
-            Box(modifier = Modifier.fillParentMaxWidth(), contentAlignment = Alignment.Center) {
-                ContactInfoContainer(
-                    contact = state.chattingWith,
-                    modifier = Modifier
-                        .padding(horizontal = CodeTheme.dimens.grid.x12)
-                )
+        // Chat start shows contact info container (only after messages have loaded)
+        if (messages.itemCount > 0) {
+            item {
+                Box(modifier = Modifier.fillParentMaxWidth(), contentAlignment = Alignment.Center) {
+                    ContactInfoContainer(
+                        contact = state.chattingWith,
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.grid.x12)
+                    )
+                }
             }
         }
     }
