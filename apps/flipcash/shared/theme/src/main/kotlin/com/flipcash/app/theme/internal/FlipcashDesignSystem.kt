@@ -37,6 +37,7 @@ object Flipcash2ColorSpec {
     val trackColor = Color.White.copy(alpha = 0.07f)
     val bannerThemed = Color(0xFF252526)
     val success = Color(0xFF1AC86A)
+    val warning = Color(0xFFFFA953)
     val successText = Color(0xFF73EAA4)
     val surfaceVariant = Color.White.copy(alpha = 0.12f)
     val errorSurface = Color(0x4AE75454)
@@ -102,6 +103,7 @@ private val colors = with(Flipcash2ColorSpec) {
         surfaceVariant = surfaceVariant,
         surfaceError = errorSurface,
         onSurface = White,
+        warning = warning,
         error = Error,
         errorText = TextError,
         success = success,
@@ -119,7 +121,7 @@ private val colors = with(Flipcash2ColorSpec) {
         betaIndicator = BetaIndicator,
         bannerThemed = bannerThemed,
         bannerError = Error,
-        bannerWarning = Warning,
+        bannerWarning = warning,
         bannerSuccess = BannerSuccess,
         scrim = Black40,
         accessKey = accessKey,

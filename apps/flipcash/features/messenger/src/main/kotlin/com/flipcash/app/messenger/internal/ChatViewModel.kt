@@ -44,7 +44,6 @@ import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.PublicKey
-import com.getcode.util.DateUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel
@@ -205,7 +204,7 @@ internal class ChatViewModel @Inject constructor(
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->
                 if (before == null) return@insertSeparators null
                 if (after == null || separatorConfig.shouldSeparate(before.timestamp, after.timestamp)) {
-                    ChatListItem.DateSeparator(formatDateLabel(before.timestamp))
+                    ChatListItem.DateSeparator(before.timestamp)
                 } else null
             }
         }.cachedIn(viewModelScope)
@@ -616,10 +615,6 @@ internal class ChatViewModel @Inject constructor(
     }
 
     companion object {
-        private fun formatDateLabel(instant: Instant): String {
-            return DateUtils.getDateWithToday(instant.toEpochMilliseconds())
-        }
-
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnChatOpened -> { state -> state }

@@ -239,25 +239,6 @@ internal fun bubblePositionOf(
     }
 }
 
-@Composable
-internal fun DateSeparatorRow(
-    label: String,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = CodeTheme.dimens.grid.x2),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            style = CodeTheme.typography.caption,
-            color = CodeTheme.colors.textSecondary,
-        )
-    }
-}
-
 // region Previews
 
 @Preview
