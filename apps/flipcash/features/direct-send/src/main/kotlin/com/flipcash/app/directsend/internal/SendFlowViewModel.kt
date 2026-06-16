@@ -263,7 +263,7 @@ internal class SendFlowViewModel @Inject constructor(
                 val formattedPhone = phone?.let { phoneUtils.formatNumber(it) }
                 val displayName = otherMember.userProfile.displayName?.takeIf { it.isNotBlank() }
                     ?: formattedPhone
-                    ?: "Unknown Contact"
+                    ?: return@mapNotNull null // filter out anonymous chats
 
                 val unknown = DeviceContact.unknownContact(
                     e164 = phone.orEmpty(),

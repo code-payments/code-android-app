@@ -315,30 +315,12 @@ private fun ContactRowItem(
                 } else {
                     Box(modifier = Modifier.requiredWidth(CodeTheme.dimens.inset))
                 }
-                if (isNonContactDm && contact.photoUri == null) {
-                    Box(
-                        modifier = Modifier
-                            .requiredSize(CodeTheme.dimens.staticGrid.x8)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textSecondary,
-                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
-                        )
-                    }
-                } else {
-                    ContactAvatar(
-                        photoUri = contact.photoUri,
-                        displayName = contact.displayName,
-                        modifier = Modifier
-                            .requiredSize(CodeTheme.dimens.staticGrid.x8)
-                            .clip(CircleShape),
-                    )
-                }
+                ContactAvatar(
+                    contact = contact,
+                    modifier = Modifier
+                        .requiredSize(CodeTheme.dimens.staticGrid.x8)
+                        .clip(CircleShape),
+                )
             }
 
             Column(modifier = Modifier.weight(1f)) {

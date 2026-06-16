@@ -1,15 +1,19 @@
 package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,10 +25,13 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
+import com.flipcash.app.contacts.ui.ContactAvatar
+import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.getcode.theme.CodeTheme
@@ -67,8 +74,8 @@ internal enum class ReceiptStatus { SENDING, SENT, READ, FAILED }
 internal sealed interface ChatListItem {
     val itemKey: Any
 
-    data class DateSeparator(val label: String) : ChatListItem {
-        override val itemKey: Any = "sep-$label"
+    data class DateSeparator(val timestamp: kotlin.time.Instant) : ChatListItem {
+        override val itemKey: Any = "sep-${timestamp.epochSeconds}"
     }
 
     data class ContentBubble(
@@ -88,16 +95,12 @@ internal sealed interface ChatListItem {
 internal fun MessageList(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues,
+    state: ChatViewModel.State,
     messages: LazyPagingItems<ChatListItem>,
     separatorConfig: SeparatorConfig,
     otherReadPointer: MessagePointer? = null,
     onAdvanceReadPointer: ((Long) -> Unit)? = null,
 ) {
-    val listAlpha by animateFloatAsState(
-        targetValue = if (messages.itemCount > 0) 1f else 0f,
-        label = "messageListAlpha",
-    )
-
     val listState = rememberLazyListState()
 
     if (onAdvanceReadPointer != null) {
@@ -106,12 +109,11 @@ internal fun MessageList(
 
     LazyColumn(
         modifier = modifier
-            .alpha(listAlpha)
             .sheetResignmentBehavior(listState),
         state = listState,
         reverseLayout = true,
         contentPadding = PaddingValues(
-            top = CodeTheme.dimens.grid.x2 + contentPadding.calculateTopPadding(),
+            top = CodeTheme.dimens.inset + contentPadding.calculateTopPadding(),
             bottom = CodeTheme.dimens.grid.x2 + contentPadding.calculateBottomPadding(),
             start = CodeTheme.dimens.inset,
             end = CodeTheme.dimens.inset,
@@ -131,7 +133,7 @@ internal fun MessageList(
                     .animateItem(placementSpec = null),
             ) {
                 when (item) {
-                    is ChatListItem.DateSeparator -> DateSeparatorRow(item.label)
+                    is ChatListItem.DateSeparator -> DateSeparatorRow(item.timestamp)
                     is ChatListItem.ContentBubble -> {
                         val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
                         Column(
@@ -150,6 +152,17 @@ internal fun MessageList(
                         }
                     }
                 }
+            }
+        }
+
+        // Chat start shows contact info container
+        item {
+            Box(modifier = Modifier.fillParentMaxWidth(), contentAlignment = Alignment.Center) {
+                ContactInfoContainer(
+                    contact = state.chattingWith,
+                    modifier = Modifier
+                        .padding(horizontal = CodeTheme.dimens.grid.x12)
+                )
             }
         }
     }

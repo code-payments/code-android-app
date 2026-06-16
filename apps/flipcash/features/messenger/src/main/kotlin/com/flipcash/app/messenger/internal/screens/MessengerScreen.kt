@@ -12,6 +12,7 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,8 +25,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -91,6 +97,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState),
+            state = state,
             contentPadding = overlapPadding,
             messages = messages,
             separatorConfig = SeparatorConfig.TimeGap(),
@@ -119,44 +126,34 @@ private fun ChatTopBar(
                     endY = { size.height * 0.25f }
                 )
         )
-    AppBarWithTitle(
-        modifier = Modifier.measured { titleHeight = it.height },
-        leftIcon = {
-            AppBarDefaults.UpNavigation { navigator.pop() }
-        },
-        rightContents = {
-            AppBarDefaults.Overflow {
-                // TODO:
+        AppBarWithTitle(
+            modifier = Modifier.measured { titleHeight = it.height },
+            leftIcon = {
+                AppBarDefaults.UpNavigation { navigator.pop() }
+            },
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                ) {
+                    ContactAvatar(
+                        contact = chattingWith,
+                        modifier = Modifier
+                            .requiredSize(CodeTheme.dimens.staticGrid.x8)
+                            .clip(CircleShape),
+                    )
+
+                    Text(
+                        modifier = Modifier.weight(1f),
+                        text = chattingWith?.displayName.orEmpty(),
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textMain,
+                    )
+                }
             }
-        },
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-            ) {
-                ContactAvatar(
-                    modifier = Modifier
-                        .border(
-                            CodeTheme.dimens.border,
-                            CodeTheme.colors.divider,
-                            CircleShape
-                        )
-                        .size(CodeTheme.dimens.staticGrid.x8)
-                        .clip(CircleShape),
-                    photoUri = chattingWith?.photoUri,
-                    displayName = chattingWith?.displayName.orEmpty(),
-                )
-                Text(
-                    modifier = Modifier.weight(1f),
-                    text = chattingWith?.displayName.orEmpty(),
-                    style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textMain,
-                )
-            }
-        }
-    )
-        }
+        )
+    }
 }
 
 @Composable
@@ -222,80 +219,73 @@ private fun UserControlBottomBar(
                     .padding(vertical = CodeTheme.dimens.grid.x3)
                     .navigationBarsPadding(),
                 targetState = state.userState,
-            transitionSpec = {
-                when (targetState) {
-                    ChatViewModel.UserState.Typing ->
-                        slideInVertically { it } + fadeIn() togetherWith fadeOut()
+                transitionSpec = {
+                    when (targetState) {
+                        ChatViewModel.UserState.Typing ->
+                            slideInVertically { it } + fadeIn() togetherWith fadeOut()
 
-                    ChatViewModel.UserState.Reading ->
-                        fadeIn() togetherWith slideOutVertically { it } + fadeOut()
-                }
-            },
-        ) { s ->
-            when (s) {
-                ChatViewModel.UserState.Reading -> {
-                    val isUnknownContact = state.chattingWith?.isUnknown == true || state.chattingWith == null
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                    ) {
-                        AnimatedVisibility(
-                            visible = !isUnknownContact,
-                            modifier = Modifier.weight(1f),
-                            enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
-                            exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut(),
+                        ChatViewModel.UserState.Reading ->
+                            fadeIn() togetherWith slideOutVertically { it } + fadeOut()
+                    }
+                },
+            ) { s ->
+                when (s) {
+                    ChatViewModel.UserState.Reading -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                         ) {
                             CodeButton(
                                 modifier = Modifier.weight(1f),
                                 buttonState = ButtonState.Filled,
                                 text = stringResource(R.string.action_sendCash),
                             ) { dispatch(ChatViewModel.Event.OnSendCash) }
-                        }
-                        AnimatedVisibility(
-                            visible = state.typingConstraints.enabled,
-                            modifier = Modifier.weight(1f),
-                            enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
-                            exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut(),
-                        ) {
-                            CodeButton(
-                                modifier = Modifier
-                                    .hazeEffect(hazeState) {
-                                        blurEffect {
-                                            style = material
-                                        }
-                                    },
-                                buttonState = ButtonState.Filled10,
-                                text = stringResource(R.string.action_sendMessage),
-                            ) { dispatch(ChatViewModel.Event.OnStartMessageInput) }
+                            AnimatedVisibility(
+                                visible = state.typingConstraints.enabled,
+                                modifier = Modifier.weight(1f),
+                                enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
+                                exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut(),
+                            ) {
+                                CodeButton(
+                                    modifier = Modifier
+                                        .hazeEffect(hazeState) {
+                                            blurEffect {
+                                                style = material
+                                            }
+                                        },
+                                    buttonState = ButtonState.Filled10,
+                                    text = stringResource(R.string.action_sendMessage),
+                                ) { dispatch(ChatViewModel.Event.OnStartMessageInput) }
+                            }
                         }
                     }
-                }
 
-                ChatViewModel.UserState.Typing -> {
-                    ChatInput(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(
-                                CodeTheme.dimens.border,
-                                CodeTheme.colors.divider,
-                                CodeTheme.shapes.medium,
-                            ).hazeEffect(hazeState) {
-                                blurEffect {
-                                    style = material
-                                }
-                            },
-                        focusRequester = focusRequester,
-                        hint = "Message",
-                        state = state.chatInputState,
-                        onSendMessage = { dispatch(ChatViewModel.Event.SendMessage) },
-                    )
+                    ChatViewModel.UserState.Typing -> {
+                        ChatInput(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(
+                                    CodeTheme.dimens.border,
+                                    CodeTheme.colors.divider,
+                                    CodeTheme.shapes.medium,
+                                )
+                                .hazeEffect(hazeState) {
+                                    blurEffect {
+                                        style = material
+                                    }
+                                },
+                            focusRequester = focusRequester,
+                            hint = "Message",
+                            state = state.chatInputState,
+                            onSendMessage = { dispatch(ChatViewModel.Event.SendMessage) },
+                        )
 
-                    LaunchedEffect(Unit) {
-                        focusRequester.requestFocus()
+                        LaunchedEffect(Unit) {
+                            focusRequester.requestFocus()
+                        }
                     }
                 }
             }
-        }
         }
     }
 }
