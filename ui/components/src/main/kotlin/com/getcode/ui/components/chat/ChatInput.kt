@@ -52,6 +52,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.ui.Alignment
 import com.getcode.theme.extraSmall
 
 @Composable
@@ -87,6 +88,7 @@ fun ChatInput(
             keyboardOptions = KeyboardOptions.Default.copy(
                 capitalization = KeyboardCapitalization.Sentences
             ),
+            contentAlignment = Alignment.Bottom,
             contentPadding = PaddingValues(
                 start = CodeTheme.dimens.staticGrid.x3,
                 top = CodeTheme.dimens.staticGrid.x2,

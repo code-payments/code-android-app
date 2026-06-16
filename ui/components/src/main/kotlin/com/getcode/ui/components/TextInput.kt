@@ -73,6 +73,7 @@ fun TextInput(
     style: TextStyle = CodeTheme.typography.textMedium,
     placeholderStyle: TextStyle = CodeTheme.typography.textMedium,
     shape: Shape = CodeTheme.shapes.extraSmall,
+    contentAlignment: Alignment.Vertical = Alignment.CenterVertically,
     textFieldAlignment: Alignment = Alignment.CenterStart,
     colors: TextFieldColors = inputColors(),
     enabled: Boolean = true,
@@ -147,6 +148,7 @@ fun TextInput(
                     leadingIcon = leadingIcon,
                     trailingIcon = trailingIcon,
                     contentPadding = contentPadding,
+                    contentAlignment = contentAlignment,
                     textFieldAlignment = textFieldAlignment,
                     shape = shape,
                     innerTextField = it,
@@ -185,6 +187,7 @@ private fun DecoratorBox(
     leadingIcon: (@Composable () -> Unit)?,
     trailingIcon: (@Composable () -> Unit)?,
     shape: Shape,
+    contentAlignment: Alignment.Vertical = Alignment.CenterVertically,
     textFieldAlignment: Alignment = Alignment.CenterStart,
     innerTextField: @Composable () -> Unit,
 ) {
@@ -196,7 +199,7 @@ private fun DecoratorBox(
                 color = borderColor,
                 shape = shape,
             ),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = contentAlignment,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2)
     ) {
         leadingIcon?.invoke()
