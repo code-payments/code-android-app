@@ -92,6 +92,7 @@ class ChatCoordinator @Inject constructor(
     private var eventStreamRetryJob: Job? = null
     private var heartbeatJob: Job? = null
     private var retryAttempt = 0
+    private var backgroundedActiveChat: ChatId? = null
 
     val state: StateFlow<ChatState>
         get() = _state.asStateFlow()
@@ -143,6 +144,10 @@ class ChatCoordinator @Inject constructor(
     }
 
     override fun onStart(owner: LifecycleOwner) {
+        backgroundedActiveChat?.let {
+            setActiveChatId(it)
+            backgroundedActiveChat = null
+        }
         if (cluster.value != null) {
             trace(tag = TAG, message = "Lifecycle resumed, syncing chat feed", type = TraceType.Process)
             syncFeed()
@@ -152,6 +157,8 @@ class ChatCoordinator @Inject constructor(
     }
 
     override fun onStop(owner: LifecycleOwner) {
+        backgroundedActiveChat = _state.value.activeChat
+        setActiveChatId(null)
         stopHeartbeat()
         closeEventStream()
     }

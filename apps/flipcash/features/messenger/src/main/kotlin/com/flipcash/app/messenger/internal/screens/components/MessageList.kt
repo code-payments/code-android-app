@@ -154,7 +154,8 @@ internal fun MessageList(
             // Message insertion animation — scale from 0.95 + opacity with edge anchor
             var appeared by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { appeared = true }
-            val insertionSpec = spring<Float>(dampingRatio = 0.73f, stiffness = Spring.StiffnessHigh)
+            val insertionSpec =
+                spring<Float>(dampingRatio = 0.73f, stiffness = Spring.StiffnessHigh)
             val insertionAlpha by animateFloatAsState(
                 targetValue = if (appeared) 1f else 0f,
                 animationSpec = insertionSpec,
@@ -197,7 +198,11 @@ internal fun MessageList(
                             val showReceipt =
                                 shouldShowReceiptLabel(index, item, messages, otherReadPointer)
                             if (showReceipt && effectiveStatus != null) {
-                                ReceiptLabel(effectiveStatus, otherReadPointer)
+                                ReceiptLabel(
+                                    itemKey = item.itemKey,
+                                    status = effectiveStatus,
+                                    readPointer = otherReadPointer
+                                )
                             }
                         }
                     }

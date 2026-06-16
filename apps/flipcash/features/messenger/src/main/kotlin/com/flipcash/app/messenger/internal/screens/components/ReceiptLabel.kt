@@ -44,15 +44,14 @@ internal fun ReceiptLabel(
     status: ReceiptStatus,
     readPointer: MessagePointer?,
     modifier: Modifier = Modifier,
+    itemKey: Any? = null,
 ) {
-    // Delayed pop for "Delivered" — wait 700ms before showing, instant removal
-    var visible by remember { mutableStateOf(false) }
+    // Delayed pop for "Delivered" — wait 700ms before showing, instant removal.
+    // Start visible when not SENT so the animation is oneshot (doesn't replay on scroll).
+    var visible by remember(itemKey) { mutableStateOf(status != ReceiptStatus.SENT) }
     LaunchedEffect(status) {
-        if (status == ReceiptStatus.SENT) {
-            visible = false
+        if (status == ReceiptStatus.SENT && !visible) {
             delay(700.milliseconds)
-            visible = true
-        } else {
             visible = true
         }
     }
