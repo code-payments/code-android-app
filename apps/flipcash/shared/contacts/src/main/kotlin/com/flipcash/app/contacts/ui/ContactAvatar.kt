@@ -129,7 +129,7 @@ private fun BoxWithConstraintsScope.InitialsText(displayName: String) {
     Text(
         modifier = Modifier.align(Alignment.Center),
         text = initials,
-        fontSize = fontSize,
+        style = CodeTheme.typography.textSmall.copy(fontSize = fontSize),
         color = CodeTheme.colors.textSecondary,
         textAlign = TextAlign.Center,
     )

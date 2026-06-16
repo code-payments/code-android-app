@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -40,7 +41,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.contacts.ui.ContactAvatar
@@ -58,6 +62,7 @@ import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
+import com.getcode.theme.extraSmall
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
@@ -131,18 +136,6 @@ internal fun ContactListScreen() {
                         state = state.searchState,
                         contentPadding = PaddingValues(start = CodeTheme.dimens.grid.x1),
                     )
-
-                    if (state.isPickerMode) {
-                        CircularIconButton(
-                            onClick = { accessHandle.launch() }) { size ->
-                            Icon(
-                                imageVector = Icons.Default.GroupAdd,
-                                contentDescription = "",
-                                tint = Color.White,
-                                modifier = Modifier.requiredSize(size),
-                            )
-                        }
-                    }
                 }
             }
         },
@@ -161,6 +154,7 @@ internal fun ContactListScreen() {
                 ContactList(
                     items = state.listItems,
                     isPickerMode = state.isPickerMode,
+                    onAddMoreContacts = { accessHandle.launch() },
                     onItemClick = { contact ->
                         viewModel.dispatchEvent(SendFlowViewModel.Event.OnContactClicked(contact))
                     },
@@ -199,6 +193,7 @@ private fun ContactList(
     items: List<ContactListItem>,
     modifier: Modifier = Modifier,
     isPickerMode: Boolean = false,
+    onAddMoreContacts: () -> Unit = {},
     onItemClick: (ContactListItem.ContactRow) -> Unit = {},
     onItemDismissed: (ContactListItem.ContactRow) -> Unit = {},
 ) {
@@ -236,7 +231,6 @@ private fun ContactList(
                     ContactRowItem(
                         contact = item.contact,
                         isOnFlipcash = item.isOnFlipcash,
-                        isNonContactDm = item.contact.isUnknown,
                         lastMessagePreview = item.lastMessagePreview,
                         unreadCount = item.unreadCount,
                         showDivider = !isLastInSection,
@@ -246,6 +240,109 @@ private fun ContactList(
                 }
             }
         }
+
+        if (isPickerMode) {
+            item {
+                PickerModeHeader(
+                    onAddMoreContacts = onAddMoreContacts,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PickerModeHeader(
+    onAddMoreContacts: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val avatarSize = CodeTheme.dimens.staticGrid.x8
+    val overlap = CodeTheme.dimens.staticGrid.x4
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        HorizontalDivider(
+            color = CodeTheme.colors.divider,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .padding(
+                    start = CodeTheme.dimens.inset + CodeTheme.dimens.staticGrid.x8 + CodeTheme.dimens.grid.x3,
+                    end = CodeTheme.dimens.inset,
+                ),
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onAddMoreContacts)
+                .padding(
+                    horizontal = CodeTheme.dimens.inset,
+                    vertical = CodeTheme.dimens.grid.x3,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(-overlap)) {
+                Box(
+                    modifier = Modifier
+                        .zIndex(4f)
+                        .requiredSize(avatarSize)
+                        .border(
+                            width = CodeTheme.dimens.border,
+                            color = CodeTheme.colors.background,
+                            shape = CircleShape,
+                        )
+                        .background(
+                            brush = Brush.linearGradient(CodeTheme.colors.contactAvatar.colors),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        tint = CodeTheme.colors.textMain,
+                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
+                    )
+                }
+                repeat(2) { i ->
+                    ContactAvatar(
+                        contact = null,
+                        modifier = Modifier
+                            .zIndex((3 - i).toFloat())
+                            .requiredSize(avatarSize)
+                            .border(
+                                width = CodeTheme.dimens.border,
+                                color = CodeTheme.colors.background,
+                                shape = CircleShape,
+                            )
+                            .clip(CircleShape),
+                    )
+                }
+            }
+
+            Text(
+                modifier = Modifier.weight(1f),
+                text = stringResource(R.string.title_addMoreContacts),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+            )
+
+            Text(
+                modifier = Modifier
+                    .background(
+                        color = Color.White,
+                        shape = CodeTheme.shapes.extraSmall,
+                    )
+                    .padding(
+                        horizontal = CodeTheme.dimens.grid.x2,
+                        vertical = CodeTheme.dimens.grid.x1,
+                    ),
+                text = stringResource(R.string.action_add),
+                style = CodeTheme.typography.textMedium,
+                color = Color.Black,
+            )
+        }
     }
 }
 
@@ -254,7 +351,7 @@ private fun ContactGroupHeader(text: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(60.dp),
+            .height(CodeTheme.dimens.grid.x12),
         contentAlignment = Alignment.BottomStart,
     ) {
         Column {
@@ -282,7 +379,6 @@ private fun ContactRowItem(
     contact: DeviceContact,
     isOnFlipcash: Boolean,
     modifier: Modifier = Modifier,
-    isNonContactDm: Boolean = false,
     lastMessagePreview: String? = null,
     unreadCount: Int = 0,
     showDivider: Boolean = true,
@@ -311,7 +407,8 @@ private fun ContactRowItem(
                             start = CodeTheme.dimens.grid.x1,
                             end = CodeTheme.dimens.grid.x1,
                         ),
-                        count = unreadCount)
+                        count = unreadCount
+                    )
                 } else {
                     Box(modifier = Modifier.requiredWidth(CodeTheme.dimens.inset))
                 }
@@ -358,7 +455,7 @@ private fun ContactRowItem(
             }
 
             if (isOnFlipcash) {
-                 Icon(
+                Icon(
                     painter = painterResource(id = R.drawable.ic_chevron_right),
                     contentDescription = null,
                     tint = CodeTheme.colors.textSecondary,
