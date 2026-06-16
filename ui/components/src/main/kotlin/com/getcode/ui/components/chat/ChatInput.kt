@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,7 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.material.Icon
+import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.runtime.Composable
@@ -93,7 +95,9 @@ fun ChatInput(
                     targetState = state.text.isNotEmpty(),
                     label = "show/hide send button",
                     transitionSpec = {
-                        fadeIn(spring()) togetherWith fadeOut(spring())
+                        val spec = spring<Float>(dampingRatio = 0.66f, stiffness = 4000f)
+                        (fadeIn(spec) + scaleIn(spec, initialScale = 0.6f)) togetherWith
+                            (fadeOut(spec) + scaleOut(spec, targetScale = 0.6f))
                     }
                 ) { show ->
                     if (show) {

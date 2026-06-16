@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.components
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +18,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,7 +38,6 @@ import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.extraSmall
 import com.getcode.ui.components.PriceWithFlag
 import com.getcode.ui.core.addIf
 
@@ -185,32 +187,30 @@ private fun Bubble(
 
 @Composable
 private fun bubbleShape(position: BubblePosition, isFromSelf: Boolean): Shape {
-    val l = CodeTheme.shapes.medium.topStart
-    val s = CodeTheme.shapes.extraSmall.topStart
-    // RoundedCornerShape(topStart, topEnd, bottomEnd, bottomStart)
-    return when (position) {
-        BubblePosition.Solo -> RoundedCornerShape(l)
-        BubblePosition.First -> if (isFromSelf) {
-            // Top of group, outgoing: bottom-end connects to next below
-            RoundedCornerShape(topStart = l, topEnd = l, bottomEnd = s, bottomStart = l)
-        } else {
-            RoundedCornerShape(topStart = l, topEnd = l, bottomEnd = l, bottomStart = s)
-        }
+    // CodeTheme.shapes.medium = 12dp, extraSmall = 6dp
+    val l = 12.dp
+    val s = 6.dp
 
-        BubblePosition.Middle -> if (isFromSelf) {
-            RoundedCornerShape(topStart = l, topEnd = s, bottomEnd = s, bottomStart = l)
-        } else {
-            RoundedCornerShape(topStart = s, topEnd = l, bottomEnd = l, bottomStart = s)
-        }
+    // Corner radius morph — animate each corner with spring matching prototype
+    val cornerSpec = spring<Dp>(dampingRatio = 0.68f, stiffness = 500f)
 
-        BubblePosition.Last -> if (isFromSelf) {
-            // Bottom of group, outgoing: top-end connects to item above
-            RoundedCornerShape(topStart = l, topEnd = s, bottomEnd = l, bottomStart = l)
-        } else {
-            RoundedCornerShape(topStart = s, topEnd = l, bottomEnd = l, bottomStart = l)
-        }
+    // Target corners: (topStart, topEnd, bottomEnd, bottomStart)
+    val targets = when (position) {
+        BubblePosition.Solo -> BubbleCorners(l, l, l, l)
+        BubblePosition.First -> if (isFromSelf) BubbleCorners(l, l, s, l) else BubbleCorners(l, l, l, s)
+        BubblePosition.Middle -> if (isFromSelf) BubbleCorners(l, s, s, l) else BubbleCorners(s, l, l, s)
+        BubblePosition.Last -> if (isFromSelf) BubbleCorners(l, s, l, l) else BubbleCorners(s, l, l, l)
     }
+
+    val topStart by animateDpAsState(targets.topStart, cornerSpec, label = "cTS")
+    val topEnd by animateDpAsState(targets.topEnd, cornerSpec, label = "cTE")
+    val bottomEnd by animateDpAsState(targets.bottomEnd, cornerSpec, label = "cBE")
+    val bottomStart by animateDpAsState(targets.bottomStart, cornerSpec, label = "cBS")
+
+    return RoundedCornerShape(topStart, topEnd, bottomEnd, bottomStart)
 }
+
+private data class BubbleCorners(val topStart: Dp, val topEnd: Dp, val bottomEnd: Dp, val bottomStart: Dp)
 
 internal fun bubblePositionOf(
     index: Int,

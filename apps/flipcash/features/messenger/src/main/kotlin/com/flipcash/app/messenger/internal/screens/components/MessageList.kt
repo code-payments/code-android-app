@@ -1,6 +1,8 @@
 package com.flipcash.app.messenger.internal.screens.components
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,14 +20,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
@@ -37,6 +41,7 @@ import com.flipcash.services.models.chat.MessagePointer
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.sheetResignmentBehavior
 import com.getcode.util.toLocalDate
+import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
@@ -102,9 +107,29 @@ internal fun MessageList(
     onAdvanceReadPointer: ((Long) -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
+    val vibrator = LocalVibrator.current
 
     if (onAdvanceReadPointer != null) {
         HandleMessageReads(listState, messages, onAdvanceReadPointer)
+    }
+
+    // Haptic feedback when a new incoming message arrives
+    // Track the newest message key — only fire when it changes to an incoming message
+    var lastNewestKey by remember { mutableStateOf<Any?>(null) }
+    LaunchedEffect(messages) {
+        snapshotFlow {
+            if (messages.itemCount == 0) null else messages.peek(0)
+        }
+            .filterNotNull()
+            .mapNotNull { it as? ChatListItem.ContentBubble }
+            .distinctUntilChanged { old, new -> old.itemKey == new.itemKey }
+            .collectLatest { newest ->
+                val prevKey = lastNewestKey
+                lastNewestKey = newest.itemKey
+                if (prevKey != null && !newest.isFromSelf) {
+                    vibrator.tick()
+                }
+            }
     }
 
     LazyColumn(
@@ -127,10 +152,36 @@ internal fun MessageList(
             val item = messages[index] ?: return@items
             val bottomSpacing = bottomSpacingFor(index, item, messages, separatorConfig)
 
+            // Message insertion animation — scale from 0.95 + opacity with edge anchor
+            var appeared by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { appeared = true }
+            val insertionSpec = spring<Float>(dampingRatio = 0.73f, stiffness = Spring.StiffnessHigh)
+            val insertionAlpha by animateFloatAsState(
+                targetValue = if (appeared) 1f else 0f,
+                animationSpec = insertionSpec,
+                label = "insertAlpha",
+            )
+            val insertionScale by animateFloatAsState(
+                targetValue = if (appeared) 1f else 0.95f,
+                animationSpec = insertionSpec,
+                label = "insertScale",
+            )
+            val isOutgoing = (item as? ChatListItem.ContentBubble)?.isFromSelf ?: false
+
             Box(
                 modifier = Modifier
                     .padding(bottom = bottomSpacing)
-                    .animateItem(placementSpec = null),
+                    .animateItem(placementSpec = null)
+                    .graphicsLayer {
+                        alpha = insertionAlpha
+                        scaleX = insertionScale
+                        scaleY = insertionScale
+                        transformOrigin = if (isOutgoing) {
+                            TransformOrigin(1f, 0.5f) // anchor trailing
+                        } else {
+                            TransformOrigin(0f, 0.5f) // anchor leading
+                        }
+                    },
             ) {
                 when (item) {
                     is ChatListItem.DateSeparator -> DateSeparatorRow(item.timestamp)
@@ -169,17 +220,22 @@ internal fun MessageList(
         }
     }
 
-    // opts out of the list maintaining
-    // scroll position when adding elements before the first item
-    // we are checking first visible item index to ensure
-    // the list doesn't shift when viewing scroll back
-    Snapshot.withoutReadObservation {
-        if (listState.firstVisibleItemIndex == 0) {
-            listState.requestScrollToItem(
-                index = listState.firstVisibleItemIndex,
-                scrollOffset = listState.firstVisibleItemScrollOffset
-            )
+    // Scroll to bottom when the newest message changes (sent or received)
+    LaunchedEffect(listState, messages) {
+        snapshotFlow {
+            if (messages.itemCount == 0) null
+            else (messages.peek(0) as? ChatListItem.ContentBubble)?.itemKey
         }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collectLatest {
+                // Always scroll for own messages; only near-bottom for incoming
+                val nearBottom = listState.firstVisibleItemIndex <= 3
+                val newest = messages.peek(0) as? ChatListItem.ContentBubble
+                if (newest?.isFromSelf == true || nearBottom) {
+                    listState.animateScrollToItem(0)
+                }
+            }
     }
 }
 
