@@ -118,16 +118,18 @@ class NotificationService : FirebaseMessagingService(),
             launch { tokenCoordinator.update() }
         }
 
-        launch {
-            try {
-                if (payload?.category == NotificationCategory.CONTACT_JOIN) {
-                    launch { contactCoordinator.sync() }
+        authenticateIfNeeded {
+            launch {
+                try {
+                    if (payload?.category == NotificationCategory.CONTACT_JOIN) {
+                        launch { contactCoordinator.sync() }
+                    }
+                    val resolvedTitle = applySubstitutions(title, payload?.titleSubstitutions.orEmpty())
+                    val resolvedBody = body?.let { applySubstitutions(it, payload?.bodySubstitutions.orEmpty()) }
+                    postNotification(resolvedTitle, resolvedBody, payload)
+                } catch (e: Exception) {
+                    trace(tag = "NotificationService", message = "Failed to post notification", error = e)
                 }
-                val resolvedTitle = applySubstitutions(title, payload?.titleSubstitutions.orEmpty())
-                val resolvedBody = body?.let { applySubstitutions(it, payload?.bodySubstitutions.orEmpty()) }
-                postNotification(resolvedTitle, resolvedBody, payload)
-            } catch (e: Exception) {
-                trace(tag = "NotificationService", message = "Failed to post notification", error = e)
             }
         }
     }
@@ -187,8 +189,18 @@ class NotificationService : FirebaseMessagingService(),
         body: String?,
     ): Int {
         val notificationId = chatId.hashCode()
-        val e164 = groupKey?.takeIf { it.startsWith("+") }
-            ?: contactCoordinator.lookupContactByDmChatId(chatId.toString())?.e164
+        val groupKeyE164 = groupKey?.takeIf { it.startsWith("+") }
+        val lookupContact = if (groupKeyE164 == null) {
+            contactCoordinator.lookupContactByDmChatId(chatId.toString())
+        } else null
+        val e164 = groupKeyE164 ?: lookupContact?.e164
+
+        trace(
+            tag = "NotificationService",
+            message = "applyContactChatStyle: chatId=$chatId, groupKey=$groupKey, groupKeyE164=$groupKeyE164, lookupE164=${lookupContact?.e164}, e164=$e164, authenticated=${userManager.accountCluster != null}",
+            type = TraceType.Log,
+        )
+
         val contactPhoto = e164?.let { resolveContactPhoto(it) }
         val senderName = e164?.let { contactResolver.resolveName(it) } ?: ""
 
