@@ -22,20 +22,24 @@ fun RenderedBill(
     modifier: Modifier = Modifier,
     bill: Bill,
 ) {
-    if (bill.token.address == Mint.usdf) {
-        GoldBar(
-            modifier = modifier
-                .padding(horizontal = CodeTheme.dimens.inset),
-            payloadData = bill.data,
-            amount = bill.amount.underlyingTokenAmount,
-        )
-    } else {
-        CashBill(
-            modifier = modifier,
-            payloadData = bill.data,
-            amount = bill.amount,
-            token = bill.token
-        )
+    when (bill) {
+        is Bill.Cash -> {
+            if (bill.renderAsBill) {
+                CashBill(
+                    modifier = modifier,
+                    payloadData = bill.data,
+                    amount = bill.amount,
+                    token = bill.token
+                )
+            } else {
+                GoldBar(
+                    modifier = modifier
+                        .padding(horizontal = CodeTheme.dimens.inset),
+                    payloadData = bill.data,
+                    amount = bill.amount.underlyingTokenAmount,
+                )
+            }
+        }
     }
 }
 

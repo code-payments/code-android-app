@@ -138,7 +138,8 @@ class InternalBillPlaygroundController(
             token = token.copy(billCustomizations = customizations),
             amount = demoAmount,
             disableGestures = true,
-            data = payloadInfo.codeData.toList()
+            data = payloadInfo.codeData.toList(),
+            renderAsBill = true,
         )
 
         _state.update { current ->
