@@ -36,4 +36,8 @@ class ContactResolver @Inject constructor(
 
     fun resolvePhotoBytes(e164: String): ByteArray? =
         deviceContactLookup.lookupPhotoBytes(e164)
+
+    fun resolveOwnPhotoBytes(ownE164: String?): ByteArray? =
+        deviceContactLookup.lookupProfilePhoto()
+            ?: ownE164?.let { deviceContactLookup.lookupPhotoBytes(it) }
 }

@@ -4,15 +4,12 @@ import android.Manifest
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import androidx.core.app.RemoteInput
 import android.content.pm.PackageManager
 import android.os.Build
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
 import android.graphics.ImageDecoder
-import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
 import android.media.RingtoneManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -195,15 +192,7 @@ class NotificationService : FirebaseMessagingService(),
         val contactPhoto = e164?.let { resolveContactPhoto(it) }
         val senderName = e164?.let { contactResolver.resolveName(it) } ?: ""
 
-        val profile = userManager.profile
-        val selfPerson = Person.Builder()
-            .setName(
-                profile?.displayName?.takeIf { it.isNotEmpty() }
-                    ?: profile?.verifiedPhoneNumber?.takeIf { it.isNotEmpty() }
-                    ?: getString(R.string.notification_self_person_name)
-            )
-            .setKey("self")
-            .build()
+        val selfPerson = buildSelfPerson(this@NotificationService, userManager.profile, contactResolver)
 
         val senderPerson = Person.Builder()
             .setName(senderName)
@@ -223,6 +212,8 @@ class NotificationService : FirebaseMessagingService(),
 
         setStyle(style)
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
+            .addAction(buildReplyAction(chatId, notificationId, groupKey))
+            .addAction(buildMarkAsReadAction(chatId, groupKey))
 
         return notificationId
     }
@@ -270,22 +261,53 @@ class NotificationService : FirebaseMessagingService(),
         }
     }
 
-    private fun Bitmap.toCircularBitmap(): Bitmap {
-        val size = minOf(width, height)
-        val xOffset = (width - size) / 2
-        val yOffset = (height - size) / 2
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun buildReplyAction(chatId: ChatId, notificationId: Int, groupKey: String?): NotificationCompat.Action {
+        val remoteInput = RemoteInput.Builder(NotificationActionReceiver.KEY_TEXT_REPLY)
+            .setLabel(getString(R.string.notification_action_reply))
+            .build()
 
-        val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(output)
+        val intent = Intent(this, NotificationActionReceiver::class.java).apply {
+            action = NotificationActionReceiver.ACTION_REPLY
+            putExtra(NotificationActionReceiver.KEY_CHAT_ID_HEX, chatId.bytes.toHexString())
+            putExtra(NotificationActionReceiver.KEY_NOTIFICATION_ID, notificationId)
+            if (groupKey != null) putExtra(NotificationActionReceiver.KEY_GROUP_KEY, groupKey)
+        }
 
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val half = size / 2f
-        canvas.drawCircle(half, half, half, paint)
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            chatId.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+        )
 
-        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-        canvas.drawBitmap(this, -xOffset.toFloat(), -yOffset.toFloat(), paint)
+        return NotificationCompat.Action.Builder(
+            R.drawable.ic_reply,
+            getString(R.string.notification_action_reply),
+            pendingIntent,
+        ).addRemoteInput(remoteInput).build()
+    }
 
-        return output
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun buildMarkAsReadAction(chatId: ChatId, groupKey: String?): NotificationCompat.Action {
+        val intent = Intent(this, NotificationActionReceiver::class.java).apply {
+            action = NotificationActionReceiver.ACTION_MARK_READ
+            putExtra(NotificationActionReceiver.KEY_CHAT_ID_HEX, chatId.bytes.toHexString())
+            if (groupKey != null) putExtra(NotificationActionReceiver.KEY_GROUP_KEY, groupKey)
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            chatId.hashCode() + 1,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        return NotificationCompat.Action.Builder(
+            R.drawable.ic_mark_read,
+            getString(R.string.notification_action_mark_as_read),
+            pendingIntent,
+        ).build()
     }
 
     internal fun Context.buildContentIntent(navigation: NavigationTrigger?): PendingIntent {

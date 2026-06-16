@@ -11,6 +11,10 @@
             </intent-filter>
         </service>
 
+        <receiver
+            android:name="com.flipcash.app.notifications.NotificationActionReceiver"
+            android:exported="false" />
+
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/flipcash_logo" />

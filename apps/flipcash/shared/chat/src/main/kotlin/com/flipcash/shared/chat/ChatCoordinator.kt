@@ -285,6 +285,16 @@ class ChatCoordinator @Inject constructor(
         notificationManager.cancel(chatId.hashCode())
     }
 
+    suspend fun markAsRead(chatId: ChatId): Result<Unit> {
+        val messageId = state.value.feed
+            .firstOrNull { it.chatId == chatId }
+            ?.lastMessage?.messageId
+            ?: messageDataSource.getLatestMessageId(chatId)
+            ?: return Result.success(Unit)
+        return advanceReadPointer(chatId, messageId)
+            .also { dismissNotifications(chatId) }
+    }
+
     suspend fun notifyTyping(chatId: ChatId, typingState: TypingState): Result<Unit> {
         return messagingController.notifyIsTyping(chatId, typingState)
     }

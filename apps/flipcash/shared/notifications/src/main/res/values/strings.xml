@@ -19,6 +19,10 @@
     <!-- Person names -->
     <string name="notification_self_person_name">Me</string>
 
+    <!-- Action labels -->
+    <string name="notification_action_reply">Reply</string>
+    <string name="notification_action_mark_as_read">Mark as read</string>
+
     <!-- Channel group names -->
     <string name="notification_group_transactions">Transactions</string>
     <string name="notification_group_social">Social</string>

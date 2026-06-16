@@ -36,6 +36,20 @@ internal class AndroidDeviceContactLookup @Inject constructor(
         }
     }
 
+    override fun lookupProfilePhoto(): ByteArray? {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS)
+            != PackageManager.PERMISSION_GRANTED
+        ) return null
+
+        return try {
+            ContactsContract.Contacts.openContactPhotoInputStream(
+                context.contentResolver, ContactsContract.Profile.CONTENT_URI, true
+            )?.use { it.readBytes() }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun lookupContactId(e164: String): Long? =
         lookupField(e164, ContactsContract.PhoneLookup._ID)?.toLongOrNull()
 
