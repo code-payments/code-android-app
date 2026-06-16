@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -84,11 +85,13 @@ private fun TextBubble(
     maxWidth: Dp,
 ) {
     Bubble(isFromSelf, position, maxWidth) {
-        Text(
-            text = text,
-            style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.textMain,
-        )
+        SelectionContainer {
+            Text(
+                text = text,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textMain,
+            )
+        }
     }
 }
 
