@@ -6,9 +6,9 @@ import com.flipcash.services.repository.EventStreamingRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.receiveAsFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,12 +17,8 @@ class EventStreamingController @Inject constructor(
     private val repository: EventStreamingRepository,
     private val userManager: UserManager,
 ) {
-    private val _chatUpdates = MutableSharedFlow<ChatUpdate>(
-        replay = 0,
-        extraBufferCapacity = 64,
-        onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST,
-    )
-    val chatUpdates: SharedFlow<ChatUpdate> = _chatUpdates.asSharedFlow()
+    private val _chatUpdates = Channel<ChatUpdate>(capacity = Channel.UNLIMITED)
+    val chatUpdates: Flow<ChatUpdate> = _chatUpdates.receiveAsFlow()
 
     private var streamRef: EventStreamReference? = null
 
@@ -44,7 +40,7 @@ class EventStreamingController @Inject constructor(
             owner = owner,
             onEvent = { update ->
                 trace("EventStreamingController: Received chat update, messages=${update.newMessages.size}")
-                _chatUpdates.tryEmit(update)
+                _chatUpdates.trySend(update)
             },
             onError = { error ->
                 trace("EventStreamingController: Stream error: ${error.message}")

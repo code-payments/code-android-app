@@ -66,7 +66,7 @@ class EventStreamingControllerTest {
     }
 
     @Test
-    fun `chatUpdates SharedFlow is accessible`() {
+    fun `chatUpdates flow is accessible`() {
         assertNotNull(controller.chatUpdates)
     }
 }
