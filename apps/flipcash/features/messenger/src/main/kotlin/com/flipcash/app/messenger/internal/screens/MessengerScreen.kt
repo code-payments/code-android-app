@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -115,15 +116,19 @@ private fun ChatTopBar(
     chattingWith: DeviceContact?,
 ) {
     var titleHeight by remember { mutableStateOf(0.dp) }
+    val bgColor = CodeTheme.colors.background
     Box {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(titleHeight)
-                .drawWithGradient(
-                    color = CodeTheme.colors.background,
-                    startY = { size.height * 1.5f },
-                    endY = { size.height * 0.25f }
+                .height(titleHeight + 24.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0f to bgColor,
+                            1f to Color.Transparent,
+                        )
+                    )
                 )
         )
         AppBarWithTitle(
