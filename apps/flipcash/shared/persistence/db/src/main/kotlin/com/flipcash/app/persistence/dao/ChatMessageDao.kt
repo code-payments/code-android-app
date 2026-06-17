@@ -26,21 +26,62 @@ interface ChatMessageDao {
     suspend fun getByClientId(chatIdHex: String, clientIdHex: String): ChatMessageEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(entity: ChatMessageEntity)
+    suspend fun insert(entity: ChatMessageEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(entities: List<ChatMessageEntity>)
+    suspend fun insert(entities: List<ChatMessageEntity>)
+
+    @Query("SELECT pending_client_id_hex FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId")
+    suspend fun getPendingClientId(chatIdHex: String, messageId: Long): String?
+
+    @Transaction
+    suspend fun upsert(entity: ChatMessageEntity) {
+        val existingPendingId = getPendingClientId(entity.chatIdHex, entity.messageId)
+        val merged = if (existingPendingId != null && entity.pendingClientIdHex == null) {
+            entity.copy(pendingClientIdHex = existingPendingId)
+        } else entity
+        insert(merged)
+    }
+
+    @Transaction
+    suspend fun upsert(entities: List<ChatMessageEntity>) {
+        for (entity in entities) upsert(entity)
+    }
 
     @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex")
     suspend fun deletePending(chatIdHex: String, clientIdHex: String)
 
+    @Query("SELECT pending_client_id_hex FROM chat_messages WHERE chat_id_hex = :chatIdHex AND status = 'SENDING' AND pending_client_id_hex IS NOT NULL")
+    suspend fun getPendingClientIds(chatIdHex: String): List<String>
+
     @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND status = 'SENDING'")
     suspend fun deleteAllPending(chatIdHex: String)
 
+    @Query("""
+        UPDATE chat_messages
+        SET message_id = :newMessageId,
+            timestamp_epoch_ms = :newTimestampMs,
+            unread_seq = :newUnreadSeq,
+            status = 'SENT'
+        WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex
+    """)
+    suspend fun updatePendingToConfirmed(
+        chatIdHex: String,
+        clientIdHex: String,
+        newMessageId: Long,
+        newTimestampMs: Long,
+        newUnreadSeq: Long,
+    )
+
     @Transaction
     suspend fun confirmPendingMessage(chatIdHex: String, clientIdHex: String, serverMessage: ChatMessageEntity) {
-        deletePending(chatIdHex, clientIdHex)
-        upsert(serverMessage)
+        updatePendingToConfirmed(
+            chatIdHex = chatIdHex,
+            clientIdHex = clientIdHex,
+            newMessageId = serverMessage.messageId,
+            newTimestampMs = serverMessage.timestampEpochMs,
+            newUnreadSeq = serverMessage.unreadSeq,
+        )
     }
 
     @Transaction
