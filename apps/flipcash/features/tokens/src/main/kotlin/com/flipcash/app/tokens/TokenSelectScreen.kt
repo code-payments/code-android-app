@@ -31,7 +31,6 @@ fun TokenSelectScreen(purpose: TokenPurpose) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            isInModal = true,
             title = stringResource(R.string.title_selectCurrency),
             backButton = true,
             onBackIconClicked = { navigator.pop() },

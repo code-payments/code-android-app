@@ -70,14 +70,12 @@ private fun VerificationFlowIntroScreenContent(
         topBar = {
             if (isSheetRoot) {
                 AppBarWithTitle(
-                    isInModal = true,
                     endContent = {
                         AppBarDefaults.Close { navigator.hide() }
                     },
                 )
             } else {
                 AppBarWithTitle(
-                    isInModal = true,
                     backButton = true,
                     onBackIconClicked = { navigator.pop() },
                 )

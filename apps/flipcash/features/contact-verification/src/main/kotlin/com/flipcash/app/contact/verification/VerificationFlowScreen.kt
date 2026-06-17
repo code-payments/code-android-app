@@ -63,17 +63,16 @@ private fun verificationEntryProvider(
         VerificationFlowIntroContent(isForOnRamp = step.isForOnRamp)
     }
     annotatedEntry<VerificationStep.PhoneEntry> {
-        PhoneVerificationContent(isInModal = !route.fullScreen)
+        PhoneVerificationContent()
     }
     annotatedEntry<VerificationStep.PhoneCode> {
         PhoneCodeContent(
             includeEmail = route.includeEmail,
-            isInModal = !route.fullScreen,
             linkForPayment = route.linkForPayment,
         )
     }
     annotatedEntry<VerificationStep.PhoneCountryCode> {
-        PhoneCountryCodeContent(isInModal = !route.fullScreen)
+        PhoneCountryCodeContent()
     }
     annotatedEntry<VerificationStep.EmailEntry> {
         EmailVerificationContent(

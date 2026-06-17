@@ -36,7 +36,6 @@ internal fun PhoneGateLandingScreen() {
         topBar = {
             AppBarWithTitle(
                 title = "",
-                isInModal = true,
                 endContent = {
                     AppBarDefaults.Close { flowNavigator.exitCanceled() }
                 },

@@ -21,7 +21,6 @@ fun ShareAppScreen() {
         modifier = androidx.compose.ui.Modifier.fillMaxSize(),
     ) {
         AppBarWithTitle(
-            isInModal = true,
             titleAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
             endContent = { AppBarDefaults.Close { navigator.hide() } }
         )

@@ -23,7 +23,6 @@ fun TransactionHistoryScreen(mint: Mint) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            isInModal = true,
             title = stringResource(R.string.title_transactionHistory),
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,

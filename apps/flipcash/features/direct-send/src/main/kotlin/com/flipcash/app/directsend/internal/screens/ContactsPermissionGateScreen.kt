@@ -60,7 +60,6 @@ internal fun ContactsPermissionGateScreen() {
         topBar = {
             AppBarWithTitle(
                 title = "",
-                isInModal = true,
                 endContent = {
                     AppBarDefaults.Close { flowNavigator.exitCanceled() }
                 },

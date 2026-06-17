@@ -14,7 +14,6 @@ private fun AppBarTitleOnGivePreview() {
     FlipcashPreview(showBackground = true) {
 
         AppBarWithTitle(
-            isInModal = true,
             leftIcon = { AppBarDefaults.UpNavigation() { }},
             title = {
                 TokenSelectionPill(

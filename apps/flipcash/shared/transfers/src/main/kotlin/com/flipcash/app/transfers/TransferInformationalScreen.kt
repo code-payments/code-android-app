@@ -40,7 +40,6 @@ fun TransferInformationalScreen(
                 title = direction.title,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,
-                isInModal = true,
                 onBackIconClicked = navigator::pop
             )
         },

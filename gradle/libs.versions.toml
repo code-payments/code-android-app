@@ -91,6 +91,7 @@ bugsnag = "6.26.0"
 bugsnag-agp = "8.2.0"
 bugsnag-gradle-plugin = "1.1.0"
 rinku = "1.6.0"
+compose-unstyled = "2.7.0"
 haze = "2.0.0-alpha03"
 cloudy = "0.5.0"
 phantom-connect-kmp = "2.0.2-1.0.0"
@@ -162,6 +163,7 @@ hilt-android-test = { module = "com.google.dagger:hilt-android-testing", version
 hilt-nav-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hilt-jetpack" }
 
 # Kotlin
+kotlin-metadata-jvm = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", version.ref = "kotlin" }
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
@@ -263,6 +265,7 @@ haze-blur = { module = "dev.chrisbanes.haze:haze-blur", version.ref = "haze" }
 haze-materials = { module = "dev.chrisbanes.haze:haze-blur-materials", version.ref = "haze" }
 phantom-connect = { module = "dev.bmcreations:phantom-connect", version.ref = "phantom-connect-kmp" }
 phantom-connect-wallet = { module = "dev.bmcreations:phantom-connect-wallet", version.ref = "phantom-connect-kmp" }
+compose-unstyled-bottom-sheet = { module = "com.composables:composeunstyled-bottom-sheet", version.ref = "compose-unstyled" }
 rinku = { module = "dev.theolm:rinku", version.ref = "rinku" }
 rinku-compose = { module = "dev.theolm:rinku-compose-ext", version.ref = "rinku" }
 event-bus = { module = "io.github.hoc081098:channel-event-bus", version.ref = "event-bus" }

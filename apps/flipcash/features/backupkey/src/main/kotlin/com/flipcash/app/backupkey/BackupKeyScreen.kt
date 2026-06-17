@@ -24,7 +24,6 @@ fun BackupKeyScreen() {
     ) {
         AppBarWithTitle(
             title = stringResource(R.string.title_accessKey),
-            isInModal = true,
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,
             onBackIconClicked = { navigator.pop() },

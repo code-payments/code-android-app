@@ -118,7 +118,6 @@ internal fun ContactListScreen() {
                 AppBarWithTitle(
                     title = stringResource(R.string.title_send),
                     titleAlignment = Alignment.CenterHorizontally,
-                    isInModal = true,
                     endContent = {
                         AppBarDefaults.Close { flowNavigator.exitCanceled() }
                     },

@@ -22,7 +22,6 @@ fun RegionSelectionScreen() {
     ) {
         AppBarWithTitle(
             title = stringResource(R.string.title_selectRegion),
-            isInModal = true,
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,
             onBackIconClicked = {

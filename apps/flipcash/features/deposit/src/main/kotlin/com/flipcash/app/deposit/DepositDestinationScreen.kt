@@ -28,7 +28,6 @@ fun DepositDestinationScreen(mint: Mint) {
     ) {
         AppBarWithTitle(
             title = stringResource(R.string.title_depositToken, state.tokenName.orEmpty()),
-            isInModal = true,
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,
             onBackIconClicked = { navigator.pop() },

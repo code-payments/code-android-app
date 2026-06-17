@@ -48,7 +48,6 @@ internal fun SwapEntryScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            isInModal = true,
             title = when (purpose) {
                 is SwapPurpose.Buy if purpose.fundingSource != FundingSource.Flexible ->
                     stringResource(R.string.title_amountToDeposit)

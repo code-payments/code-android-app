@@ -37,7 +37,6 @@ fun MyAccountScreen() {
                     text = stringResource(R.string.title_myAccount),
                 )
             },
-            isInModal = true,
             titleAlignment = Alignment.CenterHorizontally,
             leftIcon = { AppBarDefaults.UpNavigation { navigator.pop() } },
         )

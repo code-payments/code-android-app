@@ -2,17 +2,14 @@ package com.getcode.navigation.scenes
 
 import android.os.Build
 import android.os.Parcelable
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.ModalBottomSheetProperties
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -21,20 +18,25 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SceneStrategyScope
+import com.composeunstyled.Sheet
+import com.composeunstyled.SheetDetent
+import com.composeunstyled.UnstyledBottomSheet
+import com.composeunstyled.rememberBottomSheetState
 import com.getcode.animation.LocalSharedTransitionScope
 import com.getcode.navigation.NavMetadataKeys
 import com.getcode.navigation.core.CodeNavigator
@@ -43,22 +45,29 @@ import com.getcode.navigation.results.NavResultKey
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStore
 import com.getcode.navigation.results.NavigationRetVal
-import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy.Companion.modalBottomSheet
 import com.getcode.navigation.scrim.LocalScrimController
 import com.getcode.navigation.scrim.ScrimOverlay
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.utils.LocalSheetGesturesState
 import kotlinx.coroutines.launch
 
-// Adapted from code courtesy of https://github.com/android/nav3-recipes/pull/67
+data class BottomSheetProperties(
+    val dismissOnBackPress: Boolean = true,
+    val dismissOnClickOutside: Boolean = true,
+)
 
-/** An [OverlayScene] that renders an [entry] within a [ModalBottomSheet]. */
-internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::class) constructor(
+private val Expanded = SheetDetent("expanded") { containerHeight, _ ->
+    containerHeight * 0.925f
+}
+
+/** An [OverlayScene] that renders an [entry] within an [UnstyledBottomSheet]. */
+internal class ModalBottomSheetScene<T : Any> constructor(
     override val key: T,
     override val previousEntries: List<NavEntry<T>>,
     override val overlaidEntries: List<NavEntry<T>>,
     private val entry: NavEntry<T>,
-    private val modalBottomSheetProperties: ModalBottomSheetProperties,
+    private val sheetProperties: BottomSheetProperties,
     private val onBack: () -> Unit,
     override val metadata: Map<String, Any>,
     private val navResultStore: NavResultStore,
@@ -77,22 +86,18 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
 
     override fun hashCode(): Int = key.hashCode()
 
-    @OptIn(ExperimentalMaterial3Api::class)
     override val content: @Composable (() -> Unit) = {
-        // Scope composition by the scene key so that rememberModalBottomSheetState
-        // (which uses rememberSaveable) creates a fresh SheetState when the route changes.
-        //
-        // NOTE: sheetGeneration is intentionally NOT part of this key. Putting it here
-        // causes the key() block to re-key while the old scene is still composing
-        // (during the pendingDismiss finally block), which creates a second
-        // ModalBottomSheet popup for the same SaveableStateProvider key → crash.
-        // Instead, sheetGeneration is used as the LaunchedEffect key for show() so
-        // same-route dismiss-replace re-shows the sheet without recreating the scope.
         val navigator = LocalCodeNavigator.current
         key(key) {
             val isNonDismissable =
                 (metadata[NavMetadataKeys.IsNonDismissable.key] as? Boolean ?: false)
                         || navigator.sheetDismissDisabled
+
+            val effectiveProperties = if (isNonDismissable) {
+                BottomSheetProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+            } else {
+                sheetProperties
+            }
 
             val handleBackResult = {
                 val navResultKey =
@@ -108,32 +113,31 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                 }
             }
 
-            var allowDismiss by rememberSaveable { mutableStateOf(!navigator.sheetDragDisabled) }
-            var confirmHiddenCalled by remember { mutableStateOf(false) }
-            var sheetState: SheetState = rememberModalBottomSheetState(
-                skipPartiallyExpanded = true,
-                confirmValueChange = { value ->
-                    val allowed = value != SheetValue.Hidden || allowDismiss
-                    if (value == SheetValue.Hidden && allowed) {
-                        confirmHiddenCalled = true
-                    }
-                    allowed
-                }
+            var allowDismiss by rememberSaveable { mutableStateOf(!isNonDismissable && !navigator.sheetDragDisabled) }
+
+            val isWrapContent =
+                metadata[NavMetadataKeys.IsWrapContentSheet.key] as? Boolean ?: false
+
+            val sheetState = rememberBottomSheetState(
+                initialDetent = SheetDetent.Hidden,
+                detents = listOf(SheetDetent.Hidden, Expanded),
+                confirmDetentChange = { detent ->
+                    detent != SheetDetent.Hidden || allowDismiss
+                },
             )
 
-            // Show the sheet on initial composition AND after same-route
-            // dismiss-replace (where sheetGeneration increments but the scene
-            // key stays the same, so rememberSaveable restores the Hidden state).
+            // Animate the sheet in on first composition and after
+            // same-route dismiss-replace (sheetGeneration increments).
             LaunchedEffect(navigator.sheetGeneration) {
-                sheetState.show()
+                sheetState.animateTo(Expanded)
             }
 
             val composeScope = rememberCoroutineScope()
 
             val dismiss = { hide: Boolean ->
-                if (hide && sheetState.isVisible) {
+                if (hide && sheetState.currentDetent != SheetDetent.Hidden) {
                     composeScope.launch {
-                        sheetState.hide()
+                        sheetState.animateTo(SheetDetent.Hidden)
                     }.invokeOnCompletion {
                         handleBackResult()
                         onBack()
@@ -145,21 +149,12 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
             }
 
             // Observe external dismiss requests (e.g. deeplink replacing current sheet).
-            // Reading pendingSheetDismiss registers a snapshot read — when navigateTo sets it,
-            // Compose guarantees recomposition (no coroutine dispatch ordering ambiguity).
             val pendingDismiss = navigator.pendingSheetDismiss
             if (pendingDismiss != null) {
                 LaunchedEffect(pendingDismiss) {
                     try {
-                        sheetState.hide()
+                        sheetState.animateTo(SheetDetent.Hidden)
                     } finally {
-                        // Apply all changes atomically so Compose never sees an
-                        // intermediate state where the old sheet is removed but
-                        // sheetGeneration hasn't incremented yet.  Without this,
-                        // the key(key, sheetGeneration) block can recompose and
-                        // create a second ModalBottomSheet popup for the same key
-                        // before the old one is destroyed → SaveableStateProvider
-                        // duplicate-key crash.
                         Snapshot.withMutableSnapshot {
                             handleBackResult()
                             onBack()
@@ -178,75 +173,68 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
                 },
                 LocalScrimController provides scrim,
             ) {
-                // Remove inset padding. Default adds nav bar padding.
-                // Remove grab bar for bleed to top edge of sheet
-                ModalBottomSheet(
-                    sheetState = sheetState,
-                    onDismissRequest = {
-                        if (!isNonDismissable) {
-                            if (navigator.pendingSheetDismiss != null) {
-                                // External dismiss in progress (e.g. sheet replacement via
-                                // openAsSheet). The pendingDismiss handler's finally block
-                                // owns the onBack() call — don't let onDismissRequest also
-                                // call it, which would remove the sheet prematurely while
-                                // the handler is still running.
-                                confirmHiddenCalled = false
-                            } else if (confirmHiddenCalled) {
-                                confirmHiddenCalled = false
-                                dismiss(false)
-                            } else {
-                                // Spurious Hidden snap from layout anchor recalculation
-                                // (trySnapTo bypasses confirmValueChange) — re-show the sheet
-                                composeScope.launch { sheetState.show() }
-                            }
-                        }
-                    },
-                    sheetGesturesEnabled = !navigator.sheetDragDisabled && !scrim.visible,
-                    scrimColor = CodeTheme.colors.scrim,
-                    properties = if (isNonDismissable) {
-                        ModalBottomSheetProperties(
-                            shouldDismissOnBackPress = false,
-                            shouldDismissOnClickOutside = false,
+                BackHandler(enabled = effectiveProperties.dismissOnBackPress) {
+                    dismiss(true)
+                }
+
+                // Force light status bar icons in the sheet overlay
+                val view = LocalView.current
+                SideEffect {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        view.rootView.windowInsetsController?.setSystemBarsAppearance(
+                            0, // clear → light (white) icons
+                            android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
                         )
-                    } else modalBottomSheetProperties,
-                    dragHandle = null,
-                    contentWindowInsets = { WindowInsets() },
-                    containerColor = CodeTheme.colors.surface,
-                ) {
-                    // The sheet's popup window defaults to dark (black) status bar icons.
-                    // Force light icons so they're visible against the dark scrim.
-                    val view = LocalView.current
-                    SideEffect {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            view.rootView.windowInsetsController?.setSystemBarsAppearance(
-                                0, // clear light status bars flag → light (white) icons
-                                android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
-                            )
-                        }
                     }
-                    val isWrapContent =
-                        metadata[NavMetadataKeys.IsWrapContentSheet.key] as? Boolean ?: false
+                }
+
+                Box(Modifier.fillMaxSize()) {
+                    // Scrim tracks sheet position
+                    val scrimProgress = sheetState.progress(SheetDetent.Hidden, Expanded)
+                    val scrimBaseColor = CodeTheme.colors.scrim
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .fillMaxSize()
+                            .background(scrimBaseColor.copy(alpha = scrimBaseColor.alpha * scrimProgress))
                             .then(
-                                if (!isWrapContent) {
-                                    Modifier.fillMaxHeight(CodeTheme.dimens.modalHeightRatio)
-                                } else {
-                                    Modifier
-                                }
-                            )
+                                if (effectiveProperties.dismissOnClickOutside) {
+                                    Modifier.noRippleClickable { dismiss(true) }
+                                } else Modifier
+                            ),
+                    )
+
+                    UnstyledBottomSheet(
+                        state = sheetState,
+                        modifier = Modifier.fillMaxSize(),
+                        enabled = !navigator.sheetDragDisabled && !scrim.visible,
                     ) {
-                        SharedTransitionLayout {
-                            CompositionLocalProvider(
-                                LocalBottomSheetDismissDispatcher provides { dismiss(true) },
-                                LocalSheetNavigator provides navigator,
-                                LocalSharedTransitionScope provides this,
+                        Sheet(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                                .background(CodeTheme.colors.surface),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .then(
+                                        if (!isWrapContent) {
+                                            Modifier.fillMaxHeight()
+                                        } else Modifier
+                                    ),
                             ) {
-                                entry.Content()
-                            }
-                            if (!isWrapContent) {
-                                ScrimOverlay(scrim)
+                                SharedTransitionLayout {
+                                    CompositionLocalProvider(
+                                        LocalBottomSheetDismissDispatcher provides { dismiss(true) },
+                                        LocalSheetNavigator provides navigator,
+                                        LocalSharedTransitionScope provides this,
+                                    ) {
+                                        entry.Content()
+                                    }
+                                    if (!isWrapContent) {
+                                        ScrimOverlay(scrim)
+                                    }
+                                }
                             }
                         }
                     }
@@ -258,7 +246,7 @@ internal class ModalBottomSheetScene<T : Any> @OptIn(ExperimentalMaterial3Api::c
 
 /**
  * A [SceneStrategy] that displays entries that have added [modalBottomSheet] to their [NavEntry.metadata]
- * within a [ModalBottomSheet] instance.
+ * within a bottom sheet instance.
  *
  * This strategy should always be added before any non-overlay scene strategies.
  */
@@ -267,7 +255,6 @@ class ModalBottomSheetSceneStrategy<T : Any>(
     private val lastNavKey: () -> NavKey?,
 ) : SceneStrategy<T> {
 
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun SceneStrategyScope<T>.calculateScene(
         entries: List<NavEntry<T>>,
     ): Scene<T>? {
@@ -275,29 +262,26 @@ class ModalBottomSheetSceneStrategy<T : Any>(
         val isSheet = lastEntry.metadata[NavMetadataKeys.IsSheet.key] as? Boolean ?: false
         if (!isSheet) return null
 
-        // Keep all entries unless solitary; for inner sheets, retain other inner sheet entries
         val overlaidEntries = entries.dropLast(1).let { remainingEntries ->
             if (lastEntry.metadata[NavMetadataKeys.IsSolitarySheet.key] == true) {
-                // Drop all sheet entries for solitary sheets
                 remainingEntries.dropLastWhile {
                     it.metadata.getOrDefault(NavMetadataKeys.IsSheet.key, false) as Boolean
                 }
             } else {
-                // Keep all entries to allow intra-sheet navigation
                 remainingEntries
             }
         }.ifEmpty { return null }
 
-        val bottomSheetProperties =
-            lastEntry.metadata[BOTTOM_SHEET_KEY] as? ModalBottomSheetProperties
-                ?: ModalBottomSheetProperties()
+        val sheetProperties =
+            lastEntry.metadata[BOTTOM_SHEET_KEY] as? BottomSheetProperties
+                ?: BottomSheetProperties()
 
         @Suppress("UNCHECKED_CAST")
         return ModalBottomSheetScene(
             key = lastEntry.contentKey as T,
             previousEntries = entries.dropLast(1).ifEmpty { return null },
             overlaidEntries = overlaidEntries,
-            modalBottomSheetProperties = bottomSheetProperties,
+            sheetProperties = sheetProperties,
             entry = lastEntry,
             onBack = onBack,
             metadata = lastEntry.metadata,
@@ -307,17 +291,9 @@ class ModalBottomSheetSceneStrategy<T : Any>(
     }
 
     companion object {
-        /**
-         * Function to be called on the [NavEntry.metadata] to mark this entry as something that
-         * should be displayed within a [ModalBottomSheet].
-         *
-         * @param modalBottomSheetProperties properties that should be passed to the containing
-         * [ModalBottomSheet].
-         */
-        @OptIn(ExperimentalMaterial3Api::class)
         fun modalBottomSheet(
-            modalBottomSheetProperties: ModalBottomSheetProperties = ModalBottomSheetProperties(),
-        ): Map<String, Any> = mapOf(BOTTOM_SHEET_KEY to modalBottomSheetProperties)
+            properties: BottomSheetProperties = BottomSheetProperties(),
+        ): Map<String, Any> = mapOf(BOTTOM_SHEET_KEY to properties)
 
         internal const val BOTTOM_SHEET_KEY = "bottomsheet"
     }

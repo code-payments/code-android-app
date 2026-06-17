@@ -29,7 +29,6 @@ internal fun WithdrawalDestinationScreen() {
     ) {
         AppBarWithTitle(
             title = stringResource(R.string.title_withdraw),
-            isInModal = true,
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,
             onBackIconClicked = { flowNavigator.back() },

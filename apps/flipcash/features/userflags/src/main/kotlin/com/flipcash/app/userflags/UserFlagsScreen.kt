@@ -27,7 +27,6 @@ fun UserFlagsScreen() {
             title = stringResource(R.string.title_userFlags),
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,
-            isInModal = true,
             onBackIconClicked = navigator::pop,
             endContent = {
                 AppBarDefaults.Reset { viewModel.dispatchEvent(UserFlagsViewModel.Event.Reset) }

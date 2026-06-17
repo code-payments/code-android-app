@@ -50,7 +50,6 @@ fun CashScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            isInModal = true,
             title = {
                 TokenSelectionPill(state.token?.token) {
                     navigator.push(

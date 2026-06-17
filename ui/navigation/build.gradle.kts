@@ -19,6 +19,7 @@ dependencies {
     implementation(project(":ui:theme"))
 
     implementation(libs.compose.material3)
+    implementation(libs.compose.unstyled.bottom.sheet)
     implementation(libs.compose.activities)
     implementation(libs.bundles.kotlinx.serialization)
     implementation(libs.kotlin.reflect)
