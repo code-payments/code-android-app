@@ -72,7 +72,6 @@ import kotlin.math.min
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.Instant
 
 data class TypingConstraints(
     val enabled: Boolean = false,
@@ -200,6 +199,7 @@ internal class ChatViewModel @Inject constructor(
                         isFromSelf = message.isFromSelf,
                         timestamp = message.timestamp,
                         receiptStatus = receiptStatus,
+                        pendingClientIdHex = message.pendingClientIdHex,
                     )
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->

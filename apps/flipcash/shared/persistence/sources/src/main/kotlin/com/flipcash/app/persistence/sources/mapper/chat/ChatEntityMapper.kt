@@ -90,6 +90,7 @@ class ChatEntityMapper @Inject constructor() {
                 MessageStatus.SENT -> DeliveryStatus.SENT
                 MessageStatus.FAILED -> DeliveryStatus.FAILED
             },
+            pendingClientIdHex = entity.pendingClientIdHex,
         )
     }
 

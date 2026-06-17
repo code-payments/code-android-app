@@ -13,6 +13,7 @@ import com.flipcash.services.persistence.PagingDataSource
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.RandomId
+import com.getcode.utils.hexEncodedString
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.firstOrNull
@@ -102,9 +103,24 @@ class ChatMessageDataSource @Inject constructor(
         val hex = mapper.chatIdHex(chatId)
         val entities = messages.map { mapper.toEntity(hex, it) }
         val selfId = userManager.accountId
-        val hasSelfMessage = selfId != null && messages.any { it.senderId == selfId }
+        val selfHex = selfId?.hexEncodedString()
+        val hasSelfMessage = selfHex != null && entities.any { it.senderIdHex == selfHex }
         if (hasSelfMessage) {
-            db?.chatMessageDao()?.upsertAndClearPending(hex, entities)
+            val dao = db?.chatMessageDao() ?: return
+            // Rescue pendingClientIdHex from pending rows before they are deleted,
+            // so the UI item key stays stable across the SENDING→SENT transition.
+            val rescuedIds = dao.getPendingClientIds(hex).toMutableList()
+            val merged = if (rescuedIds.isNotEmpty()) {
+                entities.map { entity ->
+                    if (rescuedIds.isNotEmpty()
+                        && entity.senderIdHex == selfHex
+                        && entity.pendingClientIdHex == null
+                    ) {
+                        entity.copy(pendingClientIdHex = rescuedIds.removeFirst())
+                    } else entity
+                }
+            } else entities
+            dao.upsertAndClearPending(hex, merged)
         } else {
             db?.chatMessageDao()?.upsert(entities)
         }

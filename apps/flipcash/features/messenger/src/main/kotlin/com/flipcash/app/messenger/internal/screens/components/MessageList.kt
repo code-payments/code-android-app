@@ -1,6 +1,5 @@
 package com.flipcash.app.messenger.internal.screens.components
 
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -17,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
+import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import com.flipcash.app.messenger.internal.ChatViewModel
@@ -73,9 +74,11 @@ internal enum class ReceiptStatus { SENDING, SENT, READ, FAILED }
 
 internal sealed interface ChatListItem {
     val itemKey: Any
+    val itemContentType: Any
 
-    data class DateSeparator(val timestamp: kotlin.time.Instant) : ChatListItem {
+    data class DateSeparator(val timestamp: Instant) : ChatListItem {
         override val itemKey: Any = "sep-${timestamp.epochSeconds}"
+        override val itemContentType: Any = "date-separator"
     }
 
     data class ContentBubble(
@@ -85,8 +88,13 @@ internal sealed interface ChatListItem {
         val isFromSelf: Boolean,
         val timestamp: Instant,
         val receiptStatus: ReceiptStatus? = null,
+        val pendingClientIdHex: String? = null,
     ) : ChatListItem {
-        override val itemKey: Any = "$messageId-$contentIndex"
+        override val itemKey: Any = pendingClientIdHex ?: "$messageId-$contentIndex"
+        override val itemContentType: Any = when (content) {
+            is MessageContent.Text -> "text-bubble"
+            is MessageContent.Cash -> "cash-bubble"
+        }
     }
 }
 
@@ -128,6 +136,17 @@ internal fun MessageList(
             }
     }
 
+    // Gate insertion animations: only animate items that arrive after the initial page load
+    val initialLoadComplete by remember {
+        derivedStateOf {
+            messages.loadState.refresh is LoadState.NotLoading && messages.itemCount > 0
+        }
+    }
+    var hasLoaded by remember { mutableStateOf(false) }
+    LaunchedEffect(initialLoadComplete) {
+        if (initialLoadComplete) hasLoaded = true
+    }
+
     LazyColumn(
         modifier = modifier
             .sheetResignmentBehavior(listState)
@@ -151,55 +170,63 @@ internal fun MessageList(
             val item = messages[index] ?: return@items
             val bottomSpacing = bottomSpacingFor(index, item, messages, separatorConfig)
 
-            // Message insertion animation — scale from 0.95 + opacity with edge anchor
-            var appeared by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) { appeared = true }
-            val insertionSpec =
-                spring<Float>(dampingRatio = 0.73f, stiffness = Spring.StiffnessHigh)
+            val isOutgoing = (item as? ChatListItem.ContentBubble)?.isFromSelf ?: false
+
+            // Message insertion animation — scale from 0.95 + opacity with edge anchor.
+            // Tuned to match observed iOS timing (~500ms gradual fade-in).
+            // Only animate genuinely new messages (index 0 after initial load).
+            val shouldAnimate = index == 0 && hasLoaded
+            var appeared by remember { mutableStateOf(!shouldAnimate) }
+            LaunchedEffect(Unit) { if (!appeared) appeared = true }
+            val insertionAlphaSpec = spring<Float>(dampingRatio = 0.86f, stiffness = 80f)
+            val insertionScaleSpec = spring<Float>(dampingRatio = 0.73f, stiffness = 300f)
             val insertionAlpha by animateFloatAsState(
                 targetValue = if (appeared) 1f else 0f,
-                animationSpec = insertionSpec,
+                animationSpec = insertionAlphaSpec,
                 label = "insertAlpha",
             )
             val insertionScale by animateFloatAsState(
                 targetValue = if (appeared) 1f else 0.95f,
-                animationSpec = insertionSpec,
+                animationSpec = insertionScaleSpec,
                 label = "insertScale",
             )
-            val isOutgoing = (item as? ChatListItem.ContentBubble)?.isFromSelf ?: false
+
+            val insertionModifier = Modifier.graphicsLayer {
+                alpha = insertionAlpha
+                scaleX = insertionScale
+                scaleY = insertionScale
+                transformOrigin = if (isOutgoing) {
+                    TransformOrigin(1f, 0.5f) // anchor trailing
+                } else {
+                    TransformOrigin(0f, 0.5f) // anchor leading
+                }
+            }
 
             Box(
                 modifier = Modifier
-                    .padding(bottom = bottomSpacing)
-                    .animateItem(placementSpec = null)
-                    .graphicsLayer {
-                        alpha = insertionAlpha
-                        scaleX = insertionScale
-                        scaleY = insertionScale
-                        transformOrigin = if (isOutgoing) {
-                            TransformOrigin(1f, 0.5f) // anchor trailing
-                        } else {
-                            TransformOrigin(0f, 0.5f) // anchor leading
-                        }
-                    },
+                    .animateItem(fadeInSpec = null, fadeOutSpec = null)
+                    .padding(bottom = bottomSpacing),
             ) {
                 when (item) {
-                    is ChatListItem.DateSeparator -> DateSeparatorRow(item.timestamp)
+                    is ChatListItem.DateSeparator -> Box(insertionModifier) {
+                        DateSeparatorRow(item.timestamp)
+                    }
                     is ChatListItem.ContentBubble -> {
                         val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
                         ) {
-                            ContentBubble(
-                                item = item,
-                                position = bubblePositionOf(index, item, messages, separatorConfig),
-                            )
+                            Box(insertionModifier) {
+                                ContentBubble(
+                                    item = item,
+                                    position = bubblePositionOf(index, item, messages, separatorConfig),
+                                )
+                            }
                             val showReceipt =
                                 shouldShowReceiptLabel(index, item, messages, otherReadPointer)
                             if (showReceipt && effectiveStatus != null) {
                                 ReceiptLabel(
-                                    itemKey = item.itemKey,
                                     status = effectiveStatus,
                                     readPointer = otherReadPointer
                                 )
