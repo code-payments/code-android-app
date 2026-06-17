@@ -11,7 +11,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,13 +27,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
-import kotlinx.coroutines.delay
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
 import com.getcode.theme.CodeTheme
 import com.getcode.util.formatLocalized
+import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -60,7 +62,10 @@ internal fun ReceiptLabel(
 
     AnimatedVisibility(
         visible = visible,
-        modifier = modifier.padding(top = CodeTheme.dimens.grid.x1),
+        modifier = modifier.padding(
+            top = CodeTheme.dimens.grid.x1,
+            end = CodeTheme.dimens.grid.x2,
+        ),
         enter = scaleIn(deliveredSpec, initialScale = 0.95f) + fadeIn(deliveredSpec),
         exit = fadeOut(snap()),
     ) {
@@ -70,25 +75,36 @@ internal fun ReceiptLabel(
             targetState = status,
             transitionSpec = {
                 (scaleIn(readSwapSpec, initialScale = 0.9f) + fadeIn(readSwapSpec)) togetherWith
-                    (scaleOut(readSwapSpec, targetScale = 0.9f) + fadeOut(readSwapSpec))
+                        (scaleOut(readSwapSpec, targetScale = 0.9f) + fadeOut(readSwapSpec))
             },
             label = "receiptStatus",
         ) { animatedStatus ->
             val text = when (animatedStatus) {
                 ReceiptStatus.SENT -> stringResource(R.string.label_chatReceipt_delivered)
-                ReceiptStatus.READ -> {
-                    val readAtFormatted =
-                        readPointer?.timestamp?.let { formatReadTimestamp(it) } ?: ""
-                    stringResource(R.string.label_chatReceipt_read, readAtFormatted)
-                }
-
+                ReceiptStatus.READ -> stringResource(R.string.label_chatReceipt_read)
                 else -> return@AnimatedContent
             }
-            Text(
-                text = text,
-                style = CodeTheme.typography.caption,
-                color = CodeTheme.colors.textSecondary,
-            )
+
+            val readAtFormatted =
+                readPointer?.timestamp?.let { formatReadTimestamp(it) } ?: ""
+
+            // split text into two lines to eventually support a Theme driven
+            // difference in font weights
+            Row(horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
+                Text(
+                    text = text,
+                    style = CodeTheme.typography.caption,
+                    color = CodeTheme.colors.textSecondary,
+                )
+
+                if (animatedStatus == ReceiptStatus.READ && readAtFormatted.isNotEmpty()) {
+                    Text(
+                        text = readAtFormatted,
+                        style = CodeTheme.typography.caption,
+                        color = CodeTheme.colors.textSecondary,
+                    )
+                }
+            }
         }
     }
 }

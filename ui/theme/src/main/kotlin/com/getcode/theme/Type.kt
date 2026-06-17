@@ -112,7 +112,6 @@ val codeTypography = CodeTypography(
         lineHeight = 18.sp,
         fontFamily = Avenir,
         fontWeight = FontWeight.Medium,
-        color = White50,
     ),
     linkMedium = TextStyle(
         fontSize = 16.sp,

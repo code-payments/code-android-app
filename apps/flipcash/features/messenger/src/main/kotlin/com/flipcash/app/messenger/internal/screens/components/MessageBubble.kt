@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.Dp
@@ -44,6 +45,7 @@ import com.getcode.ui.core.addIf
 internal enum class BubblePosition { Solo, First, Middle, Last }
 
 private const val BUBBLE_MAX_WIDTH_FRACTION = 0.78f
+private const val CASH_BUBBLE_MAX_WIDTH_FRACTION = 0.64f
 
 @Composable
 internal fun ContentBubble(
@@ -52,7 +54,10 @@ internal fun ContentBubble(
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val bubbleMaxWidth = maxWidth * BUBBLE_MAX_WIDTH_FRACTION
+        val bubbleMaxWidth = when (item.content) {
+            is MessageContent.Text -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
+            is MessageContent.Cash -> maxWidth * CASH_BUBBLE_MAX_WIDTH_FRACTION
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -119,9 +124,10 @@ private fun CashBubble(
                     modifier = Modifier.align(Alignment.Start),
                     tokenName = tokenName,
                     tokenImage = tokenImageUrl,
-                    imageSize = 20.dp,
+                    imageSize = CodeTheme.dimens.staticGrid.x4,
                     spacing = CodeTheme.dimens.grid.x1,
-                    textStyle = CodeTheme.typography.textSmall,
+                    textStyle = CodeTheme.typography.caption,
+                    textColor = CodeTheme.colors.textSecondary,
                 )
             }
 
@@ -140,9 +146,9 @@ private fun CashBubble(
                     color = CodeTheme.colors.textSecondary,
                 )
                 PriceWithFlag(
-                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
                     amount = amount.formatted(),
                     currencyCode = amount.currencyCode.name,
+                    iconSize = CodeTheme.dimens.staticGrid.x5,
                     flag = exchange.getFlagByCurrency(amount.currencyCode.name),
                     text = { text ->
                         Text(
@@ -187,9 +193,9 @@ private fun Bubble(
 
 @Composable
 private fun bubbleShape(position: BubblePosition, isFromSelf: Boolean): Shape {
-    // CodeTheme.shapes.medium = 12dp, extraSmall = 6dp
+    // CodeTheme.shapes.medium = 12dp, tiny = 4dp
     val l = 12.dp
-    val s = 6.dp
+    val s = 4.dp
 
     // Corner radius morph — animate each corner with spring matching prototype
     val cornerSpec = spring<Dp>(dampingRatio = 0.68f, stiffness = 500f)
