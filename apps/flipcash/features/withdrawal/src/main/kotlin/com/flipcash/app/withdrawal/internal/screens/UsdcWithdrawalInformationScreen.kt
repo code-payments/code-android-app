@@ -40,7 +40,6 @@ internal fun UsdcWithdrawalInformationScreen(showOtherOptions: Boolean) {
         topBar = {
             AppBarWithTitle(
                 title = stringResource(R.string.title_withdraw),
-                isInModal = true,
                 backButton = true,
                 onBackIconClicked = { flowNavigator.back() },
                 titleAlignment = Alignment.CenterHorizontally,

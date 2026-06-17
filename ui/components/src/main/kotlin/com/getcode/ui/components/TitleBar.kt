@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Icon
@@ -29,9 +30,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.navigation.flow.FlowDismissStyle
 import com.getcode.navigation.flow.LocalFlowDismissStyle
+import com.getcode.navigation.scenes.LocalSheetNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
-import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.calculateHorizontalPadding
 import kotlin.math.max
 
@@ -154,7 +155,6 @@ object AppBarDefaults {
 @Composable
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
-    isInModal: Boolean = false,
     title: String = "",
     titleAlignment: Alignment.Horizontal = Alignment.Start,
     contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
@@ -167,7 +167,6 @@ fun AppBarWithTitle(
 
     TopAppBarBase(
         modifier = modifier,
-        isInModal = isInModal,
         contentPadding = contentPadding,
         leftIcon = {
             if (backButton && !showClose) {
@@ -189,7 +188,6 @@ fun AppBarWithTitle(
 @Composable
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
-    isInModal: Boolean = false,
     title: String = "",
     contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
     titleAlignment: Alignment.Horizontal = Alignment.Start,
@@ -198,7 +196,6 @@ fun AppBarWithTitle(
 ) {
     TopAppBarBase(
         modifier = modifier,
-        isInModal = isInModal,
         leftIcon = startContent,
         contentPadding = contentPadding,
         titleRegion = {
@@ -212,7 +209,6 @@ fun AppBarWithTitle(
 @Composable
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
-    isInModal: Boolean = false,
     title: @Composable () -> Unit,
     titleAlignment: Alignment.Horizontal = Alignment.Start,
     contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
@@ -221,7 +217,6 @@ fun AppBarWithTitle(
 ) {
     TopAppBarBase(
         modifier = modifier,
-        isInModal = isInModal,
         leftIcon = leftIcon,
         rightContents = rightContents,
         contentPadding = contentPadding,
@@ -234,7 +229,6 @@ fun AppBarWithTitle(
 @Composable
 private fun TopAppBarBase(
     modifier: Modifier = Modifier,
-    isInModal: Boolean = false,
     contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
     leftIcon: @Composable () -> Unit = { },
     titleRegion: @Composable () -> Unit = { },
@@ -262,9 +256,15 @@ private fun TopAppBarBase(
     }
 
 
+    val isInsideSheet = LocalSheetNavigator.current != null
+
     SubcomposeLayout(
         modifier = modifier
-            .addIf(!isInModal) { Modifier.windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility) }
+            .then(
+                if (!isInsideSheet) {
+                    Modifier.windowInsetsPadding(WindowInsets.statusBars)
+                } else Modifier
+            )
             .height(56.dp),
     ) { constraints ->
         // Measure left icon, if provided

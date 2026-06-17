@@ -37,7 +37,6 @@ fun UserProfileScreen() {
                     text = stringResource(R.string.title_userProfile),
                 )
             },
-            isInModal = true,
             titleAlignment = Alignment.CenterHorizontally,
             leftIcon = { AppBarDefaults.UpNavigation { navigator.pop() } },
         )

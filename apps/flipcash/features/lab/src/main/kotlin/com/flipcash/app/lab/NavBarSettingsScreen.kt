@@ -20,7 +20,6 @@ fun NavBarSettingsScreen() {
         AppBarWithTitle(
             title = "",
             titleAlignment = Alignment.CenterHorizontally,
-            isInModal = true,
             endContent = {
                 AppBarDefaults.Close { dismiss() }
             }

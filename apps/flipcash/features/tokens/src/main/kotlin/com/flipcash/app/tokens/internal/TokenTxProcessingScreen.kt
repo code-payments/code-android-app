@@ -54,7 +54,6 @@ private fun TokenTxProcessingScreen(
         processingState = state.processingProgress,
         topBar = {
             AppBarWithTitle(
-                isInModal = true,
                 title = when (val purpose = state.purpose) {
                     is SwapPurpose.Buy if purpose.fundingSource != FundingSource.Flexible ->
                         stringResource(R.string.title_depositingToken, state.tokenName)

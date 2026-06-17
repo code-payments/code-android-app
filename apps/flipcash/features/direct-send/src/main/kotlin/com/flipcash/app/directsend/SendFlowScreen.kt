@@ -21,13 +21,14 @@ import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
+import com.getcode.ui.utils.rememberKeyboardController
 
 @Composable
 fun SendFlowScreen(resultStateRegistry: NavResultStateRegistry) {
     val sheetDismiss = LocalBottomSheetDismissDispatcher.current
     val viewModel = hiltViewModel<SendFlowViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-
+    val keyboard = rememberKeyboardController()
     FlowHost<SendStep, SendResult>(
         steps = state.steps,
         resumeAt = 0,
@@ -36,7 +37,7 @@ fun SendFlowScreen(resultStateRegistry: NavResultStateRegistry) {
             when (reason) {
                 is FlowExitReason.Completed,
                 FlowExitReason.BackedOutOfRoot,
-                FlowExitReason.Canceled -> sheetDismiss()
+                FlowExitReason.Canceled -> keyboard.hideIfVisible { sheetDismiss() }
             }
         },
         entryProvider = sendEntryProvider(),

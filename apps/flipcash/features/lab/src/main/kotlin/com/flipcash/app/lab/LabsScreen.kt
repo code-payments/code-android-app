@@ -27,7 +27,6 @@ fun LabsScreen(onboarding: Boolean = false) {
             AppBarWithTitle(
                 title = stringResource(R.string.title_betaFlags),
                 titleAlignment = Alignment.CenterHorizontally,
-                isInModal = true,
                 endContent = {
                     AppBarDefaults.Close { navigator.hide() }
                 }
@@ -37,7 +36,6 @@ fun LabsScreen(onboarding: Boolean = false) {
                 title = stringResource(R.string.title_betaFlags),
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,
-                isInModal = true,
                 onBackIconClicked = navigator::pop
             )
         }

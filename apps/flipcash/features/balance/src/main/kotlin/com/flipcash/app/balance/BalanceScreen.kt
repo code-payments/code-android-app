@@ -31,7 +31,6 @@ fun BalanceScreen() {
     ) {
         AppBarWithTitle(
             title = stringResource(R.string.title_wallet),
-            isInModal = true,
             titleAlignment = Alignment.CenterHorizontally,
             endContent = {
                 AppBarDefaults.Close { navigator.hide() }

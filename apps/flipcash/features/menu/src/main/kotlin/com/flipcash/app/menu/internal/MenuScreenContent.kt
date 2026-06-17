@@ -51,7 +51,6 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
         topBar = {
             AppBarWithTitle(
                 modifier = Modifier.fillMaxWidth(),
-                isInModal = true,
                 title = stringResource(R.string.title_settings),
                 titleAlignment = Alignment.CenterHorizontally,
                 endContent = { AppBarDefaults.Close { navigator.hide() } },

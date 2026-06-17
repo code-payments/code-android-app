@@ -63,7 +63,6 @@ internal fun CurrencyCreatorTopBar(
     val keyboard = rememberKeyboardController()
 
     AppBarWithTitle(
-        isInModal = true,
         title = { mainContent?.invoke() ?: defaultMainContent() },
         titleAlignment = Alignment.CenterHorizontally,
         leftIcon = {

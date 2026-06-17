@@ -344,7 +344,7 @@ fun CodeButton(
                     Box(
                         modifier = Modifier
                             .addIf(size.isSpecified) { Modifier.size(size) }
-                            .addIf(size.isUnspecified) { Modifier.measured { size = it } }
+                            .addIf(size.isUnspecified) { Modifier.measured { if (it.width > 0.dp && it.height > 0.dp) size = it } }
                             .width(IntrinsicSize.Max)
                             .height(IntrinsicSize.Min)
                     ) {

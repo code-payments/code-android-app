@@ -1,7 +1,6 @@
 package com.flipcash.shared.amountentry
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -16,6 +15,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeScaffold
 
 @Composable
 fun AmountEntryScreen(
@@ -27,15 +27,49 @@ fun AmountEntryScreen(
     val delegateState by controller.state.collectAsStateWithLifecycle()
     val config by controller.config.collectAsStateWithLifecycle()
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        appBar?.invoke()
+    CodeScaffold(
+        topBar = { appBar?.invoke() },
+        bottomBar = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .fillMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .padding(bottom = CodeTheme.dimens.grid.x2),
+            ) {
+                when (config.action.style) {
+                    ConfirmationStyle.Button -> {
+                        CodeButton(
+                            enabled = config.canConfirm && config.action.loadingState.isIdle,
+                            modifier = Modifier.fillMaxWidth(),
+                            buttonState = ButtonState.Filled,
+                            isLoading = config.action.loadingState.loading,
+                            isSuccess = config.action.loadingState.success,
+                            text = config.action.label,
+                        ) {
+                            onConfirm()
+                        }
+                    }
 
+                    ConfirmationStyle.Slide -> {
+                        SlideToConfirm(
+                            onConfirm = onConfirm,
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = config.canConfirm && config.action.loadingState.isIdle,
+                            isLoading = config.action.loadingState.loading,
+                            isSuccess = config.action.loadingState.success,
+                            label = config.action.label,
+                        )
+                    }
+                }
+            }
+        },
+    ) { padding ->
         AmountWithKeypad(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
+                .fillMaxSize()
+                .padding(padding),
             amountAnimatedModel = delegateState.amountAnimatedModel,
             currencyFlag = delegateState.currency.selected?.resId,
             prefix = delegateState.currency.selected?.symbol.orEmpty(),
@@ -53,41 +87,5 @@ fun AmountEntryScreen(
             onBackspace = { controller.onBackspace() },
             onDecimal = { controller.onDecimal() },
         )
-
-        Box(modifier = Modifier.fillMaxWidth()) {
-            when (config.action.style) {
-                ConfirmationStyle.Button -> {
-                    CodeButton(
-                        enabled = config.canConfirm && config.action.loadingState.isIdle,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(bottom = CodeTheme.dimens.grid.x2)
-                            .navigationBarsPadding(),
-                        buttonState = ButtonState.Filled,
-                        isLoading = config.action.loadingState.loading,
-                        isSuccess = config.action.loadingState.success,
-                        text = config.action.label,
-                    ) {
-                        onConfirm()
-                    }
-                }
-
-                ConfirmationStyle.Slide -> {
-                    SlideToConfirm(
-                        onConfirm = onConfirm,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(bottom = CodeTheme.dimens.grid.x2)
-                            .navigationBarsPadding(),
-                        enabled = config.canConfirm && config.action.loadingState.isIdle,
-                        isLoading = config.action.loadingState.loading,
-                        isSuccess = config.action.loadingState.success,
-                        label = config.action.label,
-                    )
-                }
-            }
-        }
     }
 }

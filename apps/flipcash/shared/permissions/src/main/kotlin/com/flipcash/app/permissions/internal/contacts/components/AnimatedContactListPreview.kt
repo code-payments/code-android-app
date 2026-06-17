@@ -33,6 +33,7 @@ import com.flipcash.app.core.ui.ScreenFrame
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White20
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 private data class ContactRow(val nameFraction: Float, val subtitleFraction: Float)
 
@@ -91,7 +92,7 @@ internal fun AnimatedContactListPreview(animate: Boolean = true) {
 
     LaunchedEffect(Unit) {
         if (animate) {
-            delay(300)
+            delay(300.milliseconds)
             alpha.animateTo(1f, tween(600))
         }
     }

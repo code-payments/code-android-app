@@ -52,7 +52,6 @@ fun TokenInfoScreen(
         val viewModel = hiltViewModel<TokenInfoViewModel>()
         val state by viewModel.stateFlow.collectAsStateWithLifecycle()
         AppBarWithTitle(
-            isInModal = true,
             title = {
                 state.token.dataOrNull?.let { token ->
                     TokenIconWithName(

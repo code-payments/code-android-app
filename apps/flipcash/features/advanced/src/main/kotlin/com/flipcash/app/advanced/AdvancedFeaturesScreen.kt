@@ -34,7 +34,6 @@ fun AdvancedFeaturesScreen() {
         AppBarWithTitle(
             title = stringResource(R.string.title_advancedFeatures),
             titleAlignment = Alignment.CenterHorizontally,
-            isInModal = true,
             backButton = true,
             onBackIconClicked = { navigator.pop() }
         )

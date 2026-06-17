@@ -33,7 +33,6 @@ internal fun SellReceiptScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            isInModal = true,
             title = stringResource(R.string.title_sellToken, state.tokenName),
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,

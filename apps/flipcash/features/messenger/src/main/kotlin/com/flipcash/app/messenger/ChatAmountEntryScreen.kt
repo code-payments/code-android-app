@@ -93,7 +93,6 @@ internal fun ChatAmountEntryContent(
         onChangeCurrency = { navigator.push(AppRoute.Main.RegionSelection) },
         appBar = {
             AppBarWithTitle(
-                isInModal = true,
                 title = {
                     TokenSelectionPill(token) {
                         navigator.push(

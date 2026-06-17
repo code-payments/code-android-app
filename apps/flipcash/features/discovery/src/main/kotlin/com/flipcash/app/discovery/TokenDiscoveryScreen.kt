@@ -36,7 +36,6 @@ fun TokenDiscoveryScreen() {
         if (isSheetRoot) {
             AppBarWithTitle(
                 title = stringResource(R.string.title_discoverCurrencies),
-                isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 endContent = {
                     AppBarDefaults.Close { navigator.hide() }
@@ -45,7 +44,6 @@ fun TokenDiscoveryScreen() {
         } else {
             AppBarWithTitle(
                 title = stringResource(R.string.title_discoverCurrencies),
-                isInModal = true,
                 titleAlignment = Alignment.CenterHorizontally,
                 backButton = true,
                 onBackIconClicked = { navigator.pop() },
