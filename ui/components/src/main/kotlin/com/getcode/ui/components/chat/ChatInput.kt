@@ -36,6 +36,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -43,6 +44,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.extraSmall
 import com.getcode.theme.inputColors
+import com.getcode.ui.components.R
 import com.getcode.ui.components.TextInput
 
 @Composable
@@ -97,22 +99,23 @@ fun ChatInput(
                     transitionSpec = {
                         val spec = spring<Float>(dampingRatio = 0.66f, stiffness = 4000f)
                         (fadeIn(spec) + scaleIn(spec, initialScale = 0.6f)) togetherWith
-                            (fadeOut(spec) + scaleOut(spec, targetScale = 0.6f))
+                                (fadeOut(spec) + scaleOut(spec, targetScale = 0.6f))
                     }
                 ) { show ->
                     if (show) {
                         Icon(
                             modifier = Modifier
                                 .padding(vertical = CodeTheme.dimens.grid.x1)
-                                .padding(end = CodeTheme.dimens.staticGrid.x2)
+                                .padding(end = CodeTheme.dimens.staticGrid.x1)
                                 .background(
                                     Color.White,
                                     shape = CodeTheme.shapes.extraSmall
-                                ).clip(CodeTheme.shapes.extraSmall)
+                                )
+                                .clip(CodeTheme.shapes.extraSmall)
                                 .clickable { onSendMessage() }
                                 .padding(CodeTheme.dimens.staticGrid.x1)
                                 .size(CodeTheme.dimens.staticGrid.x5),
-                            imageVector = Icons.Rounded.ArrowUpward,
+                            painter = painterResource(R.drawable.ic_arrow_up),
                             tint = Color.Black,
                             contentDescription = "Send message"
                         )
