@@ -19,7 +19,7 @@ sealed interface ChatIdentifier : Parcelable {
 
     @Serializable
     @Parcelize
-`    data class ByContact(
+    data class ByContact(
         val contact: DeviceContact,
         val chatId: ChatId? = null
     ) : ChatIdentifier {
