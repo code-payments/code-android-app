@@ -277,7 +277,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.DepositUsdc -> "Deposit USDC"
         FeatureFlag.BackgroundReset -> "Background Reset"
         FeatureFlag.ContactPickerMode -> "Contact Picker Mode"
-        FeatureFlag.PhoneNumberSend -> "Phone Number Send"
+        FeatureFlag.PhoneNumberSend -> "Send Cash"
         FeatureFlag.OnboardingPhoneVerification -> "Onboarding Phone Verification"
         FeatureFlag.Messenger -> "Messenger"
         FeatureFlag.NavBar -> "Navigation Bar"

@@ -6,12 +6,15 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -33,76 +36,82 @@ import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
 import com.getcode.theme.CodeTheme
 import com.getcode.util.formatLocalized
-import kotlinx.coroutines.delay
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
+import kotlinx.coroutines.delay
+
+private const val DELIVERED_DELAY_MS = 700L
 
 @Composable
 internal fun ReceiptLabel(
     status: ReceiptStatus,
     readPointer: MessagePointer?,
     modifier: Modifier = Modifier,
-    itemKey: Any? = null,
 ) {
-    // Delayed pop for "Delivered" — wait 700ms before showing, instant removal.
-    // Start visible when not SENT so the animation is oneshot (doesn't replay on scroll).
-    var visible by remember(itemKey) { mutableStateOf(status != ReceiptStatus.SENT) }
+    // iOS: "Delivered" hides instantly on send, then appears after 700ms with
+    // scale(0.95)+opacity spring (duration: 0.4, bounce: 0.12).
+    // "Read" swaps in immediately (no delay).
+    var deliveredVisible by remember { mutableStateOf(status != ReceiptStatus.SENT) }
     LaunchedEffect(status) {
-        if (status == ReceiptStatus.SENT && !visible) {
-            delay(700.milliseconds)
-            visible = true
+        if (status == ReceiptStatus.SENT) {
+            delay(DELIVERED_DELAY_MS)
+            deliveredVisible = true
+        } else {
+            deliveredVisible = true
         }
     }
 
-    val deliveredSpec = spring<Float>(dampingRatio = 0.88f, stiffness = 600f)
+    // Matches iOS deliveredSpring: .spring(duration: 0.4, bounce: 0.12)
+    val deliveredSpec = spring<Float>(dampingRatio = 0.88f, stiffness = 250f)
 
-    AnimatedVisibility(
-        visible = visible,
+    Box(
         modifier = modifier.padding(
             top = CodeTheme.dimens.grid.x1,
             end = CodeTheme.dimens.grid.x2,
         ),
-        enter = scaleIn(deliveredSpec, initialScale = 0.95f) + fadeIn(deliveredSpec),
-        exit = fadeOut(snap()),
     ) {
-        // Delivered -> Read directional swap with scale
-        val readSwapSpec = spring<Float>(dampingRatio = 0.74f, stiffness = Spring.StiffnessHigh)
-        AnimatedContent(
-            targetState = status,
-            transitionSpec = {
-                (scaleIn(readSwapSpec, initialScale = 0.9f) + fadeIn(readSwapSpec)) togetherWith
-                        (scaleOut(readSwapSpec, targetScale = 0.9f) + fadeOut(readSwapSpec))
-            },
-            label = "receiptStatus",
-        ) { animatedStatus ->
-            val text = when (animatedStatus) {
-                ReceiptStatus.SENT -> stringResource(R.string.label_chatReceipt_delivered)
-                ReceiptStatus.READ -> stringResource(R.string.label_chatReceipt_read)
-                else -> return@AnimatedContent
-            }
+        AnimatedVisibility(
+            visible = deliveredVisible,
+            enter = expandVertically() +
+                    scaleIn(deliveredSpec, initialScale = 0.95f) + fadeIn(deliveredSpec),
+            exit = shrinkVertically(snap()) + fadeOut(snap()),
+        ) {
+            // Delivered -> Read directional swap with scale
+            val readSwapSpec = spring<Float>(dampingRatio = 0.74f, stiffness = Spring.StiffnessHigh)
+            AnimatedContent(
+                targetState = status,
+                transitionSpec = {
+                    (scaleIn(readSwapSpec, initialScale = 0.9f) + fadeIn(readSwapSpec)) togetherWith
+                            (scaleOut(readSwapSpec, targetScale = 0.9f) + fadeOut(readSwapSpec))
+                },
+                label = "receiptStatus",
+            ) { animatedStatus ->
+                val text = when (animatedStatus) {
+                    ReceiptStatus.SENT -> stringResource(R.string.label_chatReceipt_delivered)
+                    ReceiptStatus.READ -> stringResource(R.string.label_chatReceipt_read)
+                    else -> return@AnimatedContent
+                }
 
-            val readAtFormatted =
-                readPointer?.timestamp?.let { formatReadTimestamp(it) } ?: ""
+                val readAtFormatted =
+                    readPointer?.timestamp?.let { formatReadTimestamp(it) } ?: ""
 
-            // split text into two lines to eventually support a Theme driven
-            // difference in font weights
-            Row(horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
-                Text(
-                    text = text,
-                    style = CodeTheme.typography.caption,
-                    color = CodeTheme.colors.textSecondary,
-                )
-
-                if (animatedStatus == ReceiptStatus.READ && readAtFormatted.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
                     Text(
-                        text = readAtFormatted,
+                        text = text,
                         style = CodeTheme.typography.caption,
                         color = CodeTheme.colors.textSecondary,
                     )
+
+                    if (animatedStatus == ReceiptStatus.READ && readAtFormatted.isNotEmpty()) {
+                        Text(
+                            text = readAtFormatted,
+                            style = CodeTheme.typography.caption,
+                            color = CodeTheme.colors.textSecondary,
+                        )
+                    }
                 }
             }
         }

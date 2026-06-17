@@ -248,6 +248,36 @@ internal fun bubblePositionOf(
     }
 }
 
+internal fun bubblePositionOf(
+    index: Int,
+    item: ChatListItem.ContentBubble,
+    messages: List<ChatListItem>,
+    config: SeparatorConfig,
+): BubblePosition {
+    // index+1 = visually above (older), index-1 = visually below (newer)
+    val above = if (index + 1 < messages.count()) {
+        messages[index + 1] as? ChatListItem.ContentBubble
+    } else null
+    val below = if (index > 0) {
+        messages[index - 1] as? ChatListItem.ContentBubble
+    } else null
+
+    val groupedAbove = above != null &&
+            above.isFromSelf == item.isFromSelf &&
+            config.isGrouped(item.timestamp, above.timestamp)
+
+    val groupedBelow = below != null &&
+            below.isFromSelf == item.isFromSelf &&
+            config.isGrouped(item.timestamp, below.timestamp)
+
+    return when {
+        groupedAbove && groupedBelow -> BubblePosition.Middle
+        groupedAbove -> BubblePosition.Last   // bottom of visual group
+        groupedBelow -> BubblePosition.First  // top of visual group
+        else -> BubblePosition.Solo
+    }
+}
+
 // region Previews
 
 @Preview

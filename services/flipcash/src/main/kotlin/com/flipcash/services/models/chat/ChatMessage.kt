@@ -11,4 +11,5 @@ data class ChatMessage(
     val unreadSeq: Long,
     val isFromSelf: Boolean = false,
     val deliveryStatus: DeliveryStatus = DeliveryStatus.SENT,
+    val pendingClientIdHex: String? = null,
 )
