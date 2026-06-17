@@ -22,8 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
-import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.contacts.ui.ContactAvatar
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
 

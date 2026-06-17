@@ -5,8 +5,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.ContactsContract
 import androidx.core.content.ContextCompat
-import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.contacts.device.DeviceContactReader
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.phone.PhoneUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject

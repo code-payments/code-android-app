@@ -2,16 +2,16 @@ package com.flipcash.app.messenger.internal
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import androidx.paging.insertSeparators
 import com.flipcash.app.contacts.ContactCoordinator
-import com.flipcash.app.contacts.device.DeviceContact
-import androidx.compose.runtime.snapshotFlow
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.featureflags.FeatureFlag
@@ -26,7 +26,6 @@ import com.flipcash.services.models.buildDmPaymentMetadata
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
-import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.amountentry.AmountEntryDelegate
@@ -210,56 +209,48 @@ internal class ChatViewModel @Inject constructor(
             }
         }.cachedIn(viewModelScope)
 
-    private val maxAmountFlow = combine(
-        transactionController.limits,
-        tokenCoordinator.observeSelectedTokenMint()
-            .flatMapLatest { mint -> tokenCoordinator.balanceForToken(mint) },
-        exchange.observePreferredRate(),
-    ) { limits, balance, rate ->
-        val balanceInLocal = balance.convertingTo(rate)
-        val sendLimit = limits?.sendLimitFor(rate.currency) ?: SendLimit.Zero
-        Fiat(min(sendLimit.nextTransaction, balanceInLocal.toDouble()), rate.currency)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    private val maxAmountFlow by lazy {
+        combine(
+            transactionController.limits,
+            tokenCoordinator.observeSelectedTokenMint()
+                .flatMapLatest { mint -> tokenCoordinator.balanceForToken(mint) },
+            exchange.observePreferredRate(),
+        ) { limits, balance, rate ->
+            val balanceInLocal = balance.convertingTo(rate)
+            val sendLimit = limits?.sendLimitFor(rate.currency) ?: SendLimit.Zero
+            Fiat(min(sendLimit.nextTransaction, balanceInLocal.toDouble()), rate.currency)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    }
 
-    val amountDelegate = AmountEntryDelegate(
-        exchange = exchange,
-        scope = viewModelScope,
-        style = AmountEntryStyle(
-            actionLabel = resources.getString(R.string.action_swipeToSend),
-            actionStyle = ConfirmationStyle.Slide,
-            infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
-            overMaxHint = { resources.getString(R.string.subtitle_sendHintLimitExceeded, it) },
-        ),
-        loadingState = stateFlow.map { it.sendProgress }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LoadingSuccessState()),
-        maxAmount = maxAmountFlow,
-    )
+    val amountDelegate by lazy {
+        AmountEntryDelegate(
+            exchange = exchange,
+            scope = viewModelScope,
+            style = AmountEntryStyle(
+                actionLabel = resources.getString(R.string.action_swipeToSend),
+                actionStyle = ConfirmationStyle.Slide,
+                infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
+                overMaxHint = { resources.getString(R.string.subtitle_sendHintLimitExceeded, it) },
+            ),
+            loadingState = stateFlow.map { it.sendProgress }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LoadingSuccessState()),
+            maxAmount = maxAmountFlow,
+        )
+    }
 
     init {
-        // Token observation
-        tokenCoordinator.observeSelectedTokenMint()
-            .flatMapLatest { mint ->
-                tokenCoordinator.tokenBalances.map { tokens ->
-                    tokens.find { it.token.address == mint }
-                }
-            }
-            .filterNotNull()
-            .onEach { tokenWithBalance ->
-                dispatchEvent(Event.TokenUpdated(tokenWithBalance.token))
-            }.launchIn(viewModelScope)
+        // Essential — needed immediately for chat display
+        initChatHandlers()
 
-        exchange.observePreferredRate()
-            .onEach { rate ->
-                val currency = exchange.getCurrency(rate.currency.name)
-                if (currency != null) {
-                    amountDelegate.onCurrencyChanged(currency)
-                }
-            }.launchIn(viewModelScope)
+        viewModelScope.launch {
+            // Yield to let the first frame render before setting up remaining collectors
+            initTokenAndExchangeObservers()
+            initTypingHandlers()
+            initSendHandlers()
+        }
+    }
 
-        transactionController.limits
-            .onEach { dispatchEvent(Event.LimitsChanged(it)) }
-            .launchIn(viewModelScope)
-
+    private fun initChatHandlers() {
         // Unified chat open handler — resolves chatId and contact from the identifier
         eventFlow
             .filterIsInstance<Event.OnChatOpened>()
@@ -269,9 +260,7 @@ internal class ChatViewModel @Inject constructor(
                 // 1. Resolve chatId
                 val chatId = when (identifier) {
                     is ChatIdentifier.ByContact -> identifier.chatId
-                        ?: chatCoordinator.getChatId(
-                            DeviceContact.unknownContact(identifier.e164)
-                        ).getOrNull()
+                        ?: chatCoordinator.getChatId(identifier.contact).getOrNull()
                     is ChatIdentifier.ByChatId -> identifier.chatId
                 }
 
@@ -285,13 +274,7 @@ internal class ChatViewModel @Inject constructor(
                 // 2. Resolve contact
                 when (identifier) {
                     is ChatIdentifier.ByContact -> {
-                        val contact = contactCoordinator.lookupContact(identifier.e164).getOrElse {
-                            DeviceContact.unknownContact(
-                                e164 = identifier.e164,
-                                displayName = identifier.displayName.takeIf { it.isNotBlank() },
-                            )
-                        }
-                        dispatchEvent(Event.OnContactFound(contact))
+                        dispatchEvent(Event.OnContactFound(identifier.contact))
                     }
                     is ChatIdentifier.ByChatId -> {
                         val contact = contactCoordinator.lookupContactByDmChatId(
@@ -328,11 +311,39 @@ internal class ChatViewModel @Inject constructor(
                 chatCoordinator.advanceReadPointer(chatId, event.messageId)
             }
             .launchIn(viewModelScope)
+    }
 
+    private fun initTokenAndExchangeObservers() {
+        // Token observation
+        tokenCoordinator.observeSelectedTokenMint()
+            .flatMapLatest { mint ->
+                tokenCoordinator.tokenBalances.map { tokens ->
+                    tokens.find { it.token.address == mint }
+                }
+            }
+            .filterNotNull()
+            .onEach { tokenWithBalance ->
+                dispatchEvent(Event.TokenUpdated(tokenWithBalance.token))
+            }.launchIn(viewModelScope)
+
+        exchange.observePreferredRate()
+            .onEach { rate ->
+                val currency = exchange.getCurrency(rate.currency.name)
+                if (currency != null) {
+                    amountDelegate.onCurrencyChanged(currency)
+                }
+            }.launchIn(viewModelScope)
+
+        transactionController.limits
+            .onEach { dispatchEvent(Event.LimitsChanged(it)) }
+            .launchIn(viewModelScope)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun initTypingHandlers() {
         // Dispatch typing notifications based on text changes.
         // transformLatest auto-cancels the previous block on each new emission,
         // replacing manual Job tracking for idle timeout and heartbeats.
-        @OptIn(ExperimentalCoroutinesApi::class)
         snapshotFlow { stateFlow.value.chatInputState.text.toString() }
             .drop(1)
             .distinctUntilChanged()
@@ -410,7 +421,9 @@ internal class ChatViewModel @Inject constructor(
             }
             .onEach { dispatchEvent(Event.TypingEnabled(it)) }
             .launchIn(viewModelScope)
+    }
 
+    private fun initSendHandlers() {
         // Send text message
         eventFlow.filterIsInstance<Event.SendMessage>()
             .map { stateFlow.value.chatInputState }
@@ -610,7 +623,12 @@ internal class ChatViewModel @Inject constructor(
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnChatOpened -> { state -> state }
+                is Event.OnChatOpened -> { state ->
+                    when (val id = event.identifier) {
+                        is ChatIdentifier.ByContact -> state.copy(chattingWith = id.contact)
+                        is ChatIdentifier.ByChatId -> state
+                    }
+                }
                 is Event.OnContactFound -> { state ->
                     state.copy(
                         chattingWith = event.contact

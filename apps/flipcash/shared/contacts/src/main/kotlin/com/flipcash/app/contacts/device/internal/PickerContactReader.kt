@@ -1,8 +1,8 @@
 package com.flipcash.app.contacts.device.internal
 
-import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.contacts.device.DeviceContactReader
 import com.flipcash.app.contacts.device.PickedContactData
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.phone.PhoneUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
