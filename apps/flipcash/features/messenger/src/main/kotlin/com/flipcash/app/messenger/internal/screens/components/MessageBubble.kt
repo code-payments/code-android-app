@@ -45,6 +45,7 @@ import com.getcode.ui.core.addIf
 internal enum class BubblePosition { Solo, First, Middle, Last }
 
 private const val BUBBLE_MAX_WIDTH_FRACTION = 0.78f
+private const val CASH_BUBBLE_MAX_WIDTH_FRACTION = 0.64f
 
 @Composable
 internal fun ContentBubble(
@@ -53,7 +54,10 @@ internal fun ContentBubble(
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val bubbleMaxWidth = maxWidth * BUBBLE_MAX_WIDTH_FRACTION
+        val bubbleMaxWidth = when (item.content) {
+            is MessageContent.Text -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
+            is MessageContent.Cash -> maxWidth * CASH_BUBBLE_MAX_WIDTH_FRACTION
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -120,9 +124,10 @@ private fun CashBubble(
                     modifier = Modifier.align(Alignment.Start),
                     tokenName = tokenName,
                     tokenImage = tokenImageUrl,
-                    imageSize = 20.dp,
+                    imageSize = CodeTheme.dimens.staticGrid.x4,
                     spacing = CodeTheme.dimens.grid.x1,
-                    textStyle = CodeTheme.typography.textSmall,
+                    textStyle = CodeTheme.typography.caption,
+                    textColor = CodeTheme.colors.textSecondary,
                 )
             }
 
@@ -141,9 +146,9 @@ private fun CashBubble(
                     color = CodeTheme.colors.textSecondary,
                 )
                 PriceWithFlag(
-                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
                     amount = amount.formatted(),
                     currencyCode = amount.currencyCode.name,
+                    iconSize = CodeTheme.dimens.staticGrid.x5,
                     flag = exchange.getFlagByCurrency(amount.currencyCode.name),
                     text = { text ->
                         Text(
