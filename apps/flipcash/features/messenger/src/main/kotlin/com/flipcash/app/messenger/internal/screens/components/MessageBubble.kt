@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.Dp
@@ -187,9 +188,9 @@ private fun Bubble(
 
 @Composable
 private fun bubbleShape(position: BubblePosition, isFromSelf: Boolean): Shape {
-    // CodeTheme.shapes.medium = 12dp, extraSmall = 6dp
+    // CodeTheme.shapes.medium = 12dp, tiny = 4dp
     val l = 12.dp
-    val s = 6.dp
+    val s = 4.dp
 
     // Corner radius morph — animate each corner with spring matching prototype
     val cornerSpec = spring<Dp>(dampingRatio = 0.68f, stiffness = 500f)

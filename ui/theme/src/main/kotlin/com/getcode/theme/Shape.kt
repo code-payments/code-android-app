@@ -19,6 +19,8 @@ internal val shapes = Shapes(
     large = RoundedCornerShape(15.dp)
 )
 
+val Shapes.tiny: CornerBasedShape
+    @Composable get() = RoundedCornerShape(4.dp)
 val Shapes.extraSmall: CornerBasedShape
     @Composable get() = RoundedCornerShape(6.dp)
 
