@@ -772,7 +772,7 @@
     <string name="subtitle_verb_youReceived">You received</string>
 
     <string name="label_chatReceipt_delivered">Delivered</string>
-    <string name="label_chatReceipt_read">Read %1$s</string>
+    <string name="label_chatReceipt_read">Read</string>
     <string name="label_chatReceipt_yesterday">Yesterday</string>
     <string name="label_chatSeparator_today">Today</string>
 
