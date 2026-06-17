@@ -2,6 +2,7 @@ package com.flipcash.app.contacts.device
 
 import com.flipcash.app.contacts.device.internal.FullAccessContactReader
 import com.flipcash.app.contacts.device.internal.PickerContactReader
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import javax.inject.Inject

@@ -1,34 +1,29 @@
 package com.flipcash.app.directsend.internal
-
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.ContactCoordinator.ContactState
-import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.contacts.device.PickedContactData
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.send.SendStep
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.payments.PurchaseMethodController
-import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.permissions.PickedContact
+import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.directsend.R
-import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatSummary
-import com.getcode.opencode.model.financial.Token
-import com.getcode.solana.keys.Mint
-import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Token
+import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
@@ -175,7 +170,10 @@ internal class SendFlowViewModel @Inject constructor(
                 val (contact, isOnFlipcash) = row
                 if (isOnFlipcash) {
                     val identifier = if (contact.e164.isNotEmpty()) {
-                        ChatIdentifier.ByContact(contact.e164, contact.displayName, row.chatId)
+                        ChatIdentifier.ByContact(
+                            contact = contact,
+                            chatId = row.chatId
+                        )
                     } else {
                         ChatIdentifier.ByChatId(row.chatId!!)
                     }

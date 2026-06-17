@@ -50,8 +50,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
-import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.contacts.ui.ContactAvatar
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.app.messenger.internal.screens.components.SeparatorConfig
@@ -252,14 +252,10 @@ private fun UserControlBottomBar(
                                 buttonState = ButtonState.Filled,
                                 text = stringResource(R.string.action_sendCash),
                             ) { dispatch(ChatViewModel.Event.OnSendCash) }
-                            AnimatedVisibility(
-                                visible = state.typingConstraints.enabled,
-                                modifier = Modifier.weight(1f),
-                                enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
-                                exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut(),
-                            ) {
+                            if (state.typingConstraints.enabled) {
                                 CodeButton(
                                     modifier = Modifier
+                                        .weight(1f)
                                         .hazeEffect(hazeState) {
                                             blurEffect {
                                                 style = material

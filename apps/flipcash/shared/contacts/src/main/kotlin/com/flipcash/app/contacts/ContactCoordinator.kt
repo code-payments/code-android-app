@@ -9,18 +9,17 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import com.flipcash.app.contacts.device.DeviceContact
 import com.flipcash.app.contacts.device.PickedContactData
 import com.flipcash.app.contacts.device.ScopeAwareContactReader
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.contacts.sync.ContactChecksum
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.persistence.entities.ContactMappingEntity
 import com.flipcash.app.persistence.sources.ContactDataSource
 import com.flipcash.services.controllers.ContactListController
@@ -60,6 +59,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.collections.map
+import kotlin.collections.mapValues
 
 
 @Singleton

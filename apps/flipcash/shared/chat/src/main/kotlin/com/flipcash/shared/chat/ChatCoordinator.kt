@@ -11,7 +11,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
-import com.flipcash.app.contacts.device.DeviceContact
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.mediator.ChatMessageRemoteMediator
 import com.flipcash.app.persistence.sources.ChatMessageDataSource

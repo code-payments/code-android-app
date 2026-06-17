@@ -1,6 +1,7 @@
 package com.flipcash.app.core.chat
 
 import android.os.Parcelable
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.chat.ChatId
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
@@ -18,7 +19,10 @@ sealed interface ChatIdentifier : Parcelable {
 
     @Serializable
     @Parcelize
-    data class ByContact(val e164: String, val displayName: String, val chatId: ChatId? = null) : ChatIdentifier {
-        override val key: String get() = e164
+`    data class ByContact(
+        val contact: DeviceContact,
+        val chatId: ChatId? = null
+    ) : ChatIdentifier {
+        override val key: String get() = contact.e164
     }
 }

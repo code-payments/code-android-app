@@ -1,6 +1,6 @@
 package com.flipcash.app.directsend.internal
 
-import com.flipcash.app.contacts.device.DeviceContact
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.chat.ChatId
 import kotlin.time.Instant
 

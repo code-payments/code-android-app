@@ -25,6 +25,7 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavEntry
@@ -189,13 +190,18 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                 }
 
                 Box(Modifier.fillMaxSize()) {
-                    // Scrim tracks sheet position
-                    val scrimProgress = sheetState.progress(SheetDetent.Hidden, Expanded)
+                    // Scrim tracks sheet position — drawn in draw phase to
+                    // avoid recomposition on every animation frame.
                     val scrimBaseColor = CodeTheme.colors.scrim
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(scrimBaseColor.copy(alpha = scrimBaseColor.alpha * scrimProgress))
+                            .drawBehind {
+                                val progress = sheetState
+                                    .progress(SheetDetent.Hidden, Expanded)
+                                    .coerceIn(0f, 1f)
+                                drawRect(scrimBaseColor.copy(alpha = scrimBaseColor.alpha * progress))
+                            }
                             .then(
                                 if (effectiveProperties.dismissOnClickOutside) {
                                     Modifier.noRippleClickable { dismiss(true) }
