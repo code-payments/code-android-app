@@ -417,6 +417,7 @@ private fun ContactRowItem(
                     modifier = Modifier
                         .requiredSize(CodeTheme.dimens.staticGrid.x8)
                         .clip(CircleShape),
+                    includeBorder = false,
                 )
             }
 

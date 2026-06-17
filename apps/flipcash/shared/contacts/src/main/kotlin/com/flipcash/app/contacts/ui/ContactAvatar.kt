@@ -36,16 +36,25 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.flipcash.app.contacts.device.DeviceContact
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.addIf
 
 @Composable
 fun ContactAvatar(
     contact: DeviceContact?,
     modifier: Modifier = Modifier,
+    includeBorder: Boolean = true,
 ) {
     if (contact == null || contact.isUnknown) {
         Box(
             modifier = modifier
-                .background(Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)),
+                .background(Brush.linearGradient(CodeTheme.colors.contactAvatar.colors))
+                .addIf(includeBorder) {
+                    Modifier.border(
+                        CodeTheme.dimens.border,
+                        CodeTheme.colors.divider,
+                        CircleShape,
+                    )
+                },
             contentAlignment = Alignment.BottomCenter,
         ) {
             Image(
@@ -66,11 +75,13 @@ fun ContactAvatar(
     } else {
         ContactAvatar(
             modifier = Modifier
-                .border(
-                    CodeTheme.dimens.border,
-                    CodeTheme.colors.divider,
-                    CircleShape,
-                ).then(modifier),
+                .addIf(includeBorder) {
+                    Modifier.border(
+                        CodeTheme.dimens.border,
+                        CodeTheme.colors.divider,
+                        CircleShape,
+                    )
+                }.then(modifier),
             photoUri = contact.photoUri,
             displayName = contact.displayName,
         )
