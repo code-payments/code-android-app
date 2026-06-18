@@ -25,9 +25,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.theme.FlipcashThemeWrapper
@@ -110,17 +112,24 @@ internal fun ReceiptLabel(
                 val readAtFormatted =
                     readPointer?.timestamp?.let { formatReadTimestamp(it) } ?: ""
 
-                Row(horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
                     Text(
+                        modifier = Modifier.alignByBaseline(),
                         text = text,
-                        style = CodeTheme.typography.caption,
+                        style = CodeTheme.typography.caption.copy(
+                            fontWeight = FontWeight.SemiBold,
+                        ),
                         color = CodeTheme.colors.textSecondary,
                     )
 
                     if (animatedStatus == ReceiptStatus.READ && readAtFormatted.isNotEmpty()) {
                         Text(
+                            modifier = Modifier.alignByBaseline(),
                             text = readAtFormatted,
-                            style = CodeTheme.typography.caption,
+                            style = CodeTheme.typography.caption.copy(
+                                fontWeight = FontWeight.Medium,
+                            ),
                             color = CodeTheme.colors.textSecondary,
                         )
                     }

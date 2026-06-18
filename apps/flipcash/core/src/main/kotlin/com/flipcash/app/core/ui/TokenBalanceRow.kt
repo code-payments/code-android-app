@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
@@ -59,7 +60,7 @@ data class TokenBalanceRowStyling(
 
 @Composable
 fun rememberTokenBalanceRowStyling(
-    nameTextStyle: TextStyle = CodeTheme.typography.screenTitle,
+    nameTextStyle: TextStyle = CodeTheme.typography.screenTitle.copy(fontWeight = FontWeight.Bold),
     balanceDisplayStyle: TokenBalanceStyle = TokenBalanceStyle.Large(),
     iconSize: Dp = CodeTheme.dimens.staticGrid.x6,
     flagSize: Dp = CodeTheme.dimens.staticGrid.x3,
