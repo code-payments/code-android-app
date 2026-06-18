@@ -33,6 +33,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.charts.LineTrend
 import com.getcode.ui.core.addIf
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.padding
 
 
 @Composable
@@ -97,7 +98,7 @@ internal fun TokenMetricsRow(
                 )
             }
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = CodeTheme.dimens.grid.x1),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
