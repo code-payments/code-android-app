@@ -104,14 +104,23 @@ class ChatCoordinator @Inject constructor(
 
     val feed: Flow<List<ChatSummary>>
         get() = _state.map { state ->
-            state.feed.map { metadata ->
+            val selfId = userManager.accountId
+            state.feed.mapNotNull { metadata ->
+                // Filter out anonymous chats (DMs where the other member has no name or phone)
+                val otherMember = metadata.members.firstOrNull { it.userId != selfId }
+                if (otherMember != null) {
+                    val profile = otherMember.userProfile
+                    val hasIdentity = !profile.displayName.isNullOrBlank() ||
+                        !profile.verifiedPhoneNumber.isNullOrBlank()
+                    if (!hasIdentity) return@mapNotNull null
+                }
+
                 val readPointer = metadata.members
-                    .firstOrNull { it.userId == userManager.accountId }
+                    .firstOrNull { it.userId == selfId }
                     ?.pointers
                     ?.firstOrNull { it.type == PointerType.READ }
                     ?.value ?: 0L
 
-                val selfId = userManager.accountId
                 val unreadCount = metadata.lastMessage?.let { lastMsg ->
                     if (lastMsg.messageId > readPointer && lastMsg.senderId != selfId) 1 else 0
                 } ?: 0
@@ -187,6 +196,10 @@ class ChatCoordinator @Inject constructor(
             return Result.failure(NoDmChatInitializedException(contact.e164))
         }
         return runCatching { ChatId(raw.decodeBase58()) }
+    }
+
+    fun observeUnreadConversations(): Flow<Int> {
+        return feed.map { summaries -> summaries.count { it.unreadCount > 0 } }
     }
 
     fun observeMessages(chatId: ChatId): Flow<List<ChatMessage>> {

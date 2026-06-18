@@ -33,7 +33,7 @@ object Flipcash2ColorSpec {
     val secondary = Color(115, 129, 121)
     val secondaryText = Color.White.copy(alpha = 0.5f)
     val cashBill = Color(0xFF06450F)
-    val notification = Color(0xFF009EE7)
+    val notification = Color(0xFF058AFF)
     val trackColor = Color.White.copy(alpha = 0.07f)
     val bannerThemed = Color(0xFF252526)
     val success = Color(0xFF1AC86A)
