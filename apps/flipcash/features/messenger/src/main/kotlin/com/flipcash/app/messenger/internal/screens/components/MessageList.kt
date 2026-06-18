@@ -31,72 +31,21 @@ import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import com.flipcash.app.messenger.internal.ChatViewModel
-import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
+import com.flipcash.shared.chat.ui.ChatListItem
+import com.flipcash.shared.chat.ui.ContentBubble
+import com.flipcash.shared.chat.ui.ReceiptStatus
+import com.flipcash.shared.chat.ui.SeparatorConfig
+import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.rememberKeyboardController
 import com.getcode.ui.utils.sheetResignmentBehavior
-import com.getcode.util.toLocalDate
 import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.mapNotNull
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
-
-sealed interface SeparatorConfig {
-    val groupingWindow: Duration
-
-    fun shouldSeparate(before: Instant, after: Instant): Boolean
-    fun isGrouped(a: Instant, b: Instant): Boolean =
-        (a - b).absoluteValue <= groupingWindow
-
-    data object DayOnly : SeparatorConfig {
-        override val groupingWindow: Duration = 60.seconds
-        override fun shouldSeparate(before: Instant, after: Instant): Boolean =
-            before.toLocalDate() != after.toLocalDate()
-    }
-
-    data class TimeGap(
-        val gap: Duration = 3.hours,
-        override val groupingWindow: Duration = 60.seconds,
-    ) : SeparatorConfig {
-        override fun shouldSeparate(before: Instant, after: Instant): Boolean =
-            before.toLocalDate() != after.toLocalDate()
-                    || (before - after).absoluteValue > gap
-    }
-}
-
-internal enum class ReceiptStatus { SENDING, SENT, READ, FAILED }
-
-internal sealed interface ChatListItem {
-    val itemKey: Any
-    val itemContentType: Any
-
-    data class DateSeparator(val timestamp: Instant) : ChatListItem {
-        override val itemKey: Any = "sep-${timestamp.epochSeconds}"
-        override val itemContentType: Any = "date-separator"
-    }
-
-    data class ContentBubble(
-        val messageId: Long,
-        val contentIndex: Int,
-        val content: MessageContent,
-        val isFromSelf: Boolean,
-        val timestamp: Instant,
-        val receiptStatus: ReceiptStatus? = null,
-        val pendingClientIdHex: String? = null,
-    ) : ChatListItem {
-        override val itemKey: Any = pendingClientIdHex ?: "$messageId-$contentIndex"
-        override val itemContentType: Any = when (content) {
-            is MessageContent.Text -> "text-bubble"
-            is MessageContent.Cash -> "cash-bubble"
-        }
-    }
-}
 
 
 @Composable
@@ -213,6 +162,15 @@ internal fun MessageList(
                     }
                     is ChatListItem.ContentBubble -> {
                         val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
+                        // Track whether this item was ever seen as SENDING so we
+                        // can animate the receipt label entrance on the
+                        // SENDING→SENT transition. This remember persists across
+                        // recompositions of the same item (keyed by LazyColumn),
+                        // surviving the status change that gates the label.
+                        var wasSending by remember { mutableStateOf(false) }
+                        if (item.receiptStatus == ReceiptStatus.SENDING) {
+                            wasSending = true
+                        }
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
@@ -220,7 +178,12 @@ internal fun MessageList(
                             Box(insertionModifier) {
                                 ContentBubble(
                                     item = item,
-                                    position = bubblePositionOf(index, item, messages, separatorConfig),
+                                    position = bubblePositionOf(
+                                        index,
+                                        item,
+                                        messages,
+                                        separatorConfig
+                                    ),
                                 )
                             }
                             val showReceipt =
@@ -228,7 +191,8 @@ internal fun MessageList(
                             if (showReceipt && effectiveStatus != null) {
                                 ReceiptLabel(
                                     status = effectiveStatus,
-                                    readPointer = otherReadPointer
+                                    readPointer = otherReadPointer,
+                                    animateEntrance = wasSending,
                                 )
                             }
                         }

@@ -17,6 +17,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":apps:flipcash:shared:persistence:db"))
     implementation(project(":apps:flipcash:shared:contacts"))
+    implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":services:flipcash"))
     implementation(project(":libs:network:connectivity:public"))
     implementation(libs.androidx.lifecycle.process)

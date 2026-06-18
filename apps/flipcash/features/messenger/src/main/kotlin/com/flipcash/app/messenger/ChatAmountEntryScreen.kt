@@ -43,7 +43,6 @@ fun ChatAmountEntryScreen(identifier: ChatIdentifier) {
     ChatAmountEntryContent(
         amountDelegate = viewModel.amountDelegate,
         resolveState = state.resolveState,
-        chattingWithName = state.chattingWith?.displayName,
         token = state.token,
         eventFlow = viewModel.eventFlow,
         onExit = { navigator.pop() },
@@ -55,7 +54,6 @@ fun ChatAmountEntryScreen(identifier: ChatIdentifier) {
 internal fun ChatAmountEntryContent(
     amountDelegate: AmountEntryDelegate,
     resolveState: ChatViewModel.ResolveState,
-    chattingWithName: String?,
     token: Token?,
     eventFlow: Flow<ChatViewModel.Event>,
     onExit: () -> Unit,
@@ -79,15 +77,7 @@ internal fun ChatAmountEntryContent(
         eventFlow
             .filterIsInstance<ChatViewModel.Event.SendComplete>()
             .onEach { event ->
-                BottomBarManager.showInfo(
-                    title = resources.getString(R.string.prompt_title_fundsSentToContact),
-                    message = resources.getString(
-                        R.string.prompt_description_fundsSentToContact,
-                        event.amount.formatted(rule = Fiat.FormattingRule.Truncated),
-                        chattingWithName ?: resources.getString(R.string.subtitle_yourSelectedRecipient),
-                    ),
-                    onDismiss = { onSendComplete?.invoke() ?: navigator.pop() }
-                )
+                onSendComplete?.invoke() ?: navigator.pop()
             }.launchIn(this)
     }
 

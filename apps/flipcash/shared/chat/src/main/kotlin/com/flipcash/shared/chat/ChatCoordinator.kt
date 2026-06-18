@@ -12,6 +12,8 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
 import com.flipcash.app.core.contacts.DeviceContact
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.mediator.ChatMessageRemoteMediator
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
@@ -44,6 +46,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
@@ -75,6 +78,7 @@ class ChatCoordinator @Inject constructor(
     private val networkObserver: NetworkConnectivityListener,
     private val notificationManager: NotificationManagerCompat,
     private val userManager: UserManager,
+    private val featureFlags: FeatureFlagController,
 ) : SessionListener, DefaultLifecycleObserver {
 
     companion object {
@@ -88,6 +92,7 @@ class ChatCoordinator @Inject constructor(
     private val cluster = MutableStateFlow<AccountCluster?>(null)
     private val _state = MutableStateFlow(ChatState())
     private var syncJob: Job? = null
+    private var flagObserverJob: Job? = null
     private var eventStreamCollectJob: Job? = null
     private var eventStreamRetryJob: Job? = null
     private var heartbeatJob: Job? = null
@@ -121,6 +126,12 @@ class ChatCoordinator @Inject constructor(
         trace(tag = TAG, message = "User logged in, hydrating chat", type = TraceType.User)
         this.cluster.value = cluster
         hydrateFromPersistence()
+        if (isChatEnabled()) {
+            syncFeed()
+            openEventStream()
+            startHeartbeat()
+        }
+        observeFeatureFlag()
     }
 
     // endregion
@@ -136,6 +147,7 @@ class ChatCoordinator @Inject constructor(
             .filter { it.connected }
             .debounce(1.seconds)
             .onEach {
+                if (!isChatEnabled()) return@onEach
                 trace(tag = TAG, message = "Network connected, re-syncing chat feed", type = TraceType.Process)
                 syncFeed()
                 openEventStream()
@@ -148,11 +160,13 @@ class ChatCoordinator @Inject constructor(
             setActiveChatId(it)
             backgroundedActiveChat = null
         }
-        if (cluster.value != null) {
-            trace(tag = TAG, message = "Lifecycle resumed, syncing chat feed", type = TraceType.Process)
-            syncFeed()
-            openEventStream()
-            startHeartbeat()
+        scope.launch {
+            if (cluster.value != null && isChatEnabled()) {
+                trace(tag = TAG, message = "Lifecycle resumed, syncing chat feed", type = TraceType.Process)
+                syncFeed()
+                openEventStream()
+                startHeartbeat()
+            }
         }
     }
 
@@ -288,6 +302,20 @@ class ChatCoordinator @Inject constructor(
         return _state.value.activeChat == chatId
     }
 
+    suspend fun getOtherMemberE164(chatId: ChatId): String? {
+        val selfId = userManager.accountId
+        val localMembers = memberDataSource.getMembersForChat(chatId)
+        val otherMember = localMembers.firstOrNull { it.userId != selfId }
+        if (otherMember != null) return otherMember.userProfile.verifiedPhoneNumber
+
+        // Chat not persisted locally yet — fetch from server
+        val metadata = chatController.getChat(chatId).getOrNull() ?: return null
+        memberDataSource.upsert(chatId, metadata.members)
+        return metadata.members
+            .firstOrNull { it.userId != selfId }
+            ?.userProfile?.verifiedPhoneNumber
+    }
+
     fun dismissNotifications(chatId: ChatId) {
         notificationManager.cancel(chatId.hashCode())
     }
@@ -306,10 +334,15 @@ class ChatCoordinator @Inject constructor(
         return messagingController.notifyIsTyping(chatId, typingState)
     }
 
+    fun refreshFeed() {
+        syncFeed()
+    }
+
     suspend fun reset() {
         stopHeartbeat()
         closeEventStream()
         syncJob?.cancel()
+        flagObserverJob?.cancel()
         _state.value = ChatState()
         cluster.value = null
         metadataDataSource.clear()
@@ -321,6 +354,31 @@ class ChatCoordinator @Inject constructor(
     // endregion
 
     // region Internal
+
+    private suspend fun isChatEnabled(): Boolean {
+        val featureFlag = featureFlags.get(FeatureFlag.PhoneNumberSend)
+        val serverFlag = userManager.state.value.flags?.enablePhoneNumberSend == true
+        return featureFlag || serverFlag
+    }
+
+    private fun observeFeatureFlag() {
+        flagObserverJob?.cancel()
+        flagObserverJob = combine(
+            featureFlags.observe(FeatureFlag.PhoneNumberSend),
+            userManager.state.map { it.flags?.enablePhoneNumberSend == true },
+        ) { featureFlag, serverFlag -> featureFlag || serverFlag }
+            .distinctUntilChanged()
+            .filter { it }
+            .onEach {
+                if (cluster.value != null) {
+                    trace(tag = TAG, message = "Chat feature enabled, syncing feed", type = TraceType.Process)
+                    syncFeed()
+                    openEventStream()
+                    startHeartbeat()
+                }
+            }
+            .launchIn(scope)
+    }
 
     private suspend fun hydrateFromPersistence() {
         val entities = metadataDataSource.observeAll().firstOrNull() ?: return

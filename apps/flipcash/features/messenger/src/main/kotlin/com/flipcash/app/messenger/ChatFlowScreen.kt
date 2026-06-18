@@ -89,7 +89,6 @@ private fun FlowAmountEntryScreen() {
     ChatAmountEntryContent(
         amountDelegate = viewModel.amountDelegate,
         resolveState = state.resolveState,
-        chattingWithName = state.chattingWith?.displayName,
         token = state.token,
         eventFlow = viewModel.eventFlow,
         onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnConfirmRequested) },

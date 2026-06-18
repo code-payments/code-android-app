@@ -16,9 +16,9 @@ import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.messenger.internal.screens.components.ChatListItem
-import com.flipcash.app.messenger.internal.screens.components.ReceiptStatus
-import com.flipcash.app.messenger.internal.screens.components.SeparatorConfig
+import com.flipcash.shared.chat.ui.ChatListItem
+import com.flipcash.shared.chat.ui.ReceiptStatus
+import com.flipcash.shared.chat.ui.SeparatorConfig
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R
@@ -546,7 +546,14 @@ internal class ChatViewModel @Inject constructor(
                         onFailure = { Result.failure(it) }
                     ).onSuccess { amount ->
                         dispatchEvent(Event.SendStateUpdated(success = true))
-                        stateFlow.value.chatId?.let { chatCoordinator.loadMessages(it) }
+                        val chatId = stateFlow.value.chatId
+                        if (chatId != null) {
+                            chatCoordinator.loadMessages(chatId)
+                        } else {
+                            // New conversation — server just created the DM chat.
+                            // Sync the feed so it appears in the contact list.
+                            chatCoordinator.refreshFeed()
+                        }
                         delay(400.milliseconds)
                         dispatchEvent(
                             Dispatchers.Main,

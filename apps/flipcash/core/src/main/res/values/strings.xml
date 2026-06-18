@@ -393,7 +393,7 @@
     <string name="label_solflare">Solflare</string>
     <string name="label_backpack">Backpack</string>
 
-    <string name="title_advancedFeatures">Advanced Features</string>
+    <string name="title_advancedFeatures">Advanced</string>
     <string name="title_wallet">Wallet</string>
     <string name="action_wallet">Wallet</string>
 
@@ -775,5 +775,8 @@
     <string name="label_chatReceipt_read">Read</string>
     <string name="label_chatReceipt_yesterday">Yesterday</string>
     <string name="label_chatSeparator_today">Today</string>
+
+    <string name="title_sendFeatureIntro">Send Money To Your Friends</string>
+    <string name="subtitle_sendFeatureIntro">Send money to friends as easily as a text. Connect your phone number to get started</string>
 
 </resources>

@@ -31,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.theme.FlipcashThemeWrapper
+import com.flipcash.shared.chat.ui.ReceiptStatus
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
@@ -42,22 +43,29 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
-private const val DELIVERED_DELAY_MS = 700L
+private val DELIVERED_DELAY = 700.milliseconds
 
 @Composable
 internal fun ReceiptLabel(
     status: ReceiptStatus,
     readPointer: MessagePointer?,
     modifier: Modifier = Modifier,
+    animateEntrance: Boolean = false,
 ) {
     // iOS: "Delivered" hides instantly on send, then appears after 700ms with
     // scale(0.95)+opacity spring (duration: 0.4, bounce: 0.12).
     // "Read" swaps in immediately (no delay).
-    var deliveredVisible by remember { mutableStateOf(status != ReceiptStatus.SENT) }
+    //
+    // animateEntrance: true only when the message is still SENDING at composition
+    // time, so the label animates in on the SENDING→SENT transition. When opening
+    // a chat or scrolling an already-delivered/read message into view, we skip
+    // the enter animation entirely.
+    var deliveredVisible by remember { mutableStateOf(!animateEntrance) }
     LaunchedEffect(status) {
-        if (status == ReceiptStatus.SENT) {
-            delay(DELIVERED_DELAY_MS)
+        if (animateEntrance && status == ReceiptStatus.SENT) {
+            delay(DELIVERED_DELAY)
             deliveredVisible = true
         } else {
             deliveredVisible = true
@@ -75,8 +83,12 @@ internal fun ReceiptLabel(
     ) {
         AnimatedVisibility(
             visible = deliveredVisible,
-            enter = expandVertically() +
-                    scaleIn(deliveredSpec, initialScale = 0.95f) + fadeIn(deliveredSpec),
+            enter = if (animateEntrance) {
+                expandVertically() +
+                        scaleIn(deliveredSpec, initialScale = 0.95f) + fadeIn(deliveredSpec)
+            } else {
+                expandVertically(snap()) + fadeIn(snap())
+            },
             exit = shrinkVertically(snap()) + fadeOut(snap()),
         ) {
             // Delivered -> Read directional swap with scale
