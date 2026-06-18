@@ -76,6 +76,9 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -183,11 +186,20 @@ class RealSessionController @Inject constructor(
             .launchIn(scope)
 
         userManager.state
-            .mapNotNull { it.authState }
+            .map { it.authState }
             .filter { it.isAtLeastRegistered }
             .distinctUntilChanged()
             .filter { userManager.state.value.flags?.requiresIapForRegistration == true }
             .onEach { billingClient.connect() }
+            .launchIn(scope)
+
+        userManager.state
+            .map { it.authState }
+            .filter { it.isAtLeastRegistered }
+            .distinctUntilChanged()
+            .flatMapLatest { chatCoordinator.observeUnreadConversations() }
+            .distinctUntilChanged()
+            .onEach { count -> _state.update { it.copy(notificationUnreadCount = count) } }
             .launchIn(scope)
 
         appSettingsCoordinator

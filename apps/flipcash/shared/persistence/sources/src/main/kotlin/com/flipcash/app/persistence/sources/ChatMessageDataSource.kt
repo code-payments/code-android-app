@@ -116,7 +116,7 @@ class ChatMessageDataSource @Inject constructor(
                         && entity.senderIdHex == selfHex
                         && entity.pendingClientIdHex == null
                     ) {
-                        entity.copy(pendingClientIdHex = rescuedIds.removeFirst())
+                        entity.copy(pendingClientIdHex = rescuedIds.removeAt(0))
                     } else entity
                 }
             } else entities

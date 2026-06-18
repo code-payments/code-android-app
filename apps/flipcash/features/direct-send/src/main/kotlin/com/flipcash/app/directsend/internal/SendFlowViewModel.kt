@@ -110,7 +110,10 @@ internal class SendFlowViewModel @Inject constructor(
 
         combine(
             contactCoordinator.state,
-            stateFlow.map { it.searchState }.distinctUntilChanged().flatMapLatest { snapshotFlow { it.text } },
+            stateFlow
+                .map { it.searchState }
+                .distinctUntilChanged()
+                .flatMapLatest { snapshotFlow { it.text } },
             chatCoordinator.feed,
             tokenCoordinator.tokens,
         ) { contactState, searchText, chatFeed, tokens ->
@@ -261,7 +264,7 @@ internal class SendFlowViewModel @Inject constructor(
                 val formattedPhone = phone?.let { phoneUtils.formatNumber(it) }
                 val displayName = otherMember.userProfile.displayName?.takeIf { it.isNotBlank() }
                     ?: formattedPhone
-                    ?: return@mapNotNull null // filter out anonymous chats
+                    ?: return@mapNotNull null
 
                 val unknown = DeviceContact.unknownContact(
                     e164 = phone.orEmpty(),

@@ -18,23 +18,37 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.Text
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.navigation.NavBarConfig
+import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
@@ -98,7 +112,6 @@ fun NavigationBar(
                     modifier = buttonModifier,
                     label = stringResource(R.string.action_wallet),
                     painter = painterResource(R.drawable.ic_flipcash_balance),
-                    badgeCount = state.notificationUnreadCount,
                     onClick = { onButtonClick(NavBarButton.Wallet) },
                     toast = {
                         AnimatedVisibility(
@@ -131,8 +144,8 @@ fun NavigationBar(
                 NavBarButton.Send -> BottomBarAction(
                     modifier = buttonModifier,
                     label = stringResource(R.string.action_send),
+                    badgeCount = state.notificationUnreadCount,
                     painter = painterResource(R.drawable.ic_send_outlined),
-                    badgeCount = 0,
                     onClick = { onButtonClick(NavBarButton.Send) }
                 )
             }
@@ -154,7 +167,9 @@ private fun BottomBarAction(
     onClick: (() -> Unit)?,
 ) {
     Column(
-        modifier = modifier.width(IntrinsicSize.Max),
+        modifier = modifier
+            .then(if (badgeCount > 0) Modifier.zIndex(1f) else Modifier)
+            .width(IntrinsicSize.Max),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         toast()
@@ -165,7 +180,6 @@ private fun BottomBarAction(
             imageSize = imageSize,
             badge = {
                 Badge(
-                    modifier = Modifier.padding(top = 6.dp, end = 1.dp),
                     count = badgeCount,
                     color = CodeTheme.colors.indicator,
                     enterTransition = scaleIn(
@@ -195,6 +209,9 @@ private fun BottomBarAction(
     badge: @Composable () -> Unit = { },
     onClick: (() -> Unit)?,
 ) {
+    val maskPadding = 4.dp
+    var badgeSize by remember { mutableStateOf(IntSize.Zero) }
+
     Layout(
         modifier = modifier,
         content = {
@@ -209,6 +226,21 @@ private fun BottomBarAction(
             ) {
                 Image(
                     modifier = Modifier
+                        .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                        .drawWithContent {
+                            drawContent()
+                            val bs = badgeSize
+                            if (bs.width > 0 && bs.height > 0) {
+                                val mp = maskPadding.toPx()
+                                val cpTop = contentPadding.calculateTopPadding().toPx()
+                                drawCircle(
+                                    color = Color.Black,
+                                    radius = bs.height / 2f + mp,
+                                    center = Offset(size.width, cpTop),
+                                    blendMode = BlendMode.DstOut,
+                                )
+                            }
+                        }
                         .padding(contentPadding)
                         .size(imageSize),
                     painter = painter,
@@ -222,7 +254,11 @@ private fun BottomBarAction(
                 )
             }
 
-            Box(modifier = Modifier.layoutId("badge")) {
+            Box(
+                modifier = Modifier
+                    .layoutId("badge")
+                    .onSizeChanged { badgeSize = it }
+            ) {
                 badge()
             }
         }
@@ -233,17 +269,48 @@ private fun BottomBarAction(
         val badgePlaceable =
             measurables.find { it.layoutId == "badge" }?.measure(constraints)
 
-        val maxWidth = widthOrZero(actionPlaceable)
-        val maxHeight = heightOrZero(actionPlaceable)
+        val badgeWidth = widthOrZero(badgePlaceable)
+        val badgeHeight = heightOrZero(badgePlaceable)
+
+        val actionWidth = widthOrZero(actionPlaceable)
+        val actionHeight = heightOrZero(actionPlaceable)
+
+        // Position badge so its left circular end is centered on the icon's top-right corner
+        val imageSizePx = imageSize.roundToPx()
+        val iconTop = contentPadding.calculateTopPadding().roundToPx()
+        val iconRight = (actionWidth + imageSizePx) / 2
+        val badgeX = iconRight - badgeHeight / 2
+        val badgeY = iconTop - badgeHeight / 2
+
         layout(
-            width = maxWidth,
-            height = maxHeight,
+            width = actionWidth,
+            height = actionHeight,
         ) {
             actionPlaceable?.placeRelative(0, 0)
-            badgePlaceable?.placeRelative(
-                x = maxWidth - widthOrZero(badgePlaceable),
-                y = -(heightOrZero(badgePlaceable) / 3)
-            )
+            badgePlaceable?.placeRelativeWithLayer(x = badgeX, y = badgeY) {
+                clip = false
+            }
         }
     }
+}
+
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun NavigationBarPreview() {
+    NavigationBar(
+        state = NavigationBarState(notificationUnreadCount = 100),
+    )
+}
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun SendActionPreview() {
+    BottomBarAction(
+        painter = painterResource(R.drawable.ic_send_outlined),
+        label = "Send",
+        badgeCount = 100,
+        onClick = null,
+    )
 }

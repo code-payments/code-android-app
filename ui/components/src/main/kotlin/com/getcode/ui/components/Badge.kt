@@ -25,10 +25,10 @@ import com.getcode.theme.CodeTheme
 fun Badge(
     count: Int,
     modifier: Modifier = Modifier,
-    showMoreUnread: Boolean = count > 99,
+    showMoreUnread: Boolean = count > 100,
     color: Color = CodeTheme.colors.brand,
     contentColor: Color = Color.White,
-    textStyle: TextStyle = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W700),
+    textStyle: TextStyle = CodeTheme.typography.caption.copy(fontWeight = FontWeight.SemiBold),
     enterTransition: EnterTransition = scaleIn(tween(durationMillis = 300)) + fadeIn(),
     exitTransition: ExitTransition = fadeOut() + scaleOut(tween(durationMillis = 300))
 ) {
@@ -49,7 +49,7 @@ fun Badge(
             contentColor = contentColor,
             contentPadding = PaddingValues(
                 horizontal = CodeTheme.dimens.grid.x1,
-                vertical = 0.dp
+                vertical = 3.dp
             )
         ) {
             Text(
