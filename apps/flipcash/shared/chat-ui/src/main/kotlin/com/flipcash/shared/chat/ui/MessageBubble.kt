@@ -193,7 +193,10 @@ private fun CashBubble(
                             text = text,
                             style = CodeTheme.typography.displayMedium,
                             color = CodeTheme.colors.textMain,
-                            autoSize = TextAutoSize.StepBased(minFontSize = 20.sp),
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 20.sp,
+                                maxFontSize = CodeTheme.typography.displayMedium.fontSize
+                            ),
                             maxLines = 1,
                         )
                     }

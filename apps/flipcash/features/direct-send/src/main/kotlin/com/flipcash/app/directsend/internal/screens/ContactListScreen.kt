@@ -202,6 +202,7 @@ private fun ContactList(
             )
             .then(modifier),
         state = listState,
+        contentPadding = PaddingValues(bottom = CodeTheme.dimens.grid.x3),
     ) {
         itemsIndexed(
             items = items,
@@ -437,17 +438,21 @@ private fun ContactRowItem(
                     }
                 }
 
-                Text(
-                    text = if (isOnFlipcash && !lastMessagePreview.isNullOrEmpty()) {
-                        lastMessagePreview
-                    } else {
-                        contact.displayNumber.ifEmpty { contact.e164 }
-                    },
-                    style = CodeTheme.typography.textSmall,
-                    color = CodeTheme.colors.textSecondary,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
+                val showSubtitle = lastMessagePreview != null || !isOnFlipcash
+
+                if (showSubtitle) {
+                    Text(
+                        text = if (isOnFlipcash && !lastMessagePreview.isNullOrEmpty()) {
+                            lastMessagePreview
+                        } else {
+                            contact.displayNumber.ifEmpty { contact.e164 }
+                        },
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textSecondary,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                }
             }
 
             if (isOnFlipcash) {
