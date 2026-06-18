@@ -189,15 +189,13 @@ class NotificationService : FirebaseMessagingService(),
         body: String?,
     ): Int {
         val notificationId = chatId.hashCode()
-        val groupKeyE164 = groupKey?.takeIf { it.startsWith("+") }
-        val lookupContact = if (groupKeyE164 == null) {
-            contactCoordinator.lookupContactByDmChatId(chatId.toString())
-        } else null
-        val e164 = groupKeyE164 ?: lookupContact?.e164
+        val lookupContact = contactCoordinator.lookupContactByDmChatId(chatId.toString())
+        val e164 = lookupContact?.e164
+            ?: chatCoordinator.getOtherMemberE164(chatId)
 
         trace(
             tag = "NotificationService",
-            message = "applyContactChatStyle: chatId=$chatId, groupKey=$groupKey, groupKeyE164=$groupKeyE164, lookupE164=${lookupContact?.e164}, e164=$e164, authenticated=${userManager.accountCluster != null}",
+            message = "applyContactChatStyle: chatId=$chatId, groupKey=$groupKey, lookupE164=${lookupContact?.e164}, e164=$e164, authenticated=${userManager.accountCluster != null}",
             type = TraceType.Log,
         )
 

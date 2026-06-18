@@ -546,7 +546,14 @@ internal class ChatViewModel @Inject constructor(
                         onFailure = { Result.failure(it) }
                     ).onSuccess { amount ->
                         dispatchEvent(Event.SendStateUpdated(success = true))
-                        stateFlow.value.chatId?.let { chatCoordinator.loadMessages(it) }
+                        val chatId = stateFlow.value.chatId
+                        if (chatId != null) {
+                            chatCoordinator.loadMessages(chatId)
+                        } else {
+                            // New conversation — server just created the DM chat.
+                            // Sync the feed so it appears in the contact list.
+                            chatCoordinator.refreshFeed()
+                        }
                         delay(400.milliseconds)
                         dispatchEvent(
                             Dispatchers.Main,
