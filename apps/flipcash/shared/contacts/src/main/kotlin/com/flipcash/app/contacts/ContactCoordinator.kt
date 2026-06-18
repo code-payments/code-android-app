@@ -13,6 +13,7 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.flipcash.app.contacts.device.DeviceContactLookup
 import com.flipcash.app.contacts.device.PickedContactData
 import com.flipcash.app.contacts.device.ScopeAwareContactReader
 import com.flipcash.app.featureflags.FeatureFlag
@@ -70,6 +71,7 @@ class ContactCoordinator @Inject constructor(
     private val contactVerificationController: ContactVerificationController,
     private val resolverController: ResolverController,
     private val networkObserver: NetworkConnectivityListener,
+    private val deviceContactLookup: DeviceContactLookup,
     private val contactReader: ScopeAwareContactReader,
     private val phoneUtils: PhoneUtils,
     private val contactDataSource: ContactDataSource,
@@ -195,6 +197,13 @@ class ContactCoordinator @Inject constructor(
 
     suspend fun resolve(e164: String): Result<PublicKey> {
         return resolverController.resolve(ContactMethod.Phone(e164))
+    }
+
+    fun refreshContact(e164: String): DeviceContact? {
+        val refreshed = deviceContactLookup.lookupContact(e164) ?: return null
+        val enriched = refreshed.copy(displayNumber = phoneUtils.formatNumber(e164))
+        _state.update { it.copy(contacts = it.contacts + (e164 to enriched)) }
+        return enriched
     }
 
     fun lookupContact(e164: String): Result<DeviceContact> {

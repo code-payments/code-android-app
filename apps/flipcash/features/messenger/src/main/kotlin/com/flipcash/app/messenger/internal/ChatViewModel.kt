@@ -123,6 +123,7 @@ internal class ChatViewModel @Inject constructor(
     sealed interface Event {
         data class OnChatOpened(val identifier: ChatIdentifier) : Event
         data class OnContactFound(val contact: DeviceContact): Event
+        data object RefreshContact : Event
         data class ChatFound(val chatId: ChatId) : Event
         data object OnSendCash: Event
         data object OnStartMessageInput: Event
@@ -302,6 +303,18 @@ internal class ChatViewModel @Inject constructor(
                     dispatchEvent(Event.ResolveFailed)
                 }
             ).launchIn(viewModelScope)
+
+        // Re-resolve the contact from the device (e.g. after adding via system contacts)
+        eventFlow
+            .filterIsInstance<Event.RefreshContact>()
+            .mapNotNull { stateFlow.value.chattingWith?.e164 }
+            .onEach { e164 ->
+                val refreshed = contactCoordinator.refreshContact(e164)
+                if (refreshed != null) {
+                    dispatchEvent(Event.OnContactFound(refreshed))
+                }
+            }
+            .launchIn(viewModelScope)
 
         // Advance read pointer when user scrolls to messages
         eventFlow
@@ -641,6 +654,7 @@ internal class ChatViewModel @Inject constructor(
                         chattingWith = event.contact
                     )
                 }
+                is Event.RefreshContact -> { state -> state }
                 is Event.ChatFound -> { state -> state.copy(chatId = event.chatId) }
                 Event.OnSendCash -> { state -> state }
                 Event.OnStartMessageInput -> { state -> state.copy(userState = UserState.Typing) }

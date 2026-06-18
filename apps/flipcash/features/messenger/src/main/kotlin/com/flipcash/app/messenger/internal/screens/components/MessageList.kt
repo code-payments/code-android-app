@@ -57,6 +57,7 @@ internal fun MessageList(
     separatorConfig: SeparatorConfig,
     otherReadPointer: MessagePointer? = null,
     onAdvanceReadPointer: ((Long) -> Unit)? = null,
+    onRefreshContact: () -> Unit = {},
 ) {
     val keyboard = rememberKeyboardController()
     val listState = rememberLazyListState()
@@ -208,7 +209,8 @@ internal fun MessageList(
                     ContactInfoContainer(
                         contact = state.chattingWith,
                         modifier = Modifier
-                            .padding(horizontal = CodeTheme.dimens.grid.x12)
+                            .padding(horizontal = CodeTheme.dimens.grid.x12),
+                        onRefreshContact = onRefreshContact,
                     )
                 }
             }
