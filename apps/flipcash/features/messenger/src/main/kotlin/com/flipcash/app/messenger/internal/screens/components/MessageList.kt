@@ -162,6 +162,15 @@ internal fun MessageList(
                     }
                     is ChatListItem.ContentBubble -> {
                         val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
+                        // Track whether this item was ever seen as SENDING so we
+                        // can animate the receipt label entrance on the
+                        // SENDING→SENT transition. This remember persists across
+                        // recompositions of the same item (keyed by LazyColumn),
+                        // surviving the status change that gates the label.
+                        var wasSending by remember { mutableStateOf(false) }
+                        if (item.receiptStatus == ReceiptStatus.SENDING) {
+                            wasSending = true
+                        }
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
@@ -182,7 +191,8 @@ internal fun MessageList(
                             if (showReceipt && effectiveStatus != null) {
                                 ReceiptLabel(
                                     status = effectiveStatus,
-                                    readPointer = otherReadPointer
+                                    readPointer = otherReadPointer,
+                                    animateEntrance = wasSending,
                                 )
                             }
                         }
