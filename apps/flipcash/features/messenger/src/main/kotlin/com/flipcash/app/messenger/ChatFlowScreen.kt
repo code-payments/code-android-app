@@ -94,5 +94,6 @@ private fun FlowAmountEntryScreen() {
         eventFlow = viewModel.eventFlow,
         onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnConfirmRequested) },
         onSendComplete = { flowNavigator.back() },
+        onExit = { flowNavigator.back() }
     )
 }

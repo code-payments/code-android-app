@@ -15,6 +15,7 @@ import com.flipcash.shared.amountentry.AmountEntryDelegate
 import com.flipcash.shared.amountentry.AmountEntryScreen
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.flow.LocalFlowNavigator
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.ui.components.AppBarDefaults
@@ -34,6 +35,7 @@ fun ChatAmountEntryScreen(identifier: ChatIdentifier) {
     val viewModel = hiltViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
+    val navigator = LocalCodeNavigator.current
     LaunchedEffect(viewModel, identifier) {
         viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(identifier))
     }
@@ -44,6 +46,7 @@ fun ChatAmountEntryScreen(identifier: ChatIdentifier) {
         chattingWithName = state.chattingWith?.displayName,
         token = state.token,
         eventFlow = viewModel.eventFlow,
+        onExit = { navigator.pop() },
         onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnConfirmRequested) },
     )
 }
@@ -55,6 +58,7 @@ internal fun ChatAmountEntryContent(
     chattingWithName: String?,
     token: Token?,
     eventFlow: Flow<ChatViewModel.Event>,
+    onExit: () -> Unit,
     onConfirm: () -> Unit,
     onSendComplete: (() -> Unit)? = null,
 ) {
@@ -66,7 +70,7 @@ internal fun ChatAmountEntryContent(
             BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_contactNotOnFlipcash),
                 message = resources.getString(R.string.error_description_contactNotOnFlipcash),
-                onDismiss = { navigator.pop() }
+                onDismiss = { onExit() },
             )
         }
     }
@@ -101,7 +105,7 @@ internal fun ChatAmountEntryContent(
                     }
                 },
                 leftIcon = {
-                    AppBarDefaults.UpNavigation { navigator.pop() }
+                    AppBarDefaults.UpNavigation { onExit() }
                 },
             )
         },
