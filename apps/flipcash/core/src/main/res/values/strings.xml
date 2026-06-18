@@ -779,4 +779,7 @@
     <string name="title_sendFeatureIntro">Send Money To Your Friends</string>
     <string name="subtitle_sendFeatureIntro">Send money to friends as easily as a text. Connect your phone number to get started</string>
 
+    <string name="label_fromYourContacts">From Your Contacts</string>
+    <string name="label_addContact">Add Contact</string>
+
 </resources>

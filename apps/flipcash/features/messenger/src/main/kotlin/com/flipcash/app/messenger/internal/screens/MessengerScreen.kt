@@ -106,6 +106,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             onAdvanceReadPointer = { messageId ->
                 viewModel.dispatchEvent(ChatViewModel.Event.AdvanceReadPointer(messageId))
             },
+            onRefreshContact = {
+                viewModel.dispatchEvent(ChatViewModel.Event.RefreshContact)
+            },
         )
     }
 }

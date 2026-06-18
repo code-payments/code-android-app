@@ -5,10 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.provider.ContactsContract
 import android.provider.MediaStore
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.util.Linkify
 import java.io.File
 
@@ -56,6 +58,23 @@ object IntentUtils {
 
     fun appStoreListing(packageName: String) = Intent(Intent.ACTION_VIEW).apply {
         setData(Uri.parse("https://play.google.com/store/apps/details?id=$packageName"))
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+
+    fun openContact(contact: DeviceContact): Intent = if (!contact.isUnknown) {
+        openContact(contact.androidContactId)
+    } else {
+        insertOrEditContact(contact.e164)
+    }
+
+    fun openContact(contactId: Long) = Intent(Intent.ACTION_VIEW).apply {
+        data = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, contactId.toString())
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+
+    fun insertOrEditContact(phoneNumber: String) = Intent(Intent.ACTION_INSERT_OR_EDIT).apply {
+        type = ContactsContract.Contacts.CONTENT_ITEM_TYPE
+        putExtra(ContactsContract.Intents.Insert.PHONE, phoneNumber)
         flags = Intent.FLAG_ACTIVITY_NEW_TASK
     }
 

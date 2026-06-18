@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.provider.ContactsContract
 import androidx.core.content.ContextCompat
 import com.flipcash.app.contacts.device.DeviceContactLookup
+import com.flipcash.app.core.contacts.DeviceContact
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,6 +46,40 @@ internal class AndroidDeviceContactLookup @Inject constructor(
             ContactsContract.Contacts.openContactPhotoInputStream(
                 context.contentResolver, ContactsContract.Profile.CONTENT_URI, true
             )?.use { it.readBytes() }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    override fun lookupContact(e164: String): DeviceContact? {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS)
+            != PackageManager.PERMISSION_GRANTED
+        ) return null
+
+        val uri = ContactsContract.PhoneLookup.CONTENT_FILTER_URI
+            .buildUpon()
+            .appendPath(e164)
+            .build()
+
+        return try {
+            context.contentResolver.query(
+                uri,
+                arrayOf(
+                    ContactsContract.PhoneLookup._ID,
+                    ContactsContract.PhoneLookup.DISPLAY_NAME,
+                    ContactsContract.PhoneLookup.PHOTO_URI,
+                ),
+                null, null, null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    DeviceContact(
+                        e164 = e164,
+                        androidContactId = cursor.getLong(0),
+                        displayName = cursor.getString(1) ?: e164,
+                        photoUri = cursor.getString(2),
+                    )
+                } else null
+            }
         } catch (e: Exception) {
             null
         }
