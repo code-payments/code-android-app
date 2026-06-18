@@ -776,4 +776,7 @@
     <string name="label_chatReceipt_yesterday">Yesterday</string>
     <string name="label_chatSeparator_today">Today</string>
 
+    <string name="title_sendFeatureIntro">Send Money To Your Friends</string>
+    <string name="subtitle_sendFeatureIntro">Send money to friends as easily as a text. Connect your phone number to get started</string>
+
 </resources>

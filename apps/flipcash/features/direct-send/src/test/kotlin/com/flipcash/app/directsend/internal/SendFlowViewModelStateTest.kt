@@ -25,9 +25,9 @@ class SendFlowViewModelStateTest {
     @Test
     fun `OnStepChanged to PhoneGate updates currentStep`() {
         val updated = reduce(
-            SendFlowViewModel.Event.OnStepChanged(SendStep.PhoneGate)
+            SendFlowViewModel.Event.OnStepChanged(SendStep.Intro)
         )(SendFlowViewModel.State())
-        assertEquals(SendStep.PhoneGate, updated.currentStep)
+        assertEquals(SendStep.Intro, updated.currentStep)
     }
 
     @Test
@@ -40,7 +40,7 @@ class SendFlowViewModelStateTest {
 
     @Test
     fun `OnStepChanged replaces previous step`() {
-        val state = SendFlowViewModel.State(currentStep = SendStep.PhoneGate)
+        val state = SendFlowViewModel.State(currentStep = SendStep.Intro)
         val updated = reduce(
             SendFlowViewModel.Event.OnStepChanged(SendStep.ContactList)
         )(state)
@@ -50,7 +50,7 @@ class SendFlowViewModelStateTest {
     @Test
     fun `OnStepChanged does not affect other state`() {
         val state = SendFlowViewModel.State(
-            steps = listOf(SendStep.PhoneGate, SendStep.ContactList),
+            steps = listOf(SendStep.Intro, SendStep.ContactList),
             isPickerMode = true,
         )
         val updated = reduce(
