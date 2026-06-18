@@ -13,12 +13,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.analytics.StubFlipcashAnalytics
 import com.flipcash.app.permissions.ContactAccessHandle
 import com.flipcash.app.permissions.asContactAccessHandle
 import com.flipcash.app.permissions.internal.contacts.components.AnimatedContactListPreview
 import com.flipcash.app.permissions.internal.contacts.components.ContactPermissionBottomBar
 import com.flipcash.app.theme.FlipcashPreview
+import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.shared.permissions.R
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.theme.CodeTheme
@@ -76,13 +78,12 @@ fun ContactScreenContent(
 
 @Composable
 @Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
 private fun PreviewContactPermissionScreen() {
-    FlipcashPreview(showBackground = true) {
-        CompositionLocalProvider(LocalAnalytics provides StubFlipcashAnalytics()) {
-            ProvideTestPermissions(granted = emptySet()) {
-                val state = rememberContactPermission()
-                ContactScreenContent(state.asContactAccessHandle(), onSkip = { })
-            }
+    CompositionLocalProvider(LocalAnalytics provides StubFlipcashAnalytics()) {
+        ProvideTestPermissions(granted = emptySet()) {
+            val state = rememberContactPermission()
+            ContactScreenContent(state.asContactAccessHandle(), onSkip = { })
         }
     }
 }
