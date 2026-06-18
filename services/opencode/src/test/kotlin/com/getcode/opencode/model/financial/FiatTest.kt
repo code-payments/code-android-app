@@ -286,6 +286,15 @@ class FiatTest {
         assertTrue(result === usd) // identity
     }
 
+    @Test
+    fun convertingToUsdIfNeededAlreadyUsdWithNonUsdRate() {
+        // Bug regression: USD balance + non-USD rate should NOT convert
+        val usd = Fiat(27.54, CurrencyCode.USD)
+        val arsRate = Rate(36.31, CurrencyCode.ARS)
+        val result = usd.convertingToUsdIfNeeded(arsRate)
+        assertTrue(result === usd) // already USD — must return self unchanged
+    }
+
     // --- Constants ---
 
     @Test
