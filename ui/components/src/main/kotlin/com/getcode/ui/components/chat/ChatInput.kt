@@ -103,8 +103,8 @@ fun ChatInput(
                             scaleX = sendScale
                             scaleY = sendScale
                         }
-                        .padding(vertical = CodeTheme.dimens.grid.x1)
-                        .padding(end = CodeTheme.dimens.staticGrid.x1)
+                        .padding(vertical = CodeTheme.dimens.grid.x2)
+                        .padding(end = CodeTheme.dimens.staticGrid.x2)
                         .background(
                             Color.White,
                             shape = CodeTheme.shapes.extraSmall

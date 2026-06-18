@@ -199,7 +199,7 @@ private fun DecoratorBox(
                 color = borderColor,
                 shape = shape,
             ),
-        verticalAlignment = contentAlignment,
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2)
     ) {
         leadingIcon?.invoke()
@@ -225,7 +225,11 @@ private fun DecoratorBox(
                 )
             }
         }
-        trailingIcon?.invoke()
+        if (trailingIcon != null) {
+            Box(modifier = Modifier.align(contentAlignment)) {
+                trailingIcon()
+            }
+        }
     }
 }
 
@@ -238,7 +242,9 @@ private fun TextInputEmptyPreview() {
         TextInput(
             state = remember { TextFieldState() },
             placeholder = "Enter text",
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
         )
     }
 }
@@ -250,7 +256,9 @@ private fun TextInputWithTextPreview() {
         TextInput(
             state = remember { TextFieldState("Hello, world!") },
             placeholder = "Enter text",
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
         )
     }
 }
@@ -263,7 +271,9 @@ private fun TextInputSingleLinePreview() {
             state = remember { TextFieldState() },
             placeholder = "Single line",
             maxLines = 1,
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
         )
     }
 }
@@ -276,7 +286,9 @@ private fun TextInputMultiLinePreview() {
             state = remember { TextFieldState("Line one\nLine two\nLine three") },
             placeholder = "Multi line",
             maxLines = 4,
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
         )
     }
 }
@@ -290,7 +302,9 @@ private fun TextInputUnboundedEmptyPreview() {
             placeholder = "Unbounded lines",
             maxLines = Int.MAX_VALUE,
             minHeight = 0.dp,
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
         )
     }
 }
@@ -304,7 +318,9 @@ private fun TextInputUnboundedWithTextPreview() {
             placeholder = "Unbounded lines",
             maxLines = Int.MAX_VALUE,
             minHeight = 0.dp,
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
         )
     }
 }
@@ -317,7 +333,9 @@ private fun TextInputDisabledPreview() {
             state = remember { TextFieldState("Disabled input") },
             placeholder = "Disabled",
             enabled = false,
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
         )
     }
 }
@@ -330,7 +348,9 @@ private fun TextInputErrorPreview() {
             state = remember { TextFieldState("Invalid value") },
             placeholder = "Error state",
             isError = true,
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
         )
     }
 }
@@ -346,7 +366,9 @@ private fun TextInputUnboundedLoremIpsumPreview() {
             placeholder = "Unbounded lines",
             maxLines = Int.MAX_VALUE,
             minHeight = 0.dp,
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
         )
     }
 }
@@ -358,7 +380,9 @@ private fun TextInputWithIconsPreview() {
         TextInput(
             state = remember { TextFieldState() },
             placeholder = "Search...",
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
