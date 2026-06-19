@@ -161,7 +161,7 @@ internal class ChatViewModel @Inject constructor(
         data class ChatDeactivated(val isReadOnly: Boolean) : Event
     }
 
-    private val separatorConfig = SeparatorConfig.TimeGap()
+    private val separatorConfig = SeparatorConfig.Continuous()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val messageStream = stateFlow.mapNotNull { it.chatId }
