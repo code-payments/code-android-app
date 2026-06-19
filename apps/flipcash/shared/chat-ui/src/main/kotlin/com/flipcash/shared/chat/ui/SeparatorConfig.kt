@@ -27,4 +27,14 @@ sealed interface SeparatorConfig {
             before.toLocalDate() != after.toLocalDate()
                     || (before - after).absoluteValue > gap
     }
+
+    data class Continuous(
+        val gap: Duration = 3.hours,
+    ) : SeparatorConfig {
+        override val groupingWindow: Duration = Duration.INFINITE
+        override fun shouldSeparate(before: Instant, after: Instant): Boolean =
+            before.toLocalDate() != after.toLocalDate()
+                    || (before - after).absoluteValue > gap
+        override fun isGrouped(a: Instant, b: Instant): Boolean = true
+    }
 }
