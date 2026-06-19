@@ -24,6 +24,12 @@ class ChatMemberDataSource @Inject constructor(
             entities.map { mapper.toMember(it) }
         } ?: emptyFlow()
 
+    fun observeAll(): Flow<Map<String, List<ChatMember>>> =
+        db?.chatMemberDao()?.observeAll()?.map { entities ->
+            entities.groupBy { it.chatIdHex }
+                .mapValues { (_, members) -> members.map { mapper.toMember(it) } }
+        } ?: emptyFlow()
+
     suspend fun getMembersForChat(chatId: ChatId): List<ChatMember> =
         getMembersForChat(mapper.chatIdHex(chatId))
 

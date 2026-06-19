@@ -16,6 +16,9 @@ interface ChatMemberDao {
     @Query("SELECT * FROM chat_members WHERE chat_id_hex = :chatIdHex")
     fun observeMembersForChat(chatIdHex: String): Flow<List<ChatMemberEntity>>
 
+    @Query("SELECT * FROM chat_members")
+    fun observeAll(): Flow<List<ChatMemberEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: ChatMemberEntity)
 
