@@ -87,7 +87,7 @@ sodium-bindings = "0.9.5"
 desugaring = "2.1.5"
 event-bus = "0.1.0"
 
-bugsnag = "6.26.0"
+bugsnag = "6.26.1"
 bugsnag-agp = "8.2.0"
 bugsnag-gradle-plugin = "1.1.0"
 rinku = "1.6.0"
