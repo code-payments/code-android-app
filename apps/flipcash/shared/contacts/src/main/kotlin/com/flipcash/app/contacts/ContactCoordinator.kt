@@ -305,7 +305,7 @@ class ContactCoordinator @Inject constructor(
         if (!contactReader.isPermissionRevoked()) return
 
         clearServerContactSet()
-        _state.value = ContactState()
+        _state.update { ContactState(hasEverSynced = it.hasEverSynced) }
         contactReader.reset()
         contactDataSource.clear()
         trace(tag = TAG, message = "Cleared server contact set after permission revoke", type = TraceType.Process)
@@ -333,6 +333,17 @@ class ContactCoordinator @Inject constructor(
     // region Internal
 
     private suspend fun hydrateFromPersistence() {
+        // If permission was revoked since last session, purge persisted contacts
+        // rather than hydrating stale data into memory.
+        if (contactReader.isPermissionRevoked()) {
+            clearServerContactSet()
+            _state.update { ContactState(hasEverSynced = it.hasEverSynced) }
+            contactReader.reset()
+            contactDataSource.clear()
+            trace(tag = TAG, message = "Permission revoked — cleared contacts on hydrate", type = TraceType.Process)
+            return
+        }
+
         val syncState = contactDataSource.getSyncState()
         val mappings = contactDataSource.get()
 
@@ -432,7 +443,7 @@ class ContactCoordinator @Inject constructor(
             val enrichedContacts = deviceContacts.mapValues { (_, contact) ->
                 contact.copy(displayNumber = phoneUtils.formatNumber(contact.e164))
             }
-            _state.update { it.copy(contacts = it.contacts + enrichedContacts) }
+            _state.update { it.copy(contacts = (it.contacts - removes) + enrichedContacts) }
 
             // 5. CheckSync with server
             val syncState = contactDataSource.getSyncState()

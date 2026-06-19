@@ -23,6 +23,7 @@ import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.EventStreamingController
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.ChatUpdate
@@ -219,6 +220,10 @@ class ChatCoordinator @Inject constructor(
 
     fun observeTypingIndicators(chatId: ChatId): Flow<Set<ActiveTypist>> {
         return _state.map { it.typingIndicators[chatId] ?: emptySet() }
+    }
+
+    fun observeMembers(chatId: ChatId): Flow<List<ChatMember>> {
+        return memberDataSource.observeMembers(chatId)
     }
 
     fun observeOtherReadPointer(chatId: ChatId): Flow<MessagePointer?> {

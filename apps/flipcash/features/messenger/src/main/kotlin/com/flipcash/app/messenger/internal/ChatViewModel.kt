@@ -118,6 +118,7 @@ internal class ChatViewModel @Inject constructor(
         val typingConstraints: TypingConstraints = TypingConstraints(),
         val token: Token? = null,
         val limits: Limits? = null,
+        val isAnonymous: Boolean = false,
     )
 
     sealed interface Event {
@@ -157,6 +158,7 @@ internal class ChatViewModel @Inject constructor(
         data class TokenUpdated(val token: Token) : Event
         data class LimitsChanged(val limits: Limits?) : Event
         data class AdvanceReadPointer(val messageId: Long) : Event
+        data class ChatDeactivated(val isReadOnly: Boolean) : Event
     }
 
     private val separatorConfig = SeparatorConfig.TimeGap()
@@ -314,6 +316,25 @@ internal class ChatViewModel @Inject constructor(
                     dispatchEvent(Event.OnContactFound(refreshed))
                 }
             }
+            .launchIn(viewModelScope)
+
+        // Observe member identity — if the other member loses identity (e.g. unlinked
+        // their phone), mark the chat as read-only.
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatCoordinator.observeMembers(it) }
+            .map { members ->
+                val selfId = userManager.accountId
+                val other = members.firstOrNull { it.userId != selfId }
+                if (other != null) {
+                    val profile = other.userProfile
+                    val hasIdentity = !profile.displayName.isNullOrBlank() ||
+                        !profile.verifiedPhoneNumber.isNullOrBlank()
+                    !hasIdentity
+                } else false
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.ChatDeactivated(isReadOnly = it)) }
             .launchIn(viewModelScope)
 
         // Advance read pointer when user scrolls to messages
@@ -692,6 +713,7 @@ internal class ChatViewModel @Inject constructor(
                 is Event.TokenUpdated -> { state -> state.copy(token = event.token) }
                 is Event.LimitsChanged -> { state -> state.copy(limits = event.limits) }
                 is Event.AdvanceReadPointer -> { state -> state }
+                is Event.ChatDeactivated -> { state -> state.copy(isAnonymous = event.isReadOnly) }
             }
         }
     }
