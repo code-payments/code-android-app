@@ -15,6 +15,7 @@ import com.getcode.utils.trace
 import com.google.protobuf.Timestamp
 import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.datetime.Instant
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -29,15 +30,14 @@ internal class EventStreamingService @Inject constructor(
         onEvent: (ChatUpdate) -> Unit,
         onError: (Throwable) -> Unit = {},
     ): EventStreamReference {
-        trace("EventStream Opening stream.")
+        trace(tag = "event-stream", message = "Opening stream.")
         val streamReference = EventStreamReference(scope, "event-streaming")
 
         streamReference.retain()
         streamReference.timeoutHandler = {
-            trace("EventStream timed out")
-            streamReference.coroutineScope.launch {
-                openStream(scope, owner, streamReference, onEvent, onError)
-            }
+            trace(tag = "event-stream", message = "Timed out, signaling error for reconnect")
+            streamReference.destroy()
+            onError(IllegalStateException("Event stream timed out"))
         }
 
         streamReference.coroutineScope.launch {
@@ -82,7 +82,8 @@ internal class EventStreamingService @Inject constructor(
 
                         streamRef.receivedPing(updatedTimeout = response.ping.pingDelay.seconds * 1_000L)
                         sendRequest(pong)
-                        trace(message = "EventStream Pong. Server timestamp: ${response.ping.timestamp}")
+                        val serverTime = Instant.fromEpochSeconds(response.ping.timestamp.seconds, response.ping.timestamp.nanos)
+                        trace(tag = "event-stream", message = "Pong. Server timestamp: $serverTime")
                     }
 
                     RpcEventStreamingService.StreamEventsResponse.TypeCase.EVENTS -> {
@@ -93,7 +94,8 @@ internal class EventStreamingService @Inject constructor(
                                 }
                                 else -> {
                                     trace(
-                                        message = "EventStream received unhandled event type: ${event.typeCase}",
+                                        tag = "event-stream",
+                                        message = "Received unhandled event type: ${event.typeCase}",
                                         type = TraceType.Log,
                                     )
                                 }
@@ -111,14 +113,16 @@ internal class EventStreamingService @Inject constructor(
                         }
                         onError(error)
                         trace(
-                            message = "EventStream error: ${response.error.code}",
+                            tag = "event-stream",
+                            message = "Error: ${response.error.code}",
                             type = TraceType.Error,
                         )
                     }
 
                     else -> {
                         trace(
-                            message = "EventStream received empty message.",
+                            tag = "event-stream",
+                            message = "Received empty message.",
                             type = TraceType.Error,
                         )
                     }

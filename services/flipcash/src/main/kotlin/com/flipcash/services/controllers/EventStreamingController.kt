@@ -22,18 +22,20 @@ class EventStreamingController @Inject constructor(
 
     private var streamRef: EventStreamReference? = null
 
-    val isConnected: Boolean get() = streamRef?.isActive == true
+    val isConnected: Boolean get() = streamRef != null
 
-    fun open(
-        scope: CoroutineScope,
-        onStreamError: (() -> Unit)? = null,
-    ): Boolean {
+    val isStreamActive: Boolean get() = streamRef?.isActive == true
+
+    fun open(scope: CoroutineScope): Boolean {
+        if (streamRef != null) {
+            trace("EventStreamingController: Stream already open, skipping")
+            return true
+        }
+
         val owner = userManager.accountCluster?.authority?.keyPair ?: run {
             trace("EventStreamingController: No account cluster, cannot open stream")
             return false
         }
-
-        close()
 
         streamRef = repository.openEventStream(
             scope = scope,
@@ -44,7 +46,10 @@ class EventStreamingController @Inject constructor(
             },
             onError = { error ->
                 trace("EventStreamingController: Stream error: ${error.message}")
-                onStreamError?.invoke()
+                // Clear the ref so the next heartbeat, lifecycle, or network
+                // event creates a fresh stream. The framework guarantees this
+                // fires only once per stream, so no risk of clearing a newer ref.
+                streamRef = null
             },
         )
         return true

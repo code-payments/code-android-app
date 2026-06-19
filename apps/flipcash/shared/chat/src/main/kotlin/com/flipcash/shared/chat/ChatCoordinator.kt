@@ -65,7 +65,6 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @Singleton
@@ -86,8 +85,6 @@ class ChatCoordinator @Inject constructor(
     companion object {
         private const val TAG = "ChatCoordinator"
         private val HEARTBEAT_INTERVAL = 30.seconds
-        private const val RETRY_BASE_MS = 2_000L
-        private const val RETRY_MAX_MS = 60_000L
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -96,10 +93,8 @@ class ChatCoordinator @Inject constructor(
     private var syncJob: Job? = null
     private var flagObserverJob: Job? = null
     private var eventStreamCollectJob: Job? = null
-    private var eventStreamRetryJob: Job? = null
     private var feedObserverJob: Job? = null
     private var heartbeatJob: Job? = null
-    private var retryAttempt = 0
     private var backgroundedActiveChat: ChatId? = null
 
     val state: StateFlow<ChatState>
@@ -138,11 +133,9 @@ class ChatCoordinator @Inject constructor(
         trace(tag = TAG, message = "User logged in, hydrating chat", type = TraceType.User)
         this.cluster.value = cluster
         observeFeedFromDb()
-        if (isChatEnabled()) {
-            syncFeed()
-            openEventStream()
-            startHeartbeat()
-        }
+        syncFeed()
+        openEventStream()
+        startHeartbeat()
         observeFeatureFlag()
     }
 
@@ -437,30 +430,14 @@ class ChatCoordinator @Inject constructor(
             }
     }
 
-    private fun openEventStream(force: Boolean = false) {
-        if (!force && eventStreamingController.isConnected) {
+    private fun openEventStream() {
+        if (eventStreamingController.isConnected) {
             trace(tag = TAG, message = "Event stream already connected, skipping open", type = TraceType.Process)
             ensureCollector()
             return
         }
 
-        eventStreamRetryJob?.cancel()
-        val opened = eventStreamingController.open(scope) {
-            // Stream died — schedule a re-open with exponential backoff
-            val attempt = retryAttempt++
-            val delayMs = (RETRY_BASE_MS * (1L shl attempt.coerceAtMost(5)))
-                .coerceAtMost(RETRY_MAX_MS)
-            trace(tag = TAG, message = "Event stream error, retry #${attempt + 1} in ${delayMs}ms", type = TraceType.Process)
-            eventStreamRetryJob = scope.launch {
-                delay(delayMs.milliseconds)
-                openEventStream(force = true)
-            }
-        }
-        if (opened) {
-            retryAttempt = 0
-        } else {
-            trace(tag = TAG, message = "Event stream failed to open", type = TraceType.Error)
-        }
+        eventStreamingController.open(scope)
         ensureCollector()
     }
 
@@ -473,8 +450,6 @@ class ChatCoordinator @Inject constructor(
     }
 
     private fun closeEventStream() {
-        eventStreamRetryJob?.cancel()
-        eventStreamRetryJob = null
         eventStreamCollectJob?.cancel()
         eventStreamCollectJob = null
         eventStreamingController.close()
@@ -485,9 +460,11 @@ class ChatCoordinator @Inject constructor(
         heartbeatJob = scope.launch {
             while (true) {
                 delay(HEARTBEAT_INTERVAL)
-                if (!eventStreamingController.isConnected) {
+                if (!eventStreamingController.isStreamActive) {
                     trace(tag = TAG, message = "Heartbeat: event stream dead, syncing feed and reconnecting", type = TraceType.Process)
                     syncFeed()
+                    // Close the dead ref so open() creates a fresh one
+                    eventStreamingController.close()
                     openEventStream()
                 }
             }
