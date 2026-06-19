@@ -50,10 +50,11 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
-private val bottomFadeBrush = Brush.verticalGradient(
-    0f to Color.Black,
-    0.8f to Color.Black,
-    0.95f to Color.Transparent,
+internal val DefaultBrushStops = listOf(0f, 0.8f, 0.95f)
+internal fun bottomFadeBrush(stops: List<Float> = DefaultBrushStops) = Brush.verticalGradient(
+    stops[0] to Color.Black,
+    stops[1] to Color.Black,
+    stops[2] to Color.Transparent,
 )
 
 private val messages = listOf(
@@ -89,7 +90,7 @@ private val messages = listOf(
 )
 
 @Composable
-fun AnimatedConversationPreview(animate: Boolean = true) {
+fun AnimatedConversationPreview(animate: Boolean = true, gradientColorStops: List<Float> = DefaultBrushStops) {
     val alpha = remember { Animatable(if (animate) 0f else 1f) }
 
     LaunchedEffect(Unit) {
@@ -114,7 +115,7 @@ fun AnimatedConversationPreview(animate: Boolean = true) {
                 }
                 .drawWithContent {
                     drawContent()
-                    drawRect(brush = bottomFadeBrush, blendMode = BlendMode.DstIn)
+                    drawRect(brush = bottomFadeBrush(gradientColorStops), blendMode = BlendMode.DstIn)
                 },
         ) {
             ScreenFrame(
@@ -158,7 +159,7 @@ fun AnimatedConversationPreview(animate: Boolean = true) {
     }
 }
 
-private fun Modifier.bubbleShadow(
+internal fun Modifier.bubbleShadow(
     shape: Shape,
     color: Color = Color.Black.copy(alpha = 0.2f),
     blurRadius: Dp = 12.dp,

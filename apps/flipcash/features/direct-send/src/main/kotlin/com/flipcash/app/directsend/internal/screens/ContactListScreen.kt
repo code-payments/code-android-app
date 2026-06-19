@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +26,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -36,8 +38,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
@@ -45,6 +50,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.contacts.ui.ContactAvatar
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.send.SendResult
 import com.flipcash.app.core.send.SendStep
@@ -54,17 +60,22 @@ import com.flipcash.app.permissions.ContactAccessResult
 import com.flipcash.app.permissions.rememberContactAccessHandle
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.features.directsend.R
+import com.flipcash.shared.chat.ui.AnimatedConversationPaymentsPreview
 import com.getcode.navigation.flow.LocalOuterCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
+import com.getcode.theme.extraLarge
 import com.getcode.theme.extraSmall
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.SearchInput
+import com.getcode.ui.core.debugBounds
 import com.getcode.ui.core.verticalScrollStateGradient
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.util.permissions.PermissionResult
 import kotlinx.coroutines.flow.filterIsInstance
 
 
@@ -143,29 +154,41 @@ internal fun ContactListScreen() {
             },
             label = "contact-list",
         ) { isEmpty ->
-            if (isEmpty) {
-                EmptyContactsState()
-            } else {
-                ContactList(
-                    items = state.listItems,
-                    isPickerMode = state.isPickerMode,
-                    onAddMoreContacts = { accessHandle.launch() },
-                    onItemClick = { contact ->
-                        viewModel.dispatchEvent(SendFlowViewModel.Event.OnContactClicked(contact))
-                    },
-                    onItemDismissed = { contact ->
-                        viewModel.dispatchEvent(SendFlowViewModel.Event.ContactRemoved(contact.contact.e164))
-                    },
-                )
+            when {
+                isEmpty && state.searchState.text.isNotEmpty() -> {
+                    EmptySearchState(state.searchState.text.toString())
+                }
+
+                isEmpty -> {
+                    EmptyContactsState()
+                }
+
+                else -> {
+                    ContactList(
+                        items = state.listItems,
+                        isPickerMode = state.isPickerMode,
+                        onAddMoreContacts = { accessHandle.launch() },
+                        onItemClick = { contact ->
+                            viewModel.dispatchEvent(SendFlowViewModel.Event.OnContactClicked(contact))
+                        },
+                        onItemDismissed = { contact ->
+                            viewModel.dispatchEvent(SendFlowViewModel.Event.ContactRemoved(contact.contact.e164))
+                        },
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun EmptyContactsState(modifier: Modifier = Modifier) {
+private fun EmptyContactsState(
+    modifier: Modifier = Modifier,
+) {
     Box(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .padding(bottom = CodeTheme.dimens.grid.x12),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -184,6 +207,39 @@ private fun EmptyContactsState(modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun EmptySearchState(
+    searchQuery: String,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(bottom = CodeTheme.dimens.grid.x12),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x13),
+                imageVector = Icons.Filled.Search,
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(CodeTheme.colors.textSecondary),
+            )
+            Text(
+                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x5),
+                text = stringResource(R.string.title_noSearchResults, searchQuery),
+                style = CodeTheme.typography.textLarge,
+                color = CodeTheme.colors.textMain,
+            )
+            Text(
+                text = stringResource(R.string.subtitle_noSearchResults),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
+    }
+}
+
+@Composable
 private fun ContactList(
     items: List<ContactListItem>,
     modifier: Modifier = Modifier,
@@ -192,7 +248,12 @@ private fun ContactList(
     onItemClick: (ContactListItem.ContactRow) -> Unit = {},
     onItemDismissed: (ContactListItem.ContactRow) -> Unit = {},
 ) {
+    val context = LocalContext.current
     val listState = rememberLazyListState()
+    val accessHandle = rememberContactAccessHandle(
+        isPickerMode = isPickerMode,
+    )
+
     LazyColumn(
         modifier = Modifier
             .verticalScrollStateGradient(
@@ -232,6 +293,43 @@ private fun ContactList(
                         showDivider = !isLastInSection,
                     ) {
                         onItemClick(item)
+                    }
+                }
+            }
+        }
+
+        if (accessHandle.permissionStatus != PermissionResult.Granted && !isPickerMode) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillParentMaxWidth()
+                        .padding(horizontal = CodeTheme.dimens.inset)
+                        .border(
+                            width = CodeTheme.dimens.border,
+                            color = CodeTheme.colors.divider,
+                            shape = CodeTheme.shapes.extraLarge,
+                        )
+                        .padding(
+                            horizontal = CodeTheme.dimens.grid.x2,
+                            vertical = CodeTheme.dimens.grid.x2,
+                        ),
+                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    AnimatedConversationPaymentsPreview(
+                        modifier = Modifier.fillMaxWidth(),
+                        animate = false,
+                    )
+                    Text(
+                        text = stringResource(R.string.rationale_title_contacts),
+                        style = CodeTheme.typography.displayExtraSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = CodeTheme.colors.textMain,
+                    )
+                    CodeButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = stringResource(R.string.action_allowContactAccessInSettings),
+                    ) {
+                        context.launchAppSettings()
                     }
                 }
             }
@@ -442,6 +540,7 @@ private fun ContactRowItem(
 
                 if (showSubtitle) {
                     Text(
+                        modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
                         text = if (isOnFlipcash && !lastMessagePreview.isNullOrEmpty()) {
                             lastMessagePreview
                         } else {

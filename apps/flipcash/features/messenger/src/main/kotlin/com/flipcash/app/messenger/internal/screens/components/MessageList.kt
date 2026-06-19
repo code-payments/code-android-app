@@ -203,7 +203,7 @@ internal fun MessageList(
         }
 
         // Chat start shows contact info container (only after messages have loaded)
-        if (messages.itemCount > 0) {
+        if (messages.itemCount >= 0 && messages.loadState.refresh is LoadState.NotLoading) {
             item {
                 Box(modifier = Modifier.fillParentMaxWidth(), contentAlignment = Alignment.Center) {
                     ContactInfoContainer(

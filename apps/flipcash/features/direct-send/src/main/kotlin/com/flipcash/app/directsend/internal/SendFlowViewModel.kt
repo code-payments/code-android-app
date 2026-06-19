@@ -83,6 +83,7 @@ internal class SendFlowViewModel @Inject constructor(
         data class SendInvite(val contact: DeviceContact) : Event
 
         data class NavigateToChat(val identifier: ChatIdentifier) : Event
+        data object ContactsRevoked : Event
     }
 
     init {
@@ -91,7 +92,8 @@ internal class SendFlowViewModel @Inject constructor(
             featureFlags.observe(FeatureFlag.PhoneNumberSend),
             featureFlags.observe(FeatureFlag.ContactPickerMode),
             contactCoordinator.state,
-        ) { userState, phoneNumberSendFlag, contactPickerMode, contactState ->
+            chatCoordinator.feed,
+        ) { userState, phoneNumberSendFlag, contactPickerMode, contactState, chats ->
             val hasLinkedPhone = userState.userProfile?.verifiedPhoneNumber != null
             val phoneNumberSendEnabled = phoneNumberSendFlag ||
                     userState.flags?.enablePhoneNumberSend == true
@@ -100,7 +102,7 @@ internal class SendFlowViewModel @Inject constructor(
 
             val steps = buildList {
                 if (!hasLinkedPhone) add(SendStep.PhoneGate)
-                if (needsContacts) add(SendStep.ContactsGate)
+                if (needsContacts && chats.isEmpty()) add(SendStep.ContactsGate)
                 add(SendStep.ContactList)
             }
             Event.StepsUpdated(steps = steps, isPickerMode = contactPickerMode)
@@ -189,6 +191,11 @@ internal class SendFlowViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.ContactRemoved>()
             .onEach { event -> contactCoordinator.removeContact(event.e164) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ContactsRevoked>()
+            .onEach { contactCoordinator.clearServerContactSetIfRevoked() }
             .launchIn(viewModelScope)
 
         combine(
@@ -364,6 +371,7 @@ internal class SendFlowViewModel @Inject constructor(
                 is Event.OnContactClicked -> { state -> state }
                 is Event.SendInvite -> { state -> state }
                 is Event.NavigateToChat -> { state -> state }
+                is Event.ContactsRevoked -> { state -> state }
             }
         }
     }

@@ -118,6 +118,19 @@ class NotificationService : FirebaseMessagingService(),
             launch { tokenCoordinator.update() }
         }
 
+        if (payload?.category == NotificationCategory.CONTACT_JOIN) {
+            launch {
+                chatCoordinator.refreshFeed()
+            }
+        }
+
+        if (payload?.navigation is NavigationTrigger.Chat) {
+            launch {
+                chatCoordinator.refreshFeed()
+                chatCoordinator.loadMessages(chatId = (payload.navigation as NavigationTrigger.Chat).chatId)
+            }
+        }
+
         authenticateIfNeeded {
             launch {
                 try {

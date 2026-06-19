@@ -40,14 +40,23 @@ sealed interface ContactAccessResult {
 }
 
 @Stable
-class ContactAccessHandle(val launch: () -> Unit)
+class ContactAccessHandle(
+    val launch: () -> Unit,
+    private val permissionHandle: PermissionHandle? = null,
+) {
+    val permissionStatus: PermissionResult
+        get() = permissionHandle?.status ?: PermissionResult.NotRequested
+}
 
-fun PermissionHandle.asContactAccessHandle() = ContactAccessHandle(launch = ::launch)
+fun PermissionHandle.asContactAccessHandle() = ContactAccessHandle(
+    launch = ::launch,
+    permissionHandle = this,
+)
 
 @Composable
 fun rememberContactAccessHandle(
     isPickerMode: Boolean,
-    onResult: (ContactAccessResult) -> Unit,
+    onResult: (ContactAccessResult) -> Unit = { },
 ): ContactAccessHandle {
     val currentOnResult by rememberUpdatedState(onResult)
     val currentIsPickerMode by rememberUpdatedState(isPickerMode)
@@ -88,13 +97,16 @@ fun rememberContactAccessHandle(
     }
 
     return remember {
-        ContactAccessHandle {
-            if (currentIsPickerMode && supportsMultiPick) {
-                multiPickLauncher.launch(createMultiPickIntent())
-            } else {
-                permissionHandle.launch()
-            }
-        }
+        ContactAccessHandle(
+            launch = {
+                if (currentIsPickerMode && supportsMultiPick) {
+                    multiPickLauncher.launch(createMultiPickIntent())
+                } else {
+                    permissionHandle.launch()
+                }
+            },
+            permissionHandle = permissionHandle,
+        )
     }
 }
 

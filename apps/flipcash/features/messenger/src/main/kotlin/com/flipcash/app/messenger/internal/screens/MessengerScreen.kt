@@ -1,15 +1,12 @@
 package com.flipcash.app.messenger.internal.screens
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,11 +22,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +40,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -54,8 +48,8 @@ import com.flipcash.app.contacts.ui.ContactAvatar
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.components.MessageList
-import com.flipcash.shared.chat.ui.SeparatorConfig
 import com.flipcash.features.messenger.R
+import com.flipcash.shared.chat.ui.SeparatorConfig
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -87,11 +81,15 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     ChatInputScaffold(
         topBar = { ChatTopBar(navigator, state.chattingWith) },
         bottomBar = {
-            UserControlBottomBar(
-                state = state,
-                hazeState = hazeState,
-                dispatch = viewModel::dispatchEvent,
-            )
+            if (state.isAnonymous) {
+                DeactivatedChatBottomBar()
+            } else {
+                UserControlBottomBar(
+                    state = state,
+                    hazeState = hazeState,
+                    dispatch = viewModel::dispatchEvent,
+                )
+            }
         },
     ) { overlapPadding ->
         MessageList(
@@ -298,6 +296,25 @@ private fun UserControlBottomBar(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DeactivatedChatBottomBar() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = CodeTheme.dimens.inset)
+            .padding(vertical = CodeTheme.dimens.grid.x3),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.subtitle_chatNoLongerAvailable),
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

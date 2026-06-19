@@ -118,7 +118,7 @@ internal fun ReceiptLabel(
                         modifier = Modifier.alignByBaseline(),
                         text = text,
                         style = CodeTheme.typography.caption.copy(
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                         ),
                         color = CodeTheme.colors.textSecondary,
                     )
