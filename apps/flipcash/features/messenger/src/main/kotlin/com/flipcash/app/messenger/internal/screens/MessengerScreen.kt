@@ -99,7 +99,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             state = state,
             contentPadding = overlapPadding,
             messages = messages,
-            separatorConfig = SeparatorConfig.TimeGap(),
+            separatorConfig = state.separatorConfig,
             otherReadPointer = otherReadPointer,
             onAdvanceReadPointer = { messageId ->
                 viewModel.dispatchEvent(ChatViewModel.Event.AdvanceReadPointer(messageId))

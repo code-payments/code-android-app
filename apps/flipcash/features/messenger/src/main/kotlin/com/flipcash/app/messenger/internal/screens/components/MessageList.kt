@@ -14,13 +14,14 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
@@ -43,9 +44,10 @@ import com.getcode.ui.utils.sheetResignmentBehavior
 import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
-import kotlin.time.Instant
 
 
 @Composable
@@ -96,6 +98,20 @@ internal fun MessageList(
     LaunchedEffect(initialLoadComplete) {
         if (initialLoadComplete) hasLoaded = true
     }
+    // Keys that have already played their insertion animation — persists
+    // across item disposal so scrolling away and back doesn't replay.
+    val animatedKeys = remember { mutableSetOf<Any>() }
+
+    // Track when the initial Paging refresh has truly completed (Loading → NotLoading).
+    // This avoids showing the ContactInfoContainer before messages arrive,
+    // which would cause the list to start scrolled to the wrong position.
+    var refreshSettled by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        snapshotFlow { messages.loadState.refresh }
+            .dropWhile { it !is LoadState.Loading }
+            .first { it !is LoadState.Loading }
+        refreshSettled = true
+    }
 
     LazyColumn(
         modifier = modifier
@@ -125,8 +141,9 @@ internal fun MessageList(
             // Message insertion animation — scale from 0.95 + opacity with edge anchor.
             // Tuned to match observed iOS timing (~500ms gradual fade-in).
             // Only animate genuinely new messages (index 0 after initial load).
-            val shouldAnimate = index == 0 && hasLoaded
-            var appeared by remember { mutableStateOf(!shouldAnimate) }
+            val shouldAnimate = index == 0 && hasLoaded && item.itemKey !in animatedKeys
+            if (shouldAnimate) animatedKeys.add(item.itemKey)
+            var appeared by remember(item.itemKey) { mutableStateOf(!shouldAnimate) }
             LaunchedEffect(Unit) { if (!appeared) appeared = true }
             val insertionAlphaSpec = spring<Float>(dampingRatio = 0.86f, stiffness = 80f)
             val insertionScaleSpec = spring<Float>(dampingRatio = 0.73f, stiffness = 300f)
@@ -154,13 +171,13 @@ internal fun MessageList(
 
             Box(
                 modifier = Modifier
-                    .animateItem(fadeInSpec = null, fadeOutSpec = null)
                     .padding(bottom = bottomSpacing),
             ) {
                 when (item) {
                     is ChatListItem.DateSeparator -> Box(insertionModifier) {
                         DateSeparatorRow(item.timestamp)
                     }
+
                     is ChatListItem.ContentBubble -> {
                         val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
                         // Track whether this item was ever seen as SENDING so we
@@ -202,10 +219,40 @@ internal fun MessageList(
             }
         }
 
-        // Chat start shows contact info container (only after messages have loaded)
-        if (messages.itemCount >= 0 && messages.loadState.refresh is LoadState.NotLoading) {
+        // Show trailing separator and contact info once messages are available
+        // (from Room cache) or after the refresh settles (for empty conversations).
+        // This prevents these items from being the only content before messages
+        // load, which would cause the list to start at the wrong scroll position.
+        if (messages.itemCount > 0 || refreshSettled) {
+            // Trailing date separator for the oldest loaded message.
+            // This replaces the `after == null` boundary from insertSeparators
+            // which Paging 3 defers until endOfPaginationReached, causing a
+            // visible frame delay where the message appears without its separator.
+            if (messages.itemCount > 0) {
+                val oldest = messages.peek(messages.itemCount - 1)
+                val oldestTimestamp = when (oldest) {
+                    is ChatListItem.ContentBubble -> oldest.timestamp
+                    is ChatListItem.DateSeparator -> null // already a separator
+                    null -> null
+                }
+                if (oldestTimestamp != null) {
+                    item(key = "trailing-date-${oldestTimestamp.epochSeconds}") {
+                        Box(
+                            modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x2),
+                        ) {
+                            DateSeparatorRow(oldestTimestamp)
+                        }
+                    }
+                }
+            }
+
+            // Chat start shows contact info container
             item {
-                Box(modifier = Modifier.fillParentMaxWidth(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .fillParentMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
                     ContactInfoContainer(
                         contact = state.chattingWith,
                         modifier = Modifier
@@ -237,6 +284,23 @@ internal fun MessageList(
                     }
                 }
             }
+    }
+
+    // opts out of the list maintaining
+    // scroll position when adding elements before the first item
+    // we are checking first visible item index to ensure
+    // the list doesn't shift when viewing scroll back
+    Snapshot.withoutReadObservation {
+        if (!hasLoaded) {
+            // During initial load, always pin to index 0 (newest message)
+            // to prevent the list from starting at the ContactInfoContainer
+            listState.requestScrollToItem(0, 0)
+        } else if (listState.firstVisibleItemIndex == 0) {
+            listState.requestScrollToItem(
+                index = listState.firstVisibleItemIndex,
+                scrollOffset = listState.firstVisibleItemScrollOffset
+            )
+        }
     }
 }
 

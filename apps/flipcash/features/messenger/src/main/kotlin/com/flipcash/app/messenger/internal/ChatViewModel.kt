@@ -107,6 +107,7 @@ internal class ChatViewModel @Inject constructor(
     }
 
     data class State(
+        val separatorConfig: SeparatorConfig= SeparatorConfig.Continuous(),
         val chatId: ChatId? = null,
         val chattingWith: DeviceContact? = null,
         val userState: UserState = UserState.Reading,
@@ -161,8 +162,6 @@ internal class ChatViewModel @Inject constructor(
         data class ChatDeactivated(val isReadOnly: Boolean) : Event
     }
 
-    private val separatorConfig = SeparatorConfig.Continuous()
-
     @OptIn(ExperimentalCoroutinesApi::class)
     private val messageStream = stateFlow.mapNotNull { it.chatId }
         .distinctUntilChanged()
@@ -205,8 +204,8 @@ internal class ChatViewModel @Inject constructor(
                     )
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->
-                if (before == null) return@insertSeparators null
-                if (after == null || separatorConfig.shouldSeparate(before.timestamp, after.timestamp)) {
+                if (before == null || after == null) return@insertSeparators null
+                if (stateFlow.value.separatorConfig.shouldSeparate(before.timestamp, after.timestamp)) {
                     ChatListItem.DateSeparator(before.timestamp)
                 } else null
             }
