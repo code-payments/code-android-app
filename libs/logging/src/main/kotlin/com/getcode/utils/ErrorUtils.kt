@@ -86,7 +86,7 @@ object ErrorUtils {
                 throwable is SocketException ||
                 throwable.cause is SocketException
 
-    private val gmsTransientMessages = setOf("SERVICE_NOT_AVAILABLE", "FIS_AUTH_ERROR")
+    private val gmsTransientMessages = setOf("SERVICE_NOT_AVAILABLE", "FIS_AUTH_ERROR", "MISSING_INSTANCEID_SERVICE", "TOO_MANY_REGISTRATIONS")
 
     private fun isGmsTransientError(throwable: Throwable): Boolean =
         generateSequence(throwable) { it.cause }
