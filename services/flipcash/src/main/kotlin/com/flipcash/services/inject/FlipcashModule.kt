@@ -2,6 +2,7 @@ package com.flipcash.services.inject
 
 import android.content.Context
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
+import com.flipcash.services.internal.annotations.FlipcashManagedStreamingChannel
 import com.flipcash.services.internal.annotations.FlipcashProtocol
 import com.flipcash.services.internal.domain.ActivityFeedMessageMapper
 import com.flipcash.services.internal.domain.ImageModerationResponseMapper
@@ -102,12 +103,31 @@ internal object FlipcashModule {
             .usingBuilder(OkHttpChannelBuilder.forAddress(config.baseUrl, config.port))
             .context(context)
             .userAgent(config.userAgent)
+            .keepAliveWithoutCalls(false)
+            .idleTimeout(5, TimeUnit.MINUTES)
+            .intercept(LoggingClientInterceptor())
+            .build()
+            .also { observeChannelState("flipcash", it) }
+    }
+
+    @Singleton
+    @Provides
+    @FlipcashManagedStreamingChannel
+    fun provideManagedStreamingChannel(
+        @ApplicationContext context: Context,
+        @FlipcashProtocol
+        config: ProtocolConfig,
+    ): ManagedChannel {
+        return AndroidChannelBuilder
+            .usingBuilder(OkHttpChannelBuilder.forAddress(config.baseUrl, config.port))
+            .context(context)
+            .userAgent(config.userAgent)
             .keepAliveTime(config.keepAlive.inWholeMilliseconds, TimeUnit.MILLISECONDS)
             .keepAliveTimeout(config.keepAliveTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
             .keepAliveWithoutCalls(true)
             .intercept(LoggingClientInterceptor())
             .build()
-            .also { observeChannelState("flipcash", it) }
+            .also { observeChannelState("flipcash-stream", it) }
     }
 
     private fun observeChannelState(name: String, channel: ManagedChannel) {

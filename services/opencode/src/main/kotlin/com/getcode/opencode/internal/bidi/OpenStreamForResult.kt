@@ -3,7 +3,6 @@ package com.getcode.opencode.internal.bidi
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import io.grpc.Status
-import io.grpc.StatusRuntimeException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -20,6 +19,7 @@ suspend fun <Request, Response, StreamRef : BidirectionalStreamReference<*, *>, 
     reconnectOnUnavailable: Boolean = false,
     reconnectOnDeadlineExceeded: Boolean = false,
     reconnectOnCancelled: Boolean = false,
+    reconnectOnAborted: Boolean = false,
     reconnectHandler: (() -> Unit)? = null,
     responseHandler: suspend (response: Response, onResult: (ResultType) -> Unit, requestChannel: (Request) -> Unit) -> Unit
 ): ResultType {
@@ -47,8 +47,7 @@ suspend fun <Request, Response, StreamRef : BidirectionalStreamReference<*, *>, 
             // Handle responses
             streamRef.coroutineScope.launch {
                 responseFlow.catch { t ->
-                    val statusException = t as? StatusRuntimeException
-                    val statusCode = statusException?.status?.code
+                    val statusCode = t.grpcStatusCode()
                     when {
                         reconnectOnDeadlineExceeded && statusCode == Status.Code.DEADLINE_EXCEEDED -> {
                             trace("Reconnecting stream due to DEADLINE_EXCEEDED status...")
@@ -60,6 +59,10 @@ suspend fun <Request, Response, StreamRef : BidirectionalStreamReference<*, *>, 
                         }
                         reconnectOnUnavailable && statusCode == Status.Code.UNAVAILABLE -> {
                             trace("Reconnecting stream due to UNAVAILABLE status...")
+                            reconnectHandler?.invoke()
+                        }
+                        reconnectOnAborted && statusCode == Status.Code.ABORTED -> {
+                            trace("Reconnecting stream due to ABORTED status...")
                             reconnectHandler?.invoke()
                         }
                         else -> {
