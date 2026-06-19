@@ -102,6 +102,7 @@ class BidirectionalStreamReference<Request, Response>(
         onConnect = null
         isStreamActive = false
         cancelTimeout()
+        supervisorJob.cancel()
         release()
     }
 
