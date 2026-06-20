@@ -1,0 +1,171 @@
+package com.flipcash.shared.chat
+
+import androidx.core.app.NotificationManagerCompat
+import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.persistence.sources.ChatMemberDataSource
+import com.flipcash.app.persistence.sources.ChatMessageDataSource
+import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.ContactDataSource
+import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.services.controllers.ChatController
+import com.flipcash.services.controllers.ChatMessagingController
+import com.flipcash.services.controllers.EventStreamingController
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatUpdate
+import com.flipcash.services.models.chat.MessageContent
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Mint
+import com.getcode.utils.network.NetworkConnectivityListener
+import com.flipcash.services.user.UserManager
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import kotlin.time.Instant
+
+@OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+class ChatCoordinatorEagerBalanceTest {
+
+    private val selfId = listOf<Byte>(1, 2, 3)
+    private val otherId = listOf<Byte>(4, 5, 6)
+    private val chatId = ChatId("aabbccdd")
+    private val mint = Mint("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaa")
+
+    private val chatUpdatesChannel = Channel<ChatUpdate>(capacity = Channel.UNLIMITED)
+
+    private lateinit var tokenCoordinator: TokenCoordinator
+    private lateinit var coordinator: ChatCoordinator
+
+    @Before
+    fun setUp() {
+        tokenCoordinator = mockk(relaxed = true)
+        val userManager = mockk<UserManager>(relaxed = true)
+        every { userManager.accountId } returns selfId
+        val eventStreamingController = mockk<EventStreamingController>(relaxed = true)
+        every { eventStreamingController.chatUpdates } returns chatUpdatesChannel.receiveAsFlow()
+        every { eventStreamingController.isConnected } returns true
+        every { eventStreamingController.isStreamActive } returns true
+
+        val chatController = mockk<ChatController>(relaxed = true)
+        coEvery { chatController.getDmChatFeed() } returns Result.failure(RuntimeException("not needed"))
+
+        coordinator = ChatCoordinator(
+            chatController = chatController,
+            messagingController = mockk(relaxed = true),
+            eventStreamingController = eventStreamingController,
+            metadataDataSource = mockk(relaxed = true),
+            messageDataSource = mockk(relaxed = true),
+            memberDataSource = mockk(relaxed = true),
+            contactDataSource = mockk(relaxed = true),
+            networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
+            notificationManager = mockk<NotificationManagerCompat>(relaxed = true),
+            userManager = userManager,
+            tokenCoordinator = tokenCoordinator,
+            featureFlags = mockk<FeatureFlagController>(relaxed = true),
+        )
+    }
+
+    private fun cashMessage(
+        senderId: List<Byte>?,
+        amount: Fiat = Fiat(fiat = 5.0, currencyCode = CurrencyCode.USD),
+        mint: Mint = this.mint,
+    ) = ChatMessage(
+        messageId = 1L,
+        senderId = senderId,
+        content = listOf(MessageContent.Cash(
+            intentId = listOf(0),
+            amount = amount,
+            mint = mint,
+        )),
+        timestamp = Instant.fromEpochSeconds(1000),
+        unreadSeq = 0,
+    )
+
+    private fun textMessage(senderId: List<Byte>?) = ChatMessage(
+        messageId = 2L,
+        senderId = senderId,
+        content = listOf(MessageContent.Text("hello")),
+        timestamp = Instant.fromEpochSeconds(1000),
+        unreadSeq = 0,
+    )
+
+    private fun chatUpdate(vararg messages: ChatMessage) = ChatUpdate(
+        chatId = chatId,
+        newMessages = messages.toList(),
+        pointerUpdates = emptyList(),
+        typingNotifications = emptyList(),
+        metadataUpdates = emptyList(),
+    )
+
+    private suspend fun triggerCollection() {
+        coordinator.onUserLoggedIn(mockk(relaxed = true))
+    }
+
+    @Test
+    fun `incoming cash message triggers tokenCoordinator add`() = runTest {
+        triggerCollection()
+        val amount = Fiat(fiat = 5.0, currencyCode = CurrencyCode.CAD)
+        chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = otherId, amount = amount)))
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { tokenCoordinator.add(mint, amount) }
+    }
+
+    @Test
+    fun `self-sent cash message does not trigger tokenCoordinator add`() = runTest {
+        triggerCollection()
+        chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = selfId)))
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
+    }
+
+    @Test
+    fun `text message does not trigger tokenCoordinator add`() = runTest {
+        triggerCollection()
+        chatUpdatesChannel.send(chatUpdate(textMessage(senderId = otherId)))
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
+    }
+
+    @Test
+    fun `multiple cash messages in one update each trigger add`() = runTest {
+        triggerCollection()
+        val mintB = Mint("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBbbbbbbbbbbb")
+        val amount1 = Fiat(fiat = 5.0, currencyCode = CurrencyCode.USD)
+        val amount2 = Fiat(fiat = 10.0, currencyCode = CurrencyCode.USD)
+        val msg1 = cashMessage(senderId = otherId, amount = amount1, mint = mint)
+        val msg2 = cashMessage(senderId = otherId, amount = amount2, mint = mintB).copy(messageId = 3L)
+
+        chatUpdatesChannel.send(chatUpdate(msg1, msg2))
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { tokenCoordinator.add(mint, amount1) }
+        coVerify(exactly = 1) { tokenCoordinator.add(mintB, amount2) }
+    }
+
+    @Test
+    fun `mixed self and incoming messages only triggers add for incoming`() = runTest {
+        triggerCollection()
+        val incoming = cashMessage(senderId = otherId)
+        val outgoing = cashMessage(senderId = selfId).copy(messageId = 3L)
+
+        chatUpdatesChannel.send(chatUpdate(incoming, outgoing))
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { tokenCoordinator.add(any<Mint>(), any()) }
+    }
+}

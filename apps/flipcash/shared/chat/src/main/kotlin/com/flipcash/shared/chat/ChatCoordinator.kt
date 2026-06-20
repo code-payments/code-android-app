@@ -34,6 +34,7 @@ import com.flipcash.services.models.chat.MetadataUpdate
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingNotification
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.providers.SessionListener
@@ -79,6 +80,7 @@ class ChatCoordinator @Inject constructor(
     private val networkObserver: NetworkConnectivityListener,
     private val notificationManager: NotificationManagerCompat,
     private val userManager: UserManager,
+    private val tokenCoordinator: TokenCoordinator,
     private val featureFlags: FeatureFlagController,
 ) : SessionListener, DefaultLifecycleObserver {
 
@@ -514,6 +516,18 @@ class ChatCoordinator @Inject constructor(
                         chatId,
                         metaUpdate.newLastActivity.toEpochMilliseconds(),
                     )
+                }
+            }
+        }
+
+        // --- Eagerly update token balance for incoming cash ---
+
+        val selfId = userManager.accountId
+        for (msg in update.newMessages) {
+            if (msg.senderId == selfId) continue
+            for (content in msg.content) {
+                if (content is MessageContent.Cash) {
+                    tokenCoordinator.add(content.mint, content.amount)
                 }
             }
         }

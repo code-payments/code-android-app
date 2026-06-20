@@ -9,6 +9,7 @@ android {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.robolectric)
 
     implementation(libs.bundles.kotlinx.serialization)
 
@@ -18,6 +19,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:persistence:db"))
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:featureflags"))
+    implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":services:flipcash"))
     implementation(project(":libs:network:connectivity:public"))
     implementation(libs.androidx.lifecycle.process)
