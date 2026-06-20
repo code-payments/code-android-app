@@ -151,9 +151,9 @@ class TokenCoordinator @Inject constructor(
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
 
         cluster.filterNotNull()
-            .flatMapLatest { networkObserver.state }
+            .flatMapLatest { networkObserver.state.map { it.connected } }
             .distinctUntilChanged()
-            .filter { it.connected }
+            .filter { it }
             .onEach {
                 trace(tag = TAG, message = "Network connected, triggering token update", type = TraceType.Process)
                 retryable { update() }
@@ -221,13 +221,28 @@ class TokenCoordinator @Inject constructor(
         modifyBalance(token, amount) { current, delta -> current + delta }
     }
 
+    suspend fun add(mint: Mint, nativeAmount: Fiat) {
+        val token = getTokenMetadata(mint).getOrNull()?.token ?: return
+        add(token, nativeAmount.toLocalFiat(mint))
+    }
+
     suspend fun subtract(token: Token, fiat: LocalFiat) {
         val rate = exchange.rateToUsd(fiat.rate.currency)
         val amount = rate?.let { fiat.nativeAmount.convertingTo(it) }
         if (amount != null) {
-            trace(tag = TAG, message = "Subtracting ${amount.formatted()} to ${token.symbol}", type = TraceType.Process)
+            trace(tag = TAG, message = "Subtracting ${amount.formatted()} from ${token.symbol}", type = TraceType.Process)
         }
         modifyBalance(token, amount) { current, delta -> current - delta }
+    }
+
+    suspend fun subtract(mint: Mint, nativeAmount: Fiat) {
+        val token = getTokenMetadata(mint).getOrNull()?.token ?: return
+        subtract(token, nativeAmount.toLocalFiat(mint))
+    }
+
+    private fun Fiat.toLocalFiat(mint: Mint): LocalFiat {
+        val rate = exchange.rateFor(currencyCode) ?: Rate.oneToOne
+        return LocalFiat.fromNativeAmount(this, rate, mint)
     }
 
     // endregion

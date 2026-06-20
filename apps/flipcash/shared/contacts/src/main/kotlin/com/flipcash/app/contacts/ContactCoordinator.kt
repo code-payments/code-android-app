@@ -143,9 +143,9 @@ class ContactCoordinator @Inject constructor(
             .launchIn(scope)
 
         cluster.filterNotNull()
-            .flatMapLatest { networkObserver.state }
+            .flatMapLatest { networkObserver.state.map { it.connected } }
             .distinctUntilChanged()
-            .filter { it.connected }
+            .filter { it }
             .onEach {
                 trace(tag = TAG, message = "Network connected, triggering contact sync", type = TraceType.Process)
                 launchSync()
