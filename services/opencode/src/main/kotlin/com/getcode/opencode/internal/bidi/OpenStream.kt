@@ -6,6 +6,7 @@ import io.grpc.Status
 import io.grpc.StatusException
 import io.grpc.StatusRuntimeException
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -129,7 +130,7 @@ fun <Request, Response, StreamRef> openBidirectionalStream(
                 )
                 collectionJob.cancel()
                 requestChannel.close()
-                if (isRetryable(e)) {
+                if (isRetryable(e) || e is ClosedSendChannelException) {
                     onReconnectAttempt?.invoke(attempt, e)
                     continue
                 }
