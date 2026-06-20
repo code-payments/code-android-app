@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
@@ -65,12 +66,11 @@ class AccountController @Inject constructor(
 
     init {
         cluster.filterNotNull()
-            .flatMapLatest { networkObserver.state }
-            .map { it.connected }
-            .onEach { connected ->
-                if (connected) {
-                    retryable { fetchAdditionalAccountInfo() }
-                }
+            .flatMapLatest { networkObserver.state.map { it.connected } }
+            .distinctUntilChanged()
+            .filter { it }
+            .onEach {
+                retryable { fetchAdditionalAccountInfo() }
             }.launchIn(scope)
     }
 
