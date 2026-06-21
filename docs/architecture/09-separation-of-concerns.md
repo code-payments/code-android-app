@@ -30,11 +30,16 @@ logic. The `BaseViewModel<State, Event>` reducer is the only place state changes
 and side effects are explicit on `eventFlow`. See
 [02 — State & dependency injection](02-state-and-dependency-injection.md).
 
-### 3. MVI for screens, controllers for shared logic
+### 3. MVI for screens, coordinators/controllers for shared logic
 Per-screen concerns live in a feature's ViewModel. Logic shared across features
-lives in a **controller/coordinator** in a `shared/*` module, exposed as a
-`StateFlow`-bearing interface and delivered to Compose as a `Local*`. Features never
-reach into each other's internals; they go through shared modules.
+lives in a `shared/*` module, exposed as a `StateFlow`-bearing interface and
+delivered to Compose as a `Local*`. Use a **Coordinator** when that shared logic
+**owns a domain's cached, synced state** (it wraps a stateless controller and is
+session/lifecycle-aware); use a **Controller** for a stateless domain API or light
+UI-facing state. The full vocabulary — Coordinator vs Controller vs Manager vs
+Service — is defined in
+[02 — Roles](02-state-and-dependency-injection.md#roles-coordinators-controllers-managers-services).
+Features never reach into each other's internals; they go through shared modules.
 
 ### 4. Transport details stop at the data layer
 The gRPC stack's four layers (Api → Service → Repository → Controller) mean protobuf
@@ -62,7 +67,8 @@ feature code. See [06 — Payments & operations](06-payments-and-operations.md).
 | If you're adding… | It belongs in… |
 |-------------------|----------------|
 | A new screen | a `:apps:flipcash:features:*` module (screen + ViewModel + Hilt module) |
-| Logic two+ features share | a `:apps:flipcash:shared:*` controller/coordinator |
+| Cached, synced state for a domain (contacts, tokens, chat) | a `:apps:flipcash:shared:*` **Coordinator** ([roles](02-state-and-dependency-injection.md#roles-coordinators-controllers-managers-services)) |
+| Stateless shared logic two+ features call | a `:apps:flipcash:shared:*` **Controller** |
 | A new backend call | the appropriate `:services:*` layer (Api → Service → Repository → Controller) |
 | A reusable component or token | `:ui:components` / `:ui:theme` |
 | A domain-agnostic utility | a `:libs:*` module |

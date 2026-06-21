@@ -12,7 +12,7 @@ This document is the map.
 | App | `:apps:flipcash:app` | 1 | Entry point — `FlipcashApp`, `MainActivity`, the navigation host, DI wiring. Assembles everything. |
 | Core | `:apps:flipcash:core` | 1 | App-wide infrastructure: `AppRoute` graph, `Local*` composition locals, shared models. Auto-injected into every feature. |
 | Features | `:apps:flipcash:features:*` | 26 | Self-contained screens (login, cash, balance, tokens, scanner, withdrawal, …). Each owns its state, ViewModels, and UI. |
-| Shared | `:apps:flipcash:shared:*` | 34 | Cross-feature coordinators, controllers, and services (authentication, session, router, payments, persistence, …). |
+| Shared | `:apps:flipcash:shared:*` | 34 | Cross-feature coordinators, controllers, and services (authentication, session, router, payments, persistence, …). Coordinators own a domain's cached, session-aware state; see [02 — Roles](02-state-and-dependency-injection.md#roles-coordinators-controllers-managers-services). |
 | Services | `:services:*` | 4 | gRPC wrappers: `flipcash`, `flipcash-compose`, `opencode`, `opencode-compose`. |
 | Definitions | `:definitions:*` | 4 | Protobuf sources (`*/protos`) and generated models (`*/models`) for Flipcash and OCP. |
 | UI | `:ui:*` | 9 | Compose layer: `theme`, `components`, `core`, `resources`, `navigation`, `scanner`, `biometrics`, `emojis`, `testing`. |

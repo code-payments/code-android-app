@@ -95,6 +95,42 @@ identity — CompositionLocal is purely the delivery mechanism into Compose.
 > constructor (`@HiltViewModel`). Reach for a **`Local*`** only for the long-lived,
 > app-wide controllers that `MainActivity` already provides.
 
+## Roles: coordinators, controllers, managers, services
+
+The injected dependencies above carry recurring suffixes — `Coordinator`,
+`Controller`, `Manager`, `Service` — and they are **not interchangeable**. Each
+names a specific role:
+
+| Role | Responsibility | Lives in | Exposes |
+|------|----------------|----------|---------|
+| **Coordinator** | The **single source of truth for a domain** (contacts, tokens, chat, settings, activity feed). Wraps one or more stateless Controllers and adds **caching (memory + Room), persistence, and sync/consistency**. **Session- and lifecycle-aware.** | `apps/flipcash/shared/*` | `StateFlow` domain state; usually `: SessionListener, DefaultLifecycleObserver` |
+| **Controller** | A domain/feature API. Service-layer controllers are often **stateless network gateways** (no caching/state); app-layer controllers expose light UI-facing state/actions. | `services/*/controllers/*`, `apps/flipcash/shared/*` | `suspend` actions + `Result<T>`, or light `StateFlow` |
+| **Manager** | Owns a **state machine or resource lifecycle** (auth flow, credential storage), coordinating side effects across coordinators/controllers. | `services/*`, `apps/flipcash/shared/*` | `StateFlow` of a lifecycle/auth state (e.g. `UserManager` → `AuthState`) |
+| **Service** | The **internal gRPC/REST adapter** — translates network responses to domain models. Never exposed to the UI. | `services/*/internal/network/services/*` | `Result<T>` of domain models |
+
+### Coordinator vs Controller, by example
+
+The cleanest illustration is tokens. `TokenController`
+(`services/opencode/.../controllers/TokenController.kt`) describes itself in its
+own KDoc as a **stateless network gateway**:
+
+> *"This controller provides direct access to token-related network APIs without
+> any caching, persistence, or state management… usable both within the Flipcash
+> app (wrapped by `TokenCoordinator`) and as part of a standalone public SDK. All
+> state management (caching, persistence, lifecycle, balance tracking) is the
+> responsibility of the consumer."*
+
+That consumer is the **Coordinator**. `TokenCoordinator`
+(`apps/flipcash/shared/tokens/.../TokenCoordinator.kt`) wraps the controller,
+implements `SessionListener, DefaultLifecycleObserver`, holds `StateFlow` state, and
+serves reads from a **Memory → Room → network** cache — rehydrating on login and
+reacting to foreground/background. `ContactCoordinator`
+(`apps/flipcash/shared/contacts/.../ContactCoordinator.kt`) follows the same shape,
+syncing device contacts ↔ persistence ↔ server. So: **a Controller is the stateless
+domain API; a Coordinator is the stateful, session-aware owner of that domain's
+cached state.** When in doubt, [09 — Separation of concerns](09-separation-of-concerns.md)
+has a "where does this code go?" table.
+
 ## State: `BaseViewModel<State, Event>`
 
 The MVI base class lives at
