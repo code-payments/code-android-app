@@ -69,9 +69,18 @@ depend on app modules.* See [01 — Modules & boundaries](01-modules-and-boundar
 | 09 | [Separation of concerns](09-separation-of-concerns.md) | Layering principles, MVI/MVVM split, where logic lives, the acyclic discipline |
 | — | [Feature catalog](features/README.md) | Representative features by category, with screens, ViewModels, and patterns |
 
+### Guides (how to work in the codebase)
+
+| # | Topic | Scope |
+|---|-------|-------|
+| 10 | [Build & run](10-build-and-run.md) | Prerequisites, the real `local.properties` keys, Gradle commands, variants, CI |
+| 11 | [Adding a feature](11-adding-a-feature.md) | End-to-end: scaffold module → ViewModel → screen → route → register → share |
+| 12 | [Testing](12-testing.md) | What to test where, `:libs:test-utils`, Robolectric, fakes, Turbine (+ Compose UI guide) |
+
 ## Suggested reading paths
 
-- **New to the codebase** → README → 01 → 02 → 09, then the feature catalog.
-- **Building a feature** → feature catalog → 03 → 07 → 02.
+- **New to the codebase** → 10 (build & run) → README → 01 → 02 → 09, then the feature catalog.
+- **Building a feature** → 11 (adding a feature) → feature catalog → 03 → 07 → 02.
+- **Writing tests** → 12 (testing) → [Compose UI Testing Guide](../compose-ui-testing.md).
 - **Working on payments** → 06 → 04 → 05.
 - **Backend / proto changes** → 04 → 05 → 06.
