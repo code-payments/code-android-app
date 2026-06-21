@@ -76,11 +76,20 @@ depend on app modules.* See [01 — Modules & boundaries](01-modules-and-boundar
 | 10 | [Build & run](10-build-and-run.md) | Prerequisites, the real `local.properties` keys, Gradle commands, variants, CI |
 | 11 | [Adding a feature](11-adding-a-feature.md) | End-to-end: scaffold module → ViewModel → screen → route → register → share |
 | 12 | [Testing](12-testing.md) | What to test where, `:libs:test-utils`, Robolectric, fakes, Turbine (+ Compose UI guide) |
+| 13 | [Protobuf & codegen](13-protobuf-and-codegen.md) | proto sources → generated models → services; updating protos with `/fetch-protos` |
+| 14 | [Error handling](14-error-handling.md) | `Result<T>`, typed sealed errors, `NotifiableError`, `retryable` |
+| 15 | [CI & release](15-ci-and-release.md) | The CI check, Fastlane lanes, release workflows, helper skills |
+| 16 | [Agents & skills](16-agents-and-skills.md) | The repo's Claude Code agents/skills and which task each one fits |
+| — | [Glossary](glossary.md) | Domain & architecture terms (USDF, intent, timelock, coordinator, …) |
 
 ## Suggested reading paths
 
 - **New to the codebase** → 10 (build & run) → README → 01 → 02 → 09, then the feature catalog.
 - **Building a feature** → 11 (adding a feature) → feature catalog → 03 → 07 → 02.
 - **Writing tests** → 12 (testing) → [Compose UI Testing Guide](../compose-ui-testing.md).
-- **Working on payments** → 06 → 04 → 05.
-- **Backend / proto changes** → 04 → 05 → 06.
+- **Working on payments** → 06 → 04 → 05 → 14 (error handling).
+- **Backend / proto changes** → 13 (protobuf & codegen) → 04 → 05 → 14.
+- **New to Claude Code automation here** → 16 (agents & skills) → CLAUDE.md.
+
+Unfamiliar with a term? The [Glossary](glossary.md) defines the domain and
+architecture vocabulary (USDF, intent, timelock, coordinator, …).
