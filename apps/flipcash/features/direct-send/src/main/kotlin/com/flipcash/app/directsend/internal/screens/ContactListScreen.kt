@@ -321,7 +321,7 @@ private fun ContactList(
                         animate = false,
                     )
                     Text(
-                        text = stringResource(R.string.rationale_title_contacts),
+                        text = stringResource(R.string.permissions_title_contactsRationale),
                         style = CodeTheme.typography.displayExtraSmall.copy(fontWeight = FontWeight.SemiBold),
                         color = CodeTheme.colors.textMain,
                     )
