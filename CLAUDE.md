@@ -28,7 +28,7 @@ Code/Flipcash is a mobile wallet app for instant, global, private payments using
 bundle exec fastlane android flipcash_tests
 ```
 
-**Requirements**: Java 21 (Corretto), `google-services.json` in `apps/flipcash/app/src/`, API keys in `local.properties` (BUGSNAG_API_KEY, FINGERPRINT_API_KEY, GOOGLE_CLOUD_PROJECT_NUMBER, MIXPANEL_API_KEY).
+**Requirements**: Java 21 (Corretto), `google-services.json` in `apps/flipcash/app/src/`, API keys in `local.properties` (BUGSNAG_API_KEY, MIXPANEL_API_KEY, COINBASE_ONRAMP_API_KEY, GOOGLE_CLOUD_PROJECT_NUMBER). Keys resolve via `tryReadProperty` (local.properties → env var → empty), so a missing key won't fail the build but disables the dependent feature. See `docs/architecture/10-build-and-run.md`.
 
 ## Module Structure
 
@@ -72,13 +72,15 @@ The feature plugin automatically includes `:libs:logging`, `:ui:core`, `:ui:comp
 
 ## Architecture
 
-- **Pattern**: MVI/MVVM hybrid with Compose-driven UI and reactive state
+- **Pattern**: MVI/MVVM hybrid with Compose-driven UI and reactive state (`BaseViewModel<State, Event>`)
 - **DI**: Hilt — all feature modules get Hilt via the convention plugin
-- **Navigation**: Jetpack Navigation + Voyager for compose-based screens; custom `Router` controller
+- **Navigation**: Jetpack **Navigation 3** (`androidx.navigation3`) wrapped by a custom `CodeNavigator`; a custom `Router` resolves deeplinks. (No Voyager.)
 - **Networking**: gRPC with Protobuf for backend services; Retrofit/OkHttp for REST
-- **Async**: Kotlin Coroutines + RxJava 3 (both coexist)
-- **Persistence**: Room (encrypted with SQLCipher), DataStore for preferences
-- **Crypto**: Libsodium, Ed25519, Solana/Kin SDK for on-chain operations
+- **Async**: Kotlin Coroutines + Flow (no RxJava); dispatchers injected via `DispatcherProvider`
+- **Persistence**: Room with a per-user database name derived from account entropy (not SQLCipher-encrypted); DataStore for preferences
+- **Crypto**: Ed25519, mnemonic/key derivation, Solana SDK for on-chain operations
+
+> Full architecture documentation lives in `docs/architecture/` (modules, state & DI, navigation, networking, persistence, payments, testing, and a "build & run" / "adding a feature" guide).
 
 ## Key Patterns
 
