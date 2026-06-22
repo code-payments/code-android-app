@@ -1,4 +1,4 @@
-<img width="100%" alt="Flipcash" src="docs/assets/flipcash-header.svg">
+<img width="100%" alt="Flipcash" src="docs/assets/flipcash-header.png">
 
 # Flipcash for Android
 
