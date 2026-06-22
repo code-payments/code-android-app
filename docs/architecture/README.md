@@ -80,12 +80,15 @@ depend on app modules.* See [01 — Modules & boundaries](01-modules-and-boundar
 | 14 | [Error handling](14-error-handling.md) | `Result<T>`, typed sealed errors, `NotifiableError`, `retryable` |
 | 15 | [CI & release](15-ci-and-release.md) | The CI check, Fastlane lanes, release workflows, helper skills |
 | 16 | [Agents & skills](16-agents-and-skills.md) | The repo's Claude Code agents/skills and which task each one fits |
+| 17 | [Concurrency](17-concurrency.md) | Dispatchers, scope ownership, Flow conventions, lifecycle-aware collection |
+| 18 | [Feature flags](18-feature-flags.md) | Defining/observing flags, beta & staff gating, feature flags vs user flags |
 | — | [Glossary](glossary.md) | Domain & architecture terms (USDF, intent, timelock, coordinator, …) |
 
 ## Suggested reading paths
 
 - **New to the codebase** → 10 (build & run) → README → 01 → 02 → 09, then the feature catalog.
-- **Building a feature** → 11 (adding a feature) → feature catalog → 03 → 07 → 02.
+- **Building a feature** → 11 (adding a feature) → feature catalog → 03 → 07 → 02 → 18 (feature flags).
+- **Writing async code** → 17 (concurrency) → 02 → 12 (testing).
 - **Writing tests** → 12 (testing) → [Compose UI Testing Guide](../compose-ui-testing.md).
 - **Working on payments** → 06 → 04 → 05 → 14 (error handling).
 - **Backend / proto changes** → 13 (protobuf & codegen) → 04 → 05 → 14.
