@@ -88,6 +88,7 @@ fun SettingsSwitchRow(
         }
 
         CodeToggleSwitch(
+            modifier = Modifier.padding(start = CodeTheme.dimens.grid.x3),
             enabled = enabled,
             checked = checked,
             onCheckedChange = null,

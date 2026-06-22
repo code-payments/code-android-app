@@ -1,40 +1,33 @@
 package com.getcode.ui.theme
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.SwitchColors
-import androidx.compose.material.SwitchDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchColors
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.SystemGreen
 import com.getcode.theme.White
-import com.getcode.ui.core.addIf
 
 object CodeToggleSwitchDefaults {
 
+    private const val DISABLED_ALPHA = 0.38f
+
     val colors: SwitchColors
         @Composable get() = SwitchDefaults.colors(
-            disabledCheckedThumbColor = Color(0xFFB2B9B5),
-            disabledUncheckedThumbColor = Color(0xFFB2B9B5),
+            disabledCheckedThumbColor = Color(0x80B2B9B5),
+            disabledUncheckedThumbColor = Color(0x80B2B9B5),
             disabledCheckedTrackColor = Color(0xFF2A8A4B),
-            disabledUncheckedTrackColor = CodeTheme.colors.toggleUncheckedTrackColor.copy(ContentAlpha.disabled),
+            disabledUncheckedTrackColor = CodeTheme.colors.toggleUncheckedTrackColor.copy(DISABLED_ALPHA),
             checkedThumbColor = White,
             uncheckedThumbColor = White,
             checkedTrackColor = SystemGreen,
-            checkedTrackAlpha = 1f,
-            uncheckedTrackAlpha = 1f,
-            uncheckedTrackColor = CodeTheme.colors.toggleUncheckedTrackColor
+            uncheckedTrackColor = CodeTheme.colors.toggleUncheckedTrackColor,
+            uncheckedBorderColor = Color.White.copy(0.15f),
+            checkedBorderColor = SystemGreen,
+            disabledUncheckedBorderColor = CodeTheme.colors.toggleUncheckedTrackColor.copy(DISABLED_ALPHA),
+            disabledCheckedBorderColor = Color(0xFF2A8A4B),
         )
 }
 
@@ -45,46 +38,11 @@ fun CodeToggleSwitch(
     enabled: Boolean = true,
     onCheckedChange: ((Boolean) -> Unit)? = null,
 ) {
-    val width = 51.dp
-    val height = 31.dp
-    val gapBetweenThumbAndTrackEdge = 2.dp
-
-    val thumbRadius = (height / 2) - gapBetweenThumbAndTrackEdge
-    val animatePosition = animateFloatAsState(
-        targetValue = if (checked) {
-            with(LocalDensity.current) { (width - thumbRadius - gapBetweenThumbAndTrackEdge).toPx() }
-        } else {
-            with (LocalDensity.current) { (thumbRadius + gapBetweenThumbAndTrackEdge).toPx() }
-        }, label = "thumb position"
+    Switch(
+        checked = checked,
+        modifier = modifier,
+        enabled = enabled,
+        onCheckedChange = onCheckedChange,
+        colors = CodeToggleSwitchDefaults.colors
     )
-
-    val colors = CodeToggleSwitchDefaults.colors
-    val trackColor by colors.trackColor(enabled = enabled, checked = checked)
-    val thumbColor by colors.thumbColor(enabled = enabled, checked = checked)
-    Canvas(
-        modifier = modifier
-            .size(width = width, height = height)
-            .addIf(onCheckedChange != null) {
-                Modifier.pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = {
-                            onCheckedChange?.invoke(!checked)
-                        }
-                    )
-                }
-            }
-    ) {
-        drawRoundRect(
-            color = trackColor,
-            cornerRadius = CornerRadius(x = 45.dp.toPx(), y = 45.dp.toPx())
-        )
-        drawCircle(
-            color = thumbColor,
-            radius = thumbRadius.toPx(),
-            center = Offset(
-                x = animatePosition.value,
-                y = size.height / 2
-            )
-        )
-    }
 }
