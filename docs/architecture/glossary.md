@@ -8,12 +8,16 @@ full story.
 
 | Term | Meaning | See |
 |------|---------|-----|
-| **USDF** | The USD-pegged stablecoin users primarily hold and transact in. | [README](README.md) |
-| **Launchpad token / currency** | A custom on-chain currency (governed by an on-chain bonding curve) that users can create and trade, in addition to USDF. | [06](06-payments-and-operations.md) |
-| **Cash bill** | The animated, circular on-screen code that represents a payment for **device-to-device** transfer — one phone shows it, another scans it. | [README](README.md), [features](features/README.md) |
+| **USDF** | The USD-pegged **base / reserve** stablecoin (the "core mint"). Everything is priced in and backed by USDF; it is itself sendable. In code: a `Token` with `launchpadMetadata = null`. | [06](06-payments-and-operations.md) |
+| **Launchpad token / currency** | The user-facing, tradable currency people **create, buy, sell, and share** — a custom on-chain token **backed by USDF reserves** and priced by an on-chain bonding curve. Like a memecoin backed by USDC. | [06](06-payments-and-operations.md) |
+| **Core mint** | The codebase's name for USDF — the reserve currency that launchpad currencies are denominated in and backed by. | [06](06-payments-and-operations.md) |
+| **Bonding curve** | The on-chain formula that sets a launchpad currency's price from its circulating supply (`price = f(supply)`, in USDF). | [06](06-payments-and-operations.md) |
+| **Liquidity pool / `coreMintVault`** | A launchpad currency's bonding-curve pool; its `coreMintVault` holds the **USDF reserves** backing the token (vs `mintVault`, which holds the token). | [06](06-payments-and-operations.md) |
+| **Reserves** | Two senses: (1) on-chain USDF backing a token in its `coreMintVault`; (2) the **user's own USDF balance** (`observeReservesBalance()`) spent to buy launchpad currencies. | [06](06-payments-and-operations.md) |
+| **Cash bill** | The animated, circular on-screen code that represents a payment for **device-to-device** transfer — one phone shows it, another scans it. Carries any token (a launchpad currency or USDF). | [README](README.md), [features](features/README.md) |
 | **Kik Code** | The scannable code format rendered as a cash bill (captured via the camera scanner). | [07](07-design-system.md) |
 | **On-ramp** | Funding the wallet with fiat (Coinbase) or in-app purchase. | [04](04-networking.md), [06](06-payments-and-operations.md) |
-| **Swap** | Exchanging one token for another (e.g. via a launchpad currency's curve). | [03](03-navigation.md), [06](06-payments-and-operations.md) |
+| **Swap** | Buying or selling a launchpad currency **against USDF** (`SwapPurpose.Buy`/`Sell`); sells charge a ~1% fee. | [03](03-navigation.md), [06](06-payments-and-operations.md) |
 | **Withdrawal** | Moving funds on-chain to an external Solana address. | [features](features/README.md) |
 
 ## Identity, keys & accounts
@@ -40,7 +44,8 @@ full story.
 | **OCP / Open Code Protocol** | The gRPC backend for transactions, intents, swaps, and exchange rates (module `:services:opencode`). | [04](04-networking.md) |
 | **Flipcash service** | The gRPC backend for accounts, profiles, chat, and activity (module `:services:flipcash`). | [04](04-networking.md) |
 | **Intent** | A signed unit of money movement (transfer, remote send/receive, withdraw, swap, distribution) submitted over the `SubmitIntent` bidirectional stream. | [04](04-networking.md), [06](06-payments-and-operations.md) |
-| **Mint** | A Solana token mint address (`PublicKey` subtype); identifies a token such as USDF or a launchpad currency. | [06](06-payments-and-operations.md) |
+| **Mint** | A Solana token mint address (`PublicKey` subtype); identifies a token such as USDF (`Mint.usdf`) or a launchpad currency. | [06](06-payments-and-operations.md) |
+| **MintMetadata / Token** | The model for any currency (`MintMetadata`, aliased `Token`). A non-null `launchpadMetadata` makes it a launchpad currency; `null` means it's USDF (the core mint). | [06](06-payments-and-operations.md) |
 | **Protobuf / proto** | The Protocol Buffers contract; generated code lives in `:definitions:*:models` and is never hand-edited. | [13](13-protobuf-and-codegen.md) |
 | **NotifiableError** | Marker for errors that represent bugs (not user-caused) and should alert via Bugsnag/Slack. | [14](14-error-handling.md) |
 

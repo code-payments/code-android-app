@@ -14,12 +14,16 @@ architectural concern; start here, then jump to the topic you need.
 ## What Flipcash is
 
 Flipcash is a **self-custodial mobile wallet** for instant, global, private
-payments. Users hold **USDF** (a USD stablecoin) and **launchpad tokens** (custom
-on-chain currencies). The signature interaction is a **device-to-device cash
-bill**: one phone renders an animated circular Kik Code on screen, another phone
-scans it, and a peer-to-peer handshake settles the payment. The app also supports
-contact/username sends, on-ramp funding (Coinbase, in-app purchase), token swaps,
-and on-chain withdrawals.
+payments. Its base reserve currency is **USDF** (a USD stablecoin); on top of it,
+users create, buy, sell, and share **launchpad currencies** — custom on-chain tokens
+**backed by USDF reserves** (think memecoins backed by USDC on Solana). Launchpad
+currencies are the unit that circulates socially; USDF is what they're priced in and
+redeemable for. The signature interaction is a **device-to-device cash bill** (which
+can carry a launchpad currency or USDF): one phone renders an animated circular Kik
+Code on screen, another phone scans it, and a peer-to-peer handshake settles the
+payment. The app also supports contact/username sends, on-ramp funding (Coinbase,
+in-app purchase), buying/selling launchpad currencies against USDF, and on-chain
+withdrawals.
 
 Under the hood it talks to **two gRPC backends** — the Flipcash service
 (accounts, profiles, chat, activity) and the Open Code Protocol / OCP service

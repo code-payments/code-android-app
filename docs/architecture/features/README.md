@@ -32,7 +32,7 @@ Two recurring shapes show up in the **Pattern** column:
 
 | Feature | Purpose | Screen / ViewModel | Pattern & integration |
 |---------|---------|--------------------|-----------------------|
-| **cash** | Amount entry for a device-to-device cash bill | `cash/CashScreen.kt` · `…/internal/CashScreenViewModel` | **VM-driven**; combines token + balance + rate flows, emits `PresentBill`, calls `SessionController.showBill` |
+| **cash** | Amount entry for a device-to-device cash bill (sends the selected token — a launchpad currency or USDF) | `cash/CashScreen.kt` · `…/internal/CashScreenViewModel` | **VM-driven**; combines token + balance + rate flows, emits `PresentBill`, calls `SessionController.showBill` |
 | **scanner** | Camera capture of a peer's cash bill / QR | `scanner/ScannerScreen.kt` | Screen-local; uses `:ui:scanner`, routes scans through `Router.classify` |
 | **direct-send** | Send to a contact / phone number | `directsend/SendFlowScreen.kt` · `…/internal/SendFlowViewModel` | **Flow**; contact list + phone gate steps |
 | **withdrawal** | Withdraw funds on-chain | `withdrawal/WithdrawalFlowScreen.kt` · `withdrawal/WithdrawalViewModel` | **Flow** (`AppRoute.Transfers.Withdrawal`); entry → destination → confirmation |
@@ -44,8 +44,8 @@ Two recurring shapes show up in the **Pattern** column:
 | Feature | Purpose | Screen / ViewModel | Pattern & integration |
 |---------|---------|--------------------|-----------------------|
 | **balance** | Wallet balance across tokens | `balance/BalanceScreen.kt` · `…/internal/BalanceViewModel` | **VM-driven**; observes token balances + exchange rates |
-| **tokens** | Token info, selection, and swaps | `tokens/TokenInfoScreen.kt`, `tokens/SwapFlowScreen.kt`, `tokens/TokenSelectScreen.kt` | **Flow** for swap (`FlowRouteWithResult<SwapResult>`); screen-local for info/selection |
-| **currency-creator** | Create a launchpad currency | `currencycreator/CurrencyCreatorFlowScreen.kt` · `…/internal/CurrencyCreatorViewModel` | **Flow**; name → icon → info → processing steps |
+| **tokens** | Token info (price/market cap in USDF), selection, and buy/sell swaps against USDF | `tokens/TokenInfoScreen.kt`, `tokens/SwapFlowScreen.kt`, `tokens/TokenSelectScreen.kt` | **Flow** for swap (`FlowRouteWithResult<SwapResult>`, `SwapPurpose.Buy`/`Sell`); screen-local for info/selection |
+| **currency-creator** | Create a launchpad currency (USDF-backed), seeded by an initial USDF buy | `currencycreator/CurrencyCreatorFlowScreen.kt` · `…/internal/CurrencyCreatorViewModel` | **Flow**; name → icon → info → processing steps |
 
 ## D. Profile, settings & misc
 

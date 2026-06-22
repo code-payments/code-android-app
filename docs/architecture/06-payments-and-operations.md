@@ -1,8 +1,9 @@
 # 06 — Payments & operations
 
 Flipcash is **self-custodial**: the device holds the keys, derives Solana accounts,
-and signs every transaction locally. This document covers key management, the
-account model, the auth-state machine, and how a payment is actually submitted.
+and signs every transaction locally. This document covers the currency model, key
+management, the account model, the auth-state machine, and how a payment is actually
+submitted.
 
 ```mermaid
 graph TD
@@ -17,6 +18,80 @@ graph TD
     Mnemonic --> Derived --> Cluster --> User
     User --> TxController --> Stream --> Backend
 ```
+
+## Currency model: USDF & launchpad currencies
+
+Flipcash has **two kinds of currency**, and the relationship between them is the
+heart of the product:
+
+- **USDF** is the **base / reserve currency** — a USD-pegged stablecoin. In code it
+  is the *"core mint"*: `Mint.usdf`
+  ([`libs/encryption/keys/.../Mint.kt`](../../libs/encryption/keys/src/main/kotlin/com/getcode/solana/keys/Mint.kt)),
+  modeled as a `MintMetadata` (alias `Token`) with **`launchpadMetadata = null`**.
+- **Launchpad currencies** are the **user-facing, tradable tokens** — the unit people
+  actually create, buy, sell, and share. Each is a custom on-chain currency **backed
+  by USDF reserves**.
+
+> **Mental model:** launchpad currencies are to USDF what memecoins are to USDC on
+> Solana. USDF is the reserve everything is priced in and backed by; launchpad
+> currencies are what circulates socially.
+
+A launchpad currency is a `MintMetadata` whose `launchpadMetadata` is **non-null**
+([`services/opencode/.../model/financial/MintMetadata.kt`](../../services/opencode/src/main/kotlin/com/getcode/opencode/model/financial/MintMetadata.kt)).
+`LaunchpadMetadata` describes the backing and pricing:
+
+| Field | Meaning |
+|-------|---------|
+| `liquidityPool` | The on-chain bonding-curve pool. |
+| `mintVault` | Where the launchpad token itself is locked against the pool. |
+| `coreMintVault` | **Where USDF is locked against the pool — the on-chain backing/reserves.** |
+| `currentCirculatingSupplyQuarks` | Circulating supply; drives price via the curve. |
+| `price`, `marketCap` | Both denominated in **USDF** (`Fiat`). |
+| `sellFeeBps` | Sell fee in basis points (currently 1%). |
+
+```mermaid
+graph LR
+    User["User USDF balance<br/>(spendable reserve)"]
+    Pool["Liquidity pool (bonding curve)"]
+    Core["coreMintVault<br/>(USDF backing)"]
+    MintV["mintVault<br/>(launchpad token)"]
+    Token["Launchpad currency<br/>price = f(supply) in USDF"]
+
+    User -->|buy: USDF in| Pool
+    Pool -->|tokens out| Token
+    Token -->|sell: tokens in, −1% fee| Pool
+    Pool -->|USDF out| User
+    Pool --- Core
+    Pool --- MintV
+```
+
+**Price discovery is deterministic and on-chain.** `price = f(currentSupply)` is
+computed by a discrete bonding curve
+([`libs/currency-math/.../curves/DiscreteBondingCurve.kt`](../../libs/currency-math/src/main/kotlin/com/flipcash/libs/currency/math/internal/curves/DiscreteBondingCurve.kt));
+supply updates stream in via `LaunchpadReserveStateSnapshot` and `TokenCoordinator`,
+which recomputes balances and appreciation as the price moves. (This is separate
+from the **fiat** display rates in [04 — Networking](04-networking.md), which convert
+USDF to the user's local currency for display.)
+
+**Buying and selling always goes through USDF.** `SwapPurpose`
+([`apps/flipcash/core/.../tokens/TokenSwapPurpose.kt`](../../apps/flipcash/core/src/main/kotlin/com/flipcash/app/core/tokens/TokenSwapPurpose.kt))
+is either `Buy(mint, fundingSource)` or `Sell(mint)`, and the swap's counter-currency
+is `Mint.usdf`: a buy spends USDF to mint tokens (adding USDF to the pool's
+`coreMintVault`), a sell burns tokens for USDF (returning USDF, minus the 1% fee).
+Creating a currency (`CurrencyCreatorViewModel`) seeds an **initial USDF buy**
+(default ~$5, from a user flag) and hands the creator a cash bill of the new token.
+
+**Sending/sharing carries any token.** A cash bill (`Bill.Cash`) holds whichever
+`Token` is selected — a launchpad currency *or* USDF. Launchpad currencies render as
+a custom bill (`renderAsBill = token.address != Mint.usdf`); USDF renders as plain
+cash.
+
+> **Two senses of "reserves" — don't conflate them.** (1) The on-chain USDF locked in
+> a launchpad token's `coreMintVault` is the token's **backing**. (2)
+> `ReservesBalanceProvider.observeReservesBalance()` →
+> `balanceForToken(Mint.usdf)` is the **user's own USDF balance**, i.e. the spendable
+> reserve they buy launchpad currencies with. Both are USDF, but one is pool-side
+> backing and the other is the user's wallet balance.
 
 ## Keys & cryptography
 
