@@ -8,18 +8,33 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Text
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 
+
+private fun Modifier.squareMinSize(): Modifier = layout { measurable, constraints ->
+    val intrinsicHeight = measurable.minIntrinsicHeight(constraints.maxWidth)
+    val squaredConstraints = constraints.copy(
+        minWidth = maxOf(constraints.minWidth, intrinsicHeight).coerceAtMost(constraints.maxWidth)
+    )
+    val placeable = measurable.measure(squaredConstraints)
+    layout(placeable.width, placeable.height) {
+        placeable.placeRelative(0, 0)
+    }
+}
 
 @Composable
 fun Badge(
@@ -44,17 +59,18 @@ fun Badge(
             else -> "$count"
         }
 
-        Pill(
-            backgroundColor = color,
-            contentColor = contentColor,
-            contentPadding = PaddingValues(
-                horizontal = CodeTheme.dimens.grid.x1,
-                vertical = 3.dp
-            )
+        Box(
+            modifier = Modifier
+                .squareMinSize()
+                .clip(CircleShape)
+                .background(color)
+                .padding(horizontal = CodeTheme.dimens.grid.x1, vertical = 3.dp),
+            contentAlignment = Alignment.Center
         ) {
             Text(
                 text = text,
                 style = textStyle,
+                color = contentColor,
             )
         }
     }
