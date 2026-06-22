@@ -155,9 +155,9 @@ Contributions are welcome via pull request.
 
 ## Community & support
 
-- **Discord:** <https://discord.gg/T8Tpj8DBFp>
-- **X / Twitter:** <https://twitter.com/getcode>
-- **Website:** <https://getcode.com>
+- **Website:** <https://flipcash.com>
+- **X / Twitter:** <https://x.com/flipcash>
+- **Support:** support@flipcash.com
 
 ## License
 
