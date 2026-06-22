@@ -1,4 +1,4 @@
-<img width="1280" alt="Flipcash Android App" src="https://github.com/code-payments/code-android-app/assets/5760385/dccb71f2-b768-48c0-be8e-f70543301ee1">
+<img width="100%" alt="Flipcash" src="docs/assets/flipcash-header.svg">
 
 # Flipcash for Android
 
