@@ -68,7 +68,7 @@ fun ContactRationaleContent() {
                 AnimatedConversationPreview(animate = false, gradientColorStops = listOf(0f, 0.9f, 0.99f))
 
                 Text(
-                    text = stringResource(R.string.rationale_title_contacts),
+                    text = stringResource(R.string.permissions_title_contactsRationale),
                     style = CodeTheme.typography.displaySmall,
                     color = CodeTheme.colors.textMain,
                 )
@@ -76,7 +76,7 @@ fun ContactRationaleContent() {
                     modifier = Modifier
                         .padding(top = CodeTheme.dimens.grid.x2)
                         .padding(horizontal = CodeTheme.dimens.inset),
-                    text = stringResource(R.string.permissions_description_contacts),
+                    text = stringResource(R.string.permissions_description_contactsRationale),
                     style = CodeTheme.typography.textSmall,
                     color = CodeTheme.colors.textSecondary,
                     textAlign = TextAlign.Center,
