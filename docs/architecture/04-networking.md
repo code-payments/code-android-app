@@ -130,6 +130,18 @@ Tokens are short-lived and passed per request.
   transitions, and `shareIn`s a single connectivity flow. It's published app-wide as
   `LocalNetworkObserver`.
 
+## Module-level docs
+
+Each service module carries its own `README.md` with the full controller catalog and
+internals:
+
+- [`services/opencode`](../../services/opencode/README.md) — OCP: intents, the
+  `SubmitIntent` handshake, transactors, Solana programs, swaps, exchange.
+- [`services/flipcash`](../../services/flipcash/README.md) — accounts, chat,
+  contacts, profiles; signing path and event streaming.
+- [`services/opencode-compose`](../../services/opencode-compose/README.md) ·
+  [`services/flipcash-compose`](../../services/flipcash-compose/README.md) — Compose bindings.
+
 ## Why this matters
 
 The four-layer split means a proto or transport change is absorbed at the Api/
