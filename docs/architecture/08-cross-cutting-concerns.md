@@ -83,22 +83,21 @@ backgrounds), and applies a short cooldown so it doesn't re-prompt on every resu
 
 ## Async model
 
-- **`DispatcherProvider`** (`libs/coroutines`) abstracts `Default` / `Main` / `IO`
-  dispatchers and is injected (rather than referencing `Dispatchers.*` directly) so
-  code is testable.
-- **Controllers** hold a `CoroutineScope(Dispatchers.IO + SupervisorJob())` and
-  expose state as `StateFlow`.
-- **Networking** uses `suspend` + `Result<T>` for unary calls and `Flow<T>` for
-  streams.
-- **Compose** drives side effects with `LaunchedEffect` / `rememberCoroutineScope`
-  and collects state with `collectAsStateWithLifecycle()`.
+The app is **Coroutines + Flow** throughout (no RxJava): `DispatcherProvider`
+(`libs/coroutines`) is injected instead of touching `Dispatchers.*`, singletons own
+an `IO + SupervisorJob` scope and expose `StateFlow`, networking uses `suspend` +
+`Result<T>` (and `Flow<T>` for streams), and Compose collects with
+`collectAsStateWithLifecycle()`. The full conventions — scope ownership, the
+Flow-exposure pattern, and lifecycle-aware streaming — are in
+[17 — Concurrency](17-concurrency.md).
 
 ## Build configuration
 
 `compileSdk 36`, `minSdk 29`, **Java/Kotlin 21**, all set by the convention plugins
-(see [01](01-modules-and-boundaries.md)). API keys (Bugsnag, Fingerprint, Mixpanel,
-Google Cloud project number) are read from `local.properties` and surfaced through
-`BuildConfig`; `google-services.json` lives under `apps/flipcash/app/src/`.
+(see [01](01-modules-and-boundaries.md)). API keys (Bugsnag, Mixpanel, Coinbase
+on-ramp, Google Cloud project number) are read from `local.properties` and surfaced
+through `BuildConfig`; `google-services.json` lives under `apps/flipcash/app/src/`.
+See [10 — Build & run](10-build-and-run.md) for the full list.
 
 ## Why this matters
 
