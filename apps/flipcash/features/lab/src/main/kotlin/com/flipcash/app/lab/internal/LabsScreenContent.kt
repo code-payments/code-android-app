@@ -97,11 +97,13 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel, onboarding: Boole
             }
         }
 
-        item(contentType = "section_header") {
-            SectionHeader(
-                modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-                title = stringResource(R.string.title_settingsSectionFeatures)
-            )
+        if (betaOverride) {
+            item(contentType = "section_header") {
+                SectionHeader(
+                    modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                    title = stringResource(R.string.title_settingsSectionFeatures)
+                )
+            }
         }
         items(betaFlags, key = { it.flag.key }, contentType = { "feature_flag" }) { feature ->
             Column(modifier = Modifier.animateItem()) {
