@@ -97,7 +97,7 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel, onboarding: Boole
             }
         }
 
-        if (betaOverride) {
+        if (showAllFlags) {
             item(contentType = "section_header") {
                 SectionHeader(
                     modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
@@ -110,7 +110,7 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel, onboarding: Boole
                 if (feature.flag.isOptionFlag) {
                     SettingsOptionRow(
                         title = feature.flag.title,
-                        subtitle = feature.flag.message.takeIf { betaOverride },
+                        subtitle = feature.flag.message.takeIf { showAllFlags },
                         options = feature.flag.options,
                         selectedOption = feature.selectedOption ?: feature.flag.defaultOption,
                         onOptionSelected = { optionKey ->
@@ -120,7 +120,7 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel, onboarding: Boole
                 } else {
                     SettingsSwitchRow(
                         title = feature.flag.title,
-                        subtitle = feature.flag.message.takeIf { betaOverride },
+                        subtitle = feature.flag.message.takeIf { showAllFlags },
                         checked = feature.enabled
                     ) {
                         betaFlagsController.set(feature.flag, !feature.enabled)
