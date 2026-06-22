@@ -5,8 +5,7 @@ biometrics, and the async model. These are centralized so features get them
 "for free" without each one reinventing instrumentation.
 
 > **Note on async:** the app is effectively **pure Kotlin Coroutines + Flow**.
-> There is no meaningful RxJava usage in app source today; older notes describing
-> "RxJava 3 coexisting" are stale.
+> There is no meaningful RxJava usage in app source.
 
 ```mermaid
 graph TD

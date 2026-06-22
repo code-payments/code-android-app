@@ -6,10 +6,6 @@ architectural concern; start here, then jump to the topic you need.
 > **These docs describe structure and intent, not every line of code.** If the
 > documentation and the code disagree, **the code is authoritative** — fix the
 > docs. When you change a subsystem, update its document in the same commit.
->
-> Where this suite contradicts older notes in `CLAUDE.md` (navigation, persistence
-> encryption, RxJava), it does so deliberately: these documents reflect the code as
-> it exists today. See the per-topic docs for details.
 
 ## What Flipcash is
 

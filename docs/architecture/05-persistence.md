@@ -6,10 +6,9 @@ key/value preferences and a **Paging 3 `RemoteMediator`** layer to back paged li
 shared sub-modules so storage details don't leak into features.
 
 > **Note on encryption:** the Flipcash Room database is **not** wrapped with
-> SQLCipher today (there is no `SupportFactory` / `net.zetetic` in
+> SQLCipher (there is no `SupportFactory` / `net.zetetic` in
 > `apps/flipcash/shared/persistence`). Instead, **each account gets its own
-> database file**, named from the account entropy. Older notes describing a
-> SQLCipher-encrypted Room DB are stale.
+> database file**, named from the account entropy.
 
 ```mermaid
 graph TD

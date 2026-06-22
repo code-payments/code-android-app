@@ -2,7 +2,7 @@
 
 > **Note on stacks:** Flipcash navigates with **Jetpack Navigation 3**
 > (`androidx.navigation3`) wrapped by a custom `CodeNavigator`. There is **no
-> Voyager** dependency in the project today — older references to Voyager are stale.
+> Voyager** dependency in the project.
 
 Navigation has three moving parts: a **typed route graph** (`AppRoute`), a
 **navigator** that drives a Navigation3 back stack (`CodeNavigator` +
