@@ -56,25 +56,29 @@ class BuildNavGraphForLaunchTest {
     }
 
     @Test
-    fun `logged in with OpenCashLink defers to App for dispatch`() {
+    fun `logged in with OpenCashLink fires eagerly via pendingAction`() {
+        val action = DeeplinkAction.OpenCashLink("testEntropy")
         val result = build(
             state = AuthState.Ready,
-            action = DeeplinkAction.OpenCashLink("testEntropy"),
+            action = action,
             deepLink = dummyLink,
         )!!
         assertEquals(listOf(AppRoute.Main.Scanner), result.baseRoutes)
-        assertTrue(result.deeplinkRoutes.isEmpty(), "OpenCashLink must not be consumed by MainRoot")
+        assertTrue(result.deeplinkRoutes.isEmpty())
+        assertEquals(action, result.pendingAction)
     }
 
     @Test
-    fun `logged in with Login action defers to App for dispatch`() {
+    fun `logged in with Login action fires eagerly via pendingAction`() {
+        val action = DeeplinkAction.Login("seed")
         val result = build(
             state = AuthState.Ready,
-            action = DeeplinkAction.Login("seed"),
+            action = action,
             deepLink = dummyLink,
         )!!
         assertEquals(listOf(AppRoute.Main.Scanner), result.baseRoutes)
-        assertTrue(result.deeplinkRoutes.isEmpty(), "Login must not be consumed by MainRoot")
+        assertTrue(result.deeplinkRoutes.isEmpty())
+        assertEquals(action, result.pendingAction)
     }
 
     @Test

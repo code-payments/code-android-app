@@ -44,7 +44,10 @@ import kotlinx.coroutines.flow.onEach
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
-internal fun MainRoot(deepLink: () -> DeepLink?) {
+internal fun MainRoot(
+    deepLink: () -> DeepLink?,
+    onPendingAction: (DeeplinkAction) -> Unit = {},
+) {
     val navigator = LocalCodeNavigator.current
     val userManager = LocalUserManager.current!!
     var showLoading by remember { mutableStateOf(false) }
@@ -129,6 +132,13 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
                             navigator.navigateAll(launch.deeplinkRoutes)
                         }
                     }
+
+                    // Fire eagerly so the claim/login starts in parallel
+                    // with the nav transition instead of waiting for
+                    // App.kt's LaunchedEffect to see a non-Loading route.
+                    if (launch.pendingAction != null) {
+                        onPendingAction(launch.pendingAction)
+                    }
                 }
             }.launchIn(this)
     }
@@ -144,6 +154,7 @@ internal fun MainRoot(deepLink: () -> DeepLink?) {
 internal data class LaunchNavGraph(
     val baseRoutes: List<NavKey>,
     val deeplinkRoutes: List<AppRoute> = emptyList(),
+    val pendingAction: DeeplinkAction? = null,
 ) {
     /**
      * Predict the final backstack that [baseRoutes] + [navigateTo(deeplinkRoutes)] will produce.
@@ -192,8 +203,13 @@ internal fun buildNavGraphForLaunch(
                         baseRoutes = listOf(AppRoute.Main.Scanner),
                         deeplinkRoutes = action.routes,
                     )
-                    // OpenCashLink/Login/ExternalWallet are handled by App.kt's
-                    // LaunchedEffect(deepLink, currentRoute) once we leave Loading.
+
+                    is DeeplinkAction.OpenCashLink,
+                    is DeeplinkAction.Login -> LaunchNavGraph(
+                        baseRoutes = listOf(AppRoute.Main.Scanner),
+                        pendingAction = action,
+                    )
+
                     else -> LaunchNavGraph(listOf(AppRoute.Main.Scanner))
                 }
             } else {
