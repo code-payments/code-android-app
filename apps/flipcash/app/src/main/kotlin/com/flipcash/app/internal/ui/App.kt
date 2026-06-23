@@ -227,6 +227,28 @@ internal fun App(
                                                 resultStateRegistry = resultStateRegistry,
                                                 barManager = barManager,
                                                 deepLink = { deepLink },
+                                                onPendingAction = { action ->
+                                                    deeplinkHandled = true
+                                                    when (action) {
+                                                        is DeeplinkAction.OpenCashLink ->
+                                                            session.openCashLink(action.entropy)
+                                                        is DeeplinkAction.Login ->
+                                                            viewModel.handleLoginEntropy(
+                                                                action.entropy,
+                                                                onSwitchAccount = {
+                                                                    codeNavigator.replaceAll(
+                                                                        AppRoute.OnboardingFlow(
+                                                                            seed = action.entropy,
+                                                                            fromDeeplink = true
+                                                                        )
+                                                                    )
+                                                                },
+                                                                onDismissed = { }
+                                                            )
+                                                        else -> {}
+                                                    }
+                                                    deepLink = null
+                                                },
                                             ),
                                         )
 

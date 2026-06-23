@@ -27,6 +27,7 @@ import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.directsend.SendFlowScreen
@@ -67,10 +68,11 @@ fun appEntryProvider(
     resultStateRegistry: NavResultStateRegistry,
     barManager: BarManager,
     deepLink: () -> DeepLink?,
+    onPendingAction: (DeeplinkAction) -> Unit = {},
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
 
     // Loading / splash
-    annotatedEntry<AppRoute.Loading> { MainRoot(deepLink) }
+    annotatedEntry<AppRoute.Loading> { MainRoot(deepLink, onPendingAction) }
 
     // Onboarding flow
     annotatedEntry<AppRoute.OnboardingFlow> { key ->
