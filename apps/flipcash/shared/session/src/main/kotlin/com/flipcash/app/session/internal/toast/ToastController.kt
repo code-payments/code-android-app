@@ -3,10 +3,10 @@ package com.flipcash.app.session.internal.toast
 import com.flipcash.app.core.bill.BillToast
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.toast.ToastController
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -18,13 +18,14 @@ import kotlin.time.Duration.Companion.seconds
 
 @Singleton
 class SessionToastController @Inject constructor(
-    private val billController: BillController
+    private val billController: BillController,
+    private val dispatchers: DispatcherProvider,
 ) : ToastController {
     companion object {
         val INITIAL_DELAY = 500.milliseconds
         val SHOW_DELAY = 3.seconds
     }
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
     private val toastQueue = mutableListOf<ToastRequest>()
     private var isConsumingQueue = false
 

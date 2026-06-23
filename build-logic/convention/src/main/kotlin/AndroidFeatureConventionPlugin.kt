@@ -32,6 +32,7 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
                 "implementation"(libs.findLibrary("rinku-compose").get())
 
                 // Common project dependencies
+                "implementation"(project(":libs:coroutines"))
                 "implementation"(project(":libs:logging"))
                 "implementation"(project(":ui:core"))
                 "implementation"(project(":ui:components"))

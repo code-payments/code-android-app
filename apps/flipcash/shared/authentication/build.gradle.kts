@@ -23,4 +23,5 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.robolectric)
+    testImplementation(testFixtures(project(":libs:coroutines")))
 }

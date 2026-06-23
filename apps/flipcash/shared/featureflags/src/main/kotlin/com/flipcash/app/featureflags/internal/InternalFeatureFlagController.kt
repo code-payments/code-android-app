@@ -11,9 +11,9 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.libs.coroutines.DispatcherProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +27,7 @@ import javax.inject.Inject
 
 internal class InternalFeatureFlagController @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val dispatchers: DispatcherProvider,
 ) : FeatureFlagController {
 
     companion object {
@@ -39,7 +40,7 @@ internal class InternalFeatureFlagController @Inject constructor(
         private val betaOverrideKey = booleanPreferencesKey("beta_override")
     }
 
-    private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatchers.IO)
     private val betaFlags = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler(
             produceNewData = { emptyPreferences() }
@@ -66,7 +67,7 @@ internal class InternalFeatureFlagController @Inject constructor(
     }
 
     override fun enableBetaFeatures() {
-        dataScope.launch(Dispatchers.IO) {
+        dataScope.launch {
             betaFlags.edit { prefs ->
                 prefs[betaOverrideKey] = true
             }
@@ -74,7 +75,7 @@ internal class InternalFeatureFlagController @Inject constructor(
     }
 
     override fun disableBetaFeatures() {
-        dataScope.launch(Dispatchers.IO) {
+        dataScope.launch {
             betaFlags.edit { prefs ->
                 prefs[betaOverrideKey] = false
                 FeatureFlag.availableEntries.forEach { flag ->
@@ -92,7 +93,7 @@ internal class InternalFeatureFlagController @Inject constructor(
             .stateIn(dataScope, SharingStarted.Eagerly, false)
 
     override fun set(flag: FeatureFlag<*>, value: Boolean) {
-        dataScope.launch(Dispatchers.IO) {
+        dataScope.launch {
             betaFlags.edit { prefs ->
                 prefs[flag.booleanPreferenceKey] = value
             }
@@ -148,7 +149,7 @@ internal class InternalFeatureFlagController @Inject constructor(
     }.stateIn(dataScope, started = SharingStarted.Eagerly, flag.defaultEnabled)
 
     override fun setOption(flag: FeatureFlag<*>, optionKey: String) {
-        dataScope.launch(Dispatchers.IO) {
+        dataScope.launch {
             betaFlags.edit { prefs ->
                 prefs[flag.optionPreferenceKey] = optionKey
             }

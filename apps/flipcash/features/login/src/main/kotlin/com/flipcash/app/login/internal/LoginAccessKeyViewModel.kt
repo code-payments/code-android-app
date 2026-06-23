@@ -3,6 +3,7 @@ package com.flipcash.app.login.internal
 import com.flipcash.app.accesskey.BaseAccessKeyViewModel
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.storage.MediaSaver
 import com.flipcash.app.featureflags.FeatureFlag
@@ -25,11 +26,12 @@ internal class LoginAccessKeyViewModel @Inject constructor(
     qrCodeGenerator: QRCodeGenerator,
     mediaSaver: MediaSaver,
     userManager: UserManager,
+    dispatchers: DispatcherProvider,
     private val userFlags: UserFlagsCoordinator,
     private val featureFlags: FeatureFlagController,
     private val authManager: AuthManager,
     private val analytics: FlipcashAnalyticsService,
-): BaseAccessKeyViewModel(resources, mnemonicManager, mediaSaver, userManager, qrCodeGenerator) {
+): BaseAccessKeyViewModel(resources, mnemonicManager, mediaSaver, userManager, qrCodeGenerator, dispatchers) {
 
     suspend fun onWroteDownInstead(): Result<Boolean> {
         trackButton(Button.WroteAccessKey)

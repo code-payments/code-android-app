@@ -2,6 +2,7 @@ package com.flipcash.app.backupkey.internal
 
 import com.flipcash.app.accesskey.BaseAccessKeyViewModel
 import com.flipcash.app.core.storage.MediaSaver
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.opencode.managers.MnemonicManager
@@ -20,12 +21,14 @@ internal class BackupKeyScreenViewModel @Inject constructor(
     mediaSaver: MediaSaver,
     userManager: UserManager,
     qrCodeGenerator: QRCodeGenerator,
+    dispatchers: DispatcherProvider,
 ) : BaseAccessKeyViewModel(
     resources,
     mnemonicManager,
     mediaSaver,
     userManager,
-    qrCodeGenerator
+    qrCodeGenerator,
+    dispatchers,
 ) {
     suspend fun saveImage(): Result<Unit> = saveBitmapToFile().map {
         delay(150)

@@ -5,4 +5,11 @@ plugins {
 
 android {
     namespace = "${Gradle.codeNamespace}.libs.coroutines"
+    testFixtures {
+        enable = true
+    }
+}
+
+dependencies {
+    testFixturesImplementation(libs.kotlinx.coroutines.test)
 }

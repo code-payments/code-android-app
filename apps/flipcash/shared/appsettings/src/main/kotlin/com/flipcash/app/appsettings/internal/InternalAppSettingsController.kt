@@ -10,8 +10,8 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import com.flipcash.app.appsettings.AppSetting
 import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsController
+import com.flipcash.libs.coroutines.DispatcherProvider
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 
 class InternalAppSettingsController(
     private val context: Context,
+    private val dispatchers: DispatcherProvider,
 ) : AppSettingsController {
 
     companion object {
@@ -29,7 +30,7 @@ class InternalAppSettingsController(
             get() = booleanPreferencesKey(key)
     }
 
-    private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatchers.IO)
     private val appSettings = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler(
             produceNewData = { emptyPreferences() }
@@ -66,7 +67,7 @@ class InternalAppSettingsController(
             // TODO: analytics
         }
 
-        dataScope.launch(Dispatchers.IO) {
+        dataScope.launch {
             appSettings.edit { prefs ->
                 prefs[setting.booleanPreferenceKey] = value
             }

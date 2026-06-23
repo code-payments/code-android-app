@@ -3,6 +3,7 @@ package com.flipcash.app.featureflags.inject
 import android.content.Context
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.featureflags.internal.InternalFeatureFlagController
+import com.flipcash.libs.coroutines.DispatcherProvider
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,6 +18,7 @@ object FeatureFlagModule {
     @Singleton
     fun provideFeatureFlagController(
         @ApplicationContext context: Context,
-    ): FeatureFlagController = InternalFeatureFlagController(context)
+        dispatchers: DispatcherProvider,
+    ): FeatureFlagController = InternalFeatureFlagController(context, dispatchers)
 
 }

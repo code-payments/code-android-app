@@ -21,6 +21,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import com.flipcash.libs.coroutines.TestDispatcherProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,7 +43,8 @@ import kotlin.test.assertTrue
 @RunWith(RobolectricTestRunner::class)
 class AuthManagerTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
+    private val dispatchers = TestDispatcherProvider(UnconfinedTestDispatcher())
+    private val testDispatcher get() = dispatchers.testDispatcher
 
     private val credentialManager: PassphraseCredentialManager = mockk(relaxed = true)
     private val userManager: UserManager = mockk(relaxed = true)
@@ -90,6 +92,7 @@ class AuthManagerTest {
             appSettings = appSettings,
             userFlags = userFlags,
             contactCoordinator = contactCoordinator,
+            dispatchers = dispatchers,
         )
     }
 

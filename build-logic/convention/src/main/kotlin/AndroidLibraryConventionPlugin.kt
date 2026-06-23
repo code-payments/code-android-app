@@ -64,6 +64,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
 
             tasks.withType<Test> {
                 failOnNoDiscoveredTests.set(false)
+                maxHeapSize = "2g"
             }
 
             dependencies {

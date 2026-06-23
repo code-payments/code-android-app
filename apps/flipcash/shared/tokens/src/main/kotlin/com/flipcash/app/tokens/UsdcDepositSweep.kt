@@ -9,10 +9,10 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -25,6 +25,7 @@ class UsdcDepositSweep(
     private val accountController: AccountController,
     private val tokenCoordinator: TokenCoordinator,
     private val balancePoller: BalancePoller,
+    private val dispatchers: DispatcherProvider,
     private val maxRetries: Int = MAX_RETRIES,
     private val initialDelay: Duration = INITIAL_DELAY,
     private val backoffFactor: Double = BACKOFF_FACTOR,
@@ -36,11 +37,13 @@ class UsdcDepositSweep(
         accountController: AccountController,
         tokenCoordinator: TokenCoordinator,
         balancePoller: BalancePoller,
+        dispatchers: DispatcherProvider,
     ) : this(
         transactionOperations = transactionOperations,
         accountController = accountController,
         tokenCoordinator = tokenCoordinator,
         balancePoller = balancePoller,
+        dispatchers = dispatchers,
         maxRetries = MAX_RETRIES,
         initialDelay = INITIAL_DELAY,
         backoffFactor = BACKOFF_FACTOR,
@@ -48,7 +51,7 @@ class UsdcDepositSweep(
         pollMaxAttempts = POLL_MAX_ATTEMPTS,
     )
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
     private var activeJob: Job? = null
 
     fun execute(owner: AccountCluster) {
