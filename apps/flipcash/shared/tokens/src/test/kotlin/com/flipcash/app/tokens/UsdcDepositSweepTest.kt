@@ -8,6 +8,7 @@ import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import com.flipcash.libs.coroutines.DispatcherProvider
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -43,6 +44,11 @@ class UsdcDepositSweepTest {
             accountController = accountController,
             tokenCoordinator = tokenCoordinator,
             balancePoller = balancePoller,
+            dispatchers = object : DispatcherProvider {
+                override val Default = kotlinx.coroutines.Dispatchers.Default
+                override val Main = kotlinx.coroutines.Dispatchers.Default
+                override val IO = kotlinx.coroutines.Dispatchers.IO
+            },
             maxRetries = 3,
             initialDelay = 10.milliseconds,
             backoffFactor = 1.0,

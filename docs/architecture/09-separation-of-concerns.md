@@ -41,6 +41,15 @@ Service — is defined in
 [02 — Roles](02-state-and-dependency-injection.md#roles-coordinators-controllers-managers-services).
 Features never reach into each other's internals; they go through shared modules.
 
+### 3a. Delegate composition for large controllers
+When a shared controller grows beyond a manageable size, decompose it using Kotlin
+`by` interface delegation: split the public interface into sub-interfaces, implement
+each in a focused delegate class, and compose them in a thin orchestration shell.
+Cross-delegate calls flow through `Channel<Event>`s (exposed as `Flow`) collected by the shell — no
+circular references, no `lateinit`, no post-construction wiring. `SessionController`
+is the canonical example (see
+[02 — Delegate composition](02-state-and-dependency-injection.md#delegate-composition-sessioncontroller)).
+
 ### 4. Transport details stop at the data layer
 The gRPC stack's four layers (Api → Service → Repository → Controller) mean protobuf
 types, channels, and signing never appear in a feature. Features consume
@@ -69,6 +78,7 @@ feature code. See [06 — Payments & operations](06-payments-and-operations.md).
 | A new screen | a `:apps:flipcash:features:*` module (screen + ViewModel + Hilt module) |
 | Cached, synced state for a domain (contacts, tokens, chat) | a `:apps:flipcash:shared:*` **Coordinator** ([roles](02-state-and-dependency-injection.md#roles-coordinators-controllers-managers-services)) |
 | Stateless shared logic two+ features call | a `:apps:flipcash:shared:*` **Controller** |
+| A large shared controller that has grown unwieldy | Decompose with Kotlin `by` delegation into focused delegates ([3a](#3a-delegate-composition-for-large-controllers)) |
 | A new backend call | the appropriate `:services:*` layer (Api → Service → Repository → Controller) |
 | A reusable component or token | `:ui:components` / `:ui:theme` |
 | A domain-agnostic utility | a `:libs:*` module |

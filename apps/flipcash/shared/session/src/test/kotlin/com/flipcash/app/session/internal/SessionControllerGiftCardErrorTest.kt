@@ -5,10 +5,16 @@ import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.internal.bill.BillController
+import com.flipcash.app.session.internal.delegates.BillPresentationDelegate
+import com.flipcash.app.session.internal.delegates.CashLinkDelegate
+import com.flipcash.app.session.internal.delegates.CodeScanDelegate
+import com.flipcash.app.session.internal.delegates.DepositDelegate
+import com.flipcash.app.session.internal.delegates.GiftCardSharingDelegate
 import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.session.R
 import com.getcode.manager.BottomBarManager
@@ -26,6 +32,7 @@ import io.mockk.slot
 import io.mockk.unmockkObject
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -46,6 +53,7 @@ class SessionControllerGiftCardErrorTest {
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
     private val networkObserver = mockk<NetworkConnectivityListener>(relaxed = true)
+    private val dispatchers = TestDispatcherProvider(UnconfinedTestDispatcher())
 
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
 
@@ -76,31 +84,78 @@ class SessionControllerGiftCardErrorTest {
     private fun createController(
         shareSheetController: ShareSheetController = mockk(relaxed = true),
     ): RealSessionController {
+        val stateHolder = SessionStateHolder()
+
+        val billDelegate = BillPresentationDelegate(
+            billController = billController,
+            stateHolder = stateHolder,
+            toastController = mockk(relaxed = true),
+            tokenCoordinator = tokenCoordinator,
+            analytics = analytics,
+            vibrator = mockk(relaxed = true),
+            resources = resources,
+            networkObserver = networkObserver,
+            userManager = userManager,
+            dispatchers = dispatchers,
+        )
+
+        val scanDelegate = CodeScanDelegate(
+            stateHolder = stateHolder,
+            billController = billController,
+            tokenCoordinator = tokenCoordinator,
+            analytics = analytics,
+            vibrator = mockk(relaxed = true),
+            userManager = userManager,
+            dispatchers = dispatchers,
+        )
+
+        val cashLinkDelegate = CashLinkDelegate(
+            stateHolder = stateHolder,
+            billController = billController,
+            tokenCoordinator = tokenCoordinator,
+            analytics = analytics,
+            resources = resources,
+            userManager = userManager,
+        )
+
+        val giftCardDelegate = GiftCardSharingDelegate(
+            billController = billController,
+            shareSheetController = shareSheetController,
+            shareConfirmationController = mockk(relaxed = true),
+            toastController = mockk(relaxed = true),
+            tokenCoordinator = tokenCoordinator,
+            transactionController = mockk(relaxed = true),
+            analytics = analytics,
+            vibrator = mockk(relaxed = true),
+            resources = resources,
+            dispatchers = dispatchers,
+        )
+
         return RealSessionController(
+            billDelegate = billDelegate,
+            scanDelegate = scanDelegate,
+            cashLinkDelegate = cashLinkDelegate,
+            depositDelegate = mockk(relaxed = true),
+            giftCardDelegate = giftCardDelegate,
+            stateHolder = stateHolder,
             billController = billController,
             userManager = userManager,
             accountController = mockk(relaxed = true),
             settingsController = mockk(relaxed = true),
             feedCoordinator = mockk(relaxed = true),
-            transactionController = mockk(relaxed = true),
             networkObserver = networkObserver,
-            resources = resources,
-            vibrator = mockk(relaxed = true),
             tokenUpdater = mockk(relaxed = true),
             activityFeedUpdater = mockk(relaxed = true),
             profileUpdater = mockk(relaxed = true),
             shareSheetController = shareSheetController,
-            shareConfirmationController = mockk(relaxed = true),
             toastController = mockk(relaxed = true),
             billingClient = mockk(relaxed = true),
             tokenCoordinator = tokenCoordinator,
             contactCoordinator = mockk(relaxed = true),
-            featureFlagController = mockk(relaxed = true),
-            analytics = analytics,
-            usdcSweep = mockk(relaxed = true),
-            appSettingsCoordinator = mockk(relaxed = true),
             chatCoordinator = mockk(relaxed = true),
-            purchaseMethodController = mockk(relaxed = true),
+            featureFlagController = mockk(relaxed = true),
+            appSettingsCoordinator = mockk(relaxed = true),
+            dispatchers = dispatchers,
         )
     }
 
@@ -275,15 +330,6 @@ class SessionControllerGiftCardErrorTest {
         } answers {
             onErrorSlot.captured.invoke(RuntimeException("funding failed"))
         }
-
-        // initiateGiftCardFunding is a private suspend function called from shareGiftCard
-        // which itself is called from the bill presentation flow.
-        // Since we can't easily reach it through the public API without complex bill state setup,
-        // we test the error callback behavior directly by verifying the BottomBarManager pattern.
-        // The onError lambda in initiateGiftCardFunding calls:
-        //   dismissBill(PutInWallet)
-        //   BottomBarManager.showError(title, message)
-        //   cont.resume(Result.failure(it))
 
         // Simulate what the onError callback does:
         BottomBarManager.showError(

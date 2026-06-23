@@ -131,6 +131,57 @@ domain API; a Coordinator is the stateful, session-aware owner of that domain's
 cached state.** When in doubt, [09 — Separation of concerns](09-separation-of-concerns.md)
 has a "where does this code go?" table.
 
+## Delegate composition: `SessionController`
+
+The `SessionController` interface is split into four sub-interfaces —
+`BillOperations`, `CodeScanOperations`, `CashLinkOperations`, `DepositOperations` —
+plus lifecycle methods. `RealSessionController` implements each sub-interface via
+Kotlin `by` delegation to a focused `@Singleton` delegate:
+
+```kotlin
+class RealSessionController @Inject constructor(
+    private val billDelegate: BillPresentationDelegate,
+    private val scanDelegate: CodeScanDelegate,
+    private val cashLinkDelegate: CashLinkDelegate,
+    private val depositDelegate: DepositDelegate,
+    private val giftCardDelegate: GiftCardSharingDelegate,
+    private val stateHolder: SessionStateHolder,
+    // ... remaining deps for lifecycle/polling
+) : SessionController,
+    BillOperations by billDelegate,
+    CodeScanOperations by scanDelegate,
+    CashLinkOperations by cashLinkDelegate,
+    DepositOperations by depositDelegate { ... }
+```
+
+Each delegate owns its own `CoroutineScope`, dependencies, and logic. Cross-delegate
+communication uses event flows — each delegate exposes a `Flow<Event>` (backed by a
+`Channel(UNLIMITED)` for guaranteed delivery), and
+the shell's `init` block collects them and routes events:
+
+```kotlin
+// In RealSessionController init:
+billDelegate.events.onEach { event ->
+    when (event) {
+        is BillPresentationDelegate.Event.SendAsLinkRequested ->
+            giftCardDelegate.shareGiftCard(event.bill, event.owner)
+        is BillPresentationDelegate.Event.RefreshFeed ->
+            bringActivityFeedCurrent()
+    }
+}.launchIn(scope)
+```
+
+A shared `SessionStateHolder` (wrapping `MutableStateFlow<SessionState>`) is injected
+into every delegate so they all read/write the same session state without holding the
+raw mutable flow. Lifecycle orchestration (`onAppInForeground`/`onAppInBackground`) and
+flow observers (auth state, feature flags, network reconnects) remain on the shell
+because they are inherently cross-cutting.
+
+The relevant source files live under `apps/flipcash/shared/session/.../internal/`:
+`SessionStateHolder.kt`, and in the `delegates/` sub-package:
+`BillPresentationDelegate.kt`, `CodeScanDelegate.kt`, `CashLinkDelegate.kt`,
+`DepositDelegate.kt`, `GiftCardSharingDelegate.kt`. The shell is `RealSessionController.kt`.
+
 ## State: `BaseViewModel<State, Event>`
 
 The MVI base class lives at

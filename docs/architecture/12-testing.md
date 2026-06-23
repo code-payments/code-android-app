@@ -117,6 +117,36 @@ bundle exec fastlane android flipcash_tests      # what CI runs
 
 See [10 — Build & run](10-build-and-run.md) for the wider command set.
 
+## Testing delegate event emissions
+
+Session delegates ([02 — Delegate composition](02-state-and-dependency-injection.md#delegate-composition-sessioncontroller))
+emit cross-delegate events via `Channel` (exposed as `Flow`). Tests assert on these events using
+Turbine:
+
+```kotlin
+@Test
+fun `emits BillReady on successful grab`() = runTest {
+    val delegate = CodeScanDelegate(
+        stateHolder = SessionStateHolder(),
+        billController = mockk(relaxed = true),
+        // ... other mocked deps, DispatcherProvider with UnconfinedTestDispatcher
+    )
+    // set up mock captures for onGrabbed callback ...
+
+    delegate.events.test {
+        // trigger the callback
+        onGrabbedSlot.captured.invoke(token, amount, null)
+
+        val event = awaitItem()
+        assertIs<CodeScanDelegate.Event.BillReady>(event)
+    }
+}
+```
+
+For suspend lambda callbacks that MockK can't capture directly (a known Kotlin 2.x
+compatibility issue), use the `answers { args[N] as suspend ... }` pattern instead
+of `capture(slot)`.
+
 ## Guidance
 
 - **Inject, don't reach.** A ViewModel/coordinator that takes its dependencies
