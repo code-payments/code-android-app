@@ -15,10 +15,10 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.util.locale.LocaleHelper
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.utils.base58
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -37,6 +37,7 @@ class PreferredCurrencyController @Inject constructor(
     private val userManager: UserManager,
     private val exchange: Exchange,
     private val settingsController: SettingsController,
+    private val dispatchers: DispatcherProvider,
 ) {
     companion object {
         fun initializedKeyForUser(userIdentifier: String) =
@@ -49,7 +50,7 @@ class PreferredCurrencyController @Inject constructor(
             stringSetPreferencesKey("recents-$userIdentifier")
     }
 
-    private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatchers.IO)
 
     private val storage = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler(

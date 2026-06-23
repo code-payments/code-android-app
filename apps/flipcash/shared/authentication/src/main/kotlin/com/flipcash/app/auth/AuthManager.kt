@@ -21,10 +21,10 @@ import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceManager
 import com.getcode.utils.TraceType
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
@@ -49,8 +49,9 @@ class AuthManager @Inject constructor(
     private val appSettings: AppSettingsCoordinator,
     private val userFlags: UserFlagsCoordinator,
     private val contactCoordinator: ContactCoordinator,
+    private val dispatchers: DispatcherProvider,
 //    private val analytics: AnalyticsService,
-) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
+) : CoroutineScope by CoroutineScope(dispatchers.IO) {
 
     init {
         // Persist onboarding completion when the composable transitions Onboarding → Ready.

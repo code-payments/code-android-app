@@ -1,6 +1,5 @@
-package com.flipcash.app.core.dispatchers
+package com.flipcash.libs.coroutines
 
-import com.flipcash.libs.coroutines.DispatcherProvider
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher

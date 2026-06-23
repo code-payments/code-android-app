@@ -35,6 +35,7 @@ import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingNotification
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.providers.SessionListener
@@ -43,7 +44,6 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.decodeBase58
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -82,6 +82,7 @@ class ChatCoordinator @Inject constructor(
     private val userManager: UserManager,
     private val tokenCoordinator: TokenCoordinator,
     private val featureFlags: FeatureFlagController,
+    private val dispatchers: DispatcherProvider,
 ) : SessionListener, DefaultLifecycleObserver {
 
     companion object {
@@ -89,7 +90,8 @@ class ChatCoordinator @Inject constructor(
         private val HEARTBEAT_INTERVAL = 30.seconds
     }
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val supervisorJob = SupervisorJob()
+    private val scope = CoroutineScope(dispatchers.IO + supervisorJob)
     private val cluster = MutableStateFlow<AccountCluster?>(null)
     private val _state = MutableStateFlow(ChatState())
     private var syncJob: Job? = null
@@ -97,6 +99,7 @@ class ChatCoordinator @Inject constructor(
     private var eventStreamCollectJob: Job? = null
     private var feedObserverJob: Job? = null
     private var heartbeatJob: Job? = null
+    private var networkObserverJob: Job? = null
     private var backgroundedActiveChat: ChatId? = null
 
     val state: StateFlow<ChatState>
@@ -148,7 +151,7 @@ class ChatCoordinator @Inject constructor(
     init {
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
 
-        cluster.filterNotNull()
+        networkObserverJob = cluster.filterNotNull()
             .flatMapLatest { networkObserver.state }
             .distinctUntilChanged()
             .filter { it.connected }
@@ -337,12 +340,14 @@ class ChatCoordinator @Inject constructor(
         syncJob?.cancel()
         flagObserverJob?.cancel()
         feedObserverJob?.cancel()
+        networkObserverJob?.cancel()
         feedObserverJob = null
         _state.value = ChatState()
         cluster.value = null
         metadataDataSource.clear()
         messageDataSource.clear()
         memberDataSource.clear()
+        supervisorJob.cancel()
         trace(tag = TAG, message = "reset complete", type = TraceType.Process)
     }
 

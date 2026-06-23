@@ -11,11 +11,10 @@ import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.managers.MnemonicManager
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.util.resources.ResourceHelper
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,6 +41,7 @@ internal class SeedInputViewModel @Inject constructor(
     private val userFlags: UserFlagsCoordinator,
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
+    private val dispatchers: DispatcherProvider,
 ) : ViewModel() {
     val uiFlow = MutableStateFlow(SeedInputUiModel())
     private val mnemonicCode = mnemonicManager.mnemonicCode
@@ -78,7 +78,7 @@ internal class SeedInputViewModel @Inject constructor(
             uiFlow.value.wordsString.trim().replace(Regex("(\\s)+"), " ").lowercase(Locale.getDefault()).split(" ")
         val mnemonic = MnemonicPhrase.newInstance(userWordList) ?: return
 
-        CoroutineScope(Dispatchers.IO).launch {
+        viewModelScope.launch(dispatchers.IO) {
             val entropyB64: String
             try {
                 entropyB64 = mnemonicManager.getEncodedBase64(mnemonic)

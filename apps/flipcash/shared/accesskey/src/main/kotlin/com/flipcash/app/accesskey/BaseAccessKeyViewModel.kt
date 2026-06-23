@@ -13,6 +13,7 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.storage.MediaSaver
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.app.theme.internal.Flipcash2ColorSpec
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.accesskey.R
@@ -27,8 +28,6 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.decodeBase64
 import androidx.lifecycle.ViewModel
 import com.getcode.view.LoadingSuccessState
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterNotNull
@@ -63,7 +62,8 @@ abstract class BaseAccessKeyViewModel(
     private val mnemonicManager: MnemonicManager,
     private val mediaSaver: MediaSaver,
     userManager: UserManager,
-    private val qrCodeGenerator: QRCodeGenerator
+    private val qrCodeGenerator: QRCodeGenerator,
+    protected val dispatchers: DispatcherProvider,
 ) : ViewModel() {
     val uiFlow = MutableStateFlow(AccessKeyUiModel())
 
@@ -88,7 +88,7 @@ abstract class BaseAccessKeyViewModel(
             wordsFormatted = wordsFormatted
         )
 
-        CoroutineScope(Dispatchers.IO).launch {
+        viewModelScope.launch(dispatchers.IO) {
             val accessKeyBitmap = createBitmapForExport(words = words, entropyB64 = entropyB64)
             val accessKeyBitmapDisplay =
                 createBitmapForExport(drawBackground = true, words, entropyB64)
@@ -128,7 +128,7 @@ abstract class BaseAccessKeyViewModel(
         val bitmap = uiFlow.value.accessKeyBitmap
             ?: return Result.failure(IllegalStateException("No access key?"))
 
-        return withContext(Dispatchers.IO) {
+        return withContext(dispatchers.IO) {
             runCatching {
                 val date: DateFormat = SimpleDateFormat("yyy-MM-dd-h-mm", Locale.CANADA)
                 val filename = "Flipcash-Recovery-${date.format(Date())}.png"

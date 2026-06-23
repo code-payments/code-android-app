@@ -36,6 +36,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.TokenUpdater
 import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.core.R
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.SettingsController
 import com.flipcash.services.user.AuthState
@@ -64,7 +65,6 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.trace
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
@@ -139,9 +139,10 @@ class RealSessionController @Inject constructor(
     private val analytics: FlipcashAnalyticsService,
     private val usdcSweep: UsdcDepositSweep,
     appSettingsCoordinator: AppSettingsCoordinator,
+    private val dispatchers: DispatcherProvider,
 ) : SessionController {
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
     private val _state = MutableStateFlow(SessionState())
 
     override val state: StateFlow<SessionState>

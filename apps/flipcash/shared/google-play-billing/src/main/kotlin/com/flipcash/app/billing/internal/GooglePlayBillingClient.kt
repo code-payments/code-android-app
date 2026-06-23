@@ -37,7 +37,6 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.MetadataBuilder
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -51,6 +50,7 @@ import kotlinx.coroutines.withContext
 import com.getcode.utils.SuppressibleException
 import com.getcode.utils.TraceType
 import com.getcode.utils.network.retryable
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.utils.trace
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlin.coroutines.resume
@@ -61,6 +61,7 @@ internal class GooglePlayBillingClient(
     private val userManager: UserManager,
     private val purchases: PurchaseController,
     private val analytics: FlipcashAnalyticsService,
+    private val dispatchers: DispatcherProvider,
 ) : BillingClient, PurchasesUpdatedListener {
 
     companion object {
@@ -70,7 +71,7 @@ internal class GooglePlayBillingClient(
         private const val baseDelayMillis = 1000L // Initial delay: 1 second
     }
 
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(dispatchers.IO)
 
     private val _eventFlow: MutableSharedFlow<IapPaymentEvent> = MutableSharedFlow()
     override val eventFlow: SharedFlow<IapPaymentEvent> = _eventFlow.asSharedFlow()
@@ -300,7 +301,7 @@ internal class GooglePlayBillingClient(
             scope.launch {
                 if (product.isConsumable) {
                     printLog("consumable")
-                    val consumeResult = withContext(Dispatchers.IO) {
+                    val consumeResult = withContext(dispatchers.IO) {
                         client.consumePurchase(
                             ConsumeParams.newBuilder()
                                 .setPurchaseToken(item.purchaseToken)
@@ -320,7 +321,7 @@ internal class GooglePlayBillingClient(
                     }
                 } else {
                     printLog("non-consumable")
-                    val acknowledgeResult = withContext(Dispatchers.IO) {
+                    val acknowledgeResult = withContext(dispatchers.IO) {
                         client.acknowledgePurchase(
                             AcknowledgePurchaseParams.newBuilder()
                                 .setPurchaseToken(item.purchaseToken)

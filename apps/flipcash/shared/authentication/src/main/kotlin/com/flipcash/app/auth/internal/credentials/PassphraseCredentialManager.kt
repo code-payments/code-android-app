@@ -25,10 +25,10 @@ import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.base58
 import com.getcode.utils.encodeBase64
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.vendor.Base58
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
@@ -46,6 +46,7 @@ class PassphraseCredentialManager @Inject constructor(
     private val userManager: UserManager,
     private val mnemonicManager: MnemonicManager,
     private val featureFlags: FeatureFlagController,
+    private val dispatchers: DispatcherProvider,
 ) {
     companion object {
         private val temporaryEntropyKey = stringPreferencesKey("temporaryEntropy")
@@ -64,7 +65,7 @@ class PassphraseCredentialManager @Inject constructor(
 
     private val credentialLookupCache = mutableMapOf<String, PasswordCredential>()
 
-    private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatchers.IO)
 
     private val storage = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler(
@@ -369,7 +370,7 @@ class PassphraseCredentialManager @Inject constructor(
         return storage.data
             .mapNotNull { preferences -> preferences[selectedAccountIdKey] }
             .map { accountId ->
-                withContext(Dispatchers.IO) {
+                withContext(dispatchers.IO) {
                     getMetadata(accountId)
                 }
             }

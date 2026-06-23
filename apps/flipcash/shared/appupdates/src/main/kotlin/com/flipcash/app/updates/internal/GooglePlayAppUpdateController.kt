@@ -15,10 +15,10 @@ import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
+import com.flipcash.libs.coroutines.DispatcherProvider
 import dagger.hilt.android.qualifiers.ActivityContext
 import dagger.hilt.android.scopes.ActivityScoped
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,8 +35,9 @@ class GooglePlayAppUpdateController @Inject constructor(
     private val context: Context,
     private val versionInfo: VersionInfo,
     private val userFlags: UserFlagsCoordinator,
+    private val dispatchers: DispatcherProvider,
 ) : AppUpdateController {
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
 
     private val appUpdateManager: AppUpdateManager = AppUpdateManagerFactory.create(context)
 

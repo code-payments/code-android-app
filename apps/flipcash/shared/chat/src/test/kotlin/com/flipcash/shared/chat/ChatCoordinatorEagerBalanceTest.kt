@@ -6,6 +6,7 @@ import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.ContactDataSource
+import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
@@ -26,6 +27,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
@@ -47,6 +49,7 @@ class ChatCoordinatorEagerBalanceTest {
 
     private lateinit var tokenCoordinator: TokenCoordinator
     private lateinit var coordinator: ChatCoordinator
+    private lateinit var testDispatchers: TestDispatchers
 
     @Before
     fun setUp() {
@@ -61,6 +64,8 @@ class ChatCoordinatorEagerBalanceTest {
         val chatController = mockk<ChatController>(relaxed = true)
         coEvery { chatController.getDmChatFeed() } returns Result.failure(RuntimeException("not needed"))
 
+        testDispatchers = TestDispatchers(TestCoroutineScheduler())
+
         coordinator = ChatCoordinator(
             chatController = chatController,
             messagingController = mockk(relaxed = true),
@@ -74,6 +79,7 @@ class ChatCoordinatorEagerBalanceTest {
             userManager = userManager,
             tokenCoordinator = tokenCoordinator,
             featureFlags = mockk<FeatureFlagController>(relaxed = true),
+            dispatchers = testDispatchers,
         )
     }
 
@@ -114,35 +120,38 @@ class ChatCoordinatorEagerBalanceTest {
     }
 
     @Test
-    fun `incoming cash message triggers tokenCoordinator add`() = runTest {
+    fun `incoming cash message triggers tokenCoordinator add`() = runTest(testDispatchers.dispatcher) {
         triggerCollection()
         val amount = Fiat(fiat = 5.0, currencyCode = CurrencyCode.CAD)
         chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = otherId, amount = amount)))
         advanceUntilIdle()
 
         coVerify(exactly = 1) { tokenCoordinator.add(mint, amount) }
+        coordinator.reset()
     }
 
     @Test
-    fun `self-sent cash message does not trigger tokenCoordinator add`() = runTest {
+    fun `self-sent cash message does not trigger tokenCoordinator add`() = runTest(testDispatchers.dispatcher) {
         triggerCollection()
         chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = selfId)))
         advanceUntilIdle()
 
         coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
+        coordinator.reset()
     }
 
     @Test
-    fun `text message does not trigger tokenCoordinator add`() = runTest {
+    fun `text message does not trigger tokenCoordinator add`() = runTest(testDispatchers.dispatcher) {
         triggerCollection()
         chatUpdatesChannel.send(chatUpdate(textMessage(senderId = otherId)))
         advanceUntilIdle()
 
         coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
+        coordinator.reset()
     }
 
     @Test
-    fun `multiple cash messages in one update each trigger add`() = runTest {
+    fun `multiple cash messages in one update each trigger add`() = runTest(testDispatchers.dispatcher) {
         triggerCollection()
         val mintB = Mint("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBbbbbbbbbbbb")
         val amount1 = Fiat(fiat = 5.0, currencyCode = CurrencyCode.USD)
@@ -155,10 +164,11 @@ class ChatCoordinatorEagerBalanceTest {
 
         coVerify(exactly = 1) { tokenCoordinator.add(mint, amount1) }
         coVerify(exactly = 1) { tokenCoordinator.add(mintB, amount2) }
+        coordinator.reset()
     }
 
     @Test
-    fun `mixed self and incoming messages only triggers add for incoming`() = runTest {
+    fun `mixed self and incoming messages only triggers add for incoming`() = runTest(testDispatchers.dispatcher) {
         triggerCollection()
         val incoming = cashMessage(senderId = otherId)
         val outgoing = cashMessage(senderId = selfId).copy(messageId = 3L)
@@ -167,5 +177,6 @@ class ChatCoordinatorEagerBalanceTest {
         advanceUntilIdle()
 
         coVerify(exactly = 1) { tokenCoordinator.add(any<Mint>(), any()) }
+        coordinator.reset()
     }
 }

@@ -36,11 +36,11 @@ import com.getcode.opencode.providers.SessionListener
 import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.trace
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -77,6 +77,7 @@ class ContactCoordinator @Inject constructor(
     private val contactDataSource: ContactDataSource,
     private val userManager: UserManager,
     private val featureFlagController: FeatureFlagController,
+    private val dispatchers: DispatcherProvider,
 ) : SessionListener, DefaultLifecycleObserver {
 
     companion object {
@@ -89,7 +90,7 @@ class ContactCoordinator @Inject constructor(
             produceNewData = { emptyPreferences() }
         ),
         migrations = listOf(),
-        scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+        scope = CoroutineScope(dispatchers.IO + SupervisorJob()),
         produceFile = { context.preferencesDataStoreFile("contact-prefs") }
     )
 
@@ -104,7 +105,7 @@ class ContactCoordinator @Inject constructor(
 
     enum class SyncState { Idle, Syncing, Synced, Error }
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
     private val cluster = MutableStateFlow<AccountCluster?>(null)
     private val _state = MutableStateFlow(ContactState())
     private val _isLinkedForPayment = MutableStateFlow(false)

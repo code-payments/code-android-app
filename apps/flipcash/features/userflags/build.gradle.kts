@@ -8,6 +8,5 @@ android {
 
 dependencies {
     implementation(project(":apps:flipcash:shared:userflags"))
-    implementation(project(":libs:coroutines"))
     implementation(project(":libs:messaging"))
 }

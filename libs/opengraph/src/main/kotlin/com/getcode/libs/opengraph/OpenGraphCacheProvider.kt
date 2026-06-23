@@ -7,13 +7,13 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.libs.opengraph.cache.CacheProvider
 import com.getcode.libs.opengraph.model.OpenGraphResult
 import com.getcode.utils.base64
 import com.getcode.utils.decodeBase64
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
@@ -25,10 +25,11 @@ import javax.inject.Inject
 
 class OpenGraphCacheProvider @Inject constructor(
     @ApplicationContext
-    context: Context
+    context: Context,
+    private val dispatchers: DispatcherProvider,
 ): CacheProvider {
 
-    private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatchers.IO)
 
     private val storage = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler(
@@ -47,7 +48,7 @@ class OpenGraphCacheProvider @Inject constructor(
     }
 
     override suspend fun set(openGraphResult: OpenGraphResult, url: String) {
-        dataScope.launch(Dispatchers.IO) {
+        dataScope.launch {
             storage.edit { prefs ->
                 prefs[stringPreferencesKey(url)] = Json.encodeToString(openGraphResult).encodeToByteArray().base64
             }

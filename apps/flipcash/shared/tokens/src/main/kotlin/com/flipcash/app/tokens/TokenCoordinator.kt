@@ -13,6 +13,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.sources.TokenDataSource
+import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.app.tokens.core.ReservesBalanceProvider
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TokenController
@@ -42,7 +43,6 @@ import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -88,6 +88,7 @@ class TokenCoordinator @Inject constructor(
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val dataSource: TokenDataSource,
     private val featureFlags: FeatureFlagController,
+    private val dispatchers: DispatcherProvider,
 ) : TokenMetadataProvider, SessionListener, DefaultLifecycleObserver, ReservesBalanceProvider {
 
     companion object {
@@ -95,7 +96,7 @@ class TokenCoordinator @Inject constructor(
         private val mintPreferenceKey = stringPreferencesKey("tokenMint")
     }
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
     private var streamReserveStateJob: Job? = null
 
     private val selectedToken = PreferenceDataStoreFactory.create(
@@ -470,7 +471,7 @@ class TokenCoordinator @Inject constructor(
             _state.update { it.copy(balances = it.balances + (token.address to newBalance)) }
             ensureValidTokenSelection()
 
-            scope.launch(Dispatchers.IO) {
+            scope.launch {
                 updateTokenAccount(token.address)
             }
         }

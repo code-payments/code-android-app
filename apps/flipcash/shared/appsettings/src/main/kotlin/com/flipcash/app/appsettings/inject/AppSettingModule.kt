@@ -3,6 +3,7 @@ package com.flipcash.app.appsettings.inject
 import android.content.Context
 import com.flipcash.app.appsettings.AppSettingsController
 import com.flipcash.app.appsettings.internal.InternalAppSettingsController
+import com.flipcash.libs.coroutines.DispatcherProvider
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,5 +18,6 @@ object AppSettingModule {
     @Singleton
     fun providesAppSettingsController(
         @ApplicationContext context: Context,
-    ): AppSettingsController = InternalAppSettingsController(context)
+        dispatchers: DispatcherProvider,
+    ): AppSettingsController = InternalAppSettingsController(context, dispatchers)
 }
