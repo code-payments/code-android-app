@@ -2,7 +2,7 @@ plugins {
     id("com.android.test")
 }
 
-val contributorsSigningConfig = ContributorsSignatory(rootProject)
+val contributorsSigningConfig = ContributorsSignatory(rootDir)
 
 android {
     namespace = "com.flipcash.benchmark"

@@ -24,7 +24,7 @@ fun gitVersionCode(): Int {
     return result.toInt().also { println("VersionCode $it") }
 }
 
-val contributorsSigningConfig = ContributorsSignatory(rootProject)
+val contributorsSigningConfig = ContributorsSignatory(rootDir)
 val appNamespace = "${Gradle.flipcashNamespace}.app.android"
 
 android {
@@ -125,8 +125,9 @@ bugsnag {
 }
 
 composeCompiler {
+    // Isolated Projects-safe root access (see AndroidLibraryComposeConventionPlugin).
     stabilityConfigurationFile.set(
-        rootProject.layout.projectDirectory.file("compose_compiler_config.conf")
+        isolated.rootProject.projectDirectory.file("compose_compiler_config.conf")
     )
 }
 

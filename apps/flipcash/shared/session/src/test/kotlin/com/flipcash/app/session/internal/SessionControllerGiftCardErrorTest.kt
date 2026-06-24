@@ -23,7 +23,7 @@ import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.FakeResourceHelper
 import com.getcode.utils.network.NetworkConnectivityListener
 import io.mockk.every
 import io.mockk.mockk
@@ -49,13 +49,12 @@ class SessionControllerGiftCardErrorTest {
 
     private val billController = mockk<BillController>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true)
-    private val resources = mockk<ResourceHelper>(relaxed = true)
+    private val resources = FakeResourceHelper()
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
     private val networkObserver = mockk<NetworkConnectivityListener>(relaxed = true)
-    private val dispatchers = TestDispatcherProvider(UnconfinedTestDispatcher())
-
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
+    private val dispatchers = TestDispatcherProvider(UnconfinedTestDispatcher())
 
     @Before
     fun setUp() {
@@ -63,17 +62,6 @@ class SessionControllerGiftCardErrorTest {
 
         every { userManager.accountCluster } returns accountCluster
         every { networkObserver.isConnected } returns true
-
-        every { resources.getString(R.string.error_title_alreadyCollected) } returns "error_title_alreadyCollected"
-        every { resources.getString(R.string.error_description_alreadyCollected) } returns "error_description_alreadyCollected"
-        every { resources.getString(R.string.error_title_linkExpired) } returns "error_title_linkExpired"
-        every { resources.getString(R.string.error_description_linkExpired) } returns "error_description_linkExpired"
-        every { resources.getString(R.string.error_title_failedToCollect) } returns "error_title_failedToCollect"
-        every { resources.getString(R.string.error_description_failedToCollect) } returns "error_description_failedToCollect"
-        every { resources.getString(R.string.error_title_CashReturnedToWallet) } returns "error_title_CashReturnedToWallet"
-        every { resources.getString(R.string.error_description_CashReturnedToWallet) } returns "error_description_CashReturnedToWallet"
-        every { resources.getString(R.string.error_title_failedToCreateGiftCard) } returns "error_title_failedToCreateGiftCard"
-        every { resources.getString(R.string.error_description_failedToCreateGiftCard) } returns "error_description_failedToCreateGiftCard"
     }
 
     @After
@@ -292,8 +280,8 @@ class SessionControllerGiftCardErrorTest {
             val sendAction = updatedState.primaryAction as BillState.Action.SendAsLink
             sendAction.action()
 
-            // Wait for IO-dispatched coroutines to execute
-            Thread.sleep(1000)
+            // Advance test dispatcher so IO-dispatched coroutines execute
+            dispatchers.testDispatcher.scheduler.advanceUntilIdle()
 
             // The guard should ensure fundGiftCard is called exactly once, not twice
             verify(exactly = 1) {

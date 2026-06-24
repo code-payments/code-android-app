@@ -8,12 +8,13 @@ import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
-import com.flipcash.libs.coroutines.DispatcherProvider
+import com.flipcash.app.core.dispatchers.TestDispatchers
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -31,6 +32,8 @@ class UsdcDepositSweepTest {
 
     private val owner: AccountCluster = mockk(relaxed = true)
 
+    private val testDispatchers = TestDispatchers(TestCoroutineScheduler())
+
     private lateinit var sweep: UsdcDepositSweep
 
     @Before
@@ -44,11 +47,7 @@ class UsdcDepositSweepTest {
             accountController = accountController,
             tokenCoordinator = tokenCoordinator,
             balancePoller = balancePoller,
-            dispatchers = object : DispatcherProvider {
-                override val Default = kotlinx.coroutines.Dispatchers.Default
-                override val Main = kotlinx.coroutines.Dispatchers.Default
-                override val IO = kotlinx.coroutines.Dispatchers.IO
-            },
+            dispatchers = testDispatchers,
             maxRetries = 3,
             initialDelay = 10.milliseconds,
             backoffFactor = 1.0,
@@ -80,12 +79,11 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `gives up after max retries when USDC account is not found`() = runTest {
+    fun `gives up after max retries when USDC account is not found`() = runTest(testDispatchers.dispatcher) {
         stubNoUsdcAccount()
 
         sweep.execute(owner)
         advanceUntilIdle()
-        Thread.sleep(200)
 
         coVerify(exactly = 0) {
             transactionOperations.swapUsdc(any(), any())
@@ -93,12 +91,11 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `gives up after max retries when account type is not AssociatedToken`() = runTest {
+    fun `gives up after max retries when account type is not AssociatedToken`() = runTest(testDispatchers.dispatcher) {
         stubUsdcAccount(balance = 1_000_000L, type = AccountType.Primary)
 
         sweep.execute(owner)
         advanceUntilIdle()
-        Thread.sleep(200)
 
         coVerify(exactly = 0) {
             transactionOperations.swapUsdc(any(), any())
@@ -106,12 +103,11 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `gives up after max retries when USDC balance stays zero`() = runTest {
+    fun `gives up after max retries when USDC balance stays zero`() = runTest(testDispatchers.dispatcher) {
         stubUsdcAccount(balance = 0L)
 
         sweep.execute(owner)
         advanceUntilIdle()
-        Thread.sleep(200)
 
         coVerify(exactly = 0) {
             transactionOperations.swapUsdc(any(), any())
@@ -119,7 +115,7 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `retries until balance appears then sweeps`() = runTest {
+    fun `retries until balance appears then sweeps`() = runTest(testDispatchers.dispatcher) {
         var callCount = 0
         coEvery {
             accountController.getAccount(any(), any(), any())
@@ -137,7 +133,6 @@ class UsdcDepositSweepTest {
 
         sweep.execute(owner)
         advanceUntilIdle()
-        Thread.sleep(300)
 
         coVerify {
             transactionOperations.swapUsdc(owner, 2_000_000L)
@@ -145,14 +140,13 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `calls swapUsdc with correct amount when balance is positive`() = runTest {
+    fun `calls swapUsdc with correct amount when balance is positive`() = runTest(testDispatchers.dispatcher) {
         val amount = 5_000_000L
         stubUsdcAccount(balance = amount)
         coEvery { transactionOperations.swapUsdc(any(), any()) } returns Result.success(Unit)
 
         sweep.execute(owner)
         advanceUntilIdle()
-        Thread.sleep(200)
 
         coVerify {
             transactionOperations.swapUsdc(owner, amount)
@@ -160,13 +154,12 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `polls for USDF balance on successful swap`() = runTest {
+    fun `polls for USDF balance on successful swap`() = runTest(testDispatchers.dispatcher) {
         stubUsdcAccount(balance = 1_000_000L)
         coEvery { transactionOperations.swapUsdc(any(), any()) } returns Result.success(Unit)
 
         sweep.execute(owner)
         advanceUntilIdle()
-        Thread.sleep(200)
 
         coVerify {
             balancePoller.awaitBalanceChange(
@@ -180,7 +173,7 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `does not poll for USDF balance when swap fails`() = runTest {
+    fun `does not poll for USDF balance when swap fails`() = runTest(testDispatchers.dispatcher) {
         stubUsdcAccount(balance = 1_000_000L)
         coEvery {
             transactionOperations.swapUsdc(any(), any())
@@ -188,7 +181,6 @@ class UsdcDepositSweepTest {
 
         sweep.execute(owner)
         advanceUntilIdle()
-        Thread.sleep(200)
 
         coVerify(exactly = 0) {
             balancePoller.awaitBalanceChange(any(), any(), any(), any(), any())
@@ -196,7 +188,7 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `completes gracefully when USDF balance poll times out`() = runTest {
+    fun `completes gracefully when USDF balance poll times out`() = runTest(testDispatchers.dispatcher) {
         stubUsdcAccount(balance = 1_000_000L)
         coEvery { transactionOperations.swapUsdc(any(), any()) } returns Result.success(Unit)
         coEvery {
@@ -205,7 +197,6 @@ class UsdcDepositSweepTest {
 
         sweep.execute(owner)
         advanceUntilIdle()
-        Thread.sleep(200)
 
         coVerify {
             balancePoller.awaitBalanceChange(any(), any(), any(), any(), any())
@@ -213,7 +204,7 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `does not execute concurrently when job is active`() = runTest {
+    fun `does not execute concurrently when job is active`() = runTest(testDispatchers.dispatcher) {
         stubUsdcAccount(balance = 1_000_000L)
         coEvery { transactionOperations.swapUsdc(any(), any()) } coAnswers {
             kotlinx.coroutines.delay(500)
@@ -222,8 +213,7 @@ class UsdcDepositSweepTest {
 
         sweep.execute(owner)
         sweep.execute(owner)
-
-        Thread.sleep(700)
+        advanceUntilIdle()
 
         coVerify(exactly = 1) {
             transactionOperations.swapUsdc(any(), any())
@@ -231,7 +221,7 @@ class UsdcDepositSweepTest {
     }
 
     @Test
-    fun `cancel stops active job`() = runTest {
+    fun `cancel stops active job`() = runTest(testDispatchers.dispatcher) {
         coEvery {
             accountController.getAccount(any(), any(), any())
         } coAnswers {
@@ -246,9 +236,8 @@ class UsdcDepositSweepTest {
         coEvery { transactionOperations.swapUsdc(any(), any()) } returns Result.success(Unit)
 
         sweep.execute(owner)
-        Thread.sleep(50)
         sweep.cancel()
-        Thread.sleep(100)
+        advanceUntilIdle()
 
         coVerify(exactly = 0) {
             transactionOperations.swapUsdc(any(), any())

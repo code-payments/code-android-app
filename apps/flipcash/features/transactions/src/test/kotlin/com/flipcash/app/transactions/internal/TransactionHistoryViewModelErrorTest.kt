@@ -3,13 +3,12 @@ package com.flipcash.app.transactions.internal
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.tokens.TokenCoordinator
-import com.flipcash.features.transactions.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.solana.keys.PublicKey
-import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.FakeResourceHelper
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import io.mockk.every
@@ -39,7 +38,7 @@ class TransactionHistoryViewModelErrorTest {
     private val transactionController: TransactionOperations = mock()
     private val featureFlags = mockk<FeatureFlagController>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true)
-    private val resources = mockk<ResourceHelper>(relaxed = true)
+    private val resources = FakeResourceHelper()
 
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
 
@@ -50,8 +49,6 @@ class TransactionHistoryViewModelErrorTest {
         BottomBarManager.clear()
 
         every { userManager.accountCluster } returns accountCluster
-        every { resources.getString(R.string.error_title_failedToCancelTransfer) } returns "error_title_failedToCancelTransfer"
-        every { resources.getString(R.string.error_description_failedToCancelTransfer) } returns "error_description_failedToCancelTransfer"
     }
 
     @After
