@@ -94,12 +94,14 @@ class ChatCoordinator @Inject constructor(
     companion object {
         private const val TAG = "ChatCoordinator"
         private val HEARTBEAT_INTERVAL = 30.seconds
+        private val GAP_FILL_DELAY = 2.seconds
     }
 
     private val supervisorJob = SupervisorJob()
     private val scope = CoroutineScope(dispatchers.IO + supervisorJob)
     private val cluster = MutableStateFlow<AccountCluster?>(null)
     private val _state = MutableStateFlow(ChatState())
+    private val sequenceTracker = EventSequenceTracker()
     private var syncJob: Job? = null
     private var flagObserverJob: Job? = null
     private var eventStreamCollectJob: Job? = null
@@ -349,6 +351,7 @@ class ChatCoordinator @Inject constructor(
         networkObserverJob?.cancel()
         feedObserverJob = null
         _state.value = ChatState()
+        sequenceTracker.clearAll()
         cluster.value = null
         metadataDataSource.clear()
         messageDataSource.clear()
@@ -530,12 +533,18 @@ class ChatCoordinator @Inject constructor(
             }
         } else null
 
-        // Advance event sequence cursor when processing events
+        // Advance event sequence cursor — gap-aware (only advance contiguous frontier)
         if (update.events.isNotEmpty()) {
-            val maxSequence = update.events.maxOf { it.sequence }
-            val currentSequence = metadataDataSource.getLatestEventSequence(chatId)
-            if (maxSequence > currentSequence) {
-                metadataDataSource.updateLatestEventSequence(chatId, maxSequence)
+            val dbCursor = metadataDataSource.getLatestEventSequence(chatId)
+            val incomingSequences = update.events.map { it.sequence }
+            val result = sequenceTracker.processSequences(chatId, dbCursor, incomingSequences)
+
+            if (result.newContiguousSequence > dbCursor) {
+                metadataDataSource.updateLatestEventSequence(chatId, result.newContiguousSequence)
+            }
+
+            if (result.hasGap) {
+                scheduleGapFill(chatId)
             }
         }
 
@@ -652,6 +661,16 @@ class ChatCoordinator @Inject constructor(
         )
     }
 
+    private fun scheduleGapFill(chatId: ChatId) {
+        val job = scope.launch {
+            delay(GAP_FILL_DELAY)
+            if (!sequenceTracker.hasGap(chatId)) return@launch
+            trace(tag = TAG, message = "Gap fill timeout: fetching delta for $chatId", type = TraceType.Process)
+            performDeltaSync(chatId)
+        }
+        sequenceTracker.setGapFillJob(chatId, job)
+    }
+
     private suspend fun performDeltaSync(chatId: ChatId) {
         val afterSequence = metadataDataSource.getLatestEventSequence(chatId)
         trace(tag = TAG, message = "Delta sync for $chatId from sequence $afterSequence", type = TraceType.Process)
@@ -671,11 +690,14 @@ class ChatCoordinator @Inject constructor(
                     if (delta.latestSequence > afterSequence) {
                         metadataDataSource.updateLatestEventSequence(chatId, delta.latestSequence)
                     }
+                    // getDelta is authoritative — reset tracker to the server's sequence
+                    sequenceTracker.resetTo(chatId, delta.latestSequence)
                     trace(tag = TAG, message = "Delta sync complete: ${delta.messages.size} messages, sequence ${delta.latestSequence}", type = TraceType.Process)
                 }
                 .onFailure { error ->
                     if (error is GetDeltaError.ResetRequired) {
                         trace(tag = TAG, message = "Delta sync reset required for $chatId, falling back to full load", type = TraceType.Process)
+                        sequenceTracker.clear(chatId)
                         loadMessages(chatId)
                     } else {
                         trace(tag = TAG, message = "Delta sync failed for $chatId: ${error.message}", type = TraceType.Error)
