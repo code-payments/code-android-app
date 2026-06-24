@@ -1,6 +1,5 @@
 package com.flipcash.shared.chat
 
-import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
@@ -15,6 +14,11 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.shared.chat.internal.ChatStateHolder
+import com.flipcash.shared.chat.internal.RealChatCoordinator
+import com.flipcash.shared.chat.internal.delegates.EventStreamDelegate
+import com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate
+import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
@@ -35,6 +39,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -49,7 +54,7 @@ class ChatCoordinatorEagerBalanceTest {
     private val chatUpdatesChannel = Channel<ChatUpdate>(capacity = Channel.UNLIMITED)
 
     private lateinit var tokenCoordinator: TokenCoordinator
-    private lateinit var coordinator: ChatCoordinator
+    private lateinit var coordinator: RealChatCoordinator
     private lateinit var testDispatchers: TestDispatchers
 
     @Before
@@ -67,19 +72,52 @@ class ChatCoordinatorEagerBalanceTest {
 
         testDispatchers = TestDispatchers(TestCoroutineScheduler())
 
-        coordinator = ChatCoordinator(
+        val stateHolder = ChatStateHolder()
+        val memberDataSource = mockk<ChatMemberDataSource>(relaxed = true)
+        val messagingController = mockk<ChatMessagingController>(relaxed = true)
+        val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true)
+        val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true)
+
+        val feedDelegate = FeedSyncDelegate(
             chatController = chatController,
-            messagingController = mockk(relaxed = true),
-            eventStreamingController = eventStreamingController,
-            metadataDataSource = mockk(relaxed = true),
-            messageDataSource = mockk(relaxed = true),
-            memberDataSource = mockk(relaxed = true),
-            contactDataSource = mockk(relaxed = true),
-            networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
-            notificationManager = mockk<NotificationManagerCompat>(relaxed = true),
+            metadataDataSource = metadataDataSource,
+            messageDataSource = messageDataSource,
+            memberDataSource = memberDataSource,
+            stateHolder = stateHolder,
             userManager = userManager,
+        )
+
+        val eventStreamDelegate = EventStreamDelegate(
+            eventStreamingController = eventStreamingController,
+            messagingController = messagingController,
+            metadataDataSource = metadataDataSource,
+            messageDataSource = messageDataSource,
+            memberDataSource = memberDataSource,
             tokenCoordinator = tokenCoordinator,
+            userManager = userManager,
+            stateHolder = stateHolder,
+        )
+
+        val messagingDelegate = MessagingDelegate(
+            chatController = chatController,
+            messagingController = messagingController,
+            metadataDataSource = metadataDataSource,
+            messageDataSource = messageDataSource,
+            memberDataSource = memberDataSource,
+            contactDataSource = mockk<ContactDataSource>(relaxed = true),
+            notificationManager = mockk(relaxed = true),
+            userManager = userManager,
+            stateHolder = stateHolder,
+        )
+
+        coordinator = RealChatCoordinator(
+            feedDelegate = feedDelegate,
+            eventStreamDelegate = eventStreamDelegate,
+            messagingDelegate = messagingDelegate,
+            stateHolder = stateHolder,
+            userManager = userManager,
             featureFlags = mockk<FeatureFlagController>(relaxed = true),
+            networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = testDispatchers,
         )
     }
@@ -125,7 +163,7 @@ class ChatCoordinatorEagerBalanceTest {
         triggerCollection()
         val amount = Fiat(fiat = 5.0, currencyCode = CurrencyCode.CAD)
         chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = otherId, amount = amount)))
-        advanceTimeBy(1_000)
+        advanceTimeBy(1_000.milliseconds)
         runCurrent()
 
         coVerify(exactly = 1) { tokenCoordinator.add(mint, amount) }
@@ -136,7 +174,7 @@ class ChatCoordinatorEagerBalanceTest {
     fun `self-sent cash message does not trigger tokenCoordinator add`() = runTest(testDispatchers.dispatcher) {
         triggerCollection()
         chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = selfId)))
-        advanceTimeBy(1_000)
+        advanceTimeBy(1_000.milliseconds)
         runCurrent()
 
         coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
@@ -147,7 +185,7 @@ class ChatCoordinatorEagerBalanceTest {
     fun `text message does not trigger tokenCoordinator add`() = runTest(testDispatchers.dispatcher) {
         triggerCollection()
         chatUpdatesChannel.send(chatUpdate(textMessage(senderId = otherId)))
-        advanceTimeBy(1_000)
+        advanceTimeBy(1_000.milliseconds)
         runCurrent()
 
         coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
@@ -164,7 +202,7 @@ class ChatCoordinatorEagerBalanceTest {
         val msg2 = cashMessage(senderId = otherId, amount = amount2, mint = mintB).copy(messageId = 3L)
 
         chatUpdatesChannel.send(chatUpdate(msg1, msg2))
-        advanceTimeBy(1_000)
+        advanceTimeBy(1_000.milliseconds)
         runCurrent()
 
         coVerify(exactly = 1) { tokenCoordinator.add(mint, amount1) }
@@ -179,7 +217,7 @@ class ChatCoordinatorEagerBalanceTest {
         val outgoing = cashMessage(senderId = selfId).copy(messageId = 3L)
 
         chatUpdatesChannel.send(chatUpdate(incoming, outgoing))
-        advanceTimeBy(1_000)
+        advanceTimeBy(1_000.milliseconds)
         runCurrent()
 
         coVerify(exactly = 1) { tokenCoordinator.add(any<Mint>(), any()) }
