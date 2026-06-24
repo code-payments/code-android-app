@@ -24,12 +24,16 @@ abstract class GenerateCurveTables : DefaultTask() {
     @get:Input
     abstract val forceRegenerate: Property<Boolean>
 
+    @get:Input
+    abstract val forceViaGradleProperty: Property<Boolean>
+
     init {
         // Default to false
         forceRegenerate.convention(false)
+        forceViaGradleProperty.convention(false)
 
         onlyIf {
-            val force = project.hasProperty("forceCurveTables") || forceRegenerate.get()
+            val force = forceViaGradleProperty.get() || forceRegenerate.get()
 
             if (force) {
                 true
