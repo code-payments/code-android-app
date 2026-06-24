@@ -35,61 +35,42 @@ plugins {
     alias(libs.plugins.kover)
 }
 
-allprojects {
-    configurations.all {
-        exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk7")
-        resolutionStrategy {
-            force(libs.kotlinx.serialization.core.get().toString())
-            force(libs.kotlinx.serialization.json.get().toString())
-            force(libs.kotlin.metadata.jvm.get().toString())
-        }
-    }
-
-    tasks.matching { it.name.contains("kapt") }.configureEach {
-        enabled = false
-    }
-}
-
-dependencies {
-    subprojects.forEach { subproject ->
-        subproject.afterEvaluate {
-            if (subproject.plugins.hasPlugin("org.jetbrains.kotlinx.kover")
-                && (subproject.path.startsWith(":apps:flipcash")
-                    || subproject.path.startsWith(":services:flipcash")
-                    || subproject.path.startsWith(":services:opencode")
-                    || subproject.path.startsWith(":libs:")
-                    || subproject.path.startsWith(":ui:")
-                    || subproject.path.startsWith(":definitions:"))
-            ) {
-                kover(subproject)
-            }
-        }
-    }
-}
+// NOTE: The per-project `allprojects { }` configuration that used to live here
+// (kotlin-stdlib-jdk7 exclusion, serialization/metadata version forcing, and
+// disabling stray kapt tasks) has moved to `settings.gradle.kts` as a
+// `gradle.lifecycle.beforeProject { }` hook. Isolated Projects forbids the root
+// project from configuring other projects, and that hook is its isolated
+// replacement.
 
 tasks.register("clean", Delete::class) {
     delete(rootProject.layout.buildDirectory)
 }
 
-tasks.register("flipcashTestDebug") {
-    description = "Run testDebug for all Flipcash modules"
+// ---- Coverage aggregation (Kover) ----
+// The set of modules whose coverage is merged is computed in `settings.gradle.kts`
+// (from the actual included projects) and handed over via this extra property,
+// because Isolated Projects forbids the root from discovering them by iterating
+// `subprojects`. `kover(project(path))` is just a dependency edge, which IP allows.
+@Suppress("UNCHECKED_CAST")
+val koverModules = rootProject.extra["flipcash.koverModules"] as List<String>
+
+dependencies {
+    koverModules.forEach { kover(project(it)) }
 }
 
-subprojects.filter {
-    it.path.startsWith(":apps:flipcash")
-        || it.path == ":services:flipcash"
-        || it.path == ":services:opencode"
-}.forEach { sub ->
-    sub.afterEvaluate {
-        val taskName = when {
-            sub.plugins.hasPlugin("com.android.library") || sub.plugins.hasPlugin("com.android.application") -> "testDebugUnitTest"
-            sub.plugins.hasPlugin("org.jetbrains.kotlin.jvm") -> "test"
-            else -> null
-        }
-        if (taskName != null) {
-            rootProject.tasks.named("flipcashTestDebug").configure {
-                dependsOn(tasks.named(taskName))
-            }
-        }
-    }
+// ---- Aggregate unit-test task ----
+// Replaces a `subprojects { afterEvaluate { rootProject.tasks... } }` wiring that
+// Isolated Projects forbids. The module lists come from `settings.gradle.kts`; the
+// task depends on each module's test task by *path* — a lazy, cross-project-safe
+// dependency that never configures the other project at configuration time.
+// Android modules expose `testDebugUnitTest`; pure-JVM modules expose `test`.
+@Suppress("UNCHECKED_CAST")
+val androidUnitTestModules = rootProject.extra["flipcash.androidUnitTestModules"] as List<String>
+@Suppress("UNCHECKED_CAST")
+val jvmUnitTestModules = rootProject.extra["flipcash.jvmUnitTestModules"] as List<String>
+
+tasks.register("flipcashTestDebug") {
+    description = "Run testDebug for all Flipcash modules"
+    dependsOn(androidUnitTestModules.map { "$it:testDebugUnitTest" })
+    dependsOn(jvmUnitTestModules.map { "$it:test" })
 }
