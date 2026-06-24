@@ -28,7 +28,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.test.TestCoroutineScheduler
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
@@ -124,7 +125,8 @@ class ChatCoordinatorEagerBalanceTest {
         triggerCollection()
         val amount = Fiat(fiat = 5.0, currencyCode = CurrencyCode.CAD)
         chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = otherId, amount = amount)))
-        advanceUntilIdle()
+        advanceTimeBy(1_000)
+        runCurrent()
 
         coVerify(exactly = 1) { tokenCoordinator.add(mint, amount) }
         coordinator.reset()
@@ -134,7 +136,8 @@ class ChatCoordinatorEagerBalanceTest {
     fun `self-sent cash message does not trigger tokenCoordinator add`() = runTest(testDispatchers.dispatcher) {
         triggerCollection()
         chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = selfId)))
-        advanceUntilIdle()
+        advanceTimeBy(1_000)
+        runCurrent()
 
         coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
         coordinator.reset()
@@ -144,7 +147,8 @@ class ChatCoordinatorEagerBalanceTest {
     fun `text message does not trigger tokenCoordinator add`() = runTest(testDispatchers.dispatcher) {
         triggerCollection()
         chatUpdatesChannel.send(chatUpdate(textMessage(senderId = otherId)))
-        advanceUntilIdle()
+        advanceTimeBy(1_000)
+        runCurrent()
 
         coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
         coordinator.reset()
@@ -160,7 +164,8 @@ class ChatCoordinatorEagerBalanceTest {
         val msg2 = cashMessage(senderId = otherId, amount = amount2, mint = mintB).copy(messageId = 3L)
 
         chatUpdatesChannel.send(chatUpdate(msg1, msg2))
-        advanceUntilIdle()
+        advanceTimeBy(1_000)
+        runCurrent()
 
         coVerify(exactly = 1) { tokenCoordinator.add(mint, amount1) }
         coVerify(exactly = 1) { tokenCoordinator.add(mintB, amount2) }
@@ -174,7 +179,8 @@ class ChatCoordinatorEagerBalanceTest {
         val outgoing = cashMessage(senderId = selfId).copy(messageId = 3L)
 
         chatUpdatesChannel.send(chatUpdate(incoming, outgoing))
-        advanceUntilIdle()
+        advanceTimeBy(1_000)
+        runCurrent()
 
         coVerify(exactly = 1) { tokenCoordinator.add(any<Mint>(), any()) }
         coordinator.reset()

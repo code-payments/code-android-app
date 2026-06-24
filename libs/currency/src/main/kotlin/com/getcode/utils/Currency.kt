@@ -62,8 +62,8 @@ fun formatAmountString(
     resources: ResourceHelper,
     currency: Currency,
     amount: Double,
-    kinSuffix: String = resources.getKinSuffix(),
-    suffix: String = resources.getOfKinSuffix()
+    kinSuffix: String = resources.getString(com.getcode.util.resources.R.string.core_kin),
+    suffix: String = resources.getString(com.getcode.util.resources.R.string.core_ofKin)
 ): String {
     val isKin = currency.code == Currency.Kin.code
 

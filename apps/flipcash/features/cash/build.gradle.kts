@@ -9,6 +9,7 @@ android {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
+    testImplementation(testFixtures(project(":ui:resources")))
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.robolectric)
 
