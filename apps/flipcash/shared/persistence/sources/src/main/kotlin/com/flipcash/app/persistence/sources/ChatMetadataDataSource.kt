@@ -40,6 +40,13 @@ class ChatMetadataDataSource @Inject constructor(
         db?.chatMetadataDao()?.updateLastMessageId(mapper.chatIdHex(chatId), messageId)
     }
 
+    suspend fun updateLatestEventSequence(chatId: ChatId, sequence: Long) {
+        db?.chatMetadataDao()?.updateLatestEventSequence(mapper.chatIdHex(chatId), sequence)
+    }
+
+    suspend fun getLatestEventSequence(chatId: ChatId): Long =
+        db?.chatMetadataDao()?.getLatestEventSequence(mapper.chatIdHex(chatId)) ?: 0L
+
     suspend fun exists(chatId: ChatId): Boolean =
         db?.chatMetadataDao()?.getById(mapper.chatIdHex(chatId)) != null
 

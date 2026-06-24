@@ -1,7 +1,10 @@
 package com.flipcash.app.persistence.sources.mapper.chat
 
+import com.flipcash.app.persistence.converters.EmojiReactionSerialized
 import com.flipcash.app.persistence.converters.MessageContentSerialized
 import com.flipcash.app.persistence.converters.MessagePointerSerialized
+import com.flipcash.app.persistence.converters.ReactorSerialized
+import com.flipcash.app.persistence.converters.ReactionSummarySerialized
 import com.flipcash.app.persistence.converters.SocialAccountSerialized
 import com.flipcash.app.persistence.converters.UserProfileSerialized
 import com.flipcash.app.persistence.entities.ChatMemberEntity
@@ -16,9 +19,13 @@ import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.Emoji
+import com.flipcash.services.models.chat.EmojiReaction
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
+import com.flipcash.services.models.chat.Reactor
+import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.ClientMessageId
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -46,6 +53,7 @@ class ChatEntityMapper @Inject constructor() {
             chatType = metadata.type.name,
             lastActivityEpochMs = metadata.lastActivity.toEpochMilliseconds(),
             lastMessageId = metadata.lastMessage?.messageId,
+            latestEventSequence = metadata.latestEventSequence,
         )
     }
 
@@ -60,6 +68,7 @@ class ChatEntityMapper @Inject constructor() {
             members = members,
             lastMessage = lastMessage,
             lastActivity = Instant.fromEpochMilliseconds(entity.lastActivityEpochMs),
+            latestEventSequence = entity.latestEventSequence,
         )
     }
 
@@ -75,6 +84,11 @@ class ChatEntityMapper @Inject constructor() {
             contentJson = message.content.map { it.toSerialized() },
             timestampEpochMs = message.timestamp.toEpochMilliseconds(),
             unreadSeq = message.unreadSeq,
+            eventSequence = message.eventSequence,
+            lastEditedTsEpochMs = message.lastEditedTs?.toEpochMilliseconds(),
+            reactionsJson = message.reactions?.toSerialized()?.let {
+                kotlinx.serialization.json.Json.encodeToString(it)
+            },
         )
     }
 
@@ -85,6 +99,11 @@ class ChatEntityMapper @Inject constructor() {
             content = entity.contentJson?.map { it.toDomain() } ?: emptyList(),
             timestamp = Instant.fromEpochMilliseconds(entity.timestampEpochMs),
             unreadSeq = entity.unreadSeq,
+            eventSequence = entity.eventSequence,
+            lastEditedTs = entity.lastEditedTsEpochMs?.let { Instant.fromEpochMilliseconds(it) },
+            reactions = entity.reactionsJson?.let {
+                kotlinx.serialization.json.Json.decodeFromString<ReactionSummarySerialized>(it).toDomain()
+            },
             deliveryStatus = when (entity.status) {
                 MessageStatus.SENDING -> DeliveryStatus.SENDING
                 MessageStatus.SENT -> DeliveryStatus.SENT
@@ -192,6 +211,19 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
         tokenName = tokenName,
         tokenImageUrl = tokenImageUrl,
     )
+    is MessageContent.Reply -> MessageContentSerialized.Reply(
+        repliedMessageId = repliedMessageId,
+        content = content.map { it.toSerialized() },
+    )
+    is MessageContent.Media -> MessageContentSerialized.Media(
+        items = items,
+        caption = caption?.let { MessageContentSerialized.Text(it.text) },
+    )
+    is MessageContent.System -> MessageContentSerialized.System(fallbackText = fallbackText)
+    is MessageContent.Deleted -> MessageContentSerialized.Deleted(
+        deletedAt = deletedTs.epochSeconds,
+        deletedBy = deletedBy?.hexEncodedString(),
+    )
 }
 
 private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
@@ -205,6 +237,19 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
         mint = Mint(mint.decodeBase58().toList()),
         tokenName = tokenName,
         tokenImageUrl = tokenImageUrl,
+    )
+    is MessageContentSerialized.Reply -> MessageContent.Reply(
+        repliedMessageId = repliedMessageId,
+        content = content.map { it.toDomain() },
+    )
+    is MessageContentSerialized.Media -> MessageContent.Media(
+        items = items,
+        caption = caption?.let { MessageContent.Text(it.text) },
+    )
+    is MessageContentSerialized.System -> MessageContent.System(fallbackText = fallbackText)
+    is MessageContentSerialized.Deleted -> MessageContent.Deleted(
+        deletedTs = Instant.fromEpochSeconds(deletedAt),
+        deletedBy = deletedBy?.hexToIdExt(),
     )
 }
 
@@ -272,5 +317,41 @@ private fun String.hexToIdExt(): List<Byte> {
     }
     return data.toList()
 }
+
+private fun ReactionSummary.toSerialized(): ReactionSummarySerialized = ReactionSummarySerialized(
+    messageId = messageId,
+    reactions = reactions.map { it.toSerialized() },
+)
+
+private fun EmojiReaction.toSerialized(): EmojiReactionSerialized = EmojiReactionSerialized(
+    emoji = emoji.value,
+    count = count,
+    reactedBySelf = reactedBySelf,
+    sampleReactors = sampleReactors.map { it.toSerialized() },
+    sequence = sequence,
+)
+
+private fun Reactor.toSerialized(): ReactorSerialized = ReactorSerialized(
+    userIdHex = userId.hexEncodedString(),
+    reactedAtEpochSeconds = reactedAt.epochSeconds,
+)
+
+private fun ReactionSummarySerialized.toDomain(): ReactionSummary = ReactionSummary(
+    messageId = messageId,
+    reactions = reactions.map { it.toDomain() },
+)
+
+private fun EmojiReactionSerialized.toDomain(): EmojiReaction = EmojiReaction(
+    emoji = Emoji(emoji),
+    count = count,
+    reactedBySelf = reactedBySelf,
+    sampleReactors = sampleReactors.map { it.toDomain() },
+    sequence = sequence,
+)
+
+private fun ReactorSerialized.toDomain(): Reactor = Reactor(
+    userId = userIdHex.hexToIdExt(),
+    reactedAt = Instant.fromEpochSeconds(reactedAtEpochSeconds),
+)
 
 // endregion

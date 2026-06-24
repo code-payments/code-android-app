@@ -2,6 +2,7 @@ package com.flipcash.app.persistence.converters
 
 import androidx.room.TypeConverter
 import com.flipcash.app.persistence.entities.MessageStatus
+import com.flipcash.services.models.chat.MediaItem
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -65,6 +66,20 @@ class ChatTypeConverters {
     }
 
     // endregion
+
+    // region ReactionSummary
+
+    @TypeConverter
+    fun fromReactionSummary(value: String?): ReactionSummarySerialized? {
+        return value?.let { json.decodeFromString<ReactionSummarySerialized>(it) }
+    }
+
+    @TypeConverter
+    fun toReactionSummary(summary: ReactionSummarySerialized?): String? {
+        return summary?.let { json.encodeToString(it) }
+    }
+
+    // endregion
 }
 
 @Serializable
@@ -83,6 +98,33 @@ sealed interface MessageContentSerialized {
         val tokenName: String = "",
         val tokenImageUrl: String = "",
     ) : MessageContentSerialized
+
+    @Serializable
+    @SerialName("deleted")
+    data class Deleted(
+        val deletedAt: Long,
+        val deletedBy: String?,
+    ) : MessageContentSerialized
+
+    @Serializable
+    @SerialName("reply")
+    data class Reply(
+        val repliedMessageId: Long,
+        val content: List<MessageContentSerialized>,
+    ) : MessageContentSerialized
+
+    @Serializable
+    @SerialName("media")
+    data class Media(
+        val items: List<MediaItem>,
+        val caption: Text?,
+    ) : MessageContentSerialized
+
+    @Serializable
+    @SerialName("system")
+    data class System(val fallbackText: String) : MessageContentSerialized
+
+
 }
 
 @Serializable
@@ -117,3 +159,24 @@ sealed interface SocialAccountSerialized {
         val followerCount: Int,
     ) : SocialAccountSerialized
 }
+
+@Serializable
+data class ReactionSummarySerialized(
+    val messageId: Long,
+    val reactions: List<EmojiReactionSerialized>,
+)
+
+@Serializable
+data class EmojiReactionSerialized(
+    val emoji: String,
+    val count: Long,
+    val reactedBySelf: Boolean,
+    val sampleReactors: List<ReactorSerialized>,
+    val sequence: Long,
+)
+
+@Serializable
+data class ReactorSerialized(
+    val userIdHex: String,
+    val reactedAtEpochSeconds: Long,
+)
