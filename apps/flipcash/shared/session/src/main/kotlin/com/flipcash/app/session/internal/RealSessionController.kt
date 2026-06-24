@@ -2,161 +2,157 @@ package com.flipcash.app.session.internal
 
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.activityfeed.ActivityFeedUpdater
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.shared.chat.ChatCoordinator
-import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.bill.Bill
-import com.flipcash.app.core.bill.BillState
-import com.flipcash.app.core.bill.PaymentValuation
-import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.internal.bill.BillController
-import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.app.core.internal.updater.ProfileUpdater
-import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.payments.PurchaseMethodController
-import com.flipcash.app.session.BillDeterminationResult
-import com.flipcash.app.session.Grabbed
+import com.flipcash.app.session.BillOperations
+import com.flipcash.app.session.CashLinkOperations
+import com.flipcash.app.session.CodeScanOperations
+import com.flipcash.app.session.DepositOperations
 import com.flipcash.app.session.PutInWallet
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.session.SessionState
+import com.flipcash.app.session.internal.delegates.BillPresentationDelegate
+import com.flipcash.app.session.internal.delegates.CashLinkDelegate
+import com.flipcash.app.session.internal.delegates.CodeScanDelegate
+import com.flipcash.app.session.internal.delegates.DepositDelegate
+import com.flipcash.app.session.internal.delegates.GiftCardSharingDelegate
 import com.flipcash.app.session.internal.toast.SessionToastController
-import com.flipcash.app.shareable.ShareConfirmationResult
-import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
-import com.flipcash.app.shareable.Shareable
-import com.flipcash.app.shareable.ShareableConfirmationController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.TokenUpdater
-import com.flipcash.app.tokens.UsdcDepositSweep
-import com.flipcash.core.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.SettingsController
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
-import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TransactionController
-import com.getcode.opencode.internal.manager.VerifiedState
-import com.getcode.opencode.internal.transactors.ReceiveGiftTransactorError
-import com.getcode.opencode.model.accounts.AccountCluster
-import com.getcode.opencode.model.accounts.GiftCardAccount
-import com.getcode.opencode.model.core.OpenCodePayload
-import com.getcode.opencode.model.core.PayloadKind
-import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.financial.sum
 import com.getcode.ui.core.RestrictionType
-import com.getcode.util.permissions.PermissionResult
-import com.getcode.util.resources.ResourceHelper
-import com.getcode.util.vibration.Vibrator
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
-import com.getcode.utils.base58
-import com.getcode.utils.hexEncodedString
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.trace
-import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * This class is the central orchestrator for the application's session, managing the user's
- * interaction flow, data synchronization, and state transitions. It integrates various
- * controllers and services to provide a cohesive user experience.
+ * Thin orchestration shell that implements [SessionController] by composing five
+ * focused delegates via Kotlin `by` interface delegation:
  *
- * Key Responsibilities:
- * - **State Management**: Maintains and exposes the overall session state ([SessionState]) and bill state
- *   ([BillState]), reacting to changes in authentication, network connectivity, and app lifecycle.
- * - **Lifecycle Events**: Handles `onAppInForeground` and `onAppInBackground` events to start/stop
- *   data polling (balances, activity feed), connect/disconnect services, and manage UI state.
- * - **Transaction Flow**:
- *   - **Scanning**: Processes scanned QR codes ([onCodeScan]) to initiate cash grabs.
- *   - **Cash Links**: Manages the creation ([shareGiftCard]) and claiming ([openCashLink]) of cash links.
- *   - **Bill Presentation**: Coordinates with [BillController] to display bills for sending or
- *     receiving cash ([showBill], [presentBillToUser]).
- * - **Data Synchronization**: Uses updaters ([TokenUpdater], [ActivityFeedUpdater], [ProfileUpdater])
- *   to keep local data fresh.
- * - **User Interaction**: Manages UI feedback like toasts ([ToastController]), vibrations ([Vibrator]),
- *   and bottom bar messages ([BottomBarManager]). It also handles interactions with the native
- *   share sheet ([ShareSheetController]).
- * - **Feature & Settings Integration**: Responds to changes in feature flags and app settings,
- *   such as `VibrateOnScan` and `CameraStartByDefault`.
+ * | Delegate | Interface | Responsibility |
+ * |----------|-----------|----------------|
+ * | [com.flipcash.app.session.internal.delegates.BillPresentationDelegate] | [BillOperations] | Creating, presenting, and dismissing cash bills |
+ * | [com.flipcash.app.session.internal.delegates.CodeScanDelegate] | [CodeScanOperations] | QR/Kik-code scanning and grab attempts |
+ * | [com.flipcash.app.session.internal.delegates.CashLinkDelegate] | [CashLinkOperations] | Cash-link claiming |
+ * | [com.flipcash.app.session.internal.delegates.DepositDelegate] | [DepositOperations] | Deposit options and USDC sweep |
+ * | [com.flipcash.app.session.internal.delegates.GiftCardSharingDelegate] | *(internal)* | "Send as Link" gift-card funding + share |
+ *
+ * **What lives here (and why):**
+ * - **Event routing** — each delegate exposes a `Flow<Event>` (backed by a `Channel`); the `init` block
+ *   collects all five and dispatches cross-delegate calls (e.g. scan-delegate's
+ *   `BillReady` → `showBill`, bill-delegate's `SendAsLinkRequested` →
+ *   `giftCardDelegate.shareGiftCard`). All cross-delegate wiring is visible in one
+ *   place.
+ * - **Lifecycle methods** — [onAppInForeground] / [onAppInBackground] are inherently
+ *   cross-cutting (polling, billing, share-sheet, feed refresh) and stay on the shell.
+ * - **Flow observers** — auth-state transitions, feature flags, network reconnects,
+ *   and balance/token observations that update [SessionStateHolder].
+ *
+ * Delegates are fully self-contained after Hilt construction — no `lateinit`,
+ * no `initialize()` calls, no post-construction wiring.
  */
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class RealSessionController @Inject constructor(
+    private val billDelegate: BillPresentationDelegate,
+    private val scanDelegate: CodeScanDelegate,
+    private val cashLinkDelegate: CashLinkDelegate,
+    private val depositDelegate: DepositDelegate,
+    private val giftCardDelegate: GiftCardSharingDelegate,
+    private val stateHolder: SessionStateHolder,
     private val billController: BillController,
     private val userManager: UserManager,
     private val accountController: AccountController,
     private val settingsController: SettingsController,
     private val feedCoordinator: ActivityFeedCoordinator,
-    private val transactionController: TransactionController,
-    private val networkObserver: NetworkConnectivityListener,
-    private val resources: ResourceHelper,
-    private val vibrator: Vibrator,
     private val tokenUpdater: TokenUpdater,
     private val activityFeedUpdater: ActivityFeedUpdater,
     private val profileUpdater: ProfileUpdater,
     private val shareSheetController: ShareSheetController,
-    private val shareConfirmationController: ShareableConfirmationController,
     private val toastController: SessionToastController,
     private val billingClient: BillingClient,
     private val tokenCoordinator: TokenCoordinator,
     private val contactCoordinator: ContactCoordinator,
     private val chatCoordinator: ChatCoordinator,
-    private val featureFlagController: FeatureFlagController,
-    private val purchaseMethodController: PurchaseMethodController,
-    private val analytics: FlipcashAnalyticsService,
-    private val usdcSweep: UsdcDepositSweep,
+    networkObserver: NetworkConnectivityListener,
+    featureFlagController: FeatureFlagController,
     appSettingsCoordinator: AppSettingsCoordinator,
-    private val dispatchers: DispatcherProvider,
-) : SessionController {
+    dispatchers: DispatcherProvider,
+) : SessionController, BillOperations by billDelegate,
+    CodeScanOperations by scanDelegate,
+    CashLinkOperations by cashLinkDelegate,
+    DepositOperations by depositDelegate {
 
     private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
-    private val _state = MutableStateFlow(SessionState())
 
     override val state: StateFlow<SessionState>
-        get() = _state.asStateFlow()
-
-    override val billState: StateFlow<BillState>
-        get() = billController.state
-
-    private val scannedRendezvous = mutableMapOf<String, Long>()
-
-    private val giftCardFundingInProgress = AtomicBoolean(false)
-    private val giftCardClaimInProgress = MutableStateFlow<String?>(null)
+        get() = stateHolder.state
 
     init {
+        // Collect delegate events and dispatch cross-delegate calls
+        billDelegate.events
+            .onEach { event ->
+                when (event) {
+                    is BillPresentationDelegate.Event.SendAsLinkRequested ->
+                        giftCardDelegate.shareGiftCard(event.bill, event.owner)
+                    is BillPresentationDelegate.Event.RefreshFeed ->
+                        bringActivityFeedCurrent()
+                }
+            }.launchIn(scope)
+
+        scanDelegate.events
+            .onEach { event ->
+                when (event) {
+                    is CodeScanDelegate.Event.BillReady -> showBill(event.bill)
+                    is CodeScanDelegate.Event.RefreshFeed -> bringActivityFeedCurrent()
+                    is CodeScanDelegate.Event.CheckPendingFeed -> checkPendingItemsInFeed()
+                }
+            }.launchIn(scope)
+
+        cashLinkDelegate.events
+            .onEach { event ->
+                when (event) {
+                    is CashLinkDelegate.Event.BillReady -> showBill(event.bill)
+                    is CashLinkDelegate.Event.RefreshFeed -> bringActivityFeedCurrent()
+                    is CashLinkDelegate.Event.CheckPendingFeed -> checkPendingItemsInFeed()
+                }
+            }.launchIn(scope)
+
+        giftCardDelegate.events
+            .onEach { event ->
+                when (event) {
+                    is GiftCardSharingDelegate.Event.DismissBill -> dismissBill(event.action)
+                    is GiftCardSharingDelegate.Event.RestartBillGrab ->
+                        billDelegate.awaitBillGrab(event.bill, event.owner)
+                    is GiftCardSharingDelegate.Event.RefreshFeed -> bringActivityFeedCurrent()
+                }
+            }.launchIn(scope)
+
         // handle auth state transitions: cleanup on logout, start polling on login
         userManager.state
             .map { it.authState }
@@ -165,10 +161,10 @@ class RealSessionController @Inject constructor(
                 when {
                     authState is AuthState.LoggedOut -> {
                         stopPolling()
-                        cancelUpdates()
+                        depositDelegate.cancelSweep()
                         scope.launch { contactCoordinator.reset() }
                         scope.launch { chatCoordinator.reset() }
-                        _state.update { SessionState() }
+                        stateHolder.reset()
                     }
 
                     authState is AuthState.Ready -> {
@@ -183,7 +179,7 @@ class RealSessionController @Inject constructor(
 
         userManager.state
             .map { it.isTimelockUnlocked }
-            .onEach { _state.update { it.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) } }
+            .onEach { stateHolder.update { it.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) } }
             .launchIn(scope)
 
         userManager.state
@@ -200,38 +196,34 @@ class RealSessionController @Inject constructor(
             .distinctUntilChanged()
             .flatMapLatest { chatCoordinator.observeUnreadConversations() }
             .distinctUntilChanged()
-            .onEach { count -> _state.update { it.copy(notificationUnreadCount = count) } }
+            .onEach { count -> stateHolder.update { it.copy(notificationUnreadCount = count) } }
             .launchIn(scope)
 
         appSettingsCoordinator
             .observeValue(AppSettingValue.CameraStartByDefault)
-            .onEach { autoStart -> _state.update { it.copy(autoStartCamera = autoStart) } }
-            .launchIn(scope)
-
-        featureFlagController.observe(FeatureFlag.DepositFirstUX)
-            .onEach { enabled -> _state.update { it.copy(depositFirstUx = enabled) } }
+            .onEach { autoStart -> stateHolder.update { it.copy(autoStartCamera = autoStart) } }
             .launchIn(scope)
 
         featureFlagController.observe(FeatureFlag.VibrateOnScan)
-            .onEach { enabled -> _state.update { it.copy(vibrateOnScan = enabled) } }
+            .onEach { enabled -> stateHolder.update { it.copy(vibrateOnScan = enabled) } }
             .launchIn(scope)
 
         tokenCoordinator.tokenBalances
             .map { tokenCoordinator.hasGiveableBalance() }
             .distinctUntilChanged()
-            .onEach { hasBalance -> _state.update { it.copy(hasGiveableBalance = hasBalance) } }
+            .onEach { hasBalance -> stateHolder.update { it.copy(hasGiveableBalance = hasBalance) } }
             .launchIn(scope)
 
         tokenCoordinator.tokens
             .onEach { tokens ->
-                _state.update { it.copy(tokens = tokens) }
+                stateHolder.update { it.copy(tokens = tokens) }
             }.launchIn(scope)
 
         combine(
             featureFlagController.observe(FeatureFlag.PhoneNumberSend),
             userManager.state.map { it.flags?.enablePhoneNumberSend == true }
         ) { beta, server -> beta || server }
-            .onEach { enabled -> _state.update { it.copy(isPhoneNumberSendEnabled = enabled) } }
+            .onEach { enabled -> stateHolder.update { it.copy(isPhoneNumberSendEnabled = enabled) } }
             .launchIn(scope)
 
         // Retry updateUserFlags when network is restored
@@ -242,22 +234,11 @@ class RealSessionController @Inject constructor(
             .onEach {
                 if (userManager.authState.isAtLeastRegistered) {
                     updateUserFlags()
-                    swapUsdcIfNeeded()
+                    depositDelegate.sweepIfNeeded()
                 }
             }.launchIn(scope)
     }
 
-    /**
-     * Called when the app enters the foreground.
-     *
-     * This function performs several actions to ensure the app is up-to-date and ready for user interaction:
-     * 1. Starts polling for updates (e.g., balance, exchange rates, activity feed).
-     * 2. Updates user flags.
-     * 4. Checks for pending items in the activity feed.
-     * 5. Brings the activity feed to the current state.
-     * 6. Checks for any pending share actions via the share sheet.
-     * 7. If the user is registered, connects to the billing client.
-     */
     override fun onAppInForeground() {
         trace(
             tag = "Session",
@@ -265,7 +246,7 @@ class RealSessionController @Inject constructor(
             type = TraceType.Process,
         )
         startPolling()
-        swapUsdcIfNeeded()
+        depositDelegate.sweepIfNeeded()
         updateUserFlags()
         linkForPaymentIfNeeded()
         updateSettings()
@@ -277,19 +258,9 @@ class RealSessionController @Inject constructor(
         }
     }
 
-    /**
-     * Called when the application enters the background.
-     * This function stops polling for updates, disconnects the billing client,
-     * and clears any pending UI elements related to bills or sharing if certain conditions are met.
-     *
-     * Specifically, it clears the bottom bar, cancels any pending bill grab actions, and cancels
-     * any ongoing send operations if:
-     * - The share sheet is not currently checking for a share action, OR
-     * - There is an active bill, and it has not yet been received.
-     */
     override fun onAppInBackground() {
         stopPolling()
-        cancelUpdates()
+        depositDelegate.cancelSweep()
         billingClient.disconnect()
 
         toastController.clear()
@@ -310,21 +281,10 @@ class RealSessionController @Inject constructor(
         }
     }
 
-    private fun swapUsdcIfNeeded() {
-        val owner = userManager.accountCluster ?: return
-        if (userManager.authState.canAccessAuthenticatedApis) {
-            usdcSweep.execute(owner)
-        }
-    }
-
     private fun stopPolling() {
         tokenUpdater.stop()
         activityFeedUpdater.stop()
         profileUpdater.stop()
-    }
-
-    private fun cancelUpdates() {
-        usdcSweep.cancel()
     }
 
     private fun updateUserFlags() {
@@ -335,13 +295,10 @@ class RealSessionController @Inject constructor(
                         userManager.set(flags)
                         val currentState = userManager.authState
                         when {
-                            // Don't promote during onboarding — the permissions
-                            // completion flow sets Ready when navigating to Scanner.
                             flags.isRegistered && !currentState.canAccessAuthenticatedApis
                                     && currentState !is AuthState.Onboarding -> {
                                 userManager.set(authState = AuthState.Ready)
                             }
-                            // Reconcile resume point with freshly-loaded flags.
                             currentState is AuthState.Onboarding -> {
                                 val corrected = when (currentState.resumePoint) {
                                     AuthState.ResumePoint.PostAccessKey ->
@@ -395,644 +352,4 @@ class RealSessionController @Inject constructor(
             }
         }
     }
-
-    override fun onCameraScanning(scanning: Boolean) {
-        _state.update { it.copy(isCameraUp = scanning) }
-    }
-
-    override fun showBill(bill: Bill) {
-        if (bill.amount.nativeAmount.decimalValue == 0.0) return
-        val owner = userManager.accountCluster ?: return
-
-        if (!networkObserver.isConnected) {
-            return ErrorUtils.showNetworkError(resources)
-        }
-
-        // Don't show action buttons for airdrop
-        when (bill) {
-            is Bill.Cash -> {
-                when (bill.kind) {
-                    Bill.Kind.airdrop -> {
-                        // Don't show action buttons for airdrop
-                        billController.update {
-                            it.copy(
-                                primaryAction = null,
-                                secondaryAction = null,
-                            )
-                        }
-                    }
-
-                    Bill.Kind.cash -> {
-                        if (bill.didReceive) {
-                            // Don't show action buttons for received cash
-                            billController.update {
-                                it.copy(
-                                    primaryAction = null,
-                                    secondaryAction = null,
-                                )
-                            }
-                        } else {
-                            billController.update {
-                                it.copy(
-                                    primaryAction = BillState.Action.SendAsLink(
-                                        action = {
-                                            billController.cancelAwaitForGrab()
-
-                                            shareGiftCard(
-                                                amount = bill.amount,
-                                                token = bill.token,
-                                                owner = owner,
-                                                verifiedState = bill.verifiedState!!
-                                            ) {
-                                                trace(
-                                                    tag = "Session",
-                                                    message = "Cash link not sent. Restarting awaiting grab",
-                                                    type = TraceType.User,
-                                                )
-                                                // Use the state-enriched bill which carries the
-                                                // nonce from the first presentation, so the
-                                                // restarted give reuses the same rendezvous.
-                                                val currentBill =
-                                                    billController.state.value.bill ?: bill
-                                                awaitBillGrab(currentBill, owner)
-                                            }
-                                        }
-                                    ),
-                                    // Allow cancelling pending outgoing cash bills
-                                    secondaryAction = BillState.Action.Cancel(
-                                        action = { dismissBill(PutInWallet) }
-                                    ),
-                                )
-                            }
-                        }
-                        awaitBillGrab(bill, owner)
-                    }
-                }
-            }
-
-        }
-    }
-
-    private fun awaitBillGrab(bill: Bill, owner: AccountCluster) {
-        analytics.transferStart(Analytics.Transfer.Initiate.GiveBillStart)
-        billController.awaitGrab(
-            amount = bill.amount,
-            token = bill.token,
-            verifiedState = (bill as? Bill.Cash)?.verifiedState,
-            nonce = (bill as? Bill.Cash)?.nonce?.takeIf { it.isNotEmpty() },
-            owner = owner,
-            onGrabbed = { amount ->
-                tokenCoordinator.subtract(bill.token, amount)
-                analytics.transfer(Analytics.Transfer.GiveBill, bill.amount)
-                toastController.enqueue(bill.amount, isDeposit = false)
-                dismissBill(Grabbed)
-                vibrator.vibrate()
-                bringActivityFeedCurrent()
-            },
-            onTimeout = {
-                dismissBill(action = PutInWallet)
-            },
-            onError = {
-                analytics.transfer(
-                    event = Analytics.Transfer.GiveBill,
-                    amount = bill.amount,
-                    successful = false,
-                    error = it
-                )
-                dismissBill(action = PutInWallet)
-                BottomBarManager.showError(
-                    title = resources.getString(R.string.error_title_CashReturnedToWallet),
-                    message = resources.getString(R.string.error_description_CashReturnedToWallet)
-                )
-            },
-            present = { (data, nonce) ->
-                if (!bill.didReceive) {
-                    trace(
-                        tag = "Session",
-                        message = "Pull out cash",
-                        metadata = {
-                            "underlying quarks" to bill.amount.underlyingTokenAmount.quarks
-                            "native amount" to bill.amount.nativeAmount.formatted()
-                            "fx" to bill.amount.rate.fx
-                            "currency" to bill.amount.rate.currency.name
-                            "token mint" to bill.amount.mint
-                        },
-                        type = TraceType.User,
-                    )
-                }
-                presentBillToUser(data, nonce, bill)
-            },
-        )
-    }
-
-    private fun shareGiftCard(
-        amount: LocalFiat,
-        token: Token,
-        owner: AccountCluster,
-        verifiedState: VerifiedState,
-        restartBillGrabber: () -> Unit
-    ) {
-        val giftCard = GiftCardAccount.create(token)
-        val shareable = Shareable.CashLink(
-            giftCardAccount = giftCard,
-            amount = amount,
-            autoConfirmationAfter = 60.seconds
-        )
-
-        scope.launch {
-            shareSheetController.onShared = onShared@{ result ->
-                when (result) {
-                    is ShareResult.ActionTaken -> {
-                        if (!giftCardFundingInProgress.compareAndSet(false, true)) return@onShared
-                        scope.launch action@{
-                            // immediately fund the gift card
-                            val fundingResult = initiateGiftCardFunding(
-                                giftCard = giftCard,
-                                owner = owner,
-                                amount = amount,
-                                token = token,
-                                verifiedState = verifiedState
-                            )
-                            if (fundingResult.isFailure) {
-                                return@action
-                            }
-
-                            // remain isChecking state until confirmation
-                            shareSheetController.reset(setChecked = true)
-
-                            // delay _slightly_ before presenting confirmation
-                            delay(CASH_LINK_CONFIRMATION_DELAY)
-
-                            confirmGiftCardSent(
-                                owner = owner,
-                                giftCard = giftCard,
-                                amount = amount,
-                                shareable = shareable,
-                                result = result
-                            )
-                        }.invokeOnCompletion { giftCardFundingInProgress.set(false) }
-                    }
-
-                    ShareResult.NotShared -> {
-                        restartBillGrabber()
-                    }
-                }
-            }
-            shareSheetController.present(shareable)
-        }
-    }
-
-    private suspend fun confirmGiftCardSent(
-        owner: AccountCluster,
-        giftCard: GiftCardAccount,
-        amount: LocalFiat,
-        shareable: Shareable,
-        result: ShareResult.ActionTaken,
-    ) {
-        // confirm the result of the share
-        val confirmResult =
-            shareConfirmationController.confirm(shareable, result)
-
-        // reset isChecking after confirmation
-        shareSheetController.reset(setChecked = false)
-
-        when (confirmResult) {
-            ShareConfirmationResult.Cancelled -> {
-                BottomBarManager.showAlert(
-                    title = "Are You Sure?",
-                    message = "Anyone you sent the link to won’t be able to collect the cash",
-                    actions = listOf(
-                        BottomBarAction(
-                            text = "Yes",
-                            onClick = {
-                                // user selected cancel, dismiss everything back to camera
-                                scope.launch {
-                                    cancelGiftCard(owner, giftCard)
-                                }
-                            }
-                        ),
-                        BottomBarAction(
-                            text = "Nevermind",
-                            style = BottomBarManager.BottomBarButtonStyle.Text,
-                            onClick = {
-                                scope.launch {
-                                    confirmGiftCardSent(
-                                        owner,
-                                        giftCard,
-                                        amount,
-                                        shareable,
-                                        result
-                                    )
-                                }
-                            }
-                        )
-                    ),
-                    isDismissible = false,
-                    showCancel = false,
-                    showScrim = false,
-                )
-            }
-
-            is ShareConfirmationResult.Confirmed -> {
-                when (result) {
-                    ShareResult.CopiedToClipboard -> {
-                        toastController.enqueue(amount, isDeposit = false)
-                        dismissBill(Grabbed)
-                        vibrator.vibrate()
-                        bringActivityFeedCurrent()
-                        analytics.transfer(Analytics.Transfer.SentCashLink.Clipboard, amount)
-                        trace(
-                            tag = "Session",
-                            message = "Cash link copied",
-                            metadata = {
-                                "underlying quarks" to amount.underlyingTokenAmount.quarks
-                                "native amount" to amount.nativeAmount.formatted()
-                                "fx" to amount.rate.fx
-                                "currency" to amount.rate.currency.name
-                                "token mint" to amount.mint
-                            },
-                            type = TraceType.User,
-                        )
-                    }
-
-                    is ShareResult.SharedToApp -> {
-                        toastController.enqueue(amount, isDeposit = false)
-                        dismissBill(Grabbed)
-                        vibrator.vibrate()
-                        bringActivityFeedCurrent()
-
-                        analytics.transfer(
-                            event = Analytics.Transfer.SentCashLink.App(name = result.to),
-                            amount = amount
-                        )
-
-                        trace(
-                            tag = "Session",
-                            message = "Cash link shared",
-                            metadata = {
-                                "target" to result.to
-                                "underlying quarks" to amount.underlyingTokenAmount.quarks
-                                "native amount" to amount.nativeAmount.formatted()
-                                "fx" to amount.rate.fx
-                                "currency" to amount.rate.currency.name
-                                "token mint" to amount.mint
-                            },
-                            type = TraceType.User,
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    private suspend fun initiateGiftCardFunding(
-        giftCard: GiftCardAccount,
-        owner: AccountCluster,
-        amount: LocalFiat,
-        token: Token,
-        verifiedState: VerifiedState,
-    ): Result<LocalFiat> = suspendCancellableCoroutine { cont ->
-        billController.fundGiftCard(
-            giftCard = giftCard,
-            amount = amount,
-            token = token,
-            owner = owner,
-            verifiedState = verifiedState,
-            onFunded = {
-                tokenCoordinator.subtract(token, amount)
-                shareSheetController.reset()
-                cont.resume(Result.success(it))
-            },
-            onError = {
-                dismissBill(PutInWallet)
-                BottomBarManager.showError(
-                    title = resources.getString(R.string.error_title_failedToCreateGiftCard),
-                    message = resources.getString(R.string.error_description_failedToCreateGiftCard)
-                )
-                cont.resume(Result.failure(it))
-            }
-        )
-    }
-
-    private suspend fun cancelGiftCard(
-        owner: AccountCluster,
-        giftCard: GiftCardAccount
-    ) {
-        transactionController.cancelRemoteSend(
-            vault = giftCard.cluster.vaultPublicKey,
-            owner = owner,
-        ).onFailure {
-            dismissBill(PutInWallet)
-        }.onSuccess {
-            tokenCoordinator.update()
-            checkPendingItemsInFeed()
-            dismissBill(PutInWallet)
-        }
-    }
-
-    override fun onCodeScan(code: ScannableKikCode) {
-        if (billController.state.value.bill != null) {
-            return
-        }
-
-        val payload = (code as? ScannableKikCode.RemoteKikCode)?.payloadId?.toList() ?: return
-        val codePayload = OpenCodePayload.fromList(payload)
-        if (scannedRendezvous.contains(codePayload.rendezvous.publicKey)) {
-            return
-        }
-
-        if (state.value.vibrateOnScan) {
-            vibrator.tick()
-        }
-
-        trace(
-            tag = "Session",
-            message = """
-                Kind: ${codePayload.kind}
-                Nonce: ${codePayload.nonce.hexEncodedString()}
-                Rendezvous: ${codePayload.rendezvous.publicKeyBytes.base58}
-            """.trimIndent()
-        )
-
-        when (codePayload.kind) {
-            PayloadKind.Cash -> onCashScanned(codePayload)
-            PayloadKind.MultiMintCash -> onCashScanned(codePayload)
-            PayloadKind.Unknown -> Unit
-        }
-    }
-
-    override fun openCashLink(cashLink: String?) {
-        BottomBarManager.clear()
-
-        val entropy = cashLink?.trim()?.replace("\n", "")
-        if (entropy == null) {
-            trace(
-                tag = "Session",
-                message = "Cash link not provided",
-                type = TraceType.Silent
-            )
-            analytics.deeplinkRouted(
-                DeeplinkType.CashLink(),
-                error = IllegalArgumentException("Cash link not provided")
-            )
-            return
-        }
-        val owner = userManager.accountCluster
-
-        if (owner == null) {
-            trace(
-                tag = "Session",
-                message = "No owner found",
-                type = TraceType.Silent
-            )
-            analytics.deeplinkRouted(
-                DeeplinkType.CashLink(),
-                error = IllegalStateException("No owner found")
-            )
-            return
-        }
-
-        if (entropy.isEmpty()) {
-            trace(
-                tag = "Session",
-                message = "Cash link empty",
-                type = TraceType.Silent
-            )
-            analytics.deeplinkRouted(
-                DeeplinkType.CashLink(),
-                error = IllegalArgumentException("Cash link empty")
-            )
-            return
-        }
-
-        if (giftCardClaimInProgress.value == null) {
-            giftCardClaimInProgress.value = entropy
-            analytics.deeplinkRouted(DeeplinkType.CashLink()) // entropy omitted since not needed for analytics
-            claimGiftCard(owner = owner, entropy = entropy, claimIfOwned = false)
-        }
-    }
-
-    override fun presentDepositOptions(onRoute: ((AppRoute) -> Unit)?) {
-        val depositFirstUx = state.value.depositFirstUx
-
-        val navigate = { route: AppRoute ->
-            onRoute?.invoke(route)
-        }
-
-        val message = if (depositFirstUx) {
-            resources.getString(R.string.description_noBalanceYet)
-        } else {
-            resources.getString(R.string.description_noBalanceYetDiscover)
-        }
-        val cta = if (depositFirstUx) {
-            resources.getString(R.string.action_depositFunds)
-        } else {
-            resources.getString(R.string.action_discoverCurrencies)
-        }
-
-        BottomBarManager.showInfo(
-            title = resources.getString(R.string.title_noBalanceYet),
-            message = message,
-            actions = listOf(
-                BottomBarAction(
-                    text = cta
-                ) {
-                    scope.launch {
-                        if (depositFirstUx) {
-                            val destination = purchaseMethodController.presentDepositOptions(popToRoot = true)
-                            if (destination != null) {
-                                navigate(destination)
-                            }
-                        } else {
-                            navigate(AppRoute.Token.Discovery)
-                        }
-                    }
-                },
-            ),
-            showCancel = true,
-        )
-    }
-
-    private fun claimGiftCard(
-        owner: AccountCluster,
-        entropy: String,
-        claimIfOwned: Boolean
-    ) {
-        trace(
-            tag = "Session",
-            message = "Claiming gift card: $entropy",
-            type = TraceType.Silent
-        )
-
-        billController.receiveGiftCard(
-            entropy = entropy,
-            owner = owner,
-            claimIfOwned = claimIfOwned,
-            onReceived = { token, amount ->
-                tokenCoordinator.add(token, amount)
-                giftCardClaimInProgress.value = null
-                analytics.transfer(Analytics.Transfer.ClaimedCashLink, amount = amount)
-                val bill = Bill.Cash(
-                    amount = amount,
-                    token = token,
-                    didReceive = true,
-                )
-                showBill(bill)
-                checkPendingItemsInFeed()
-                bringActivityFeedCurrent()
-            },
-            onError = { cause ->
-                giftCardClaimInProgress.value = null
-                if (cause !is ReceiveGiftTransactorError.UsersGiftCard) {
-                    analytics.transfer(
-                        Analytics.Transfer.ClaimedCashLink,
-                        amount = null,
-                        successful = false,
-                        error = cause
-                    )
-                }
-
-                when (cause) {
-                    is ReceiveGiftTransactorError.UsersGiftCard -> {
-                        // present confirmation to claim (cancel) own gift card
-                        BottomBarManager.showAlert(
-                            title = resources.getString(R.string.prompt_title_collectOwnCash),
-                            message = resources.getString(R.string.prompt_description_collectOwnCash),
-                            isDismissible = false,
-                            showScrim = false,
-                            actions = buildList {
-                                add(
-                                    BottomBarAction(
-                                        text = resources.getString(R.string.action_dontCollect),
-                                    )
-                                )
-
-                                add(
-                                    BottomBarAction(
-                                        text = resources.getString(R.string.action_collect),
-                                        style = BottomBarManager.BottomBarButtonStyle.Text,
-                                        onClick = {
-                                            claimGiftCard(
-                                                owner = owner,
-                                                entropy = entropy,
-                                                // confirmed claim of own cash link
-                                                claimIfOwned = true
-                                            )
-                                        }
-                                    )
-                                )
-                            }
-                        )
-                    }
-
-                    is ReceiveGiftTransactorError.AlreadyClaimed -> {
-                        BottomBarManager.showAlert(
-                            resources.getString(R.string.error_title_alreadyCollected),
-                            resources.getString(R.string.error_description_alreadyCollected)
-                        )
-                    }
-
-                    is ReceiveGiftTransactorError.Expired -> {
-                        BottomBarManager.showAlert(
-                            resources.getString(R.string.error_title_linkExpired),
-                            resources.getString(R.string.error_description_linkExpired)
-                        )
-                    }
-
-                    else -> {
-                        BottomBarManager.showError(
-                            resources.getString(R.string.error_title_failedToCollect),
-                            resources.getString(R.string.error_description_failedToCollect)
-                        )
-                    }
-                }
-            }
-        )
-    }
-
-    private fun onCashScanned(payload: OpenCodePayload) {
-        scannedRendezvous[payload.rendezvous.publicKey] = Clock.System.now().toEpochMilliseconds()
-
-        trace(
-            tag = "Session",
-            message = "Scanned: ${payload.fiat!!.quarks} ${payload.fiat!!.currencyCode}"
-        )
-        val owner = userManager.accountCluster ?: return
-
-        analytics.transferStart(Analytics.Transfer.Initiate.GrabBillStart)
-        billController.attemptGrab(
-            owner = owner,
-            payload = payload,
-            onGrabbed = { token, amount, verifiedState ->
-                tokenCoordinator.add(token, amount)
-                val grabStart = scannedRendezvous[payload.rendezvous.publicKey]
-                val grabTime = grabStart?.let {
-                    Clock.System.now().toEpochMilliseconds() - it
-                }
-
-                val bill = Bill.Cash(
-                    amount = amount,
-                    token = token,
-                    didReceive = true,
-                    verifiedState = verifiedState
-                )
-                showBill(bill)
-
-                analytics.transfer(Analytics.Transfer.GrabBill(grabTime), amount)
-                BottomBarManager.clear()
-                checkPendingItemsInFeed()
-                bringActivityFeedCurrent()
-            },
-            onError = {
-                analytics.transfer(
-                    event = Analytics.Transfer.GrabBill(),
-                    fiat = payload.fiat,
-                    successful = false,
-                    error = it
-                )
-                scannedRendezvous.remove(payload.rendezvous.publicKey)
-            }
-        )
-    }
-
-    private fun presentBillToUser(data: List<Byte>, nonce: List<Byte>, bill: Bill) {
-        if (billController.state.value.bill != null) return
-
-        val presentedBill = when (bill) {
-            is Bill.Cash -> bill.copy(
-                data = data,
-                nonce = nonce,
-            )
-        }
-
-        billController.update {
-            it.copy(
-                bill = presentedBill,
-                valuation = PaymentValuation(bill.amount.nativeAmount),
-            )
-        }
-
-        val style: BillDeterminationResult =
-            if (bill.didReceive) Grabbed else PutInWallet
-
-        _state.update { it.copy(billResult = style) }
-
-        if (bill.didReceive) {
-            // enqueue toast
-            toastController.enqueue(bill.amount, isDeposit = true)
-            // shorter punch than standard
-            vibrator.vibrate(duration = 50)
-        }
-    }
-
-
-    override fun dismissBill(action: BillDeterminationResult) {
-        scope.launch {
-            _state.update { it.copy(billResult = action) }
-            billController.reset()
-            toastController.consumeQueue()
-        }
-    }
 }
-
-private val CASH_LINK_CONFIRMATION_DELAY = 500.milliseconds

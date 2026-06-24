@@ -20,17 +20,29 @@ sealed interface BillDeterminationResult {
 data object Grabbed : BillDeterminationResult, ActedUpon
 data object PutInWallet : BillDeterminationResult, ActedUpon
 
-interface SessionController {
-    val state: StateFlow<SessionState>
+interface BillOperations {
     val billState: StateFlow<BillState>
-    fun onAppInForeground()
-    fun onAppInBackground()
-    fun onCameraScanning(scanning: Boolean)
     fun showBill(bill: Bill)
     fun dismissBill(action: BillDeterminationResult)
+}
+
+interface CodeScanOperations {
+    fun onCameraScanning(scanning: Boolean)
     fun onCodeScan(code: ScannableKikCode)
+}
+
+interface CashLinkOperations {
     fun openCashLink(cashLink: String?)
+}
+
+interface DepositOperations {
     fun presentDepositOptions(onRoute: ((AppRoute) -> Unit)? = null)
+}
+
+interface SessionController : BillOperations, CodeScanOperations, CashLinkOperations, DepositOperations {
+    val state: StateFlow<SessionState>
+    fun onAppInForeground()
+    fun onAppInBackground()
 }
 
 data class SessionState(

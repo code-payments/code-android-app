@@ -26,6 +26,7 @@ dependencies {
 val generateCurveTables by tasks.registering(GenerateCurveTables::class) {
     rustTableUrl.set("https://raw.githubusercontent.com/code-payments/flipcash-program/refs/heads/main/api/src/table.rs")
     outputDir.set(layout.projectDirectory.dir("src/main/assets"))
+    forceViaGradleProperty.set(providers.gradleProperty("forceCurveTables").map { true }.orElse(false))
 
     // Always regenerate (useful for CI or development)
     // TODO: enable for CI when repo is public
