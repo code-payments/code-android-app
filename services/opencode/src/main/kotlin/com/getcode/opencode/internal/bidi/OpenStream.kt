@@ -124,8 +124,9 @@ fun <Request, Response, StreamRef> openBidirectionalStream(
             } catch (e: Exception) {
                 trace(
                     tag = tag,
-                    message = "Failed to send initial request: ${e.message}",
+                    message = "Failed to send initial request",
                     type = TraceType.Error,
+                    error = e
                 )
                 collectionJob.cancel()
                 requestChannel.close()

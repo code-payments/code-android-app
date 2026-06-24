@@ -1,6 +1,5 @@
 package com.flipcash.shared.chat
 
-import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
@@ -19,6 +18,11 @@ import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.ReactionUpdate
+import com.flipcash.shared.chat.internal.ChatStateHolder
+import com.flipcash.shared.chat.internal.RealChatCoordinator
+import com.flipcash.shared.chat.internal.delegates.EventStreamDelegate
+import com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate
+import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.flipcash.services.user.UserManager
 import io.mockk.coEvery
@@ -40,6 +44,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -54,7 +59,7 @@ class ChatCoordinatorEventsTest {
 
     private lateinit var metadataDataSource: ChatMetadataDataSource
     private lateinit var messageDataSource: ChatMessageDataSource
-    private lateinit var coordinator: ChatCoordinator
+    private lateinit var coordinator: RealChatCoordinator
     private lateinit var testDispatchers: TestDispatchers
 
     @Before
@@ -71,22 +76,53 @@ class ChatCoordinatorEventsTest {
 
         metadataDataSource = mockk(relaxed = true)
         messageDataSource = mockk(relaxed = true)
+        val memberDataSource = mockk<ChatMemberDataSource>(relaxed = true)
+        val messagingController = mockk<ChatMessagingController>(relaxed = true)
 
         testDispatchers = TestDispatchers(TestCoroutineScheduler())
 
-        coordinator = ChatCoordinator(
+        val stateHolder = ChatStateHolder()
+
+        val feedDelegate = FeedSyncDelegate(
             chatController = chatController,
-            messagingController = mockk(relaxed = true),
-            eventStreamingController = eventStreamingController,
             metadataDataSource = metadataDataSource,
             messageDataSource = messageDataSource,
-            memberDataSource = mockk<ChatMemberDataSource>(relaxed = true),
-            contactDataSource = mockk<ContactDataSource>(relaxed = true),
-            networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
-            notificationManager = mockk<NotificationManagerCompat>(relaxed = true),
+            memberDataSource = memberDataSource,
+            stateHolder = stateHolder,
             userManager = userManager,
+        )
+
+        val eventStreamDelegate = EventStreamDelegate(
+            eventStreamingController = eventStreamingController,
+            messagingController = messagingController,
+            metadataDataSource = metadataDataSource,
+            messageDataSource = messageDataSource,
+            memberDataSource = memberDataSource,
             tokenCoordinator = mockk<TokenCoordinator>(relaxed = true),
+            userManager = userManager,
+            stateHolder = stateHolder,
+        )
+
+        val messagingDelegate = MessagingDelegate(
+            chatController = chatController,
+            messagingController = messagingController,
+            metadataDataSource = metadataDataSource,
+            messageDataSource = messageDataSource,
+            memberDataSource = memberDataSource,
+            contactDataSource = mockk<ContactDataSource>(relaxed = true),
+            notificationManager = mockk(relaxed = true),
+            userManager = userManager,
+            stateHolder = stateHolder,
+        )
+
+        coordinator = RealChatCoordinator(
+            feedDelegate = feedDelegate,
+            eventStreamDelegate = eventStreamDelegate,
+            messagingDelegate = messagingDelegate,
+            stateHolder = stateHolder,
+            userManager = userManager,
             featureFlags = mockk<FeatureFlagController>(relaxed = true),
+            networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = testDispatchers,
         )
     }
@@ -131,7 +167,7 @@ class ChatCoordinatorEventsTest {
             events = listOf(chatEvent(1, eventMsg)),
         )
         chatUpdatesChannel.send(update)
-        advanceTimeBy(1_000)
+        advanceTimeBy(1_000.milliseconds)
         runCurrent()
 
         // Should upsert the event message, not the deprecated one
@@ -155,7 +191,7 @@ class ChatCoordinatorEventsTest {
             events = emptyList(),
         )
         chatUpdatesChannel.send(update)
-        advanceTimeBy(1_000)
+        advanceTimeBy(1_000.milliseconds)
         runCurrent()
 
         coVerify {
@@ -183,7 +219,7 @@ class ChatCoordinatorEventsTest {
             ),
         )
         chatUpdatesChannel.send(update)
-        advanceTimeBy(1_000)
+        advanceTimeBy(1_000.milliseconds)
         runCurrent()
 
         // Should have 2 unique messages (deduped by messageId, taking first by sorted eventSequence)
@@ -212,7 +248,7 @@ class ChatCoordinatorEventsTest {
             ),
         )
         chatUpdatesChannel.send(update)
-        advanceTimeBy(1_000)
+        advanceTimeBy(1_000.milliseconds)
         runCurrent()
 
         coVerify { metadataDataSource.updateLatestEventSequence(chatId, 2L) }
@@ -230,7 +266,7 @@ class ChatCoordinatorEventsTest {
             events = listOf(chatEvent(1, textMessage(id = 1, eventSequence = 1))),
         )
         chatUpdatesChannel.send(update1)
-        advanceTimeBy(500)
+        advanceTimeBy(500.milliseconds)
         runCurrent()
 
         val update2 = ChatUpdate(
@@ -238,7 +274,7 @@ class ChatCoordinatorEventsTest {
             events = listOf(chatEvent(3, textMessage(id = 3, eventSequence = 3))),
         )
         chatUpdatesChannel.send(update2)
-        advanceTimeBy(500)
+        advanceTimeBy(500.milliseconds)
         runCurrent()
 
         // Cursor should advance to 1 (contiguous), not 3
@@ -257,21 +293,21 @@ class ChatCoordinatorEventsTest {
             chatId = chatId,
             events = listOf(chatEvent(1, textMessage(id = 1, eventSequence = 1))),
         ))
-        advanceTimeBy(100)
+        advanceTimeBy(100.milliseconds)
         runCurrent()
 
         chatUpdatesChannel.send(ChatUpdate(
             chatId = chatId,
             events = listOf(chatEvent(3, textMessage(id = 3, eventSequence = 3))),
         ))
-        advanceTimeBy(100)
+        advanceTimeBy(100.milliseconds)
         runCurrent()
 
         chatUpdatesChannel.send(ChatUpdate(
             chatId = chatId,
             events = listOf(chatEvent(2, textMessage(id = 2, eventSequence = 2))),
         ))
-        advanceTimeBy(100)
+        advanceTimeBy(100.milliseconds)
         runCurrent()
 
         // After filling the gap, cursor should advance to 3
@@ -302,7 +338,7 @@ class ChatCoordinatorEventsTest {
             ),
         )
         chatUpdatesChannel.send(update)
-        advanceTimeBy(1_000)
+        advanceTimeBy(1_000.milliseconds)
         runCurrent()
 
         val state = coordinator.state.value
@@ -335,7 +371,7 @@ class ChatCoordinatorEventsTest {
                 ),
             ),
         ))
-        advanceTimeBy(500)
+        advanceTimeBy(500.milliseconds)
         runCurrent()
 
         // Stale update: count=1, sequence=2 (older)
@@ -353,7 +389,7 @@ class ChatCoordinatorEventsTest {
                 ),
             ),
         ))
-        advanceTimeBy(500)
+        advanceTimeBy(500.milliseconds)
         runCurrent()
 
         val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
@@ -383,7 +419,7 @@ class ChatCoordinatorEventsTest {
                 ),
             ),
         ))
-        advanceTimeBy(500)
+        advanceTimeBy(500.milliseconds)
         runCurrent()
 
         // Remove reaction (count=0)
@@ -401,7 +437,7 @@ class ChatCoordinatorEventsTest {
                 ),
             ),
         ))
-        advanceTimeBy(500)
+        advanceTimeBy(500.milliseconds)
         runCurrent()
 
         val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
@@ -437,7 +473,7 @@ class ChatCoordinatorEventsTest {
                 ),
             ),
         ))
-        advanceTimeBy(1_000)
+        advanceTimeBy(1_000.milliseconds)
         runCurrent()
 
         val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
