@@ -38,9 +38,6 @@ interface ResourceHelper {
     fun getIdentifier(name: String, type: ResourceType): Int?
 
     fun getFont(@FontRes fontResId: Int): Typeface?
-
-    fun getOfKinSuffix(): String
-    fun getKinSuffix(): String
 }
 
 sealed interface ResourceType {
@@ -83,9 +80,5 @@ private object NoOpResources : ResourceHelper {
     override fun getIdentifier(name: String, type: ResourceType): Int? = null
 
     override fun getFont(fontResId: Int): Typeface? = null
-
-    override fun getOfKinSuffix(): String = ""
-
-    override fun getKinSuffix(): String = ""
 
 }

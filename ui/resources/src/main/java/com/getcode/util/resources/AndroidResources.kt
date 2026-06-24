@@ -96,12 +96,4 @@ class AndroidResources(
     override fun getFont(fontResId: Int): Typeface? {
         return runCatching { ResourcesCompat.getFont(context, fontResId) }.getOrNull()
     }
-
-    override fun getOfKinSuffix(): String {
-        return getString(R.string.core_ofKin)
-    }
-
-    override fun getKinSuffix(): String {
-        return getString(R.string.core_kin)
-    }
 }

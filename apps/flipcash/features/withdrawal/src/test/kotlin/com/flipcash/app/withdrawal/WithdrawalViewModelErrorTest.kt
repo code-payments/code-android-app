@@ -5,13 +5,12 @@ import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
-import com.flipcash.features.withdrawal.R
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
-import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.FakeResourceHelper
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import io.mockk.every
@@ -32,7 +31,7 @@ class WithdrawalViewModelErrorTest {
     @get:Rule
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
 
-    private val resources = mockk<ResourceHelper>(relaxed = true)
+    private val resources = FakeResourceHelper()
     private val exchange = mockk<Exchange>(relaxed = true)
     private val verifiedFiatCalculator = mockk<VerifiedFiatCalculator>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true)
@@ -48,9 +47,6 @@ class WithdrawalViewModelErrorTest {
     @Before
     fun setUp() {
         BottomBarManager.clear()
-
-        every { resources.getString(R.string.error_title_failedWithdrawal) } returns "error_title_failedWithdrawal"
-        every { resources.getString(R.string.error_description_failedWithdrawal) } returns "error_description_failedWithdrawal"
     }
 
     @After

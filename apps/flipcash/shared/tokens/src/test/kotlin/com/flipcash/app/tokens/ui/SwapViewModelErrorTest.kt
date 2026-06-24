@@ -7,7 +7,6 @@ import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.user.UserManager
-import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
@@ -21,7 +20,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.PublicKey
-import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.FakeResourceHelper
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.onramp.PhantomWalletController
@@ -57,7 +56,7 @@ class SwapViewModelErrorTest {
     private val verifiedFiatCalculator = mockk<VerifiedFiatCalculator>(relaxed = true)
     // Mockito for Result-returning methods (MockK double-boxes Result inline class)
     private val transactionController: TransactionOperations = mock()
-    private val resources = mockk<ResourceHelper>(relaxed = true)
+    private val resources = FakeResourceHelper()
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val feedCoordinator = mockk<ActivityFeedCoordinator>(relaxed = true)
     private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
@@ -79,8 +78,6 @@ class SwapViewModelErrorTest {
         every { PublicKey.generate() } returns mockk<PublicKey>(relaxed = true)
 
         every { userManager.accountCluster } returns accountCluster
-        every { resources.getString(R.string.error_title_buySellFailed) } returns "error_title_buySellFailed"
-        every { resources.getString(R.string.error_description_buySellFailed) } returns "error_description_buySellFailed"
 
         // Stub limits StateFlow so init block doesn't NPE on null flow
         whenever(transactionController.limits).thenReturn(MutableStateFlow(null))

@@ -9,6 +9,7 @@ android {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
+    testImplementation(testFixtures(project(":ui:resources")))
 
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:contacts"))

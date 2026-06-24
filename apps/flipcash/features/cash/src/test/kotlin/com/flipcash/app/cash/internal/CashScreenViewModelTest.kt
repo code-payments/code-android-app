@@ -4,7 +4,6 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.tokens.TokenCoordinator
-import com.flipcash.features.cash.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
@@ -19,7 +18,7 @@ import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.solana.keys.Mint
-import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.FakeResourceHelper
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,7 +44,7 @@ class CashScreenViewModelTest {
     @get:Rule
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
 
-    private val resources: ResourceHelper = mockk(relaxed = true)
+    private val resources = FakeResourceHelper()
     private val exchange: Exchange = mockk(relaxed = true)
     private val verifiedFiatCalculator: VerifiedFiatCalculator = mockk(relaxed = true)
     private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true)
@@ -58,14 +57,6 @@ class CashScreenViewModelTest {
     @Before
     fun setUp() {
         BottomBarManager.clear()
-
-        // Stub resource strings used by the ViewModel
-        every { resources.getString(R.string.error_title_youNeedMoreCash) } returns "error_title_youNeedMoreCash"
-        every { resources.getString(R.string.error_description_youNeedMoreCash) } returns "error_description_youNeedMoreCash"
-        every { resources.getString(R.string.action_addMoreCash) } returns "action_addMoreCash"
-        every { resources.getString(R.string.action_dismiss) } returns "action_dismiss"
-        every { resources.getString(R.string.error_title_sendLimitReached) } returns "error_title_sendLimitReached"
-        every { resources.getString(R.string.error_description_sendLimitReached) } returns "error_description_sendLimitReached"
 
         // Default stubs for flows consumed in init
         every { exchange.observePreferredRate() } returns emptyFlow()
