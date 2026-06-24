@@ -27,6 +27,10 @@ sealed interface ChatListItem {
         override val itemContentType: Any = when (content) {
             is MessageContent.Text -> "text-bubble"
             is MessageContent.Cash -> "cash-bubble"
+            is MessageContent.Deleted -> "deleted-message"
+            is MessageContent.Media -> "media"
+            is MessageContent.Reply -> "reply-message"
+            is MessageContent.System -> "system-message"
         }
     }
 }

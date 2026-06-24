@@ -341,6 +341,12 @@ internal class SendFlowViewModel @Inject constructor(
                     val label = if (name.isNotBlank()) "$formatted of $name" else formatted
                     if (sentBySelf) "You sent $label" else "You received $label"
                 }
+
+                // TODO:
+                is MessageContent.Deleted -> null
+                is MessageContent.Media -> null
+                is MessageContent.Reply -> null
+                is MessageContent.System -> null
             }
         }
     }
