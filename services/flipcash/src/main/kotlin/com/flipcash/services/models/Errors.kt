@@ -390,3 +390,88 @@ sealed class ResolveContactError(
     class Unrecognized : ResolveContactError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : ResolveContactError(message = cause?.message, cause = cause), NotifiableError
 }
+
+sealed class GetDeltaError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetDeltaError("Denied")
+    class ResetRequired : GetDeltaError("Reset required")
+    class Unrecognized : GetDeltaError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetDeltaError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class EditMessageError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : EditMessageError("Denied")
+    class MessageNotFound : EditMessageError("Message not found")
+    class CannotEdit : EditMessageError("Cannot edit")
+    class Conflict : EditMessageError("Conflict")
+    class Unrecognized : EditMessageError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : EditMessageError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class DeleteMessageError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : DeleteMessageError("Denied")
+    class MessageNotFound : DeleteMessageError("Message not found")
+    class CannotDelete : DeleteMessageError("Cannot delete")
+    class Conflict : DeleteMessageError("Conflict")
+    class Unrecognized : DeleteMessageError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : DeleteMessageError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class AddReactionError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : AddReactionError("Denied")
+    class MessageNotFound : AddReactionError("Message not found")
+    class CannotReact : AddReactionError("Cannot react")
+    class TooManyReactionTypes : AddReactionError("Too many reaction types")
+    class Unrecognized : AddReactionError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : AddReactionError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class RemoveReactionError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : RemoveReactionError("Denied")
+    class MessageNotFound : RemoveReactionError("Message not found")
+    class Unrecognized : RemoveReactionError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : RemoveReactionError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetReactorsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetReactorsError("Denied")
+    class MessageNotFound : GetReactorsError("Message not found")
+    class Unrecognized : GetReactorsError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetReactorsError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetReactionSummaryError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetReactionSummaryError("Denied")
+    class MessageNotFound : GetReactionSummaryError("Message not found")
+    class Unrecognized : GetReactionSummaryError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetReactionSummaryError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetReactionSummariesError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetReactionSummariesError("Denied")
+    class Unrecognized : GetReactionSummariesError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetReactionSummariesError(message = cause?.message, cause = cause), NotifiableError
+}

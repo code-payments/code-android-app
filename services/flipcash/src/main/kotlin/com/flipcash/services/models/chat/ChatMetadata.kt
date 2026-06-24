@@ -8,4 +8,5 @@ data class ChatMetadata(
     val members: List<ChatMember>,
     val lastMessage: ChatMessage?,
     val lastActivity: Instant,
+    val latestEventSequence: Long = 0,
 )
