@@ -121,7 +121,46 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                     )
             )
             .build()
+        is MessageContent.Reply -> MessagingModel.Content.newBuilder()
+            .setReply(
+                MessagingModel.ReplyContent.newBuilder()
+                    .setRepliedMessageId(MessagingModel.MessageId.newBuilder().setValue(repliedMessageId))
+                    .addAllContent(content.map { it.asContent() })
+            )
+            .build()
+        is MessageContent.Media -> MessagingModel.Content.newBuilder()
+            .setMedia(
+                MessagingModel.MediaContent.newBuilder()
+                    .addAllItems(items.map { it.asMediaItem() })
+                    .apply { if (caption != null) setCaption(MessagingModel.TextContent.newBuilder().setText(caption.text)) }
+            )
+            .build()
+        is MessageContent.System -> MessagingModel.Content.newBuilder()
+            .setSystem(MessagingModel.SystemContent.newBuilder().setFallbackText(fallbackText))
+            .build()
+        is MessageContent.Deleted -> {
+            val deletedBuilder = MessagingModel.DeletedContent.newBuilder()
+                .setDeletedTs(deletedTs.asTimestamp())
+            deletedBy?.let { deletedBuilder.setDeletedBy(it.asUserId()) }
+            MessagingModel.Content.newBuilder()
+                .setDeleted(deletedBuilder)
+                .build()
+        }
     }
+}
+
+internal fun com.flipcash.services.models.chat.MediaItem.asMediaItem(): MessagingModel.MediaItem {
+    return MessagingModel.MediaItem.newBuilder()
+        .setMediaId(MessagingModel.MediaId.newBuilder().setValue(mediaId.bytes.toByteString()))
+        .build()
+}
+
+internal fun com.flipcash.services.models.chat.Emoji.asEmoji(): MessagingModel.Emoji {
+    return MessagingModel.Emoji.newBuilder().setValue(value).build()
+}
+
+internal fun Long.asMessageId(): MessagingModel.MessageId {
+    return MessagingModel.MessageId.newBuilder().setValue(this).build()
 }
 
 internal fun PointerType.asPointerType(): MessagingModel.Pointer.Type {

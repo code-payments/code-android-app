@@ -65,6 +65,10 @@ fun ContentBubble(
         val bubbleMaxWidth = when (item.content) {
             is MessageContent.Text -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
             is MessageContent.Cash -> maxWidth * CASH_BUBBLE_MAX_WIDTH_FRACTION
+            is MessageContent.Deleted -> maxWidth
+            is MessageContent.Media -> maxWidth * CASH_BUBBLE_MAX_WIDTH_FRACTION
+            is MessageContent.Reply -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
+            is MessageContent.System -> maxWidth
         }
 
         Row(
@@ -89,6 +93,12 @@ fun ContentBubble(
                     position = position,
                     maxWidth = bubbleMaxWidth,
                 )
+
+                // TODO
+                is MessageContent.Deleted -> Unit
+                is MessageContent.Media -> Unit
+                is MessageContent.Reply -> Unit
+                is MessageContent.System -> Unit
             }
         }
     }

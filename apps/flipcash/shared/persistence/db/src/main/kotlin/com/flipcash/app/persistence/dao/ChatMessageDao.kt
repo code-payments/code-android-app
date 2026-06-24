@@ -34,8 +34,18 @@ interface ChatMessageDao {
     @Query("SELECT pending_client_id_hex FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId")
     suspend fun getPendingClientId(chatIdHex: String, messageId: Long): String?
 
+    @Query("SELECT event_sequence FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId")
+    suspend fun getEventSequence(chatIdHex: String, messageId: Long): Long?
+
     @Transaction
     suspend fun upsert(entity: ChatMessageEntity) {
+        // Event-sequence guard: skip if stored sequence is newer (last-writer-wins).
+        // Passthrough when eventSequence == 0 (legacy messages).
+        if (entity.eventSequence > 0) {
+            val stored = getEventSequence(entity.chatIdHex, entity.messageId)
+            if (stored != null && stored > entity.eventSequence) return
+        }
+
         val existingPendingId = getPendingClientId(entity.chatIdHex, entity.messageId)
         val merged = if (existingPendingId != null && entity.pendingClientIdHex == null) {
             entity.copy(pendingClientIdHex = existingPendingId)

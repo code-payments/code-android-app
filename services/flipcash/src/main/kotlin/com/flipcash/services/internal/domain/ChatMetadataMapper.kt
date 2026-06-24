@@ -28,6 +28,7 @@ class ChatMetadataMapper @Inject constructor(
             },
             lastMessage = if (from.hasLastMessage()) from.lastMessage.toChatMessage() else null,
             lastActivity = Instant.fromEpochSeconds(from.lastActivity.seconds, from.lastActivity.nanos),
+            latestEventSequence = from.latestEventSequence,
         )
     }
 }

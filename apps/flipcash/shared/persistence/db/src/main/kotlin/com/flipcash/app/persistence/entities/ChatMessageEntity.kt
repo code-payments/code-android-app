@@ -23,4 +23,7 @@ data class ChatMessageEntity(
     @ColumnInfo(name = "unread_seq") val unreadSeq: Long,
     @ColumnInfo(name = "status", defaultValue = "SENT") val status: MessageStatus = MessageStatus.SENT,
     @ColumnInfo(name = "pending_client_id_hex") val pendingClientIdHex: String? = null,
+    @ColumnInfo(name = "event_sequence", defaultValue = "0") val eventSequence: Long = 0,
+    @ColumnInfo(name = "last_edited_ts_epoch_ms") val lastEditedTsEpochMs: Long? = null,
+    @ColumnInfo(name = "reactions_json") val reactionsJson: String? = null,
 )

@@ -28,6 +28,12 @@ interface ChatMetadataDao {
     @Query("UPDATE chat_metadata SET last_message_id = :messageId WHERE chat_id_hex = :chatIdHex")
     suspend fun updateLastMessageId(chatIdHex: String, messageId: Long)
 
+    @Query("UPDATE chat_metadata SET latest_event_sequence = :sequence WHERE chat_id_hex = :chatIdHex")
+    suspend fun updateLatestEventSequence(chatIdHex: String, sequence: Long)
+
+    @Query("SELECT latest_event_sequence FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
+    suspend fun getLatestEventSequence(chatIdHex: String): Long?
+
     @Query("DELETE FROM chat_metadata")
     suspend fun deleteAll()
 }
