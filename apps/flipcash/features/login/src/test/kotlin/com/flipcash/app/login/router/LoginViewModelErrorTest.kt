@@ -6,11 +6,10 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
-import com.flipcash.features.login.R
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
-import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.FakeResourceHelper
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -41,7 +40,7 @@ class LoginViewModelErrorTest {
     private val accounts: AccountController = mock()
 
     // MockK for everything else
-    private val resources: ResourceHelper = mockk(relaxed = true)
+    private val resources = FakeResourceHelper()
     private val analytics: FlipcashAnalyticsService = mockk(relaxed = true)
     private val userManager: UserManager = mockk(relaxed = true)
     private val featureFlags: FeatureFlagController = mockk(relaxed = true)
@@ -54,10 +53,6 @@ class LoginViewModelErrorTest {
         // android.util.Base64 is stubbed in unit tests; mock it so encodeBase64() doesn't NPE
         mockkStatic(android.util.Base64::class)
         every { android.util.Base64.encodeToString(any(), any()) } answers { java.util.Base64.getEncoder().encodeToString(firstArg()) }
-        every { resources.getString(R.string.error_title_createAccountFailed) } returns "error_title_createAccountFailed"
-        every { resources.getString(R.string.error_description_createAccountFailed) } returns "error_description_createAccountFailed"
-        every { resources.getString(R.string.error_title_loginFailed) } returns "error_title_loginFailed"
-        every { resources.getString(R.string.error_description_loginFailed) } returns "error_description_loginFailed"
     }
 
     @After
