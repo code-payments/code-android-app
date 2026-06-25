@@ -32,7 +32,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.Dp
@@ -113,9 +115,17 @@ private fun TextBubble(
     modifier: Modifier = Modifier,
 ) {
     Bubble(isFromSelf, position, maxWidth, modifier) {
+        val linkStyle = SpanStyle(
+            color = CodeTheme.colors.textMain,
+            textDecoration = TextDecoration.Underline,
+        )
+        val richText = rememberRichText(
+            text = text,
+            annotators = listOf(UrlAnnotator(linkStyle)),
+        )
         SelectionContainer {
             Text(
-                text = text,
+                text = richText,
                 style = CodeTheme.typography.textMedium.copy(
                     fontWeight = FontWeight.Medium
                 ),
@@ -374,6 +384,18 @@ private fun Preview_TextBubble_Outgoing() {
 private fun Preview_TextBubble_Incoming() {
     TextBubble(
         text = "Not bad, just shipped a new feature!",
+        isFromSelf = false,
+        position = BubblePosition.Solo,
+        maxWidth = 300.dp,
+    )
+}
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_TextBubble_WithLink() {
+    TextBubble(
+        text = "Check out https://flipcash.app for more info!",
         isFromSelf = false,
         position = BubblePosition.Solo,
         maxWidth = 300.dp,
