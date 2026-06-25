@@ -3,9 +3,8 @@ package com.flipcash.app.messenger.internal.screens.components
 import android.text.format.DateFormat
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.spring
+import com.flipcash.app.messenger.internal.screens.ChatAnimations
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,7 +24,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -74,8 +72,7 @@ internal fun ReceiptLabel(
         }
     }
 
-    // Matches iOS deliveredSpring: .spring(duration: 0.4, bounce: 0.12)
-    val deliveredSpec = spring<Float>(dampingRatio = 0.88f, stiffness = 250f)
+    val deliveredSpec = ChatAnimations.delivered
 
     Box(
         modifier = modifier.padding(
@@ -94,7 +91,7 @@ internal fun ReceiptLabel(
             exit = shrinkVertically(snap()) + fadeOut(snap()),
         ) {
             // Delivered -> Read directional swap with scale
-            val readSwapSpec = spring<Float>(dampingRatio = 0.74f, stiffness = Spring.StiffnessHigh)
+            val readSwapSpec = ChatAnimations.readSwap
             AnimatedContent(
                 targetState = status,
                 transitionSpec = {
