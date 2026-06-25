@@ -18,4 +18,6 @@ dependencies {
     implementation(libs.androidx.paging.runtime)
     implementation(libs.compose.paging)
     implementation(project(":apps:flipcash:shared:theme"))
+
+    testImplementation(libs.robolectric)
 }
