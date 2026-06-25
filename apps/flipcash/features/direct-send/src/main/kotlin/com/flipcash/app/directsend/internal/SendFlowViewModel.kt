@@ -1,4 +1,5 @@
 package com.flipcash.app.directsend.internal
+
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.snapshotFlow
@@ -99,7 +100,8 @@ internal class SendFlowViewModel @Inject constructor(
             val phoneNumberSendEnabled = phoneNumberSendFlag ||
                     userState.flags?.enablePhoneNumberSend == true
             val hasContacts = contactState.contacts.isNotEmpty()
-            val needsContacts = phoneNumberSendEnabled && !hasContacts && !contactState.hasEverSynced
+            val needsContacts =
+                phoneNumberSendEnabled && !hasContacts && !contactState.hasEverSynced
 
             val steps = buildList {
                 if (!hasLinkedPhone) add(SendStep.PhoneGate)
@@ -263,7 +265,8 @@ internal class SendFlowViewModel @Inject constructor(
             val contact = if (deviceContact != null) {
                 if (searchString.isNotBlank() &&
                     !deviceContact.displayName.contains(searchString, ignoreCase = true) &&
-                    !deviceContact.e164.contains(searchString, ignoreCase = true)) {
+                    !deviceContact.e164.contains(searchString, ignoreCase = true)
+                ) {
                     return@mapNotNull null
                 }
                 recentsE164s += deviceContact.e164
@@ -287,7 +290,8 @@ internal class SendFlowViewModel @Inject constructor(
                     displayNumber = formattedPhone,
                 )
                 if (searchString.isNotBlank() &&
-                    !unknown.displayName.contains(searchString, ignoreCase = true)) {
+                    !unknown.displayName.contains(searchString, ignoreCase = true)
+                ) {
                     return@mapNotNull null
                 }
                 if (unknown.e164.isNotEmpty()) {
@@ -346,11 +350,17 @@ internal class SendFlowViewModel @Inject constructor(
                 is MessageContent.Text -> content.text.takeIf { it.isNotEmpty() }
                 is MessageContent.Cash -> {
                     val formatted = content.amount.formatted()
-                    val name = content.tokenName.ifBlank {
-                        tokensByMint[content.mint]?.name.orEmpty()
+                    val name = content.tokenName.ifBlank { tokensByMint[content.mint]?.name.orEmpty() }
+                    val label = if (name.isNotBlank()) {
+                        resources.getString(R.string.label_chat_preview_cash_suffix, formatted, name)
+                    } else {
+                        formatted
                     }
-                    val label = if (name.isNotBlank()) "$formatted of $name" else formatted
-                    if (sentBySelf) "You sent $label" else "You received $label"
+                    if (sentBySelf) {
+                        resources.getString(R.string.label_chat_preview_sentCash, label)
+                    } else {
+                        resources.getString(R.string.label_chat_preview_receivedCash, label)
+                    }
                 }
 
                 // TODO:
@@ -368,9 +378,11 @@ internal class SendFlowViewModel @Inject constructor(
                 is Event.StepsUpdated -> { state ->
                     state.copy(steps = event.steps, isPickerMode = event.isPickerMode)
                 }
+
                 is Event.OnStepChanged -> { state ->
                     state.copy(currentStep = event.step)
                 }
+
                 is Event.ContactsGranted -> { state -> state }
                 is Event.ContactsPicked -> { state -> state }
                 is Event.ContactSyncStateUpdated -> { state ->
@@ -382,6 +394,7 @@ internal class SendFlowViewModel @Inject constructor(
                         )
                     )
                 }
+
                 is Event.ContactRemoved -> { state -> state }
                 is Event.ContactSyncComplete -> { state -> state }
                 is Event.OnItemsPopulated -> { state -> state.copy(listItems = event.items) }
