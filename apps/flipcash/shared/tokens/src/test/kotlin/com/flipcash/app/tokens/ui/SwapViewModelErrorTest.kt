@@ -24,6 +24,7 @@ import com.getcode.util.resources.FakeResourceHelper
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.onramp.PhantomWalletController
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -63,6 +64,7 @@ class SwapViewModelErrorTest {
     private val purchaseMethodController = mockk<PurchaseMethodController>(relaxed = true)
     private val coinbaseOnRampController = mockk<CoinbaseOnRampController>(relaxed = true)
     private val phantomWalletController = mockk<PhantomWalletController>(relaxed = true)
+    private val userFlagsCoordinator = mockk<UserFlagsCoordinator>(relaxed = true)
 
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
 
@@ -103,6 +105,7 @@ class SwapViewModelErrorTest {
             coinbaseOnRampController = coinbaseOnRampController,
             phantomWalletController = phantomWalletController,
             dispatchers = dispatchers,
+            userFlags = userFlagsCoordinator,
         )
     }
 
