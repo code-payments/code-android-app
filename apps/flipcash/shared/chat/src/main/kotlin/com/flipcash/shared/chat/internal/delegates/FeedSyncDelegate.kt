@@ -74,14 +74,17 @@ class FeedSyncDelegate @Inject constructor(
     override val feed: Flow<List<ChatSummary>>
         get() = stateHolder.state.map { state ->
             val selfId = userManager.accountId
+            val selfPhone = userManager.profile?.verifiedPhoneNumber
+            val isSelf = { member: ChatMember ->
+                member.userId == selfId || (selfPhone != null && member.userProfile.verifiedPhoneNumber == selfPhone)
+            }
             state.feed.mapNotNull { metadata ->
-                val otherMember = metadata.members.firstOrNull { it.userId != selfId }
-                if (otherMember != null) {
-                    val profile = otherMember.userProfile
-                    val hasIdentity = !profile.displayName.isNullOrBlank() ||
-                        !profile.verifiedPhoneNumber.isNullOrBlank()
-                    if (!hasIdentity) return@mapNotNull null
-                }
+                val otherMember = metadata.members.firstOrNull { !isSelf(it) }
+                    ?: return@mapNotNull null
+                val profile = otherMember.userProfile
+                val hasIdentity = !profile.displayName.isNullOrBlank() ||
+                    !profile.verifiedPhoneNumber.isNullOrBlank()
+                if (!hasIdentity) return@mapNotNull null
 
                 val readPointer = metadata.members
                     .firstOrNull { it.userId == selfId }
