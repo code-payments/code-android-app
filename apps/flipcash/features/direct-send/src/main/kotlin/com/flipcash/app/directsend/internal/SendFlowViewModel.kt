@@ -290,6 +290,9 @@ internal class SendFlowViewModel @Inject constructor(
                     !unknown.displayName.contains(searchString, ignoreCase = true)) {
                     return@mapNotNull null
                 }
+                if (unknown.e164.isNotEmpty()) {
+                    recentsE164s += unknown.e164
+                }
                 unknown
             }
 
@@ -301,18 +304,23 @@ internal class SendFlowViewModel @Inject constructor(
                 chatId = chatId,
                 lastActivity = summary.metadata.lastActivity,
             )
-        }.sortedWith(
+        }
+
+        // On Flipcash — contacts that haven't chatted yet, use joinedAt as their sort timestamp
+        val flipcashRows = filtered
+            .filter { it.e164 in contactState.flipcashE164s && it.e164 !in recentsE164s }
+            .map { contact ->
+                ContactListItem.ContactRow(
+                    contact = contact,
+                    isOnFlipcash = true,
+                    lastActivity = contactState.joinedAtByE164[contact.e164],
+                )
+            }
+
+        val flipcashCombined = (recentRows + flipcashRows).sortedWith(
             compareByDescending<ContactListItem.ContactRow> { it.lastActivity }
                 .thenBy(String.CASE_INSENSITIVE_ORDER) { it.contact.displayName }
         )
-
-        // On Flipcash — contacts that haven't chatted yet
-        val flipcashRows = filtered
-            .filter { it.e164 in contactState.flipcashE164s && it.e164 !in recentsE164s }
-            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
-            .map { ContactListItem.ContactRow(contact = it, isOnFlipcash = true) }
-
-        val flipcashCombined = (recentRows + flipcashRows)
 
         val excludedE164s = recentsE164s + contactState.flipcashE164s
         val other = filtered

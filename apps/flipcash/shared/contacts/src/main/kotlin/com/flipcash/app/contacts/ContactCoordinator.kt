@@ -61,6 +61,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.collections.map
+import kotlin.time.Instant
 import kotlin.collections.mapValues
 
 
@@ -98,6 +99,7 @@ class ContactCoordinator @Inject constructor(
         val contacts: Map<String, DeviceContact> = emptyMap(),
         val flipcashE164s: Set<String> = emptySet(),
         val dmChatIds: Map<String, String> = emptyMap(),
+        val joinedAtByE164: Map<String, Instant> = emptyMap(),
         val syncState: SyncState = SyncState.Idle,
         val hasEverSynced: Boolean = false,
         val hasDiscoveredFlipcashContacts: Boolean = false,
@@ -370,12 +372,16 @@ class ContactCoordinator @Inject constructor(
         val dmChatIds = mappings
             .filter { it.dmChatId.isNotEmpty() }
             .associate { it.e164 to it.dmChatId }
+        val joinedAtByE164 = mappings
+            .filter { it.joinedAtEpochSeconds > 0 }
+            .associate { it.e164 to Instant.fromEpochSeconds(it.joinedAtEpochSeconds) }
 
         _state.update {
             it.copy(
                 contacts = contacts,
                 flipcashE164s = flipcashE164s,
                 dmChatIds = dmChatIds,
+                joinedAtByE164 = joinedAtByE164,
                 hasEverSynced = true,
                 hasDiscoveredFlipcashContacts = hasDiscoveredFlipcashContacts,
             )
@@ -551,12 +557,21 @@ class ContactCoordinator @Inject constructor(
                     }
                 }
                 val dmChatIds = mutableMapOf<String, String>()
+                val joinedAts = mutableMapOf<String, Instant>()
                 entries.forEach { entry ->
+                    contactDataSource.updateJoinedAt(entry.phoneNumber, entry.joinedAt.epochSeconds)
+                    joinedAts[entry.phoneNumber] = entry.joinedAt
                     val chatIdStr = entry.dmChatId?.toString() ?: return@forEach
                     contactDataSource.updateDmChatId(entry.phoneNumber, chatIdStr)
                     dmChatIds[entry.phoneNumber] = chatIdStr
                 }
-                _state.update { it.copy(flipcashE164s = flipcashE164s, dmChatIds = it.dmChatIds + dmChatIds) }
+                _state.update {
+                    it.copy(
+                        flipcashE164s = flipcashE164s,
+                        dmChatIds = it.dmChatIds + dmChatIds,
+                        joinedAtByE164 = it.joinedAtByE164 + joinedAts,
+                    )
+                }
                 trace(tag = TAG, message = "Found ${flipcashE164s.size} contacts on Flipcash", type = TraceType.Process)
             }?.onFailure { error ->
                 when (error) {

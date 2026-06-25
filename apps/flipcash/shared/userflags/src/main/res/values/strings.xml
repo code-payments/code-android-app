@@ -18,6 +18,7 @@
     <string name="hint_flag_withdrawalFeeAmount">Enter amount</string>
     <string name="label_flag_preferredUsdcLiquidityPool">Preferred USDC On-Ramp Liquidity Pool</string>
     <string name="label_flag_enablePhoneNumberSend">Phone Number Send Enabled</string>
+    <string name="label_flag_requireCoinbaseEmailVerification">Require Coinbase Email Verification</string>
     <string name="label_flag_minHolderAmount">Minimum Holder Amount for Leaderboard</string>
     <string name="hint_flag_minHolderAmount">Enter amount</string>
 </resources>

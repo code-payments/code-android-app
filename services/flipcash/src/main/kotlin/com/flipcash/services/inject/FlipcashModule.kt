@@ -5,6 +5,7 @@ import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.annotations.FlipcashManagedStreamingChannel
 import com.flipcash.services.internal.annotations.FlipcashProtocol
 import com.flipcash.services.internal.domain.ActivityFeedMessageMapper
+import com.flipcash.services.internal.domain.ContactMapper
 import com.flipcash.services.internal.domain.ImageModerationResponseMapper
 import com.flipcash.services.internal.domain.UserFlagsMapper
 import com.flipcash.services.internal.domain.SocialAccountMapper
@@ -163,7 +164,8 @@ internal object FlipcashModule {
     @Provides
     internal fun providesContactListRepository(
         service: ContactListService,
-    ): ContactListRepository = InternalContactListRepository(service)
+        contactMapper: ContactMapper,
+    ): ContactListRepository = InternalContactListRepository(service, contactMapper)
 
     @Provides
     internal fun providesResolverRepository(

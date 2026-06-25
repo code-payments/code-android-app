@@ -28,6 +28,7 @@ internal class UserFlagsMapper @Inject constructor():
             preferredUsdcOnRampLiquidityPool = from.preferredOnRampUsdcLiquidityPool.toDomain(),
             enablePhoneNumberSend = from.enablePhoneNumberSend,
             minimumHolderValue = Fiat(quarks = from.minimumHolderValue),
+            requireCoinbaseEmailVerification = from.requireCoinbaseEmailVerification,
         )
     }
 }

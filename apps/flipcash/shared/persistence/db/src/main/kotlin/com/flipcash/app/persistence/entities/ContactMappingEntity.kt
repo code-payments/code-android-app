@@ -16,4 +16,6 @@ data class ContactMappingEntity(
     val displayNumber: String = "",
     @ColumnInfo(defaultValue = "")
     val dmChatId: String = "",
+    @ColumnInfo(defaultValue = "0")
+    val joinedAtEpochSeconds: Long = 0L,
 )

@@ -227,10 +227,7 @@ class EventStreamDelegate @Inject constructor(
         val lastMsg = if (resolvedMessages.isNotEmpty()) {
             trace(tag = TAG, message = "Upserting ${resolvedMessages.size} messages for $chatId", type = TraceType.Process)
             messageDataSource.upsert(chatId, resolvedMessages)
-            resolvedMessages.maxByOrNull { it.messageId }?.also { msg ->
-                metadataDataSource.updateLastMessageId(chatId, msg.messageId)
-                metadataDataSource.updateLastActivity(chatId, msg.timestamp.toEpochMilliseconds())
-            }
+            resolvedMessages.maxByOrNull { it.messageId }
         } else null
 
         // Advance event sequence cursor — gap-aware
@@ -252,6 +249,9 @@ class EventStreamDelegate @Inject constructor(
             memberDataSource.updatePointers(chatId, pointer)
         }
 
+        // Process metadata updates before message-derived fields so that a
+        // FullRefresh (which replaces the entire entity) doesn't overwrite
+        // the lastActivity/lastMessageId set from the incoming message.
         for (metaUpdate in update.metadataUpdates) {
             when (metaUpdate) {
                 is MetadataUpdate.FullRefresh -> {
@@ -269,6 +269,14 @@ class EventStreamDelegate @Inject constructor(
                     )
                 }
             }
+        }
+
+        // Update lastMessageId and lastActivity AFTER metadata updates so that
+        // incoming message timestamps always take precedence over a potentially
+        // stale FullRefresh.
+        lastMsg?.let { msg ->
+            metadataDataSource.updateLastMessageId(chatId, msg.messageId)
+            metadataDataSource.updateLastActivity(chatId, msg.timestamp.toEpochMilliseconds())
         }
 
         // --- Process reaction updates ---

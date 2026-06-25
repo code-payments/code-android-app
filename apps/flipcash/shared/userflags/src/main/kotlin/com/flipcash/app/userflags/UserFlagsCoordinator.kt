@@ -43,6 +43,7 @@ class UserFlagsCoordinator @Inject constructor(
         val withdrawalFeeAmount: FieldOverride<Fiat>,
         val preferredUsdcOnRampLiquidityPool: FieldOverride<UsdcLiquidtyPool>,
         val minimumHolderAmountForLeaderboard: FieldOverride<Fiat>,
+        val requireCoinbaseEmailVerification: FieldOverride<Boolean>,
     ) {
         companion object {
             val None = Overrides(
@@ -55,6 +56,7 @@ class UserFlagsCoordinator @Inject constructor(
                 withdrawalFeeAmount = FieldOverride.None,
                 preferredUsdcOnRampLiquidityPool = FieldOverride.None,
                 minimumHolderAmountForLeaderboard = FieldOverride.None,
+                requireCoinbaseEmailVerification = FieldOverride.None,
             )
         }
     }
@@ -89,6 +91,7 @@ class UserFlagsCoordinator @Inject constructor(
             withdrawalFeeAmount = prefs.readOverride(Field.WithdrawalFeeAmount),
             preferredUsdcOnRampLiquidityPool = prefs.readOverride(Field.PreferredUsdcOnRampLiquidityPool),
             minimumHolderAmountForLeaderboard = prefs.readOverride(Field.MinimumHolderAmountForLeaderboard),
+            requireCoinbaseEmailVerification = prefs.readOverride(Field.RequireCoinbaseEmailVerification),
         )
     }.stateIn(scope, SharingStarted.Eagerly, Overrides.None)
 
