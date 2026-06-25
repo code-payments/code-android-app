@@ -193,8 +193,8 @@ sealed interface FeatureFlag<T: Any> {
     @FeatureFlagMarker
     data object PhoneNumberSend : FeatureFlag<Boolean> {
         override val key: String = "phone_number_send_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
         override val visible: Boolean = true
         override val persistLogOut: Boolean = true
         override val minTrack: FeatureTrack = FeatureTrack.Production
@@ -203,8 +203,8 @@ sealed interface FeatureFlag<T: Any> {
     @FeatureFlagMarker
     data object OnboardingPhoneVerification : FeatureFlag<Boolean> {
         override val key: String = "phone_verification_onboarding_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
+        override val default: Boolean = true
+        override val launched: Boolean = true
         override val visible: Boolean = true
         override val persistLogOut: Boolean = true
         override val onboarding: Boolean = true
