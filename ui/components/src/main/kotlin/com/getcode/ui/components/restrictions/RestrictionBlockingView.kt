@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,7 +35,7 @@ fun ContentRestrictedView(
     lateinit var buttonText: String
     lateinit var buttonAction: () -> Unit
 
-    val activity = LocalContext.current as Activity
+    val activity = LocalActivity.current!!
     when(restrictionType) {
         RestrictionType.FORCE_UPGRADE -> {
             titleText = stringResource(R.string.title_updateRequired)
