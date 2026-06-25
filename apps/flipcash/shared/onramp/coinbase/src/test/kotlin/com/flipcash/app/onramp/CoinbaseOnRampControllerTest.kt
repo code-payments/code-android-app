@@ -3,6 +3,9 @@ package com.flipcash.app.onramp
 import com.coinbase.onramp.api.CoinbaseApi
 import com.coinbase.onramp.data.OnRampApiConfig
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.userflags.FieldOverride
+import com.flipcash.app.userflags.ResolvedFlag
+import com.flipcash.app.userflags.ResolvedUserFlags
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.UserManager
@@ -22,6 +25,7 @@ import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -77,6 +81,14 @@ class CoinbaseOnRampControllerTest {
         every { fakeUsdc.timelockSwapAccounts(any()) } returns mockk(relaxed = true)
 
         every { webViewChannelDetector.detect() } returns null
+
+        val resolvedFlags = mockk<ResolvedUserFlags>(relaxed = true) {
+            every { requireCoinbaseEmailVerification } returns ResolvedFlag(
+                serverValue = true,
+                override = FieldOverride.None,
+            )
+        }
+        every { userFlags.resolvedFlags } returns MutableStateFlow(resolvedFlags)
 
         controller = CoinbaseOnRampController(
             jwtProvider = jwtProvider,

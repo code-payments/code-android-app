@@ -6,9 +6,6 @@
 # Preserve source file names and line numbers for stack traces (call site tracking, Bugsnag)
 -keepattributes SourceFile,LineNumberTable
 
-# Keep screen names
--keepnames class * implements cafe.adriel.voyager.core.screen.Screen
-
 # Keep AppRoute class names for analytics screen tracking
 -keepnames class com.flipcash.app.core.AppRoute
 -keepnames class com.flipcash.app.core.AppRoute$**

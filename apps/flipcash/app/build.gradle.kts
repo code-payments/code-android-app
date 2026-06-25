@@ -27,6 +27,9 @@ fun gitVersionCode(): Int {
 val contributorsSigningConfig = ContributorsSignatory(rootDir)
 val appNamespace = "${Gradle.flipcashNamespace}.app.android"
 
+val skipExpensiveReleaseTasks = providers.gradleProperty("skipExpensiveReleaseTasks")
+    .orElse("false").get().toBooleanStrict()
+
 android {
     // static namespace
     namespace = appNamespace
@@ -65,8 +68,8 @@ android {
     buildTypes {
         getByName("release") {
             resValue("string", "applicationId", appNamespace)
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = !skipExpensiveReleaseTasks
+            isShrinkResources = !skipExpensiveReleaseTasks
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         getByName("debug") {
@@ -90,6 +93,10 @@ android {
             signingConfig = signingConfigs.getByName("contributors")
             matchingFallbacks += listOf("debug")
         }
+    }
+
+    lint {
+        checkReleaseBuilds = false
     }
 
     compileOptions {

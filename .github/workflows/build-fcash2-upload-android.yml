@@ -52,7 +52,9 @@ jobs:
       - name: Gradle build cache
         uses: actions/cache@v4
         with:
-          path: ~/.gradle/caches/build-cache-1
+          path: |
+            ~/.gradle/caches/build-cache-1
+            .gradle/configuration-cache
           key: gradle-build-cache-${{ hashFiles('**/*.gradle.kts', 'gradle.properties') }}
           restore-keys: |
             gradle-build-cache-
@@ -105,7 +107,9 @@ jobs:
       - name: Gradle build cache
         uses: actions/cache@v4
         with:
-          path: ~/.gradle/caches/build-cache-1
+          path: |
+            ~/.gradle/caches/build-cache-1
+            .gradle/configuration-cache
           key: gradle-build-cache-${{ hashFiles('**/*.gradle.kts', 'gradle.properties') }}
           restore-keys: |
             gradle-build-cache-
