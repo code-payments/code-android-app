@@ -23,9 +23,11 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.chat.EmojiReaction
-import com.flipcash.services.models.chat.MediaId
+import com.flipcash.services.models.chat.BlobId
+import com.flipcash.services.models.chat.BlobMetadata
+import com.flipcash.services.models.chat.ImageMetadata
 import com.flipcash.services.models.chat.MediaItem
-import com.flipcash.services.models.chat.MediaMetadata
+import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MetadataUpdate
@@ -145,19 +147,41 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
 
 internal fun MessagingModel.MediaItem.toMediaItem(): MediaItem {
     return MediaItem(
-        mediaId = MediaId(mediaId.value.toByteArray()),
-        metadata = if (hasMetadata()) metadata.toMediaMetadata() else null,
+        renditions = renditionsList.map { it.toMediaItemRendition() },
     )
 }
 
-internal fun MessagingModel.MediaMetadata.toMediaMetadata(): MediaMetadata {
-    return MediaMetadata(
+internal fun MessagingModel.MediaItemRendition.toMediaItemRendition(): MediaItemRendition {
+    return MediaItemRendition(
+        role = role.toRole(),
+        blobId = BlobId(blobId.value.toByteArray()),
+        blob = if (hasBlob()) blob.toBlobMetadata() else null,
+    )
+}
+
+internal fun MessagingModel.MediaItemRendition.Role.toRole(): MediaItemRendition.Role {
+    return when (this) {
+        MessagingModel.MediaItemRendition.Role.ORIGINAL -> MediaItemRendition.Role.ORIGINAL
+        MessagingModel.MediaItemRendition.Role.DISPLAY -> MediaItemRendition.Role.DISPLAY
+        MessagingModel.MediaItemRendition.Role.THUMBNAIL -> MediaItemRendition.Role.THUMBNAIL
+        else -> MediaItemRendition.Role.UNKNOWN
+    }
+}
+
+internal fun com.codeinc.flipcash.gen.blob.v1.Model.BlobMetadata.toBlobMetadata(): BlobMetadata {
+    return BlobMetadata(
         mimeType = mimeType,
         sizeBytes = sizeBytes,
+        downloadUrl = downloadUrl,
+        image = if (hasImage()) image.toImageMetadata() else null,
+    )
+}
+
+internal fun com.codeinc.flipcash.gen.blob.v1.Model.ImageMetadata.toImageMetadata(): ImageMetadata {
+    return ImageMetadata(
         width = width,
         height = height,
         blurhash = blurhash,
-        durationMs = durationMs,
     )
 }
 

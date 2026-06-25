@@ -4,4 +4,4 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @JvmInline
-value class MediaId(val bytes: ByteArray)
+value class BlobId(val bytes: ByteArray)
