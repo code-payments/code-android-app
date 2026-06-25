@@ -7,11 +7,15 @@ import androidx.work.Configuration
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import coil3.annotation.ExperimentalCoilApi
 import coil3.disk.DiskCache
 import coil3.disk.directory
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.CachePolicy
 import coil3.request.crossfade
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.core.cache.ETagCacheStrategy
+import com.flipcash.app.core.cache.ETagOfflineFallbackInterceptor
 import com.flipcash.app.currency.PreferredCurrencyController
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.trace
@@ -49,6 +53,7 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
         trace("app onCreate end")
     }
 
+    @OptIn(ExperimentalCoilApi::class)
     override fun newImageLoader(context: PlatformContext): ImageLoader {
         return ImageLoader.Builder(context)
             .crossfade(true)
@@ -59,6 +64,12 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
                     .directory(context.cacheDir.resolve("image_cache"))
                     .maxSizePercent(0.2)
                     .build()
+            }
+            .components {
+                add(ETagOfflineFallbackInterceptor())
+                add(OkHttpNetworkFetcherFactory(
+                    cacheStrategy = { ETagCacheStrategy() },
+                ))
             }
             .build()
     }
