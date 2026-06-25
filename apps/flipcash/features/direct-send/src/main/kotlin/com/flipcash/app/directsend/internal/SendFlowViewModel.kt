@@ -15,6 +15,7 @@ import com.flipcash.app.permissions.PickedContact
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.directsend.R
+import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.user.UserManager
@@ -228,7 +229,11 @@ internal class SendFlowViewModel @Inject constructor(
         chatFeed: List<ChatSummary>,
         tokensByMint: Map<Mint, Token>,
     ): List<ContactListItem> = buildList {
-        val allContacts = contactState.contacts.values.toList()
+        val selfId = userManager.accountId
+        val selfPhone = userManager.profile?.verifiedPhoneNumber
+
+        val allContacts = contactState.contacts.values
+            .filter { selfPhone == null || it.e164 != selfPhone }
         val filtered = if (searchString.isBlank()) {
             allContacts
         } else {
@@ -237,8 +242,6 @@ internal class SendFlowViewModel @Inject constructor(
                         it.e164.contains(searchString, ignoreCase = true)
             }
         }
-
-        val selfId = userManager.accountId
 
         val dmChats = chatFeed.filter { it.metadata.type == ChatType.DM }
         // Build a reverse lookup: e164 -> chatId string for contacts with DMs
@@ -253,7 +256,9 @@ internal class SendFlowViewModel @Inject constructor(
             // Try to match this chat to a device contact
             val e164 = e164ToChatId.entries
                 .firstOrNull { it.value == chatIdStr }?.key
-            val deviceContact = e164?.let { contactState.contacts[it] }
+            val deviceContact = e164
+                ?.takeIf { selfPhone == null || it != selfPhone }
+                ?.let { contactState.contacts[it] }
 
             val contact = if (deviceContact != null) {
                 if (searchString.isNotBlank() &&
@@ -265,8 +270,11 @@ internal class SendFlowViewModel @Inject constructor(
                 deviceContact
             } else {
                 // Non-contact DM — build contact from chat member profile
+                val isSelf = { member: ChatMember ->
+                    member.userId == selfId || (selfPhone != null && member.userProfile.verifiedPhoneNumber == selfPhone)
+                }
                 val otherMember = summary.metadata.members
-                    .firstOrNull { it.userId != selfId } ?: return@mapNotNull null
+                    .firstOrNull { !isSelf(it) } ?: return@mapNotNull null
                 val phone = otherMember.userProfile.verifiedPhoneNumber
                 val formattedPhone = phone?.let { phoneUtils.formatNumber(it) }
                 val displayName = otherMember.userProfile.displayName?.takeIf { it.isNotBlank() }
@@ -304,19 +312,14 @@ internal class SendFlowViewModel @Inject constructor(
             .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
             .map { ContactListItem.ContactRow(contact = it, isOnFlipcash = true) }
 
+        val flipcashCombined = (recentRows + flipcashRows)
+
         val excludedE164s = recentsE164s + contactState.flipcashE164s
         val other = filtered
             .filter { it.e164 !in excludedE164s }
             .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
 
-        if (recentRows.isNotEmpty()) {
-            add(ContactListItem.Header(resources.getString(R.string.title_recents)))
-            addAll(recentRows)
-        }
-        if (flipcashRows.isNotEmpty()) {
-            add(ContactListItem.Header(resources.getString(R.string.title_flipcashContacts)))
-            addAll(flipcashRows)
-        }
+        addAll(flipcashCombined)
         if (other.isNotEmpty()) {
             add(ContactListItem.Header(resources.getString(R.string.title_nonFlipcashContacts)))
             other.forEach { add(ContactListItem.ContactRow(it, isOnFlipcash = false)) }
