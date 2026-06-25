@@ -19,7 +19,7 @@ platform :android do
   desc "Runs all the tests for Flipcash"
     lane :flipcash_tests do
       gradle(
-        task: "generateEmojiList flipcashTestDebug",
+        task: "generateEmojiList flipcashTestDebug lintDebug",
         properties: {
           "skipCoverage" => ENV.fetch("SKIP_COVERAGE", "false")
         }
