@@ -166,7 +166,13 @@ class EventStreamDelegate @Inject constructor(
                         val latest = delta.messages.maxByOrNull { it.messageId }
                         latest?.let { msg ->
                             metadataDataSource.updateLastMessageId(chatId, msg.messageId)
-                            metadataDataSource.updateLastActivity(chatId, msg.timestamp.toEpochMilliseconds())
+                            // Only advance lastActivity — a partial page from a
+                            // delta sync must not regress it to an older timestamp.
+                            val existing = metadataDataSource.getLastActivity(chatId)
+                            val incoming = msg.timestamp.toEpochMilliseconds()
+                            if (existing == null || incoming > existing) {
+                                metadataDataSource.updateLastActivity(chatId, incoming)
+                            }
                         }
                     }
                     if (delta.latestSequence > afterSequence) {
