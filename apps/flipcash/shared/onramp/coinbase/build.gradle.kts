@@ -23,6 +23,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(project(":libs:messaging"))
     implementation(project(":apps:flipcash:shared:featureflags"))
+    implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":apps:flipcash:shared:web"))
     api(project(":libs:network:coinbase:onramp"))
     implementation(project(":libs:network:jwt"))

@@ -8,6 +8,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -167,6 +168,17 @@ sealed class Field<Stored, Domain>(
                 "Flipcash" to UsdcLiquidtyPool.Flipcash,
                 "Coinbase" to UsdcLiquidtyPool.CoinbaseStableSwapper,
             )
+        ),
+    )
+
+    data object RequireCoinbaseEmailVerification : Field<Boolean, Boolean>(
+        booleanPreferencesKey("override_require_coinbase_email_verification"),
+        encode = { it },
+        decode = { it },
+        label = R.string.label_flag_requireCoinbaseEmailVerification,
+        format = { if (it) "Yes" else "No" },
+        editor = FieldEditor.SingleSelect(
+            options = listOf("Yes" to true, "No" to false)
         ),
     )
 

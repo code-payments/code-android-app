@@ -25,6 +25,7 @@ import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.UserManager
@@ -97,6 +98,7 @@ class SwapViewModel @Inject constructor(
     private val purchaseMethodController: PurchaseMethodController,
     private val coinbaseOnRampController: CoinbaseOnRampController,
     private val phantomWalletController: PhantomWalletController,
+    private val userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<SwapViewModel.State, SwapViewModel.Event>(
     initialState = State(),
@@ -798,7 +800,8 @@ class SwapViewModel @Inject constructor(
 
                         val profile = userManager.profile
                         val needsPhone = profile?.verifiedPhoneNumber == null
-                        val needsEmail = profile?.verifiedEmailAddress == null
+                        val requireEmail = userFlags.resolvedFlags.value.requireCoinbaseEmailVerification.effectiveValue
+                        val needsEmail = requireEmail && profile?.verifiedEmailAddress == null
                         if (needsPhone || needsEmail) {
                             dispatchEvent(Event.OnVerificationNeeded(needsPhone, needsEmail))
                             return@onEach

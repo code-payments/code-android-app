@@ -19,6 +19,7 @@ data class UserFlags(
     val preferredUsdcOnRampLiquidityPool: UsdcLiquidtyPool,
     val enablePhoneNumberSend: Boolean,
     val minimumHolderValue: Fiat,
+    val requireCoinbaseEmailVerification: Boolean,
 ) {
     companion object {
         val Default = UserFlags(
@@ -35,6 +36,7 @@ data class UserFlags(
             preferredUsdcOnRampLiquidityPool = UsdcLiquidtyPool.Unknown,
             enablePhoneNumberSend = false,
             minimumHolderValue = Fiat.Zero,
+            requireCoinbaseEmailVerification = false,
         )
     }
 }

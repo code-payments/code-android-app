@@ -142,4 +142,5 @@ private fun ResolvedUserFlags.editableEntries(): List<EditableEntry<*>> = listOf
     EditableEntry(Field.WithdrawalFeeAmount, withdrawalFeeAmount),
     EditableEntry(Field.PreferredUsdcOnRampLiquidityPool, usdcOnRampLiquidityPool),
     EditableEntry(Field.MinimumHolderAmountForLeaderboard, minimumHolderAmountForLeaderboard),
+    EditableEntry(Field.RequireCoinbaseEmailVerification, requireCoinbaseEmailVerification),
 )

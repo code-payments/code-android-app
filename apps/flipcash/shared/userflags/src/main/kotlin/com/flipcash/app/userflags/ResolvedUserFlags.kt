@@ -33,6 +33,7 @@ data class ResolvedUserFlags(
     val usdcOnRampLiquidityPool: ResolvedFlag<UsdcLiquidtyPool>,
     val enablePhoneNumberSend: ResolvedFlag<Boolean>,
     val minimumHolderAmountForLeaderboard: ResolvedFlag<Fiat>,
+    val requireCoinbaseEmailVerification: ResolvedFlag<Boolean>,
 )
 
 internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = ResolvedUserFlags(
@@ -49,4 +50,5 @@ internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = Resolv
     usdcOnRampLiquidityPool = ResolvedFlag(preferredUsdcOnRampLiquidityPool, overrides.preferredUsdcOnRampLiquidityPool),
     enablePhoneNumberSend = ResolvedFlag(enablePhoneNumberSend, FieldOverride.None),
     minimumHolderAmountForLeaderboard = ResolvedFlag(minimumHolderValue, overrides.minimumHolderAmountForLeaderboard),
+    requireCoinbaseEmailVerification = ResolvedFlag(requireCoinbaseEmailVerification, overrides.requireCoinbaseEmailVerification),
 )

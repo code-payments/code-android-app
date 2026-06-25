@@ -29,6 +29,7 @@ import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.flipcash.app.onramp.internal.CoinbaseOnRampWebError
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.NotifiableError
@@ -54,8 +55,8 @@ import javax.inject.Inject
 
 sealed class PurchaseGate : Throwable() {
     data class WebViewWarning(val channel: WebViewChannel) : PurchaseGate()
-    data object GooglePayNotSupported : PurchaseGate()
-    data object GooglePayNoPaymentMethod : PurchaseGate()
+    class GooglePayNotSupported : PurchaseGate()
+    class GooglePayNoPaymentMethod : PurchaseGate()
 }
 
 typealias OrderWithPaymentLink = Pair<String, OnRampPurchaseResponse.PaymentLink>
@@ -76,6 +77,7 @@ class CoinbaseOnRampController @Inject constructor(
     private val transactionController: TransactionOperations,
     private val googlePayReadiness: GooglePayReadiness,
     private val webViewChannelDetector: WebViewChannelDetector,
+    private val userFlags: UserFlagsCoordinator,
 ) {
 
     private val _state = MutableStateFlow<CoinbaseOnRampState>(CoinbaseOnRampState.Idle)
@@ -115,8 +117,8 @@ class CoinbaseOnRampController @Inject constructor(
 
     suspend fun checkPurchaseGates(): Result<Unit> {
         when (googlePayReadiness.check()) {
-            GooglePayReadiness.Status.NotSupported -> return Result.failure(PurchaseGate.GooglePayNotSupported)
-            GooglePayReadiness.Status.NoPaymentMethod -> return Result.failure(PurchaseGate.GooglePayNoPaymentMethod)
+            GooglePayReadiness.Status.NotSupported -> return Result.failure(PurchaseGate.GooglePayNotSupported())
+            GooglePayReadiness.Status.NoPaymentMethod -> return Result.failure(PurchaseGate.GooglePayNoPaymentMethod())
             GooglePayReadiness.Status.Ready -> Unit
         }
 
@@ -231,8 +233,8 @@ class CoinbaseOnRampController @Inject constructor(
 
         val destination = destinationForToken(owner, token)
 
-        val email = userManager.profile?.verifiedEmailAddress
         val phone = userManager.profile?.verifiedPhoneNumber
+        val email = resolveEmail(phone)
 
         if (email == null || phone == null) {
             return Result.failure(
@@ -276,8 +278,8 @@ class CoinbaseOnRampController @Inject constructor(
 
         val destination = destinationForToken(owner, token)
 
-        val email = userManager.profile?.verifiedEmailAddress
         val phone = userManager.profile?.verifiedPhoneNumber
+        val email = resolveEmail(phone)
 
         if (email == null || phone == null) {
             return Result.failure(
@@ -339,6 +341,16 @@ class CoinbaseOnRampController @Inject constructor(
         )
     }
 
+    private fun resolveEmail(phone: String?): String? {
+        val verified = userManager.profile?.verifiedEmailAddress
+        if (verified != null) return verified
+
+        val requireEmail = userFlags.resolvedFlags.value.requireCoinbaseEmailVerification.effectiveValue
+        if (!requireEmail && phone != null) return "$phone@flipcash.com"
+
+        return null
+    }
+
     private fun destinationForToken(owner: AccountCluster, token: Token): String {
         return if (token.address == Mint.usdf) {
             owner.depositAddressFor(token).base58()
@@ -379,9 +391,7 @@ class CoinbaseOnRampController @Inject constructor(
                 )
                 when (error) {
                     is GetJwtError.EmailVerificationRequired -> Result.failure(
-                        OnRampAuthError.VerificationRequired(
-                            email = true
-                        )
+                        OnRampAuthError.VerificationRequired(email = true)
                     )
 
                     is GetJwtError.PhoneVerificationRequired -> Result.failure(
