@@ -3,6 +3,7 @@ package com.flipcash.app.onramp
 import com.coinbase.onramp.api.CoinbaseApi
 import com.coinbase.onramp.data.OnRampApiConfig
 import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.exchange.Exchange
@@ -47,6 +48,7 @@ class CoinbaseOnRampControllerTest {
     private val featureFlags = mockk<FeatureFlagController>(relaxed = true)
     private val googlePayReadiness = mockk<GooglePayReadiness>(relaxed = true)
     private val webViewChannelDetector = mockk<WebViewChannelDetector>(relaxed = true)
+    private val userFlags = mockk<UserFlagsCoordinator>(relaxed = true)
 
     private val onRampApiEndpoint = OnRampApiConfig(
         scheme = "https",
@@ -86,6 +88,7 @@ class CoinbaseOnRampControllerTest {
             transactionController = mockk(relaxed = true),
             googlePayReadiness = googlePayReadiness,
             webViewChannelDetector = webViewChannelDetector,
+            userFlags = userFlags,
         )
     }
 

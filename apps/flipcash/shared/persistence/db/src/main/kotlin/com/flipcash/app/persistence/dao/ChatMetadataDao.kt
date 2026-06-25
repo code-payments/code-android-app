@@ -22,6 +22,9 @@ interface ChatMetadataDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entities: List<ChatMetadataEntity>)
 
+    @Query("SELECT last_activity_epoch_ms FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
+    suspend fun getLastActivity(chatIdHex: String): Long?
+
     @Query("UPDATE chat_metadata SET last_activity_epoch_ms = :epochMs WHERE chat_id_hex = :chatIdHex")
     suspend fun updateLastActivity(chatIdHex: String, epochMs: Long)
 
