@@ -2,6 +2,7 @@ package com.flipcash.app.messenger
 
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -10,17 +11,21 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ChatSendResult
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
 import com.getcode.navigation.annotatedEntry
-import com.getcode.navigation.flowAnnotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowHost
+import com.getcode.navigation.flow.LocalOuterCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.flow.rememberInitialStack
+import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
+import com.getcode.navigation.results.navigateForResult
+import com.getcode.navigation.results.resultBackNavigator
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 
@@ -46,7 +51,7 @@ private fun chatEntryProvider(
     annotatedEntry<ChatStep.Conversation> {
         FlowConversationScreen(identifier)
     }
-    flowAnnotatedEntry<ChatStep.AmountEntry> {
+    annotatedEntry<ChatStep.AmountEntry> {
         FlowAmountEntryScreen()
     }
 }
@@ -55,6 +60,7 @@ private fun chatEntryProvider(
 private fun FlowConversationScreen(identifier: ChatIdentifier) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
+    val navigator = LocalCodeNavigator.current
 
     LaunchedEffect(viewModel, identifier) {
         viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(identifier))
@@ -64,7 +70,11 @@ private fun FlowConversationScreen(identifier: ChatIdentifier) {
         viewModel.eventFlow
             .filterIsInstance<ChatViewModel.Event.NavigateToAmountEntry>()
             .collect {
-                flowNavigator.navigateTo(ChatStep.AmountEntry)
+                navigator.navigateForResult<ChatSendResult>(ChatStep.AmountEntry) { result ->
+                    if (result is NavResultOrCanceled.ReturnValue) {
+                        viewModel.dispatchEvent(ChatViewModel.Event.OnStartMessageInput)
+                    }
+                }
             }
     }
 
@@ -85,14 +95,20 @@ private fun FlowAmountEntryScreen() {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
+    val resultBack = resultBackNavigator<ChatSendResult>()
 
-    ChatAmountEntryContent(
-        amountDelegate = viewModel.amountDelegate,
-        resolveState = state.resolveState,
-        token = state.token,
-        eventFlow = viewModel.eventFlow,
-        onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnConfirmRequested) },
-        onSendComplete = { flowNavigator.back() },
-        onExit = { flowNavigator.back() }
-    )
+    // Re-provide the outer navigator so ChatAmountEntryContent can push
+    // app-level routes (RegionSelection, TokenSelection, etc.)
+    val outerNavigator = LocalOuterCodeNavigator.current
+    CompositionLocalProvider(LocalCodeNavigator provides outerNavigator) {
+        ChatAmountEntryContent(
+            amountDelegate = viewModel.amountDelegate,
+            resolveState = state.resolveState,
+            token = state.token,
+            eventFlow = viewModel.eventFlow,
+            onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnConfirmRequested) },
+            onSendComplete = { resultBack.returnValue(ChatSendResult) },
+            onExit = { flowNavigator.back() },
+        )
+    }
 }
