@@ -1,7 +1,9 @@
 package com.flipcash.app.messenger.internal.screens.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import com.flipcash.app.messenger.internal.screens.ChatAnimations
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -139,22 +141,19 @@ internal fun MessageList(
             val isOutgoing = (item as? ChatListItem.ContentBubble)?.isFromSelf ?: false
 
             // Message insertion animation — scale from 0.95 + opacity with edge anchor.
-            // Tuned to match observed iOS timing (~500ms gradual fade-in).
             // Only animate genuinely new messages (index 0 after initial load).
             val shouldAnimate = index == 0 && hasLoaded && item.itemKey !in animatedKeys
             if (shouldAnimate) animatedKeys.add(item.itemKey)
             var appeared by remember(item.itemKey) { mutableStateOf(!shouldAnimate) }
             LaunchedEffect(Unit) { if (!appeared) appeared = true }
-            val insertionAlphaSpec = spring<Float>(dampingRatio = 0.86f, stiffness = 80f)
-            val insertionScaleSpec = spring<Float>(dampingRatio = 0.73f, stiffness = 300f)
             val insertionAlpha by animateFloatAsState(
                 targetValue = if (appeared) 1f else 0f,
-                animationSpec = insertionAlphaSpec,
+                animationSpec = ChatAnimations.insertion,
                 label = "insertAlpha",
             )
             val insertionScale by animateFloatAsState(
                 targetValue = if (appeared) 1f else 0.95f,
-                animationSpec = insertionScaleSpec,
+                animationSpec = ChatAnimations.insertion,
                 label = "insertScale",
             )
 
@@ -206,12 +205,18 @@ internal fun MessageList(
                             }
                             val showReceipt =
                                 shouldShowReceiptLabel(index, item, messages, otherReadPointer)
-                            if (showReceipt && effectiveStatus != null) {
-                                ReceiptLabel(
-                                    status = effectiveStatus,
-                                    readPointer = otherReadPointer,
-                                    animateEntrance = wasSending,
-                                )
+                            AnimatedVisibility(
+                                visible = showReceipt && effectiveStatus != null,
+                                enter = EnterTransition.None,
+                                exit = ChatAnimations.receiptExit,
+                            ) {
+                                if (effectiveStatus != null) {
+                                    ReceiptLabel(
+                                        status = effectiveStatus,
+                                        readPointer = otherReadPointer,
+                                        animateEntrance = wasSending,
+                                    )
+                                }
                             }
                         }
                     }
@@ -286,20 +291,17 @@ internal fun MessageList(
             }
     }
 
-    // opts out of the list maintaining
-    // scroll position when adding elements before the first item
-    // we are checking first visible item index to ensure
-    // the list doesn't shift when viewing scroll back
+    // Opt out of the list maintaining scroll position when adding
+    // elements before the first item. Only needed during initial load
+    // (to prevent starting at the ContactInfoContainer) and when
+    // scrolled back (to prevent shifting when pagination prepends).
+    // When at index 0, we do NOT call requestScrollToItem — doing so
+    // forces an instant reposition that causes a single-frame jitter
+    // when new messages are inserted. Instead, animateScrollToItem in
+    // the LaunchedEffect above handles smooth scrolling to new items.
     Snapshot.withoutReadObservation {
         if (!hasLoaded) {
-            // During initial load, always pin to index 0 (newest message)
-            // to prevent the list from starting at the ContactInfoContainer
             listState.requestScrollToItem(0, 0)
-        } else if (listState.firstVisibleItemIndex == 0) {
-            listState.requestScrollToItem(
-                index = listState.firstVisibleItemIndex,
-                scrollOffset = listState.firstVisibleItemScrollOffset
-            )
         }
     }
 }

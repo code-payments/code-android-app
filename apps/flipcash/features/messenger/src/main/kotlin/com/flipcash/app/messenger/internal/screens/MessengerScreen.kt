@@ -1,8 +1,6 @@
 package com.flipcash.app.messenger.internal.screens
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -49,7 +47,6 @@ import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.features.messenger.R
-import com.flipcash.shared.chat.ui.SeparatorConfig
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -191,11 +188,10 @@ private fun UserControlBottomBar(
             modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
             targetState = state.typists.isNotEmpty(),
             transitionSpec = {
-                val insertSpec = spring<Float>(dampingRatio = 0.73f, stiffness = Spring.StiffnessHigh)
-                (scaleIn(insertSpec, initialScale = 0.95f, transformOrigin = TransformOrigin(0f, 0.5f))
-                    + fadeIn(insertSpec)) togetherWith
-                    (scaleOut(insertSpec, targetScale = 0.95f, transformOrigin = TransformOrigin(0f, 0.5f))
-                        + fadeOut(insertSpec))
+                (scaleIn(ChatAnimations.typingIndicator, initialScale = 0.95f, transformOrigin = TransformOrigin(0f, 0.5f))
+                    + fadeIn(ChatAnimations.typingIndicator)) togetherWith
+                    (scaleOut(ChatAnimations.typingIndicator, targetScale = 0.95f, transformOrigin = TransformOrigin(0f, 0.5f))
+                        + fadeOut(ChatAnimations.typingIndicator))
             }
         ) { show ->
             if (show) {
@@ -228,7 +224,7 @@ private fun UserControlBottomBar(
                 transitionSpec = {
                     // Action bar <-> composer swap
                     // Buttons: scale from 0.95 + opacity; Composer: opacity only
-                    val swapSpec = spring<Float>(dampingRatio = 0.69f, stiffness = Spring.StiffnessHigh)
+                    val swapSpec = ChatAnimations.composerSwap
                     when (targetState) {
                         ChatViewModel.UserState.Typing ->
                             // Composer fades in; buttons scale+fade out
