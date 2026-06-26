@@ -7,8 +7,6 @@ android {
 }
 
 dependencies {
-    implementation(libs.bundles.haze)
-
     implementation(project(":apps:flipcash:shared:amount-entry"))
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:onramp:coinbase"))

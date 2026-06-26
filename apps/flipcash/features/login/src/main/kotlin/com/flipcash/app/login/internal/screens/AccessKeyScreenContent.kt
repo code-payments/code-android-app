@@ -54,7 +54,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
-import com.getcode.ui.components.Cloudy
+import com.getcode.ui.components.BlurredContent
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
 import com.getcode.ui.core.addIf
@@ -174,7 +174,7 @@ private fun AccessKeyScreenContent(
             .windowInsetsPadding(WindowInsets.navigationBars),
         state = selectionState,
     ) {
-        Cloudy(
+        BlurredContent(
             modifier = Modifier
                 .fillMaxSize(),
             enabled = selectionState.shown

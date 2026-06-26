@@ -82,23 +82,26 @@ abstract class BaseAccessKeyViewModel(
         val words = mnemonicManager.fromEntropyBase64(entropyB64).words
         val wordsFormatted = getAccessKeyText(words).joinToString("\n")
 
-        uiFlow.value = uiFlow.value.copy(
-            entropyB64 = entropyB64,
-            words = words,
-            wordsFormatted = wordsFormatted
-        )
+        uiFlow.update {
+            it.copy(
+                entropyB64 = entropyB64,
+                words = words,
+                wordsFormatted = wordsFormatted
+            )
+        }
 
         viewModelScope.launch(dispatchers.IO) {
-            val accessKeyBitmap = createBitmapForExport(words = words, entropyB64 = entropyB64)
-            val accessKeyBitmapDisplay =
-                createBitmapForExport(drawBackground = true, words, entropyB64)
+            val accessKeyBitmap = createBitmapForExport(drawBackground = true, words = words, entropyB64 = entropyB64)
+            val accessKeyBitmapDisplay = createBitmapForExport(drawBackground = false, words, entropyB64)
             val accessKeyCroppedBitmap =
                 Bitmap.createBitmap(accessKeyBitmapDisplay, 0, 500, 1200, 1450)
 
-            uiFlow.value = uiFlow.value.copy(
-                accessKeyBitmap = accessKeyBitmap,
-                accessKeyCroppedBitmap = accessKeyCroppedBitmap
-            )
+            uiFlow.update {
+                it.copy(
+                    accessKeyBitmap = accessKeyBitmap,
+                    accessKeyCroppedBitmap = accessKeyCroppedBitmap
+                )
+            }
         }
     }
 
