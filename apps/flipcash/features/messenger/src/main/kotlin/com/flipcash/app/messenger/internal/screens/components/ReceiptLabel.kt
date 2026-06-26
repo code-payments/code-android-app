@@ -127,7 +127,7 @@ internal fun ReceiptLabel(
                             fontWeight = FontWeight.Bold,
                         ),
                         color = if (animatedStatus == ReceiptStatus.FAILED) {
-                            CodeTheme.colors.error
+                            CodeTheme.colors.errorText
                         } else {
                             CodeTheme.colors.textSecondary
                         },
