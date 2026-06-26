@@ -71,6 +71,7 @@ class AuthManagerTest {
         Dispatchers.setMain(testDispatcher)
 
         every { userManager.state } returns userManagerState
+        every { networkConnectivityListener.isConnected } returns true
         coEvery { pushTokenProvider.getToken() } returns "fake-token"
 
         // Default stubs for methods called during login/createAccount success paths
