@@ -248,6 +248,15 @@ sealed interface FeatureFlag<T: Any> {
         override val persistLogOut: Boolean = false
     }
 
+    @FeatureFlagMarker
+    data object ShowNetworkState: FeatureFlag<Boolean> {
+        override val key: String = "show_network_state_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
     companion object {
         val entries: List<FeatureFlag<*>>
             get() = FeatureFlagEntries.entries
@@ -284,6 +293,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.NavBar -> "Navigation Bar"
         FeatureFlag.GiveUsdf -> "Give/Send USDF"
         FeatureFlag.DepositFirstUX -> "Deposit First UX"
+        FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
     }
 
 val FeatureFlag<*>.message: String
@@ -311,6 +321,7 @@ val FeatureFlag<*>.message: String
         FeatureFlag.NavBar -> "Customize the order and labels of navigation bar buttons"
         FeatureFlag.GiveUsdf -> "When enabled, you'll gain the ability to send USDF directly and give it as cash"
         FeatureFlag.DepositFirstUX -> "When enabled, the user experience for new and empty accounts will be centered around depositing funds"
+        FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
     }
 
 
