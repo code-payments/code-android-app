@@ -36,16 +36,17 @@ fun ImageRequest.Builder.etagRevalidation() = apply {
 }
 
 /**
- * A [CacheStrategy] that performs conditional revalidation using `ETag` / `Last-Modified`
- * headers stored in Coil's disk-cache metadata.
+ * A [CacheStrategy] that respects `Cache-Control: max-age` and performs conditional
+ * revalidation using `ETag` / `Last-Modified` headers stored in Coil's disk-cache metadata.
  *
  * **Read behaviour:**
  * - If [ETagRevalidationKey] is **not** set on the request, the cached response is returned
  *   immediately (same as [CacheStrategy.DEFAULT]).
- * - If the key **is** set, cached `etag` and `last-modified` headers are copied into
- *   `If-None-Match` / `If-Modified-Since` on the outgoing [NetworkRequest], forcing a
- *   network round-trip. The server can then respond with `304` to avoid re-downloading the
- *   image body.
+ * - If the key **is** set but the cached entry is still fresh (within `max-age`), the cached
+ *   response is returned without a network trip.
+ * - If the entry is stale, cached `etag` and `last-modified` headers are copied into
+ *   `If-None-Match` / `If-Modified-Since` on the outgoing [NetworkRequest]. The server can
+ *   then respond with `304` to avoid re-downloading the image body.
  *
  * **Write behaviour:** delegates entirely to [CacheStrategy.DEFAULT], which merges headers on
  * `304` responses and writes new bodies on `2xx` responses.
@@ -59,6 +60,10 @@ class ETagCacheStrategy : CacheStrategy {
         options: Options,
     ): CacheStrategy.ReadResult {
         if (!options.getExtra(ETagRevalidationKey)) {
+            return CacheStrategy.ReadResult(cacheResponse)
+        }
+
+        if (!isStale(cacheResponse)) {
             return CacheStrategy.ReadResult(cacheResponse)
         }
 
@@ -90,6 +95,27 @@ class ETagCacheStrategy : CacheStrategy {
         options: Options,
     ): CacheStrategy.WriteResult {
         return CacheStrategy.DEFAULT.write(cacheResponse, networkRequest, networkResponse, options)
+    }
+
+    companion object {
+        private val MAX_AGE_REGEX = Regex("""max-age\s*=\s*(\d+)""")
+
+        /**
+         * Returns `true` if the cached response has exceeded its `max-age`, or if
+         * `responseMillis` is missing (pre-existing cache entries).
+         */
+        internal fun isStale(cacheResponse: NetworkResponse): Boolean {
+            val responseMillis = cacheResponse.responseMillis
+            if (responseMillis <= 0L) return true
+
+            val cacheControl = cacheResponse.headers["cache-control"] ?: return true
+            val maxAgeSeconds = MAX_AGE_REGEX.find(cacheControl)
+                ?.groupValues?.get(1)?.toLongOrNull()
+                ?: return true
+
+            val ageMillis = System.currentTimeMillis() - responseMillis
+            return ageMillis > maxAgeSeconds * 1000
+        }
     }
 }
 
