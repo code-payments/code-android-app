@@ -22,6 +22,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import com.flipcash.libs.coroutines.TestDispatcherProvider
+import com.getcode.utils.network.NetworkConnectivityListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,6 +62,8 @@ class AuthManagerTest {
     private val contactCoordinator: ContactCoordinator = mockk(relaxed = true)
     private val userManagerState = MutableStateFlow(UserManager.State())
 
+    private val networkConnectivityListener = mockk<NetworkConnectivityListener>(relaxed = true)
+
     private lateinit var authManager: AuthManager
 
     @Before
@@ -93,6 +96,7 @@ class AuthManagerTest {
             userFlags = userFlags,
             contactCoordinator = contactCoordinator,
             dispatchers = dispatchers,
+            networkObserver = networkConnectivityListener,
         )
     }
 
