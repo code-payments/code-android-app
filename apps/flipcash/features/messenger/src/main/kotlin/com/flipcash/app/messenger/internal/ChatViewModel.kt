@@ -65,6 +65,8 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.min
@@ -135,6 +137,7 @@ internal class ChatViewModel @Inject constructor(
         data object ResolveFailed : Event
 
         data object SendMessage : Event
+        data class RetryMessage(val pendingId: String?, val content: MessageContent) : Event
 
         data class NavigateToAmountEntry(val contact: DeviceContact) : Event
         data object PresentDepositOptions : Event
@@ -269,7 +272,7 @@ internal class ChatViewModel @Inject constructor(
                 if (chatId != null) {
                     dispatchEvent(Event.ChatFound(chatId))
                     chatCoordinator.setActiveChatId(chatId)
-                    chatCoordinator.loadMessages(chatId)
+                    viewModelScope.launch { chatCoordinator.loadMessages(chatId) }
                     chatCoordinator.dismissNotifications(chatId)
                 }
 
@@ -293,26 +296,24 @@ internal class ChatViewModel @Inject constructor(
         // Resolve owner authority for sending cash
         eventFlow
             .filterIsInstance<Event.OnContactFound>()
-            .map { it.contact }
-            .map {
-                contactCoordinator.resolve(it.e164)
-            }.onResult(
-                onSuccess = {
-                    dispatchEvent(Event.ResolveCompleted(it))
-                },
-                onError = {
-                    dispatchEvent(Event.ResolveFailed)
+            .onEach { event ->
+                viewModelScope.launch {
+                    contactCoordinator.resolve(event.contact.e164)
+                        .onSuccess { dispatchEvent(Event.ResolveCompleted(it)) }
+                        .onFailure { dispatchEvent(Event.ResolveFailed) }
                 }
-            ).launchIn(viewModelScope)
+            }.launchIn(viewModelScope)
 
         // Re-resolve the contact from the device (e.g. after adding via system contacts)
         eventFlow
             .filterIsInstance<Event.RefreshContact>()
             .mapNotNull { stateFlow.value.chattingWith?.e164 }
             .onEach { e164 ->
-                val refreshed = contactCoordinator.refreshContact(e164)
-                if (refreshed != null) {
-                    dispatchEvent(Event.OnContactFound(refreshed))
+                viewModelScope.launch {
+                    val refreshed = contactCoordinator.refreshContact(e164)
+                    if (refreshed != null) {
+                        dispatchEvent(Event.OnContactFound(refreshed))
+                    }
                 }
             }
             .launchIn(viewModelScope)
@@ -341,7 +342,7 @@ internal class ChatViewModel @Inject constructor(
             .filterIsInstance<Event.AdvanceReadPointer>()
             .onEach { event ->
                 val chatId = stateFlow.value.chatId ?: return@onEach
-                chatCoordinator.advanceReadPointer(chatId, event.messageId)
+                viewModelScope.launch { chatCoordinator.advanceReadPointer(chatId, event.messageId) }
             }
             .launchIn(viewModelScope)
     }
@@ -418,32 +419,31 @@ internal class ChatViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        // Notify server of typing state changes
+        // Notify server of typing state changes (fire-and-forget to avoid
+        // blocking SharedFlow emission when the gRPC call hangs offline)
         eventFlow.filterIsInstance<Event.OnSelfTypingStarted>()
             .mapNotNull { stateFlow.value.chatId }
-            .onEach { chatCoordinator.notifyTyping(it, TypingState.STARTED_TYPING) }
+            .onEach { viewModelScope.launch { chatCoordinator.notifyTyping(it, TypingState.STARTED_TYPING) } }
             .launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.OnSelfTypingStill>()
             .mapNotNull { stateFlow.value.chatId }
-            .onEach { chatCoordinator.notifyTyping(it, TypingState.STILL_TYPING) }
+            .onEach { viewModelScope.launch { chatCoordinator.notifyTyping(it, TypingState.STILL_TYPING) } }
             .launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.OnSelfTypingStopped>()
             .mapNotNull { stateFlow.value.chatId }
-            .onEach { chatCoordinator.notifyTyping(it, TypingState.STOPPED_TYPING) }
+            .onEach { viewModelScope.launch { chatCoordinator.notifyTyping(it, TypingState.STOPPED_TYPING) } }
             .launchIn(viewModelScope)
 
         // Observe typing indicators once chatId is known
-        stateFlow.map { it.chatId }
-            .filterNotNull()
+        stateFlow.mapNotNull { it.chatId }
             .flatMapLatest { chatId -> chatCoordinator.observeTypingIndicators(chatId) }
             .onEach { typists -> dispatchEvent(Event.TypistsUpdated(typists)) }
             .launchIn(viewModelScope)
 
         // Enable typing notifications once a payment has been exchanged
-        stateFlow.map { it.chatId }
-            .filterNotNull()
+        stateFlow.mapNotNull { it.chatId }
             .distinctUntilChanged()
             .flatMapLatest { chatId ->
                 chatCoordinator.observeMessages(chatId)
@@ -459,20 +459,45 @@ internal class ChatViewModel @Inject constructor(
     private fun initSendHandlers() {
         // Send text message
         eventFlow.filterIsInstance<Event.SendMessage>()
-            .map { stateFlow.value.chatInputState }
-            .mapNotNull { textInput ->
-                val textToSend = textInput.text.toString()
-                val chatId = stateFlow.value.chatId ?: return@mapNotNull null
+            .onEach {
+                val textToSend = stateFlow.value.chatInputState.text.toString()
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                if (textToSend.isBlank()) return@onEach
+
                 stateFlow.value.chatInputState.clearText()
-                chatCoordinator.sendMessage(chatId, textToSend)
-            }.onResult(
-                onSuccess = {
-                    trace("message sent successfully")
-                },
-                onError = {
-                    trace("message failed to send - ${it.localizedMessage}")
+
+                viewModelScope.launch {
+                    chatCoordinator.sendMessage(chatId, textToSend)
+                        .onSuccess { trace("message sent successfully") }
+                        .onFailure { trace("message failed to send - ${it.localizedMessage}") }
                 }
-            )
+            }
+            .flowOn(Dispatchers.Main.immediate)
+            .launchIn(viewModelScope)
+
+        // Retry a failed message
+        eventFlow.filterIsInstance<Event.RetryMessage>()
+            .onEach { (pendingClientIdHex, content) ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                val pendingId = pendingClientIdHex ?: return@onEach
+
+                BottomBarManager.showInfo(
+                    title = resources.getString(R.string.title_messageNotSent),
+                    message = resources.getString(R.string.description_messageNotSent),
+                    actions = listOf(
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_retry),
+                        ) {
+                            viewModelScope.launch {
+                                chatCoordinator.retryMessage(chatId, pendingId, listOf(content))
+                                    .onSuccess { trace("retry message sent successfully") }
+                                    .onFailure { trace("retry message failed - ${it.localizedMessage}") }
+                            }
+                        },
+                    ),
+                    showCancel = true,
+                )
+            }
             .launchIn(viewModelScope)
 
         // confirmation of amount and checks
@@ -687,6 +712,7 @@ internal class ChatViewModel @Inject constructor(
                     state.copy(resolveState = ResolveState.Failed)
                 }
                 is Event.SendMessage -> { state -> state }
+                is Event.RetryMessage -> { state -> state }
                 is Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
                 is Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }

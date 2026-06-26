@@ -29,6 +29,7 @@ import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -114,7 +115,8 @@ internal class ChatMessagingApi @Inject constructor(
         request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
-            api.sendMessage(request)
+            api.withDeadlineAfter(30, TimeUnit.SECONDS)
+                .sendMessage(request)
         }
     }
 

@@ -141,6 +141,10 @@ class MessagingDelegate @Inject constructor(
     }
 
     override suspend fun sendMessage(chatId: ChatId, content: String): Result<ChatMessage> {
+        if (content.isBlank()) {
+            return Result.failure(IllegalArgumentException("Cannot send a blank message"))
+        }
+
         val senderId = userManager.accountId
             ?: return Result.failure(IllegalStateException("Cannot send message without an account"))
 
@@ -150,6 +154,22 @@ class MessagingDelegate @Inject constructor(
             content = content,
             senderId = senderId,
         )
+
+        return messagingController.sendMessage(chatId, content, clientMessageId)
+            .onSuccess { serverMessage ->
+                messageDataSource.confirmPending(chatId, clientMessageId, serverMessage)
+                advanceReadPointer(chatId, serverMessage.messageId)
+
+                metadataDataSource.updateLastMessageId(chatId, serverMessage.messageId)
+                metadataDataSource.updateLastActivity(chatId, serverMessage.timestamp.toEpochMilliseconds())
+            }
+            .onFailure {
+                messageDataSource.failPending(chatId, clientMessageId)
+            }
+    }
+
+    override suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage> {
+        val clientMessageId = messageDataSource.retryPending(chatId, pendingClientIdHex)
 
         return messagingController.sendMessage(chatId, content, clientMessageId)
             .onSuccess { serverMessage ->

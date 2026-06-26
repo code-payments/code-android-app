@@ -12,6 +12,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,6 +54,7 @@ internal fun ReceiptLabel(
     readPointer: MessagePointer?,
     modifier: Modifier = Modifier,
     animateEntrance: Boolean = false,
+    onRetryFailed: (() -> Unit)? = null,
 ) {
     // iOS: "Delivered" hides instantly on send, then appears after 700ms with
     // scale(0.95)+opacity spring (duration: 0.4, bounce: 0.12).
@@ -103,6 +105,7 @@ internal fun ReceiptLabel(
                 val text = when (animatedStatus) {
                     ReceiptStatus.SENT -> stringResource(R.string.label_chatReceipt_delivered)
                     ReceiptStatus.READ -> stringResource(R.string.label_chatReceipt_read)
+                    ReceiptStatus.FAILED -> stringResource(R.string.label_chatReceipt_notSent)
                     else -> return@AnimatedContent
                 }
 
@@ -110,14 +113,24 @@ internal fun ReceiptLabel(
                     readPointer?.timestamp?.let { formatReadTimestamp(it) } ?: ""
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
+                    modifier = if (animatedStatus == ReceiptStatus.FAILED && onRetryFailed != null) {
+                        Modifier.clickable(onClick = onRetryFailed)
+                    } else {
+                        Modifier
+                    },
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+                ) {
                     Text(
                         modifier = Modifier.alignByBaseline(),
                         text = text,
                         style = CodeTheme.typography.caption.copy(
                             fontWeight = FontWeight.Bold,
                         ),
-                        color = CodeTheme.colors.textSecondary,
+                        color = if (animatedStatus == ReceiptStatus.FAILED) {
+                            CodeTheme.colors.error
+                        } else {
+                            CodeTheme.colors.textSecondary
+                        },
                     )
 
                     if (animatedStatus == ReceiptStatus.READ && readAtFormatted.isNotEmpty()) {

@@ -8,6 +8,7 @@ import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.TypingState
@@ -86,6 +87,9 @@ interface MessagingOperations {
 
     /** Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage]. */
     suspend fun sendMessage(chatId: ChatId, content: String): Result<ChatMessage>
+
+    /** Retries a failed pending message: resets to SENDING and re-sends to the server. */
+    suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage>
 
     /** Advances the local and remote read pointer for [chatId] to [messageId]. */
     suspend fun advanceReadPointer(chatId: ChatId, messageId: Long): Result<Unit>
