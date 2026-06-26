@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.flipcash.android.library.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -11,6 +12,7 @@ dependencies {
     implementation(libs.androidx.datastore)
     implementation(libs.compose.foundation)
     implementation(libs.compose.ui.text)
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(project(":libs:coroutines"))
     implementation(project(":libs:datetime"))

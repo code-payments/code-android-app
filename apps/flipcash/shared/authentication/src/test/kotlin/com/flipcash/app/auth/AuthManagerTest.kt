@@ -10,6 +10,7 @@ import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.shared.profile.ProfileCoordinator
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
@@ -59,6 +60,7 @@ class AuthManagerTest {
     private val featureFlagController: FeatureFlagController = mockk(relaxed = true)
     private val appSettings: AppSettingsCoordinator = mockk(relaxed = true)
     private val userFlags: UserFlagsCoordinator = mockk(relaxed = true)
+    private val profileCoordinator: ProfileCoordinator = mockk(relaxed = true)
     private val contactCoordinator: ContactCoordinator = mockk(relaxed = true)
     private val userManagerState = MutableStateFlow(UserManager.State())
 
@@ -92,9 +94,10 @@ class AuthManagerTest {
             pushTokenProvider = pushTokenProvider,
             tokenCoordinator = tokenCoordinator,
             persistence = persistence,
-            featureFlagController = featureFlagController,
+            featureFlags = featureFlagController,
             appSettings = appSettings,
             userFlags = userFlags,
+            profileCoordinator = profileCoordinator,
             contactCoordinator = contactCoordinator,
             dispatchers = dispatchers,
             networkObserver = networkConnectivityListener,

@@ -5,12 +5,15 @@ import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.internal.model.thirdparty.UsdcLiquidtyPool
 import com.flipcash.services.models.UserFlags
 import com.flipcash.services.user.UserManager
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -20,17 +23,22 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class UserFlagsCoordinator @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    userManager: UserManager,
+    private val userManager: UserManager,
     dispatchers: DispatcherProvider,
 ) {
     data class Overrides(
@@ -62,6 +70,7 @@ class UserFlagsCoordinator @Inject constructor(
     }
 
     private val scope = CoroutineScope(SupervisorJob() + dispatchers.IO)
+    private val json = Json { ignoreUnknownKeys = true }
 
     init {
         // Delete the backing file before DataStore reads it to avoid a race
@@ -70,6 +79,14 @@ class UserFlagsCoordinator @Inject constructor(
         if (!marker.exists()) {
             context.preferencesDataStoreFile("user-flag-overrides").delete()
             marker.createNewFile()
+        }
+
+        scope.launch {
+            userManager.state
+                .map { it.flags }
+                .filterNotNull()
+                .distinctUntilChanged()
+                .collect { flags -> persistFlags(flags) }
         }
     }
 
@@ -114,5 +131,143 @@ class UserFlagsCoordinator @Inject constructor(
 
     fun clearAll() {
         scope.launch { dataStore.edit { it.clear() } }
+    }
+
+    // --- Server flags cache ---
+
+    private val cacheDataStore = PreferenceDataStoreFactory.create(
+        corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+        scope = scope,
+        produceFile = { context.preferencesDataStoreFile("cached-user-flags") }
+    )
+
+    suspend fun restoreFlags() {
+        val prefs = cacheDataStore.data.first()
+        val raw = prefs[KEY_CACHED_FLAGS] ?: return
+        val cached = runCatching { json.decodeFromString<CachedFlags>(raw) }.getOrNull() ?: return
+        userManager.set(cached.toDomain())
+    }
+
+    suspend fun resetCache() {
+        cacheDataStore.edit { it.remove(KEY_CACHED_FLAGS) }
+    }
+
+    private suspend fun persistFlags(flags: UserFlags) {
+        val cached = CachedFlags.fromDomain(flags)
+        val raw = json.encodeToString(cached)
+        cacheDataStore.edit { it[KEY_CACHED_FLAGS] = raw }
+    }
+
+    companion object {
+        private val KEY_CACHED_FLAGS = stringPreferencesKey("cached_flags_json")
+    }
+}
+
+@Serializable
+private data class CachedFlags(
+    val isStaff: Boolean,
+    val isRegistered: Boolean,
+    val requiresIapForRegistration: Boolean,
+    val preferredOnRampProvider: CachedOnRampProvider? = null,
+    val supportedOnRampProviders: List<CachedOnRampProvider> = emptyList(),
+    val minimumVersion: Int? = null,
+    val billExchangeDataTimeoutMillis: Long? = null,
+    val newCurrencyPurchaseAmount: CachedFiat,
+    val newCurrencyFeeAmount: CachedFiat,
+    val withdrawalFeeAmount: CachedFiat,
+    val preferredUsdcOnRampLiquidityPool: String,
+    val enablePhoneNumberSend: Boolean,
+    val minimumHolderValue: CachedFiat,
+    val requireCoinbaseEmailVerification: Boolean,
+) {
+    fun toDomain(): UserFlags = UserFlags(
+        isStaff = isStaff,
+        isRegistered = isRegistered,
+        requiresIapForRegistration = requiresIapForRegistration,
+        preferredOnRampProvider = preferredOnRampProvider?.toDomain(),
+        supportedOnRampProviders = supportedOnRampProviders.mapNotNull { it.toDomain() },
+        minimumVersion = minimumVersion,
+        billExchangeDataTimeout = billExchangeDataTimeoutMillis?.milliseconds,
+        newCurrencyPurchaseAmount = newCurrencyPurchaseAmount.toDomain(),
+        newCurrencyFeeAmount = newCurrencyFeeAmount.toDomain(),
+        withdrawalFeeAmount = withdrawalFeeAmount.toDomain(),
+        preferredUsdcOnRampLiquidityPool = runCatching {
+            UsdcLiquidtyPool.valueOf(preferredUsdcOnRampLiquidityPool)
+        }.getOrDefault(UsdcLiquidtyPool.Unknown),
+        enablePhoneNumberSend = enablePhoneNumberSend,
+        minimumHolderValue = minimumHolderValue.toDomain(),
+        requireCoinbaseEmailVerification = requireCoinbaseEmailVerification,
+    )
+
+    companion object {
+        fun fromDomain(flags: UserFlags): CachedFlags = CachedFlags(
+            isStaff = flags.isStaff,
+            isRegistered = flags.isRegistered,
+            requiresIapForRegistration = flags.requiresIapForRegistration,
+            preferredOnRampProvider = flags.preferredOnRampProvider?.let {
+                CachedOnRampProvider.fromDomain(it)
+            },
+            supportedOnRampProviders = flags.supportedOnRampProviders.map {
+                CachedOnRampProvider.fromDomain(it)
+            },
+            minimumVersion = flags.minimumVersion,
+            billExchangeDataTimeoutMillis = flags.billExchangeDataTimeout?.inWholeMilliseconds,
+            newCurrencyPurchaseAmount = CachedFiat.fromDomain(flags.newCurrencyPurchaseAmount),
+            newCurrencyFeeAmount = CachedFiat.fromDomain(flags.newCurrencyFeeAmount),
+            withdrawalFeeAmount = CachedFiat.fromDomain(flags.withdrawalFeeAmount),
+            preferredUsdcOnRampLiquidityPool = flags.preferredUsdcOnRampLiquidityPool.name,
+            enablePhoneNumberSend = flags.enablePhoneNumberSend,
+            minimumHolderValue = CachedFiat.fromDomain(flags.minimumHolderValue),
+            requireCoinbaseEmailVerification = flags.requireCoinbaseEmailVerification,
+        )
+    }
+}
+
+@Serializable
+private data class CachedOnRampProvider(
+    val tag: String,
+    val coinbaseType: String? = null,
+) {
+    fun toDomain(): OnRampProvider? = when (tag) {
+        "manual_deposit" -> OnRampProvider.ManualDeposit
+        "phantom" -> OnRampProvider.Phantom
+        "coinbase" -> {
+            val type = coinbaseType?.let {
+                runCatching { OnRampType.valueOf(it) }.getOrNull()
+            } ?: OnRampType.Virtual
+            OnRampProvider.Coinbase(type)
+        }
+        else -> null
+    }
+
+    companion object {
+        fun fromDomain(provider: OnRampProvider): CachedOnRampProvider = when (provider) {
+            is OnRampProvider.ManualDeposit -> CachedOnRampProvider(tag = "manual_deposit")
+            is OnRampProvider.Phantom -> CachedOnRampProvider(tag = "phantom")
+            is OnRampProvider.Coinbase -> CachedOnRampProvider(
+                tag = "coinbase",
+                coinbaseType = provider.type.name,
+            )
+            is OnRampProvider.Unknown -> CachedOnRampProvider(tag = "unknown")
+        }
+    }
+}
+
+@Serializable
+private data class CachedFiat(
+    val quarks: Long,
+    val currencyCode: String = "USD",
+) {
+    fun toDomain(): Fiat = Fiat(
+        quarks = quarks,
+        currencyCode = runCatching { CurrencyCode.valueOf(currencyCode) }
+            .getOrDefault(CurrencyCode.USD),
+    )
+
+    companion object {
+        fun fromDomain(fiat: Fiat): CachedFiat = CachedFiat(
+            quarks = fiat.quarks,
+            currencyCode = fiat.currencyCode.name,
+        )
     }
 }
