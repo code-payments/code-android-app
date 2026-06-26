@@ -7,8 +7,6 @@ android {
 }
 
 dependencies {
-    implementation(libs.bundles.haze)
-
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:shareable"))

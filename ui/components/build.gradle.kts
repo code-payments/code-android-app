@@ -27,7 +27,7 @@ dependencies {
     implementation(project(":ui:emojis"))
     implementation(project(":ui:theme"))
     implementation(project(":ui:resources"))
-    api(libs.cloudy)
+
     implementation(libs.coil3)
     implementation(libs.coil3.network)
     implementation(libs.kotlinx.datetime)

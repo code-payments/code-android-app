@@ -44,7 +44,7 @@ import com.flipcash.features.backupkey.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.Cloudy
+import com.getcode.ui.components.BlurredContent
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
 import com.getcode.ui.core.addIf
@@ -122,7 +122,7 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
             .windowInsetsPadding(WindowInsets.navigationBars),
         state = selectionState,
     ) {
-        Cloudy(
+        BlurredContent(
             modifier = Modifier
                 .fillMaxSize(),
             enabled = selectionState.shown
@@ -187,9 +187,9 @@ internal fun BackupKeyScreenContent(viewModel: BackupKeyScreenViewModel) {
                     dataState.accessKeyCroppedBitmap?.let { bitmap ->
                         Image(
                             modifier = Modifier
+                                .scale(selectionState.scale.value)
                                 .fillMaxWidth()
-                                .weight(1f)
-                                .scale(selectionState.scale.value),
+                                .weight(1f),
                             bitmap = bitmap.asImageBitmap(),
                             contentScale = ContentScale.Crop,
                             contentDescription = dataState.wordsFormatted,

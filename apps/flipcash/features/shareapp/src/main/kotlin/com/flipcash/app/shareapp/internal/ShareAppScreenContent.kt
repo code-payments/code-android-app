@@ -36,7 +36,7 @@ import com.flipcash.features.shareapp.R
 import com.getcode.libs.qr.rememberQrBitmapPainter
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.Cloudy
+import com.getcode.ui.components.BlurredContent
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
 import com.getcode.ui.core.longClickable
@@ -67,7 +67,7 @@ internal fun ShareAppScreenContent() {
         contentRect = contentRect,
         state = selectionState,
     ) { onClick ->
-        Cloudy(
+        BlurredContent(
             modifier = Modifier
                 .fillMaxSize(),
             enabled = selectionState.shown

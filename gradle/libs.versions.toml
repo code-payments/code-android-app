@@ -93,7 +93,6 @@ bugsnag-gradle-plugin = "1.1.0"
 rinku = "1.6.0"
 compose-unstyled = "2.8.0"
 haze = "2.0.0-alpha03"
-cloudy = "0.5.0"
 phantom-connect-kmp = "2.0.2-1.0.0"
 vico = "3.2.3"
 
@@ -258,7 +257,6 @@ sodium-bindings = { module = "com.ionspin.kotlin:multiplatform-crypto-libsodium-
 eddsa = { module = "net.i2p.crypto:eddsa", version = "0.3.0" }
 
 # Misc
-cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
 fingerprint-pro = { module = "com.fingerprint.android:pro", version = "2.4.0" }
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 haze-blur = { module = "dev.chrisbanes.haze:haze-blur", version.ref = "haze" }
