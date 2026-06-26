@@ -56,7 +56,7 @@ play-services-auth-api-phone = "18.3.0"
 google-play-billing = "9.0.0"
 google-play-updates = "2.1.0"
 
-grpc = "1.82.0"
+grpc = "1.82.1"
 grpc-okhttp = "1.82.0"
 grpc-kotlin = "1.5.0"
 protobuf = "4.35.1"
