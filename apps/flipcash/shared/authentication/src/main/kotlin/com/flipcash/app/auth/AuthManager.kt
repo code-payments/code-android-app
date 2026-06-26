@@ -22,6 +22,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceManager
 import com.getcode.utils.TraceType
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -49,6 +50,7 @@ class AuthManager @Inject constructor(
     private val appSettings: AppSettingsCoordinator,
     private val userFlags: UserFlagsCoordinator,
     private val contactCoordinator: ContactCoordinator,
+    private val networkObserver: NetworkConnectivityListener,
     private val dispatchers: DispatcherProvider,
 //    private val analytics: AnalyticsService,
 ) : CoroutineScope by CoroutineScope(dispatchers.IO) {
@@ -192,8 +194,12 @@ class AuthManager @Inject constructor(
 
                 coroutineScope {
                     launch {
-                        val flags = retryable(maxRetries = 3) {
-                            accountController.getUserFlags().getOrNull()
+                        val flags = if (!isSoftLogin || networkObserver.isConnected) {
+                            retryable(maxRetries = 3) {
+                                accountController.getUserFlags().getOrNull()
+                            }
+                        } else {
+                            null
                         }
 
                         val seenAccessKey = credentialManager.hasSeenAccessKey()
@@ -228,9 +234,13 @@ class AuthManager @Inject constructor(
                             }
                         }
 
-                        profileController.updateUserProfile()
+                        if (networkObserver.isConnected) {
+                            profileController.updateUserProfile()
+                        }
                     }
-                    launch { savePrefs() }
+                    if (networkObserver.isConnected) {
+                        launch { savePrefs() }
+                    }
                 }
             }.onFailure {
                 logout()
