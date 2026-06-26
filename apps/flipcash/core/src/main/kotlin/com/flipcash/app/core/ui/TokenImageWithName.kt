@@ -20,7 +20,6 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.request.error
-import com.flipcash.app.core.cache.etagRevalidation
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
@@ -108,7 +107,6 @@ fun TokenIcon(
             .data(image)
             .crossfade(false)
             .error(R.drawable.ic_placeholder_user)
-            .etagRevalidation()
             .build(),
         contentDescription = null,
         contentScale = ContentScale.Crop,
