@@ -204,6 +204,10 @@ class RealSessionController @Inject constructor(
             .onEach { autoStart -> stateHolder.update { it.copy(autoStartCamera = autoStart) } }
             .launchIn(scope)
 
+        featureFlagController.observe(FeatureFlag.ShowNetworkState)
+            .onEach { enabled -> stateHolder.update { it.copy(showNetworkOffline = enabled) } }
+            .launchIn(scope)
+
         featureFlagController.observe(FeatureFlag.VibrateOnScan)
             .onEach { enabled -> stateHolder.update { it.copy(vibrateOnScan = enabled) } }
             .launchIn(scope)
