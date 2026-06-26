@@ -17,7 +17,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
 @Composable
-fun Cloudy(
+fun BlurredContent(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     @IntRange(from = 0, to = 25) radius: Int = 25,
