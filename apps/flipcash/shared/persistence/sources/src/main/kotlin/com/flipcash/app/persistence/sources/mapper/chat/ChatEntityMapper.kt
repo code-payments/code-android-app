@@ -169,6 +169,9 @@ class ChatEntityMapper @Inject constructor() {
     fun clientMessageIdHex(clientMessageId: ClientMessageId): String =
         clientMessageId.bytes.toList().hexEncodedString()
 
+    fun clientMessageIdFromHex(hex: String): ClientMessageId =
+        ClientMessageId(hex.hexToByteArray())
+
     fun pointerToJson(pointer: MessagePointer): String {
         return kotlinx.serialization.json.Json.encodeToString(
             listOf(pointer.toSerialized())

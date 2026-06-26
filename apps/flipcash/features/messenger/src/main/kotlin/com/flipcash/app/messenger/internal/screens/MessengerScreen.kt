@@ -74,6 +74,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val navigator = LocalCodeNavigator.current
 
     val hazeState = rememberHazeState()
+    val keyboard = rememberKeyboardController()
 
     ChatInputScaffold(
         topBar = { ChatTopBar(navigator, state.chattingWith) },
@@ -100,6 +101,13 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             otherReadPointer = otherReadPointer,
             onAdvanceReadPointer = { messageId ->
                 viewModel.dispatchEvent(ChatViewModel.Event.AdvanceReadPointer(messageId))
+            },
+            onRetryMessage = { bubble ->
+                keyboard.hideIfVisible {
+                    viewModel.dispatchEvent(
+                        ChatViewModel.Event.RetryMessage(bubble.pendingClientIdHex, bubble.content)
+                    )
+                }
             },
             onRefreshContact = {
                 viewModel.dispatchEvent(ChatViewModel.Event.RefreshContact)

@@ -162,6 +162,16 @@ class ChatMessageDataSource @Inject constructor(
         )
     }
 
+    suspend fun retryPending(chatId: ChatId, pendingClientIdHex: String): ClientMessageId {
+        val clientMessageId = mapper.clientMessageIdFromHex(pendingClientIdHex)
+        db?.chatMessageDao()?.updatePendingStatus(
+            mapper.chatIdHex(chatId),
+            pendingClientIdHex,
+            MessageStatus.SENDING,
+        )
+        return clientMessageId
+    }
+
     fun toChatMessage(entity: ChatMessageEntity): ChatMessage {
         val message = mapper.toMessage(entity)
         val selfId = userManager.accountId

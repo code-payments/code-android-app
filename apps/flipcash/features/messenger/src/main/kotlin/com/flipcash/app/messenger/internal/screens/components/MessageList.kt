@@ -61,6 +61,7 @@ internal fun MessageList(
     separatorConfig: SeparatorConfig,
     otherReadPointer: MessagePointer? = null,
     onAdvanceReadPointer: ((Long) -> Unit)? = null,
+    onRetryMessage: ((ChatListItem.ContentBubble) -> Unit)? = null,
     onRefreshContact: () -> Unit = {},
 ) {
     val keyboard = rememberKeyboardController()
@@ -215,6 +216,9 @@ internal fun MessageList(
                                         status = effectiveStatus,
                                         readPointer = otherReadPointer,
                                         animateEntrance = wasSending,
+                                        onRetryFailed = if (effectiveStatus == ReceiptStatus.FAILED) {
+                                            { onRetryMessage?.invoke(item) }
+                                        } else null,
                                     )
                                 }
                             }
@@ -401,6 +405,7 @@ private fun shouldShowReceiptLabel(
 ): Boolean {
     if (!item.isFromSelf) return false
     val status = effectiveReceiptStatus(item, otherReadPointer) ?: return false
+    if (status == ReceiptStatus.FAILED) return true
     if (status != ReceiptStatus.SENT && status != ReceiptStatus.READ) return false
 
     // index - 1 is the item below (newer) in reverseLayout

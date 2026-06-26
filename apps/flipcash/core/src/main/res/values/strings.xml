@@ -785,7 +785,10 @@
 
     <string name="label_chatReceipt_delivered">Delivered</string>
     <string name="label_chatReceipt_read">Read</string>
+    <string name="label_chatReceipt_notSent">Not Sent</string>
     <string name="label_chatReceipt_yesterday">Yesterday</string>
+    <string name="title_messageNotSent">Message Not Sent</string>
+    <string name="description_messageNotSent">Your message could not be delivered. Would you like to try again?</string>
     <string name="label_chatSeparator_today">Today</string>
 
     <string name="title_sendFeatureIntro">Send Money To Your Friends</string>
