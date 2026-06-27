@@ -10,6 +10,7 @@ import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.shared.profile.ProfileCoordinator
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
@@ -17,7 +18,6 @@ import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.authentication.BuildConfig
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceManager
 import com.getcode.utils.TraceType
@@ -46,9 +46,10 @@ class AuthManager @Inject constructor(
     private val pushTokenProvider: PushTokenProvider,
     private val tokenCoordinator: TokenCoordinator,
     private val persistence: PersistenceProvider,
-    private val featureFlagController: FeatureFlagController,
+    private val featureFlags: FeatureFlagController,
     private val appSettings: AppSettingsCoordinator,
     private val userFlags: UserFlagsCoordinator,
+    private val profileCoordinator: ProfileCoordinator,
     private val contactCoordinator: ContactCoordinator,
     private val networkObserver: NetworkConnectivityListener,
     private val dispatchers: DispatcherProvider,
@@ -194,6 +195,9 @@ class AuthManager @Inject constructor(
 
                 coroutineScope {
                     launch {
+                        profileCoordinator.restore()
+                        userFlags.restoreFlags()
+
                         val flags = if (!isSoftLogin || networkObserver.isConnected) {
                             retryable(maxRetries = 3) {
                                 accountController.getUserFlags().getOrNull()
@@ -292,9 +296,11 @@ class AuthManager @Inject constructor(
         userManager.clear()
         tokenCoordinator.reset()
         persistence.close()
-        featureFlagController.reset()
+        featureFlags.reset()
         appSettings.reset()
         userFlags.clearAll()
+        profileCoordinator.reset()
+        userFlags.resetCache()
 
         if (!BuildConfig.DEBUG) TraceManager.userId = null
     }

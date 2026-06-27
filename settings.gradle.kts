@@ -81,6 +81,7 @@ include(
     ":apps:flipcash:shared:tokens",
     ":apps:flipcash:shared:tokens:core",
     ":apps:flipcash:shared:theme",
+    ":apps:flipcash:shared:profile",
     ":apps:flipcash:shared:userflags",
     ":apps:flipcash:shared:workers",
     ":apps:flipcash:shared:web",

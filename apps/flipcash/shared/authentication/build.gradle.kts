@@ -17,6 +17,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:push"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:tokens"))
+    implementation(project(":apps:flipcash:shared:profile"))
     implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":services:flipcash"))
 
