@@ -122,15 +122,23 @@ fun <Request, Response, StreamRef> openBidirectionalStream(
                 requestChannel.send(initialRequest())
                 trace(tag = tag, message = "Initial request sent")
             } catch (e: Exception) {
+                collectionJob.cancel()
+                requestChannel.close()
+                if (e is ClosedSendChannelException) {
+                    // Expected race: the response flow can close the request
+                    // channel (e.g. gRPC TRANSIENT_FAILURE) before the initial
+                    // send completes. Retry silently.
+                    trace(tag = tag, message = "Channel closed before initial request, retrying")
+                    onReconnectAttempt?.invoke(attempt, e)
+                    continue
+                }
                 trace(
                     tag = tag,
                     message = "Failed to send initial request",
                     type = TraceType.Error,
                     error = e
                 )
-                collectionJob.cancel()
-                requestChannel.close()
-                if (isRetryable(e) || e is ClosedSendChannelException) {
+                if (isRetryable(e)) {
                     onReconnectAttempt?.invoke(attempt, e)
                     continue
                 }
