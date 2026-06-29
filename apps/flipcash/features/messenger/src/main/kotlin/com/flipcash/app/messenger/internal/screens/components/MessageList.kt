@@ -35,8 +35,12 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.services.models.chat.MessagePointer
+import androidx.compose.runtime.CompositionLocalProvider
+import com.flipcash.shared.chat.ui.ChatAction
+import com.flipcash.shared.chat.ui.ChatActionHandler
 import com.flipcash.shared.chat.ui.ChatListItem
 import com.flipcash.shared.chat.ui.ContentBubble
+import com.flipcash.shared.chat.ui.LocalChatActionHandler
 import com.flipcash.shared.chat.ui.ReceiptStatus
 import com.flipcash.shared.chat.ui.SeparatorConfig
 import com.flipcash.shared.chat.ui.bubblePositionOf
@@ -51,7 +55,6 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
 
-
 @Composable
 internal fun MessageList(
     modifier: Modifier = Modifier,
@@ -60,254 +63,253 @@ internal fun MessageList(
     messages: LazyPagingItems<ChatListItem>,
     separatorConfig: SeparatorConfig,
     otherReadPointer: MessagePointer? = null,
-    onAdvanceReadPointer: ((Long) -> Unit)? = null,
-    onRetryMessage: ((ChatListItem.ContentBubble) -> Unit)? = null,
-    onRefreshContact: () -> Unit = {},
+    onAction: ChatActionHandler,
 ) {
     val keyboard = rememberKeyboardController()
     val listState = rememberLazyListState()
     val vibrator = LocalVibrator.current
 
-    if (onAdvanceReadPointer != null) {
-        HandleMessageReads(listState, messages, onAdvanceReadPointer)
-    }
+    CompositionLocalProvider(LocalChatActionHandler provides onAction) {
+        HandleMessageReads(listState, messages)
 
-    // Haptic feedback when a new incoming message arrives
-    // Track the newest message key — only fire when it changes to an incoming message
-    var lastNewestKey by remember { mutableStateOf<Any?>(null) }
-    LaunchedEffect(messages) {
-        snapshotFlow {
-            if (messages.itemCount == 0) null else messages.peek(0)
-        }
-            .filterNotNull()
-            .mapNotNull { it as? ChatListItem.ContentBubble }
-            .distinctUntilChanged { old, new -> old.itemKey == new.itemKey }
-            .collectLatest { newest ->
-                val prevKey = lastNewestKey
-                lastNewestKey = newest.itemKey
-                if (prevKey != null && !newest.isFromSelf) {
-                    vibrator.tick()
-                }
+        // Haptic feedback when a new incoming message arrives
+        // Track the newest message key — only fire when it changes to an incoming message
+        var lastNewestKey by remember { mutableStateOf<Any?>(null) }
+        LaunchedEffect(messages) {
+            snapshotFlow {
+                if (messages.itemCount == 0) null else messages.peek(0)
             }
-    }
-
-    // Gate insertion animations: only animate items that arrive after the initial page load
-    val initialLoadComplete by remember {
-        derivedStateOf {
-            messages.loadState.refresh is LoadState.NotLoading && messages.itemCount > 0
-        }
-    }
-    var hasLoaded by remember { mutableStateOf(false) }
-    LaunchedEffect(initialLoadComplete) {
-        if (initialLoadComplete) hasLoaded = true
-    }
-    // Keys that have already played their insertion animation — persists
-    // across item disposal so scrolling away and back doesn't replay.
-    val animatedKeys = remember { mutableSetOf<Any>() }
-
-    // Track when the initial Paging refresh has truly completed (Loading → NotLoading).
-    // This avoids showing the ContactInfoContainer before messages arrive,
-    // which would cause the list to start scrolled to the wrong position.
-    var refreshSettled by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        snapshotFlow { messages.loadState.refresh }
-            .dropWhile { it !is LoadState.Loading }
-            .first { it !is LoadState.Loading }
-        refreshSettled = true
-    }
-
-    LazyColumn(
-        modifier = modifier
-            .sheetResignmentBehavior(listState)
-            .pointerInput(Unit) {
-                detectTapGestures { keyboard.hide() }
-            },
-        state = listState,
-        reverseLayout = true,
-        contentPadding = PaddingValues(
-            top = CodeTheme.dimens.inset + contentPadding.calculateTopPadding(),
-            bottom = CodeTheme.dimens.grid.x2 + contentPadding.calculateBottomPadding(),
-            start = CodeTheme.dimens.inset,
-            end = CodeTheme.dimens.inset,
-        ),
-        verticalArrangement = Arrangement.Top,
-    ) {
-        items(
-            count = messages.itemCount,
-            key = messages.itemKey { it.itemKey }
-        ) { index ->
-            val item = messages[index] ?: return@items
-            val bottomSpacing = bottomSpacingFor(index, item, messages, separatorConfig)
-
-            val isOutgoing = (item as? ChatListItem.ContentBubble)?.isFromSelf ?: false
-
-            // Message insertion animation — scale from 0.95 + opacity with edge anchor.
-            // Only animate genuinely new messages (index 0 after initial load).
-            val shouldAnimate = index == 0 && hasLoaded && item.itemKey !in animatedKeys
-            if (shouldAnimate) animatedKeys.add(item.itemKey)
-            var appeared by remember(item.itemKey) { mutableStateOf(!shouldAnimate) }
-            LaunchedEffect(Unit) { if (!appeared) appeared = true }
-            val insertionAlpha by animateFloatAsState(
-                targetValue = if (appeared) 1f else 0f,
-                animationSpec = ChatAnimations.insertion,
-                label = "insertAlpha",
-            )
-            val insertionScale by animateFloatAsState(
-                targetValue = if (appeared) 1f else 0.95f,
-                animationSpec = ChatAnimations.insertion,
-                label = "insertScale",
-            )
-
-            val insertionModifier = Modifier.graphicsLayer {
-                alpha = insertionAlpha
-                scaleX = insertionScale
-                scaleY = insertionScale
-                transformOrigin = if (isOutgoing) {
-                    TransformOrigin(1f, 0.5f) // anchor trailing
-                } else {
-                    TransformOrigin(0f, 0.5f) // anchor leading
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .padding(bottom = bottomSpacing),
-            ) {
-                when (item) {
-                    is ChatListItem.DateSeparator -> Box(insertionModifier) {
-                        DateSeparatorRow(item.timestamp)
+                .filterNotNull()
+                .mapNotNull { it as? ChatListItem.ContentBubble }
+                .distinctUntilChanged { old, new -> old.itemKey == new.itemKey }
+                .collectLatest { newest ->
+                    val prevKey = lastNewestKey
+                    lastNewestKey = newest.itemKey
+                    if (prevKey != null && !newest.isFromSelf) {
+                        vibrator.tick()
                     }
+                }
+        }
 
-                    is ChatListItem.ContentBubble -> {
-                        val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
-                        // Track whether this item was ever seen as SENDING so we
-                        // can animate the receipt label entrance on the
-                        // SENDING→SENT transition. This remember persists across
-                        // recompositions of the same item (keyed by LazyColumn),
-                        // surviving the status change that gates the label.
-                        var wasSending by remember { mutableStateOf(false) }
-                        if (item.receiptStatus == ReceiptStatus.SENDING) {
-                            wasSending = true
+        // Gate insertion animations: only animate items that arrive after the initial page load
+        val initialLoadComplete by remember {
+            derivedStateOf {
+                messages.loadState.refresh is LoadState.NotLoading && messages.itemCount > 0
+            }
+        }
+        var hasLoaded by remember { mutableStateOf(false) }
+        LaunchedEffect(initialLoadComplete) {
+            if (initialLoadComplete) hasLoaded = true
+        }
+        // Keys that have already played their insertion animation — persists
+        // across item disposal so scrolling away and back doesn't replay.
+        val animatedKeys = remember { mutableSetOf<Any>() }
+
+        // Track when the initial Paging refresh has truly completed (Loading → NotLoading).
+        // This avoids showing the ContactInfoContainer before messages arrive,
+        // which would cause the list to start scrolled to the wrong position.
+        var refreshSettled by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            snapshotFlow { messages.loadState.refresh }
+                .dropWhile { it !is LoadState.Loading }
+                .first { it !is LoadState.Loading }
+            refreshSettled = true
+        }
+
+        LazyColumn(
+            modifier = modifier
+                .sheetResignmentBehavior(listState)
+                .pointerInput(Unit) {
+                    detectTapGestures { keyboard.hide() }
+                },
+            state = listState,
+            reverseLayout = true,
+            contentPadding = PaddingValues(
+                top = CodeTheme.dimens.inset + contentPadding.calculateTopPadding(),
+                bottom = CodeTheme.dimens.grid.x2 + contentPadding.calculateBottomPadding(),
+                start = CodeTheme.dimens.inset,
+                end = CodeTheme.dimens.inset,
+            ),
+            verticalArrangement = Arrangement.Top,
+        ) {
+            items(
+                count = messages.itemCount,
+                key = messages.itemKey { it.itemKey }
+            ) { index ->
+                val item = messages[index] ?: return@items
+                val bottomSpacing = bottomSpacingFor(index, item, messages, separatorConfig)
+
+                val isOutgoing = (item as? ChatListItem.ContentBubble)?.isFromSelf ?: false
+
+                // Message insertion animation — scale from 0.95 + opacity with edge anchor.
+                // Only animate genuinely new messages (index 0 after initial load).
+                val shouldAnimate = index == 0 && hasLoaded && item.itemKey !in animatedKeys
+                if (shouldAnimate) animatedKeys.add(item.itemKey)
+                var appeared by remember(item.itemKey) { mutableStateOf(!shouldAnimate) }
+                LaunchedEffect(Unit) { if (!appeared) appeared = true }
+                val insertionAlpha by animateFloatAsState(
+                    targetValue = if (appeared) 1f else 0f,
+                    animationSpec = ChatAnimations.insertion,
+                    label = "insertAlpha",
+                )
+                val insertionScale by animateFloatAsState(
+                    targetValue = if (appeared) 1f else 0.95f,
+                    animationSpec = ChatAnimations.insertion,
+                    label = "insertScale",
+                )
+
+                val insertionModifier = Modifier.graphicsLayer {
+                    alpha = insertionAlpha
+                    scaleX = insertionScale
+                    scaleY = insertionScale
+                    transformOrigin = if (isOutgoing) {
+                        TransformOrigin(1f, 0.5f) // anchor trailing
+                    } else {
+                        TransformOrigin(0f, 0.5f) // anchor leading
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .padding(bottom = bottomSpacing),
+                ) {
+                    when (item) {
+                        is ChatListItem.DateSeparator -> Box(insertionModifier) {
+                            DateSeparatorRow(item.timestamp)
                         }
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
-                        ) {
-                            Box(insertionModifier) {
-                                ContentBubble(
-                                    item = item,
-                                    position = bubblePositionOf(
-                                        index,
-                                        item,
-                                        messages,
-                                        separatorConfig
-                                    ),
-                                )
+
+                        is ChatListItem.ContentBubble -> {
+                            val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
+                            // Track whether this item was ever seen as SENDING so we
+                            // can animate the receipt label entrance on the
+                            // SENDING→SENT transition. This remember persists across
+                            // recompositions of the same item (keyed by LazyColumn),
+                            // surviving the status change that gates the label.
+                            var wasSending by remember { mutableStateOf(false) }
+                            if (item.receiptStatus == ReceiptStatus.SENDING) {
+                                wasSending = true
                             }
-                            val showReceipt =
-                                shouldShowReceiptLabel(index, item, messages, otherReadPointer)
-                            AnimatedVisibility(
-                                visible = showReceipt && effectiveStatus != null,
-                                enter = EnterTransition.None,
-                                exit = ChatAnimations.receiptExit,
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
                             ) {
-                                if (effectiveStatus != null) {
-                                    ReceiptLabel(
-                                        status = effectiveStatus,
-                                        readPointer = otherReadPointer,
-                                        animateEntrance = wasSending,
-                                        onRetryFailed = if (effectiveStatus == ReceiptStatus.FAILED) {
-                                            { onRetryMessage?.invoke(item) }
-                                        } else null,
+                                Box(insertionModifier) {
+                                    ContentBubble(
+                                        item = item,
+                                        position = bubblePositionOf(
+                                            index,
+                                            item,
+                                            messages,
+                                            separatorConfig
+                                        ),
                                     )
+                                }
+                                val showReceipt =
+                                    shouldShowReceiptLabel(index, item, messages, otherReadPointer)
+                                AnimatedVisibility(
+                                    visible = showReceipt && effectiveStatus != null,
+                                    enter = EnterTransition.None,
+                                    exit = ChatAnimations.receiptExit,
+                                ) {
+                                    if (effectiveStatus != null) {
+                                        ReceiptLabel(
+                                            status = effectiveStatus,
+                                            readPointer = otherReadPointer,
+                                            animateEntrance = wasSending,
+                                            onRetryFailed = if (effectiveStatus == ReceiptStatus.FAILED) {
+                                                { onAction(ChatAction.RetryMessage(item)) }
+                                            } else null,
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
 
-        // Show trailing separator and contact info once messages are available
-        // (from Room cache) or after the refresh settles (for empty conversations).
-        // This prevents these items from being the only content before messages
-        // load, which would cause the list to start at the wrong scroll position.
-        if (messages.itemCount > 0 || refreshSettled) {
-            // Trailing date separator for the oldest loaded message.
-            // This replaces the `after == null` boundary from insertSeparators
-            // which Paging 3 defers until endOfPaginationReached, causing a
-            // visible frame delay where the message appears without its separator.
-            if (messages.itemCount > 0) {
-                val oldest = messages.peek(messages.itemCount - 1)
-                val oldestTimestamp = when (oldest) {
-                    is ChatListItem.ContentBubble -> oldest.timestamp
-                    is ChatListItem.DateSeparator -> null // already a separator
-                    null -> null
-                }
-                if (oldestTimestamp != null) {
-                    item(key = "trailing-date-${oldestTimestamp.epochSeconds}") {
-                        Box(
-                            modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x2),
-                        ) {
-                            DateSeparatorRow(oldestTimestamp)
+            // Show trailing separator and contact info once messages are available
+            // (from Room cache) or after the refresh settles (for empty conversations).
+            // This prevents these items from being the only content before messages
+            // load, which would cause the list to start at the wrong scroll position.
+            if (messages.itemCount > 0 || refreshSettled) {
+                // Trailing date separator for the oldest loaded message.
+                // This replaces the `after == null` boundary from insertSeparators
+                // which Paging 3 defers until endOfPaginationReached, causing a
+                // visible frame delay where the message appears without its separator.
+                if (messages.itemCount > 0) {
+                    val oldest = messages.peek(messages.itemCount - 1)
+                    val oldestTimestamp = when (oldest) {
+                        is ChatListItem.ContentBubble -> oldest.timestamp
+                        is ChatListItem.DateSeparator -> null // already a separator
+                        null -> null
+                    }
+                    if (oldestTimestamp != null) {
+                        item(key = "trailing-date-${oldestTimestamp.epochSeconds}") {
+                            Box(
+                                modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x2),
+                            ) {
+                                DateSeparatorRow(oldestTimestamp)
+                            }
                         }
                     }
                 }
-            }
 
-            // Chat start shows contact info container
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillParentMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    ContactInfoContainer(
-                        contact = state.chattingWith,
+                // Chat start shows contact info container
+                item {
+                    Box(
                         modifier = Modifier
-                            .padding(horizontal = CodeTheme.dimens.grid.x12),
-                        onRefreshContact = onRefreshContact,
-                    )
-                }
-            }
-        }
-    }
-
-    // Scroll to bottom when the newest message changes (sent or received)
-    LaunchedEffect(listState, messages) {
-        snapshotFlow {
-            if (messages.itemCount == 0) null
-            else (messages.peek(0) as? ChatListItem.ContentBubble)?.itemKey
-        }
-            .filterNotNull()
-            .distinctUntilChanged()
-            .collectLatest {
-                // Always scroll for own messages; only near-bottom for incoming
-                val nearBottom = listState.firstVisibleItemIndex <= 5
-                val newest = messages.peek(0) as? ChatListItem.ContentBubble
-                if (newest?.isFromSelf == true || nearBottom) {
-                    if (nearBottom) {
-                        listState.animateScrollToItem(0)
-                    } else {
-                        listState.scrollToItem(0)
+                            .fillParentMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        ContactInfoContainer(
+                            contact = state.chattingWith,
+                            modifier = Modifier
+                                .padding(horizontal = CodeTheme.dimens.grid.x12),
+                            onRefreshContact = { onAction(ChatAction.RefreshContact) },
+                        )
                     }
                 }
             }
-    }
-
-    // Opt out of the list maintaining scroll position when adding
-    // elements before the first item. Only needed during initial load
-    // (to prevent starting at the ContactInfoContainer) and when
-    // scrolled back (to prevent shifting when pagination prepends).
-    // When at index 0, we do NOT call requestScrollToItem — doing so
-    // forces an instant reposition that causes a single-frame jitter
-    // when new messages are inserted. Instead, animateScrollToItem in
-    // the LaunchedEffect above handles smooth scrolling to new items.
-    Snapshot.withoutReadObservation {
-        if (!hasLoaded) {
-            listState.requestScrollToItem(0, 0)
         }
-    }
+
+        // Scroll to bottom when the newest message changes (sent or received)
+        LaunchedEffect(listState, messages) {
+            snapshotFlow {
+                if (messages.itemCount == 0) null
+                else (messages.peek(0) as? ChatListItem.ContentBubble)?.itemKey
+            }
+                .filterNotNull()
+                .distinctUntilChanged()
+                .collectLatest {
+                    // Always scroll for own messages; only near-bottom for incoming
+                    val nearBottom = listState.firstVisibleItemIndex <= 5
+                    val newest = messages.peek(0) as? ChatListItem.ContentBubble
+                    if (newest?.isFromSelf == true || nearBottom) {
+                        if (nearBottom) {
+                            listState.animateScrollToItem(0)
+                        } else {
+                            listState.scrollToItem(0)
+                        }
+                    }
+                }
+        }
+
+        // Opt out of the list maintaining scroll position when adding
+        // elements before the first item. Only needed during initial load
+        // (to prevent starting at the ContactInfoContainer) and when
+        // scrolled back (to prevent shifting when pagination prepends).
+        // When at index 0, we do NOT call requestScrollToItem — doing so
+        // forces an instant reposition that causes a single-frame jitter
+        // when new messages are inserted. Instead, animateScrollToItem in
+        // the LaunchedEffect above handles smooth scrolling to new items.
+        Snapshot.withoutReadObservation {
+            if (!hasLoaded) {
+                listState.requestScrollToItem(0, 0)
+            }
+        }
+
+    } // CompositionLocalProvider
 }
 
 @Composable
@@ -345,8 +347,8 @@ private fun bottomSpacingFor(
 private fun HandleMessageReads(
     listState: LazyListState,
     messages: LazyPagingItems<ChatListItem>,
-    onAdvanceReadPointer: (Long) -> Unit,
 ) {
+    val actionHandler = LocalChatActionHandler.current
     var lastAdvanced by remember { mutableLongStateOf(0L) }
 
     LaunchedEffect(listState, messages) {
@@ -371,7 +373,7 @@ private fun HandleMessageReads(
             .collectLatest { messageId ->
                 if (messageId > lastAdvanced) {
                     lastAdvanced = messageId
-                    onAdvanceReadPointer(messageId)
+                    actionHandler(ChatAction.AdvanceReadPointer(messageId))
                 }
             }
     }

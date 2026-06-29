@@ -43,9 +43,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.app.contacts.ui.ContactAvatar
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.components.MessageList
+import com.flipcash.shared.chat.ui.ChatAction
 import com.flipcash.features.messenger.R
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -99,18 +101,29 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             messages = messages,
             separatorConfig = state.separatorConfig,
             otherReadPointer = otherReadPointer,
-            onAdvanceReadPointer = { messageId ->
-                viewModel.dispatchEvent(ChatViewModel.Event.AdvanceReadPointer(messageId))
-            },
-            onRetryMessage = { bubble ->
-                keyboard.hideIfVisible {
-                    viewModel.dispatchEvent(
-                        ChatViewModel.Event.RetryMessage(bubble.pendingClientIdHex, bubble.content)
-                    )
+            onAction = { action ->
+                when (action) {
+                    is ChatAction.AdvanceReadPointer -> {
+                        viewModel.dispatchEvent(ChatViewModel.Event.AdvanceReadPointer(action.messageId))
+                    }
+                    ChatAction.RefreshContact -> {
+                        viewModel.dispatchEvent(ChatViewModel.Event.RefreshContact)
+                    }
+                    is ChatAction.RetryMessage -> {
+                        keyboard.hideIfVisible {
+                            viewModel.dispatchEvent(
+                                ChatViewModel.Event.RetryMessage(action.bubble.pendingClientIdHex, action.bubble.content)
+                            )
+                        }
+                    }
+                    is ChatAction.ViewToken -> {
+                        keyboard.hideIfVisible {
+                            viewModel.dispatchEvent(
+                                ChatViewModel.Event.OpenScreen(AppRoute.Token.Info(action.mint))
+                            )
+                        }
+                    }
                 }
-            },
-            onRefreshContact = {
-                viewModel.dispatchEvent(ChatViewModel.Event.RefreshContact)
             },
         )
     }

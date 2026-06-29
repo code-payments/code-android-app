@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -49,6 +50,7 @@ import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.PriceWithFlag
+import com.getcode.ui.components.chat.messagecontents.MessageContentActionHandler
 import com.getcode.ui.core.addIf
 import com.getcode.util.resources.R
 
@@ -63,6 +65,7 @@ fun ContentBubble(
     position: BubblePosition,
     modifier: Modifier = Modifier,
 ) {
+    val actionHandler = LocalChatActionHandler.current
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val bubbleMaxWidth = when (item.content) {
             is MessageContent.Text -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
@@ -94,6 +97,9 @@ fun ContentBubble(
                     isFromSelf = item.isFromSelf,
                     position = position,
                     maxWidth = bubbleMaxWidth,
+                    onClick = {
+                        actionHandler(ChatAction.ViewToken(content.mint))
+                    }
                 )
 
                 // TODO
@@ -143,6 +149,7 @@ private fun CashBubble(
     isFromSelf: Boolean,
     position: BubblePosition,
     maxWidth: Dp,
+    onClick: () -> Unit = { },
     modifier: Modifier = Modifier,
 ) {
     Bubble(
@@ -150,6 +157,7 @@ private fun CashBubble(
         position = position,
         minWidth = maxWidth,
         maxWidth = maxWidth,
+        onClick = onClick,
         modifier = modifier
     ) {
         val exchange = LocalExchange.current
@@ -238,6 +246,7 @@ private fun Bubble(
     maxWidth: Dp,
     modifier: Modifier = Modifier,
     minWidth: Dp = 0.dp,
+    onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val bubble = if (isFromSelf) {
@@ -254,6 +263,9 @@ private fun Bubble(
                 Modifier.border(1.dp, bubble.border, shape)
             }
             .background(bubble.background)
+            .addIf(onClick != null) {
+                Modifier.clip(shape).clickable { onClick?.invoke() }
+            }
             .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {
         content()
