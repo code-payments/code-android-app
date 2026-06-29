@@ -2,6 +2,7 @@ package com.flipcash.app.core.navigation
 
 import android.net.Uri
 import android.os.Parcelable
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.solana.keys.Mint
 import kotlinx.parcelize.Parcelize
@@ -16,7 +17,7 @@ sealed interface DeeplinkType: Parcelable {
 
     @Serializable data class TokenInfo(val mint: Mint): DeeplinkType, Navigatable
 
-    @Serializable data class Chat(val chatId: ChatId): DeeplinkType, Navigatable
+    @Serializable data class Chat(val identifier: ChatIdentifier): DeeplinkType, Navigatable
 
     @Serializable
     data class EmailVerification(

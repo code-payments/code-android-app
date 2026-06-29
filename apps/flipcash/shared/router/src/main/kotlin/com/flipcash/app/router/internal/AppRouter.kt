@@ -3,6 +3,7 @@ package com.flipcash.app.router.internal
 import androidx.core.net.toUri
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.models.chat.ChatId
@@ -60,7 +61,7 @@ internal class AppRouter(
 
             is DeeplinkType.EmailVerification -> resolveEmailVerification(type)
             is DeeplinkType.Chat -> DeeplinkAction.Navigate(
-                listOf(AppRoute.Sheets.Send(), AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(type.chatId)))
+                listOf(AppRoute.Sheets.Send(), AppRoute.Messaging.Chat(type.identifier))
             )
         }
     }
@@ -151,11 +152,22 @@ private fun DeepLink.handleTokenLink(): DeeplinkType.TokenInfo? {
     return DeeplinkType.TokenInfo(Mint(mint))
 }
 
+// https://app.flipcash.com/chat/{url encoded chatId}
+// https://app.flipcash.com/chat/{url encoded e164}
 private fun DeepLink.handleChat(): DeeplinkType.Chat? {
     val uri = data.toUri()
-    val chatIdBase64 = uri.pathSegments.getOrNull(1) ?: return null
-    val chatId = ChatId(chatIdBase64.decodeBase64UrlSafe().toList())
-    return DeeplinkType.Chat(chatId)
+    // pathSegments already percent-decodes; do NOT urlDecode() again
+    // because URLDecoder treats '+' as a space, mangling phone numbers.
+    val chatTarget = uri.pathSegments.getOrNull(1) ?: return null
+
+    val identifier = if (chatTarget.startsWith("+")) {
+        ChatIdentifier.ByContact(DeviceContact.unknownContact(e164 = chatTarget))
+    } else {
+        val chatId = ChatId(chatTarget.decodeBase64UrlSafe().toList())
+        ChatIdentifier.ByChatId(chatId)
+    }
+
+    return DeeplinkType.Chat(identifier)
 }
 
 //  https://app.flipcash.com/verify?email={email}&code={code}&client_data={data}

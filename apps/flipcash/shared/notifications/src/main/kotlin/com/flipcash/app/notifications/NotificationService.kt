@@ -124,11 +124,14 @@ class NotificationService : FirebaseMessagingService(),
             }
         }
 
-        if (payload?.navigation is NavigationTrigger.Chat) {
-            launch {
-                chatCoordinator.refreshFeed()
-                chatCoordinator.loadMessages(chatId = (payload.navigation as NavigationTrigger.Chat).chatId)
+        when (val trigger = payload?.navigation) {
+            is NavigationTrigger.Chat.ById -> {
+                launch {
+                    chatCoordinator.refreshFeed()
+                    chatCoordinator.loadMessages(chatId = trigger.chatId)
+                }
             }
+            else -> Unit
         }
 
         authenticateIfNeeded {
@@ -158,7 +161,13 @@ class NotificationService : FirebaseMessagingService(),
         val channel = NotificationChannels.channelFor(this, category)
         notificationManager.createNotificationChannel(channel)
 
-        val chatId = (payload?.navigation as? NavigationTrigger.Chat)?.chatId
+        val chatId = when (val trigger = payload?.navigation) {
+            is NavigationTrigger.Chat.ByContact -> null
+            is NavigationTrigger.Chat.ById -> trigger.chatId
+            is NavigationTrigger.CurrencyInfo -> null
+            null -> null
+        }
+
         if (chatId != null && chatCoordinator.isActiveChat(chatId)) return
 
         val groupKey = payload?.groupKey?.takeIf { it.isNotEmpty() }
@@ -339,8 +348,12 @@ class NotificationService : FirebaseMessagingService(),
                 data = Linkify.tokenInfo(navigation.mint).toUri()
             }
 
-            is NavigationTrigger.Chat -> Intent(Intent.ACTION_VIEW).apply {
-                data = Linkify.chat(navigation.chatId).toUri()
+            is NavigationTrigger.Chat.ById -> Intent(Intent.ACTION_VIEW).apply {
+                data = Linkify.chatById(navigation.chatId).toUri()
+            }
+
+            is NavigationTrigger.Chat.ByContact -> Intent(Intent.ACTION_VIEW).apply {
+                data = Linkify.chatByPhone(navigation.phoneNumber).toUri()
             }
 
             else -> packageManager.getLaunchIntentForPackage(packageName)

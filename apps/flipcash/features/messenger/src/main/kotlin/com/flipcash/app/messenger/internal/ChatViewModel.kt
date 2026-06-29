@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
@@ -280,7 +281,10 @@ internal class ChatViewModel @Inject constructor(
                 // 2. Resolve contact
                 when (identifier) {
                     is ChatIdentifier.ByContact -> {
-                        dispatchEvent(Event.OnContactFound(identifier.contact))
+                        val resolved = contactCoordinator.lookupContact(identifier.contact.e164).getOrNull()
+                            ?: chatId?.let { contactCoordinator.lookupContactByDmChatId(it.toString()) }
+                            ?: identifier.contact
+                        dispatchEvent(Event.OnContactFound(resolved))
                     }
                     is ChatIdentifier.ByChatId -> {
                         val contact = contactCoordinator.lookupContactByDmChatId(
@@ -465,7 +469,7 @@ internal class ChatViewModel @Inject constructor(
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 if (textToSend.isBlank()) return@onEach
 
-                stateFlow.value.chatInputState.clearText()
+                stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd("")
 
                 viewModelScope.launch {
                     chatCoordinator.sendMessage(chatId, textToSend)
