@@ -24,7 +24,7 @@ object IntentUtils {
 
     fun tweet(message: String) = Intent(Intent.ACTION_VIEW).apply {
         val url = Linkify.tweet(message)
-        setData(url.toUri())
+        data = url.toUri()
         flags = Intent.FLAG_ACTIVITY_NEW_TASK
     }
 
@@ -57,7 +57,7 @@ object IntentUtils {
     }
 
     fun appStoreListing(packageName: String) = Intent(Intent.ACTION_VIEW).apply {
-        setData(Uri.parse("https://play.google.com/store/apps/details?id=$packageName"))
+        data = "https://play.google.com/store/apps/details?id=$packageName".toUri()
         flags = Intent.FLAG_ACTIVITY_NEW_TASK
     }
 
