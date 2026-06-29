@@ -41,3 +41,5 @@ serviceAccount.json
 # Maestro screenshot test artifacts
 maestro/screenshots/results/
 maestro/screenshots/diffs/
+
+docs/superpowers/

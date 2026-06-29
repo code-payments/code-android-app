@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
@@ -465,7 +466,7 @@ internal class ChatViewModel @Inject constructor(
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 if (textToSend.isBlank()) return@onEach
 
-                stateFlow.value.chatInputState.clearText()
+                stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd("")
 
                 viewModelScope.launch {
                     chatCoordinator.sendMessage(chatId, textToSend)
