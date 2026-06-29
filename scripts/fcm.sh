@@ -2,7 +2,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"                                                                                                                                                                                                              
                                                                                                                                                                                                                                                                         
-source "$SCRIPT_DIR/../.env.local"
+source "$SCRIPT_DIR/../.env"
 
 ACCESS_TOKEN=$(python3 << EOF
 from google.oauth2 import service_account

@@ -44,5 +44,8 @@ data class NotificationPayload(
 
 sealed interface NavigationTrigger {
     data class CurrencyInfo(val mint: Mint) : NavigationTrigger
-    data class Chat(val chatId: ChatId) : NavigationTrigger
+    sealed interface Chat: NavigationTrigger {
+        data class ById(val chatId: ChatId) : Chat
+        data class ByContact(val phoneNumber: String) : Chat
+    }
 }

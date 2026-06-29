@@ -281,7 +281,10 @@ internal class ChatViewModel @Inject constructor(
                 // 2. Resolve contact
                 when (identifier) {
                     is ChatIdentifier.ByContact -> {
-                        dispatchEvent(Event.OnContactFound(identifier.contact))
+                        val resolved = contactCoordinator.lookupContact(identifier.contact.e164).getOrNull()
+                            ?: chatId?.let { contactCoordinator.lookupContactByDmChatId(it.toString()) }
+                            ?: identifier.contact
+                        dispatchEvent(Event.OnContactFound(resolved))
                     }
                     is ChatIdentifier.ByChatId -> {
                         val contact = contactCoordinator.lookupContactByDmChatId(

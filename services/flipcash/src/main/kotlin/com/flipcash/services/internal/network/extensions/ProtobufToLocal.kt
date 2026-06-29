@@ -65,7 +65,11 @@ internal fun PushModels.Payload.asPayload(): NotificationPayload {
             }
             PushModels.Navigation.TypeCase.CHAT_ID -> {
                 val chatId = navigation.chatId.toChatId()
-                NavigationTrigger.Chat(chatId)
+                NavigationTrigger.Chat.ById(chatId)
+            }
+            PushModels.Navigation.TypeCase.CHAT_CONTACT_PHONE_NUMBER -> {
+                val phoneNumber = navigation.chatContactPhoneNumber.value
+                NavigationTrigger.Chat.ByContact(phoneNumber)
             }
             PushModels.Navigation.TypeCase.TYPE_NOT_SET -> null
         }
