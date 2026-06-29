@@ -367,10 +367,11 @@
 
     <string name="title_verificationFlow">Verify Your Phone Number And Email To Continue</string>
     <string name="subtitle_verificationFlowForOnramp">This will allow you to add funds from your debit card</string>
-    "
 
     <string name="title_email">Email</string>
     <string name="action_openMail">Open Mail</string>
+    <string name="error_title_noEmailAppFound">No email app found on this device</string>
+    <string name="error_description_noEmailAppFound">Please install an email app to receive your verification email</string>
     <string name="title_checkYourInbox">Check your inbox</string>
     <string name="subtitle_linkSentToEmail">Tap the link we sent to</string>
     <string name="subtitle_didntGetEmail">Didn\'t get an email?</string>

@@ -12,11 +12,15 @@ import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.internal.email.EmailMagicLinkScreen
 import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
+import android.content.ActivityNotFoundException
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalResources
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.features.contact.verification.R
+import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.ui.components.AppBarWithTitle
@@ -59,12 +63,20 @@ fun EmailMagicLinkContent(
         viewModel.dispatchEvent(EmailVerificationViewModel.Event.OnDataProvided(email, code))
     }
 
+    val resources = LocalResources.current
     val context = LocalContext.current
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<EmailVerificationViewModel.Event.OpenMailApp>()
             .onEach {
-                context.startActivity(IntentUtils.emailApp())
+                try {
+                    context.startActivity(IntentUtils.emailApp())
+                } catch (_: ActivityNotFoundException) {
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_noEmailAppFound),
+                        message = resources.getString(R.string.error_description_noEmailAppFound),
+                    )
+                }
             }.launchIn(this)
     }
 
