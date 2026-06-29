@@ -8,6 +8,8 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import androidx.paging.insertSeparators
+import com.flipcash.app.analytics.Analytics
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
@@ -92,6 +94,7 @@ internal class ChatViewModel @Inject constructor(
     private val userManager: UserManager,
     private val resources: ResourceHelper,
     private val featureFlags: FeatureFlagController,
+    private val analytics: FlipcashAnalyticsService,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -468,8 +471,14 @@ internal class ChatViewModel @Inject constructor(
 
                 viewModelScope.launch {
                     chatCoordinator.sendMessage(chatId, textToSend)
-                        .onSuccess { trace("message sent successfully") }
-                        .onFailure { trace("message failed to send - ${it.localizedMessage}") }
+                        .onSuccess {
+                            trace("message sent successfully")
+                            analytics.messageSentInChat()
+                        }
+                        .onFailure { cause ->
+                            trace("message failed to send - ${cause.localizedMessage}")
+                            analytics.messageSentInChat(error = cause)
+                        }
                 }
             }
             .flowOn(Dispatchers.Main.immediate)
@@ -613,12 +622,22 @@ internal class ChatViewModel @Inject constructor(
                             chatCoordinator.refreshFeed()
                         }
                         delay(400.milliseconds)
+                        analytics.transfer(
+                            event = Analytics.Transfer.SentCash,
+                            amount = verifiedFiat.localFiat,
+                            successful = true,
+                        )
                         dispatchEvent(
                             Dispatchers.Main,
                             Event.SendComplete(amount.localFiat.nativeAmount)
                         )
-                    }.onFailure {
+                    }.onFailure { cause ->
                         dispatchEvent(Event.SendStateUpdated())
+                        analytics.transfer(
+                            event = Analytics.Transfer.SentCash,
+                            amount = verifiedFiat.localFiat,
+                            error = cause,
+                        )
                         BottomBarManager.showError(
                             title = resources.getString(R.string.error_title_cashFailedToSend),
                             message = resources.getString(R.string.error_description_cashFailedToSend),

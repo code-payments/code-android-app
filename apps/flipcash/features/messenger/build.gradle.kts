@@ -7,6 +7,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:chat-ui"))
     implementation(project(":apps:flipcash:shared:amount-entry"))
