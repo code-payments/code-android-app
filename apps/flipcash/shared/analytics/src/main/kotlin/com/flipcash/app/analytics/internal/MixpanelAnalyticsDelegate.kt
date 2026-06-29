@@ -204,6 +204,10 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(AnalyticsEvent.TokenTransactionEvent.Sell(mint, amount, feeAmount, error))
     }
 
+    override fun messageSentInChat(error: Throwable?) {
+        track(AnalyticsEvent.ChatEvent.SentMessage(error = error))
+    }
+
     override fun deeplinkOpened(url: String) {
         track(AnalyticsEvent.DeeplinkEvent.Open(url))
     }

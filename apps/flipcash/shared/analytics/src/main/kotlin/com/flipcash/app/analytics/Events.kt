@@ -133,6 +133,22 @@ internal sealed interface AnalyticsEvent {
         override val name = "Receive Cash Link"
     }
 
+    sealed interface ChatEvent: AnalyticsEvent {
+        data object SentCash : ChatEvent {
+            override val name = "Sent Cash"
+        }
+
+        data class SentMessage(
+            val error: Throwable? = null
+        ): ChatEvent {
+            override val name = "Sent Message"
+
+            override fun toProperties() = buildMap {
+                error?.let { put("Error", it.message.orEmpty()) }
+            }
+        }
+    }
+
     sealed interface PoolEvent : AnalyticsEvent {
         val id: ID
         override fun toProperties() = mapOf("ID" to id.base58)
@@ -310,4 +326,5 @@ internal fun Analytics.Transfer.toAnalyticsEvent(): AnalyticsEvent = when (this)
     is Analytics.Transfer.ClaimedCashLink         -> AnalyticsEvent.ClaimedCashLink
     is Analytics.Transfer.SentCashLink.Clipboard  -> AnalyticsEvent.SentCashLink(clipboard = true)
     is Analytics.Transfer.SentCashLink.App        -> AnalyticsEvent.SentCashLink(app = name)
+    is Analytics.Transfer.SentCash                -> AnalyticsEvent.ChatEvent.SentCash
 }

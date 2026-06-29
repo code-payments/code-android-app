@@ -29,6 +29,7 @@ interface FlipcashAnalyticsService : AnalyticsService {
     fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint)
     fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable? = null)
     fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable? = null)
+    fun messageSentInChat(error: Throwable? = null)
     fun deeplinkOpened(url: String)
     fun deeplinkParsed(type: DeeplinkType?, url: String)
     fun deeplinkRouted(type: DeeplinkType, error: Throwable? = null)
@@ -55,6 +56,8 @@ object Analytics {
             data object Clipboard : SentCashLink
             data class App(val name: String) : SentCashLink
         }
+
+        data object SentCash : Transfer
     }
     enum class OnrampSource { Settings, Balance, Give }
     enum class OnrampVerificationStep { ShowInfo, EnterPhone, ConfirmPhone, EnterEmail, ConfirmEmail }
@@ -95,6 +98,8 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint) = Unit
     override fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable?) = Unit
     override fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable?) = Unit
+
+    override fun messageSentInChat(error: Throwable?) = Unit
 
     override fun deeplinkOpened(url: String) = Unit
     override fun deeplinkParsed(type: DeeplinkType?, url: String) = Unit
