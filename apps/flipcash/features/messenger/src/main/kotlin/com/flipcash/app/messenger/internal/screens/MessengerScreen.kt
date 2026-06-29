@@ -303,7 +303,10 @@ private fun UserControlBottomBar(
                             focusRequester = focusRequester,
                             hint = "Message",
                             state = state.chatInputState,
-                            onSendMessage = { dispatch(ChatViewModel.Event.SendMessage) },
+                            onSendMessage = {
+                            dispatch(ChatViewModel.Event.SendMessage)
+                            keyboard.restartInput()
+                        },
                         )
 
                         LaunchedEffect(Unit) {

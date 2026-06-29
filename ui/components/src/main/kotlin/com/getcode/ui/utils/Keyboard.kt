@@ -1,8 +1,10 @@
 package com.getcode.ui.utils
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.view.View
 import android.view.ViewTreeObserver
+import android.view.inputmethod.InputMethodManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
@@ -53,6 +55,12 @@ class KeyboardController(
 
     fun hide() {
         softwareController?.hide()
+    }
+
+    fun restartInput() {
+        val imm = view.context.getSystemService(Context.INPUT_METHOD_SERVICE)
+                as InputMethodManager
+        imm.restartInput(view)
     }
 
     fun hideIfVisible(block: () -> Unit = { }) {
