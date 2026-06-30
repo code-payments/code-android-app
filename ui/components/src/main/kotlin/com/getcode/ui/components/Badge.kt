@@ -44,6 +44,7 @@ fun Badge(
     color: Color = CodeTheme.colors.brand,
     contentColor: Color = Color.White,
     textStyle: TextStyle = CodeTheme.typography.caption.copy(fontWeight = FontWeight.SemiBold),
+    scale: Float = 1f,
     enterTransition: EnterTransition = scaleIn(tween(durationMillis = 300)) + fadeIn(),
     exitTransition: ExitTransition = fadeOut() + scaleOut(tween(durationMillis = 300))
 ) {
@@ -59,17 +60,24 @@ fun Badge(
             else -> "$count"
         }
 
+        val scaledTextStyle = if (scale == 1f) textStyle else textStyle.copy(
+            fontSize = textStyle.fontSize * scale
+        )
+
         Box(
             modifier = Modifier
                 .squareMinSize()
                 .clip(CircleShape)
                 .background(color)
-                .padding(horizontal = CodeTheme.dimens.grid.x1, vertical = 3.dp),
+                .padding(
+                    horizontal = CodeTheme.dimens.grid.x1 * scale,
+                    vertical = 3.dp * scale,
+                ),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = text,
-                style = textStyle,
+                style = scaledTextStyle,
                 color = contentColor,
             )
         }
