@@ -262,7 +262,7 @@ class TokenInfoViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnMarketCapChanged>()
-            .map { it.mcap }
+            .mapNotNull { it.mcap }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.LoadHistoricalDataForPeriod(stateFlow.value.selectedPeriod)) }
             .launchIn(viewModelScope)
