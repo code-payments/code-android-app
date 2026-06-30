@@ -182,6 +182,7 @@ private fun BottomBarAction(
                 Badge(
                     count = badgeCount,
                     color = CodeTheme.colors.indicator,
+                    scale = 1.275f,
                     enterTransition = scaleIn(
                         animationSpec = tween(
                             durationMillis = 300,
