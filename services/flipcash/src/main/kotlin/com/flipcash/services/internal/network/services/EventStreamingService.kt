@@ -10,6 +10,8 @@ import com.flipcash.services.models.chat.ChatUpdate
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStream
+import com.getcode.utils.ClockSource
+import com.getcode.utils.TraceManager
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.google.protobuf.Timestamp
@@ -69,6 +71,8 @@ internal class EventStreamingService @Inject constructor(
             },
             reconnectOnUnavailable = true,
             reconnectOnCancelled = true,
+            reconnectOnAborted = true,
+            reconnectDelayMs = 1_000L,
             onError = { onError(it) },
             responseHandler = { response, sendRequest ->
                 when (response.typeCase) {
@@ -83,7 +87,9 @@ internal class EventStreamingService @Inject constructor(
                         streamRef.receivedPing(updatedTimeout = response.ping.pingDelay.seconds * 1_000L)
                         sendRequest(pong)
                         val serverTime = Instant.fromEpochSeconds(response.ping.timestamp.seconds, response.ping.timestamp.nanos)
-                        trace(tag = "event-stream", message = "Pong. Server timestamp: $serverTime")
+                        val driftMillis = Clock.System.now().toEpochMilliseconds() - serverTime.toEpochMilliseconds()
+                        TraceManager.recordClockDrift(driftMillis, source = ClockSource.EventStream)
+                        trace(tag = "event-stream", message = "Pong. Server timestamp: $serverTime (drift ${driftMillis}ms)")
                     }
 
                     RpcEventStreamingService.StreamEventsResponse.TypeCase.EVENTS -> {
