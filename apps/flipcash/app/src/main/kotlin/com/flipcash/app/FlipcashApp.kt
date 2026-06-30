@@ -7,12 +7,12 @@ import androidx.work.Configuration
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import coil3.disk.DiskCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.CachePolicy
 import coil3.request.crossfade
 import com.flipcash.app.auth.AuthManager
-import okhttp3.Cache
-import okhttp3.OkHttpClient
+import okio.Path.Companion.toOkioPath
 import com.flipcash.app.currency.PreferredCurrencyController
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.trace
@@ -51,16 +51,25 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {
-        val okHttpClient = OkHttpClient.Builder()
-            .cache(Cache(context.cacheDir.resolve("http_image_cache"), 50L * 1024 * 1024))
-            .build()
         return ImageLoader.Builder(context)
             .crossfade(true)
             .memoryCachePolicy(CachePolicy.ENABLED)
-            .diskCachePolicy(CachePolicy.DISABLED)
-            .components {
-                add(OkHttpNetworkFetcherFactory(callFactory = { okHttpClient }))
+            // Use Coil's own disk cache as the single persistent image layer.
+            //
+            // NOTE: do NOT disable the disk cache here. Coil's NetworkFetcher derives the
+            // request's Cache-Control from these policies: with diskCachePolicy(DISABLED)
+            // it stamps `Cache-Control: no-cache, no-store` on every request, which makes
+            // any HTTP cache (OkHttp's included) refuse to read *or* write the response —
+            // so every image is fully re-downloaded on every launch. Keeping the disk
+            // cache enabled lets Coil persist responses and serve them without a network
+            // trip on subsequent cold starts.
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(context.cacheDir.resolve("image_cache").toOkioPath())
+                    .maxSizeBytes(50L * 1024 * 1024)
+                    .build()
             }
+            .components { add(OkHttpNetworkFetcherFactory()) }
             .build()
     }
 }
