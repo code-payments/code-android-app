@@ -153,8 +153,18 @@ private fun buildDeviceHeader(context: Context): String {
         appendLine("ABI:            ${Build.SUPPORTED_ABIS.joinToString()}")
         appendLine("Locale:         ${Locale.getDefault()}")
         appendLine("Timezone:       ${TimeZone.getDefault().id}")
+        appendLine("Clock Drift:    ${formatClockDrift()}")
         appendLine("Exported:       ${Instant.now()}")
         appendLine("=".repeat(60))
         appendLine()
     }
+}
+
+/** Renders the latest clock-drift measurement for the export header. */
+private fun formatClockDrift(): String {
+    val snapshot = TraceManager.clockDriftSnapshot()
+        ?: return "unknown (no server sync yet)"
+    val sign = if (snapshot.driftMillis >= 0) "+" else ""
+    val age = snapshot.ageMillis?.let { ", synced ${it / 1000}s ago" }.orEmpty()
+    return "$sign${snapshot.driftMillis} ms (${snapshot.source}$age)"
 }

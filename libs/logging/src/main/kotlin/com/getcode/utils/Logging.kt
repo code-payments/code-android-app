@@ -2,6 +2,7 @@ package com.getcode.utils
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.os.SystemClock
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -84,6 +85,35 @@ object TraceManager {
         onUserIdChanged = listener
     }
 
+    @Volatile
+    private var clockDriftMillis: Long? = null
+    @Volatile
+    private var clockDriftSource: ClockSource = ClockSource.Unknown
+    @Volatile
+    private var clockDriftSyncElapsedRealtime: Long? = null
+
+    /**
+     * Records the most recent measured clock drift (device time minus authoritative server/true
+     * time; positive means the device clock is ahead). [source] identifies where the measurement
+     * came from, e.g. `"sntp"` or `"event-stream"`.
+     */
+    fun recordClockDrift(driftMillis: Long, source: ClockSource) {
+        clockDriftMillis = driftMillis
+        clockDriftSource = source
+        clockDriftSyncElapsedRealtime = SystemClock.elapsedRealtime()
+    }
+
+    /** Latest clock-drift measurement, or `null` if no server time has been observed yet. */
+    fun clockDriftSnapshot(): ClockDriftSnapshot? {
+        val drift = clockDriftMillis ?: return null
+        val ageMillis = clockDriftSyncElapsedRealtime?.let { SystemClock.elapsedRealtime() - it }
+        return ClockDriftSnapshot(
+            driftMillis = drift,
+            source = clockDriftSource,
+            ageMillis = ageMillis,
+        )
+    }
+
     fun addPlugin(plugin: TraceLogPlugin) {
         plugins.add(plugin)
     }
@@ -143,7 +173,24 @@ object TraceManager {
         _userId = null
         onUserIdChanged = null
         includeRpcBodies = false
+        clockDriftMillis = null
+        clockDriftSource = ClockSource.Unknown
+        clockDriftSyncElapsedRealtime = null
     }
+}
+
+/** A point-in-time clock-drift measurement captured by [TraceManager.recordClockDrift]. */
+data class ClockDriftSnapshot(
+    /** Device time minus true/server time, in milliseconds. Positive = device clock is ahead. */
+    val driftMillis: Long,
+    /** Where the measurement came from, e.g. `"sntp"` or `"event-stream"`. */
+    val source: ClockSource,
+    /** Milliseconds since the measurement was taken, or `null` if unknown. */
+    val ageMillis: Long?,
+)
+
+enum class ClockSource {
+    Unknown, Sntp, EventStream
 }
 
 /**

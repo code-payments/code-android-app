@@ -276,6 +276,10 @@
                 android:value="androidx.startup" />
 
             <meta-data
+                android:name="com.flipcash.app.internal.startup.ClockDriftInitializer"
+                android:value="androidx.startup" />
+
+            <meta-data
                 android:name="com.flipcash.app.internal.startup.FirebaseInitializer"
                 android:value="androidx.startup" />
 
