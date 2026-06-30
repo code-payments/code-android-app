@@ -93,7 +93,7 @@ bugsnag-gradle-plugin = "1.1.0"
 rinku = "1.6.0"
 compose-unstyled = "2.8.0"
 haze = "2.0.0-alpha03"
-phantom-connect-kmp = "2.0.2-1.0.0"
+phantom-connect-kmp = "2.0.2-1.0.1"
 vico = "3.2.3"
 
 androidxTestRules = "1.7.0"

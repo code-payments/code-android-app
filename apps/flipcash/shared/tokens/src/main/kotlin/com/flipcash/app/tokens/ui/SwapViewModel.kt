@@ -599,10 +599,12 @@ class SwapViewModel @Inject constructor(
                         )
                     )
                     dispatchEvent(Event.UpdateBuyState(loading = true))
-                    val token = stateFlow.value.tokenWithBalance?.token ?: run {
-                        handlePhantomError(IllegalStateException("Token not available"))
-                        return@onEach
-                    }
+                    val token = resolveToken()
+                        ?: run {
+                            handlePhantomError(IllegalStateException("Token not available"))
+                            return@onEach
+                        }
+
                     signAndSendPhantomTransaction(token, amountFiat)
                 } catch (e: CancellationException) {
                     throw e
@@ -839,8 +841,7 @@ class SwapViewModel @Inject constructor(
                             )
                         )
                         dispatchEvent(Event.UpdateBuyState(loading = true))
-                        val token = stateFlow.value.tokenWithBalance?.token ?: return@onEach
-
+                        val token = resolveToken() ?: return@onEach
                         executeCoinbasePurchase(amountFiat, token)
                     }
 
@@ -859,6 +860,14 @@ class SwapViewModel @Inject constructor(
                     }
                 }
             }.launchIn(viewModelScope)
+    }
+
+    private suspend fun resolveToken(): Token? {
+        val mint = stateFlow.value.purpose?.mint
+        val token = stateFlow.value.tokenWithBalance?.token
+            ?: mint?.let { tokenCoordinator.getTokenMetadata(it).getOrNull()?.token }
+
+        return token
     }
 
     private suspend fun executeCoinbasePurchase(
