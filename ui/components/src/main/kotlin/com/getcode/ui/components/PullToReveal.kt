@@ -1,6 +1,12 @@
 package com.getcode.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -80,6 +86,12 @@ fun rememberPullToRevealState(initiallyRevealed: Boolean = false): PullToRevealS
 object PullToRevealDefaults {
     /** Default pull distance required before the reveal slot is shown. */
     val Threshold: Dp = 56.dp
+
+    /** Default transition used to animate the reveal slot in (expand + fade). */
+    val Enter: EnterTransition = fadeIn() + expandVertically()
+
+    /** Default transition used to animate the reveal slot out (shrink + fade). */
+    val Exit: ExitTransition = fadeOut() + shrinkVertically()
 }
 
 /**
@@ -98,6 +110,9 @@ object PullToRevealDefaults {
  * sheet's drag-to-dismiss) should be disabled so the pull reveals instead of
  * dismissing; the value stays `true` for the whole reveal gesture — not just while
  * hidden — so a single hard pull cannot reveal and then dismiss in one motion.
+ * @param enter transition applied when [revealContent] animates in. Override (e.g.
+ * with a spring-backed `expandVertically`) to tune the reveal motion.
+ * @param exit transition applied when [revealContent] animates out.
  */
 @Composable
 fun PullToReveal(
@@ -107,6 +122,8 @@ fun PullToReveal(
     threshold: Dp = PullToRevealDefaults.Threshold,
     enabled: Boolean = true,
     onSuppressDismissChange: ((Boolean) -> Unit)? = null,
+    enter: EnterTransition = PullToRevealDefaults.Enter,
+    exit: ExitTransition = PullToRevealDefaults.Exit,
     content: @Composable () -> Unit,
 ) {
     val thresholdPx = with(LocalDensity.current) { threshold.toPx() }
@@ -167,7 +184,7 @@ fun PullToReveal(
     }
 
     Column(modifier = modifier.nestedScroll(connection)) {
-        AnimatedVisibility(visible = state.isRevealed) {
+        AnimatedVisibility(visible = state.isRevealed, enter = enter, exit = exit) {
             revealContent()
         }
         content()

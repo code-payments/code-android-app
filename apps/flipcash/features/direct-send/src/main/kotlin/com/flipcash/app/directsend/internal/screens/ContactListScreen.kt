@@ -1,5 +1,11 @@
 package com.flipcash.app.directsend.internal.screens
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -114,6 +120,26 @@ internal fun ContactListScreen() {
             state = pullToRevealState,
             modifier = Modifier.padding(innerPadding),
             onSuppressDismissChange = { suppress -> setSheetGesturesEnabled(!suppress) },
+            // Telegram (iOS)-style reveal: a soft, low-stiffness spring that springs
+            // down and settles with a single gentle overshoot — the bit of bounce
+            // that makes it feel alive. Fade is synced so it moves in lockstep.
+            enter = fadeIn(
+                animationSpec = spring(stiffness = Spring.StiffnessLow),
+            ) + expandVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow,
+                ),
+            ),
+            // Collapse quickly and cleanly with no bounce.
+            exit = fadeOut(
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+            ) + shrinkVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium,
+                ),
+            ),
             revealContent = {
                 Row(
                     modifier = Modifier
