@@ -25,7 +25,9 @@ import com.getcode.theme.GradientSpec
 import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.TraceType
 import com.getcode.utils.decodeBase64
+import com.getcode.utils.trace
 import androidx.lifecycle.ViewModel
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -91,15 +93,28 @@ abstract class BaseAccessKeyViewModel(
         }
 
         viewModelScope.launch(dispatchers.IO) {
-            val accessKeyBitmap = createBitmapForExport(drawBackground = true, words = words, entropyB64 = entropyB64)
-            val accessKeyBitmapDisplay = createBitmapForExport(drawBackground = false, words, entropyB64)
-            val accessKeyCroppedBitmap =
-                Bitmap.createBitmap(accessKeyBitmapDisplay, 0, 500, 1200, 1450)
+            runCatching {
+                val accessKeyBitmap = createBitmapForExport(drawBackground = true, words = words, entropyB64 = entropyB64)
+                val accessKeyBitmapDisplay = createBitmapForExport(drawBackground = false, words, entropyB64)
+                val accessKeyCroppedBitmap =
+                    Bitmap.createBitmap(accessKeyBitmapDisplay, 0, 500, 1200, 1450)
 
-            uiFlow.update {
-                it.copy(
-                    accessKeyBitmap = accessKeyBitmap,
-                    accessKeyCroppedBitmap = accessKeyCroppedBitmap
+                uiFlow.update {
+                    it.copy(
+                        accessKeyBitmap = accessKeyBitmap,
+                        accessKeyCroppedBitmap = accessKeyCroppedBitmap
+                    )
+                }
+            }.onFailure { error ->
+                if (error is kotlin.coroutines.cancellation.CancellationException) throw error
+                // Bitmap rendering can fail on some OEM devices with
+                // "width and height must be > 0". Report as a non-fatal instead
+                // of crashing; the UI handles null bitmaps. Refs Bugsnag 6a4528ca.
+                trace(
+                    tag = "access-key",
+                    message = "Failed to render access key bitmap",
+                    error = error,
+                    type = TraceType.Error,
                 )
             }
         }
