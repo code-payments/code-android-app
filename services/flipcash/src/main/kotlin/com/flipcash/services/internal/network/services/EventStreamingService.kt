@@ -73,6 +73,7 @@ internal class EventStreamingService @Inject constructor(
             reconnectOnCancelled = true,
             reconnectOnAborted = true,
             reconnectDelayMs = 1_000L,
+            maxReconnectDelayMs = 30_000L,
             onError = { onError(it) },
             responseHandler = { response, sendRequest ->
                 when (response.typeCase) {

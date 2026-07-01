@@ -1,15 +1,19 @@
-@file:OptIn(ExperimentalCoroutinesApi::class)
+@file:OptIn(ExperimentalCoroutinesApi::class, kotlin.time.ExperimentalTime::class)
 
 package com.getcode.opencode.internal.bidi
 
+import io.grpc.Status
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.ClosedSendChannelException
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TestTimeSource
 
 class OpenBidirectionalStreamTest {
 
@@ -86,6 +90,118 @@ class OpenBidirectionalStreamTest {
 
         assertEquals(1, errors.size, "Non-retryable error should be reported exactly once")
         assertTrue(errors[0] is IllegalArgumentException)
+
+        streamRef.destroy()
+    }
+
+    @Test
+    fun `computeBackoffMs grows exponentially and caps at max`() {
+        assertEquals(0L, computeBackoffMs(attempt = 1, baseDelayMs = 1000, maxDelayMs = 30_000))
+        assertEquals(1000L, computeBackoffMs(attempt = 2, baseDelayMs = 1000, maxDelayMs = 30_000))
+        assertEquals(2000L, computeBackoffMs(attempt = 3, baseDelayMs = 1000, maxDelayMs = 30_000))
+        assertEquals(4000L, computeBackoffMs(attempt = 4, baseDelayMs = 1000, maxDelayMs = 30_000))
+        assertEquals(8000L, computeBackoffMs(attempt = 5, baseDelayMs = 1000, maxDelayMs = 30_000))
+        assertEquals(30_000L, computeBackoffMs(attempt = 20, baseDelayMs = 1000, maxDelayMs = 30_000))
+        // Zero base (used by tests) must never delay.
+        assertEquals(0L, computeBackoffMs(attempt = 5, baseDelayMs = 0, maxDelayMs = 30_000))
+    }
+
+    /**
+     * Regression for the infinite ABORTED reconnect loop (Bugsnag 6a4528ca).
+     * The stream activates (emits one response) then aborts with ABORTED on every
+     * attempt. Because it never stays healthy past `healthyThreshold`, the attempt
+     * counter must NOT reset, so the loop terminates at maxReconnectAttempts.
+     *
+     * Without the fix (reset on mere activation), this loops forever and the test
+     * times out.
+     */
+    @Test
+    fun `activate-then-abort stream stops at maxReconnectAttempts`() = runTest {
+        var attemptCount = 0
+        val errors = mutableListOf<Throwable>()
+        val timeSource = TestTimeSource() // stays at 0 → never healthy
+
+        val streamRef = BidirectionalStreamReference<String, String>(this, "test-stream")
+        streamRef.retain()
+
+        openBidirectionalStream<String, String, BidirectionalStreamReference<String, String>>(
+            streamRef = streamRef,
+            apiCall = { requestFlow ->
+                attemptCount++
+                flow {
+                    // RENDEZVOUS channel: requestChannel.send() in the coordinator suspends until
+                    // a consumer is ready. Call first() here to rendezvous so send can proceed.
+                    requestFlow.first()
+                    emit("activation") // activates the stream (first response)
+                    throw Status.ABORTED.withDescription("stream already exists").asRuntimeException()
+                }
+            },
+            initialRequest = { "req" },
+            responseHandler = { _: String, _: (String) -> Unit -> },
+            onError = { errors.add(it) },
+            reconnectOnAborted = true,
+            maxReconnectAttempts = 3,
+            reconnectDelayMs = 0,
+            healthyThreshold = 30.seconds,
+            timeSource = timeSource,
+        )
+
+        advanceUntilIdle()
+
+        // maxReconnectAttempts=3 → 4 total attempts, then give up.
+        assertEquals(4, attemptCount, "Should stop after maxReconnectAttempts, got $attemptCount")
+        assertTrue(
+            errors.any { it is IllegalStateException },
+            "Should terminate with max-attempts IllegalStateException"
+        )
+
+        streamRef.destroy()
+    }
+
+    /**
+     * A stream that stays healthy (survives past healthyThreshold) between failures
+     * must reset the backoff counter and keep reconnecting well beyond
+     * maxReconnectAttempts, until a non-retryable error stops it.
+     */
+    @Test
+    fun `healthy stream resets backoff counter across failures`() = runTest {
+        var attemptCount = 0
+        val errors = mutableListOf<Throwable>()
+        val timeSource = TestTimeSource()
+
+        val streamRef = BidirectionalStreamReference<String, String>(this, "test-stream")
+        streamRef.retain()
+
+        openBidirectionalStream<String, String, BidirectionalStreamReference<String, String>>(
+            streamRef = streamRef,
+            apiCall = { requestFlow ->
+                attemptCount++
+                flow {
+                    // RENDEZVOUS channel: requestChannel.send() in the coordinator suspends until
+                    // a consumer is ready. Call first() here to rendezvous so send can proceed.
+                    requestFlow.first()
+                    emit("activation")            // activates + marks activation time
+                    timeSource += 31.seconds      // stream stayed healthy
+                    if (attemptCount >= 5) {
+                        throw IllegalArgumentException("stop") // non-retryable → terminate
+                    }
+                    throw Status.ABORTED.asRuntimeException() // healthy abort → reset counter
+                }
+            },
+            initialRequest = { "req" },
+            responseHandler = { _: String, _: (String) -> Unit -> },
+            onError = { errors.add(it) },
+            reconnectOnAborted = true,
+            maxReconnectAttempts = 2, // would stop at 3 attempts WITHOUT resets
+            reconnectDelayMs = 0,
+            healthyThreshold = 30.seconds,
+            timeSource = timeSource,
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(5, attemptCount, "Healthy resets should let it survive past maxReconnectAttempts")
+        assertTrue(errors.last() is IllegalArgumentException)
 
         streamRef.destroy()
     }

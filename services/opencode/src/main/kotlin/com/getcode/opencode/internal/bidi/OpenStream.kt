@@ -13,6 +13,10 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 
 fun <Request, Response, StreamRef> openBidirectionalStream(
     streamRef: StreamRef,
@@ -27,7 +31,13 @@ fun <Request, Response, StreamRef> openBidirectionalStream(
     reconnectOnCancelled: Boolean = false,
     reconnectOnAborted: Boolean = false,
     reconnectDelayMs: Long = 300L,
+    maxReconnectDelayMs: Long = 30_000L,
     maxReconnectAttempts: Int = 8,
+    // Minimum time a stream must stay connected (past first response) before we
+    // treat it as healthy and reset the backoff counter. Prevents an
+    // activate-then-immediately-fail stream from resetting forever.
+    healthyThreshold: Duration = 30.seconds,
+    timeSource: TimeSource = TimeSource.Monotonic,
     onReconnectAttempt: ((attempt: Int, reason: Throwable?) -> Unit)? = null
 ) where StreamRef : BidirectionalStreamReference<*, *> {
 
@@ -55,8 +65,9 @@ fun <Request, Response, StreamRef> openBidirectionalStream(
         var attempt = 0
 
         while (attempt++ <= maxReconnectAttempts) {
-            if (attempt > 1) {
-                delay(reconnectDelayMs)
+            val backoffMs = computeBackoffMs(attempt, reconnectDelayMs, maxReconnectDelayMs)
+            if (backoffMs > 0) {
+                delay(backoffMs)
             }
 
             trace(tag = tag, message = "Opening bidirectional stream (attempt $attempt)")
@@ -84,6 +95,7 @@ fun <Request, Response, StreamRef> openBidirectionalStream(
             }
 
             var activated = false
+            var activationMark: TimeMark? = null
 
             val collectionJob = launch {
                 responseFlow
@@ -96,6 +108,7 @@ fun <Request, Response, StreamRef> openBidirectionalStream(
                     .collect { response ->
                         if (!activated) {
                             activated = true
+                            activationMark = timeSource.markNow()
                             streamRef.activateStream()
                             trace(tag = tag, message = "Stream activated on first response")
                         }
@@ -154,14 +167,21 @@ fun <Request, Response, StreamRef> openBidirectionalStream(
 
             val code = error.grpcStatusCode()
             if (isRetryable(error)) {
+                val healthy = activationMark?.elapsedNow()?.let { it >= healthyThreshold } ?: false
                 trace(
                     tag = tag,
-                    message = "Stream failed (${code?.name ?: error.javaClass.simpleName}) → reconnecting"
+                    message = "Stream failed (${code?.name ?: error.javaClass.simpleName}) " +
+                        "→ reconnecting (attempt $attempt, healthy=$healthy)"
                 )
                 onReconnectAttempt?.invoke(attempt, error)
-                // Reset attempt counter on successful activation — only count
-                // consecutive failures, not total lifetime attempts.
-                if (activated) attempt = 0
+                // Reset the backoff counter ONLY when the stream was genuinely
+                // healthy (stayed connected past healthyThreshold). A stream that
+                // activates then immediately fails (e.g. ABORTED "stream already
+                // exists") must count toward maxReconnectAttempts so the loop
+                // terminates instead of hammering the server.
+                // Reset to 0: after a healthy stream dies, reconnect immediately
+                // (computeBackoffMs returns 0 for attempt=1).
+                if (healthy) attempt = 0
                 continue
             }
 
@@ -188,4 +208,15 @@ internal fun Throwable.grpcStatusCode(): Status.Code? = when (this) {
     is StatusRuntimeException -> status.code
     is StatusException -> status.code
     else -> null
+}
+
+/**
+ * Exponential backoff with a hard cap. Returns 0 for the first attempt (no delay)
+ * and for a zero base delay (used in tests). Doubles per consecutive failed attempt.
+ */
+internal fun computeBackoffMs(attempt: Int, baseDelayMs: Long, maxDelayMs: Long): Long {
+    if (attempt <= 1 || baseDelayMs <= 0) return 0L
+    val exponent = (attempt - 2).coerceIn(0, 16)
+    val scaled = baseDelayMs shl exponent
+    return scaled.coerceAtMost(maxDelayMs)
 }
