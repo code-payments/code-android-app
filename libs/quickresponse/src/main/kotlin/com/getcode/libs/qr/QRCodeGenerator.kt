@@ -44,10 +44,12 @@ internal fun generateQr(
         null
     }
 
-    val matrixWidth = bitmapMatrix?.width ?: size
-    val matrixHeight = bitmapMatrix?.height ?: size
+    // Guard against a zero/negative dimension reaching Bitmap.createBitmap,
+    // which throws IllegalArgumentException("width and height must be > 0").
+    val matrixWidth = (bitmapMatrix?.width ?: size).coerceAtLeast(1)
+    val matrixHeight = (bitmapMatrix?.height ?: size).coerceAtLeast(1)
 
-    val newBitmap = createBitmap(bitmapMatrix?.width ?: size, bitmapMatrix?.height ?: size)
+    val newBitmap = createBitmap(matrixWidth, matrixHeight)
 
     val pixels = IntArray(matrixWidth * matrixHeight)
 
