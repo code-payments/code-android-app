@@ -48,21 +48,14 @@ class BaselineProfileGenerator {
 
             if (onScanner) {
                 // Already logged in from a prior iteration
-                scannerJourney()
-                discoveryJourney()
-                walletJourney()
-                giveJourney()
-                menuJourney()
+                authenticatedJourneys()
             } else {
                 val seed = seedPhrase
                 if (seed.isNullOrBlank()) {
                     preAuthJourney()
                 } else {
                     login(seed)
-                    scannerJourney()
-                    walletJourney()
-                    giveJourney()
-                    menuJourney()
+                    authenticatedJourneys()
                 }
             }
         }
@@ -100,8 +93,70 @@ class BaselineProfileGenerator {
         device.waitForIdle()
     }
 
+    /** All authenticated journeys, run from the scanner. */
+    private fun MacrobenchmarkScope.authenticatedJourneys() {
+        scannerJourney()
+        discoveryJourney()
+        sendChatJourney()
+        walletJourney()
+        giveJourney()
+        menuJourney()
+    }
+
     private fun MacrobenchmarkScope.scannerJourney() {
         // Scanner is the home screen — let it fully render
+        device.wait(Until.findObject(By.res("scanner_view")), TIMEOUT)
+        device.waitForIdle()
+    }
+
+    private fun MacrobenchmarkScope.sendChatJourney() {
+        // Open the Send tab -> contact list
+        device.wait(Until.findObject(By.text("Send")), TIMEOUT)?.click()
+        // Dismiss the "N Contacts Already On Flipcash" info dialog if it appears
+        device.waitForIdle()
+        device.findObject(By.text("OK"))?.click()
+        device.wait(Until.findObject(By.res("send_contact_list")), LOGIN_TIMEOUT)
+        device.waitForIdle()
+
+        // Pull down to reveal the search bar, type random chars (exercises the empty
+        // search state), then clear it.
+        device.findObject(By.res("send_contact_list"))?.let { list ->
+            val b = list.visibleBounds
+            device.swipe(b.centerX(), b.top + 40, b.centerX(), b.centerY() + 200, 20)
+        }
+        device.wait(Until.findObject(By.res("send_search_field")), TIMEOUT)?.click()
+        device.waitForIdle()
+        device.executeShellCommand("input text zzqxwv")
+        device.waitForIdle()
+        device.findObject(By.res("send_search_clear"))?.click()
+        device.waitForIdle()
+        device.pressBack() // dismiss the keyboard
+
+        // Open the FIRST contact's chat and send a text message. A message is fund-free
+        // (money-safety: never tap Send Cash / confirm a spend). Contact is not
+        // hardcoded — send_contact_row resolves to the first row.
+        device.wait(Until.findObject(By.res("send_contact_row")), TIMEOUT)?.click()
+        device.wait(Until.findObject(By.res("chat_screen")), LOGIN_TIMEOUT)
+        device.waitForIdle()
+        device.findObject(By.res("chat_send_message_button"))?.click()
+        device.wait(Until.findObject(By.res("chat_message_input")), TIMEOUT)
+        device.waitForIdle()
+        device.executeShellCommand("input text BaselineProfileTest")
+        device.waitForIdle()
+        device.findObject(By.res("chat_send_icon"))?.click()
+        device.waitForIdle()
+
+        // Scroll the message list so MessageList / bubble composition gets compiled.
+        flingScroll("chat_message_list", Direction.DOWN, 2)
+        flingScroll("chat_message_list", Direction.UP, 2)
+
+        // Back to the contact list, fling it for coverage, then back to the scanner.
+        device.pressBack()
+        device.wait(Until.findObject(By.res("send_contact_list")), TIMEOUT)
+        device.waitForIdle()
+        flingScroll("send_contact_list", Direction.UP, 2)
+        flingScroll("send_contact_list", Direction.DOWN, 1)
+        device.pressBack()
         device.wait(Until.findObject(By.res("scanner_view")), TIMEOUT)
         device.waitForIdle()
     }
@@ -208,13 +263,25 @@ class BaselineProfileGenerator {
     }
 
     private fun MacrobenchmarkScope.giveJourney() {
-        // Open give/cash screen
-        device.wait(Until.findObject(By.text("Give")), TIMEOUT)?.click()
-        device.wait(Until.findObject(By.res("cash_screen")), TIMEOUT)
+        // Open the Cash tab (the give/cash screen with the amount keypad)
+        device.wait(Until.findObject(By.text("Cash")), TIMEOUT)?.click()
+        device.wait(Until.findObject(By.res("keypad_dot")), TIMEOUT)
         device.waitForIdle()
 
-        // Close sheet
-        dismissSheet()
+        // Pull out the smallest bill ($0.01) to warm the keypad + bill rendering, then
+        // Cancel to put it straight back — a self-reclaiming round-trip (net ~0).
+        // MONEY-SAFETY: smallest amount, immediate Cancel, never Share/Collect. If an
+        // iteration dies between Next and Cancel, the app reclaims the un-shared bill on
+        // the next relaunch.
+        device.findObject(By.res("keypad_dot"))?.click()
+        device.findObject(By.res("keypad_0"))?.click()
+        device.findObject(By.res("keypad_1"))?.click()
+        device.findObject(By.text("Next"))?.click()
+        device.wait(Until.findObject(By.res("cash_bill")), LOGIN_TIMEOUT)
+        device.waitForIdle()
+        device.findObject(By.text("Cancel"))?.click()
+        device.wait(Until.findObject(By.res("scanner_view")), TIMEOUT)
+        device.waitForIdle()
     }
 
     private fun MacrobenchmarkScope.menuJourney() {

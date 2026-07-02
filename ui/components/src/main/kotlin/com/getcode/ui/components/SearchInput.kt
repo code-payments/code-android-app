@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White50
@@ -41,9 +42,11 @@ fun SearchInput(
         trailingIcon = {
             if (state.text.isNotEmpty()) {
                 Icon(
-                    modifier = Modifier.unboundedClickable {
-                        state.clearText()
-                    }.padding(end = CodeTheme.dimens.grid.x3),
+                    modifier = Modifier
+                        .testTag("send_search_clear")
+                        .unboundedClickable {
+                            state.clearText()
+                        }.padding(end = CodeTheme.dimens.grid.x3),
                     imageVector = Icons.Outlined.Close,
                     contentDescription = null,
                     tint = White50,

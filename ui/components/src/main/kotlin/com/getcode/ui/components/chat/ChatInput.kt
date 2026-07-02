@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -98,6 +99,7 @@ fun ChatInput(
             trailingIcon = {
                 Icon(
                     modifier = Modifier
+                        .testTag("chat_send_icon")
                         .graphicsLayer {
                             alpha = sendAlpha
                             scaleX = sendScale

@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -77,6 +78,7 @@ internal fun ContactList(
 
     LazyColumn(
         modifier = Modifier
+            .testTag("send_contact_list")
             .verticalScrollStateGradient(
                 scrollState = listState,
                 color = CodeTheme.colors.background,
@@ -324,6 +326,7 @@ private fun ContactRowItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .testTag("send_contact_row")
                 .clickable(onClick = onClick)
                 .padding(vertical = CodeTheme.dimens.inset)
                 .padding(end = CodeTheme.dimens.inset),
