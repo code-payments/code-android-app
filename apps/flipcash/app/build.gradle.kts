@@ -1,3 +1,4 @@
+import com.android.build.api.variant.BuildConfigField
 import com.bugsnag.gradle.dsl.debug
 import com.bugsnag.gradle.dsl.release
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -15,6 +16,7 @@ plugins {
     alias(libs.plugins.secrets)
     id("org.jetbrains.kotlin.plugin.compose")
     alias(libs.plugins.kover)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 fun gitVersionCode(): Int {
@@ -150,6 +152,23 @@ kotlin {
             "kotlin.time.ExperimentalTime",
             "kotlin.ExperimentalUnsignedTypes",
             "kotlin.RequiresOptIn"
+        )
+    }
+}
+
+// Expose Compose testTags as resource-ids (for UiAutomator/Maestro/baseline-profile
+// generation) on every variant EXCEPT the shipping `release` — keeps internal ids like
+// `seed_input_field` out of the production wallet build. Read in App.kt as
+// BuildConfig.UI_TESTABLE. Refs Bugsnag 6a46563b.
+androidComponents {
+    onVariants { variant ->
+        variant.buildConfigFields?.put(
+            "UI_TESTABLE",
+            BuildConfigField(
+                "boolean",
+                (variant.name != "release").toString(),
+                "testTags exposed as resource-ids; false only for shipping release",
+            ),
         )
     }
 }
@@ -294,6 +313,9 @@ dependencies {
     implementation(libs.bugsnag)
 
     implementation(libs.androidx.profileinstaller)
+    // Consumes the generated baseline profile from the benchmark module and packages it
+    // into the APK (assets/dexopt/baseline.prof). Refs Bugsnag 6a46563b.
+    baselineProfile(project(":apps:flipcash:benchmark"))
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test.junit)

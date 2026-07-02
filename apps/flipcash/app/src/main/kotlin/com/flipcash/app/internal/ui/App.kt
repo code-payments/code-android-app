@@ -133,7 +133,9 @@ internal fun App(
                         onRootReached = { /* handled by activity back press */ },
                     )
 
-                    val semanticsModifier = if (BuildConfig.DEBUG) {
+                    // UI_TESTABLE is true for debug + the profile-gen/benchmark variants and
+                    // false for the shipping release, so testTags aren't exposed in production.
+                    val semanticsModifier = if (BuildConfig.UI_TESTABLE) {
                         Modifier.semantics { testTagsAsResourceId = true }
                     } else Modifier
 

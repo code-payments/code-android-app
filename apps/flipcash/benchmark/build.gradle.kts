@@ -1,5 +1,6 @@
 plugins {
     id("com.android.test")
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootDir)

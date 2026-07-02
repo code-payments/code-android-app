@@ -58,6 +58,9 @@
         android:theme="@style/Theme.Code"
         tools:targetApi="tiramisu">
 
+        <!-- Lets Macrobenchmark/simpleperf attach to a non-debuggable release build. -->
+        <profileable android:shell="true" />
+
         <meta-data
             android:name="com.bugsnag.android.API_KEY"
             android:value="${BUGSNAG_API_KEY}" />

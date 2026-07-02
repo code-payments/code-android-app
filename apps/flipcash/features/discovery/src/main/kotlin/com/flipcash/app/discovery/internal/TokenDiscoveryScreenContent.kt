@@ -35,6 +35,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.financial.HolderMetrics
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Token
+import com.getcode.solana.keys.base58
 import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.opencode.model.ui.DiscoverCategory
 import com.getcode.opencode.model.ui.WindowedRange
@@ -99,7 +100,9 @@ private fun LoadedPopular_Preview() {
         TokenDiscoveryScreenContent(
             state = TokenDiscoveryViewModel.State(
                 category = DiscoverCategory.Popular,
-                tokens = Loadable.Loaded(sampleTokens())
+                tokens = Loadable.Loaded(
+                    sampleTokens().map { LeaderboardEntry(key = it.address.base58(), token = it) }
+                )
             )
         ) { }
     }
