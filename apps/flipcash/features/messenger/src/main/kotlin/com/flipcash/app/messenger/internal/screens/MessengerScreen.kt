@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -95,6 +96,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         MessageList(
             modifier = Modifier
                 .fillMaxSize()
+                .testTag("chat_message_list")
                 .hazeSource(hazeState),
             state = state,
             contentPadding = overlapPadding,
@@ -274,6 +276,7 @@ private fun UserControlBottomBar(
                                 CodeButton(
                                     modifier = Modifier
                                         .weight(1f)
+                                        .testTag("chat_send_message_button")
                                         .hazeEffect(hazeState) {
                                             blurEffect {
                                                 style = material
@@ -289,6 +292,7 @@ private fun UserControlBottomBar(
                     ChatViewModel.UserState.Typing -> {
                         ChatInput(
                             modifier = Modifier
+                                .testTag("chat_message_input")
                                 .fillMaxWidth()
                                 .border(
                                     CodeTheme.dimens.border,
@@ -348,7 +352,7 @@ private fun ChatInputScaffold(
     var topBarHeight by remember { mutableStateOf(0.dp) }
     var bottomBarHeight by remember { mutableStateOf(0.dp) }
 
-    Box(modifier = Modifier.imePadding()) {
+    Box(modifier = Modifier.imePadding().testTag("chat_screen")) {
         content(
             PaddingValues(
                 top = topBarHeight,
