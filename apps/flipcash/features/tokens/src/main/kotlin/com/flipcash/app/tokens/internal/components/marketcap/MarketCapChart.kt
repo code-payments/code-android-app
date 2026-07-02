@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -158,7 +159,8 @@ private fun MarketCapChart(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(chartPadding)
-                .weight(1f),
+                .weight(1f)
+                .testTag("market_cap_chart"),
             trend = trend,
             onPointHighlighted = onPointHighlighted,
             placeholder = placeholder,
@@ -186,6 +188,7 @@ private fun MarketCapChart(
 
                 Text(
                     modifier = Modifier
+                        .testTag("market_cap_period_${period.name}")
                         .background(
                             color = backgroundColor,
                             shape = CodeTheme.shapes.extraSmall

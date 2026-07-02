@@ -5,6 +5,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.Direction
+import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.Until
 import org.junit.Rule
 import org.junit.Test
@@ -47,6 +49,7 @@ class BaselineProfileGenerator {
             if (onScanner) {
                 // Already logged in from a prior iteration
                 scannerJourney()
+                discoveryJourney()
                 walletJourney()
                 giveJourney()
                 menuJourney()
@@ -101,6 +104,88 @@ class BaselineProfileGenerator {
         // Scanner is the home screen — let it fully render
         device.wait(Until.findObject(By.res("scanner_view")), TIMEOUT)
         device.waitForIdle()
+    }
+
+    private fun MacrobenchmarkScope.discoveryJourney() {
+        // Open the Discover tab from the scanner bottom nav
+        device.wait(Until.findObject(By.text("Discover")), TIMEOUT)?.click()
+
+        device.wait(Until.findObject(By.res("discovery_leaderboard")), LOGIN_TIMEOUT)
+        device.waitForIdle()
+
+        // Open a token's info screen from the FRESH leaderboard first. (Tapping a row
+        // right after flinging is unreliable — the row is still settling — so do the
+        // token-info journey before scrolling the list.)
+        device.wait(Until.findObject(By.res("leaderboard_token_row")), TIMEOUT)?.click()
+        device.wait(Until.findObject(By.res("token_info_screen")), LOGIN_TIMEOUT)
+        device.waitForIdle()
+
+        // Scroll the token-info screen down until the market-cap chart's period tabs
+        // (the bottom-most element) are on screen — the chart sits at the very bottom.
+        scrollUntilVisible("token_info_screen", "market_cap_period_All", Direction.UP)
+
+        // Interact with the market-cap chart: scrub across it (highlights points), then
+        // toggle every time window (each reloads data + redraws the chart).
+        device.findObject(By.res("market_cap_chart"))?.let { chart ->
+            val b = chart.visibleBounds
+            val y = b.centerY()
+            device.drag(b.left + b.width() / 6, y, b.right - b.width() / 6, y, 40)
+        }
+        device.waitForIdle()
+        listOf("Week", "Month", "Year", "All", "Day").forEach { period ->
+            device.findObject(By.res("market_cap_period_$period"))?.click()
+            device.waitForIdle()
+        }
+
+        // Back to the leaderboard, then fling-scroll it so TokenLeaderboard /
+        // TokenMetricsRow / RankBadge composition + layout get compiled.
+        device.wait(Until.findObject(By.res("action_back")), TIMEOUT)?.click()
+        device.wait(Until.findObject(By.res("discovery_leaderboard")), TIMEOUT)
+        device.waitForIdle()
+        flingScroll("discovery_leaderboard", Direction.UP, 3)   // scroll down through the list
+        flingScroll("discovery_leaderboard", Direction.DOWN, 2) // and back up
+
+        // Close discovery to the scanner
+        device.wait(Until.findObject(By.res("action_close")), TIMEOUT)?.click()
+        device.wait(Until.findObject(By.res("scanner_view")), TIMEOUT)
+        device.waitForIdle()
+    }
+
+    /**
+     * Fling a scrollable [times], re-finding it each iteration. A Compose LazyColumn
+     * recomposes on fling, invalidating a held UiObject2 — so we re-query and tolerate
+     * a StaleObjectException rather than reusing a stale reference.
+     */
+    private fun MacrobenchmarkScope.flingScroll(resId: String, direction: Direction, times: Int) {
+        repeat(times) {
+            val scrollable = device.findObject(By.res(resId)) ?: return
+            try {
+                scrollable.setGestureMargin(device.displayWidth / 5)
+                scrollable.fling(direction)
+            } catch (_: StaleObjectException) {
+                // View recomposed mid-fling; the next iteration re-finds it.
+            }
+            device.waitForIdle()
+        }
+    }
+
+    /** Fling [scrollableResId] in [direction] (re-finding each time) until [targetResId] appears. */
+    private fun MacrobenchmarkScope.scrollUntilVisible(
+        scrollableResId: String,
+        targetResId: String,
+        direction: Direction,
+        maxFlings: Int = 6,
+    ) {
+        repeat(maxFlings) {
+            if (device.hasObject(By.res(targetResId))) return
+            val scrollable = device.findObject(By.res(scrollableResId)) ?: return
+            try {
+                scrollable.setGestureMargin(device.displayWidth / 5)
+                scrollable.fling(direction)
+            } catch (_: StaleObjectException) {
+            }
+            device.waitForIdle()
+        }
     }
 
     private fun MacrobenchmarkScope.walletJourney() {

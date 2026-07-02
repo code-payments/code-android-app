@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -28,13 +29,12 @@ import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
+import com.flipcash.app.discovery.internal.LeaderboardEntry
 import com.flipcash.app.discovery.internal.TokenDiscoveryViewModel
 import com.flipcash.app.tokens.ui.CurrencyCreatorUpsellCard
 import com.flipcash.features.discovery.R
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.DiscoverCategory
-import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.unboundedClickable
@@ -46,7 +46,7 @@ import com.getcode.ui.utils.sheetResignmentBehavior
 @Composable
 internal fun TokenLeaderboard(
     category: DiscoverCategory?,
-    tokens: Loadable<List<Token>>,
+    tokens: Loadable<List<LeaderboardEntry>>,
     showGradientAtEnd: Boolean,
     padding: PaddingValues,
     state: LazyListState,
@@ -56,6 +56,7 @@ internal fun TokenLeaderboard(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .testTag("discovery_leaderboard")
             .verticalScrollStateGradient(
                 state,
                 color = CodeTheme.colors.background,
@@ -185,17 +186,17 @@ internal fun TokenLeaderboard(
 
                     itemsIndexed(
                         items = tokens.data,
-                        key = { _, t -> t.address.base58() },
-                        contentType = { _, t -> "token row" }
-                    ) { index, token ->
+                        key = { _, entry -> entry.key },
+                        contentType = { _, _ -> "token row" }
+                    ) { index, entry ->
                         RankedTokenMetricsRow(
                             modifier = Modifier.padding(
                                 vertical = CodeTheme.dimens.grid.x3,
                             ),
                             rank = index + 1,
-                            token = token,
+                            token = entry.token,
                         ) {
-                            dispatch(TokenDiscoveryViewModel.Event.OpenTokenInfo(token.address))
+                            dispatch(TokenDiscoveryViewModel.Event.OpenTokenInfo(entry.token.address))
                         }
 
                         if (index < tokens.data.lastIndex) {

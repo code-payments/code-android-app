@@ -11,6 +11,7 @@ import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.DiscoverCategory
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.manager.BottomBarManager
@@ -25,6 +26,17 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
+
+/**
+ * A leaderboard row's token paired with its precomputed LazyColumn key. The key is
+ * the token's base58 address (BigInteger encoding); computing it once here at load
+ * keeps it out of the `itemsIndexed { key = … }` hot path, which Compose re-runs
+ * over the viewport's nearby range on scroll. Refs Bugsnag 6a46563b.
+ */
+internal data class LeaderboardEntry(
+    val key: String,
+    val token: Token,
+)
 
 @HiltViewModel
 internal class TokenDiscoveryViewModel @Inject constructor(
@@ -42,7 +54,7 @@ internal class TokenDiscoveryViewModel @Inject constructor(
     data class State(
         val createEnabled: Boolean = false,
         val category: DiscoverCategory? = null,
-        val tokens: Loadable<List<Token>> = Loadable.Loading(),
+        val tokens: Loadable<List<LeaderboardEntry>> = Loadable.Loading(),
         val minimumHolderAmount: Fiat = 10.toFiat(),
     )
 
@@ -55,7 +67,7 @@ internal class TokenDiscoveryViewModel @Inject constructor(
             val fromUser: Boolean = false
         ) : Event
 
-        data class OnTokensUpdated(val loadable: Loadable<List<Token>>) : Event
+        data class OnTokensUpdated(val loadable: Loadable<List<LeaderboardEntry>>) : Event
 
         data class LoadTokensForCategory(val category: DiscoverCategory) : Event
         data object Refresh : Event
@@ -97,8 +109,9 @@ internal class TokenDiscoveryViewModel @Inject constructor(
             .map { it.category }
             .map { currencyController.discoverTokens(it) }
             .onResult(
-                onSuccess = {
-                    dispatchEvent(Event.OnTokensUpdated(Loadable.Loaded(it)))
+                onSuccess = { tokens ->
+                    val entries = tokens.map { LeaderboardEntry(key = it.address.base58(), token = it) }
+                    dispatchEvent(Event.OnTokensUpdated(Loadable.Loaded(entries)))
                 },
                 onError = { error ->
                     dispatchEvent(

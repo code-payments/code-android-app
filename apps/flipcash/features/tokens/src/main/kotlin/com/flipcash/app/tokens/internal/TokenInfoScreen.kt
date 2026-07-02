@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.painterResource
@@ -83,6 +84,7 @@ private fun TokenInfoScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
+                    .testTag("token_info_screen")
                     .padding(
                         start = innerPadding.calculateStartPadding(),
                         end = innerPadding.calculateEndPadding(),
