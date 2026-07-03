@@ -25,7 +25,6 @@ plugins {
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.google.services) apply false
     alias(libs.plugins.firebase.perf) apply false
-    alias(libs.plugins.bugsnag.android) apply false
     alias(libs.plugins.bugsnag.gradle) apply false
     alias(libs.plugins.secrets) apply false
     alias(libs.plugins.navigation.safeargs) apply false
