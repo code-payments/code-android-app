@@ -158,6 +158,9 @@ abstract class BaseAccessKeyViewModel(
         }
     }
 
+    private fun renderLogo(resId: Int): Bitmap? =
+        resources.getDrawable(resId)?.toBitmap(logoWidth.roundToInt(), logoHeight)
+
     private fun createBitmapForExport(
         drawBackground: Boolean = true,
         words: List<String>,
@@ -168,9 +171,24 @@ abstract class BaseAccessKeyViewModel(
         val spec = Flipcash2ColorSpec.accessKey
         val accessKeyBg = createGlowBitmap(spec, 812, 1353)
 
-        val imageLogo =
-            resources.getDrawable(R.drawable.ic_flipcash_logo)
-                ?.toBitmap(logoWidth.roundToInt(), logoHeight)!!
+        // Rasterizing the vector logo can fail on some budget OEM devices with
+        // "width and height must be > 0" — the failure originates inside
+        // VectorDrawable's internal cache-bitmap allocation, not our dimensions.
+        // Fall back to a pre-rasterized PNG, which goes through the far more
+        // robust BitmapDrawable decode/scale path; if even that fails, render the
+        // recovery image without the logo. Refs Bugsnag 6a47a1e0.
+        val imageLogo: Bitmap? = runCatching { renderLogo(R.drawable.ic_flipcash_logo) }
+            .recoverCatching { renderLogo(R.drawable.ic_flipcash_logo_raster) }
+            .onFailure { error ->
+                if (error is kotlin.coroutines.cancellation.CancellationException) throw error
+                trace(
+                    tag = "access-key",
+                    message = "Failed to render access key logo; rendering without it",
+                    error = error,
+                    type = TraceType.Error,
+                )
+            }
+            .getOrNull()
 
         val imageOut = createBitmap(targetWidth, targetHeight).applyCanvas {
             val accessBgActualWidth =
@@ -227,12 +245,14 @@ abstract class BaseAccessKeyViewModel(
                 drawRoundRect(borderRect, cornerRadius, cornerRadius, borderPaint)
             }
 
-            drawBitmap(
-                imageLogo,
-                ((targetWidth - logoWidth) / 2),
-                logoTopOffset.toFloat(),
-                null
-            )
+            imageLogo?.let { logo ->
+                drawBitmap(
+                    logo,
+                    ((targetWidth - logoWidth) / 2),
+                    logoTopOffset.toFloat(),
+                    null
+                )
+            }
 
             getQrCode(entropyB64)?.let { bitmap ->
                 drawBitmap(
