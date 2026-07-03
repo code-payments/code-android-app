@@ -89,7 +89,7 @@ event-bus = "0.1.0"
 
 bugsnag = "6.26.1"
 bugsnag-agp = "8.2.0"
-bugsnag-gradle-plugin = "1.1.0"
+bugsnag-gradle-plugin = "1.1.1"
 rinku = "1.6.0"
 compose-unstyled = "2.8.0"
 haze = "2.0.0-alpha03"
