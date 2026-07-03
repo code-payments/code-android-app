@@ -88,7 +88,6 @@ desugaring = "2.1.5"
 event-bus = "0.1.0"
 
 bugsnag = "6.26.1"
-bugsnag-agp = "8.2.0"
 bugsnag-gradle-plugin = "1.1.1"
 rinku = "1.6.0"
 compose-unstyled = "2.8.0"
@@ -333,7 +332,6 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 hilt = { id = "dagger.hilt.android.plugin", version.ref = "hilt" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
 firebase-perf = { id = "com.google.firebase.firebase-perf", version.ref = "firebase-perf-plugin" }
-bugsnag-android = { id = "com.bugsnag.android.gradle", version.ref = "bugsnag-agp" }
 bugsnag-gradle = { id = "com.bugsnag.gradle", version.ref = "bugsnag-gradle-plugin" }
 secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secrets-gradle-plugin" }
 navigation-safeargs = { id = "androidx.navigation.safeargs.kotlin", version.ref = "androidx-navigation" }
