@@ -44,7 +44,7 @@ compose-accompanist = "0.36.0"
 compose-coil = "3.4.0"
 
 hilt = "2.59.2"
-hilt-jetpack = "1.3.0"
+hilt-jetpack = "1.4.0"
 okhttp = "5.4.0"
 retrofit = "3.0.0"
 kin-sdk = "2.1.2"
