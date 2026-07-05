@@ -32,15 +32,14 @@ import androidx.lifecycle.ViewModel
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.getcode.vendor.Base58
+import kotlinx.coroutines.flow.mapNotNull
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -72,8 +71,7 @@ abstract class BaseAccessKeyViewModel(
     init {
         userManager.state
             .distinctUntilChangedBy { it.entropy }
-            .map { it.entropy }
-            .filterNotNull()
+            .mapNotNull { it.entropy }
             .take(1)
             .onEach { initWithEntropy(it) }
             .launchIn(viewModelScope)
@@ -127,19 +125,28 @@ abstract class BaseAccessKeyViewModel(
         )
     }
 
-    private val targetWidth = 1200
-    private val targetHeight = 2500
+    // These layout dimensions are compile-time constants so they are inlined at every
+    // use site by kotlinc. They must NOT be instance fields: createBitmapForExport runs
+    // on dispatchers.IO and can be kicked off from the init{} flow before the constructor
+    // finishes initializing instance fields, so a background thread could read them as 0
+    // (their default) with no happens-before — surfacing as
+    // "IllegalArgumentException: width and height must be > 0" on release/R8 builds only.
+    // Refs Bugsnag 6a457e5e.
+    private companion object {
+        const val TARGET_WIDTH = 1200
+        const val TARGET_HEIGHT = 2500
 
-    private val logoWidth = 92.4f
-    private val logoHeight = 132
-    private val qrCodeSize = 360
+        const val LOGO_WIDTH_RATIO = 92.4f
+        const val LOGO_HEIGHT = 132
+        const val QR_CODE_SIZE = 360
 
-    private val bgTopOffset = 550
-    private val logoTopOffset = 770
-    private val qrTopOffset = 980
-    private val keyTextTopOffset = 1600
-    private val topTextTopOffset = 200
-    private val bottomTextTopOffset = 2000
+        const val BG_TOP_OFFSET = 550
+        const val LOGO_TOP_OFFSET = 770
+        const val QR_TOP_OFFSET = 980
+        const val KEY_TEXT_TOP_OFFSET = 1600
+        const val WARNING_TEXT_TOP_OFFSET = 200
+        const val HELPER_TEXT_TOP_OFFSET = 2000
+    }
 
     protected suspend fun saveBitmapToFile(): Result<Boolean> {
         uiFlow.update { it.copy(exportState = LoadingSuccessState(loading = true)) }
@@ -159,7 +166,7 @@ abstract class BaseAccessKeyViewModel(
     }
 
     private fun renderLogo(resId: Int): Bitmap? =
-        resources.getDrawable(resId)?.toBitmap(logoWidth.roundToInt(), logoHeight)
+        resources.getDrawable(resId)?.toBitmap(LOGO_WIDTH_RATIO.roundToInt(), LOGO_HEIGHT)
 
     private fun createBitmapForExport(
         drawBackground: Boolean = true,
@@ -190,7 +197,7 @@ abstract class BaseAccessKeyViewModel(
             }
             .getOrNull()
 
-        val imageOut = createBitmap(targetWidth, targetHeight).applyCanvas {
+        val imageOut = createBitmap(TARGET_WIDTH, TARGET_HEIGHT).applyCanvas {
             val accessBgActualWidth =
                 accessKeyBg.getScaledWidth(resources.displayMetrics)
 
@@ -209,7 +216,7 @@ abstract class BaseAccessKeyViewModel(
             topTextChunks.forEachIndexed { index, text ->
                 drawText(
                     canvas = this,
-                    y = topTextTopOffset + (60 * (index + 1)),
+                    y = WARNING_TEXT_TOP_OFFSET + (60 * (index + 1)),
                     sizePx = 40,
                     color = Alert.toAGColor(),
                     text = text
@@ -218,8 +225,8 @@ abstract class BaseAccessKeyViewModel(
 
             drawBitmap(
                 accessKeyBg,
-                (((targetWidth - accessBgActualWidth) / 2)).toFloat(),
-                bgTopOffset.toFloat(),
+                (((TARGET_WIDTH - accessBgActualWidth) / 2)).toFloat(),
+                BG_TOP_OFFSET.toFloat(),
                 null
             )
 
@@ -234,10 +241,10 @@ abstract class BaseAccessKeyViewModel(
 
                 val borderInset = spec.borderWidth / 2
                 val borderRect = RectF(
-                    ((targetWidth - accessBgActualWidth) / 2f) + borderInset,
-                    bgTopOffset.toFloat() + borderInset,
-                    ((targetWidth + accessBgActualWidth) / 2f) - borderInset,
-                    bgTopOffset.toFloat() + accessKeyBg.height - borderInset
+                    ((TARGET_WIDTH - accessBgActualWidth) / 2f) + borderInset,
+                    BG_TOP_OFFSET.toFloat() + borderInset,
+                    ((TARGET_WIDTH + accessBgActualWidth) / 2f) - borderInset,
+                    BG_TOP_OFFSET.toFloat() + accessKeyBg.height - borderInset
                 )
 
                 // Adjust corner radius to match your card
@@ -248,8 +255,8 @@ abstract class BaseAccessKeyViewModel(
             imageLogo?.let { logo ->
                 drawBitmap(
                     logo,
-                    ((targetWidth - logoWidth) / 2),
-                    logoTopOffset.toFloat(),
+                    ((TARGET_WIDTH - LOGO_WIDTH_RATIO) / 2),
+                    LOGO_TOP_OFFSET.toFloat(),
                     null
                 )
             }
@@ -257,15 +264,15 @@ abstract class BaseAccessKeyViewModel(
             getQrCode(entropyB64)?.let { bitmap ->
                 drawBitmap(
                     bitmap,
-                    ((targetWidth - qrCodeSize) / 2).toFloat(),
-                    qrTopOffset.toFloat(),
+                    ((TARGET_WIDTH - QR_CODE_SIZE) / 2).toFloat(),
+                    QR_TOP_OFFSET.toFloat(),
                     null
                 )
             }
 
             drawText(
                 canvas = this,
-                y = keyTextTopOffset,
+                y = KEY_TEXT_TOP_OFFSET,
                 sizePx = 32,
                 color = White.toAGColor(),
                 text = accessKeyText[0]
@@ -273,7 +280,7 @@ abstract class BaseAccessKeyViewModel(
 
             drawText(
                 canvas = this,
-                y = keyTextTopOffset + 40,
+                y = KEY_TEXT_TOP_OFFSET + 40,
                 sizePx = 32,
                 color = White.toAGColor(),
                 text = accessKeyText[1]
@@ -287,7 +294,7 @@ abstract class BaseAccessKeyViewModel(
             bottomTextChunks.forEachIndexed { index, text ->
                 drawText(
                     canvas = this,
-                    y = bottomTextTopOffset + (60 * (index + 1)),
+                    y = HELPER_TEXT_TOP_OFFSET + (60 * (index + 1)),
                     sizePx = 40,
                     color = White.toAGColor(),
                     text = text
@@ -335,7 +342,7 @@ abstract class BaseAccessKeyViewModel(
         val base58 = Base58.encode(entropyB64.decodeBase64())
         val url = "${resources.getString(R.string.app_root_url)}/login?data=$base58"
 
-        return qrCodeGenerator.generate(url, qrCodeSize)
+        return qrCodeGenerator.generate(url, QR_CODE_SIZE)
     }
 
     private fun drawText(
@@ -356,7 +363,7 @@ abstract class BaseAccessKeyViewModel(
 
         val bounds1 = android.graphics.Rect()
         textPaint.getTextBounds(text, 0, text.length, bounds1)
-        val xV: Int = x ?: ((targetWidth - bounds1.width()) / 2)
+        val xV: Int = x ?: ((TARGET_WIDTH - bounds1.width()) / 2)
         canvas.drawText(text, xV.toFloat(), y.toFloat(), textPaint)
     }
 
