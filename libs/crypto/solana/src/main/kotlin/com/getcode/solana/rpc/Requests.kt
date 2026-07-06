@@ -64,6 +64,19 @@ internal class GetTokenAccountBalance(
     id = requestId
 )
 
+internal class GetLatestBlockhash(
+    commitment: String = "finalized",
+    requestId: String = "1",
+): JsonRpc20Request(
+    method = "getLatestBlockhash",
+    params = buildJsonArray {
+        addJsonObject {
+            put("commitment", commitment)
+        }
+    },
+    id = requestId
+)
+
 internal class SimulateTransaction(
     encodedTransaction: String,
     commitment: String = "finalized",

@@ -22,9 +22,9 @@ import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.base58
 import com.getcode.solana.rpc.RpcConfig
 import com.getcode.solana.rpc.RpcException
-import com.getcode.solana.rpc.SolanaConnection
 import com.getcode.solana.rpc.getBalance
 import com.getcode.solana.rpc.getAccountData
+import com.getcode.solana.rpc.getLatestBlockhash
 import com.getcode.solana.rpc.getTokenAccountBalance
 import com.getcode.solana.rpc.sendTransaction
 import com.getcode.solana.rpc.simulateTransaction
@@ -57,7 +57,6 @@ class PhantomWalletController @Inject constructor(
     private val phantomSdk: PhantomSdk,
     private val phantomConnector: PhantomWalletConnector,
 ) {
-    private val connection by lazy { SolanaConnection(rpcConfig.rpcUrl) }
     private val driver by lazy { Rpc20Driver(rpcConfig.rpcUrl, rpcConfig.networkDriver) }
 
     suspend fun connectWallet(
@@ -226,7 +225,7 @@ class PhantomWalletController @Inject constructor(
                 val owner = requireNotNull(userManager.accountCluster) { "Owner is null" }
 
                 val swapId = SwapId.generate()
-                val recentBlockhash = connection.getLatestBlockhash()
+                val recentBlockhash = driver.getLatestBlockhash().getOrThrow()
 
                 val liquidityPool = userFlags.resolvedFlags.value.usdcOnRampLiquidityPool.effectiveValue
                 val swapPool = when (liquidityPool) {
@@ -279,7 +278,7 @@ class PhantomWalletController @Inject constructor(
     ): Result<SolanaTransaction> {
         return withContext(Dispatchers.IO) {
             try {
-                val recentBlockhash = connection.getLatestBlockhash()
+                val recentBlockhash = driver.getLatestBlockhash().getOrThrow()
 
                 val poolAddress = FundSwapPool.CoinbaseStableSwapper.poolAddress
                 val poolData = driver.getAccountData(poolAddress).getOrThrow()
