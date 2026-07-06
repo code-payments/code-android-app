@@ -180,7 +180,6 @@ internal fun ContactList(
                             PermissionResult.Denied,
                             PermissionResult.PermanentlyDenied -> context.launchAppSettings()
                         }
-                        context.launchAppSettings()
                     }
                 }
             }
