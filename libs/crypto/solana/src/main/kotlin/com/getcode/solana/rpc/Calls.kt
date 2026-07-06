@@ -8,12 +8,27 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
-import org.sol4k.Connection
 import android.util.Base64
 
-class SolanaConnection(rpcUrl: String,) {
-    private val connection = Connection(rpcUrl)
-    fun getLatestBlockhash(): String = connection.getLatestBlockhash()
+/**
+ * Returns the most recent blockhash as a base58 string.
+ */
+suspend fun Rpc20Driver.getLatestBlockhash(): Result<String> {
+    val response = runCatching {
+        makeRequest(
+            request = GetLatestBlockhash(),
+            resultSerializer = JsonElement.serializer()
+        )
+    }.getOrElse { return Result.failure(it) }
+    response.error?.let { return Result.failure(RpcException(it.code, it.message)) }
+
+    val blockhash = response.result
+        ?.jsonObject?.get("value")
+        ?.jsonObject?.get("blockhash")
+        ?.jsonPrimitive?.content
+        ?: return Result.failure(Throwable("Missing blockhash"))
+
+    return Result.success(blockhash)
 }
 
 /**
