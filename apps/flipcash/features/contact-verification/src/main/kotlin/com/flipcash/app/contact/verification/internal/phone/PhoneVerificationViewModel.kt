@@ -17,6 +17,7 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.services.models.PhoneVerificationError
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.NotifiableError
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel
@@ -204,25 +205,35 @@ internal class PhoneVerificationViewModel @Inject constructor(
                         dispatchEvent(Event.OnVerifyingCodeChanged())
                     }
                 },
-                onError = {
-                    trace(message = "Code verification failed: $it", type = TraceType.Error)
+                onError = { cause ->
+                    trace(message = "Code verification failed: $cause", type = TraceType.Error)
                     dispatchEvent(Event.OnVerifyingCodeChanged())
-                    val (title, message) = when (it) {
-                        is PhoneVerificationError -> when (it) {
+                    val (title, message) = when (cause) {
+                        is PhoneVerificationError -> when (cause) {
                             is PhoneVerificationError.Denied -> "Something went wrong" to "You have already sent a verification code"
                             is PhoneVerificationError.InvalidVerificationCode -> "Something went wrong" to resources.getString(R.string.error_description_invalidVerificationCode)
                             is PhoneVerificationError.NoVerification -> "Something went wrong" to resources.getString(R.string.error_description_codeTimedOut)
                             is PhoneVerificationError.RateLimited -> "Something went wrong" to "Too many requests"
                             is PhoneVerificationError.UnsupportedPhoneType -> resources.getString(R.string.error_title_deviceNotSupported) to resources.getString(R.string.error_description_deviceNotSupported)
-                            else -> null to null
+                            is PhoneVerificationError.InvalidPhoneNumber -> resources.getString(R.string.error_title_failedToSendCodeToPhone) to resources.getString(R.string.error_description_failedToSendCodeToPhone)
+                            is PhoneVerificationError.Other -> resources.getString(R.string.error_title_failedToSendCodeToPhone) to resources.getString(R.string.error_description_failedToSendCodeToPhone)
+                            is PhoneVerificationError.Unrecognized -> resources.getString(R.string.error_title_failedToSendCodeToPhone) to resources.getString(R.string.error_description_failedToSendCodeToPhone)
                         }
-                        else -> null to null
+                        else -> resources.getString(R.string.error_title_failedToSendCodeToPhone) to resources.getString(R.string.error_description_failedToSendCodeToPhone)
                     }
 
-                    BottomBarManager.showError(
-                        title = title ?: resources.getString(R.string.error_title_failedToSendCodeToPhone),
-                        message = message ?: resources.getString(R.string.error_description_failedToSendCodeToPhone),
-                    )
+                    val isError = cause is NotifiableError
+                    if (isError) {
+                        BottomBarManager.showError(
+                            title = title,
+                            message = message,
+                        )
+                    } else {
+                        BottomBarManager.showAlert(
+                            title = title,
+                            message = message,
+                        )
+                    }
                 }
             ).launchIn(viewModelScope)
 
