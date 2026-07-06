@@ -78,8 +78,16 @@ internal fun ContactsPermissionGateScreen() {
     // If this step has been removed from the flow (e.g. chats arrived while we're
     // on this screen, or on re-open when chats already exist), advance immediately.
     // FlowNavigator.proceed() handles removed steps by replacing with the first remaining step.
+    //
+    // Exception: while a sync is actively running (the user just granted access),
+    // the device contacts land first and remove this gate from the steps, but the
+    // on-Flipcash contacts are fetched in a second pass. If we advanced now, the list
+    // would render with only the "not on Flipcash" section, then prepend the
+    // on-Flipcash contacts above the viewport once they arrive — pushing them
+    // offscreen. Let ContactSyncComplete drive navigation instead so the list is
+    // fully formed before it's shown.
     val gateStillInSteps = state.steps.any { it is SendStep.ContactsGate }
-    if (!gateStillInSteps) {
+    if (!gateStillInSteps && !state.contactSyncState.loading) {
         LaunchedEffect(Unit) { flowNavigator.proceed() }
         return
     }

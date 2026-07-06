@@ -48,7 +48,7 @@ import com.flipcash.app.contacts.ui.ContactAvatar
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.directsend.internal.ContactListItem
-import com.flipcash.app.permissions.rememberContactAccessHandle
+import com.flipcash.app.permissions.ContactAccessHandle
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.features.directsend.R
 import com.flipcash.shared.chat.ui.AnimatedConversationPaymentsPreview
@@ -65,16 +65,13 @@ internal fun ContactList(
     items: List<ContactListItem>,
     searchState: TextFieldState,
     listState: LazyListState,
+    accessHandle: ContactAccessHandle,
     modifier: Modifier = Modifier,
     isPickerMode: Boolean = false,
-    onAddMoreContacts: () -> Unit = {},
     onItemClick: (ContactListItem.ContactRow) -> Unit = {},
     onItemDismissed: (ContactListItem.ContactRow) -> Unit = {},
 ) {
     val context = LocalContext.current
-    val accessHandle = rememberContactAccessHandle(
-        isPickerMode = isPickerMode,
-    )
 
     LazyColumn(
         modifier = Modifier
@@ -188,7 +185,7 @@ internal fun ContactList(
         if (isPickerMode) {
             item {
                 PickerModeHeader(
-                    onAddMoreContacts = onAddMoreContacts,
+                    onAddMoreContacts = { accessHandle.launch() },
                 )
             }
         }
@@ -563,5 +560,6 @@ private fun ContactListPreview() {
         items = items,
         searchState = TextFieldState(),
         listState = rememberLazyListState(),
+        accessHandle = ContactAccessHandle(launch = {}),
     )
 }
