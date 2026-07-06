@@ -95,15 +95,24 @@ internal sealed interface AnalyticsEvent {
         override val name = "Grab Bill Start"
     }
 
-    data class GrabBill(val time: Long?) : Transfer {
+    data class GrabBill(
+        val time: Long?,
+        val stages: Map<String, Long> = emptyMap(),
+    ) : Transfer {
         override val name = "Grab Bill"
         override fun toProperties() = buildMap {
             time?.let { put("Grab Time", it.toString()) }
+            stages.forEach { (stage, ms) -> put(stage, ms.toString()) }
         }
     }
 
-    data object GiveBill : Transfer {
+    data class GiveBill(
+        val stages: Map<String, Long> = emptyMap(),
+    ) : Transfer {
         override val name = "Give Bill"
+        override fun toProperties() = buildMap {
+            stages.forEach { (stage, ms) -> put(stage, ms.toString()) }
+        }
     }
 
     data object GiveBillStart : Transfer {
@@ -319,9 +328,9 @@ internal fun Fiat.asProperties(): Map<String, String> {
 
 internal fun Analytics.Transfer.toAnalyticsEvent(): AnalyticsEvent = when (this) {
     is Analytics.Transfer.Initiate.GrabBillStart  -> AnalyticsEvent.GrabBillStart
-    is Analytics.Transfer.GrabBill                -> AnalyticsEvent.GrabBill(time = time)
+    is Analytics.Transfer.GrabBill                -> AnalyticsEvent.GrabBill(time = time, stages = stages)
     is Analytics.Transfer.Initiate.GiveBillStart  -> AnalyticsEvent.GiveBillStart
-    is Analytics.Transfer.GiveBill                -> AnalyticsEvent.GiveBill
+    is Analytics.Transfer.GiveBill                -> AnalyticsEvent.GiveBill(stages = stages)
     is Analytics.Transfer.Withdrawal              -> AnalyticsEvent.Withdrawal
     is Analytics.Transfer.ClaimedCashLink         -> AnalyticsEvent.ClaimedCashLink
     is Analytics.Transfer.SentCashLink.Clipboard  -> AnalyticsEvent.SentCashLink(clipboard = true)

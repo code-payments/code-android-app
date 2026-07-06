@@ -48,8 +48,13 @@ object Analytics {
             data object GiveBillStart: Initiate
         }
 
-        data class GrabBill(val time: Long? = null) : Transfer
-        data object GiveBill : Transfer
+        data class GrabBill(
+            val time: Long? = null,
+            val stages: Map<String, Long> = emptyMap(),
+        ) : Transfer
+        data class GiveBill(
+            val stages: Map<String, Long> = emptyMap(),
+        ) : Transfer
         data object Withdrawal : Transfer
         data object ClaimedCashLink : Transfer
         sealed interface SentCashLink : Transfer {

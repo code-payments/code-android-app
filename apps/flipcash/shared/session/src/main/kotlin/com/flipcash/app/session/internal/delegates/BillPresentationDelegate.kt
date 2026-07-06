@@ -145,7 +145,7 @@ class BillPresentationDelegate @Inject constructor(
             owner = owner,
             onGrabbed = { amount ->
                 tokenCoordinator.subtract(bill.token, amount)
-                analytics.transfer(Analytics.Transfer.GiveBill, bill.amount)
+                analytics.transfer(Analytics.Transfer.GiveBill(), bill.amount)
                 toastController.enqueue(bill.amount, isDeposit = false)
                 dismissBill(Grabbed)
                 vibrator.vibrate()
@@ -156,7 +156,7 @@ class BillPresentationDelegate @Inject constructor(
             },
             onError = {
                 analytics.transfer(
-                    event = Analytics.Transfer.GiveBill,
+                    event = Analytics.Transfer.GiveBill(),
                     amount = bill.amount,
                     successful = false,
                     error = it
