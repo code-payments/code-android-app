@@ -13,7 +13,8 @@ import com.getcode.opencode.providers.TokenMetadataProvider
 import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
-import com.getcode.utils.timedTraceSuspend
+import com.getcode.utils.payment.PaymentTraceRegistry
+import com.getcode.utils.payment.spanSuspendOrRun
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 
@@ -102,69 +103,59 @@ internal class GrabBillTransactor(
     private suspend fun handleMultiMintScan(
         ownerKey: AccountCluster,
         data: OpenCodePayload
-    ): Result<TransactionMetadata.SendPublicPayment> = timedTraceSuspend(
-        message = "handleMultiMintScan",
-        tag = tag,
-    ) { onStep ->
+    ): Result<TransactionMetadata.SendPublicPayment> {
+        val trace = PaymentTraceRegistry.get(data.rendezvous.publicKey)
+
         // 1. Wait for the give request from the sender so we can determine what mint we are operating on
-        val (messageId, giveRequestMint, exchangeData, mintMetadata) = messagingController.pollForGiveRequest(data.rendezvous)
-            .getOrNull()
-            ?: run {
-                onStep("pollForGiveRequest")
-                return@timedTraceSuspend logAndFail(GrabTransactorError.GiveRequestNotFound())
-            }
-        onStep("pollForGiveRequest")
+        val (messageId, giveRequestMint, exchangeData, mintMetadata) = trace.spanSuspendOrRun("pollForGiveRequest") {
+            messagingController.pollForGiveRequest(data.rendezvous).getOrNull()
+        } ?: return logAndFail(GrabTransactorError.GiveRequestNotFound())
 
         // 2. Utilize the mint from the give request to get the Token metadata
-        val token = mintMetadata
-            ?: (tokenProvider.getTokenMetadata(giveRequestMint)
-                .getOrNull()?.token
-                ?: run {
-                    onStep("tokenMetadata")
-                    return@timedTraceSuspend logAndFail(GrabTransactorError.Other(message = "No token found for proposed mint"))
-                })
-        onStep("tokenMetadata")
+        val token = trace.spanSuspendOrRun("tokenMetadata") {
+            mintMetadata ?: tokenProvider.getTokenMetadata(giveRequestMint).getOrNull()?.token
+        } ?: return logAndFail(GrabTransactorError.Other(message = "No token found for proposed mint"))
 
         val tokenizedCluster = ownerKey.withTimelockForToken(token)
 
         // 3. create an account if we don't currently have one for this token
         val needsAccount = !accountController.hasAccountFor(token.address)
         if (needsAccount) {
-            accountController.createUserAccount(
-                ownerForMint = tokenizedCluster,
-                mint = token.address
-            ).recoverCatching { error ->
-                if (error is SubmitIntentError.Denied && error.isUnexpectedOwnerAccount) {
-                    // Safety net: PR #660 mitigates the upstream cause (getUserFlags
-                    // failure preventing account bootstrap), but if the core account
-                    // still isn't set up we recover here by triggering the normal
-                    // bootstrap path before retrying.
-                    accountController.refreshAccountState()
-                    // Retry the original non-core mint account
-                    accountController.createUserAccount(
-                        ownerForMint = tokenizedCluster,
-                        mint = token.address
-                    ).getOrThrow()
-                } else {
-                    throw error
+            val creation = trace.spanSuspendOrRun("createUserAccount", metadata = mapOf("needed" to true)) {
+                accountController.createUserAccount(
+                    ownerForMint = tokenizedCluster,
+                    mint = token.address
+                ).recoverCatching { error ->
+                    if (error is SubmitIntentError.Denied && error.isUnexpectedOwnerAccount) {
+                        // Safety net: PR #660 mitigates the upstream cause (getUserFlags
+                        // failure preventing account bootstrap), but if the core account
+                        // still isn't set up we recover here by triggering the normal
+                        // bootstrap path before retrying.
+                        accountController.refreshAccountState()
+                        // Retry the original non-core mint account
+                        accountController.createUserAccount(
+                            ownerForMint = tokenizedCluster,
+                            mint = token.address
+                        ).getOrThrow()
+                    } else {
+                        throw error
+                    }
                 }
-            }.onFailure {
-                onStep("createUserAccount (needed=true)")
-                return@timedTraceSuspend handleGrabError(it)
             }
+            creation.exceptionOrNull()?.let { return handleGrabError(it) }
         }
-        onStep("createUserAccount (needed=$needsAccount)")
 
         // 4. Send grab request and wait for confirmation
-        val result = requestGrab<TransactionMetadata.SendPublicPayment>(tokenizedCluster, data)
-            .map { it.copy(verifiedExchangeData = exchangeData) }
-            .onSuccess {
-                // 5. Ack the receipt of the give request to clear it from the stream
-                messagingController.ackMessages(data.rendezvous, listOf(messageId))
-            }
-        onStep("requestGrab+ack")
+        val result = trace.spanSuspendOrRun("requestGrab") {
+            requestGrab<TransactionMetadata.SendPublicPayment>(tokenizedCluster, data)
+                .map { it.copy(verifiedExchangeData = exchangeData) }
+                .onSuccess {
+                    // 5. Ack the receipt of the give request to clear it from the stream
+                    messagingController.ackMessages(data.rendezvous, listOf(messageId))
+                }
+        }
 
-        result
+        return result
     }
 
     private fun handleGrabError(error: Throwable): Result<Nothing> {

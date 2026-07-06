@@ -18,6 +18,9 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
 import com.getcode.utils.TraceType
+import com.getcode.utils.payment.PaymentFlow
+import com.getcode.utils.payment.PaymentTraceRegistry
+import com.getcode.utils.payment.spanSuspendOrRun
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -123,12 +126,15 @@ internal class GiveBillTransactor(
             ?: return logAndFail(GiveTransactorError.Other(message = "No token. Did you call with() first?"))
         val rendezvous = rendezvousKey
             ?: return logAndFail(GiveTransactorError.Other(message = "No rendezvous key. Did you call with() first?"))
+        val correlationId: String = rendezvous.publicKey
+        val paymentTrace = PaymentTraceRegistry.open(correlationId, PaymentFlow.Give)
         val sendingAmount = amount
             ?: return logAndFail(GiveTransactorError.Other(message = "No amount. Did you call with() first?"))
 
-        val initialState = providedVerifiedState
-            ?: verifiedFiatCalculator.resolveVerifiedState(sendingAmount.rate.currency, desiredToken.address)
-            ?: return logAndFail(GiveTransactorError.Other("Failed to get verified state"))
+        val initialState = paymentTrace.spanSuspendOrRun("resolveExchangeData") {
+            providedVerifiedState
+                ?: verifiedFiatCalculator.resolveVerifiedState(sendingAmount.rate.currency, desiredToken.address)
+        } ?: return logAndFail(GiveTransactorError.Other("Failed to get verified state"))
 
         val (verifiedState, exchangeData) = initialState.exchangeDataFor(
             amount = sendingAmount,
@@ -154,7 +160,9 @@ internal class GiveBillTransactor(
         // This provides the recipient with the desired token mint of the cash.
         // If this fails, bail out immediately — the receiver never got the
         // advertisement so the stream will never deliver a grab request.
-        messagingController.sendRequestToGiveBill(desiredToken.address, rendezvous, exchangeData)
+        paymentTrace.spanSuspendOrRun("sendRequestToGiveBill") {
+            messagingController.sendRequestToGiveBill(desiredToken.address, rendezvous, exchangeData)
+        }
             .onSuccess {
                 trace(
                     tag = "Messaging",
@@ -174,8 +182,12 @@ internal class GiveBillTransactor(
         )
 
         // 2. Wait for recipient to grab the bill
-        val transferRequest = messagingController.awaitRequestToGrabBill(scope, rendezvous)
-            ?: return logAndFail(GiveTransactorError.NoGrabReceived())
+        val transferRequest = paymentTrace.spanSuspendOrRun("awaitGrab") {
+            messagingController.awaitRequestToGrabBill(scope, rendezvous)
+        } ?: run {
+            PaymentTraceRegistry.finish(correlationId, success = false)
+            return logAndFail(GiveTransactorError.NoGrabReceived())
+        }
 
 
         // 3. Validate that destination hasn't been tampered with by
@@ -208,25 +220,31 @@ internal class GiveBillTransactor(
 
 
         // 4. Send the funds to destination
-        return transactionController.transfer(
-            scope = scope,
-            amount = amount!!,
-            mint = desiredToken.address,
-            source = sendingVault,
-            destination = transferRequest.account,
-            rendezvous = rendezvous.toPublicKey(),
-            exchangeData = transferExchangeData,
-        ).fold(
+        val outcome = paymentTrace.spanSuspendOrRun("submitIntent") {
+            transactionController.transfer(
+                scope = scope,
+                amount = amount!!,
+                mint = desiredToken.address,
+                source = sendingVault,
+                destination = transferRequest.account,
+                rendezvous = rendezvous.toPublicKey(),
+                exchangeData = transferExchangeData,
+            )
+        }.fold(
             onSuccess = {
-                transactionController.pollIntentMetadata(
-                    owner = sendingVault.authority.keyPair,
-                    intentId = it.id
-                )
+                paymentTrace.spanSuspendOrRun("pollIntentMetadata") {
+                    transactionController.pollIntentMetadata<TransactionMetadata.SendPublicPayment>(
+                        owner = sendingVault.authority.keyPair,
+                        intentId = it.id
+                    )
+                }
             },
             onFailure = {
                 logAndFail(it)
             }
         )
+        PaymentTraceRegistry.finish(correlationId, success = outcome.isSuccess, error = outcome.exceptionOrNull())
+        return outcome
     }
 
     /** Cancels the coroutine scope and clears all held state. */
