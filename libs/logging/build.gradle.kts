@@ -26,6 +26,7 @@ android {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.robolectric)
+    testImplementation(libs.kotlinx.coroutines.test)
 
     api(libs.timber)
     implementation(libs.androidx.annotation)
