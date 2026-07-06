@@ -167,8 +167,19 @@ internal fun ContactList(
                     )
                     CodeButton(
                         modifier = Modifier.fillMaxWidth(),
-                        text = stringResource(R.string.action_allowContactAccessInSettings),
+                        text = when (accessHandle.permissionStatus) {
+                            PermissionResult.Denied -> stringResource(R.string.action_allowContactAccessInSettings)
+                            PermissionResult.Granted -> ""
+                            PermissionResult.NotRequested -> stringResource(R.string.action_giveAccessToContacts)
+                            PermissionResult.PermanentlyDenied -> stringResource(R.string.action_allowContactAccessInSettings)
+                        },
                     ) {
+                        when (accessHandle.permissionStatus) {
+                            PermissionResult.NotRequested -> accessHandle.launch()
+                            PermissionResult.Granted -> Unit
+                            PermissionResult.Denied,
+                            PermissionResult.PermanentlyDenied -> context.launchAppSettings()
+                        }
                         context.launchAppSettings()
                     }
                 }
