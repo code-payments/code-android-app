@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.analytics.Button
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.send.SendResult
 import com.flipcash.app.core.send.SendStep
@@ -28,6 +29,7 @@ import com.flipcash.app.directsend.internal.screens.components.ContactList
 import com.flipcash.app.permissions.ContactAccessResult
 import com.flipcash.app.permissions.rememberContactAccessHandle
 import com.flipcash.features.directsend.R
+import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.flow.LocalOuterCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
@@ -47,6 +49,7 @@ internal fun ContactListScreen() {
     val flowNavigator = rememberFlowNavigator<SendStep, SendResult>()
     val viewModel = flowSharedViewModel<SendFlowViewModel>()
     val navigator = LocalOuterCodeNavigator.current
+    val analytics = LocalAnalytics.current
 
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
@@ -72,6 +75,14 @@ internal fun ContactListScreen() {
         isPickerMode = state.isPickerMode,
     ) { result ->
         when (result) {
+            ContactAccessResult.Granted -> {
+                // Granting via the in-list rationale card kicks off the same contact
+                // sync the permission gate does; otherwise the newly-allowed contacts
+                // are never fetched.
+                analytics.action(Button.AllowContacts)
+                viewModel.dispatchEvent(SendFlowViewModel.Event.ContactsGranted)
+            }
+
             is ContactAccessResult.Picked -> {
                 viewModel.dispatchEvent(SendFlowViewModel.Event.ContactsPicked(result.contacts))
             }
@@ -161,8 +172,8 @@ internal fun ContactListScreen() {
                 items = state.listItems,
                 searchState = state.searchState,
                 listState = listState,
+                accessHandle = accessHandle,
                 isPickerMode = state.isPickerMode,
-                onAddMoreContacts = { accessHandle.launch() },
                 onItemClick = { contact ->
                     viewModel.dispatchEvent(SendFlowViewModel.Event.OnContactClicked(contact))
                 },
