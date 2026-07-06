@@ -15,6 +15,9 @@ import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.base58
 import com.getcode.utils.hexEncodedString
+import com.getcode.utils.payment.NativeScanTimings
+import com.getcode.utils.payment.PaymentFlow
+import com.getcode.utils.payment.PaymentTraceRegistry
 import com.getcode.utils.trace
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.channels.Channel
@@ -98,6 +101,19 @@ class CodeScanDelegate @Inject constructor(
 
     private fun onCashScanned(payload: OpenCodePayload) {
         scannedRendezvous[payload.rendezvous.publicKey] = Clock.System.now().toEpochMilliseconds()
+        val paymentTrace = PaymentTraceRegistry.open(payload.rendezvous.publicKey, PaymentFlow.Grab)
+        NativeScanTimings.consumeLatest()?.let { sample ->
+            paymentTrace.mark(
+                name = "nativeScan",
+                durationMs = sample.durationMs,
+                metadata = mapOf(
+                    "hit" to sample.hit,
+                    "width" to sample.width,
+                    "height" to sample.height,
+                    "quality" to sample.quality,
+                ),
+            )
+        }
 
         trace(
             tag = "Session",
@@ -124,14 +140,20 @@ class CodeScanDelegate @Inject constructor(
                 )
                 _events.trySend(Event.BillReady(bill))
 
-                analytics.transfer(Analytics.Transfer.GrabBill(grabTime), amount)
+                val stages = PaymentTraceRegistry.finish(payload.rendezvous.publicKey, success = true)
+                    ?.durations()
+                    ?: emptyMap()
+                analytics.transfer(Analytics.Transfer.GrabBill(time = grabTime, stages = stages), amount)
                 BottomBarManager.clear()
                 _events.trySend(Event.CheckPendingFeed)
                 _events.trySend(Event.RefreshFeed)
             },
             onError = {
+                val stages = PaymentTraceRegistry.finish(payload.rendezvous.publicKey, success = false, error = it)
+                    ?.durations()
+                    ?: emptyMap()
                 analytics.transfer(
-                    event = Analytics.Transfer.GrabBill(),
+                    event = Analytics.Transfer.GrabBill(stages = stages),
                     fiat = payload.fiat,
                     successful = false,
                     error = it
