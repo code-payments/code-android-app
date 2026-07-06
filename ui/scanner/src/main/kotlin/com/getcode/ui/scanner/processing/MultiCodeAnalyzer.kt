@@ -9,7 +9,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import com.getcode.libs.code.detection.CodeDetector
 import com.getcode.libs.code.detection.CodeScanResult
+import com.getcode.utils.payment.NativeScanTimings
+import kotlin.time.TimeSource
 import com.getcode.libs.qr.QrCodeAnalyzer
+import com.kik.kikx.kikcodes.ScanQuality
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -100,8 +103,31 @@ class MultiCodeAnalyzer(
             try {
                 var result: CodeScanResult? = null
 
-                for (detector in detectors) {
-                    result = detector.detect(image)
+                for ((index, detector) in detectors.withIndex()) {
+                    if (index == 0) {
+                        // First detector is the Kik native scanner — isolate its cost.
+                        val start = TimeSource.Monotonic.markNow()
+                        result = detector.detect(image)
+                        val elapsedMs = start.elapsedNow().inWholeMilliseconds
+                        // Record only on a hit. The session layer consumes the latest sample one
+                        // coroutine hop later; recording misses too would let a later empty frame
+                        // overwrite the winning frame's timing before it is consumed. (Phase 1 has
+                        // no consumer of miss timings; the robust fix is to carry the sample on the
+                        // CodeScanResult itself — deferred to the overlay phase.)
+                        if (result != null) {
+                            NativeScanTimings.record(
+                                NativeScanTimings.Sample(
+                                    durationMs = elapsedMs,
+                                    hit = true,
+                                    width = image.width,
+                                    height = image.height,
+                                    quality = ScanQuality.Best.headerValue,
+                                )
+                            )
+                        }
+                    } else {
+                        result = detector.detect(image)
+                    }
                     if (result != null) {
                         break
                     }
