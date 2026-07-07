@@ -557,7 +557,9 @@ class SwapViewModel @Inject constructor(
                             }
 
                             mustAddMoney && !isAddingMoney -> {
-                                // not enough USDF for a token buy — must "add money first"
+                                // not enough USDF for a token buy — require depositing first.
+                                // (a confirmation dialog is shown ahead of this by the screen.)
+                                dispatchEvent(Event.PresentDepositOptions)
                             }
 
                             else -> {
