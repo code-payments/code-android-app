@@ -67,6 +67,7 @@ internal class MenuScreenViewModel @Inject constructor(
         val unlockedBetaFeaturesManually: Boolean = false,
         val appVersionInfo: VersionInfo = VersionInfo(),
         val releaseTrack: String = "",
+        val addMoneyUxEnabled: Boolean = false,
     )
 
     sealed interface Event {
@@ -258,6 +259,7 @@ internal class MenuScreenViewModel @Inject constructor(
                             flags = event.flags
                         ),
                         flags = event.flags,
+                        addMoneyUxEnabled = event.flags.find { it.flag == FeatureFlag.AddMoneyUX }?.enabled ?: false,
                     )
                 }
             }

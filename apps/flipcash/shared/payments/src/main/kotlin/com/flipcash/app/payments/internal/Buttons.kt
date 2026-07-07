@@ -74,6 +74,7 @@ internal fun purchaseOptions(
             buildButtonAction(
                 prefix = null,
                 suffix = resources.getString(R.string.label_phantom),
+                iconPadding = { PaddingValues() },
                 iconRes = R.drawable.ic_phantom_wallet,
                 onClick = { onClick(PurchaseMethod.PhantomWallet) }
             )

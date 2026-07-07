@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.TileButton
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.updates.LocalAppUpdater
@@ -96,7 +97,11 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 ) {
                     TileButton(
                         modifier = Modifier.weight(1f),
-                        text = stringResource(R.string.action_deposit),
+                        text = if (state.addMoneyUxEnabled) {
+                            stringResource(R.string.action_addMoney)
+                        } else {
+                            stringResource(R.string.action_deposit)
+                        },
                         icon = painterResource(R.drawable.ic_menu_deposit)
                     ) {
                         viewModel.dispatchEvent(Event.PresentDepositOptions)
@@ -104,7 +109,11 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
 
                     TileButton(
                         modifier = Modifier.weight(1f),
-                        text = stringResource(R.string.action_withdraw),
+                        text = if (state.addMoneyUxEnabled) {
+                            stringResource(R.string.action_withdrawMoney)
+                        } else {
+                            stringResource(R.string.action_withdraw)
+                        },
                         icon = painterResource(R.drawable.ic_menu_withdraw)
                     ) {
                         navigator.push(AppRoute.Transfers.Withdrawal())
