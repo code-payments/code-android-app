@@ -12,7 +12,7 @@ class AmountEntryConfigTest {
 
     @Test
     fun `default config has no hint and cannot confirm`() {
-        val config = AmountEntryConfig(action = AmountEntryAction(label = "Go"))
+        val config = AmountEntryConfig(action = AmountEntryAction(label = AmountEntryLabel.Plain("Go")))
         assertIs<AmountEntryHint.None>(config.hint)
         assertFalse(config.canConfirm)
         assertTrue(config.canChangeCurrency)
@@ -22,7 +22,7 @@ class AmountEntryConfigTest {
     fun `config with info hint`() {
         val config = AmountEntryConfig(
             hint = AmountEntryHint.Info("Send up to \$100"),
-            action = AmountEntryAction(label = "Next"),
+            action = AmountEntryAction(label = AmountEntryLabel.Plain("Next")),
         )
         assertIs<AmountEntryHint.Info>(config.hint)
         assertEquals("Send up to \$100", (config.hint as AmountEntryHint.Info).text)
@@ -32,7 +32,7 @@ class AmountEntryConfigTest {
     fun `config with error hint`() {
         val config = AmountEntryConfig(
             hint = AmountEntryHint.Error("Limit exceeded"),
-            action = AmountEntryAction(label = "Next"),
+            action = AmountEntryAction(label = AmountEntryLabel.Plain("Next")),
         )
         assertIs<AmountEntryHint.Error>(config.hint)
         assertEquals("Limit exceeded", (config.hint as AmountEntryHint.Error).text)
@@ -40,7 +40,7 @@ class AmountEntryConfigTest {
 
     @Test
     fun `action defaults to Button style`() {
-        val action = AmountEntryAction(label = "Continue")
+        val action = AmountEntryAction(label = AmountEntryLabel.Plain("Continue"))
         assertEquals(ConfirmationStyle.Button, action.style)
         assertTrue(action.loadingState.isIdle)
     }
@@ -48,7 +48,7 @@ class AmountEntryConfigTest {
     @Test
     fun `action with Slide style`() {
         val action = AmountEntryAction(
-            label = "Swipe to send",
+            label = AmountEntryLabel.Plain("Swipe to send"),
             style = ConfirmationStyle.Slide,
         )
         assertEquals(ConfirmationStyle.Slide, action.style)
@@ -57,7 +57,7 @@ class AmountEntryConfigTest {
     @Test
     fun `action loading state`() {
         val action = AmountEntryAction(
-            label = "Send",
+            label = AmountEntryLabel.Plain("Send"),
             loadingState = LoadingSuccessState(loading = true),
         )
         assertTrue(action.loadingState.loading)
@@ -68,7 +68,7 @@ class AmountEntryConfigTest {
     @Test
     fun `action success state`() {
         val action = AmountEntryAction(
-            label = "Send",
+            label = AmountEntryLabel.Plain("Send"),
             loadingState = LoadingSuccessState(success = true),
         )
         assertTrue(action.loadingState.success)
@@ -77,8 +77,8 @@ class AmountEntryConfigTest {
 
     @Test
     fun `style default values`() {
-        val style = AmountEntryStyle(actionLabel = "Buy")
-        assertEquals("Buy", style.actionLabel)
+        val style = AmountEntryStyle(actionLabel = AmountEntryLabel.Plain("Buy"))
+        assertEquals("Buy", style.actionLabel.text)
         assertEquals(ConfirmationStyle.Button, style.actionStyle)
         assertTrue(style.canChangeCurrency)
         assertEquals("", style.infoHint("anything"))
@@ -89,7 +89,7 @@ class AmountEntryConfigTest {
     @Test
     fun `style with custom hints`() {
         val style = AmountEntryStyle(
-            actionLabel = "Send",
+            actionLabel = AmountEntryLabel.Plain("Send"),
             actionStyle = ConfirmationStyle.Slide,
             canChangeCurrency = false,
             infoHint = { "Up to $it available" },

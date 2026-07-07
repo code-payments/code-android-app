@@ -9,6 +9,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.cash.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.shared.amountentry.AmountEntryDelegate
+import com.flipcash.shared.amountentry.AmountEntryLabel
 import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -75,7 +76,7 @@ internal class CashScreenViewModel @Inject constructor(
         exchange = exchange,
         scope = viewModelScope,
         style = AmountEntryStyle(
-            actionLabel = resources.getString(R.string.action_next),
+            actionLabel = AmountEntryLabel.Plain(resources.getString(R.string.action_next)),
             infoHint = { resources.getString(R.string.subtitle_giveCashHint, it) },
             overMaxHint = { resources.getString(R.string.subtitle_giveCashHintLimitExceeded, it) },
         ),

@@ -43,7 +43,7 @@ class AmountEntryDelegateTest {
      * while NOT blocking `runTest` completion (unlike `this` / TestScope).
      */
     private fun TestScope.createDelegate(
-        style: AmountEntryStyle = AmountEntryStyle(actionLabel = "Next"),
+        style: AmountEntryStyle = AmountEntryStyle(actionLabel = AmountEntryLabel.Plain("Next")),
         loadingState: MutableStateFlow<LoadingSuccessState> = MutableStateFlow(LoadingSuccessState()),
         maxAmount: MutableStateFlow<Fiat?> = MutableStateFlow(null),
         minimumAmount: MutableStateFlow<Fiat?> = MutableStateFlow(null),
@@ -173,13 +173,13 @@ class AmountEntryDelegateTest {
     fun `config initial state uses style label and defaults`() = runTest {
         val delegate = createDelegate(
             style = AmountEntryStyle(
-                actionLabel = "Send",
+                actionLabel = AmountEntryLabel.Plain("Send"),
                 actionStyle = ConfirmationStyle.Slide,
             ),
         )
 
         val config = delegate.config.value
-        assertEquals("Send", config.action.label)
+        assertEquals("Send", config.action.label.text)
         assertEquals(ConfirmationStyle.Slide, config.action.style)
         assertFalse(config.canConfirm)
         assertTrue(config.canChangeCurrency)
@@ -208,7 +208,7 @@ class AmountEntryDelegateTest {
     @Test
     fun `config canChangeCurrency reflects style`() = runTest {
         val delegate = createDelegate(
-            style = AmountEntryStyle(actionLabel = "Buy", canChangeCurrency = false),
+            style = AmountEntryStyle(actionLabel = AmountEntryLabel.Plain("Buy"), canChangeCurrency = false),
         )
 
         assertFalse(delegate.config.value.canChangeCurrency)
@@ -223,7 +223,7 @@ class AmountEntryDelegateTest {
         val max = MutableStateFlow<Fiat?>(Fiat(100.0, CurrencyCode.USD))
         val delegate = createDelegate(
             style = AmountEntryStyle(
-                actionLabel = "Next",
+                actionLabel = AmountEntryLabel.Plain("Next"),
                 infoHint = { "Up to $it" },
                 overMaxHint = { "Over $it" },
             ),
@@ -242,7 +242,7 @@ class AmountEntryDelegateTest {
         val max = MutableStateFlow<Fiat?>(Fiat(10.0, CurrencyCode.USD))
         val delegate = createDelegate(
             style = AmountEntryStyle(
-                actionLabel = "Next",
+                actionLabel = AmountEntryLabel.Plain("Next"),
                 infoHint = { "Up to $it" },
                 overMaxHint = { "Over $it" },
             ),
@@ -261,7 +261,7 @@ class AmountEntryDelegateTest {
     fun `config shows no hint when max is null`() = runTest {
         val delegate = createDelegate(
             style = AmountEntryStyle(
-                actionLabel = "Next",
+                actionLabel = AmountEntryLabel.Plain("Next"),
                 infoHint = { "Up to $it" },
                 overMaxHint = { "Over $it" },
             ),
@@ -277,7 +277,7 @@ class AmountEntryDelegateTest {
         val max = MutableStateFlow<Fiat?>(Fiat(100.0, CurrencyCode.USD))
         val delegate = createDelegate(
             style = AmountEntryStyle(
-                actionLabel = "Next",
+                actionLabel = AmountEntryLabel.Plain("Next"),
                 infoHint = { "Up to $it" },
                 overMaxHint = { "Over $it" },
             ),
@@ -299,7 +299,7 @@ class AmountEntryDelegateTest {
         val min = MutableStateFlow<Fiat?>(Fiat(5.0, CurrencyCode.USD))
         val delegate = createDelegate(
             style = AmountEntryStyle(
-                actionLabel = "Next",
+                actionLabel = AmountEntryLabel.Plain("Next"),
                 infoHint = { "Up to $it" },
                 overMaxHint = { "Over $it" },
                 belowMinHint = { "Min is $it" },
@@ -321,7 +321,7 @@ class AmountEntryDelegateTest {
         val min = MutableStateFlow<Fiat?>(Fiat(5.0, CurrencyCode.USD))
         val delegate = createDelegate(
             style = AmountEntryStyle(
-                actionLabel = "Next",
+                actionLabel = AmountEntryLabel.Plain("Next"),
                 infoHint = { "Up to $it" },
                 overMaxHint = { "Over $it" },
                 // belowMinHint is null — no below-min check
@@ -342,7 +342,7 @@ class AmountEntryDelegateTest {
         val min = MutableStateFlow<Fiat?>(Fiat(5.0, CurrencyCode.USD))
         val delegate = createDelegate(
             style = AmountEntryStyle(
-                actionLabel = "Next",
+                actionLabel = AmountEntryLabel.Plain("Next"),
                 infoHint = { "Up to $it" },
                 overMaxHint = { "Over $it" },
                 belowMinHint = { "Min is $it" },
@@ -364,7 +364,7 @@ class AmountEntryDelegateTest {
         val min = MutableStateFlow<Fiat?>(Fiat(5.0, CurrencyCode.USD))
         val delegate = createDelegate(
             style = AmountEntryStyle(
-                actionLabel = "Next",
+                actionLabel = AmountEntryLabel.Plain("Next"),
                 infoHint = { "Up to $it" },
                 overMaxHint = { "Over $it" },
                 belowMinHint = { "Min is $it" },
@@ -408,7 +408,7 @@ class AmountEntryDelegateTest {
     @Test
     fun `config updates when style flow changes`() = runTest {
         val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
-        val styleFlow = MutableStateFlow(AmountEntryStyle(actionLabel = "Buy"))
+        val styleFlow = MutableStateFlow(AmountEntryStyle(actionLabel = AmountEntryLabel.Plain("Buy")))
         val delegate = AmountEntryDelegate(
             exchange = exchange,
             scope = scope,
@@ -416,11 +416,11 @@ class AmountEntryDelegateTest {
         )
         delegate.config.launchIn(scope)
 
-        assertEquals("Buy", delegate.config.value.action.label)
+        assertEquals("Buy", delegate.config.value.action.label.text)
 
-        styleFlow.value = AmountEntryStyle(actionLabel = "Sell")
+        styleFlow.value = AmountEntryStyle(actionLabel = AmountEntryLabel.Plain("Sell"))
 
-        assertEquals("Sell", delegate.config.value.action.label)
+        assertEquals("Sell", delegate.config.value.action.label.text)
     }
 
     @Test
@@ -431,7 +431,7 @@ class AmountEntryDelegateTest {
             exchange = exchange,
             scope = scope,
             style = AmountEntryStyle(
-                actionLabel = "Next",
+                actionLabel = AmountEntryLabel.Plain("Next"),
                 infoHint = { "Up to $it" },
                 overMaxHint = { "Over $it" },
             ),
@@ -461,7 +461,7 @@ class AmountEntryDelegateTest {
             exchange = exchange,
             scope = scope,
             maxLength = 3,
-            style = AmountEntryStyle(actionLabel = "Next"),
+            style = AmountEntryStyle(actionLabel = AmountEntryLabel.Plain("Next")),
         )
         delegate.onCurrencyChanged(usd)
         delegate.onNumber(1)
@@ -485,7 +485,7 @@ class AmountEntryDelegateTest {
         val delegate = AmountEntryDelegate(
             exchange = exch,
             scope = scope,
-            style = AmountEntryStyle(actionLabel = "Next"),
+            style = AmountEntryStyle(actionLabel = AmountEntryLabel.Plain("Next")),
         )
         delegate.onCurrencyChanged(usd)
         delegate.onNumber(5)

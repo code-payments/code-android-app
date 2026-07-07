@@ -70,7 +70,7 @@
     <string name="title_deposit">Deposit</string>
     <string name="title_depositFunds">Deposit Funds</string>
     <string name="action_depositFunds">Deposit Funds</string>
-
+    <string name="action_addMoney">Add Money</string>
 
     <string name="title_withdraw">Withdraw</string>
     <string name="title_withdrawFunds">Withdraw Funds</string>

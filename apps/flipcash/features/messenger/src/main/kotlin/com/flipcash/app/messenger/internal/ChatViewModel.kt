@@ -32,6 +32,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.amountentry.AmountEntryDelegate
+import com.flipcash.shared.amountentry.AmountEntryLabel
 import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.ChatCoordinator
@@ -237,7 +238,7 @@ internal class ChatViewModel @Inject constructor(
             exchange = exchange,
             scope = viewModelScope,
             style = AmountEntryStyle(
-                actionLabel = resources.getString(R.string.action_swipeToSend),
+                actionLabel = AmountEntryLabel.Plain(resources.getString(R.string.action_swipeToSend)),
                 actionStyle = ConfirmationStyle.Slide,
                 infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
                 overMaxHint = { resources.getString(R.string.subtitle_sendHintLimitExceeded, it) },

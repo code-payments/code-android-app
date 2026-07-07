@@ -7,6 +7,7 @@ import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.to
+import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.onramp.CoinbaseOnRampController
@@ -20,7 +21,6 @@ import com.flipcash.app.onramp.PurchaseGate
 import com.flipcash.app.onramp.isAlert
 import com.flipcash.app.onramp.isNetworkCause
 import com.flipcash.app.onramp.messaging
-import com.getcode.manager.BottomBarAction
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
@@ -29,7 +29,11 @@ import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.amountentry.AmountEntryDelegate
+import com.flipcash.shared.amountentry.AmountEntryLabel
+import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.tokens.R
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
@@ -53,8 +57,6 @@ import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
-import com.flipcash.shared.amountentry.AmountEntryDelegate
-import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -66,9 +68,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -107,8 +109,30 @@ class SwapViewModel @Inject constructor(
 ) {
     private val styleFlow: StateFlow<AmountEntryStyle> = stateFlow.map { vmState ->
         val isBuy = vmState.purpose is SwapPurpose.Buy
+        val isAddingMoney = vmState.isAddingMoney
+        val isAddingMoneyViaPhantom = isAddingMoney && vmState.addingMoneyFrom == FundingSource.Phantom
         AmountEntryStyle(
-            actionLabel = if (isBuy) resources.getString(R.string.action_buy) else resources.getString(R.string.action_next),
+            actionLabel = when {
+                isAddingMoneyViaPhantom -> {
+                    val confirmIn = resources.getString(R.string.label_confirmIn)
+                    val phantom = resources.getString(R.string.label_phantom)
+                    AmountEntryLabel.Annotated(text = "$confirmIn $phantom") { enabled ->
+                        buildPhantomButtonLabel(prefix = confirmIn, isEnabled = enabled)
+                    }
+                }
+
+                isAddingMoney -> {
+                    AmountEntryLabel.Plain(resources.getString(R.string.action_addMoney))
+                }
+
+                isBuy -> {
+                    AmountEntryLabel.Plain(resources.getString(R.string.action_buy))
+                }
+
+                else -> {
+                    AmountEntryLabel.Plain(resources.getString(R.string.action_next))
+                }
+            },
             canChangeCurrency = (vmState.purpose as? SwapPurpose.Buy)?.fundingSource != FundingSource.Phantom,
             infoHint = { resources.getString(R.string.subtitle_buySellCashHint, it) },
             overMaxHint = {
@@ -118,7 +142,7 @@ class SwapViewModel @Inject constructor(
             },
             belowMinHint = { resources.getString(R.string.subtitle_buyHintBelowMinimum, it) },
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AmountEntryStyle(actionLabel = ""))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AmountEntryStyle(actionLabel = AmountEntryLabel.Plain("")))
 
     private val maxAmountFlow: StateFlow<Fiat?> = combine(
         stateFlow.map { it.purpose },
@@ -196,6 +220,11 @@ class SwapViewModel @Inject constructor(
 
         val netTransferAmount: Fiat
             get() = confirmedNetTransferAmount ?: Fiat.Zero
+
+        val isAddingMoney: Boolean
+            get() = purpose is SwapPurpose.Buy && purpose.fundingSource != FundingSource.Flexible
+        val addingMoneyFrom: FundingSource?
+            get() = (purpose as? SwapPurpose.Buy)?.fundingSource
     }
 
     sealed interface Event {
