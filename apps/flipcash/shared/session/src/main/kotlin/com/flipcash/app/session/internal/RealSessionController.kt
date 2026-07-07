@@ -212,8 +212,12 @@ class RealSessionController @Inject constructor(
             .onEach { enabled -> stateHolder.update { it.copy(vibrateOnScan = enabled) } }
             .launchIn(scope)
 
-        tokenCoordinator.tokenBalances
-            .map { tokenCoordinator.hasGiveableBalance() }
+        // Re-evaluate on balance changes and on GiveUsdf toggles — hasGiveableBalance()
+        // filters out USDF when that flag is off.
+        combine(
+            tokenCoordinator.tokenBalances,
+            featureFlagController.observe(FeatureFlag.GiveUsdf),
+        ) { _, _ -> tokenCoordinator.hasGiveableBalance() }
             .distinctUntilChanged()
             .onEach { hasBalance -> stateHolder.update { it.copy(hasGiveableBalance = hasBalance) } }
             .launchIn(scope)
