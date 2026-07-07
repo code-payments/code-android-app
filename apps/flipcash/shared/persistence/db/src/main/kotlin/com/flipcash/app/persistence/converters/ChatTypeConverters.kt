@@ -2,6 +2,7 @@ package com.flipcash.app.persistence.converters
 
 import androidx.room.TypeConverter
 import com.flipcash.app.persistence.entities.MessageStatus
+import com.flipcash.services.models.VerifiableContactMethod
 import com.flipcash.services.models.chat.MediaItem
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -139,8 +140,8 @@ data class MessagePointerSerialized(
 data class UserProfileSerialized(
     val displayName: String?,
     val socialAccounts: List<SocialAccountSerialized>,
-    val verifiedPhoneNumber: String?,
-    val verifiedEmailAddress: String?,
+    val phoneNumber: VerifiableContactMethod?,
+    val email: VerifiableContactMethod?,
 )
 
 @Serializable

@@ -360,6 +360,8 @@
     <string name="action_addPhoneNumber">Add Phone Number</string>
     <string name="action_addEmailAddress">Add Email Address</string>
     <string name="subtitle_linkedForPayments">Linked for payments</string>
+    <string name="label_verified">Verified</string>
+    <string name="label_unverified">Unverified</string>
     <string name="prompt_title_unlinkPhone">Unlink Phone Number?</string>
     <string name="prompt_description_unlinkPhone">Your phone number will be removed from your profile.</string>
     <string name="prompt_title_unlinkEmail">Unlink Email Address?</string>

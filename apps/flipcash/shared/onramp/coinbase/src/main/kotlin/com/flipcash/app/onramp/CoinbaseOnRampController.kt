@@ -185,7 +185,7 @@ class CoinbaseOnRampController @Inject constructor(
         val destination = destinationForToken(owner, token)
 
         val phone = userManager.profile?.verifiedPhoneNumber
-        val email = resolveEmail(phone)
+        val email = resolveEmail()
 
         if (email == null || phone == null) {
             return Result.failure(
@@ -231,7 +231,7 @@ class CoinbaseOnRampController @Inject constructor(
         val destination = destinationForToken(owner, token)
 
         val phone = userManager.profile?.verifiedPhoneNumber
-        val email = resolveEmail(phone)
+        val email = resolveEmail()
 
         if (email == null || phone == null) {
             return Result.failure(
@@ -294,14 +294,13 @@ class CoinbaseOnRampController @Inject constructor(
         )
     }
 
-    private fun resolveEmail(phone: String?): String? {
-        val verified = userManager.profile?.verifiedEmailAddress
-        if (verified != null) return verified
-
-        val requireEmail = userFlags.resolvedFlags.value.requireCoinbaseEmailVerification.effectiveValue
-        if (!requireEmail && phone != null) return "$phone@flipcash.com"
-
-        return null
+    private fun resolveEmail(): String? {
+        val profile = userManager.profile
+        val requireVerification = userFlags.resolvedFlags.value
+            .requireCoinbaseEmailVerification.effectiveValue
+        // When verification is required, only a server-verified email is usable.
+        // Otherwise any email the user has entered (verified or not) is accepted.
+        return if (requireVerification) profile?.verifiedEmailAddress else profile?.email?.value
     }
 
     private fun destinationForToken(owner: AccountCluster, token: Token): String {

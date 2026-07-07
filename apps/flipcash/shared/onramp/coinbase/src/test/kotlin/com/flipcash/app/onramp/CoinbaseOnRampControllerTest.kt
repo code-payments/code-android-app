@@ -8,6 +8,7 @@ import com.flipcash.app.userflags.ResolvedFlag
 import com.flipcash.app.userflags.ResolvedUserFlags
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.VerifiableContactMethod
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
@@ -22,14 +23,10 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
-import io.mockk.slot
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -118,14 +115,28 @@ class CoinbaseOnRampControllerTest {
         }
     }
 
-    private fun stubProfile(email: String? = "test@test.com", phone: String? = "+11234567890") {
+    private fun stubProfile(
+        email: String? = "test@test.com",
+        phone: String? = "+11234567890",
+        emailVerified: Boolean = true,
+    ) {
         val profile = UserProfile(
             displayName = "Test",
             socialAccounts = emptyList(),
-            verifiedEmailAddress = email,
-            verifiedPhoneNumber = phone,
+            phoneNumber = phone?.let { VerifiableContactMethod(it, verified = true) },
+            email = email?.let { VerifiableContactMethod(it, verified = emailVerified) },
         )
         every { userManager.profile } returns profile
+    }
+
+    private fun stubRequireEmailVerification(required: Boolean) {
+        val resolvedFlags = mockk<ResolvedUserFlags>(relaxed = true) {
+            every { requireCoinbaseEmailVerification } returns ResolvedFlag(
+                serverValue = required,
+                override = FieldOverride.None,
+            )
+        }
+        every { userFlags.resolvedFlags } returns MutableStateFlow(resolvedFlags)
     }
 
     private fun stubValidUser() {
@@ -274,6 +285,57 @@ class CoinbaseOnRampControllerTest {
 
         coVerify(exactly = 0) { googlePayReadiness.check() }
         coVerify(exactly = 0) { webViewChannelDetector.detect() }
+    }
+
+    // endregion
+
+    // region email resolution (requireCoinbaseEmailVerification flag)
+
+    @Test
+    fun `uses unverified local email when verification not required`() = runTest {
+        stubAccountCluster()
+        stubRequireEmailVerification(false)
+        stubProfile(email = "entered@test.com", emailVerified = false)
+        // Fail cleanly at the JWT step so we only assert the email gate was passed.
+        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.failure(RuntimeException("no jwt"))
+
+        val result = controller.placeOrderInclusiveOfFees(Fiat(10, CurrencyCode.USD))
+        // Passed the email gate (fails later at JWT, not with VerificationRequired).
+        assertTrue(result.exceptionOrNull() !is OnRampAuthError.VerificationRequired)
+    }
+
+    @Test
+    fun `returns VerificationRequired when verification not required and no email`() = runTest {
+        stubAccountCluster()
+        stubRequireEmailVerification(false)
+        stubProfile(email = null)
+
+        val result = controller.placeOrderInclusiveOfFees(Fiat(10, CurrencyCode.USD))
+        assertIs<OnRampAuthError.VerificationRequired>(result.exceptionOrNull())
+        assertTrue((result.exceptionOrNull() as OnRampAuthError.VerificationRequired).email)
+    }
+
+    @Test
+    fun `requires verified email when verification required`() = runTest {
+        stubAccountCluster()
+        stubRequireEmailVerification(true)
+        // An entered-but-unverified email is NOT sufficient when verification is required.
+        stubProfile(email = "entered@test.com", emailVerified = false)
+
+        val result = controller.placeOrderInclusiveOfFees(Fiat(10, CurrencyCode.USD))
+        assertIs<OnRampAuthError.VerificationRequired>(result.exceptionOrNull())
+        assertTrue((result.exceptionOrNull() as OnRampAuthError.VerificationRequired).email)
+    }
+
+    @Test
+    fun `uses verified email when present regardless of flag`() = runTest {
+        stubAccountCluster()
+        stubRequireEmailVerification(true)
+        stubProfile(email = "verified@test.com", emailVerified = true)
+        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.failure(RuntimeException("no jwt"))
+
+        val result = controller.placeOrderInclusiveOfFees(Fiat(10, CurrencyCode.USD))
+        assertTrue(result.exceptionOrNull() !is OnRampAuthError.VerificationRequired)
     }
 
     // endregion

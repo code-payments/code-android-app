@@ -17,5 +17,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:phone"))
+    implementation(project(":apps:flipcash:shared:userflags"))
+
     implementation(project(":libs:messaging"))
 }

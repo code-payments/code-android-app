@@ -305,7 +305,11 @@ class SwapViewModel @Inject constructor(
 
         data class OnInitialAmountProvided(val amount: Fiat) : Event
         data object OnInitialAmountEntered : Event
-        data class OnVerificationNeeded(val phone: Boolean, val email: Boolean) : Event
+        data class OnVerificationNeeded(
+            val phone: Boolean,
+            val email: Boolean,
+            val skipEmailVerification: Boolean = false,
+        ) : Event
         data object Exit : Event
         data object PresentDepositOptions : Event
         data class OpenScreen(val screen: AppRoute) : Event
@@ -881,10 +885,23 @@ class SwapViewModel @Inject constructor(
 
                         val profile = userManager.profile
                         val needsPhone = profile?.verifiedPhoneNumber == null
-                        val requireEmail = userFlags.resolvedFlags.value.requireCoinbaseEmailVerification.effectiveValue
-                        val needsEmail = requireEmail && profile?.verifiedEmailAddress == null
+                        val requireVerification = userFlags.resolvedFlags.value.requireCoinbaseEmailVerification.effectiveValue
+                        // Email entry is always required; verification (server round-trip)
+                        // only when the flag is on. Off → any entered email counts.
+                        val hasEmail = if (requireVerification) {
+                            profile?.verifiedEmailAddress != null
+                        } else {
+                            profile?.email?.value != null
+                        }
+                        val needsEmail = !hasEmail
                         if (needsPhone || needsEmail) {
-                            dispatchEvent(Event.OnVerificationNeeded(needsPhone, needsEmail))
+                            dispatchEvent(
+                                Event.OnVerificationNeeded(
+                                    needsPhone,
+                                    needsEmail,
+                                    skipEmailVerification = !requireVerification,
+                                )
+                            )
                             return@onEach
                         }
 

@@ -13,6 +13,7 @@ import com.flipcash.services.models.NotificationPayload
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.Substitution
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.VerifiableContactMethod
 import com.flipcash.services.models.chat.ChatEvent
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
@@ -336,8 +337,8 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
                     UserProfile(
                         displayName = displayName,
                         socialAccounts = emptyList(),
-                        verifiedPhoneNumber = phoneNumber.value.takeIf { it.isNotEmpty() },
-                        verifiedEmailAddress = emailAddress.value.takeIf { it.isNotEmpty() },
+                        phoneNumber = phoneNumber.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
+                        email = emailAddress.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
                     )
                 },
                 pointers = member.pointersList.map { it.toPointer() },

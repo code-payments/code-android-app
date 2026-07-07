@@ -22,8 +22,17 @@ class ProfileController @Inject constructor(
         val accountId = userManager.accountId ?: return Result.failure(Throwable("No account id in UserManager"))
 
         return getProfileForUser(accountId)
+            .map { server ->
+                // Preserve a locally-entered *unverified* contact when the server
+                // response omits it, so it survives profile refreshes until the user
+                // completes verification (or the server starts returning it).
+                val local = userManager.profile
+                server.copy(
+                    phoneNumber = server.phoneNumber ?: local?.phoneNumber?.takeUnless { it.verified },
+                    email = server.email ?: local?.email?.takeUnless { it.verified },
+                )
+            }
             .onSuccess {
-                println("profile has ${it.socialAccounts.count()} social accounts, phone ${it.verifiedPhoneNumber != null}, email ${it.verifiedEmailAddress != null}")
                 trace(
                     tag = "Profile",
                     message = "Updated user profile",

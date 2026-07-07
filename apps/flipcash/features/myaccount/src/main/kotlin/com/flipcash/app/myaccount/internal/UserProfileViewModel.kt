@@ -10,13 +10,13 @@ import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.SocialAccount
+import com.flipcash.services.models.VerifiableContactMethod
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.uuid
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.base64
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -44,8 +44,8 @@ internal class UserProfileViewModel @Inject constructor(
 ) {
     internal data class State(
         val displayName: String? = null,
-        val phoneNumber: String? = null,
-        val emailAddress: String? = null,
+        val phone: VerifiableContactMethod? = null,
+        val email: VerifiableContactMethod? = null,
         val phoneLinkedForPayment: Boolean = false,
         val socialAccounts: List<SocialAccount> = emptyList(),
         val publicKey: String? = null,
@@ -56,8 +56,8 @@ internal class UserProfileViewModel @Inject constructor(
     internal sealed interface Event {
         data class OnProfileUpdated(
             val displayName: String?,
-            val phone: String?,
-            val email: String?,
+            val phone: VerifiableContactMethod?,
+            val email: VerifiableContactMethod?,
             val linkedForPayment: Boolean,
             val socialAccounts: List<SocialAccount>,
         ) : Event
@@ -93,8 +93,9 @@ internal class UserProfileViewModel @Inject constructor(
             dispatchEvent(
                 Event.OnProfileUpdated(
                     displayName = profile?.displayName,
-                    phone = profile?.verifiedPhoneNumber,
-                    email = profile?.verifiedEmailAddress,
+                    // Carry the contact (value + verified) so unverified entries still show.
+                    phone = profile?.phoneNumber,
+                    email = profile?.email,
                     linkedForPayment = linkedForPayment,
                     socialAccounts = profile?.socialAccounts.orEmpty(),
                 )
@@ -260,8 +261,8 @@ internal class UserProfileViewModel @Inject constructor(
                 is Event.OnProfileUpdated -> { state ->
                     state.copy(
                         displayName = event.displayName,
-                        phoneNumber = event.phone,
-                        emailAddress = event.email,
+                        phone = event.phone,
+                        email = event.email,
                         phoneLinkedForPayment = event.linkedForPayment,
                         socialAccounts = event.socialAccounts,
                     )

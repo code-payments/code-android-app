@@ -1,5 +1,6 @@
 package com.flipcash.app.persistence.converters
 
+import com.flipcash.services.models.VerifiableContactMethod
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -120,8 +121,8 @@ class ChatTypeConvertersTest {
                     followerCount = 100,
                 )
             ),
-            verifiedPhoneNumber = "+1234567890",
-            verifiedEmailAddress = "alice@example.com",
+            phoneNumber = VerifiableContactMethod("+1234567890", verified = true),
+            email = VerifiableContactMethod("alice@example.com", verified = true),
         )
         val serialized = converter.toUserProfile(original)
         val deserialized = converter.fromUserProfile(serialized)

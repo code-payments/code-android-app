@@ -102,7 +102,8 @@ internal fun SwapEntryScreen(
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.OnVerificationNeeded>()
-            .onEach { (phone, email) ->
+            .onEach { event ->
+                val (phone, email) = event
                 val mint = (viewModel.stateFlow.value.purpose as? SwapPurpose.Buy)?.mint ?: return@onEach
                 navigator.navigateForResult<VerificationResult>(
                     AppRoute.Verification(

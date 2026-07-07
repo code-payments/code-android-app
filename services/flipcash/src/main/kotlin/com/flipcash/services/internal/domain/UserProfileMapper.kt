@@ -4,6 +4,7 @@ import com.codeinc.flipcash.gen.profile.v1.Model
 import com.codeinc.flipcash.gen.profile.v1.emailAddressOrNull
 import com.codeinc.flipcash.gen.profile.v1.phoneNumberOrNull
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.VerifiableContactMethod
 import com.getcode.opencode.mapper.Mapper
 import javax.inject.Inject
 
@@ -14,8 +15,9 @@ class UserProfileMapper @Inject constructor(
         return UserProfile(
             displayName = from.displayName,
             socialAccounts = from.socialProfilesList.mapNotNull { socialMapper.map(it) },
-            verifiedPhoneNumber = from.phoneNumberOrNull?.value,
-            verifiedEmailAddress = from.emailAddressOrNull?.value,
+            // A value is only present on the server profile once verified.
+            phoneNumber = from.phoneNumberOrNull?.value?.let { VerifiableContactMethod(it, verified = true) },
+            email = from.emailAddressOrNull?.value?.let { VerifiableContactMethod(it, verified = true) },
         )
     }
 }

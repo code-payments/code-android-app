@@ -151,8 +151,8 @@ class ChatEntityMapper @Inject constructor() {
             userProfile = entity.userProfileJson?.toDomain() ?: UserProfile(
                 displayName = null,
                 socialAccounts = emptyList(),
-                verifiedPhoneNumber = null,
-                verifiedEmailAddress = null,
+                phoneNumber = null,
+                email = null,
             ),
             pointers = entity.pointersJson?.map { it.toDomain() } ?: emptyList(),
         )
@@ -273,15 +273,15 @@ private fun MessagePointerSerialized.toDomain(): MessagePointer = MessagePointer
 private fun UserProfile.toSerialized(): UserProfileSerialized = UserProfileSerialized(
     displayName = displayName,
     socialAccounts = socialAccounts.map { it.toSerialized() },
-    verifiedPhoneNumber = verifiedPhoneNumber,
-    verifiedEmailAddress = verifiedEmailAddress,
+    phoneNumber = phoneNumber,
+    email = email,
 )
 
 private fun UserProfileSerialized.toDomain(): UserProfile = UserProfile(
     displayName = displayName,
     socialAccounts = socialAccounts.map { it.toDomain() },
-    verifiedPhoneNumber = verifiedPhoneNumber,
-    verifiedEmailAddress = verifiedEmailAddress,
+    phoneNumber = phoneNumber,
+    email = email,
 )
 
 private fun SocialAccount.toSerialized(): SocialAccountSerialized = when (this) {
