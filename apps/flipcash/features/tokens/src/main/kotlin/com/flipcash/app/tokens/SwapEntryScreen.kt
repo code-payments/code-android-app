@@ -127,6 +127,16 @@ internal fun SwapEntryScreen(
             }.launchIn(this)
     }
 
+    // Deposit-first "Add Money" via Phantom enters the amount here after connecting;
+    // confirming it signs the transaction and advances straight to processing.
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.PhantomNavigateToProcessing>()
+            .onEach {
+                flowNavigator.navigateTo(SwapStep.Processing)
+            }.launchIn(this)
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.OtherWalletSelected>()

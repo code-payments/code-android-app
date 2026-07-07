@@ -6,6 +6,8 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.toast.LocalToastController
+import com.flipcash.app.core.tokens.FundingSource
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
 import com.getcode.opencode.model.financial.Fiat
@@ -56,17 +58,26 @@ fun SwapFlowScreen(
                 SwapResult.Canceled -> outerNavigator.pop()
             }
         },
-        entryProvider = swapEntryProvider(),
+        entryProvider = swapEntryProvider(route),
     )
 }
 
-private fun swapEntryProvider(): (NavKey) -> NavEntry<NavKey> = entryProvider {
+private fun swapEntryProvider(
+    route: AppRoute.Token.Swap,
+): (NavKey) -> NavEntry<NavKey> = entryProvider {
+    // When the flow begins directly at the connect screen (deposit-first "Add Money"
+    // via Phantom), there is no preceding amount-entry step. Carry the purpose through
+    // so that, once connected, we can route into amount entry instead of the
+    // transaction-confirmation gate.
+    val depositFirstPurpose = (route.purpose as? SwapPurpose.Buy)
+        ?.takeIf { it.fundingSource == FundingSource.Phantom }
+
     flowAnnotatedEntry<SwapStep.Entry> { step ->
         SwapEntryScreen(step.purpose, step.initialAmount)
     }
     annotatedEntry<SwapStep.SellReceipt> { SellReceiptScreen() }
     annotatedEntry<SwapStep.PhantomConnect> {
-        PhantomConnectConfirmationScreen()
+        PhantomConnectConfirmationScreen(depositFirstPurpose = depositFirstPurpose)
     }
     annotatedEntry<SwapStep.PhantomConfirmTransaction> {
         PhantomTransactionConfirmationScreen()

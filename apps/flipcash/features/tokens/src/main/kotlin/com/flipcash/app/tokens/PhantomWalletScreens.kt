@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
 import com.flipcash.app.tokens.ui.SwapViewModel
@@ -35,10 +36,20 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun PhantomConnectConfirmationScreen() {
+internal fun PhantomConnectConfirmationScreen(
+    depositFirstPurpose: SwapPurpose? = null,
+) {
     val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+
+    // Deposit-first "Add Money" via Phantom starts the flow here with no preceding
+    // amount-entry step, so seed the purpose the VM would otherwise receive from it.
+    LaunchedEffect(viewModel, depositFirstPurpose) {
+        if (depositFirstPurpose != null) {
+            viewModel.dispatchEvent(SwapViewModel.Event.OnPurposeChanged(depositFirstPurpose))
+        }
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
@@ -50,7 +61,15 @@ internal fun PhantomConnectConfirmationScreen() {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.PhantomConnected>()
-            .onEach { flowNavigator.navigateTo(SwapStep.PhantomConfirmTransaction) }
+            .onEach {
+                if (depositFirstPurpose != null) {
+                    // Add Money UX: enter the amount after connecting; confirming it
+                    // triggers the Phantom transaction request (no confirmation gate).
+                    flowNavigator.navigateTo(SwapStep.Entry(depositFirstPurpose))
+                } else {
+                    flowNavigator.navigateTo(SwapStep.PhantomConfirmTransaction)
+                }
+            }
             .launchIn(this)
     }
 

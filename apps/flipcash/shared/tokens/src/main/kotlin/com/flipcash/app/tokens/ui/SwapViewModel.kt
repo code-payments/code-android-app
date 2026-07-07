@@ -83,6 +83,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.concurrent.CancellationException
 import javax.inject.Inject
+import kotlin.collections.listOf
 
 data class AmountEntryState(
     val limits: Limits? = null,
@@ -152,9 +153,16 @@ class SwapViewModel @Inject constructor(
         stateFlow.map { it.purpose },
         stateFlow.map { it.amountEntryState.maxToAdd },
         stateFlow.map { it.tokenBalance },
-    ) { purpose, maxToAdd, tokenBalance ->
+        stateFlow.map { it.reservesBalance },
+    ) { purpose, maxToAdd, tokenBalance, reservesBalance ->
         when (purpose) {
-            is SwapPurpose.Buy -> maxToAdd?.let { Fiat(it.first, it.second) }
+            is SwapPurpose.Buy -> {
+                val mustAddMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
+                if (mustAddMoney && !stateFlow.value.isAddingMoney) {
+                    return@combine reservesBalance
+                }
+                maxToAdd?.let { Fiat(it.first, it.second) }
+            }
             is SwapPurpose.Sell -> tokenBalance
             null -> null
         }
@@ -330,6 +338,11 @@ class SwapViewModel @Inject constructor(
     private val transactionLimit: Fiat
         get() = when (stateFlow.value.purpose) {
             is SwapPurpose.Buy -> {
+                val mustAddMoney = featureFlags.observe(FeatureFlag.AddMoneyUX).value
+                if (mustAddMoney && !stateFlow.value.isAddingMoney) {
+                    return stateFlow.value.reservesBalance
+                }
+
                 val sendLimit = enteredAmount.currencyCode.let {
                     stateFlow.value.amountEntryState.limits?.sendLimitFor(it)
                 } ?: SendLimit.Zero
@@ -377,14 +390,32 @@ class SwapViewModel @Inject constructor(
         }
     }
 
-    val checkFundingAmount: () -> Boolean = {
+    val checkFundingAmount: suspend () -> Boolean = {
         val limit = transactionLimit
         val isOverLimit = enteredAmount.valueGreaterThan(limit)
+        val mustAddMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
+        val isAddingMoney = stateFlow.value.isAddingMoney
+
         if (isOverLimit) {
-            BottomBarManager.showAlert(
-                resources.getString(R.string.error_title_insufficientFunds),
-                resources.getString(R.string.error_description_insufficientFunds)
-            )
+            if (mustAddMoney && !isAddingMoney) {
+                BottomBarManager.showInfo(
+                    title = resources.getString(R.string.title_insufficientBalance),
+                    message = resources.getString(R.string.description_insufficientBalanceToUse),
+                    actions = listOf(
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_addMoreMoney)
+                        ) {
+                            dispatchEvent(Event.PresentDepositOptions)
+                        }
+                    ),
+                    showCancel = true,
+                )
+            } else {
+                BottomBarManager.showAlert(
+                    resources.getString(R.string.error_title_insufficientFunds),
+                    resources.getString(R.string.error_description_insufficientFunds)
+                )
+            }
         }
         isOverLimit
     }
@@ -528,6 +559,13 @@ class SwapViewModel @Inject constructor(
                         val reservesBalance = stateFlow.value.reservesBalance
 
                         when {
+                            purpose.fundingSource == FundingSource.Phantom -> {
+                                // Deposit-first "Add Money" via Phantom: the wallet is
+                                // already connected and the amount was just entered, so
+                                // confirming it triggers the Phantom transaction request.
+                                dispatchEvent(Event.ConfirmPhantomTransaction)
+                            }
+
                             !isAddingMoney && enteredInUsdf <= reservesBalance.rounded() -> {
                                 // Sufficient USDF reserves — buy the token directly from reserves
                                 val amountFiat = verifiedFiatCalculator.compute(
@@ -554,12 +592,6 @@ class SwapViewModel @Inject constructor(
                                     )
                                 )
                                 dispatchEvent(Event.ProceedWithPurchase(amountFiat))
-                            }
-
-                            mustAddMoney && !isAddingMoney -> {
-                                // not enough USDF for a token buy — require depositing first.
-                                // (a confirmation dialog is shown ahead of this by the screen.)
-                                dispatchEvent(Event.PresentDepositOptions)
                             }
 
                             else -> {
