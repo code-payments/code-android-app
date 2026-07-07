@@ -3,6 +3,7 @@ package com.flipcash.app.tokens.ui
 import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
@@ -65,6 +66,7 @@ class SwapViewModelErrorTest {
     private val coinbaseOnRampController = mockk<CoinbaseOnRampController>(relaxed = true)
     private val phantomWalletController = mockk<PhantomWalletController>(relaxed = true)
     private val userFlagsCoordinator = mockk<UserFlagsCoordinator>(relaxed = true)
+    private val featureFlags = mockk<FeatureFlagController>(relaxed = true)
 
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
 
@@ -106,6 +108,7 @@ class SwapViewModelErrorTest {
             phantomWalletController = phantomWalletController,
             dispatchers = dispatchers,
             userFlags = userFlagsCoordinator,
+            featureFlags = featureFlags,
         )
     }
 

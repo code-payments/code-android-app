@@ -57,7 +57,11 @@ internal fun PhantomConnectConfirmationScreen() {
     CodeScaffold(
         topBar = {
             AppBarWithTitle(
-                title = stringResource(R.string.title_purchase),
+                title = if (state.isAddingMoney) {
+                    stringResource(R.string.title_addMoney)
+                } else {
+                    stringResource(R.string.title_purchase)
+                },
                 backButton = true,
                 onBackIconClicked = { flowNavigator.back() },
                 titleAlignment = Alignment.CenterHorizontally,
@@ -106,12 +110,20 @@ internal fun PhantomConnectConfirmationScreen() {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = stringResource(R.string.title_buyWithPhantom),
+                        text = if (state.isAddingMoney) {
+                            stringResource(R.string.title_addMoneyWithPhantom)
+                        } else {
+                            stringResource(R.string.title_buyWithPhantom)
+                        },
                         style = CodeTheme.typography.textLarge,
                         color = CodeTheme.colors.textMain,
                     )
                     Text(
-                        text = stringResource(R.string.description_buyWithPhantom),
+                        text = if (state.isAddingMoney) {
+                            stringResource(R.string.description_addMoneyWithPhantom)
+                        } else {
+                            stringResource(R.string.description_buyWithPhantom)
+                        },
                         style = CodeTheme.typography.textSmall,
                         color = CodeTheme.colors.textSecondary,
                         textAlign = TextAlign.Center,

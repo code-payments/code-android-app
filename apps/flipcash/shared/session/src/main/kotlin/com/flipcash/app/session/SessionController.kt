@@ -5,10 +5,8 @@ import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.session.BillDeterminationResult.ActedUpon
 import com.getcode.opencode.model.financial.Token
-import com.getcode.solana.keys.Mint
 import com.flipcash.app.core.AppRoute
 import com.getcode.ui.core.RestrictionType
-import com.getcode.util.permissions.PermissionResult
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.flow.StateFlow
 
@@ -58,7 +56,7 @@ data class SessionState(
     val notificationUnreadCount: Int = 0,
     val tokens: List<Token> = emptyList(),
     val isPhoneNumberSendEnabled: Boolean = false,
-    val depositFirstUx: Boolean = false,
+    val addMoneyUx: Boolean = false,
 )
 
 val LocalSessionController = staticCompositionLocalOf<SessionController?> { null }

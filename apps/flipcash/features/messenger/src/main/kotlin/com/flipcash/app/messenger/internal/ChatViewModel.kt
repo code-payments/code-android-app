@@ -1,7 +1,6 @@
 package com.flipcash.app.messenger.internal
 
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
@@ -15,7 +14,6 @@ import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.contacts.DeviceContact
-import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
@@ -46,7 +44,6 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
-import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.trace
@@ -71,7 +68,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.min
@@ -524,14 +520,14 @@ internal class ChatViewModel @Inject constructor(
             .mapNotNull { stateFlow.value.chattingWith }
             .onEach { contact ->
                 if (!tokenCoordinator.hasGiveableBalance()) {
-                    val depositFirst = featureFlags.get(FeatureFlag.DepositFirstUX)
-                    val message = if (depositFirst) {
-                        resources.getString(R.string.description_noBalanceYet)
+                    val addMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
+                    val message = if (addMoney) {
+                        resources.getString(R.string.description_noBalanceYetToSend)
                     } else {
                         resources.getString(R.string.description_noBalanceYetDiscover)
                     }
-                    val cta = if (depositFirst) {
-                        resources.getString(R.string.action_depositFunds)
+                    val cta = if (addMoney) {
+                        resources.getString(R.string.action_addMoney)
                     } else {
                         resources.getString(R.string.action_discover)
                     }
@@ -542,7 +538,7 @@ internal class ChatViewModel @Inject constructor(
                             BottomBarAction(
                                 text = cta
                             ) {
-                                if (depositFirst) {
+                                if (addMoney) {
                                     dispatchEvent(Event.PresentDepositOptions)
                                 } else {
                                     dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery))

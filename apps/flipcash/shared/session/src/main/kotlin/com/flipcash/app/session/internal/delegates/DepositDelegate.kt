@@ -45,21 +45,21 @@ class DepositDelegate @Inject constructor(
     private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
 
     init {
-        featureFlagController.observe(FeatureFlag.DepositFirstUX)
-            .onEach { enabled -> stateHolder.update { it.copy(depositFirstUx = enabled) } }
+        featureFlagController.observe(FeatureFlag.AddMoneyUX)
+            .onEach { enabled -> stateHolder.update { it.copy(addMoneyUx = enabled) } }
             .launchIn(scope)
     }
 
     override fun presentDepositOptions(onRoute: ((AppRoute) -> Unit)?) {
-        val depositFirstUx = stateHolder.current.depositFirstUx
+        val depositFirstUx = stateHolder.current.addMoneyUx
 
         val message = if (depositFirstUx) {
-            resources.getString(R.string.description_noBalanceYet)
+            resources.getString(R.string.description_noBalanceYetToGive)
         } else {
             resources.getString(R.string.description_noBalanceYetDiscover)
         }
         val cta = if (depositFirstUx) {
-            resources.getString(R.string.action_depositFunds)
+            resources.getString(R.string.action_addMoney)
         } else {
             resources.getString(R.string.action_discoverCurrencies)
         }

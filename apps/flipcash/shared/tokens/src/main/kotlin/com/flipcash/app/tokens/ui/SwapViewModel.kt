@@ -10,6 +10,8 @@ import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.onramp.CoinbaseOnRampState
 import com.flipcash.app.onramp.DeeplinkError
@@ -101,6 +103,7 @@ class SwapViewModel @Inject constructor(
     private val coinbaseOnRampController: CoinbaseOnRampController,
     private val phantomWalletController: PhantomWalletController,
     private val userFlags: UserFlagsCoordinator,
+    private val featureFlags: FeatureFlagController,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<SwapViewModel.State, SwapViewModel.Event>(
     initialState = State(),
@@ -508,6 +511,8 @@ class SwapViewModel @Inject constructor(
                 it to purpose
             }
             .onEach { (delegateState, purpose) ->
+                val mustAddMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
+                val isAddingMoney = stateFlow.value.isAddingMoney
                 when (purpose) {
                     is SwapPurpose.Buy -> {
                         val rate = exchange.preferredRate
@@ -519,54 +524,62 @@ class SwapViewModel @Inject constructor(
                         ).convertingTo(conversionRate)
                         val reservesBalance = stateFlow.value.reservesBalance
 
-                        if (enteredInUsdf <= reservesBalance.rounded()) {
-                            // Sufficient reserves — buy directly
-                            val amountFiat = verifiedFiatCalculator.compute(
-                                amount = Fiat(delegateState.enteredAmount, rate.currency),
-                                token = Token.usdf,
-                                balance = reservesBalance.convertingToUsdIfNeeded(rate),
-                                rate = rate
-                            ).getOrElse {
-                                BottomBarManager.showAlert(
-                                    title = resources.getString(R.string.error_title_staleRates),
-                                    message = resources.getString(R.string.error_description_staleRates),
-                                )
-                                return@onEach
-                            }
-                            val netAmount = amountFiat.localFiat.nativeAmount
+                        when {
+                            enteredInUsdf <= reservesBalance.rounded() -> {
+                                // Sufficient reserves — buy directly
+                                val amountFiat = verifiedFiatCalculator.compute(
+                                    amount = Fiat(delegateState.enteredAmount, rate.currency),
+                                    token = Token.usdf,
+                                    balance = reservesBalance.convertingToUsdIfNeeded(rate),
+                                    rate = rate
+                                ).getOrElse {
+                                    BottomBarManager.showAlert(
+                                        title = resources.getString(R.string.error_title_staleRates),
+                                        message = resources.getString(R.string.error_description_staleRates),
+                                    )
+                                    return@onEach
+                                }
+                                val netAmount = amountFiat.localFiat.nativeAmount
 
-                            dispatchEvent(Event.UpdateBuyState(loading = true))
-                            dispatchEvent(
-                                Event.OnAmountAccepted(
-                                    amountFiat,
-                                    netTransferAmount = netAmount,
-                                    enteredAmount = enteredAmount,
-                                    feeAmount = feeAmount,
+                                dispatchEvent(Event.UpdateBuyState(loading = true))
+                                dispatchEvent(
+                                    Event.OnAmountAccepted(
+                                        amountFiat,
+                                        netTransferAmount = netAmount,
+                                        enteredAmount = enteredAmount,
+                                        feeAmount = feeAmount,
+                                    )
                                 )
-                            )
-                            dispatchEvent(Event.ProceedWithPurchase(amountFiat))
-                        } else {
-                            // Insufficient reserves — check available purchase methods
-                            val mint = purpose.mint
-                            val metadata = PurchaseMethodMetadata(
-                                mint = mint,
-                                purchaseAmount = Fiat(delegateState.enteredAmount, rate.currency),
-                                canUseOtherWallets = true, // allow external USDC deposit as a "purchase" option
-                            )
-                            val pinnedMethod = when (purpose.fundingSource) {
-                                FundingSource.Coinbase -> PurchaseMethod.CoinbaseOnRamp
-                                FundingSource.Phantom -> PurchaseMethod.PhantomWallet
-                                FundingSource.Flexible -> null
+                                dispatchEvent(Event.ProceedWithPurchase(amountFiat))
                             }
-                            if (pinnedMethod != null) {
-                                purchaseMethodController.select(pinnedMethod, metadata)
-                            } else {
-                                val methods = purchaseMethodController.state.value.availableMethods
-                                if (methods.size == 1) {
-                                    // Single method — skip sheet, handle directly
-                                    purchaseMethodController.select(methods.first(), metadata)
+
+                            mustAddMoney -> {
+                                // not enough USDF, must "add money first"
+                            }
+
+                            else -> {
+                                // Insufficient reserves — check available purchase methods
+                                val mint = purpose.mint
+                                val metadata = PurchaseMethodMetadata(
+                                    mint = mint,
+                                    purchaseAmount = Fiat(delegateState.enteredAmount, rate.currency),
+                                    canUseOtherWallets = true, // allow external USDC deposit as a "purchase" option
+                                )
+                                val pinnedMethod = when (purpose.fundingSource) {
+                                    FundingSource.Coinbase -> PurchaseMethod.CoinbaseOnRamp
+                                    FundingSource.Phantom -> PurchaseMethod.PhantomWallet
+                                    FundingSource.Flexible -> null
+                                }
+                                if (pinnedMethod != null) {
+                                    purchaseMethodController.select(pinnedMethod, metadata)
                                 } else {
-                                    purchaseMethodController.present(metadata)
+                                    val methods = purchaseMethodController.state.value.availableMethods
+                                    if (methods.size == 1) {
+                                        // Single method — skip sheet, handle directly
+                                        purchaseMethodController.select(methods.first(), metadata)
+                                    } else {
+                                        purchaseMethodController.present(metadata)
+                                    }
                                 }
                             }
                         }

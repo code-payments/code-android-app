@@ -69,9 +69,8 @@
     <string name="action_deposit">Deposit</string>
     <string name="title_deposit">Deposit</string>
     <string name="title_depositFunds">Deposit Funds</string>
-    <string name="action_depositFunds">Deposit Funds</string>
     <string name="action_addMoney">Add Money</string>
-
+    <string name="action_addMoreMoney">Add More Money</string>
     <string name="title_withdraw">Withdraw</string>
     <string name="title_withdrawFunds">Withdraw Funds</string>
 
@@ -187,6 +186,7 @@
     <string name="error_title_invalidAddress">Invalid address</string>
 
     <string name="action_withdraw">Withdraw</string>
+    <string name="action_withdrawMoney">Withdraw Money</string>
     <string name="action_confirmWithdraw">Yes, Withdraw</string>
     <string name="prompt_title_confirmWithdrawal">Are You Sure?</string>
 
@@ -241,6 +241,7 @@
 
     <string name="action_addCash">Add Cash</string>
     <string name="title_selectMethod">Select Method</string>
+    <string name="title_amountToAdd">Amount to Add</string>
     <string name="title_amountToDeposit">Amount to Deposit</string>
     <string name="title_addCashWithDebitCard">Add Cash with Debit Card</string>
 
@@ -254,7 +255,14 @@
     <string name="title_tapAboveToAddCashToWallet">Tap above to Add Cash to your wallet</string>
     <string name="title_tapBelowToAddCashWallet">You don\'t have any cash yet.\nTap below to add cash to your wallet</string>
     <string name="title_noBalanceYet">No Balance Yet</string>
-    <string name="description_noBalanceYet">Deposit funds to get started</string>
+    <string name="title_insufficientBalance">Insufficient Balance</string>
+    <string name="description_insufficientBalanceToCreate">Add more money to create a currency</string>
+    <string name="description_insufficientBalanceToUse">Add more money, or enter a smaller amount</string>
+    <string name="description_noBalanceYetToGive">Add money to give cash</string>
+    <string name="description_noBalanceYetToBuy">Add money to buy currencies</string>
+    <string name="description_noBalanceYetToSend">Add money to send cash</string>
+    <string name="description_noBalanceYetForBalance">Add money to get started</string>
+    <string name="description_noBalanceYetToCreate">Add money to create a currency</string>
     <string name="description_noBalanceYetDiscover">Buy your first currency to get started</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="title_success">Success</string>
@@ -386,7 +394,7 @@
     <string name="title_onrampProviderCoinbaseVirtual">Debit Card with Google Pay</string>
     <string name="title_onrampProviderCoinbaseDebit">Debit Card</string>
     <string name="title_onrampProviderCoinbaseCredit">Credit Card</string>
-    <string name="title_onrampProviderManualDeposit">Manual Deposit</string>
+    <string name="title_onrampProviderManualDeposit">Manual USDC Deposit</string>
     <string name="title_onrampProviderBackpack">Backpack Wallet</string>
     <string name="title_onrampProviderPhantom">Phantom Wallet</string>
     <string name="title_onrampProviderSolflare">Solflare Wallet</string>
@@ -497,6 +505,8 @@
     <string name="title_cashReserves">USDF</string>
     <string name="action_buyMore">Buy More</string>
 
+    <string name="title_addMoney">Add Money</string>
+
     <string name="title_amountToBuy">Amount to Buy</string>
     <string name="title_amountToSell">Amount to Sell</string>
     <string name="subtitle_buySellCashHint">Enter up to %1$s</string>
@@ -509,7 +519,7 @@
     <string name="label_solanaUsdc">Solana USDC with</string>
     <string name="title_sellToken">Sell %1$s</string>
     <string name="title_purchasingToken">Purchasing %1$s</string>
-    <string name="title_depositingToken">Depositing %1$s</string>
+    <string name="title_addingMoney">Adding Money</string>
     <string name="title_sellingToken">Selling %1$s</string>
     <string name="label_sellWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
 
@@ -729,6 +739,10 @@
 
     <string name="title_buyWithPhantom">Buy With Phantom</string>
     <string name="description_buyWithPhantom">Purchase using Solana USDC in Phantom. Simply connect your wallet and confirm the transaction</string>
+
+
+    <string name="title_addMoneyWithPhantom">Add Money With Phantom</string>
+    <string name="description_addMoneyWithPhantom">Add money using Solana USDC in Phantom. Your USDC will be automatically converted to USDF 1:1</string>
 
     <string name="title_confirmation">Confirmation</string>
     <string name="title_buyWithPhantomConnected">Connected</string>

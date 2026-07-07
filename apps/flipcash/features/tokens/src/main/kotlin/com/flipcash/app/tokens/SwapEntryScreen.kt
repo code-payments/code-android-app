@@ -50,7 +50,7 @@ internal fun SwapEntryScreen(
         AppBarWithTitle(
             title = when (purpose) {
                 is SwapPurpose.Buy if purpose.fundingSource != FundingSource.Flexible ->
-                    stringResource(R.string.title_amountToDeposit)
+                    stringResource(R.string.title_amountToAdd)
                 is SwapPurpose.BalanceIncrease -> stringResource(R.string.title_amountToBuy)
                 is SwapPurpose.BalanceDecrease -> stringResource(R.string.title_amountToSell)
             },
