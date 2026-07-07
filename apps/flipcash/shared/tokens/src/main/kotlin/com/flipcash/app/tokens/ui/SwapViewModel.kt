@@ -5,6 +5,7 @@ import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
@@ -298,6 +299,8 @@ class SwapViewModel @Inject constructor(
         data object OnInitialAmountEntered : Event
         data class OnVerificationNeeded(val phone: Boolean, val email: Boolean) : Event
         data object Exit : Event
+        data object PresentDepositOptions : Event
+        data class OpenScreen(val screen: AppRoute) : Event
     }
 
     private val enteredAmount: Fiat
@@ -902,6 +905,19 @@ class SwapViewModel @Inject constructor(
                     }
                 }
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PresentDepositOptions>()
+            .mapNotNull {
+                if (!featureFlags.get(FeatureFlag.AddMoneyUX)) {
+                    return@mapNotNull AppRoute.Transfers.Deposit(showOtherOptions = false)
+                }
+                // present the add-money/deposit sheet; navigate to whatever the user picks.
+                // popToRoot = false so the user returns to the in-progress buy screen.
+                purchaseMethodController.presentDepositOptions(popToRoot = false)
+            }
+            .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
+            .launchIn(viewModelScope)
     }
 
     private suspend fun resolveToken(): Token? {
@@ -1250,6 +1266,8 @@ class SwapViewModel @Inject constructor(
 
                 is Event.OnVerificationNeeded -> { state -> state }
                 Event.Exit -> { state -> state }
+                Event.PresentDepositOptions -> { state -> state }
+                is Event.OpenScreen -> { state -> state }
             }
         }
     }

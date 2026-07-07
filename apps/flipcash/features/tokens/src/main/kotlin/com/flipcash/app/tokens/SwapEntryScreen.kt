@@ -135,6 +135,13 @@ internal fun SwapEntryScreen(
             }.launchIn(this)
     }
 
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.OpenScreen>()
+            .onEach { navigator.push(it.screen) }
+            .launchIn(this)
+    }
+
     LaunchedEffect(Unit) {
         coinbaseOnRampController.pendingCompletion.collect { completion ->
             when (completion) {
