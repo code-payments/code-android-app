@@ -525,8 +525,8 @@ class SwapViewModel @Inject constructor(
                         val reservesBalance = stateFlow.value.reservesBalance
 
                         when {
-                            enteredInUsdf <= reservesBalance.rounded() -> {
-                                // Sufficient reserves — buy directly
+                            !isAddingMoney && enteredInUsdf <= reservesBalance.rounded() -> {
+                                // Sufficient USDF reserves — buy the token directly from reserves
                                 val amountFiat = verifiedFiatCalculator.compute(
                                     amount = Fiat(delegateState.enteredAmount, rate.currency),
                                     token = Token.usdf,
@@ -553,8 +553,8 @@ class SwapViewModel @Inject constructor(
                                 dispatchEvent(Event.ProceedWithPurchase(amountFiat))
                             }
 
-                            mustAddMoney -> {
-                                // not enough USDF, must "add money first"
+                            mustAddMoney && !isAddingMoney -> {
+                                // not enough USDF for a token buy — must "add money first"
                             }
 
                             else -> {
