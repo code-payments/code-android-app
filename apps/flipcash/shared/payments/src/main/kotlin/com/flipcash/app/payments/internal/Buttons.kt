@@ -46,6 +46,7 @@ internal fun purchaseOptions(
                     iconRes = when (metadata.paymentAction) {
                         PaymentAction.Buy -> R.drawable.ic_buy_with_google_pay
                         PaymentAction.Pay -> R.drawable.ic_pay_with_google_pay
+                        PaymentAction.Plain -> R.drawable.ic_google_pay
                     },
                     width = 150.sp,
                     height = 20.sp,
@@ -81,7 +82,7 @@ internal fun purchaseOptions(
         if (state.canUseOtherWallets) {
             add(
                 BottomBarAction(
-                    text = resources.getString(R.string.action_depositUsdc),
+                    text = resources.getString(R.string.title_onrampProviderOtherWallet),
                     onClick = { onClick(PurchaseMethod.OtherWallet) }
                 )
             )

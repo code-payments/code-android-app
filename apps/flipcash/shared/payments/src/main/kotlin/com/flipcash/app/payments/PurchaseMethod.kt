@@ -4,7 +4,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
 
-enum class PaymentAction { Buy, Pay }
+enum class PaymentAction { Buy, Pay, Plain }
 enum class PurchasePurpose { Buy, Deposit }
 
 sealed interface PurchaseMethod {

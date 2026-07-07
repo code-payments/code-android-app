@@ -1,10 +1,11 @@
 package com.flipcash.app.payments.internal
 
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
+import com.flipcash.app.payments.PaymentAction
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
@@ -30,10 +31,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -91,7 +91,6 @@ class InternalPurchaseMethodController @Inject constructor(
 
         userFlags.resolvedFlags
             .mapNotNull { it.preferredOnRampProvider.effectiveValue }
-            .filterIsInstance<OnRampProvider.Defined>()
             .onEach { provider ->
                 _state.update { it.copy(preferredProvider = provider) }
             }.launchIn(scope)
@@ -119,7 +118,7 @@ class InternalPurchaseMethodController @Inject constructor(
                 selected = true
                 scope.launch {
                     val selection = PurchaseMethodSelection(method, metadata)
-                    delay(300)
+                    delay(300.milliseconds)
                     _selections.emit(selection)
                 }
             },
@@ -138,6 +137,7 @@ class InternalPurchaseMethodController @Inject constructor(
         present(PurchaseMethodMetadata(
             mint = Mint.usdf,
             purpose = PurchasePurpose.Deposit,
+            paymentAction = PaymentAction.Plain,
             showReserves = false,
             canUseOtherWallets = true)
         )
@@ -167,10 +167,12 @@ class InternalPurchaseMethodController @Inject constructor(
                     swapRoute
                 }
             }
+
             PurchaseMethod.PhantomWallet -> AppRoute.Token.Swap(
                 purpose = SwapPurpose.Buy(Mint.usdf, FundingSource.Phantom),
                 popToRoot = popToRoot,
             )
+
             PurchaseMethod.OtherWallet -> AppRoute.Transfers.Deposit(showOtherOptions = true)
             is PurchaseMethod.CashReserves -> null
             null -> null
