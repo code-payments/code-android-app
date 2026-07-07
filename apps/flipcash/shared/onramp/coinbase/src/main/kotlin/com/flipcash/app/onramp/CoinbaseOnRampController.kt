@@ -46,10 +46,6 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import retrofit2.HttpException
 import javax.inject.Inject
 
@@ -134,70 +130,25 @@ class CoinbaseOnRampController @Inject constructor(
         return Result.success(Unit)
     }
 
-    private val buyOptionsCache: MutableMap<String, Boolean> = mutableMapOf()
-
-    /**
-     * Resolves the on-ramp token based on the user's phone number region.
-     * Calls the Coinbase buy-options API to check if USDF is tradable in the
-     * user's detected region. Falls back to USDC when USDF is unavailable.
-     *
-     * Results are cached per region so the API is only called once per
-     * country+subdivision combination.
-     */
-    suspend fun resolveOnRampToken(): Token {
-        val phone = userManager.profile?.verifiedPhoneNumber ?: return Token.usdf
-        val region = regionFromPhone(phone) ?: return Token.usdf
-
-        val usdfAvailable = buyOptionsCache.getOrPut(region.cacheKey) {
-            checkBuyOptions(country = region.country, subdivision = region.subdivision)
-                .map { response -> isUsdfTradable(response) }
-                .getOrDefault(true) // default to USDF on API failure
-        }
-
-        return if (usdfAvailable) Token.usdf else Token.usdc
-    }
-
-    private fun isUsdfTradable(response: JsonObject): Boolean {
-        return response["purchase_currencies"]
-            ?.jsonArray
-            ?.any { it.jsonObject["symbol"]?.jsonPrimitive?.content == "USDF" }
-            ?: false
-    }
-
-    suspend fun checkBuyOptions(
-        country: String? = null,
-        subdivision: String? = null,
-    ): Result<JsonObject> {
-        return requestJwtAndExecute(
-            scheme = "https",
-            host = "api.developer.coinbase.com/",
-            path = "onramp/v1/buy/options",
-            method = "GET",
-            call = { jwt ->
-                runCatching {
-                    api.getBuyOptions(
-                        url = "https://api.developer.coinbase.com/onramp/v1/buy/options",
-                        jwt = "Bearer $jwt",
-                        country = country,
-                        subdivision = subdivision,
-                    )
-                }
-            }
-        )
-    }
-
     suspend fun placeOrderAndStartPayment(
         token: Token,
         verifiedFiat: VerifiedFiat,
     ): Result<Unit> {
-        return placeOrderInclusiveOfFees(verifiedFiat.localFiat.underlyingTokenAmount, token)
+        // Add money into USDF reserves buys USDC by default and lets UsdcDepositSweep
+        // convert USDC→USDF — USDC is broadly available on Coinbase whereas USDF is
+        // region-restricted. Direct launchpad-token buys keep using USDF (there is no
+        // program to swap USDC into an arbitrary token yet).
+        val resolvedToken = if (token.address == Mint.usdf) Token.usdc else token
+
+        return placeOrderInclusiveOfFees(verifiedFiat.localFiat.underlyingTokenAmount, resolvedToken)
             .mapCatching { (orderId, paymentLink) ->
                 val order = OnrampOrder(orderId, paymentLink.url)
 
-                if (token.address == Mint.usdf) {
+                if (resolvedToken.address == Mint.usdf || resolvedToken.address == Mint.usdc) {
                     // USDF goes to the deposit address — server auto-detects it.
-                    // No stateful swap needed.
-                    startPayment(order, token, verifiedFiat, null)
+                    // USDC goes to the owner's ATA — UsdcDepositSweep converts it.
+                    // Neither requires a stateful swap.
+                    startPayment(order, resolvedToken, verifiedFiat, null)
                 } else {
                     val owner = userManager.accountCluster
                         ?: throw IllegalStateException("No account cluster")
@@ -210,7 +161,7 @@ class CoinbaseOnRampController @Inject constructor(
                         fund = { Result.success(Unit) }
                     ).getOrThrow()
 
-                    startPayment(order, token, verifiedFiat, swapId)
+                    startPayment(order, resolvedToken, verifiedFiat, swapId)
                 }
             }
     }
@@ -254,7 +205,8 @@ class CoinbaseOnRampController @Inject constructor(
             paymentMethod = OnRampPaymentMethod.GUEST_CHECKOUT_GOOGLE_PAY,
             email = email,
             phoneNumber = phone,
-            destinationAddress = destination
+            destinationAddress = destination,
+            purchaseCurrency = token.symbol.uppercase(),
         )
 
         return requestJwtAndPlaceOrder(order, onRampApiEndpoint)
@@ -299,7 +251,8 @@ class CoinbaseOnRampController @Inject constructor(
             paymentMethod = OnRampPaymentMethod.GUEST_CHECKOUT_GOOGLE_PAY,
             email = email,
             phoneNumber = phone,
-            destinationAddress = destination
+            destinationAddress = destination,
+            purchaseCurrency = token.symbol.uppercase(),
         )
 
         return requestJwtAndPlaceOrder(order, onRampApiEndpoint)
@@ -352,11 +305,14 @@ class CoinbaseOnRampController @Inject constructor(
     }
 
     private fun destinationForToken(owner: AccountCluster, token: Token): String {
-        return if (token.address == Mint.usdf) {
-            owner.depositAddressFor(token).base58()
-        } else {
-            val swapAccounts = Token.usdf.timelockSwapAccounts(owner.authorityPublicKey)
-            swapAccounts.pda.publicKey.base58()
+        return when (token.address) {
+            Mint.usdf -> owner.depositAddressFor(token).base58()
+            // USDC lands in the owner's ATA where UsdcDepositSweep converts it to USDF.
+            Mint.usdc -> owner.authorityPublicKey.base58()
+            else -> {
+                val swapAccounts = Token.usdf.timelockSwapAccounts(owner.authorityPublicKey)
+                swapAccounts.pda.publicKey.base58()
+            }
         }
     }
 
