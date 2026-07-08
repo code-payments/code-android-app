@@ -4,6 +4,7 @@ import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.AnalyticsEvent
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.asProperties
+import com.flipcash.app.analytics.flowTrace
 import com.flipcash.app.analytics.toAnalyticsEvent
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -25,7 +26,8 @@ import org.json.JSONObject
 import javax.inject.Inject
 
 internal class MixpanelAnalyticsDelegate @Inject constructor(
-    private val mixpanelAPI: MixpanelAPI
+    private val mixpanelAPI: MixpanelAPI,
+    private val flowTracer: PaymentFlowTracer,
 ) : FlipcashAnalyticsService {
 
     private var traceAppInit: Trace? = null
@@ -72,6 +74,7 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
             *amount?.asProperties()?.toList()?.toTypedArray() ?: emptyArray(),
             *error.asProperty()
         )
+        event.flowTrace()?.let { flowTracer.record(it, success = successful) }
     }
 
     override fun transfer(
@@ -86,6 +89,7 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
             *fiat?.asProperties()?.toList()?.toTypedArray() ?: emptyArray(),
             *error.asProperty()
         )
+        event.flowTrace()?.let { flowTracer.record(it, success = successful) }
     }
 
     override fun paidForAccount(price: Double, currency: CurrencyCode, owner: KeyPair) {

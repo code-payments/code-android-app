@@ -326,6 +326,26 @@ internal fun Fiat.asProperties(): Map<String, String> {
     }
 }
 
+/** A completed payment flow reduced to a Firebase-Performance-shaped trace. */
+data class FlowTrace(
+    val name: String,
+    val metrics: Map<String, Long>,
+)
+
+/**
+ * Maps a give/grab transfer event to a [FlowTrace], or null when the event is
+ * not a give/grab or carries no stage timings. `total_ms` is the sum of stages.
+ */
+fun Analytics.Transfer.flowTrace(): FlowTrace? {
+    val (name, stages) = when (this) {
+        is Analytics.Transfer.GrabBill -> "grab_flow" to stages
+        is Analytics.Transfer.GiveBill -> "give_flow" to stages
+        else -> return null
+    }
+    if (stages.isEmpty()) return null
+    return FlowTrace(name = name, metrics = stages + ("total_ms" to stages.values.sum()))
+}
+
 internal fun Analytics.Transfer.toAnalyticsEvent(): AnalyticsEvent = when (this) {
     is Analytics.Transfer.Initiate.GrabBillStart  -> AnalyticsEvent.GrabBillStart
     is Analytics.Transfer.GrabBill                -> AnalyticsEvent.GrabBill(time = time, stages = stages)
