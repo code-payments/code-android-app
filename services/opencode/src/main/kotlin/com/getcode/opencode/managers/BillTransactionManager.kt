@@ -18,6 +18,7 @@ import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.providers.TokenMetadataProvider
+import com.getcode.utils.payment.PaymentTraceRegistry
 import com.getcode.utils.timedTraceSuspend
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -89,9 +90,9 @@ class BillTransactionManager @Inject constructor(
         billExchangeDataTimeout: Duration?,
         nonce: List<Byte>? = null,
         present: (BillPresentationData) -> Unit,
-        onGrabbed: suspend (LocalFiat) -> Unit,
+        onGrabbed: suspend (LocalFiat, Map<String, Long>) -> Unit,
         onTimeout: () -> Unit,
-        onError: (Throwable) -> Unit,
+        onError: (Throwable, Map<String, Long>) -> Unit,
     ) {
         giveTransactor?.dispose()
 
@@ -120,10 +121,16 @@ class BillTransactionManager @Inject constructor(
             transactor.start()
                 .onSuccess {
                     childScope.cancel()
-                    onGrabbed(LocalFiat(it.exchangeData))
+                    val stages = transactor.correlationId
+                        ?.let { PaymentTraceRegistry.finish(it, success = true)?.durations() }
+                        .orEmpty()
+                    onGrabbed(LocalFiat(it.exchangeData), stages)
                     transactionController.updateLimits(owner, force = true)
-                }.onFailure {
-                    onError(it)
+                }.onFailure { error ->
+                    val stages = transactor.correlationId
+                        ?.let { PaymentTraceRegistry.finish(it, success = false, error = error)?.durations() }
+                        .orEmpty()
+                    onError(error, stages)
                     transactor.dispose()
                 }
         }

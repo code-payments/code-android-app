@@ -201,7 +201,7 @@ class SessionControllerGiftCardErrorTest {
     // Phase 3: give bill error
     @Test
     fun `give bill error shows CashReturnedToWallet error`() = runTest {
-        val onErrorSlot = slot<(Throwable) -> Unit>()
+        val onErrorSlot = slot<(Throwable, Map<String, Long>) -> Unit>()
         every {
             billController.awaitGrab(
                 amount = any(),
@@ -215,7 +215,7 @@ class SessionControllerGiftCardErrorTest {
                 onError = capture(onErrorSlot),
             )
         } answers {
-            onErrorSlot.captured.invoke(RuntimeException("give failed"))
+            onErrorSlot.captured.invoke(RuntimeException("give failed"), emptyMap())
         }
 
         val controller = createController()

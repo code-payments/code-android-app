@@ -51,6 +51,10 @@ internal class GiveBillTransactor(
     private var rendezvousKey: KeyPair? = null
     private var receivingAccount: PublicKey? = null
 
+    /** Rendezvous public key used as the PaymentTrace correlation id; null until with() runs. */
+    val correlationId: String?
+        get() = rendezvousKey?.publicKey
+
     private var providedVerifiedState: VerifiedState? = null
 
     var presentationData: BillPresentationData = BillPresentationData(emptyList(), emptyList())
@@ -184,10 +188,7 @@ internal class GiveBillTransactor(
         // 2. Wait for recipient to grab the bill
         val transferRequest = paymentTrace.spanSuspendOrRun("awaitGrab") {
             messagingController.awaitRequestToGrabBill(scope, rendezvous)
-        } ?: run {
-            PaymentTraceRegistry.finish(correlationId, success = false)
-            return logAndFail(GiveTransactorError.NoGrabReceived())
-        }
+        } ?: return logAndFail(GiveTransactorError.NoGrabReceived())
 
 
         // 3. Validate that destination hasn't been tampered with by
@@ -243,7 +244,6 @@ internal class GiveBillTransactor(
                 logAndFail(it)
             }
         )
-        PaymentTraceRegistry.finish(correlationId, success = outcome.isSuccess, error = outcome.exceptionOrNull())
         return outcome
     }
 

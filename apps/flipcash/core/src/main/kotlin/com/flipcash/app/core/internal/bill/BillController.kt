@@ -55,9 +55,9 @@ class BillController @Inject constructor(
         verifiedState: VerifiedState?,
         nonce: List<Byte>? = null,
         present: (BillPresentationData) -> Unit,
-        onGrabbed: suspend (LocalFiat) -> Unit,
+        onGrabbed: suspend (LocalFiat, Map<String, Long>) -> Unit,
         onTimeout: () -> Unit,
-        onError: (Throwable) -> Unit,
+        onError: (Throwable, Map<String, Long>) -> Unit,
     ) = transactionManager.awaitGrabFromRecipient(
         token = token,
         amount = amount,

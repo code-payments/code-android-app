@@ -143,9 +143,9 @@ class BillPresentationDelegate @Inject constructor(
             verifiedState = (bill as? Bill.Cash)?.verifiedState,
             nonce = (bill as? Bill.Cash)?.nonce?.takeIf { it.isNotEmpty() },
             owner = owner,
-            onGrabbed = { amount ->
+            onGrabbed = { amount, stages ->
                 tokenCoordinator.subtract(bill.token, amount)
-                analytics.transfer(Analytics.Transfer.GiveBill(), bill.amount)
+                analytics.transfer(Analytics.Transfer.GiveBill(stages = stages), bill.amount)
                 toastController.enqueue(bill.amount, isDeposit = false)
                 dismissBill(Grabbed)
                 vibrator.vibrate()
@@ -154,12 +154,12 @@ class BillPresentationDelegate @Inject constructor(
             onTimeout = {
                 dismissBill(action = PutInWallet)
             },
-            onError = {
+            onError = { error, stages ->
                 analytics.transfer(
-                    event = Analytics.Transfer.GiveBill(),
+                    event = Analytics.Transfer.GiveBill(stages = stages),
                     amount = bill.amount,
                     successful = false,
-                    error = it
+                    error = error
                 )
                 dismissBill(action = PutInWallet)
                 BottomBarManager.showError(

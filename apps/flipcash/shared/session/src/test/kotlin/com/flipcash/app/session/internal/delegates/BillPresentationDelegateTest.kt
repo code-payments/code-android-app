@@ -1,5 +1,6 @@
 package com.flipcash.app.session.internal.delegates
 
+import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.bill.Bill
@@ -303,7 +304,7 @@ class BillPresentationDelegateTest {
         every { resources.getString(R.string.error_title_CashReturnedToWallet) } returns "error_title_CashReturnedToWallet"
         every { resources.getString(R.string.error_description_CashReturnedToWallet) } returns "error_description_CashReturnedToWallet"
 
-        val onErrorSlot = slot<(Throwable) -> Unit>()
+        val onErrorSlot = slot<(Throwable, Map<String, Long>) -> Unit>()
         every {
             billController.awaitGrab(
                 amount = any(),
@@ -333,7 +334,7 @@ class BillPresentationDelegateTest {
 
         delegate.awaitBillGrab(bill, accountCluster)
 
-        onErrorSlot.captured.invoke(RuntimeException("give failed"))
+        onErrorSlot.captured.invoke(RuntimeException("give failed"), emptyMap())
 
         assertEquals(PutInWallet, stateHolder.current.billResult)
         verify(exactly = 1) { billController.reset() }
@@ -341,5 +342,41 @@ class BillPresentationDelegateTest {
         val messages = BottomBarManager.messages.value
         assertTrue(messages.isNotEmpty(), "Expected an error message in BottomBarManager")
         assertEquals("error_title_CashReturnedToWallet", messages.first().title)
+    }
+
+    @Test
+    fun `give onGrabbed forwards trace stages to GiveBill event`() = runTest {
+        val stages = mapOf("resolveExchangeData" to 12L, "submitIntent" to 340L)
+
+        val onGrabbedSlot = slot<suspend (LocalFiat, Map<String, Long>) -> Unit>()
+        every {
+            billController.awaitGrab(
+                amount = any(),
+                token = any(),
+                owner = any(),
+                verifiedState = any(),
+                nonce = any(),
+                present = any(),
+                onGrabbed = capture(onGrabbedSlot),
+                onTimeout = any(),
+                onError = any(),
+            )
+        } answers {}
+
+        val amount = mockk<LocalFiat>(relaxed = true) {
+            every { nativeAmount.decimalValue } returns 3.0
+        }
+        val bill = Bill.Cash(
+            token = mockk(relaxed = true),
+            amount = amount,
+            didReceive = false,
+            kind = Bill.Kind.cash,
+        )
+        val delegate = createDelegate()
+        delegate.awaitBillGrab(bill, accountCluster)
+
+        onGrabbedSlot.captured.invoke(amount, stages)
+
+        verify { analytics.transfer(Analytics.Transfer.GiveBill(stages = stages), bill.amount) }
     }
 }

@@ -126,7 +126,7 @@ class DelegateEventEmissionTest {
             dispatchers = dispatchers,
         )
 
-        val onGrabbedSlot = slot<suspend (LocalFiat) -> Unit>()
+        val onGrabbedSlot = slot<suspend (LocalFiat, Map<String, Long>) -> Unit>()
         every {
             billController.awaitGrab(
                 amount = any(),
@@ -154,7 +154,7 @@ class DelegateEventEmissionTest {
         delegate.awaitBillGrab(bill, accountCluster)
 
         delegate.events.test {
-            onGrabbedSlot.captured.invoke(amount)
+            onGrabbedSlot.captured.invoke(amount, emptyMap())
             val event = awaitItem()
             assertIs<BillPresentationDelegate.Event.RefreshFeed>(event)
         }
