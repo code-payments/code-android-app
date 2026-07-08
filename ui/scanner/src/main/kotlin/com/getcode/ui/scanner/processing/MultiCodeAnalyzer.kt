@@ -115,7 +115,6 @@ class MultiCodeAnalyzer(
                             detected.copy(
                                 nativeScan = NativeScanSample(
                                     durationMs = elapsedMs,
-                                    hit = true,
                                     width = image.width,
                                     height = image.height,
                                     quality = ScanQuality.Best.headerValue,

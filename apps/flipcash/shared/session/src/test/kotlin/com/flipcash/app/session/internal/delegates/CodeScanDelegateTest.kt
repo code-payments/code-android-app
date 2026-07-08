@@ -8,9 +8,11 @@ import com.flipcash.app.session.internal.SessionStateHolder
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.user.UserManager
+import com.getcode.libs.code.detection.NativeScanSample
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.util.vibration.Vibrator
+import com.getcode.utils.payment.PaymentTraceRegistry
 import com.kik.kikx.models.ScannableKikCode
 import io.mockk.every
 import io.mockk.mockk
@@ -254,5 +256,18 @@ class CodeScanDelegateTest {
                 onError = any(),
             )
         }
+    }
+
+    // --- nativeScan timing is recorded on the grab trace ---
+
+    @Test
+    fun `onCodeScan with nativeScan records timing mark on the opened grab trace`() = runTest {
+        val delegate = createDelegate()
+        val sample = NativeScanSample(durationMs = 42, width = 640, height = 480, quality = 3)
+
+        delegate.onCodeScan(remoteKikCode(), sample)
+
+        val durations = PaymentTraceRegistry.get("test-rendezvous-key")?.durations()
+        assertEquals(42L, durations?.get("nativeScan"))
     }
 }

@@ -107,7 +107,6 @@ class CodeScanDelegate @Inject constructor(
                 name = "nativeScan",
                 durationMs = sample.durationMs,
                 metadata = mapOf(
-                    "hit" to sample.hit,
                     "width" to sample.width,
                     "height" to sample.height,
                     "quality" to sample.quality,

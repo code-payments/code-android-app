@@ -9,7 +9,6 @@ interface CodeScanResult {
 
     data class QrCode(
         val results: List<String>,
-        override val nativeScan: NativeScanSample? = null,
     ) : CodeScanResult
 }
 
