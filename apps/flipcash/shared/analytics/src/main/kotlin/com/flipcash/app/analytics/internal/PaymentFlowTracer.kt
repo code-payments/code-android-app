@@ -29,7 +29,7 @@ internal class FirebasePaymentFlowTracer : PaymentFlowTracer {
     }
 
     private fun sanitize(name: String): String =
-        name.replace(METRIC_NAME_ILLEGAL_CHARS, "_").take(MAX_METRIC_NAME_LENGTH)
+        name.replace(METRIC_NAME_ILLEGAL_CHARS, "_").trimStart('_').take(MAX_METRIC_NAME_LENGTH)
 
     private companion object {
         // Firebase rejects a leading underscore and caps metric names at 100 chars.

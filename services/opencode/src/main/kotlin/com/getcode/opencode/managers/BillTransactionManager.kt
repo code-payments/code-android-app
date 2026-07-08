@@ -119,21 +119,34 @@ class BillTransactionManager @Inject constructor(
             // bail out before start() reads fields that dispose() may have nulled.
             ensureActive()
 
-            transactor.start()
-                .onSuccess { metadata ->
-                    childScope.cancel()
-                    val stages = capturedCorrelationId
-                        ?.let { PaymentTraceRegistry.finish(it, success = true)?.durations() }
-                        ?: emptyMap()
-                    onGrabbed(LocalFiat(metadata.exchangeData), stages)
-                    transactionController.updateLimits(owner, force = true)
-                }.onFailure { error ->
-                    val stages = capturedCorrelationId
-                        ?.let { PaymentTraceRegistry.finish(it, success = false, error = error)?.durations() }
-                        ?: emptyMap()
-                    onError(error, stages)
-                    transactor.dispose()
+            try {
+                transactor.start()
+                    .onSuccess { metadata ->
+                        childScope.cancel()
+                        val stages = capturedCorrelationId
+                            ?.let { PaymentTraceRegistry.finish(it, success = true)?.durations() }
+                            ?: emptyMap()
+                        onGrabbed(LocalFiat(metadata.exchangeData), stages)
+                        transactionController.updateLimits(owner, force = true)
+                    }.onFailure { error ->
+                        val stages = capturedCorrelationId
+                            ?.let { PaymentTraceRegistry.finish(it, success = false, error = error)?.durations() }
+                            ?: emptyMap()
+                        onError(error, stages)
+                        transactor.dispose()
+                    }
+            } finally {
+                // If the flow was cancelled (dispose() → CancellationException from start()),
+                // neither handler ran; finish the give trace here so a timed-out/cancelled
+                // give still emits a summary instead of being orphaned until eviction. On the
+                // normal success/failure paths finish() already evicted it, so get() returns
+                // null and this is a no-op (no double-finish).
+                capturedCorrelationId?.let { id ->
+                    if (PaymentTraceRegistry.get(id) != null) {
+                        PaymentTraceRegistry.finish(id, success = false)
+                    }
                 }
+            }
         }
     }
 
