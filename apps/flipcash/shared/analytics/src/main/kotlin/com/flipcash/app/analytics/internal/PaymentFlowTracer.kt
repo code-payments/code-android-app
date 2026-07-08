@@ -4,10 +4,9 @@ import com.flipcash.app.analytics.FlowTrace
 import com.getcode.services.flipcash.BuildConfig
 import com.google.firebase.Firebase
 import com.google.firebase.perf.performance
-import javax.inject.Inject
 
 /** Emits a completed payment flow as a backend performance trace. */
-interface PaymentFlowTracer {
+internal interface PaymentFlowTracer {
     fun record(trace: FlowTrace, success: Boolean)
 }
 
@@ -17,18 +16,26 @@ interface PaymentFlowTracer {
  * stops it immediately (the metrics carry the timing; the trace's own wall-clock
  * is incidental). No-ops in debug builds to avoid polluting dashboards from dev.
  */
-internal class FirebasePaymentFlowTracer @Inject constructor() : PaymentFlowTracer {
+internal class FirebasePaymentFlowTracer : PaymentFlowTracer {
     override fun record(trace: FlowTrace, success: Boolean) {
         if (BuildConfig.DEBUG) return
-        val fbTrace = Firebase.performance.newTrace(trace.name)
-        fbTrace.start()
-        trace.metrics.forEach { (name, ms) -> fbTrace.putMetric(sanitize(name), ms) }
-        fbTrace.putAttribute("success", success.toString())
-        fbTrace.stop()
+        runCatching {
+            val fbTrace = Firebase.performance.newTrace(trace.name)
+            fbTrace.start()
+            trace.metrics.forEach { (name, ms) -> fbTrace.putMetric(sanitize(name), ms) }
+            fbTrace.putAttribute("success", success.toString())
+            fbTrace.stop()
+        }
     }
 
-    // Firebase metric names: <= 32 chars, [A-Za-z][A-Za-z0-9_]*. Span names already fit;
-    // sanitize defensively so an unexpected name can never crash a payment.
     private fun sanitize(name: String): String =
-        name.replace(Regex("[^A-Za-z0-9_]"), "_").take(32)
+        name.replace(METRIC_NAME_ILLEGAL_CHARS, "_").take(MAX_METRIC_NAME_LENGTH)
+
+    private companion object {
+        // Firebase rejects a leading underscore and caps metric names at 100 chars.
+        // Our span names are short and start with a letter; we replace any illegal
+        // char and cap length defensively so an unexpected name can never be rejected.
+        val METRIC_NAME_ILLEGAL_CHARS = Regex("[^A-Za-z0-9_]")
+        const val MAX_METRIC_NAME_LENGTH = 100
+    }
 }

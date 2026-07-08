@@ -14,10 +14,10 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 object AnalyticsModule {
     @Provides
-    fun providePaymentFlowTracer(): PaymentFlowTracer = FirebasePaymentFlowTracer()
+    internal fun providePaymentFlowTracer(): PaymentFlowTracer = FirebasePaymentFlowTracer()
 
     @Provides
-    fun providesAnalyticsService(
+    internal fun providesAnalyticsService(
         mixpanelAPI: MixpanelAPI,
         flowTracer: PaymentFlowTracer,
     ): FlipcashAnalyticsService = MixpanelAnalyticsDelegate(mixpanelAPI, flowTracer)
