@@ -379,4 +379,48 @@ class BillPresentationDelegateTest {
 
         verify { analytics.transfer(Analytics.Transfer.GiveBill(stages = stages), bill.amount) }
     }
+
+    @Test
+    fun `give onError forwards trace stages to GiveBill event`() = runTest {
+        val stages = mapOf("resolveExchangeData" to 12L, "submitIntent" to 340L)
+        val cause = RuntimeException("give failed")
+
+        val onErrorSlot = slot<(Throwable, Map<String, Long>) -> Unit>()
+        every {
+            billController.awaitGrab(
+                amount = any(),
+                token = any(),
+                owner = any(),
+                verifiedState = any(),
+                nonce = any(),
+                present = any(),
+                onGrabbed = any(),
+                onTimeout = any(),
+                onError = capture(onErrorSlot),
+            )
+        } answers {}
+
+        val amount = mockk<LocalFiat>(relaxed = true) {
+            every { nativeAmount.decimalValue } returns 3.0
+        }
+        val bill = Bill.Cash(
+            token = mockk(relaxed = true),
+            amount = amount,
+            didReceive = false,
+            kind = Bill.Kind.cash,
+        )
+        val delegate = createDelegate()
+        delegate.awaitBillGrab(bill, accountCluster)
+
+        onErrorSlot.captured.invoke(cause, stages)
+
+        verify {
+            analytics.transfer(
+                event = Analytics.Transfer.GiveBill(stages = stages),
+                amount = bill.amount,
+                successful = false,
+                error = cause,
+            )
+        }
+    }
 }

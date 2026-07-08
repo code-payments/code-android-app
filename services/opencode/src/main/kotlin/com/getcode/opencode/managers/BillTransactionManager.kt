@@ -110,6 +110,7 @@ class BillTransactionManager @Inject constructor(
             }
 
             giveTransactor = transactor
+            val capturedCorrelationId = transactor.correlationId   // non-null here; with() already ran
 
             present(transactor.presentationData)
             presentBillForGive(onTimeout)
@@ -119,17 +120,17 @@ class BillTransactionManager @Inject constructor(
             ensureActive()
 
             transactor.start()
-                .onSuccess {
+                .onSuccess { metadata ->
                     childScope.cancel()
-                    val stages = transactor.correlationId
+                    val stages = capturedCorrelationId
                         ?.let { PaymentTraceRegistry.finish(it, success = true)?.durations() }
-                        .orEmpty()
-                    onGrabbed(LocalFiat(it.exchangeData), stages)
+                        ?: emptyMap()
+                    onGrabbed(LocalFiat(metadata.exchangeData), stages)
                     transactionController.updateLimits(owner, force = true)
                 }.onFailure { error ->
-                    val stages = transactor.correlationId
+                    val stages = capturedCorrelationId
                         ?.let { PaymentTraceRegistry.finish(it, success = false, error = error)?.durations() }
-                        .orEmpty()
+                        ?: emptyMap()
                     onError(error, stages)
                     transactor.dispose()
                 }
