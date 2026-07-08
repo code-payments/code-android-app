@@ -142,7 +142,7 @@ internal fun Scanner() {
                             }
                         }
                         is KikCodeResult -> {
-                            session.onCodeScan(result.kikCode)
+                            session.onCodeScan(result.kikCode, result.nativeScan)
                         }
                     }
                 },

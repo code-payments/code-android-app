@@ -10,4 +10,6 @@ dependencies {
     implementation(libs.bundles.hilt)
 
     api(libs.androidx.camerax.core)
+
+    testImplementation(libs.junit)
 }

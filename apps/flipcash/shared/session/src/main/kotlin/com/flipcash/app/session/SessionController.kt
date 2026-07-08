@@ -8,6 +8,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.flipcash.app.core.AppRoute
 import com.getcode.ui.core.RestrictionType
+import com.getcode.libs.code.detection.NativeScanSample
 import com.getcode.util.permissions.PermissionResult
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.flow.StateFlow
@@ -28,7 +29,7 @@ interface BillOperations {
 
 interface CodeScanOperations {
     fun onCameraScanning(scanning: Boolean)
-    fun onCodeScan(code: ScannableKikCode)
+    fun onCodeScan(code: ScannableKikCode, nativeScan: NativeScanSample?)
 }
 
 interface CashLinkOperations {

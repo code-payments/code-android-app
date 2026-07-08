@@ -9,11 +9,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import com.getcode.libs.code.detection.CodeDetector
 import com.getcode.libs.code.detection.CodeScanResult
-import com.getcode.utils.payment.NativeScanTimings
+import com.getcode.libs.code.detection.NativeScanSample
 import kotlin.time.TimeSource
 import com.getcode.libs.qr.QrCodeAnalyzer
 import com.kik.kikx.kikcodes.ScanQuality
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
+import com.kik.kikx.kikcodes.implementation.KikCodeResult
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -105,18 +106,14 @@ class MultiCodeAnalyzer(
 
                 for ((index, detector) in detectors.withIndex()) {
                     if (index == 0) {
-                        // First detector is the Kik native scanner — isolate its cost.
+                        // First detector is the Kik native scanner — isolate its cost and
+                        // carry the measurement on the result itself (race-free; no shared holder).
                         val start = TimeSource.Monotonic.markNow()
-                        result = detector.detect(image)
+                        val detected = detector.detect(image)
                         val elapsedMs = start.elapsedNow().inWholeMilliseconds
-                        // Record only on a hit. The session layer consumes the latest sample one
-                        // coroutine hop later; recording misses too would let a later empty frame
-                        // overwrite the winning frame's timing before it is consumed. (Phase 1 has
-                        // no consumer of miss timings; the robust fix is to carry the sample on the
-                        // CodeScanResult itself — deferred to the overlay phase.)
-                        if (result != null) {
-                            NativeScanTimings.record(
-                                NativeScanTimings.Sample(
+                        result = if (detected is KikCodeResult) {
+                            detected.copy(
+                                nativeScan = NativeScanSample(
                                     durationMs = elapsedMs,
                                     hit = true,
                                     width = image.width,
@@ -124,6 +121,8 @@ class MultiCodeAnalyzer(
                                     quality = ScanQuality.Best.headerValue,
                                 )
                             )
+                        } else {
+                            detected
                         }
                     } else {
                         result = detector.detect(image)

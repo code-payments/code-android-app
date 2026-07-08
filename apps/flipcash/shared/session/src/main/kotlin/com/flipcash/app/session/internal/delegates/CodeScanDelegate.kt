@@ -13,9 +13,9 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.util.vibration.Vibrator
+import com.getcode.libs.code.detection.NativeScanSample
 import com.getcode.utils.base58
 import com.getcode.utils.hexEncodedString
-import com.getcode.utils.payment.NativeScanTimings
 import com.getcode.utils.payment.PaymentFlow
 import com.getcode.utils.payment.PaymentTraceRegistry
 import com.getcode.utils.trace
@@ -68,7 +68,7 @@ class CodeScanDelegate @Inject constructor(
         stateHolder.update { it.copy(isCameraUp = scanning) }
     }
 
-    override fun onCodeScan(code: ScannableKikCode) {
+    override fun onCodeScan(code: ScannableKikCode, nativeScan: NativeScanSample?) {
         if (billController.state.value.bill != null) {
             return
         }
@@ -93,16 +93,16 @@ class CodeScanDelegate @Inject constructor(
         )
 
         when (codePayload.kind) {
-            PayloadKind.Cash -> onCashScanned(codePayload)
-            PayloadKind.MultiMintCash -> onCashScanned(codePayload)
+            PayloadKind.Cash -> onCashScanned(codePayload, nativeScan)
+            PayloadKind.MultiMintCash -> onCashScanned(codePayload, nativeScan)
             PayloadKind.Unknown -> Unit
         }
     }
 
-    private fun onCashScanned(payload: OpenCodePayload) {
+    private fun onCashScanned(payload: OpenCodePayload, nativeScan: NativeScanSample?) {
         scannedRendezvous[payload.rendezvous.publicKey] = Clock.System.now().toEpochMilliseconds()
         val paymentTrace = PaymentTraceRegistry.open(payload.rendezvous.publicKey, PaymentFlow.Grab)
-        NativeScanTimings.consumeLatest()?.let { sample ->
+        nativeScan?.let { sample ->
             paymentTrace.mark(
                 name = "nativeScan",
                 durationMs = sample.durationMs,

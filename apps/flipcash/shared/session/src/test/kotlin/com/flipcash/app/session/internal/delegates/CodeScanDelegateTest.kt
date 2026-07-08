@@ -99,7 +99,7 @@ class CodeScanDelegateTest {
     fun `onCodeScan ignores non-RemoteKikCode`() = runTest {
         val delegate = createDelegate()
         val nonRemote = mockk<ScannableKikCode.UsernameKikCode>(relaxed = true)
-        delegate.onCodeScan(nonRemote)
+        delegate.onCodeScan(nonRemote, null)
 
         verify(exactly = 0) {
             billController.attemptGrab(
@@ -118,7 +118,7 @@ class CodeScanDelegateTest {
         }
 
         val delegate = createDelegate()
-        delegate.onCodeScan(remoteKikCode())
+        delegate.onCodeScan(remoteKikCode(), null)
 
         verify(exactly = 0) {
             billController.attemptGrab(
@@ -134,8 +134,8 @@ class CodeScanDelegateTest {
     fun `onCodeScan deduplicates same rendezvous key`() = runTest {
         val delegate = createDelegate()
 
-        delegate.onCodeScan(remoteKikCode())
-        delegate.onCodeScan(remoteKikCode()) // same rendezvous key
+        delegate.onCodeScan(remoteKikCode(), null)
+        delegate.onCodeScan(remoteKikCode(), null) // same rendezvous key
 
         verify(exactly = 1) {
             billController.attemptGrab(
@@ -152,7 +152,7 @@ class CodeScanDelegateTest {
         every { mockPayload.kind } returns PayloadKind.Unknown
 
         val delegate = createDelegate()
-        delegate.onCodeScan(remoteKikCode())
+        delegate.onCodeScan(remoteKikCode(), null)
 
         verify(exactly = 0) {
             billController.attemptGrab(
@@ -171,7 +171,7 @@ class CodeScanDelegateTest {
         stateHolder.update { it.copy(vibrateOnScan = true) }
 
         val delegate = createDelegate()
-        delegate.onCodeScan(remoteKikCode())
+        delegate.onCodeScan(remoteKikCode(), null)
 
         verify { vibrator.tick() }
     }
@@ -181,7 +181,7 @@ class CodeScanDelegateTest {
         stateHolder.update { it.copy(vibrateOnScan = false) }
 
         val delegate = createDelegate()
-        delegate.onCodeScan(remoteKikCode())
+        delegate.onCodeScan(remoteKikCode(), null)
 
         verify(exactly = 0) { vibrator.tick() }
     }
@@ -193,7 +193,7 @@ class CodeScanDelegateTest {
         every { mockPayload.kind } returns PayloadKind.Cash
 
         val delegate = createDelegate()
-        delegate.onCodeScan(remoteKikCode())
+        delegate.onCodeScan(remoteKikCode(), null)
 
         verify(exactly = 1) {
             billController.attemptGrab(
@@ -210,7 +210,7 @@ class CodeScanDelegateTest {
         every { mockPayload.kind } returns PayloadKind.MultiMintCash
 
         val delegate = createDelegate()
-        delegate.onCodeScan(remoteKikCode())
+        delegate.onCodeScan(remoteKikCode(), null)
 
         verify(exactly = 1) {
             billController.attemptGrab(
@@ -237,14 +237,14 @@ class CodeScanDelegateTest {
         } answers {}
 
         val delegate = createDelegate()
-        delegate.onCodeScan(remoteKikCode())
+        delegate.onCodeScan(remoteKikCode(), null)
 
         // Invoke the error callback
         assertTrue(onErrorSlot.isNotEmpty())
         onErrorSlot.first().invoke(RuntimeException("grab failed"))
 
         // Should be able to scan the same code again
-        delegate.onCodeScan(remoteKikCode())
+        delegate.onCodeScan(remoteKikCode(), null)
 
         verify(exactly = 2) {
             billController.attemptGrab(

@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.camera.core.ImageProxy
 import com.getcode.libs.code.detection.CodeDetector
 import com.getcode.libs.code.detection.CodeScanResult
+import com.getcode.libs.code.detection.NativeScanSample
 import com.getcode.media.StaticImageAnalyzer
 import com.getcode.util.toByteArray
 import com.kik.kikx.kikcodes.KikCodeScanner
@@ -11,7 +12,10 @@ import com.kik.kikx.kikcodes.ScannerError
 import com.kik.kikx.models.ScannableKikCode
 import javax.inject.Inject
 
-data class KikCodeResult(val kikCode: ScannableKikCode) : CodeScanResult
+data class KikCodeResult(
+    val kikCode: ScannableKikCode,
+    override val nativeScan: NativeScanSample? = null,
+) : CodeScanResult
 
 
 class KikCodeAnalyzer @Inject constructor(

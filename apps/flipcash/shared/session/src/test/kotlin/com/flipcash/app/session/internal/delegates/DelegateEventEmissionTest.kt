@@ -197,7 +197,7 @@ class DelegateEventEmissionTest {
                 payloadId = ByteArray(20),
                 colorIndex = 0
             )
-            delegate.onCodeScan(code)
+            delegate.onCodeScan(code, null)
 
             val token = mockk<Token>(relaxed = true)
             val amount = mockk<LocalFiat>(relaxed = true)
