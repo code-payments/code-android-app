@@ -350,9 +350,7 @@ class CoinbaseOnRampController @Inject constructor(
                     )
 
                     is GetJwtError.PhoneVerificationRequired -> Result.failure(
-                        OnRampAuthError.VerificationRequired(
-                            phone = true
-                        )
+                        OnRampAuthError.VerificationRequired(phone = true)
                     )
 
                     else -> Result.failure(error)

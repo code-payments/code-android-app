@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 internal class UserProfileViewModel @Inject constructor(
@@ -111,7 +112,7 @@ internal class UserProfileViewModel @Inject constructor(
                     actions = listOf(
                         BottomBarAction(resources.getString(R.string.action_unlinkPhone)) {
                             viewModelScope.launch {
-                                delay(150)
+                                delay(150.milliseconds)
                                 unlinkPhone()
                             }
                         }
@@ -129,7 +130,7 @@ internal class UserProfileViewModel @Inject constructor(
                     actions = listOf(
                         BottomBarAction(resources.getString(R.string.action_unlinkEmail)) {
                             viewModelScope.launch {
-                                delay(150)
+                                delay(150.milliseconds)
                                 unlinkEmail()
                             }
                         }
@@ -147,7 +148,7 @@ internal class UserProfileViewModel @Inject constructor(
                     actions = listOf(
                         BottomBarAction(resources.getString(R.string.action_unlinkAccount)) {
                             viewModelScope.launch {
-                                delay(150)
+                                delay(150.milliseconds)
                                 unlinkSocialAccount(event.account)
                             }
                         }
@@ -235,7 +236,17 @@ internal class UserProfileViewModel @Inject constructor(
     }
 
     private suspend fun unlinkEmail() {
-        val email = userManager.profile?.verifiedEmailAddress ?: return
+        val emailMethod = userManager.profile?.email ?: return
+        val (email, isVerified) = emailMethod
+        if (!isVerified) {
+            contactController.removeLocalUnverified(ContactMethod.Email(email))
+            BottomBarManager.showSuccess(
+                title = resources.getString(R.string.prompt_title_emailUnlinked),
+                message = resources.getString(R.string.prompt_description_emailUnlinked),
+            )
+            return
+        }
+
         contactController.unlink(ContactMethod.Email(email))
             .onFailure {
                 BottomBarManager.showError(

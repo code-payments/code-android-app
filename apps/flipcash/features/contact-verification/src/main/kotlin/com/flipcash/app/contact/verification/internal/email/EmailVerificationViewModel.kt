@@ -130,7 +130,6 @@ class EmailVerificationViewModel @Inject constructor(
                         // and complete. The profile write is persisted by ProfileCoordinator.
                         verificationController.setLocalUnverified(ContactMethod.Email(emailAddress))
                         dispatchEvent(Event.OnEntrySaved)
-                        dispatchEvent(Event.OnSendingCodeChanged())
                     }
                 } else {
                     handleSendVerificationCode(ContactMethod.Email(emailAddress, computeClientData()))

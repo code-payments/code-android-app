@@ -57,6 +57,17 @@ class ContactVerificationController @Inject constructor(
         userManager.set(updated)
     }
 
+    fun removeLocalUnverified(method: ContactMethod) {
+        val profile = userManager.profile ?: return
+        val updated = when (method) {
+            is ContactMethod.Phone ->
+                profile.copy(phoneNumber = null)
+            is ContactMethod.Email ->
+                profile.copy(email = null)
+        }
+        userManager.set(updated)
+    }
+
     suspend fun linkForPayment(method: ContactMethod.Phone): Result<Unit> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))

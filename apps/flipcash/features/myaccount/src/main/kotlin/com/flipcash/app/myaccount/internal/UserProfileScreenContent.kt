@@ -218,12 +218,18 @@ internal fun UserProfileScreenContent(
                     )
                 }
 
-                else -> ContactMethodRow(
-                    value = email.value,
-                    verified = false,
-                    linkedForPayment = false,
-                    onRowClick = { dispatch(UserProfileViewModel.Event.ReplaceEmailClicked) },
-                )
+                else -> SwipeActionRow(
+                    onDelete = { dispatch(UserProfileViewModel.Event.UnlinkEmailClicked) },
+                    stateKey = email.value,
+                    resetOnDismiss = true,
+                ) {
+                    ContactMethodRow(
+                        value = email.value,
+                        verified = false,
+                        linkedForPayment = false,
+                        onRowClick = { dispatch(UserProfileViewModel.Event.ReplaceEmailClicked) },
+                    )
+                }
             }
         }
 

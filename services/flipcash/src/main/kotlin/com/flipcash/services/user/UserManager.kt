@@ -179,7 +179,7 @@ class UserManager @Inject constructor(
         _state.update { it.copy(pushToken = pushToken) }
     }
 
-    fun set(userProfile: UserProfile) {
+    fun set(userProfile: UserProfile?) {
         _state.update { it.copy(userProfile = userProfile) }
     }
 

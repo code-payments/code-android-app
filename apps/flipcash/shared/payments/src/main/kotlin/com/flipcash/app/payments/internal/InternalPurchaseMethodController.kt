@@ -23,6 +23,7 @@ import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -48,7 +49,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Singleton
 class InternalPurchaseMethodController @Inject constructor(
     features: FeatureFlagController,
-    userFlags: UserFlagsCoordinator,
+    private val userFlags: UserFlagsCoordinator,
     reservesBalanceProvider: ReservesBalanceProvider,
     exchange: Exchange,
     private val resources: ResourceHelper,
@@ -151,7 +152,11 @@ class InternalPurchaseMethodController @Inject constructor(
             PurchaseMethod.CoinbaseOnRamp -> {
                 val profile = userManager.profile
                 val needsPhone = profile?.verifiedPhoneNumber == null
-                val needsEmail = profile?.verifiedEmailAddress == null
+                val email = profile?.email?.value
+                val needsEmailVerification = userFlags.resolvedFlags.value
+                    .requireCoinbaseEmailVerification.effectiveValue
+                val needsEmail = needsEmailVerification || email == null
+                trace("needsPhone: $needsPhone, needsEmail: $needsEmail, needsEmailVerification: $needsEmailVerification")
                 val swapRoute = AppRoute.Token.Swap(
                     purpose = SwapPurpose.Buy(Mint.usdf, FundingSource.Coinbase),
                     popToRoot = popToRoot,

@@ -1,5 +1,6 @@
 package com.flipcash.services.controllers
 
+import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
@@ -99,6 +100,56 @@ class ProfileControllerTest {
         val result = controller.updateUserProfile()
 
         assertEquals(serverEmail, result.getOrThrow().email)
+    }
+
+    @Test
+    fun `updateUserProfile preserves local unverified contacts when server returns NotFound`() = runTest {
+        stubOwner()
+        every { userManager.accountId } returns listOf(1)
+        val localEmail = VerifiableContactMethod("entered@test.com", verified = false)
+        val localPhone = VerifiableContactMethod("+15551234567", verified = false)
+        every { userManager.profile } returns stubProfile()
+            .copy(email = localEmail, phoneNumber = localPhone)
+        repository.getProfileResult = Result.failure(GetUserProfileError.NotFound())
+
+        val result = controller.updateUserProfile()
+
+        assertTrue(result.isSuccess)
+        assertEquals(localEmail, result.getOrThrow().email)
+        assertEquals(localPhone, result.getOrThrow().phoneNumber)
+        verify {
+            userManager.set(
+                match<UserProfile> { it.email == localEmail && it.phoneNumber == localPhone }
+            )
+        }
+        verify(exactly = 0) { userManager.set(null as UserProfile?) }
+    }
+
+    @Test
+    fun `updateUserProfile drops verified local contacts on NotFound`() = runTest {
+        stubOwner()
+        every { userManager.accountId } returns listOf(1)
+        every { userManager.profile } returns stubProfile()
+            .copy(email = VerifiableContactMethod("verified@test.com", verified = true))
+        repository.getProfileResult = Result.failure(GetUserProfileError.NotFound())
+
+        val result = controller.updateUserProfile()
+
+        assertTrue(result.isFailure)
+        verify { userManager.set(null as UserProfile?) }
+    }
+
+    @Test
+    fun `updateUserProfile clears cache on NotFound with no local contacts`() = runTest {
+        stubOwner()
+        every { userManager.accountId } returns listOf(1)
+        every { userManager.profile } returns null
+        repository.getProfileResult = Result.failure(GetUserProfileError.NotFound())
+
+        val result = controller.updateUserProfile()
+
+        assertTrue(result.isFailure)
+        verify { userManager.set(null as UserProfile?) }
     }
 
     @Test
