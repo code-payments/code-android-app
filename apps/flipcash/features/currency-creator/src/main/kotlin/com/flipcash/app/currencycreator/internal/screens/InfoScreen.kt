@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +26,9 @@ import com.flipcash.app.currencycreator.internal.components.Stepper
 import com.flipcash.core.R
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -34,13 +38,35 @@ import com.getcode.ui.theme.CodeScaffold
 internal fun InfoScreen() {
     val viewModel = flowSharedViewModel<CurrencyCreatorViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    InfoScreenContent(state)
+    val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<CurrencyCreatorViewModel.Event.AdvanceFromInfo>()
+            .onEach { flowNavigator.navigateTo(CurrencyCreatorStep.NameSelection()) }
+            .launchIn(this)
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<CurrencyCreatorViewModel.Event.OpenScreen>()
+            // navigate() pushes onto the OUTER app navigator; using the inner flow
+            // navigator (LocalCodeNavigator) would try to render this app route inside
+            // the currency-creator flow, which only knows CurrencyCreatorStep keys → crash.
+            .onEach { flowNavigator.navigate(it.screen) }
+            .launchIn(this)
+    }
+
+    InfoScreenContent(
+        state = state,
+        onGetStarted = { viewModel.dispatchEvent(CurrencyCreatorViewModel.Event.OnIntroContinue) },
+    )
 }
 
 @Composable
-internal fun InfoScreenContent(state: CurrencyCreatorViewModel.State) {
-    val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
-
+internal fun InfoScreenContent(
+    state: CurrencyCreatorViewModel.State,
+    onGetStarted: () -> Unit = {},
+) {
     CodeScaffold(
         modifier = Modifier
             .padding(horizontal = CodeTheme.dimens.inset),
@@ -55,7 +81,7 @@ internal fun InfoScreenContent(state: CurrencyCreatorViewModel.State) {
                     ),
                 text = stringResource(R.string.action_getStarted),
                 buttonState = ButtonState.Filled,
-                onClick = { flowNavigator.navigateTo(CurrencyCreatorStep.NameSelection()) },
+                onClick = onGetStarted,
             )
         }
     ) { padding ->

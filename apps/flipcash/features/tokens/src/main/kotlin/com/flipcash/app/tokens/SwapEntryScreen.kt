@@ -50,7 +50,7 @@ internal fun SwapEntryScreen(
         AppBarWithTitle(
             title = when (purpose) {
                 is SwapPurpose.Buy if purpose.fundingSource != FundingSource.Flexible ->
-                    stringResource(R.string.title_amountToDeposit)
+                    stringResource(R.string.title_amountToAdd)
                 is SwapPurpose.BalanceIncrease -> stringResource(R.string.title_amountToBuy)
                 is SwapPurpose.BalanceDecrease -> stringResource(R.string.title_amountToSell)
             },
@@ -102,7 +102,8 @@ internal fun SwapEntryScreen(
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.OnVerificationNeeded>()
-            .onEach { (phone, email) ->
+            .onEach { event ->
+                val (phone, email) = event
                 val mint = (viewModel.stateFlow.value.purpose as? SwapPurpose.Buy)?.mint ?: return@onEach
                 navigator.navigateForResult<VerificationResult>(
                     AppRoute.Verification(
@@ -127,12 +128,29 @@ internal fun SwapEntryScreen(
             }.launchIn(this)
     }
 
+    // Deposit-first "Add Money" via Phantom enters the amount here after connecting;
+    // confirming it signs the transaction and advances straight to processing.
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.PhantomNavigateToProcessing>()
+            .onEach {
+                flowNavigator.navigateTo(SwapStep.Processing)
+            }.launchIn(this)
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.OtherWalletSelected>()
             .onEach {
                 flowNavigator.exitWithResult(SwapResult.OpenDeposit)
             }.launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.OpenScreen>()
+            .onEach { navigator.push(it.screen) }
+            .launchIn(this)
     }
 
     LaunchedEffect(Unit) {
@@ -144,7 +162,7 @@ internal fun SwapEntryScreen(
                 }
                 is CoinbaseOnRampCompletion.DepositSubmitted -> {
                     viewModel.dispatchEvent(SwapViewModel.Event.UpdateProcessingState(loading = true))
-                    viewModel.dispatchEvent(SwapViewModel.Event.DepositSubmitted)
+                    viewModel.dispatchEvent(SwapViewModel.Event.DepositSubmitted(completion.orderId))
                     flowNavigator.navigateTo(SwapStep.Processing)
                 }
             }

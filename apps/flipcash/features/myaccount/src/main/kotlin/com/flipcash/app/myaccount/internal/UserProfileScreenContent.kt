@@ -4,18 +4,25 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -28,6 +35,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight.Companion.W600
 import androidx.compose.ui.text.style.TextOverflow
@@ -154,50 +163,71 @@ internal fun UserProfileScreenContent(
         // Phone section
         item(contentType = "section_header") { SectionHeader(stringResource(R.string.title_sectionPhone)) }
         item(contentType = "contact_method") {
-            if (state.phoneNumber != null) {
-                SwipeActionRow(
-                    onDelete = { dispatch(UserProfileViewModel.Event.UnlinkPhoneClicked) },
-                    stateKey = state.phoneNumber,
-                    resetOnDismiss = true,
-                ) {
-                    ContactMethodRow(
-                        value = state.phoneNumber,
-                        subtitle = if (state.phoneLinkedForPayment) {
-                            stringResource(R.string.subtitle_linkedForPayments)
-                        } else null,
-                        onRowClick = { dispatch(UserProfileViewModel.Event.ReplacePhoneClicked) },
-                    )
-                }
-            } else {
-                CardRow {
+            val phone = state.phone
+            when {
+                phone == null -> CardRow {
                     AddContactMethodRow(
                         label = stringResource(R.string.action_addPhoneNumber),
                         onClick = { dispatch(UserProfileViewModel.Event.ConnectPhoneClicked) },
                     )
                 }
+                // Only verified contacts can be unlinked from the server.
+                phone.verified -> SwipeActionRow(
+                    onDelete = { dispatch(UserProfileViewModel.Event.UnlinkPhoneClicked) },
+                    stateKey = phone.value,
+                    resetOnDismiss = true,
+                ) {
+                    ContactMethodRow(
+                        value = phone.value,
+                        verified = true,
+                        linkedForPayment = state.phoneLinkedForPayment,
+                        onRowClick = { dispatch(UserProfileViewModel.Event.ReplacePhoneClicked) },
+                    )
+                }
+                else -> ContactMethodRow(
+                    value = phone.value,
+                    verified = false,
+                    linkedForPayment = state.phoneLinkedForPayment,
+                    onRowClick = { dispatch(UserProfileViewModel.Event.ReplacePhoneClicked) },
+                )
             }
         }
 
         // Email section
         item(contentType = "section_header") { SectionHeader(stringResource(R.string.title_sectionEmail)) }
         item(contentType = "contact_method") {
-            if (state.emailAddress != null) {
-                SwipeActionRow(
-                    onDelete = { dispatch(UserProfileViewModel.Event.UnlinkEmailClicked) },
-                    stateKey = state.emailAddress,
-                    resetOnDismiss = true,
-                ) {
-                    ContactMethodRow(
-                        value = state.emailAddress,
-                        subtitle = null,
-                        onRowClick = { dispatch(UserProfileViewModel.Event.ReplaceEmailClicked) },
-                    )
-                }
-            } else {
-                CardRow {
+            val email = state.email
+            when {
+                email == null -> CardRow {
                     AddContactMethodRow(
                         label = stringResource(R.string.action_addEmailAddress),
                         onClick = { dispatch(UserProfileViewModel.Event.ConnectEmailClicked) },
+                    )
+                }
+
+                email.verified -> SwipeActionRow(
+                    onDelete = { dispatch(UserProfileViewModel.Event.UnlinkEmailClicked) },
+                    stateKey = email.value,
+                    resetOnDismiss = true,
+                ) {
+                    ContactMethodRow(
+                        value = email.value,
+                        verified = true,
+                        linkedForPayment = false,
+                        onRowClick = { dispatch(UserProfileViewModel.Event.ReplaceEmailClicked) },
+                    )
+                }
+
+                else -> SwipeActionRow(
+                    onDelete = { dispatch(UserProfileViewModel.Event.UnlinkEmailClicked) },
+                    stateKey = email.value,
+                    resetOnDismiss = true,
+                ) {
+                    ContactMethodRow(
+                        value = email.value,
+                        verified = false,
+                        linkedForPayment = false,
+                        onRowClick = { dispatch(UserProfileViewModel.Event.ReplaceEmailClicked) },
                     )
                 }
             }
@@ -278,7 +308,8 @@ private fun ProfileValueRow(value: String) {
 @Composable
 private fun ContactMethodRow(
     value: String,
-    subtitle: String?,
+    verified: Boolean,
+    linkedForPayment: Boolean,
     onRowClick: () -> Unit,
 ) {
     Row(
@@ -291,23 +322,79 @@ private fun ContactMethodRow(
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(
+        Text(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center,
+            text = value,
+            style = CodeTheme.typography.textMedium,
+            color = CodeTheme.colors.textMain,
+        )
+        // Match the linked-payment icon's height to the status badge (the badge's
+        // natural height drives the row via IntrinsicSize.Min).
+        Row(
+            modifier = Modifier.height(IntrinsicSize.Min),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
-            Text(
-                text = value,
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textMain,
-            )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    style = CodeTheme.typography.textSmall,
-                    color = CodeTheme.colors.textSecondary,
-                )
+            if (linkedForPayment) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f)
+                        .clip(CircleShape)
+                        .background(CodeTheme.colors.success.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_linked_payment_method),
+                        contentDescription = stringResource(R.string.subtitle_linkedForPayments),
+                        tint = CodeTheme.colors.success,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
+            StatusBadge(
+                label = if (verified) {
+                    stringResource(R.string.label_verified)
+                } else {
+                    stringResource(R.string.label_unverified)
+                },
+                color = if (verified) CodeTheme.colors.success else CodeTheme.colors.warning,
+                icon = if (verified) Icons.Default.Check else null,
+            )
         }
+    }
+}
+
+@Composable
+private fun StatusBadge(
+    label: String,
+    color: Color,
+    icon: ImageVector? = null,
+) {
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(color.copy(alpha = 0.15f))
+            .padding(
+                horizontal = CodeTheme.dimens.grid.x2,
+                vertical = CodeTheme.dimens.grid.x1,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(14.dp),
+            )
+        }
+        Text(
+            text = label,
+            style = CodeTheme.typography.caption,
+            color = color,
+        )
     }
 }
 

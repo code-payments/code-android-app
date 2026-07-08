@@ -5,31 +5,40 @@ import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.to
+import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.onramp.CoinbaseOnRampState
 import com.flipcash.app.onramp.DeeplinkError
 import com.flipcash.app.onramp.DeeplinkOnRampError
 import com.flipcash.app.onramp.OnRampAuthError
+import com.flipcash.app.onramp.OrderDeliveryResult
 import com.flipcash.app.onramp.PhantomSwapResult
 import com.flipcash.app.onramp.PhantomWalletController
 import com.flipcash.app.onramp.PurchaseGate
 import com.flipcash.app.onramp.isAlert
 import com.flipcash.app.onramp.isNetworkCause
 import com.flipcash.app.onramp.messaging
-import com.getcode.manager.BottomBarAction
 import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.amountentry.AmountEntryDelegate
+import com.flipcash.shared.amountentry.AmountEntryLabel
+import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.tokens.R
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
@@ -53,8 +62,6 @@ import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
-import com.flipcash.shared.amountentry.AmountEntryDelegate
-import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -66,9 +73,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -78,6 +85,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.concurrent.CancellationException
 import javax.inject.Inject
+import kotlin.collections.listOf
 
 data class AmountEntryState(
     val limits: Limits? = null,
@@ -99,6 +107,8 @@ class SwapViewModel @Inject constructor(
     private val coinbaseOnRampController: CoinbaseOnRampController,
     private val phantomWalletController: PhantomWalletController,
     private val userFlags: UserFlagsCoordinator,
+    private val featureFlags: FeatureFlagController,
+    private val usdcDepositSweep: UsdcDepositSweep,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<SwapViewModel.State, SwapViewModel.Event>(
     initialState = State(),
@@ -107,8 +117,30 @@ class SwapViewModel @Inject constructor(
 ) {
     private val styleFlow: StateFlow<AmountEntryStyle> = stateFlow.map { vmState ->
         val isBuy = vmState.purpose is SwapPurpose.Buy
+        val isAddingMoney = vmState.isAddingMoney
+        val isAddingMoneyViaPhantom = isAddingMoney && vmState.addingMoneyFrom == FundingSource.Phantom
         AmountEntryStyle(
-            actionLabel = if (isBuy) resources.getString(R.string.action_buy) else resources.getString(R.string.action_next),
+            actionLabel = when {
+                isAddingMoneyViaPhantom -> {
+                    val confirmIn = resources.getString(R.string.label_confirmIn)
+                    val phantom = resources.getString(R.string.label_phantom)
+                    AmountEntryLabel.Annotated(text = "$confirmIn $phantom") { enabled ->
+                        buildPhantomButtonLabel(prefix = confirmIn, isEnabled = enabled)
+                    }
+                }
+
+                isAddingMoney -> {
+                    AmountEntryLabel.Plain(resources.getString(R.string.action_addMoney))
+                }
+
+                isBuy -> {
+                    AmountEntryLabel.Plain(resources.getString(R.string.action_buy))
+                }
+
+                else -> {
+                    AmountEntryLabel.Plain(resources.getString(R.string.action_next))
+                }
+            },
             canChangeCurrency = (vmState.purpose as? SwapPurpose.Buy)?.fundingSource != FundingSource.Phantom,
             infoHint = { resources.getString(R.string.subtitle_buySellCashHint, it) },
             overMaxHint = {
@@ -118,15 +150,22 @@ class SwapViewModel @Inject constructor(
             },
             belowMinHint = { resources.getString(R.string.subtitle_buyHintBelowMinimum, it) },
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AmountEntryStyle(actionLabel = ""))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AmountEntryStyle(actionLabel = AmountEntryLabel.Plain("")))
 
     private val maxAmountFlow: StateFlow<Fiat?> = combine(
         stateFlow.map { it.purpose },
         stateFlow.map { it.amountEntryState.maxToAdd },
         stateFlow.map { it.tokenBalance },
-    ) { purpose, maxToAdd, tokenBalance ->
+        stateFlow.map { it.reservesBalance },
+    ) { purpose, maxToAdd, tokenBalance, reservesBalance ->
         when (purpose) {
-            is SwapPurpose.Buy -> maxToAdd?.let { Fiat(it.first, it.second) }
+            is SwapPurpose.Buy -> {
+                val mustAddMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
+                if (mustAddMoney && !stateFlow.value.isAddingMoney) {
+                    return@combine reservesBalance
+                }
+                maxToAdd?.let { Fiat(it.first, it.second) }
+            }
             is SwapPurpose.Sell -> tokenBalance
             null -> null
         }
@@ -196,6 +235,11 @@ class SwapViewModel @Inject constructor(
 
         val netTransferAmount: Fiat
             get() = confirmedNetTransferAmount ?: Fiat.Zero
+
+        val isAddingMoney: Boolean
+            get() = purpose is SwapPurpose.Buy && purpose.fundingSource != FundingSource.Flexible
+        val addingMoneyFrom: FundingSource?
+            get() = (purpose as? SwapPurpose.Buy)?.fundingSource
     }
 
     sealed interface Event {
@@ -234,7 +278,9 @@ class SwapViewModel @Inject constructor(
         data object PhantomConnected : Event
         data class PhantomNavigateToProcessing(val swapId: SwapId? = null) : Event
         data object PhantomCeremonyFailed : Event
-        data object DepositSubmitted : Event
+        // orderId is the Coinbase order to poll for on-chain delivery before sweeping.
+        // Null for Phantom deposits, which are already on-chain and can sweep immediately.
+        data class DepositSubmitted(val orderId: String? = null) : Event
 
         data class CreateAndSendTransactionToWallet(val token: Token, val amount: VerifiedFiat) :
             Event
@@ -264,8 +310,14 @@ class SwapViewModel @Inject constructor(
 
         data class OnInitialAmountProvided(val amount: Fiat) : Event
         data object OnInitialAmountEntered : Event
-        data class OnVerificationNeeded(val phone: Boolean, val email: Boolean) : Event
+        data class OnVerificationNeeded(
+            val phone: Boolean,
+            val email: Boolean,
+            val skipEmailVerification: Boolean = false,
+        ) : Event
         data object Exit : Event
+        data object PresentDepositOptions : Event
+        data class OpenScreen(val screen: AppRoute) : Event
     }
 
     private val enteredAmount: Fiat
@@ -295,6 +347,11 @@ class SwapViewModel @Inject constructor(
     private val transactionLimit: Fiat
         get() = when (stateFlow.value.purpose) {
             is SwapPurpose.Buy -> {
+                val mustAddMoney = featureFlags.observe(FeatureFlag.AddMoneyUX).value
+                if (mustAddMoney && !stateFlow.value.isAddingMoney) {
+                    return stateFlow.value.reservesBalance
+                }
+
                 val sendLimit = enteredAmount.currencyCode.let {
                     stateFlow.value.amountEntryState.limits?.sendLimitFor(it)
                 } ?: SendLimit.Zero
@@ -342,14 +399,32 @@ class SwapViewModel @Inject constructor(
         }
     }
 
-    val checkFundingAmount: () -> Boolean = {
+    val checkFundingAmount: suspend () -> Boolean = {
         val limit = transactionLimit
         val isOverLimit = enteredAmount.valueGreaterThan(limit)
+        val mustAddMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
+        val isAddingMoney = stateFlow.value.isAddingMoney
+
         if (isOverLimit) {
-            BottomBarManager.showAlert(
-                resources.getString(R.string.error_title_insufficientFunds),
-                resources.getString(R.string.error_description_insufficientFunds)
-            )
+            if (mustAddMoney && !isAddingMoney) {
+                BottomBarManager.showInfo(
+                    title = resources.getString(R.string.title_insufficientBalance),
+                    message = resources.getString(R.string.description_insufficientBalanceToUse),
+                    actions = listOf(
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_addMoreMoney)
+                        ) {
+                            dispatchEvent(Event.PresentDepositOptions)
+                        }
+                    ),
+                    showCancel = true,
+                )
+            } else {
+                BottomBarManager.showAlert(
+                    resources.getString(R.string.error_title_insufficientFunds),
+                    resources.getString(R.string.error_description_insufficientFunds)
+                )
+            }
         }
         isOverLimit
     }
@@ -479,6 +554,8 @@ class SwapViewModel @Inject constructor(
                 it to purpose
             }
             .onEach { (delegateState, purpose) ->
+                val mustAddMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
+                val isAddingMoney = stateFlow.value.isAddingMoney
                 when (purpose) {
                     is SwapPurpose.Buy -> {
                         val rate = exchange.preferredRate
@@ -490,54 +567,65 @@ class SwapViewModel @Inject constructor(
                         ).convertingTo(conversionRate)
                         val reservesBalance = stateFlow.value.reservesBalance
 
-                        if (enteredInUsdf <= reservesBalance.rounded()) {
-                            // Sufficient reserves — buy directly
-                            val amountFiat = verifiedFiatCalculator.compute(
-                                amount = Fiat(delegateState.enteredAmount, rate.currency),
-                                token = Token.usdf,
-                                balance = reservesBalance.convertingToUsdIfNeeded(rate),
-                                rate = rate
-                            ).getOrElse {
-                                BottomBarManager.showAlert(
-                                    title = resources.getString(R.string.error_title_staleRates),
-                                    message = resources.getString(R.string.error_description_staleRates),
-                                )
-                                return@onEach
+                        when {
+                            purpose.fundingSource == FundingSource.Phantom -> {
+                                // Deposit-first "Add Money" via Phantom: the wallet is
+                                // already connected and the amount was just entered, so
+                                // confirming it triggers the Phantom transaction request.
+                                dispatchEvent(Event.ConfirmPhantomTransaction)
                             }
-                            val netAmount = amountFiat.localFiat.nativeAmount
 
-                            dispatchEvent(Event.UpdateBuyState(loading = true))
-                            dispatchEvent(
-                                Event.OnAmountAccepted(
-                                    amountFiat,
-                                    netTransferAmount = netAmount,
-                                    enteredAmount = enteredAmount,
-                                    feeAmount = feeAmount,
+                            !isAddingMoney && enteredInUsdf <= reservesBalance.rounded() -> {
+                                // Sufficient USDF reserves — buy the token directly from reserves
+                                val amountFiat = verifiedFiatCalculator.compute(
+                                    amount = Fiat(delegateState.enteredAmount, rate.currency),
+                                    token = Token.usdf,
+                                    balance = reservesBalance.convertingToUsdIfNeeded(rate),
+                                    rate = rate
+                                ).getOrElse {
+                                    BottomBarManager.showAlert(
+                                        title = resources.getString(R.string.error_title_staleRates),
+                                        message = resources.getString(R.string.error_description_staleRates),
+                                    )
+                                    return@onEach
+                                }
+                                val netAmount = amountFiat.localFiat.nativeAmount
+
+                                dispatchEvent(Event.UpdateBuyState(loading = true))
+                                dispatchEvent(
+                                    Event.OnAmountAccepted(
+                                        amountFiat,
+                                        netTransferAmount = netAmount,
+                                        enteredAmount = enteredAmount,
+                                        feeAmount = feeAmount,
+                                    )
                                 )
-                            )
-                            dispatchEvent(Event.ProceedWithPurchase(amountFiat))
-                        } else {
-                            // Insufficient reserves — check available purchase methods
-                            val mint = purpose.mint
-                            val metadata = PurchaseMethodMetadata(
-                                mint = mint,
-                                purchaseAmount = Fiat(delegateState.enteredAmount, rate.currency),
-                                canUseOtherWallets = true, // allow external USDC deposit as a "purchase" option
-                            )
-                            val pinnedMethod = when (purpose.fundingSource) {
-                                FundingSource.Coinbase -> PurchaseMethod.CoinbaseOnRamp
-                                FundingSource.Phantom -> PurchaseMethod.PhantomWallet
-                                FundingSource.Flexible -> null
+                                dispatchEvent(Event.ProceedWithPurchase(amountFiat))
                             }
-                            if (pinnedMethod != null) {
-                                purchaseMethodController.select(pinnedMethod, metadata)
-                            } else {
-                                val methods = purchaseMethodController.state.value.availableMethods
-                                if (methods.size == 1) {
-                                    // Single method — skip sheet, handle directly
-                                    purchaseMethodController.select(methods.first(), metadata)
+
+                            else -> {
+                                // Insufficient reserves — check available purchase methods
+                                val mint = purpose.mint
+                                val metadata = PurchaseMethodMetadata(
+                                    mint = mint,
+                                    purchaseAmount = Fiat(delegateState.enteredAmount, rate.currency),
+                                    canUseOtherWallets = true, // allow external USDC deposit as a "purchase" option
+                                )
+                                val pinnedMethod = when (purpose.fundingSource) {
+                                    FundingSource.Coinbase -> PurchaseMethod.CoinbaseOnRamp
+                                    FundingSource.Phantom -> PurchaseMethod.PhantomWallet
+                                    FundingSource.Flexible -> null
+                                }
+                                if (pinnedMethod != null) {
+                                    purchaseMethodController.select(pinnedMethod, metadata)
                                 } else {
-                                    purchaseMethodController.present(metadata)
+                                    val methods = purchaseMethodController.state.value.availableMethods
+                                    if (methods.size == 1) {
+                                        // Single method — skip sheet, handle directly
+                                        purchaseMethodController.select(methods.first(), metadata)
+                                    } else {
+                                        purchaseMethodController.present(metadata)
+                                    }
                                 }
                             }
                         }
@@ -620,14 +708,39 @@ class SwapViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.DepositSubmitted>()
-            .map { tokenCoordinator.balanceForToken(Mint.usdf).first() }
-            .flatMapLatest { baseline ->
-                // Observe balance — UsdcDepositSweep handles the actual
-                // USDC→USDF sweep + polling, we just wait for the result.
-                tokenCoordinator.balanceForToken(Mint.usdf)
-                    .filter { it > baseline }
-            }
-            .onEach {
+            .onEach { event ->
+                val owner = userManager.accountCluster ?: return@onEach
+                val baseline = tokenCoordinator.balanceForToken(Mint.usdf).first()
+
+                // A Coinbase order only settles the on-chain send after payment, while it
+                // sits in PROCESSING. Wait for that delivery before sweeping so we don't
+                // poll an empty ATA and give up too early. Phantom deposits (no orderId)
+                // are already on-chain, so they sweep immediately.
+                val delivered = when (val orderId = event.orderId) {
+                    null -> true // phantom deposit, no waiting needed
+                    else -> when (coinbaseOnRampController.awaitOrderDelivered(orderId)) {
+                        is OrderDeliveryResult.Delivered -> true
+                        OrderDeliveryResult.Failed -> {
+                            dispatchEvent(Event.UpdateProcessingState(loading = false, error = true))
+                            false
+                        }
+                        // The deposit may still land later; the session's foreground sweep
+                        // will reconcile it. Don't claim success we can't confirm.
+                        OrderDeliveryResult.TimedOut -> {
+                            dispatchEvent(Event.UpdateProcessingState(loading = false, error = true))
+                            false
+                        }
+                    }
+                }
+                if (!delivered) return@onEach
+
+                // Funds are on-chain now: kick off the USDC→USDF sweep, then wait for the
+                // resulting USDF balance bump to mark the deposit complete. UsdcDepositSweep
+                // owns the actual sweep + on-chain polling; we just observe the result.
+                if (event.orderId != null) {
+                    usdcDepositSweep.execute(owner)
+                }
+                tokenCoordinator.balanceForToken(Mint.usdf).first { it > baseline }
                 feedCoordinator.fetchSinceLatest()
                 dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
             }.launchIn(viewModelScope)
@@ -802,10 +915,23 @@ class SwapViewModel @Inject constructor(
 
                         val profile = userManager.profile
                         val needsPhone = profile?.verifiedPhoneNumber == null
-                        val requireEmail = userFlags.resolvedFlags.value.requireCoinbaseEmailVerification.effectiveValue
-                        val needsEmail = requireEmail && profile?.verifiedEmailAddress == null
+                        val requireVerification = userFlags.resolvedFlags.value.requireCoinbaseEmailVerification.effectiveValue
+                        // Email entry is always required; verification (server round-trip)
+                        // only when the flag is on. Off → any entered email counts.
+                        val hasEmail = if (requireVerification) {
+                            profile?.verifiedEmailAddress != null
+                        } else {
+                            profile?.email?.value != null
+                        }
+                        val needsEmail = !hasEmail
                         if (needsPhone || needsEmail) {
-                            dispatchEvent(Event.OnVerificationNeeded(needsPhone, needsEmail))
+                            dispatchEvent(
+                                Event.OnVerificationNeeded(
+                                    needsPhone,
+                                    needsEmail,
+                                    skipEmailVerification = !requireVerification,
+                                )
+                            )
                             return@onEach
                         }
 
@@ -860,6 +986,19 @@ class SwapViewModel @Inject constructor(
                     }
                 }
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PresentDepositOptions>()
+            .mapNotNull {
+                if (!featureFlags.get(FeatureFlag.AddMoneyUX)) {
+                    return@mapNotNull AppRoute.Transfers.Deposit(showOtherOptions = false)
+                }
+                // present the add-money/deposit sheet; navigate to whatever the user picks.
+                // popToRoot = false so the user returns to the in-progress buy screen.
+                purchaseMethodController.presentDepositOptions(popToRoot = false)
+            }
+            .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
+            .launchIn(viewModelScope)
     }
 
     private suspend fun resolveToken(): Token? {
@@ -1026,7 +1165,7 @@ class SwapViewModel @Inject constructor(
                     is PhantomSwapResult.DepositCompleted -> {
                         dispatchEvent(Event.UpdateProcessingState(loading = true))
                         dispatchEvent(Event.PhantomNavigateToProcessing())
-                        dispatchEvent(Event.DepositSubmitted)
+                        dispatchEvent(Event.DepositSubmitted())
                     }
                 }
             }.onFailure { error ->
@@ -1154,7 +1293,7 @@ class SwapViewModel @Inject constructor(
                 Event.PhantomConnected,
                 is Event.PhantomNavigateToProcessing,
                 Event.PhantomCeremonyFailed,
-                Event.DepositSubmitted,
+                is Event.DepositSubmitted,
                 Event.OnAmountConfirmed -> { state -> state }
 
                 is Event.UpdateBuyState -> { state ->
@@ -1208,6 +1347,8 @@ class SwapViewModel @Inject constructor(
 
                 is Event.OnVerificationNeeded -> { state -> state }
                 Event.Exit -> { state -> state }
+                Event.PresentDepositOptions -> { state -> state }
+                is Event.OpenScreen -> { state -> state }
             }
         }
     }

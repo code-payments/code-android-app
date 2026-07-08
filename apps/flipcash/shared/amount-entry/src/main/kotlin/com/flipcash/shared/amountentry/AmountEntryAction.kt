@@ -4,7 +4,7 @@ import com.flipcash.app.core.ui.ConfirmationStyle
 import com.getcode.view.LoadingSuccessState
 
 data class AmountEntryAction(
-    val label: String,
+    val label: AmountEntryLabel,
     val style: ConfirmationStyle = ConfirmationStyle.Button,
     val loadingState: LoadingSuccessState = LoadingSuccessState(),
 )

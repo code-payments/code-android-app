@@ -3,9 +3,15 @@ package com.flipcash.services.models
 data class UserProfile(
     val displayName: String?,
     val socialAccounts: List<SocialAccount>,
-    val verifiedPhoneNumber: String?,
-    val verifiedEmailAddress: String?,
-)
+    val phoneNumber: VerifiableContactMethod?,
+    val email: VerifiableContactMethod?,
+) {
+    /** The phone number only when it has been verified — backwards-compatible accessor. */
+    val verifiedPhoneNumber: String? get() = phoneNumber?.takeIf { it.verified }?.value
+
+    /** The email address only when it has been verified — backwards-compatible accessor. */
+    val verifiedEmailAddress: String? get() = email?.takeIf { it.verified }?.value
+}
 
 sealed interface SocialAccount {
     val id: String

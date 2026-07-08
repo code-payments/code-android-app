@@ -1,5 +1,6 @@
 package com.flipcash.services.controllers
 
+import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.LinkingToken
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.SocialAccountLinkRequest
@@ -22,8 +23,40 @@ class ProfileController @Inject constructor(
         val accountId = userManager.accountId ?: return Result.failure(Throwable("No account id in UserManager"))
 
         return getProfileForUser(accountId)
+            .map { server ->
+                // Preserve a locally-entered *unverified* contact when the server
+                // response omits it, so it survives profile refreshes until the user
+                // completes verification (or the server starts returning it).
+                val local = userManager.profile
+                server.copy(
+                    phoneNumber = server.phoneNumber ?: local?.phoneNumber?.takeUnless { it.verified },
+                    email = server.email ?: local?.email?.takeUnless { it.verified },
+                )
+            }.recoverCatching { error ->
+                // The server has no profile for this user (NotFound). Any verified
+                // contacts, display name, or social accounts were server-owned and no
+                // longer exist, but the user may have locally entered a phone/email
+                // that hasn't been verified yet. Preserve those unverified contacts so
+                // they survive the refresh; otherwise there's nothing to keep.
+                if (error !is GetUserProfileError.NotFound) throw error
+
+                val local = userManager.profile
+                val unverifiedPhone = local?.phoneNumber?.takeUnless { it.verified }
+                val unverifiedEmail = local?.email?.takeUnless { it.verified }
+
+                if (unverifiedPhone == null && unverifiedEmail == null) {
+                    userManager.set(userProfile = null)
+                    throw error
+                }
+
+                UserProfile(
+                    displayName = null,
+                    socialAccounts = emptyList(),
+                    phoneNumber = unverifiedPhone,
+                    email = unverifiedEmail,
+                )
+            }
             .onSuccess {
-                println("profile has ${it.socialAccounts.count()} social accounts, phone ${it.verifiedPhoneNumber != null}, email ${it.verifiedEmailAddress != null}")
                 trace(
                     tag = "Profile",
                     message = "Updated user profile",

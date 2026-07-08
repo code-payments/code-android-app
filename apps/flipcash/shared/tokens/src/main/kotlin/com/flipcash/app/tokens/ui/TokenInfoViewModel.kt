@@ -1,7 +1,6 @@
 package com.flipcash.app.tokens.ui
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
@@ -17,6 +16,7 @@ import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.Period
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.shared.tokens.R
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.exchange.Exchange
@@ -69,9 +69,13 @@ class TokenInfoViewModel @Inject constructor(
         val historicalMarketCapData: Map<Period, Loadable<List<MarketCapPoint>>> = emptyMap(),
         val selectedPeriod: Period = Period.All,
         val canGiveUsdf: Boolean = false,
+        val reservesBalance: LocalFiat = LocalFiat.Zero,
     ) {
         val canSell: Boolean
             get() = balance.underlyingTokenAmount.valueNonZero()
+
+        val hasReserves: Boolean
+            get() = reservesBalance.underlyingTokenAmount.valueNonZero()
 
         val isCashReserve: Boolean
             get() = token.dataOrNull?.address == Mint.usdf
@@ -92,6 +96,7 @@ class TokenInfoViewModel @Inject constructor(
 
         data class OnMarketCapPeriodSelected(val period: Period) : Event
         data class OnBalanceUpdated(val balance: LocalFiat) : Event
+        data class OnReservesBalanceUpdated(val balance: LocalFiat): Event
         data class OnAppreciatedEnabled(val enabled: Boolean) : Event
         data class OnTransactionHistoryEnabled(val enabled: Boolean): Event
         data class OnAppreciationUpdated(val amount: LocalFiat?) : Event
@@ -175,6 +180,19 @@ class TokenInfoViewModel @Inject constructor(
                 dispatchEvent(Event.OnAppreciationUpdated(appreciation))
             }
             .launchIn(viewModelScope)
+
+        combine(
+        tokenCoordinator.observeReservesBalance(),
+            exchange.observePreferredRate(),
+        ) { balance, rate ->
+            LocalFiat(
+                usdf = balance,
+                nativeAmount = balance.convertingTo(rate),
+                mint = Mint.usdf,
+            )
+        }.onEach {
+            dispatchEvent(Event.OnReservesBalanceUpdated(it))
+        }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnTokenChanged>()
@@ -269,27 +287,45 @@ class TokenInfoViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnBuy>()
-            .mapNotNull {
-                val mint = stateFlow.value.mint ?: return@mapNotNull null
-                SwapPurpose.Buy(mint) to it.shortFall
-            }
-            .onEach { (purpose, shortfall) ->
-                dispatchEvent(Event.OpenScreen(AppRoute.Token.Swap(
-                    purpose = purpose,
-                    shortfall = shortfall,
-                )))
+            .onEach { event ->
+                val mint = stateFlow.value.mint ?: return@onEach
+                // Buying requires cash reserves to fund the swap; if there are none,
+                // send the user to deposit options first instead of the swap screen.
+                // This check is only done if AddMoneyUx FF is enabled.
+                val addMoney = features.get(FeatureFlag.AddMoneyUX)
+                if (!stateFlow.value.hasReserves && addMoney) {
+                    BottomBarManager.showInfo(
+                        title = resources.getString(R.string.title_noBalanceYet),
+                        message = resources.getString(R.string.description_noBalanceYetToBuy),
+                        actions = listOf(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_addMoney)
+                            ) {
+                                dispatchEvent(Event.PresentDepositOptions)
+                            },
+                        ),
+                        showCancel = true,
+                    )
+                } else {
+                    dispatchEvent(Event.OpenScreen(AppRoute.Token.Swap(
+                        purpose = SwapPurpose.Buy(mint),
+                        shortfall = event.shortFall,
+                    )))
+                }
             }
             .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .mapNotNull {
-                val depositFirstUx = features.get(FeatureFlag.DepositFirstUX)
+                val depositFirstUx = features.get(FeatureFlag.AddMoneyUX)
                 if (!depositFirstUx) {
                     return@mapNotNull AppRoute.Transfers.Deposit(showOtherOptions = false)
                 }
 
-                purchaseMethodController.presentDepositOptions(popToRoot = true) }
+                // popToRoot = false so finishing the deposit returns to this token
+                // info screen rather than dismissing the whole sheet.
+                purchaseMethodController.presentDepositOptions(popToRoot = false) }
             .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)
 
@@ -309,6 +345,7 @@ class TokenInfoViewModel @Inject constructor(
                 is Event.OnTokenChanged -> { state -> state.copy(token = event.token) }
                 is Event.OnMarketCapChanged -> { state -> state.copy(marketCap = event.mcap) }
                 is Event.OnBalanceUpdated -> { state -> state.copy(balance = event.balance) }
+                is Event.OnReservesBalanceUpdated -> { state -> state.copy(reservesBalance = event.balance) }
                 is Event.OnAppreciationUpdated -> { state -> state.copy(appreciation = event.amount) }
                 is Event.ExpandDescription -> { state -> state.copy(descriptionExpanded = event.expand) }
                 is Event.PresentDepositOptions -> { state -> state }

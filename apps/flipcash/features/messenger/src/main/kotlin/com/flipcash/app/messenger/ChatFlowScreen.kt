@@ -13,6 +13,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatSendResult
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
 import com.getcode.navigation.annotatedEntry
@@ -26,6 +27,7 @@ import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.results.navigateForResult
 import com.getcode.navigation.results.resultBackNavigator
+import com.getcode.navigation.scenes.LocalSheetNavigator
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 
@@ -59,8 +61,10 @@ private fun chatEntryProvider(
 @Composable
 private fun FlowConversationScreen(identifier: ChatIdentifier) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
-    val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
     val navigator = LocalCodeNavigator.current
+    // The sheet-owning (root) navigator — the one whose back stack holds this chat's
+    // Main.Sheet and whose pendingSheetDismiss the dismiss animation observes.
+    val sheetNavigator = LocalSheetNavigator.current
 
     LaunchedEffect(viewModel, identifier) {
         viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(identifier))
@@ -81,9 +85,15 @@ private fun FlowConversationScreen(identifier: ChatIdentifier) {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<ChatViewModel.Event.OpenScreen>()
-            .map { it.route }
-            .collect { route ->
-                flowNavigator.navigate(route)
+            .collect { (route, asSheet) ->
+                if (asSheet) {
+                    // Dismiss this chat sheet and open [route] as a fresh sheet.
+                    // openAsSheet on the sheet-owning navigator animates the current
+                    // sheet closed (via pendingSheetDismiss) before opening the new one.
+                    sheetNavigator?.openAsSheet(route)
+                } else {
+                    navigator.navigate(route)
+                }
             }
     }
 

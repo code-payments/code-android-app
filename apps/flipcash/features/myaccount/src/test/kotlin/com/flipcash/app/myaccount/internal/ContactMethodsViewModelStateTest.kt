@@ -1,6 +1,7 @@
 package com.flipcash.app.myaccount.internal
 
 import com.flipcash.services.models.SocialAccount
+import com.flipcash.services.models.VerifiableContactMethod
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -15,8 +16,8 @@ class ContactMethodsViewModelStateTest {
     fun `default state has null profile fields`() {
         val state = UserProfileViewModel.State()
         assertNull(state.displayName)
-        assertNull(state.phoneNumber)
-        assertNull(state.emailAddress)
+        assertNull(state.phone)
+        assertNull(state.email)
         assertFalse(state.phoneLinkedForPayment)
         assertTrue(state.socialAccounts.isEmpty())
         assertNull(state.publicKey)
@@ -38,15 +39,15 @@ class ContactMethodsViewModelStateTest {
         val updated = reduce(
             UserProfileViewModel.Event.OnProfileUpdated(
                 displayName = "Alice",
-                phone = "+15551234567",
-                email = "test@example.com",
+                phone = VerifiableContactMethod("+15551234567", verified = true),
+                email = VerifiableContactMethod("test@example.com", verified = false),
                 linkedForPayment = true,
                 socialAccounts = listOf(xAccount),
             )
         )(UserProfileViewModel.State())
         assertEquals("Alice", updated.displayName)
-        assertEquals("+15551234567", updated.phoneNumber)
-        assertEquals("test@example.com", updated.emailAddress)
+        assertEquals(VerifiableContactMethod("+15551234567", verified = true), updated.phone)
+        assertEquals(VerifiableContactMethod("test@example.com", verified = false), updated.email)
         assertTrue(updated.phoneLinkedForPayment)
         assertEquals(1, updated.socialAccounts.size)
         assertEquals(xAccount, updated.socialAccounts.first())
@@ -64,8 +65,8 @@ class ContactMethodsViewModelStateTest {
             )
         )(UserProfileViewModel.State())
         assertNull(updated.displayName)
-        assertNull(updated.phoneNumber)
-        assertNull(updated.emailAddress)
+        assertNull(updated.phone)
+        assertNull(updated.email)
         assertFalse(updated.phoneLinkedForPayment)
         assertTrue(updated.socialAccounts.isEmpty())
     }
@@ -111,8 +112,8 @@ class ContactMethodsViewModelStateTest {
         )
         val state = UserProfileViewModel.State(
             displayName = "Alice",
-            phoneNumber = "+15551234567",
-            emailAddress = "test@example.com",
+            phone = VerifiableContactMethod("+15551234567", verified = true),
+            email = VerifiableContactMethod("test@example.com", verified = true),
             phoneLinkedForPayment = true,
             socialAccounts = listOf(xAccount),
         )

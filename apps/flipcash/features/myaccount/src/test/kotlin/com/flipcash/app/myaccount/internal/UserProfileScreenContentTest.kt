@@ -2,9 +2,11 @@ package com.flipcash.app.myaccount.internal
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.flipcash.services.models.SocialAccount
+import com.flipcash.services.models.VerifiableContactMethod
 import com.getcode.theme.DesignSystem
 import org.junit.Rule
 import org.junit.Test
@@ -57,36 +59,49 @@ class UserProfileScreenContentTest {
 
     @Test
     fun `phone number shown when present`() {
-        setScreen(UserProfileViewModel.State(phoneNumber = "+1 555-1234"))
+        setScreen(UserProfileViewModel.State(phone = VerifiableContactMethod("+1 555-1234", verified = true)))
         composeTestRule.onNodeWithText("+1 555-1234").assertIsDisplayed()
     }
 
     @Test
+    fun `verified badge shown for verified phone`() {
+        setScreen(UserProfileViewModel.State(phone = VerifiableContactMethod("+1 555-1234", verified = true)))
+        composeTestRule.onNodeWithText("Verified").assertIsDisplayed()
+    }
+
+    @Test
+    fun `unverified badge and value shown for unverified phone`() {
+        setScreen(UserProfileViewModel.State(phone = VerifiableContactMethod("+1 555-1234", verified = false)))
+        composeTestRule.onNodeWithText("+1 555-1234").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Unverified").assertIsDisplayed()
+    }
+
+    @Test
     fun `add phone shown when phone is null`() {
-        setScreen(UserProfileViewModel.State(phoneNumber = null))
+        setScreen(UserProfileViewModel.State(phone = null))
         composeTestRule.onNodeWithText("Add Phone Number").assertIsDisplayed()
     }
 
     @Test
-    fun `linked for payments subtitle shown when true`() {
+    fun `linked for payments indicator shown when true`() {
         setScreen(
             UserProfileViewModel.State(
-                phoneNumber = "+1 555-1234",
+                phone = VerifiableContactMethod("+1 555-1234", verified = true),
                 phoneLinkedForPayment = true,
             )
         )
-        composeTestRule.onNodeWithText("Linked for payments").assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Linked for payments").assertIsDisplayed()
     }
 
     @Test
-    fun `linked for payments subtitle not shown when false`() {
+    fun `linked for payments indicator not shown when false`() {
         setScreen(
             UserProfileViewModel.State(
-                phoneNumber = "+1 555-1234",
+                phone = VerifiableContactMethod("+1 555-1234", verified = true),
                 phoneLinkedForPayment = false,
             )
         )
-        composeTestRule.onNodeWithText("Linked for payments").assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription("Linked for payments").assertDoesNotExist()
     }
 
     // ---------------------------------------------------------------
@@ -95,13 +110,13 @@ class UserProfileScreenContentTest {
 
     @Test
     fun `email shown when present`() {
-        setScreen(UserProfileViewModel.State(emailAddress = "alice@example.com"))
+        setScreen(UserProfileViewModel.State(email = VerifiableContactMethod("alice@example.com", verified = true)))
         composeTestRule.onNodeWithText("alice@example.com").assertIsDisplayed()
     }
 
     @Test
     fun `add email shown when email is null`() {
-        setScreen(UserProfileViewModel.State(emailAddress = null))
+        setScreen(UserProfileViewModel.State(email = null))
         composeTestRule.onNodeWithText("Add Email Address").assertIsDisplayed()
     }
 
@@ -137,7 +152,7 @@ class UserProfileScreenContentTest {
 
     @Test
     fun `tapping add phone dispatches ConnectPhoneClicked`() {
-        setScreen(UserProfileViewModel.State(phoneNumber = null))
+        setScreen(UserProfileViewModel.State(phone = null))
         composeTestRule.onNodeWithText("Add Phone Number").performClick()
         assertTrue(lastEvent is UserProfileViewModel.Event.ConnectPhoneClicked)
     }

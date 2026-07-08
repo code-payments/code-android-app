@@ -26,16 +26,17 @@ import com.flipcash.app.payments.PurchaseMethodMetadata
 import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.features.currencycreator.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ModerationController
-import com.getcode.solana.keys.PublicKey
-import com.getcode.utils.TraceType
-import com.getcode.utils.trace
 import com.flipcash.services.models.ImageModerationError
 import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.TextModerationError
 import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.TransactionController
@@ -63,6 +64,8 @@ import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ContentReader
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -80,6 +83,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 internal data class ModerationAttestations(
@@ -103,6 +107,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     private val resources: ResourceHelper,
     val contentReader: ContentReader,
     val purchaseMethodController: PurchaseMethodController,
+    private val featureFlags: FeatureFlagController,
     private val currencyCreatorCoordinator: CurrencyCreatorCoordinator,
 ) : BaseViewModel<CurrencyCreatorViewModel.State, CurrencyCreatorViewModel.Event>(
     initialState = State(),
@@ -200,6 +205,11 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
         data class PurchaseSubmitted(val swapId: SwapId, val mint: Mint) : Event
         data class PurchaseCompleted(val token: Token): Event
+
+        data object OnIntroContinue : Event
+        data object AdvanceFromInfo : Event
+        data object PresentDepositOptions : Event
+        data class OpenScreen(val screen: AppRoute) : Event
     }
 
     data class LaunchedContext(
@@ -284,7 +294,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 onSuccess = { attestation ->
                     viewModelScope.launch {
                         dispatchEvent(Event.UpdateProcessingState(success = true))
-                        delay(500)
+                        delay(500.milliseconds)
                         dispatchEvent(Event.OnNameApproved(attestation))
                         dispatchEvent(Event.UpdateProcessingState())
                     }
@@ -429,6 +439,11 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         purchaseMethodController.selections
+            // Only the final "pay for the created token" selection should launch the
+            // token. The shared controller also emits for the add-money/deposit sheet
+            // (PaymentAction.Plain); reacting to those would try to launch a token with
+            // an empty, un-moderated name and fail name validation.
+            .filter { (_, metadata) -> metadata.paymentAction == PaymentAction.Pay }
             .onEach { (method, _) ->
                 dispatchEvent(Event.LaunchToken(method))
             }
@@ -619,6 +634,60 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     dispatchEvent(Event.UpdateProcessingState())
                 }
             ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnIntroContinue>()
+            .onEach {
+                val addMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
+                if (addMoney) {
+                    if (!purchaseMethodController.state.value.hasReserves) {
+                        // Creating a currency is funded from USDF reserves; require a deposit first.
+                        BottomBarManager.showInfo(
+                            title = resources.getString(R.string.title_noBalanceYet),
+                            message = resources.getString(R.string.description_noBalanceYetToCreate),
+                            actions = listOf(
+                                BottomBarAction(
+                                    text = resources.getString(R.string.action_addMoney)
+                                ) {
+                                    dispatchEvent(Event.PresentDepositOptions)
+                                },
+                            ),
+                            showCancel = true,
+                        )
+                        return@onEach
+                    } else if (purchaseMethodController.state.value.reservesBalance.nativeAmount <= stateFlow.value.totalCost) {
+                        BottomBarManager.showInfo(
+                            title = resources.getString(R.string.title_insufficientBalance),
+                            message = resources.getString(R.string.description_insufficientBalanceToCreate),
+                            actions = listOf(
+                                BottomBarAction(
+                                    text = resources.getString(R.string.action_addMoreMoney)
+                                ) {
+                                    dispatchEvent(Event.PresentDepositOptions)
+                                },
+                            ),
+                            showCancel = true,
+                        )
+                        return@onEach
+                    }
+                }
+
+                dispatchEvent(Event.AdvanceFromInfo)
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PresentDepositOptions>()
+            .mapNotNull {
+                if (!featureFlags.get(FeatureFlag.AddMoneyUX)) {
+                    return@mapNotNull AppRoute.Transfers.Deposit(showOtherOptions = false)
+                }
+                // popToRoot = false so finishing the deposit returns to the currency
+                // creator (which pushed this flow) rather than tearing down the whole
+                // sheet and losing the user's place in the flow.
+                purchaseMethodController.presentDepositOptions(popToRoot = false)
+            }
+            .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
+            .launchIn(viewModelScope)
     }
 
     /**
@@ -738,6 +807,10 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 }
 
                 is Event.PurchaseWithReserves -> { state -> state }
+                Event.OnIntroContinue -> { state -> state }
+                Event.AdvanceFromInfo -> { state -> state }
+                Event.PresentDepositOptions -> { state -> state }
+                is Event.OpenScreen -> { state -> state }
                 is Event.PurchaseWithPhantom -> { state -> state }
                 is Event.PurchaseWithGooglePay -> { state -> state }
                 is Event.PurchaseSubmitted -> { state -> state }

@@ -15,6 +15,7 @@ import com.flipcash.features.withdrawal.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.amountentry.AmountEntryDelegate
+import com.flipcash.shared.amountentry.AmountEntryLabel
 import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -94,7 +95,7 @@ internal class WithdrawalViewModel @Inject constructor(
         exchange = exchange,
         scope = viewModelScope,
         style = AmountEntryStyle(
-            actionLabel = resources.getString(R.string.action_next),
+            actionLabel = AmountEntryLabel.Plain(resources.getString(R.string.action_next)),
             infoHint = { resources.getString(R.string.subtitle_withdrawHint, it) },
             overMaxHint = { resources.getString(R.string.subtitle_withdrawHintLimitExceeded, it) },
             belowMinHint = { resources.getString(R.string.subtitle_withdrawHintMinimumNotMet, it) },

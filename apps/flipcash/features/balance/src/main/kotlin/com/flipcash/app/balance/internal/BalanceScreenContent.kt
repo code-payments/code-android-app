@@ -46,7 +46,7 @@ internal fun BalanceScreen(
     val balanceState by viewModel.stateFlow.collectAsStateWithLifecycle()
     val tokenState by tokenViewModel.stateFlow.collectAsStateWithLifecycle()
     BalanceScreenContent(
-        depositFirstUx = balanceState.depositFirstUx,
+        addMoneyUx = balanceState.depositFirstUx,
         tokenState = tokenState,
         dispatchEvent = viewModel::dispatchEvent
     )
@@ -54,7 +54,7 @@ internal fun BalanceScreen(
 
 @Composable
 private fun BalanceScreenContent(
-    depositFirstUx: Boolean = false,
+    addMoneyUx: Boolean = false,
     tokenState: SelectTokenViewModel.State,
     dispatchEvent: (BalanceViewModel.Event) -> Unit
 ) {
@@ -100,8 +100,8 @@ private fun BalanceScreenContent(
 
                         Text(
                             modifier = Modifier.fillMaxWidth(0.6f),
-                            text = if (depositFirstUx) {
-                                stringResource(R.string.description_noBalanceYet)
+                            text = if (addMoneyUx) {
+                                stringResource(R.string.description_noBalanceYetForBalance)
                             } else {
                                 stringResource(R.string.description_noBalanceYetDiscover)
                             },
@@ -118,8 +118,8 @@ private fun BalanceScreenContent(
                                 .padding(top = CodeTheme.dimens.grid.x2)
                                 .align(Alignment.CenterHorizontally),
                             contentPadding = PaddingValues(),
-                            text = if (depositFirstUx) {
-                                stringResource(R.string.action_depositFunds)
+                            text = if (addMoneyUx) {
+                                stringResource(R.string.action_addMoney)
                             } else {
                                 stringResource(R.string.action_discoverCurrencies)
                             },

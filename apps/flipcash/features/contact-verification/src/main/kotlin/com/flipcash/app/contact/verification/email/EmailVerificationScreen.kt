@@ -75,4 +75,14 @@ fun EmailVerificationContent(
                 }
             }.launchIn(this)
     }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<EmailVerificationViewModel.Event.OnEntrySaved>()
+            .onEach {
+                keyboard.hideIfVisible {
+                    flowNavigator.exitWithResult(VerificationResult.Success)
+                }
+            }.launchIn(this)
+    }
 }

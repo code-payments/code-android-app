@@ -17,6 +17,7 @@ import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.onboarding.OnboardingStep
+import com.flipcash.app.core.tokens.FundingSource
 import com.getcode.navigation.flow.FlowRoute
 import com.getcode.navigation.flow.FlowRouteWithResult
 import com.getcode.opencode.model.financial.Fiat
@@ -181,7 +182,20 @@ sealed interface AppRoute : NavKey, Parcelable {
             val popToRoot: Boolean = false,
         ) : Token, FlowRouteWithResult<SwapResult> {
             override val initialStack: List<NavKey>
-                get() = listOf(SwapStep.Entry(purpose, initialAmount = shortfall))
+                get() = when (purpose) {
+                    is SwapPurpose.Buy -> {
+                        if (purpose.fundingSource == FundingSource.Phantom) {
+                            // adding money (deposit) via phantom
+                            listOf(SwapStep.PhantomConnect)
+                        } else {
+                            listOf(SwapStep.Entry(purpose, initialAmount = shortfall))
+                        }
+                    }
+                    is SwapPurpose.Sell -> listOf(SwapStep.Entry(purpose, initialAmount = shortfall))
+                }
+
+
+
         }
 
         @Serializable

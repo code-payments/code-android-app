@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.verification.email.EmailCodeChannel
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.getcode.opencode.utils.base64
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -45,6 +46,7 @@ class EmailVerificationViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
     private val emailCodeChannel: EmailCodeChannel,
+    private val userFlags: UserFlagsCoordinator,
 ) : BaseViewModel<EmailVerificationViewModel.State, EmailVerificationViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -66,6 +68,8 @@ class EmailVerificationViewModel @Inject constructor(
         data class OnOriginSet(val origin: EmailDeeplinkOrigin?) : Event
         data class OnDataProvided(val email: String?, val code: String?) : Event
         data object OnSendCodeClicked : Event
+        /** Emitted in skip-verification mode once the entered email is persisted locally. */
+        data object OnEntrySaved : Event
         data object OnResendCodeClicked: Event
         data class OnSendingCodeChanged(
             val loading: Boolean = false,
@@ -111,11 +115,26 @@ class EmailVerificationViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnSendCodeClicked>()
-            .map {
+            .onEach {
                 val emailAddress = stateFlow.value.email.text.toString()
-                ContactMethod.Email(emailAddress, computeClientData())
-            }.onEach { handleSendVerificationCode(it) }
-            .launchIn(viewModelScope)
+                val requiresVerification = userFlags.resolvedFlags.value
+                    .requireCoinbaseEmailVerification.effectiveValue
+
+                if (!requiresVerification) {
+                    dispatchEvent(Event.OnSendingCodeChanged(loading = true))
+                    viewModelScope.launch {
+                        delay(1.seconds)
+                        dispatchEvent(Event.OnSendingCodeChanged(success = true))
+                        delay(1.seconds)
+                        // Skip server verification: record the email locally as unverified
+                        // and complete. The profile write is persisted by ProfileCoordinator.
+                        verificationController.setLocalUnverified(ContactMethod.Email(emailAddress))
+                        dispatchEvent(Event.OnEntrySaved)
+                    }
+                } else {
+                    handleSendVerificationCode(ContactMethod.Email(emailAddress, computeClientData()))
+                }
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnResendCodeClicked>()
@@ -270,6 +289,7 @@ class EmailVerificationViewModel @Inject constructor(
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnOriginSet -> { state -> state }
+                Event.OnEntrySaved -> { state -> state }
                 is Event.OnDataProvided -> { state ->
                     state.copy(
                         email = TextFieldState(event.email ?: state.email.text.toString()),

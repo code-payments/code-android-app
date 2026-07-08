@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.VerifiableContactMethod
 import com.flipcash.services.user.UserManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -77,22 +78,22 @@ class ProfileCoordinator @Inject constructor(
 private data class CachedProfile(
     val displayName: String? = null,
     val socialAccounts: List<CachedSocialAccount> = emptyList(),
-    val verifiedPhoneNumber: String? = null,
-    val verifiedEmailAddress: String? = null,
+    val phoneNumber: VerifiableContactMethod? = null,
+    val email: VerifiableContactMethod? = null,
 ) {
     fun toDomain(): UserProfile = UserProfile(
         displayName = displayName,
         socialAccounts = socialAccounts.mapNotNull { it.toDomain() },
-        verifiedPhoneNumber = verifiedPhoneNumber,
-        verifiedEmailAddress = verifiedEmailAddress,
+        phoneNumber = phoneNumber,
+        email = email,
     )
 
     companion object {
         fun fromDomain(profile: UserProfile): CachedProfile = CachedProfile(
             displayName = profile.displayName,
             socialAccounts = profile.socialAccounts.map { CachedSocialAccount.fromDomain(it) },
-            verifiedPhoneNumber = profile.verifiedPhoneNumber,
-            verifiedEmailAddress = profile.verifiedEmailAddress,
+            phoneNumber = profile.phoneNumber,
+            email = profile.email,
         )
     }
 }

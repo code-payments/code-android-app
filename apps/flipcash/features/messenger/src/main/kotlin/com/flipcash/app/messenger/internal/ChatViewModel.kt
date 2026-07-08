@@ -1,7 +1,6 @@
 package com.flipcash.app.messenger.internal
 
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
@@ -15,7 +14,6 @@ import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.contacts.DeviceContact
-import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
@@ -32,6 +30,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.amountentry.AmountEntryDelegate
+import com.flipcash.shared.amountentry.AmountEntryLabel
 import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.ChatCoordinator
@@ -45,7 +44,6 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
-import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.trace
@@ -70,7 +68,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.min
@@ -146,7 +143,7 @@ internal class ChatViewModel @Inject constructor(
 
         data class NavigateToAmountEntry(val contact: DeviceContact) : Event
         data object PresentDepositOptions : Event
-        data class OpenScreen(val route: AppRoute): Event
+        data class OpenScreen(val route: AppRoute, val asSheet: Boolean = false): Event
         data object OnConfirmRequested : Event
         data class OnSendRequested(
             val amount: Fiat,
@@ -237,7 +234,7 @@ internal class ChatViewModel @Inject constructor(
             exchange = exchange,
             scope = viewModelScope,
             style = AmountEntryStyle(
-                actionLabel = resources.getString(R.string.action_swipeToSend),
+                actionLabel = AmountEntryLabel.Plain(resources.getString(R.string.action_swipeToSend)),
                 actionStyle = ConfirmationStyle.Slide,
                 infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
                 overMaxHint = { resources.getString(R.string.subtitle_sendHintLimitExceeded, it) },
@@ -522,34 +519,13 @@ internal class ChatViewModel @Inject constructor(
         eventFlow.filterIsInstance<Event.OnSendCash>()
             .mapNotNull { stateFlow.value.chattingWith }
             .onEach { contact ->
+                val addMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
                 if (!tokenCoordinator.hasGiveableBalance()) {
-                    val depositFirst = featureFlags.get(FeatureFlag.DepositFirstUX)
-                    val message = if (depositFirst) {
-                        resources.getString(R.string.description_noBalanceYet)
+                    if (!tokenCoordinator.hasBalance()) {
+                        presentAddMoney(addMoney)
                     } else {
-                        resources.getString(R.string.description_noBalanceYetDiscover)
+                        presentDiscoverCurrencies()
                     }
-                    val cta = if (depositFirst) {
-                        resources.getString(R.string.action_depositFunds)
-                    } else {
-                        resources.getString(R.string.action_discover)
-                    }
-                    BottomBarManager.showInfo(
-                        title = resources.getString(R.string.title_noBalanceYet),
-                        message = message,
-                        actions = listOf(
-                            BottomBarAction(
-                                text = cta
-                            ) {
-                                if (depositFirst) {
-                                    dispatchEvent(Event.PresentDepositOptions)
-                                } else {
-                                    dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery))
-                                }
-                            },
-                        ),
-                        showCancel = true,
-                    )
                     return@onEach
                 }
                 amountDelegate.reset()
@@ -707,6 +683,50 @@ internal class ChatViewModel @Inject constructor(
                 destinationOwner = resolve.authority,
             ))
         }
+    }
+
+    private fun presentAddMoney(addMoneyEnabled: Boolean) {
+        val message = if (addMoneyEnabled) {
+            resources.getString(R.string.description_noBalanceYetToSend)
+        } else {
+            resources.getString(R.string.description_noBalanceYetDiscover)
+        }
+        val cta = if (addMoneyEnabled) {
+            resources.getString(R.string.action_addMoney)
+        } else {
+            resources.getString(R.string.action_discover)
+        }
+        BottomBarManager.showInfo(
+            title = resources.getString(R.string.title_noBalanceYet),
+            message = message,
+            actions = listOf(
+                BottomBarAction(
+                    text = cta
+                ) {
+                    if (addMoneyEnabled) {
+                        dispatchEvent(Event.PresentDepositOptions)
+                    } else {
+                        dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery))
+                    }
+                },
+            ),
+            showCancel = true,
+        )
+    }
+
+    private fun presentDiscoverCurrencies() {
+        BottomBarManager.showInfo(
+            title = resources.getString(R.string.title_noCommunityCurrenciesYet),
+            message = resources.getString(R.string.description_noCommunityCurrenciesYet),
+            actions = listOf(
+                BottomBarAction(
+                    text = resources.getString(R.string.action_discoverCurrencies)
+                ) {
+                    dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery, asSheet = true))
+                },
+            ),
+            showCancel = true,
+        )
     }
 
     companion object {

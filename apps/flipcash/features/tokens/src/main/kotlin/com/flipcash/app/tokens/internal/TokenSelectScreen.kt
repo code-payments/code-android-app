@@ -75,7 +75,7 @@ private fun SelectTokenScreenContent(
 
                     Text(
                         modifier = Modifier.fillMaxWidth(0.6f),
-                        text = stringResource(R.string.description_noBalanceYet),
+                        text = stringResource(R.string.description_noBalanceYetForBalance),
                         style = CodeTheme.typography.textSmall,
                         color = CodeTheme.colors.textSecondary,
                         textAlign = TextAlign.Center,

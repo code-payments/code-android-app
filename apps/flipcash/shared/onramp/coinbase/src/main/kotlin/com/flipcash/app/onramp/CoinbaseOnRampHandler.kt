@@ -41,7 +41,7 @@ fun CoinbaseOnRampHandler(
                 val completion = if (swapId != null) {
                     CoinbaseOnRampCompletion.SwapSubmitted(swapId)
                 } else {
-                    CoinbaseOnRampCompletion.DepositSubmitted
+                    CoinbaseOnRampCompletion.DepositSubmitted(current.orderId)
                 }
                 controller.emitCompletion(completion)
                 controller.reset()

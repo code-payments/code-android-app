@@ -27,7 +27,6 @@ class UsdcDepositSweepTest {
 
     private val transactionOperations: TransactionOperations = mockk(relaxed = true)
     private val accountController: AccountController = mockk(relaxed = true)
-    private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true)
     private val balancePoller: BalancePoller = mockk(relaxed = true)
 
     private val owner: AccountCluster = mockk(relaxed = true)
@@ -45,7 +44,6 @@ class UsdcDepositSweepTest {
         sweep = UsdcDepositSweep(
             transactionOperations = transactionOperations,
             accountController = accountController,
-            tokenCoordinator = tokenCoordinator,
             balancePoller = balancePoller,
             dispatchers = testDispatchers,
             maxRetries = 3,

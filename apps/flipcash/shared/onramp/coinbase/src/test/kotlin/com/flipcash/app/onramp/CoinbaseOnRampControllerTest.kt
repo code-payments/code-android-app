@@ -8,6 +8,7 @@ import com.flipcash.app.userflags.ResolvedFlag
 import com.flipcash.app.userflags.ResolvedUserFlags
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.VerifiableContactMethod
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
@@ -22,14 +23,10 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
-import io.mockk.slot
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -118,14 +115,28 @@ class CoinbaseOnRampControllerTest {
         }
     }
 
-    private fun stubProfile(email: String? = "test@test.com", phone: String? = "+11234567890") {
+    private fun stubProfile(
+        email: String? = "test@test.com",
+        phone: String? = "+11234567890",
+        emailVerified: Boolean = true,
+    ) {
         val profile = UserProfile(
             displayName = "Test",
             socialAccounts = emptyList(),
-            verifiedEmailAddress = email,
-            verifiedPhoneNumber = phone,
+            phoneNumber = phone?.let { VerifiableContactMethod(it, verified = true) },
+            email = email?.let { VerifiableContactMethod(it, verified = emailVerified) },
         )
         every { userManager.profile } returns profile
+    }
+
+    private fun stubRequireEmailVerification(required: Boolean) {
+        val resolvedFlags = mockk<ResolvedUserFlags>(relaxed = true) {
+            every { requireCoinbaseEmailVerification } returns ResolvedFlag(
+                serverValue = required,
+                override = FieldOverride.None,
+            )
+        }
+        every { userFlags.resolvedFlags } returns MutableStateFlow(resolvedFlags)
     }
 
     private fun stubValidUser() {
@@ -278,163 +289,57 @@ class CoinbaseOnRampControllerTest {
 
     // endregion
 
-    // region checkBuyOptions
+    // region email resolution (requireCoinbaseEmailVerification flag)
 
     @Test
-    fun `checkBuyOptions passes country and subdivision to API`() = runTest {
-        val urlSlot = slot<String>()
-        val countrySlot = slot<String>()
-        val subdivisionSlot = slot<String>()
+    fun `uses unverified local email when verification not required`() = runTest {
+        stubAccountCluster()
+        stubRequireEmailVerification(false)
+        stubProfile(email = "entered@test.com", emailVerified = false)
+        // Fail cleanly at the JWT step so we only assert the email gate was passed.
+        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.failure(RuntimeException("no jwt"))
 
-        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.success("test-jwt")
-        coEvery {
-            api.getBuyOptions(
-                url = capture(urlSlot),
-                jwt = any(),
-                country = capture(countrySlot),
-                subdivision = capture(subdivisionSlot),
-            )
-        } returns JsonObject(emptyMap())
-
-        val result = controller.checkBuyOptions(country = "US", subdivision = "NY")
-
-        assertTrue(result.isSuccess)
-        assertEquals("https://api.developer.coinbase.com/onramp/v1/buy/options", urlSlot.captured)
-        assertEquals("US", countrySlot.captured)
-        assertEquals("NY", subdivisionSlot.captured)
+        val result = controller.placeOrderInclusiveOfFees(Fiat(10, CurrencyCode.USD))
+        // Passed the email gate (fails later at JWT, not with VerificationRequired).
+        assertTrue(result.exceptionOrNull() !is OnRampAuthError.VerificationRequired)
     }
 
     @Test
-    fun `checkBuyOptions passes null params when omitted`() = runTest {
-        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.success("test-jwt")
-        coEvery {
-            api.getBuyOptions(
-                url = any(),
-                jwt = any(),
-                country = isNull(),
-                subdivision = isNull(),
-            )
-        } returns JsonObject(emptyMap())
+    fun `returns VerificationRequired when verification not required and no email`() = runTest {
+        stubAccountCluster()
+        stubRequireEmailVerification(false)
+        stubProfile(email = null)
 
-        val result = controller.checkBuyOptions()
-
-        assertTrue(result.isSuccess)
-        coVerify {
-            api.getBuyOptions(
-                url = any(),
-                jwt = any(),
-                country = isNull(),
-                subdivision = isNull(),
-            )
-        }
+        val result = controller.placeOrderInclusiveOfFees(Fiat(10, CurrencyCode.USD))
+        assertIs<OnRampAuthError.VerificationRequired>(result.exceptionOrNull())
+        assertTrue((result.exceptionOrNull() as OnRampAuthError.VerificationRequired).email)
     }
 
     @Test
-    fun `checkBuyOptions fails when JWT fails`() = runTest {
-        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.failure(RuntimeException("jwt error"))
+    fun `requires verified email when verification required`() = runTest {
+        stubAccountCluster()
+        stubRequireEmailVerification(true)
+        // An entered-but-unverified email is NOT sufficient when verification is required.
+        stubProfile(email = "entered@test.com", emailVerified = false)
 
-        val result = controller.checkBuyOptions(country = "US")
+        val result = controller.placeOrderInclusiveOfFees(Fiat(10, CurrencyCode.USD))
+        assertIs<OnRampAuthError.VerificationRequired>(result.exceptionOrNull())
+        assertTrue((result.exceptionOrNull() as OnRampAuthError.VerificationRequired).email)
+    }
 
-        assertTrue(result.isFailure)
+    @Test
+    fun `uses verified email when present regardless of flag`() = runTest {
+        stubAccountCluster()
+        stubRequireEmailVerification(true)
+        stubProfile(email = "verified@test.com", emailVerified = true)
+        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.failure(RuntimeException("no jwt"))
+
+        val result = controller.placeOrderInclusiveOfFees(Fiat(10, CurrencyCode.USD))
+        assertTrue(result.exceptionOrNull() !is OnRampAuthError.VerificationRequired)
     }
 
     // endregion
 
-    // region resolveOnRampToken
-
-    private fun buyOptionsResponseWithUsdf(): JsonObject = JsonObject(
-        mapOf(
-            "purchase_currencies" to JsonArray(
-                listOf(
-                    JsonObject(mapOf("symbol" to JsonPrimitive("USDC"))),
-                    JsonObject(mapOf("symbol" to JsonPrimitive("USDF"))),
-                )
-            )
-        )
-    )
-
-    private fun buyOptionsResponseWithoutUsdf(): JsonObject = JsonObject(
-        mapOf(
-            "purchase_currencies" to JsonArray(
-                listOf(
-                    JsonObject(mapOf("symbol" to JsonPrimitive("USDC"))),
-                    JsonObject(mapOf("symbol" to JsonPrimitive("BTC"))),
-                )
-            )
-        )
-    )
-
-    private fun stubBuyOptionsApi(response: JsonObject) {
-        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.success("test-jwt")
-        coEvery {
-            api.getBuyOptions(url = any(), jwt = any(), country = any(), subdivision = any())
-        } returns response
-        coEvery {
-            api.getBuyOptions(url = any(), jwt = any(), country = any(), subdivision = isNull())
-        } returns response
-    }
-
-    @Test
-    fun `resolveOnRampToken returns USDF for non-NYC US phone when USDF tradable`() = runTest {
-        stubProfile(phone = "+14155551234") // San Francisco
-        stubBuyOptionsApi(buyOptionsResponseWithUsdf())
-        assertEquals(Token.usdf, controller.resolveOnRampToken())
-    }
-
-    @Test
-    fun `resolveOnRampToken returns USDF when phone is null`() = runTest {
-        stubProfile(phone = null)
-        assertEquals(Token.usdf, controller.resolveOnRampToken())
-    }
-
-    @Test
-    fun `resolveOnRampToken returns USDF for NYC phone when USDF is tradable`() = runTest {
-        stubProfile(phone = "+12125551234")
-        stubBuyOptionsApi(buyOptionsResponseWithUsdf())
-        assertEquals(Token.usdf, controller.resolveOnRampToken())
-    }
-
-    @Test
-    fun `resolveOnRampToken returns USDC for NYC phone when USDF not tradable`() = runTest {
-        stubProfile(phone = "+12125551234")
-        stubBuyOptionsApi(buyOptionsResponseWithoutUsdf())
-        assertEquals(Token.usdc, controller.resolveOnRampToken())
-    }
-
-    @Test
-    fun `resolveOnRampToken returns USDC for Canadian phone when USDF not tradable`() = runTest {
-        stubProfile(phone = "+14165551234") // Toronto
-        stubBuyOptionsApi(buyOptionsResponseWithoutUsdf())
-        assertEquals(Token.usdc, controller.resolveOnRampToken())
-    }
-
-    @Test
-    fun `resolveOnRampToken returns USDF for international phone when USDF tradable`() = runTest {
-        stubProfile(phone = "+442071234567") // UK
-        stubBuyOptionsApi(buyOptionsResponseWithUsdf())
-        assertEquals(Token.usdf, controller.resolveOnRampToken())
-    }
-
-    @Test
-    fun `resolveOnRampToken defaults to USDF on API failure`() = runTest {
-        stubProfile(phone = "+12125551234")
-        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.failure(RuntimeException("fail"))
-        assertEquals(Token.usdf, controller.resolveOnRampToken())
-    }
-
-    @Test
-    fun `resolveOnRampToken caches buy-options result per region`() = runTest {
-        stubProfile(phone = "+12125551234")
-        stubBuyOptionsApi(buyOptionsResponseWithoutUsdf())
-
-        controller.resolveOnRampToken()
-        controller.resolveOnRampToken()
-
-        // API should only be called once due to caching
-        coVerify(exactly = 1) { api.getBuyOptions(any(), any(), any(), any()) }
-    }
-
-    // endregion
 }
 
 class CoinbaseOnRampApiErrorParseTest {

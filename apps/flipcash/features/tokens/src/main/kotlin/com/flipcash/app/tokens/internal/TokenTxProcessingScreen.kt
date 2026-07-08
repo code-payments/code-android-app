@@ -56,7 +56,7 @@ private fun TokenTxProcessingScreen(
             AppBarWithTitle(
                 title = when (val purpose = state.purpose) {
                     is SwapPurpose.Buy if purpose.fundingSource != FundingSource.Flexible ->
-                        stringResource(R.string.title_depositingToken, state.tokenName)
+                        stringResource(R.string.title_addingMoney)
 
                     is SwapPurpose.BalanceIncrease -> stringResource(
                         R.string.title_purchasingToken,

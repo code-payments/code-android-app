@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -13,14 +12,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.analytics.rememberAnalytics
-import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.extensions.navigateAll
+import com.flipcash.app.core.extensions.openAsSheet
+import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.scanner.internal.bills.BillContainer
 import com.flipcash.app.session.LocalSessionController
-import com.flipcash.features.scanner.R
 import com.getcode.libs.code.detection.CodeScanResult
-import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.components.OnLifecycleEvent
@@ -32,10 +32,6 @@ import com.getcode.utils.ErrorUtils
 import com.kik.kikx.kikcodes.implementation.KikCodeResult
 import dev.theolm.rinku.DeepLink
 import timber.log.Timber
-import com.flipcash.app.core.extensions.navigateAll
-import com.flipcash.app.core.extensions.openAsSheet
-import com.flipcash.app.core.navigation.DeeplinkType
-import com.getcode.manager.BottomBarAction
 
 @Composable
 internal fun Scanner() {
@@ -86,12 +82,15 @@ internal fun Scanner() {
             when (it) {
                 ScannerDecorItem.Give -> {
                     // only allow navigation to give when there is something to give
+                    // Zero balance -> prompt to add money; otherwise the user has funds
+                    // but nothing giveable -> prompt to discover a currency.
+                    // presentDepositOptions picks the right prompt based on balance.
                     if (!state.hasGiveableBalance) {
                         session.presentDepositOptions { route ->
                             navigator.openAsSheet(route)
                         }
 
-                        return@BillContainer 
+                        return@BillContainer
                     }
                 }
                 else -> Unit

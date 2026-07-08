@@ -30,7 +30,7 @@ class AmountEntryScreenTest {
     private class FakeController(
         state: AmountEntryDelegate.State = AmountEntryDelegate.State(),
         config: AmountEntryConfig = AmountEntryConfig(
-            action = AmountEntryAction(label = "Next"),
+            action = AmountEntryAction(label = AmountEntryLabel.Plain("Next")),
         ),
     ) : AmountEntryController {
         override val state = MutableStateFlow(state)
@@ -76,7 +76,7 @@ class AmountEntryScreenTest {
     fun `displays action button with label from config`() {
         setScreen(FakeController(
             config = AmountEntryConfig(
-                action = AmountEntryAction(label = "Send"),
+                action = AmountEntryAction(label = AmountEntryLabel.Plain("Send")),
             ),
         ))
 
@@ -87,7 +87,7 @@ class AmountEntryScreenTest {
     fun `button label updates when config changes`() {
         val controller = FakeController(
             config = AmountEntryConfig(
-                action = AmountEntryAction(label = "Buy"),
+                action = AmountEntryAction(label = AmountEntryLabel.Plain("Buy")),
             ),
         )
         setScreen(controller)
@@ -95,7 +95,7 @@ class AmountEntryScreenTest {
         composeTestRule.onNodeWithText("Buy").assertIsDisplayed()
 
         controller.updateConfig {
-            it.copy(action = it.action.copy(label = "Sell"))
+            it.copy(action = it.action.copy(label = AmountEntryLabel.Plain("Sell")))
         }
         composeTestRule.waitForIdle()
 
@@ -111,7 +111,7 @@ class AmountEntryScreenTest {
         setScreen(FakeController(
             config = AmountEntryConfig(
                 canConfirm = false,
-                action = AmountEntryAction(label = "Next"),
+                action = AmountEntryAction(label = AmountEntryLabel.Plain("Next")),
             ),
         ))
 
@@ -123,7 +123,7 @@ class AmountEntryScreenTest {
         setScreen(FakeController(
             config = AmountEntryConfig(
                 canConfirm = true,
-                action = AmountEntryAction(label = "Next"),
+                action = AmountEntryAction(label = AmountEntryLabel.Plain("Next")),
             ),
         ))
 
@@ -137,7 +137,7 @@ class AmountEntryScreenTest {
             config = AmountEntryConfig(
                 canConfirm = true,
                 action = AmountEntryAction(
-                    label = "Next",
+                    label = AmountEntryLabel.Plain("Next"),
                     loadingState = LoadingSuccessState(loading = true),
                 ),
             ),
@@ -167,7 +167,7 @@ class AmountEntryScreenTest {
             controller = FakeController(
                 config = AmountEntryConfig(
                     canConfirm = true,
-                    action = AmountEntryAction(label = "Next"),
+                    action = AmountEntryAction(label = AmountEntryLabel.Plain("Next")),
                 ),
             ),
             onConfirm = { confirmed = true },
@@ -186,7 +186,7 @@ class AmountEntryScreenTest {
         setScreen(FakeController(
             config = AmountEntryConfig(
                 action = AmountEntryAction(
-                    label = "Swipe to send",
+                    label = AmountEntryLabel.Plain("Swipe to send"),
                     style = ConfirmationStyle.Slide,
                 ),
             ),
@@ -204,7 +204,7 @@ class AmountEntryScreenTest {
         setScreen(FakeController(
             config = AmountEntryConfig(
                 hint = AmountEntryHint.Info("Send up to \$100"),
-                action = AmountEntryAction(label = "Next"),
+                action = AmountEntryAction(label = AmountEntryLabel.Plain("Next")),
             ),
         ))
 
@@ -216,7 +216,7 @@ class AmountEntryScreenTest {
         setScreen(FakeController(
             config = AmountEntryConfig(
                 hint = AmountEntryHint.Error("Limit exceeded"),
-                action = AmountEntryAction(label = "Next"),
+                action = AmountEntryAction(label = AmountEntryLabel.Plain("Next")),
             ),
         ))
 

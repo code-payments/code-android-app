@@ -5,10 +5,8 @@ import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.session.BillDeterminationResult.ActedUpon
 import com.getcode.opencode.model.financial.Token
-import com.getcode.solana.keys.Mint
 import com.flipcash.app.core.AppRoute
 import com.getcode.ui.core.RestrictionType
-import com.getcode.util.permissions.PermissionResult
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.flow.StateFlow
 
@@ -36,6 +34,11 @@ interface CashLinkOperations {
 }
 
 interface DepositOperations {
+    /**
+     * Presents the appropriate "you can't give yet" prompt based on the user's balance:
+     * an add-money prompt when the wallet is empty, or a discover-currencies prompt when
+     * the user has funds (e.g. reserves) but nothing giveable.
+     */
     fun presentDepositOptions(onRoute: ((AppRoute) -> Unit)? = null)
 }
 
@@ -48,6 +51,7 @@ interface SessionController : BillOperations, CodeScanOperations, CashLinkOperat
 data class SessionState(
     val vibrateOnScan: Boolean = false,
     val hasGiveableBalance: Boolean = false,
+    val hasBalance: Boolean = false,
     val logScanTimes: Boolean = false,
     val showNetworkOffline: Boolean = false,
     val autoStartCamera: Boolean? = true,
@@ -58,7 +62,7 @@ data class SessionState(
     val notificationUnreadCount: Int = 0,
     val tokens: List<Token> = emptyList(),
     val isPhoneNumberSendEnabled: Boolean = false,
-    val depositFirstUx: Boolean = false,
+    val addMoneyUx: Boolean = false,
 )
 
 val LocalSessionController = staticCompositionLocalOf<SessionController?> { null }

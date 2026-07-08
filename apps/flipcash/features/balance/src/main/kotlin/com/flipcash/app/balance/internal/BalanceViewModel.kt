@@ -49,7 +49,7 @@ internal class BalanceViewModel @Inject constructor(
     }
 
     init {
-        featureFlags.observe(FeatureFlag.DepositFirstUX)
+        featureFlags.observe(FeatureFlag.AddMoneyUX)
             .onEach { dispatchEvent(Event.DepositFirstUxEnabled(it)) }
             .launchIn(viewModelScope)
 

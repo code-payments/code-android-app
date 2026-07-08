@@ -40,13 +40,16 @@ fun AmountEntryScreen(
             ) {
                 when (config.action.style) {
                     ConfirmationStyle.Button -> {
+                        val enabled = config.canConfirm && config.action.loadingState.isIdle
+                        val (text, inlineContent) = config.action.label.annotated(enabled)
                         CodeButton(
-                            enabled = config.canConfirm && config.action.loadingState.isIdle,
+                            enabled = enabled,
                             modifier = Modifier.fillMaxWidth(),
                             buttonState = ButtonState.Filled,
                             isLoading = config.action.loadingState.loading,
                             isSuccess = config.action.loadingState.success,
-                            text = config.action.label,
+                            text = text,
+                            inlineContent = inlineContent,
                         ) {
                             onConfirm()
                         }
@@ -59,7 +62,7 @@ fun AmountEntryScreen(
                             enabled = config.canConfirm && config.action.loadingState.isIdle,
                             isLoading = config.action.loadingState.loading,
                             isSuccess = config.action.loadingState.success,
-                            label = config.action.label,
+                            label = config.action.label.text,
                         )
                     }
                 }

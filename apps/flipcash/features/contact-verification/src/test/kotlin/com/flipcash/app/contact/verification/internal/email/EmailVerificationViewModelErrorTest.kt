@@ -8,8 +8,14 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.FakeResourceHelper
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
+import com.flipcash.app.userflags.FieldOverride
+import com.flipcash.app.userflags.ResolvedFlag
+import com.flipcash.app.userflags.ResolvedUserFlags
+import com.flipcash.app.userflags.UserFlagsCoordinator
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -32,12 +38,21 @@ class EmailVerificationViewModelErrorTest {
     private val verificationController: ContactVerificationController = mock()
     private val profileController = mockk<ProfileController>(relaxed = true)
     private val resources = FakeResourceHelper()
+    private val userFlags = mockk<UserFlagsCoordinator>(relaxed = true)
 
     private lateinit var dispatchers: TestDispatchers
 
     @Before
     fun setUp() {
         BottomBarManager.clear()
+        // Verification required → OnSendCodeClicked takes the server send path.
+        val resolvedFlags = mockk<ResolvedUserFlags>(relaxed = true) {
+            every { requireCoinbaseEmailVerification } returns ResolvedFlag(
+                serverValue = true,
+                override = FieldOverride.None,
+            )
+        }
+        every { userFlags.resolvedFlags } returns MutableStateFlow(resolvedFlags)
     }
 
     @After
@@ -52,6 +67,7 @@ class EmailVerificationViewModelErrorTest {
             resources = resources,
             dispatchers = dispatchers,
             emailCodeChannel = EmailCodeChannel(),
+            userFlags = userFlags,
         )
     }
 

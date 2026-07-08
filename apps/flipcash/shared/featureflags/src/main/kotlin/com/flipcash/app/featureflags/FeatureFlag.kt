@@ -240,9 +240,9 @@ sealed interface FeatureFlag<T: Any> {
     }
 
     @FeatureFlagMarker
-    data object DepositFirstUX: FeatureFlag<Boolean> {
+    data object AddMoneyUX: FeatureFlag<Boolean> {
         override val key: String = "deposit_first_ux_enabled"
-        override val default: Boolean = false
+        override val default: Boolean = true
         override val launched: Boolean = false
         override val visible: Boolean = true
         override val persistLogOut: Boolean = false
@@ -292,7 +292,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.Messenger -> "Messenger"
         FeatureFlag.NavBar -> "Navigation Bar"
         FeatureFlag.GiveUsdf -> "Give/Send USDF"
-        FeatureFlag.DepositFirstUX -> "Deposit First UX"
+        FeatureFlag.AddMoneyUX -> "Add Money UX"
         FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
     }
 
@@ -320,7 +320,7 @@ val FeatureFlag<*>.message: String
         FeatureFlag.Messenger -> "When enabled, tapping a contact will open the chat messenger instead of navigating directly to send"
         FeatureFlag.NavBar -> "Customize the order and labels of navigation bar buttons"
         FeatureFlag.GiveUsdf -> "When enabled, you'll gain the ability to send USDF directly and give it as cash"
-        FeatureFlag.DepositFirstUX -> "When enabled, the user experience for new and empty accounts will be centered around depositing funds"
+        FeatureFlag.AddMoneyUX -> "When enabled, the user experience for getting money into the app will be focused around 'Adding Money'"
         FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
     }
 
