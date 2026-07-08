@@ -162,7 +162,7 @@ internal fun SwapEntryScreen(
                 }
                 is CoinbaseOnRampCompletion.DepositSubmitted -> {
                     viewModel.dispatchEvent(SwapViewModel.Event.UpdateProcessingState(loading = true))
-                    viewModel.dispatchEvent(SwapViewModel.Event.DepositSubmitted)
+                    viewModel.dispatchEvent(SwapViewModel.Event.DepositSubmitted(completion.orderId))
                     flowNavigator.navigateTo(SwapStep.Processing)
                 }
             }

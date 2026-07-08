@@ -18,6 +18,7 @@ import com.flipcash.app.onramp.CoinbaseOnRampState
 import com.flipcash.app.onramp.DeeplinkError
 import com.flipcash.app.onramp.DeeplinkOnRampError
 import com.flipcash.app.onramp.OnRampAuthError
+import com.flipcash.app.onramp.OrderDeliveryResult
 import com.flipcash.app.onramp.PhantomSwapResult
 import com.flipcash.app.onramp.PhantomWalletController
 import com.flipcash.app.onramp.PurchaseGate
@@ -28,6 +29,7 @@ import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.payments.PurchaseMethodMetadata
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -106,6 +108,7 @@ class SwapViewModel @Inject constructor(
     private val phantomWalletController: PhantomWalletController,
     private val userFlags: UserFlagsCoordinator,
     private val featureFlags: FeatureFlagController,
+    private val usdcDepositSweep: UsdcDepositSweep,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<SwapViewModel.State, SwapViewModel.Event>(
     initialState = State(),
@@ -275,7 +278,9 @@ class SwapViewModel @Inject constructor(
         data object PhantomConnected : Event
         data class PhantomNavigateToProcessing(val swapId: SwapId? = null) : Event
         data object PhantomCeremonyFailed : Event
-        data object DepositSubmitted : Event
+        // orderId is the Coinbase order to poll for on-chain delivery before sweeping.
+        // Null for Phantom deposits, which are already on-chain and can sweep immediately.
+        data class DepositSubmitted(val orderId: String? = null) : Event
 
         data class CreateAndSendTransactionToWallet(val token: Token, val amount: VerifiedFiat) :
             Event
@@ -703,14 +708,39 @@ class SwapViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.DepositSubmitted>()
-            .map { tokenCoordinator.balanceForToken(Mint.usdf).first() }
-            .flatMapLatest { baseline ->
-                // Observe balance — UsdcDepositSweep handles the actual
-                // USDC→USDF sweep + polling, we just wait for the result.
-                tokenCoordinator.balanceForToken(Mint.usdf)
-                    .filter { it > baseline }
-            }
-            .onEach {
+            .onEach { event ->
+                val owner = userManager.accountCluster ?: return@onEach
+                val baseline = tokenCoordinator.balanceForToken(Mint.usdf).first()
+
+                // A Coinbase order only settles the on-chain send after payment, while it
+                // sits in PROCESSING. Wait for that delivery before sweeping so we don't
+                // poll an empty ATA and give up too early. Phantom deposits (no orderId)
+                // are already on-chain, so they sweep immediately.
+                val delivered = when (val orderId = event.orderId) {
+                    null -> true // phantom deposit, no waiting needed
+                    else -> when (coinbaseOnRampController.awaitOrderDelivered(orderId)) {
+                        is OrderDeliveryResult.Delivered -> true
+                        OrderDeliveryResult.Failed -> {
+                            dispatchEvent(Event.UpdateProcessingState(loading = false, error = true))
+                            false
+                        }
+                        // The deposit may still land later; the session's foreground sweep
+                        // will reconcile it. Don't claim success we can't confirm.
+                        OrderDeliveryResult.TimedOut -> {
+                            dispatchEvent(Event.UpdateProcessingState(loading = false, error = true))
+                            false
+                        }
+                    }
+                }
+                if (!delivered) return@onEach
+
+                // Funds are on-chain now: kick off the USDC→USDF sweep, then wait for the
+                // resulting USDF balance bump to mark the deposit complete. UsdcDepositSweep
+                // owns the actual sweep + on-chain polling; we just observe the result.
+                if (event.orderId != null) {
+                    usdcDepositSweep.execute(owner)
+                }
+                tokenCoordinator.balanceForToken(Mint.usdf).first { it > baseline }
                 feedCoordinator.fetchSinceLatest()
                 dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
             }.launchIn(viewModelScope)
@@ -1135,7 +1165,7 @@ class SwapViewModel @Inject constructor(
                     is PhantomSwapResult.DepositCompleted -> {
                         dispatchEvent(Event.UpdateProcessingState(loading = true))
                         dispatchEvent(Event.PhantomNavigateToProcessing())
-                        dispatchEvent(Event.DepositSubmitted)
+                        dispatchEvent(Event.DepositSubmitted())
                     }
                 }
             }.onFailure { error ->
@@ -1263,7 +1293,7 @@ class SwapViewModel @Inject constructor(
                 Event.PhantomConnected,
                 is Event.PhantomNavigateToProcessing,
                 Event.PhantomCeremonyFailed,
-                Event.DepositSubmitted,
+                is Event.DepositSubmitted,
                 Event.OnAmountConfirmed -> { state -> state }
 
                 is Event.UpdateBuyState -> { state ->

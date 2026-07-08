@@ -7,6 +7,7 @@ import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
@@ -24,12 +25,16 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.FakeResourceHelper
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
+import com.flipcash.app.onramp.OrderDeliveryResult
 import com.flipcash.app.onramp.PhantomWalletController
 import com.flipcash.app.userflags.UserFlagsCoordinator
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -67,6 +72,7 @@ class SwapViewModelErrorTest {
     private val phantomWalletController = mockk<PhantomWalletController>(relaxed = true)
     private val userFlagsCoordinator = mockk<UserFlagsCoordinator>(relaxed = true)
     private val featureFlags = mockk<FeatureFlagController>(relaxed = true)
+    private val usdcDepositSweep = mockk<UsdcDepositSweep>(relaxed = true)
 
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
 
@@ -109,6 +115,7 @@ class SwapViewModelErrorTest {
             dispatchers = dispatchers,
             userFlags = userFlagsCoordinator,
             featureFlags = featureFlags,
+            usdcDepositSweep = usdcDepositSweep,
         )
     }
 
@@ -158,5 +165,35 @@ class SwapViewModelErrorTest {
         advanceUntilIdle()
 
         assertTrue(BottomBarManager.messages.value.any { it.title == "error_title_buySellFailed" })
+    }
+
+    @Test
+    fun `coinbase deposit waits for delivery before sweeping`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        every { tokenCoordinator.balanceForToken(Mint.usdf) } returns MutableStateFlow(Fiat.Zero)
+        coEvery { coinbaseOnRampController.awaitOrderDelivered("order-1") } returns
+            OrderDeliveryResult.Delivered(txHash = "sig")
+
+        val vm = createViewModel()
+        vm.dispatchEvent(SwapViewModel.Event.DepositSubmitted(orderId = "order-1"))
+        advanceUntilIdle()
+
+        // Coinbase delivery must be confirmed on-chain before the sweep runs.
+        coVerify { coinbaseOnRampController.awaitOrderDelivered("order-1") }
+        verify { usdcDepositSweep.execute(accountCluster) }
+    }
+
+    @Test
+    fun `coinbase deposit does not sweep when delivery fails`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        every { tokenCoordinator.balanceForToken(Mint.usdf) } returns MutableStateFlow(Fiat.Zero)
+        coEvery { coinbaseOnRampController.awaitOrderDelivered("order-2") } returns
+            OrderDeliveryResult.Failed
+
+        val vm = createViewModel()
+        vm.dispatchEvent(SwapViewModel.Event.DepositSubmitted(orderId = "order-2"))
+        advanceUntilIdle()
+
+        verify(exactly = 0) { usdcDepositSweep.execute(any()) }
     }
 }

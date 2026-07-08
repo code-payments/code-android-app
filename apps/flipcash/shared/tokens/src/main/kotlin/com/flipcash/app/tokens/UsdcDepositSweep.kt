@@ -17,13 +17,14 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
+@Singleton
 class UsdcDepositSweep(
     private val transactionOperations: TransactionOperations,
     private val accountController: AccountController,
-    private val tokenCoordinator: TokenCoordinator,
     private val balancePoller: BalancePoller,
     private val dispatchers: DispatcherProvider,
     private val maxRetries: Int = MAX_RETRIES,
@@ -35,13 +36,11 @@ class UsdcDepositSweep(
     @Inject constructor(
         transactionOperations: TransactionOperations,
         accountController: AccountController,
-        tokenCoordinator: TokenCoordinator,
         balancePoller: BalancePoller,
         dispatchers: DispatcherProvider,
     ) : this(
         transactionOperations = transactionOperations,
         accountController = accountController,
-        tokenCoordinator = tokenCoordinator,
         balancePoller = balancePoller,
         dispatchers = dispatchers,
         maxRetries = MAX_RETRIES,

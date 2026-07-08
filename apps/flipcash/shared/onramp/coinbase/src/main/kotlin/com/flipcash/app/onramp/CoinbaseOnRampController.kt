@@ -35,6 +35,7 @@ import com.getcode.utils.ErrorUtils
 import com.getcode.utils.NotifiableError
 import com.getcode.utils.trace
 import dagger.hilt.android.scopes.ActivityRetainedScoped
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -48,6 +49,12 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 import retrofit2.HttpException
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
+
+// Coinbase settles the on-chain send after payment; give delivery a generous window
+// (~5 min at 5s intervals) before falling back to the session's foreground sweep.
+private val DELIVERY_POLL_INTERVAL = 5.seconds
+private const val DELIVERY_POLL_MAX_ATTEMPTS = 60
 
 sealed class PurchaseGate : Throwable() {
     data class WebViewWarning(val channel: WebViewChannel) : PurchaseGate()
@@ -94,9 +101,44 @@ class CoinbaseOnRampController @Inject constructor(
         val current = _state.value
         if (current is CoinbaseOnRampState.Paying) {
             _state.update {
-                CoinbaseOnRampState.Completed(current.swapId, current.token, current.amount)
+                CoinbaseOnRampState.Completed(
+                    current.swapId,
+                    current.token,
+                    current.amount,
+                    orderId = current.order.orderId,
+                )
             }
         }
+    }
+
+    /**
+     * Polls the order until Coinbase confirms the on-chain send (the order reports a
+     * `txHash`) or it reaches a terminal failure. Payment success only means the fiat
+     * side cleared; the asset lands on-chain later, while the order is PROCESSING. Sweeping
+     * before that would poll an empty ATA, so callers wait on this first.
+     */
+    suspend fun awaitOrderDelivered(orderId: String): OrderDeliveryResult {
+        repeat(DELIVERY_POLL_MAX_ATTEMPTS) {
+            val order = lookupOrder(orderId).getOrNull()
+            if (order != null) {
+                trace(
+                    tag = "OnRamp",
+                    message = "Order $orderId status=${order.status} txHash=${order.txHash}",
+                )
+                order.txHash?.let { return OrderDeliveryResult.Delivered(it) }
+                if (order.status.isTerminalFailureStatus()) return OrderDeliveryResult.Failed
+            }
+            delay(DELIVERY_POLL_INTERVAL)
+        }
+        return OrderDeliveryResult.TimedOut
+    }
+
+    private fun String.isTerminalFailureStatus(): Boolean {
+        val status = uppercase()
+        return status.contains("FAILED") ||
+            status.contains("CANCEL") ||
+            status.contains("EXPIRE") ||
+            status.contains("DECLINE")
     }
 
     fun onPaymentFailure(error: CoinbaseOnRampWebError) {
