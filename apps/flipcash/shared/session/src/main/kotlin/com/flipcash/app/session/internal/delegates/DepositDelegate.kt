@@ -51,36 +51,52 @@ class DepositDelegate @Inject constructor(
     }
 
     override fun presentDepositOptions(onRoute: ((AppRoute) -> Unit)?) {
-        val depositFirstUx = stateHolder.current.addMoneyUx
+        // Prompt to add money only when the wallet is empty and add-money is available.
+        // Otherwise the user has funds (e.g. reserves) but nothing giveable — or can't
+        // add money at all — so steer them to discover/buy a currency.
+        val addMoneyEnabled = stateHolder.current.addMoneyUx
+        val hasBalance = stateHolder.current.hasBalance
 
-        val message = if (depositFirstUx) {
-            resources.getString(R.string.description_noBalanceYetToGive)
+        if (!hasBalance) {
+            presentAddMoney(addMoneyEnabled, onRoute)
         } else {
-            resources.getString(R.string.description_noBalanceYetDiscover)
+            presentDiscoverCurrencies(onRoute)
         }
-        val cta = if (depositFirstUx) {
-            resources.getString(R.string.action_addMoney)
-        } else {
-            resources.getString(R.string.action_discoverCurrencies)
-        }
+    }
 
+    private fun presentAddMoney(addMoneyEnabled: Boolean, onRoute: ((AppRoute) -> Unit)?) {
         BottomBarManager.showInfo(
             title = resources.getString(R.string.title_noBalanceYet),
-            message = message,
+            message = if (addMoneyEnabled) {
+                resources.getString(R.string.description_noBalanceYetToGive)
+            } else {
+                resources.getString(R.string.description_noBalanceYetDiscover)
+            },
             actions = listOf(
                 BottomBarAction(
-                    text = cta
+                    text = resources.getString(R.string.action_addMoney)
                 ) {
                     scope.launch {
-                        if (depositFirstUx) {
-                            val destination = purchaseMethodController.presentDepositOptions(popToRoot = true)
-                            if (destination != null) {
-                                onRoute?.invoke(destination)
-                            }
-                        } else {
-                            onRoute?.invoke(AppRoute.Token.Discovery)
+                        val destination = purchaseMethodController.presentDepositOptions(popToRoot = true)
+                        if (destination != null) {
+                            onRoute?.invoke(destination)
                         }
                     }
+                },
+            ),
+            showCancel = true,
+        )
+    }
+
+    private fun presentDiscoverCurrencies(onRoute: ((AppRoute) -> Unit)?) {
+        BottomBarManager.showInfo(
+            title = resources.getString(R.string.title_noCommunityCurrenciesYet),
+            message = resources.getString(R.string.description_noCommunityCurrenciesYet),
+            actions = listOf(
+                BottomBarAction(
+                    text = resources.getString(R.string.action_discoverCurrencies)
+                ) {
+                    onRoute?.invoke(AppRoute.Token.Discovery)
                 },
             ),
             showCancel = true,

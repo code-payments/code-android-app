@@ -222,6 +222,12 @@ class RealSessionController @Inject constructor(
             .onEach { hasBalance -> stateHolder.update { it.copy(hasGiveableBalance = hasBalance) } }
             .launchIn(scope)
 
+        tokenCoordinator.tokenBalances
+            .map { tokenCoordinator.hasBalance() }
+            .distinctUntilChanged()
+            .onEach { hasBalance -> stateHolder.update { it.copy(hasBalance = hasBalance) } }
+            .launchIn(scope)
+
         tokenCoordinator.tokens
             .onEach { tokens ->
                 stateHolder.update { it.copy(tokens = tokens) }

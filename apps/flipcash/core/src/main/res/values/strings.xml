@@ -255,6 +255,8 @@
     <string name="title_tapAboveToAddCashToWallet">Tap above to Add Cash to your wallet</string>
     <string name="title_tapBelowToAddCashWallet">You don\'t have any cash yet.\nTap below to add cash to your wallet</string>
     <string name="title_noBalanceYet">No Balance Yet</string>
+    <string name="title_noCommunityCurrenciesYet">No Community Currencies Yet</string>
+    <string name="description_noCommunityCurrenciesYet">Discover and buy a currency, or create your own</string>
     <string name="title_insufficientBalance">Insufficient Balance</string>
     <string name="description_insufficientBalanceToCreate">Add more money to create a currency</string>
     <string name="description_insufficientBalanceToUse">Add more money, or enter a smaller amount</string>

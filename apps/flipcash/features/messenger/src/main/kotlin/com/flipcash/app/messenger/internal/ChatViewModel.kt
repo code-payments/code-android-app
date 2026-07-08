@@ -143,7 +143,7 @@ internal class ChatViewModel @Inject constructor(
 
         data class NavigateToAmountEntry(val contact: DeviceContact) : Event
         data object PresentDepositOptions : Event
-        data class OpenScreen(val route: AppRoute): Event
+        data class OpenScreen(val route: AppRoute, val asSheet: Boolean = false): Event
         data object OnConfirmRequested : Event
         data class OnSendRequested(
             val amount: Fiat,
@@ -519,34 +519,13 @@ internal class ChatViewModel @Inject constructor(
         eventFlow.filterIsInstance<Event.OnSendCash>()
             .mapNotNull { stateFlow.value.chattingWith }
             .onEach { contact ->
+                val addMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
                 if (!tokenCoordinator.hasGiveableBalance()) {
-                    val addMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
-                    val message = if (addMoney) {
-                        resources.getString(R.string.description_noBalanceYetToSend)
+                    if (!tokenCoordinator.hasBalance()) {
+                        presentAddMoney(addMoney)
                     } else {
-                        resources.getString(R.string.description_noBalanceYetDiscover)
+                        presentDiscoverCurrencies()
                     }
-                    val cta = if (addMoney) {
-                        resources.getString(R.string.action_addMoney)
-                    } else {
-                        resources.getString(R.string.action_discover)
-                    }
-                    BottomBarManager.showInfo(
-                        title = resources.getString(R.string.title_noBalanceYet),
-                        message = message,
-                        actions = listOf(
-                            BottomBarAction(
-                                text = cta
-                            ) {
-                                if (addMoney) {
-                                    dispatchEvent(Event.PresentDepositOptions)
-                                } else {
-                                    dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery))
-                                }
-                            },
-                        ),
-                        showCancel = true,
-                    )
                     return@onEach
                 }
                 amountDelegate.reset()
@@ -704,6 +683,50 @@ internal class ChatViewModel @Inject constructor(
                 destinationOwner = resolve.authority,
             ))
         }
+    }
+
+    private fun presentAddMoney(addMoneyEnabled: Boolean) {
+        val message = if (addMoneyEnabled) {
+            resources.getString(R.string.description_noBalanceYetToSend)
+        } else {
+            resources.getString(R.string.description_noBalanceYetDiscover)
+        }
+        val cta = if (addMoneyEnabled) {
+            resources.getString(R.string.action_addMoney)
+        } else {
+            resources.getString(R.string.action_discover)
+        }
+        BottomBarManager.showInfo(
+            title = resources.getString(R.string.title_noBalanceYet),
+            message = message,
+            actions = listOf(
+                BottomBarAction(
+                    text = cta
+                ) {
+                    if (addMoneyEnabled) {
+                        dispatchEvent(Event.PresentDepositOptions)
+                    } else {
+                        dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery))
+                    }
+                },
+            ),
+            showCancel = true,
+        )
+    }
+
+    private fun presentDiscoverCurrencies() {
+        BottomBarManager.showInfo(
+            title = resources.getString(R.string.title_noCommunityCurrenciesYet),
+            message = resources.getString(R.string.description_noCommunityCurrenciesYet),
+            actions = listOf(
+                BottomBarAction(
+                    text = resources.getString(R.string.action_discoverCurrencies)
+                ) {
+                    dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery, asSheet = true))
+                },
+            ),
+            showCancel = true,
+        )
     }
 
     companion object {
