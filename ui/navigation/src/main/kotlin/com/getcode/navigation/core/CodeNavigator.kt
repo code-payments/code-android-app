@@ -37,17 +37,33 @@ fun rememberCodeNavigator(
     backStack: NavBackStack<NavKey>,
     resultStateRegistry: NavResultStateRegistry,
     onRootReached: () -> Unit,
+    parent: CodeNavigator? = null,
+    isFlowNavigator: Boolean = false,
+    flowScope: FlowScope? = null,
 ): CodeNavigator {
     val navResultStore = rememberNavResultStore(resultStateRegistry = resultStateRegistry)
     return remember(navResultStore, onRootReached) {
-        CodeNavigator(backStack = backStack, resultStore = navResultStore, onRootReached = onRootReached)
+        CodeNavigator(
+            backStack = backStack,
+            resultStore = navResultStore,
+            onRootReached = onRootReached,
+            parent = parent,
+            isFlowNavigator = isFlowNavigator,
+            flowScope = flowScope,
+        )
     }
 }
 
-data class CodeNavigator(
+class CodeNavigator(
     val backStack: NavBackStack<NavKey>,
     val resultStore: NavResultStore,
     val onRootReached: () -> Unit,
+    /** The navigator this one is nested inside (the app-level navigator for a flow). Null at the app root. */
+    val parent: CodeNavigator? = null,
+    /** True when this navigator owns a flow's inner back stack (its stack holds [com.getcode.navigation.flow.FlowStep]s). */
+    val isFlowNavigator: Boolean = false,
+    /** Non-null only when this is a flow's inner navigator. See [FlowScope]. */
+    val flowScope: FlowScope? = null,
 ) {
     /**
      * When set, signals the active sheet to animate its dismiss. The callback

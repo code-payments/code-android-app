@@ -32,4 +32,7 @@ dependencies {
     api(libs.lifecycle.viewmodel.navigation3)
     api(libs.hilt.nav.compose)
     api(libs.rinku)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
 }
