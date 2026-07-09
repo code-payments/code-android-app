@@ -12,6 +12,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import com.getcode.navigation.Sheet
+import com.getcode.navigation.flow.FlowStep
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.results.NavResultStore
 import com.getcode.navigation.results.NavResultStoreImpl
@@ -97,7 +98,27 @@ class CodeNavigator(
     val currentRouteKey: NavKey?
         get() = backStack.lastOrNull()
 
+    /**
+     * Route-type-aware navigation. [com.getcode.navigation.flow.FlowStep]s land on the nearest
+     * flow stack; every other route bubbles up to the app-root stack. A screen calls this the same
+     * way whether it is top-level, in a flow, or in a sheet.
+     */
     fun navigate(
+        route: NavKey,
+        options: NavOptions = NavOptions(),
+    ) {
+        val belongsHere = if (route is FlowStep) isFlowNavigator else parent == null
+        when {
+            belongsHere -> navigateHere(route, options)
+            parent != null -> parent.navigate(route, options)
+            else -> trace(
+                "Dropped navigation to FlowStep $route: no flow host on the stack",
+                type = TraceType.Error,
+            )
+        }
+    }
+
+    private fun navigateHere(
         route: NavKey,
         options: NavOptions = NavOptions(),
     ) {
@@ -172,14 +193,14 @@ class CodeNavigator(
     fun restoreRouting(routes: List<NavKey>) {
         val list = routes.toMutableList()
         val base = list.removeAt(0)
-        navigate(
+        navigateHere(
             route = base,
             options = NavOptions(
                 popUpTo = NavOptions.PopUpTo.ClearAll
             ),
         )
         list.forEach {
-            navigate(it)
+            navigateHere(it)
         }
     }
 
