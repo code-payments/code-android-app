@@ -217,6 +217,39 @@ class CodeNavigator(
         backStack.removeAt(backStack.lastIndex)
     }
 
+    /**
+     * Delivers [result] to the enclosing flow's caller by exiting via [FlowScope.exitWithResult].
+     * The flow host tears down the flow after receiving this signal.
+     * No-op (with a trace) when called outside a flow — there is no caller to return to.
+     */
+    fun navigateBackWithResult(result: android.os.Parcelable) {
+        val scope = flowScope
+        if (scope != null) {
+            scope.exitWithResult(result)
+        } else {
+            trace(
+                "navigateBackWithResult($result) called outside a flow scope; ignored",
+                type = TraceType.Error,
+            )
+        }
+    }
+
+    /**
+     * Leave the current bounded scope, regardless of depth:
+     *  - inside a flow -> delegates to [FlowScope.dismiss]; FlowHost animates the sheet out first
+     *    when the flow is a sheet root;
+     *  - a plain sheet -> animate the sheet out via [pendingSheetDismiss]; the scene pops it on completion;
+     *  - otherwise -> [navigateBack].
+     */
+    fun dismiss() {
+        val scope = flowScope
+        when {
+            scope != null -> scope.dismiss()
+            currentRouteKey is Sheet -> pendingSheetDismiss = {}
+            else -> navigateBack()
+        }
+    }
+
     fun <T : NavKey> clearToFirst(routeClass: KClass<T>): Boolean {
         Timber.d("Clearing backstack to first instance of $routeClass")
         var routeFound = false
