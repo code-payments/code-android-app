@@ -128,7 +128,6 @@ sealed interface AppRoute : NavKey, Parcelable {
     ) : AppRoute, FlowRouteWithResult<VerificationResult> {
         override val initialStack: List<NavKey>
             get() = buildVerificationInitialStack(
-                origin = origin,
                 includePhone = includePhone,
                 includeEmail = includeEmail,
                 emailAddress = email,
@@ -271,15 +270,11 @@ sealed interface AppRoute : NavKey, Parcelable {
 }
 
 private fun buildVerificationInitialStack(
-    origin: AppRoute,
     includePhone: Boolean,
     includeEmail: Boolean,
     emailAddress: String?,
     emailVerificationCode: String?,
 ): List<NavKey> {
-    if (includePhone && includeEmail) {
-        return listOf(VerificationStep.Intro(origin is AppRoute.Token.Swap))
-    }
     if (includePhone) {
         return listOf(VerificationStep.PhoneEntry)
     }
