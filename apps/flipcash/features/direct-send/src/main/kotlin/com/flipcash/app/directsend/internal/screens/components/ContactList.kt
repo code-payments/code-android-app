@@ -1,5 +1,6 @@
 package com.flipcash.app.directsend.internal.screens.components
 
+import android.text.format.DateFormat
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -43,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.flipcash.app.contacts.ui.ContactAvatar
 import com.flipcash.app.core.android.extensions.launchAppSettings
@@ -58,7 +61,12 @@ import com.getcode.theme.extraLarge
 import com.getcode.theme.extraSmall
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeButton
+import com.getcode.util.formatLocalized
 import com.getcode.util.permissions.PermissionResult
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 @Composable
 internal fun ContactList(
@@ -128,6 +136,7 @@ internal fun ContactList(
                         lastMessagePreview = item.lastMessagePreview,
                         unreadCount = item.unreadCount,
                         showDivider = !isLastInSection,
+                        lastActivity = item.lastActivity,
                     ) {
                         onItemClick(item)
                     }
@@ -321,10 +330,12 @@ private fun ContactRowItem(
     isOnFlipcash: Boolean,
     modifier: Modifier = Modifier,
     lastMessagePreview: String? = null,
+    lastActivity: Instant? = null,
     unreadCount: Int = 0,
     showDivider: Boolean = true,
     onClick: () -> Unit,
 ) {
+    val isActiveChat = lastMessagePreview != null
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -343,17 +354,9 @@ private fun ContactRowItem(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (unreadCount > 0) {
-                    UnreadBadge(
-                        modifier = Modifier.padding(
-                            start = CodeTheme.dimens.grid.x1,
-                            end = CodeTheme.dimens.grid.x1,
-                        ),
-                        count = unreadCount
-                    )
-                } else {
-                    Box(modifier = Modifier.requiredWidth(CodeTheme.dimens.inset))
-                }
+                // Spacer used by the unread indicator that we moved
+                // left for spacing compatibility and easy add back later
+                Box(modifier = Modifier.requiredWidth(CodeTheme.dimens.inset))
                 ContactAvatar(
                     contact = contact,
                     modifier = Modifier
@@ -369,17 +372,50 @@ private fun ContactRowItem(
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
                 ) {
                     Text(
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier = Modifier.weight(1f),
                         text = contact.displayName,
                         style = CodeTheme.typography.textMedium,
                         color = CodeTheme.colors.textMain,
                     )
-                    if (contact.isUnknown) {
+
+                    when {
+                        contact.isUnknown -> {
+                            Text(
+                                modifier = Modifier.background(
+                                    color = CodeTheme.colors.surfaceVariant,
+                                    shape = CircleShape,
+                                ).padding(
+                                    vertical = CodeTheme.dimens.grid.x1,
+                                    horizontal = CodeTheme.dimens.grid.x2,
+                                ),
+                                text = stringResource(R.string.label_unknownContact),
+                                style = CodeTheme.typography.caption.copy(fontSize = 10.sp, lineHeight = 10.sp),
+                                color = CodeTheme.colors.textSecondary,
+                            )
+                        }
+                        lastActivity != null && isActiveChat -> {
+                            Text(
+                                text = formatLastActivity(lastActivity),
+                                style = CodeTheme.typography.caption,
+                                color = CodeTheme.colors.textSecondary,
+                            )
+                        }
+                    }
+
+                    if (unreadCount > 0) {
+                        UnreadBadge(
+                            modifier = Modifier.padding(
+                                start = CodeTheme.dimens.grid.x1,
+                                end = CodeTheme.dimens.grid.x1,
+                            ),
+                            count = unreadCount
+                        )
+                    } else if (isActiveChat) {
                         Icon(
-                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3),
-                            painter = painterResource(R.drawable.ic_unknown_contact),
+                            modifier = Modifier.scale(0.6f),
+                            painter = painterResource(id = R.drawable.ic_chevron_right),
                             contentDescription = null,
-                            tint = CodeTheme.colors.textMain,
+                            tint = CodeTheme.colors.textSecondary,
                         )
                     }
                 }
@@ -388,7 +424,6 @@ private fun ContactRowItem(
 
                 if (showSubtitle) {
                     Text(
-                        modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
                         text = if (isOnFlipcash && !lastMessagePreview.isNullOrEmpty()) {
                             lastMessagePreview
                         } else {
@@ -403,11 +438,13 @@ private fun ContactRowItem(
             }
 
             if (isOnFlipcash) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_chevron_right),
-                    contentDescription = null,
-                    tint = CodeTheme.colors.textSecondary,
-                )
+                if (!isActiveChat) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_chevron_right),
+                        contentDescription = null,
+                        tint = CodeTheme.colors.textSecondary,
+                    )
+                }
             } else {
                 Text(
                     modifier = Modifier
@@ -510,6 +547,26 @@ private fun EmptySearchState(
     }
 }
 
+@Composable
+private fun formatLastActivity(instant: Instant): String {
+    val context = LocalContext.current
+    val is24Hour = DateFormat.is24HourFormat(context)
+    val tz = TimeZone.currentSystemDefault()
+    val todayDate = Clock.System.now().toLocalDateTime(tz).date
+    val messageDate = instant.toLocalDateTime(tz).date
+    val dayDiff = todayDate.toEpochDays() - messageDate.toEpochDays()
+
+    val time = instant.formatLocalized("h:mm a", is24Hour = is24Hour, if24Hour = "H:mm")
+
+    return when {
+        dayDiff == 0L -> time
+        dayDiff == 1L -> stringResource(R.string.label_chatReceipt_yesterday)
+        dayDiff in 2L..6L -> instant.formatLocalized("EEEE")
+        messageDate.year == todayDate.year -> instant.formatLocalized("MMM d")
+        else -> instant.formatLocalized("MMM d, yyyy")
+    }
+}
+
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
@@ -532,6 +589,7 @@ private fun ContactListPreview() {
                 displayNumber = "(555) 000-${1000 + i}",
             ),
             isOnFlipcash = true,
+            unreadCount = 12,
         )
     }
     val otherContacts = fakeNames.drop(6).mapIndexed { i, name ->
