@@ -21,6 +21,10 @@ interface FlowScope {
     /**
      * Leave the entire scope (the whole flow, animating the sheet out first when the flow is a
      * sheet root). Equivalent to a user pressing the close-X.
+     *
+     * For a sheet-root flow, the enclosing sheet entry is removed from the outer backstack by the
+     * animation handler before the flow's exit callback runs — so the host's onExit must not pop
+     * the sheet entry again.
      */
     fun dismiss()
 }
