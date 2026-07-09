@@ -46,6 +46,7 @@ import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -85,12 +86,17 @@ fun Modifier.unboundedClickable(
 ) = this.composed {
     val interaction = interactionSource ?: remember { MutableInteractionSource() }
 
+    val ripple = if (LocalInspectionMode.current) {
+        null
+    } else {
+        ripple(bounded = false, radius = rippleRadius)
+    }
     clickable(
         onClick = onClick,
         enabled = enabled,
         role = role,
         interactionSource = interaction,
-        indication = ripple(bounded = false, radius = rippleRadius),
+        indication = ripple,
     )
 }
 
