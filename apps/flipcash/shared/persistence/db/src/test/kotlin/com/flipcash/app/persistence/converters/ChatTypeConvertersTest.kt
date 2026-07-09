@@ -130,6 +130,49 @@ class ChatTypeConvertersTest {
     }
 
     @Test
+    fun `fromUserProfile migrates legacy verified phone and email strings`() {
+        // Row persisted before phone/email were modeled as VerifiableContactMethod.
+        val legacyJson = """
+            {
+              "displayName": "Bob",
+              "socialAccounts": [],
+              "verifiedPhoneNumber": "+15551234567",
+              "verifiedEmailAddress": "bob@example.com"
+            }
+        """.trimIndent()
+
+        val result = converter.fromUserProfile(legacyJson)
+
+        assertEquals(
+            UserProfileSerialized(
+                displayName = "Bob",
+                socialAccounts = emptyList(),
+                phoneNumber = VerifiableContactMethod("+15551234567", verified = true),
+                email = VerifiableContactMethod("bob@example.com", verified = true),
+            ),
+            result,
+        )
+    }
+
+    @Test
+    fun `fromUserProfile decodes legacy row missing phone and email as null`() {
+        // Legacy row that never had contact fields at all must not crash.
+        val legacyJson = """{"displayName":"Carol","socialAccounts":[]}"""
+
+        val result = converter.fromUserProfile(legacyJson)
+
+        assertEquals(
+            UserProfileSerialized(
+                displayName = "Carol",
+                socialAccounts = emptyList(),
+                phoneNumber = null,
+                email = null,
+            ),
+            result,
+        )
+    }
+
+    @Test
     fun `fromUserProfile returns null for null input`() {
         assertNull(converter.fromUserProfile(null))
     }
