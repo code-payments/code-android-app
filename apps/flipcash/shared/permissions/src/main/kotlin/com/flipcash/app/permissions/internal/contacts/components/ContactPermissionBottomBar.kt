@@ -23,6 +23,7 @@ internal fun ContactPermissionBottomBar(
     onSkip: (() -> Unit)? = null,
     isLoading: Boolean = false,
     isSuccess: Boolean = false,
+    action: String = stringResource(R.string.action_next),
 ) {
     val resources = LocalResources.current
     val canSkip = onSkip != null
@@ -37,7 +38,7 @@ internal fun ContactPermissionBottomBar(
             text = if (canSkip) {
                 stringResource(R.string.action_giveAccessToContacts)
             } else {
-                stringResource(R.string.action_next)
+                action
             },
             isLoading = isLoading,
             isSuccess = isSuccess,

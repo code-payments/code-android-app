@@ -1,23 +1,28 @@
 package com.flipcash.app.permissions.internal.contacts
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
@@ -32,8 +37,14 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 
+
 @Composable
-fun ContactRationaleContent() {
+fun ContactRationaleContent(simplified: Boolean = false) {
+    if (simplified) {
+        SimplifiedContactRationaleContent()
+        return
+    }
+
     val context = LocalContext.current
     CodeScaffold(
         bottomBar = {
@@ -65,7 +76,10 @@ fun ContactRationaleContent() {
                 modifier = Modifier.align(Alignment.BottomCenter),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                AnimatedConversationPreview(animate = false, gradientColorStops = listOf(0f, 0.9f, 0.99f))
+                AnimatedConversationPreview(
+                    animate = false,
+                    gradientColorStops = listOf(0f, 0.9f, 0.99f)
+                )
 
                 Text(
                     text = stringResource(R.string.permissions_title_contactsRationale),
@@ -107,16 +121,69 @@ fun ContactRationaleContent() {
 }
 
 @Composable
-private fun BulletRow(painter: Painter, text: String) {
+private fun SimplifiedContactRationaleContent() {
+    val context = LocalContext.current
+
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = CodeTheme.dimens.inset),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x6),
+        ) {
+            Image(
+                painter = painterResource(R.drawable.ic_warning_alert_large),
+                contentDescription = null,
+            )
+            Column(
+                modifier = Modifier.fillMaxWidth(0.80f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+            ) {
+                Text(
+                    text = stringResource(R.string.permissions_title_contactsRationaleSimple),
+                    style = CodeTheme.typography.textLarge,
+                    color = CodeTheme.colors.textMain,
+                )
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.permissions_description_contactsRationaleSimple),
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            CodeButton(
+                onClick = { context.launchAppSettings() },
+                text = stringResource(R.string.action_settings),
+                buttonState = ButtonState.Filled,
+                contentPadding = PaddingValues(),
+                shape = CircleShape,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun BulletRow(
+    painter: Painter,
+    text: String,
+    modifier : Modifier = Modifier,
+    textStyle: TextStyle = CodeTheme.typography.textSmall,
+    textColor: Color = CodeTheme.colors.textSecondary,
+    iconTint: Color = CodeTheme.colors.textMain,
+) {
     Row(
+        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(painter = painter, contentDescription = null, tint = CodeTheme.colors.textMain)
+        Icon(painter = painter, contentDescription = null, tint = iconTint)
         Text(
             text = text,
-            style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.textSecondary,
+            style = textStyle,
+            color = textColor,
         )
     }
 }
@@ -129,5 +196,16 @@ private fun PreviewContactRationale() {
         LocalExchange provides ExchangeStub(context = LocalContext.current),
     ) {
         ContactRationaleContent()
+    }
+}
+
+@Composable
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+private fun PreviewContactRationaleSimple() {
+    CompositionLocalProvider(
+        LocalExchange provides ExchangeStub(context = LocalContext.current),
+    ) {
+        ContactRationaleContent(simplified = true)
     }
 }
