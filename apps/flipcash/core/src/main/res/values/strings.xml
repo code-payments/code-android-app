@@ -105,7 +105,12 @@
     <string name="error_title_ignoredContactPermissions">Are You Sure?</string>
     <string name="error_description_ignoredContactPermissions">You won\'t be able to send cash to your contacts</string>
 
+    <string name="permissions_title_contactsSimple">Send Money To Your Friends</string>
+    <string name="permissions_description_contactsSimple">Sync your contacts to find, invite, and pay friends</string>
+
     <string name="permissions_title_contactsRationale">Send Money to Your Friends</string>
+    <string name="permissions_title_contactsRationaleSimple">Allow Contact Access</string>
+    <string name="permissions_description_contactsRationaleSimple">Turn on contact access so you can find people, send cash, and message them</string>
     <string name="rationale_bullet_contactChoice">You decide which contacts to add</string>
     <string name="rationale_bullet_secure">Your information is always secure</string>
     <string name="rationale_bullet_changeAccess">Change contact access at any time</string>

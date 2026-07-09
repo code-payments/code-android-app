@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.core.send.SendResult
@@ -16,6 +17,7 @@ import com.flipcash.app.permissions.ContactAccessResult
 import com.flipcash.app.permissions.internal.contacts.ContactRationaleContent
 import com.flipcash.app.permissions.internal.contacts.ContactScreenContent
 import com.flipcash.app.permissions.rememberContactAccessHandle
+import com.flipcash.features.directsend.R
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
@@ -103,7 +105,7 @@ internal fun ContactsPermissionGateScreen() {
     CodeScaffold(
         topBar = {
             AppBarWithTitle(
-                title = "",
+                title = stringResource(R.string.title_send),
                 endContent = {
                     AppBarDefaults.Close { flowNavigator.exitCanceled() }
                 },
@@ -112,10 +114,11 @@ internal fun ContactsPermissionGateScreen() {
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             if (showRationale) {
-                ContactRationaleContent()
+                ContactRationaleContent(simplified = true)
             } else {
                 ContactScreenContent(
                     accessHandle = accessHandle,
+                    simplified = true,
                     isLoading = state.contactSyncState.loading,
                     isSuccess = state.contactSyncState.success,
                 )
