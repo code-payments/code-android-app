@@ -58,7 +58,28 @@ class ChatTypeConverters {
 
     @TypeConverter
     fun fromUserProfile(value: String?): UserProfileSerialized? {
-        return value?.let { json.decodeFromString<UserProfileSerialized>(it) }
+        return value?.let {
+            // Decode via a compat DTO so rows persisted before phone/email were
+            // modeled as VerifiableContactMethod still load. Legacy rows stored
+            // verifiedPhoneNumber/verifiedEmailAddress as plain strings; a present
+            // value means the contact was verified, so migrate it as verified=true.
+            // runCatching guards against any future schema drift crashing chat loads.
+            runCatching {
+                val compat = json.decodeFromString<UserProfileSerializedCompat>(it)
+                UserProfileSerialized(
+                    displayName = compat.displayName,
+                    socialAccounts = compat.socialAccounts,
+                    phoneNumber = compat.phoneNumber
+                        ?: compat.verifiedPhoneNumber?.let { number ->
+                            VerifiableContactMethod(number, verified = true)
+                        },
+                    email = compat.email
+                        ?: compat.verifiedEmailAddress?.let { address ->
+                            VerifiableContactMethod(address, verified = true)
+                        },
+                )
+            }.getOrNull()
+        }
     }
 
     @TypeConverter
@@ -140,8 +161,24 @@ data class MessagePointerSerialized(
 data class UserProfileSerialized(
     val displayName: String?,
     val socialAccounts: List<SocialAccountSerialized>,
-    val phoneNumber: VerifiableContactMethod?,
-    val email: VerifiableContactMethod?,
+    val phoneNumber: VerifiableContactMethod? = null,
+    val email: VerifiableContactMethod? = null,
+)
+
+/**
+ * Tolerant read model for [UserProfileSerialized] that carries both the current
+ * fields and the pre-migration legacy keys (`verifiedPhoneNumber` /
+ * `verifiedEmailAddress`, stored as plain strings). Used only when decoding
+ * persisted rows so older data can be migrated forward. Every field is optional.
+ */
+@Serializable
+private data class UserProfileSerializedCompat(
+    val displayName: String? = null,
+    val socialAccounts: List<SocialAccountSerialized> = emptyList(),
+    val phoneNumber: VerifiableContactMethod? = null,
+    val email: VerifiableContactMethod? = null,
+    val verifiedPhoneNumber: String? = null,
+    val verifiedEmailAddress: String? = null,
 )
 
 @Serializable
