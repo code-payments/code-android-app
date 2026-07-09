@@ -124,7 +124,7 @@ internal fun PhantomConnectConfirmationScreen(
                 }
 
                 Column(
-                    modifier = Modifier.fillMaxWidth(0.60f),
+                    modifier = Modifier.fillMaxWidth(0.80f),
                     verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
