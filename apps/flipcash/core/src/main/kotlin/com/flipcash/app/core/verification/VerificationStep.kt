@@ -13,10 +13,6 @@ import kotlinx.serialization.Serializable
 sealed interface VerificationStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
-    data class Intro(val isForOnRamp: Boolean) : VerificationStep
-
-    @Parcelize
-    @Serializable
     data object PhoneEntry : VerificationStep
 
     @Parcelize
