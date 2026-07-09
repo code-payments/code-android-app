@@ -81,16 +81,16 @@ fun TokenList(
                 .sheetResignmentBehavior(listState),
             state = listState
         ) {
+            header?.let { content ->
+                item(contentType = "header") {
+                    content()
+                }
+            }
             if (tokens != null && tokens.isEmpty() && emptyState != null) {
                 item(contentType = "empty_state") {
                     emptyState()
                 }
             } else {
-                header?.let { content ->
-                    item(contentType = "header") {
-                        content()
-                    }
-                }
                 items(
                     items = filteredTokens.orEmpty(),
                     key = { item -> item.token.address.base58() },
