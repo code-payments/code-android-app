@@ -828,4 +828,6 @@
     <string name="label_chat_preview_sentCash">You sent %1$s</string>
     <string name="label_chat_preview_receivedCash">You received %1$s</string>
 
+    <string name="label_unknownContact">Unknown Contact</string>
+
 </resources>
