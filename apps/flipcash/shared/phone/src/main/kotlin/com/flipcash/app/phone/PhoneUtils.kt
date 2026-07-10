@@ -105,7 +105,13 @@ class PhoneUtils @Inject constructor(
         return try {
             val p = phoneNumberUtil.parse(this, (locale ?: Locale.getDefault()).country)
             phoneNumberUtil.format(p, PhoneNumberUtil.PhoneNumberFormat.E164)
-        } catch(e: Exception) {
+        } catch (e: NumberParseException) {
+            // Expected when the entered value isn't a valid number for the region
+            // (e.g. an incomplete number mid-onboarding). Not notifiable.
+            ""
+        } catch (e: NumberFormatException) {
+            ""
+        } catch (e: Exception) {
             ErrorUtils.handleError(e)
             ""
         }
