@@ -95,7 +95,7 @@ internal fun ContactsPermissionGateScreen() {
         return
     }
 
-    val hasChats = state.listItems.any { it is ContactListItem.ContactRow && it.chatId != null }
+    val hasChats = state.listItems.any { it is ContactListItem.ContactRow && it.conversation != null }
 
     // If denied but user has existing chats, skip the gate entirely
     if (showRationale && hasChats) {

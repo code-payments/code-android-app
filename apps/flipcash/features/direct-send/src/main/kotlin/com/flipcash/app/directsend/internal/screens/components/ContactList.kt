@@ -115,7 +115,8 @@ internal fun ContactList(
             key = { _, item ->
                 when (item) {
                     is ContactListItem.Header -> item.title
-                    is ContactListItem.ContactRow -> item.chatId?.toString() ?: item.contact.e164
+                    is ContactListItem.ContactRow -> item.conversation?.chatId?.toString()
+                        ?: item.contact.e164
                 }
             }
         ) { index, item ->
@@ -133,8 +134,9 @@ internal fun ContactList(
                     ContactRowItem(
                         contact = item.contact,
                         isOnFlipcash = item.isOnFlipcash,
-                        lastMessagePreview = item.lastMessagePreview,
-                        unreadCount = item.unreadCount,
+                        lastMessagePreview = item.conversation?.lastMessagePreview,
+                        unreadCount = item.conversation?.unreadCount ?: 0,
+                        isTyping = item.conversation?.isTyping == true,
                         showDivider = !isLastInSection,
                         lastActivity = item.lastActivity,
                     ) {
@@ -332,6 +334,7 @@ private fun ContactRowItem(
     lastMessagePreview: String? = null,
     lastActivity: Instant? = null,
     unreadCount: Int = 0,
+    isTyping: Boolean = false,
     showDivider: Boolean = true,
     onClick: () -> Unit,
 ) {
@@ -422,8 +425,14 @@ private fun ContactRowItem(
 
                 val showSubtitle = lastMessagePreview != null || !isOnFlipcash
 
-                if (showSubtitle) {
-                    Text(
+                when {
+                    isTyping -> Text(
+                        text = stringResource(R.string.label_isTyping),
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textSecondary,
+                    )
+
+                    showSubtitle -> Text(
                         text = if (isOnFlipcash && !lastMessagePreview.isNullOrEmpty()) {
                             lastMessagePreview
                         } else {
@@ -589,7 +598,6 @@ private fun ContactListPreview() {
                 displayNumber = "(555) 000-${1000 + i}",
             ),
             isOnFlipcash = true,
-            unreadCount = 12,
         )
     }
     val otherContacts = fakeNames.drop(6).mapIndexed { i, name ->

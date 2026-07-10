@@ -5,7 +5,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.contacts.ContactCoordinator
-import com.flipcash.app.contacts.ContactCoordinator.ContactState
 import com.flipcash.app.contacts.device.PickedContactData
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.contacts.DeviceContact
@@ -13,19 +12,11 @@ import com.flipcash.app.core.send.SendStep
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.permissions.PickedContact
-import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.directsend.R
-import com.flipcash.services.models.chat.ChatMember
-import com.flipcash.services.models.chat.ChatType
-import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
-import com.flipcash.shared.chat.ChatSummary
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.financial.Token
-import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
@@ -50,7 +41,7 @@ internal class SendFlowViewModel @Inject constructor(
     private val contactCoordinator: ContactCoordinator,
     chatCoordinator: ChatCoordinator,
     tokenCoordinator: TokenCoordinator,
-    private val phoneUtils: PhoneUtils,
+    private val contactListBuilder: ContactListBuilder,
     private val resources: ResourceHelper,
 ) : BaseViewModel<SendFlowViewModel.State, SendFlowViewModel.Event>(
     initialState = State(),
@@ -113,7 +104,9 @@ internal class SendFlowViewModel @Inject constructor(
             dispatchEvent(event)
         }.launchIn(viewModelScope)
 
-        combine(
+        // Base list — expensive to build (filter + sort), so it only recomputes
+        // when contacts, search, the chat feed, or tokens change.
+        val baseItems = combine(
             contactCoordinator.state,
             stateFlow
                 .map { it.searchState }
@@ -122,8 +115,40 @@ internal class SendFlowViewModel @Inject constructor(
             chatCoordinator.feed,
             tokenCoordinator.tokens,
         ) { contactState, searchText, chatFeed, tokens ->
-            val tokensByMint = tokens.associateBy { it.address }
-            generateListItems(contactState, searchText.toString(), chatFeed, tokensByMint)
+            contactListBuilder.build(
+                contactState = contactState,
+                searchString = searchText.toString(),
+                chatFeed = chatFeed,
+                tokensByMint = tokens.associateBy { it.address },
+            )
+        }
+
+        // Typing is ephemeral and flips on/off frequently — overlay it on top of
+        // the base list with a cheap map rather than rebuilding + re-sorting the
+        // whole list on every typing tick. distinctUntilChanged means we only
+        // recompute when the set of typing chats changes.
+        val typingChatIds = chatCoordinator.state
+            .map { chatState ->
+                val selfId = userManager.accountId
+                chatState.typingIndicators
+                    .filterValues { typists -> typists.any { it.userId != selfId } }
+                    .keys
+            }
+            .distinctUntilChanged()
+
+        combine(baseItems, typingChatIds) { items, typing ->
+            if (typing.isEmpty()) {
+                items
+            } else {
+                items.map { item ->
+                    val conversation = (item as? ContactListItem.ContactRow)?.conversation
+                    if (conversation != null && conversation.chatId in typing) {
+                        item.copy(conversation = conversation.copy(isTyping = true))
+                    } else {
+                        item
+                    }
+                }
+            }
         }.onEach { items ->
             dispatchEvent(Event.OnItemsPopulated(items))
         }.launchIn(viewModelScope)
@@ -180,10 +205,10 @@ internal class SendFlowViewModel @Inject constructor(
                     val identifier = if (contact.e164.isNotEmpty()) {
                         ChatIdentifier.ByContact(
                             contact = contact,
-                            chatId = row.chatId
+                            chatId = row.conversation?.chatId
                         )
                     } else {
-                        ChatIdentifier.ByChatId(row.chatId!!)
+                        ChatIdentifier.ByChatId(row.conversation!!.chatId)
                     }
                     dispatchEvent(Event.NavigateToChat(identifier))
                 } else {
@@ -223,153 +248,6 @@ internal class SendFlowViewModel @Inject constructor(
                 )
             }
             .launchIn(viewModelScope)
-    }
-
-    private fun generateListItems(
-        contactState: ContactState,
-        searchString: String,
-        chatFeed: List<ChatSummary>,
-        tokensByMint: Map<Mint, Token>,
-    ): List<ContactListItem> = buildList {
-        val selfId = userManager.accountId
-        val selfPhone = userManager.profile?.verifiedPhoneNumber
-
-        val allContacts = contactState.contacts.values
-            .filter { selfPhone == null || it.e164 != selfPhone }
-        val filtered = if (searchString.isBlank()) {
-            allContacts
-        } else {
-            allContacts.filter {
-                it.displayName.contains(searchString, ignoreCase = true) ||
-                        it.e164.contains(searchString, ignoreCase = true)
-            }
-        }
-
-        val dmChats = chatFeed.filter { it.metadata.type == ChatType.DM }
-        // Build a reverse lookup: e164 -> chatId string for contacts with DMs
-        val e164ToChatId = contactState.dmChatIds
-
-        // Recents — driven by the chat feed, enriched with contact info
-        val recentsE164s = mutableSetOf<String>()
-        val recentRows = dmChats.mapNotNull { summary ->
-            val chatId = summary.metadata.chatId
-            val chatIdStr = chatId.toString()
-
-            // Try to match this chat to a device contact
-            val e164 = e164ToChatId.entries
-                .firstOrNull { it.value == chatIdStr }?.key
-            val deviceContact = e164
-                ?.takeIf { selfPhone == null || it != selfPhone }
-                ?.let { contactState.contacts[it] }
-
-            val contact = if (deviceContact != null) {
-                if (searchString.isNotBlank() &&
-                    !deviceContact.displayName.contains(searchString, ignoreCase = true) &&
-                    !deviceContact.e164.contains(searchString, ignoreCase = true)
-                ) {
-                    return@mapNotNull null
-                }
-                recentsE164s += deviceContact.e164
-                deviceContact
-            } else {
-                // Non-contact DM — build contact from chat member profile
-                val isSelf = { member: ChatMember ->
-                    member.userId == selfId || (selfPhone != null && member.userProfile.verifiedPhoneNumber == selfPhone)
-                }
-                val otherMember = summary.metadata.members
-                    .firstOrNull { !isSelf(it) } ?: return@mapNotNull null
-                val phone = otherMember.userProfile.verifiedPhoneNumber
-                val formattedPhone = phone?.let { phoneUtils.formatNumber(it) }
-                val displayName = otherMember.userProfile.displayName?.takeIf { it.isNotBlank() }
-                    ?: formattedPhone
-                    ?: return@mapNotNull null
-
-                val unknown = DeviceContact.unknownContact(
-                    e164 = phone.orEmpty(),
-                    displayName = displayName,
-                    displayNumber = formattedPhone,
-                )
-                if (searchString.isNotBlank() &&
-                    !unknown.displayName.contains(searchString, ignoreCase = true)
-                ) {
-                    return@mapNotNull null
-                }
-                if (unknown.e164.isNotEmpty()) {
-                    recentsE164s += unknown.e164
-                }
-                unknown
-            }
-
-            ContactListItem.ContactRow(
-                contact = contact,
-                isOnFlipcash = true,
-                lastMessagePreview = formatPreview(summary, selfId, tokensByMint),
-                unreadCount = summary.unreadCount,
-                chatId = chatId,
-                lastActivity = summary.metadata.lastActivity,
-            )
-        }
-
-        // On Flipcash — contacts that haven't chatted yet, use joinedAt as their sort timestamp
-        val flipcashRows = filtered
-            .filter { it.e164 in contactState.flipcashE164s && it.e164 !in recentsE164s }
-            .map { contact ->
-                ContactListItem.ContactRow(
-                    contact = contact,
-                    isOnFlipcash = true,
-                    lastActivity = contactState.joinedAtByE164[contact.e164],
-                )
-            }
-
-        val flipcashCombined = (recentRows + flipcashRows).sortedWith(
-            compareByDescending<ContactListItem.ContactRow> { it.lastActivity }
-                .thenBy(String.CASE_INSENSITIVE_ORDER) { it.contact.displayName }
-        )
-
-        val excludedE164s = recentsE164s + contactState.flipcashE164s
-        val other = filtered
-            .filter { it.e164 !in excludedE164s }
-            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayName })
-
-        addAll(flipcashCombined)
-        if (other.isNotEmpty()) {
-            add(ContactListItem.Header(resources.getString(R.string.title_nonFlipcashContacts)))
-            other.forEach { add(ContactListItem.ContactRow(it, isOnFlipcash = false)) }
-        }
-    }
-
-    private fun formatPreview(
-        summary: ChatSummary,
-        selfId: ID?,
-        tokensByMint: Map<Mint, Token>,
-    ): String? {
-        val lastMsg = summary.metadata.lastMessage ?: return null
-        val sentBySelf = lastMsg.senderId != null && lastMsg.senderId == selfId
-        return lastMsg.content.firstOrNull()?.let { content ->
-            when (content) {
-                is MessageContent.Text -> content.text.takeIf { it.isNotEmpty() }
-                is MessageContent.Cash -> {
-                    val formatted = content.amount.formatted()
-                    val name = content.tokenName.ifBlank { tokensByMint[content.mint]?.name.orEmpty() }
-                    val label = if (name.isNotBlank()) {
-                        resources.getString(R.string.label_chat_preview_cash_suffix, formatted, name)
-                    } else {
-                        formatted
-                    }
-                    if (sentBySelf) {
-                        resources.getString(R.string.label_chat_preview_sentCash, label)
-                    } else {
-                        resources.getString(R.string.label_chat_preview_receivedCash, label)
-                    }
-                }
-
-                // TODO:
-                is MessageContent.Deleted -> null
-                is MessageContent.Media -> null
-                is MessageContent.Reply -> null
-                is MessageContent.System -> null
-            }
-        }
     }
 
     companion object {
