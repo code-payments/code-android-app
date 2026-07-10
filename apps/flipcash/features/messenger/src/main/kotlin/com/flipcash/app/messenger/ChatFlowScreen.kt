@@ -62,6 +62,10 @@ private fun chatEntryProvider(
 private fun FlowConversationScreen(identifier: ChatIdentifier) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val navigator = LocalCodeNavigator.current
+    // The outer app/sheet nav host. Its entryProvider (appEntryProvider) registers
+    // full AppRoutes like Token.Swap/Info/Discovery; the inner [navigator] only knows
+    // this flow's ChatStep keys, so full routes must be pushed onto the outer navigator.
+    val outerNavigator = LocalOuterCodeNavigator.current
     // The sheet-owning (root) navigator — the one whose back stack holds this chat's
     // Main.Sheet and whose pendingSheetDismiss the dismiss animation observes.
     val sheetNavigator = LocalSheetNavigator.current
@@ -92,7 +96,9 @@ private fun FlowConversationScreen(identifier: ChatIdentifier) {
                     // sheet closed (via pendingSheetDismiss) before opening the new one.
                     sheetNavigator?.openAsSheet(route)
                 } else {
-                    navigator.navigate(route)
+                    // Push onto the outer nav host (which registers full AppRoutes) rather
+                    // than the inner flow navigator, whose backstack only handles ChatSteps.
+                    outerNavigator.navigate(route)
                 }
             }
     }
