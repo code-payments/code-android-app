@@ -6,12 +6,30 @@ import kotlin.time.Instant
 
 internal sealed interface ContactListItem {
     data class Header(val title: String) : ContactListItem
+
+    /**
+     * A single contact in the send list.
+     *
+     * [lastActivity] is the sort key and is present for any row that should be
+     * ranked by recency — a chat's last activity for recents, or the contact's
+     * joinedAt for on-Flipcash contacts without a chat yet — so it lives on the
+     * row rather than inside [conversation].
+     *
+     * [conversation] holds everything derived from an existing DM and is `null`
+     * for contacts with no chat (on-Flipcash-but-never-messaged, or off-Flipcash).
+     */
     data class ContactRow(
         val contact: DeviceContact,
         val isOnFlipcash: Boolean,
-        val lastMessagePreview: String? = null,
-        val unreadCount: Int = 0,
-        val chatId: ChatId? = null,
         val lastActivity: Instant? = null,
+        val conversation: Conversation? = null,
     ) : ContactListItem
 }
+
+/** Presentation state derived from an existing DM with a contact. */
+internal data class Conversation(
+    val chatId: ChatId,
+    val lastMessagePreview: String? = null,
+    val unreadCount: Int = 0,
+    val isTyping: Boolean = false,
+)
