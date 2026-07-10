@@ -1,5 +1,7 @@
 package com.flipcash.app.payments.internal
 
+import com.flipcash.app.analytics.Analytics
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
@@ -54,6 +56,7 @@ class InternalPurchaseMethodController @Inject constructor(
     exchange: Exchange,
     private val resources: ResourceHelper,
     private val userManager: UserManager,
+    private val analytics: FlipcashAnalyticsService,
 ) : PurchaseMethodController {
 
     private val scope = CoroutineScope(SupervisorJob())
@@ -147,6 +150,18 @@ class InternalPurchaseMethodController @Inject constructor(
             selections.map { it.method },
             _dismissals.map { null },
         ).first()
+
+        when (result) {
+            PurchaseMethod.CoinbaseOnRamp ->
+                analytics.addMoneyMethodSelected(Analytics.AddMoneyMethod.Coinbase)
+            PurchaseMethod.PhantomWallet ->
+                analytics.addMoneyMethodSelected(Analytics.AddMoneyMethod.Phantom)
+            PurchaseMethod.OtherWallet ->
+                analytics.addMoneyMethodSelected(Analytics.AddMoneyMethod.OtherWallet)
+            is PurchaseMethod.CashReserves ->
+                analytics.addMoneyMethodSelected(Analytics.AddMoneyMethod.Reserves)
+            null -> Unit
+        }
 
         return when (result) {
             PurchaseMethod.CoinbaseOnRamp -> {

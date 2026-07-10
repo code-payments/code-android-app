@@ -320,6 +320,20 @@ class SwapViewModel @Inject constructor(
         data class OpenScreen(val screen: AppRoute) : Event
     }
 
+    // "Add Money" funnel events only apply when acquiring USDF via an external
+    // funding source; token buys funded from reserves or launchpad purchases are
+    // tracked separately via buy()/sell().
+    private val addMoneyMethod: Analytics.AddMoneyMethod?
+        get() {
+            val purpose = stateFlow.value.purpose as? SwapPurpose.Buy ?: return null
+            if (purpose.mint != Mint.usdf) return null
+            return when (purpose.fundingSource) {
+                FundingSource.Coinbase -> Analytics.AddMoneyMethod.Coinbase
+                FundingSource.Phantom -> Analytics.AddMoneyMethod.Phantom
+                FundingSource.Flexible -> null
+            }
+        }
+
     private val enteredAmount: Fiat
         get() {
             val delegateState = amountDelegate.state.value
@@ -556,6 +570,15 @@ class SwapViewModel @Inject constructor(
             .onEach { (delegateState, purpose) ->
                 val mustAddMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
                 val isAddingMoney = stateFlow.value.isAddingMoney
+                addMoneyMethod?.let { method ->
+                    analytics.addMoneyAmountConfirmed(
+                        method = method,
+                        amount = Fiat(
+                            delegateState.enteredAmount,
+                            delegateState.currency.code ?: CurrencyCode.USD,
+                        ),
+                    )
+                }
                 when (purpose) {
                     is SwapPurpose.Buy -> {
                         val rate = exchange.preferredRate
@@ -722,12 +745,28 @@ class SwapViewModel @Inject constructor(
                         is OrderDeliveryResult.Delivered -> true
                         OrderDeliveryResult.Failed -> {
                             dispatchEvent(Event.UpdateProcessingState(loading = false, error = true))
+                            addMoneyMethod?.let { method ->
+                                analytics.addMoney(
+                                    method = method,
+                                    amount = netTransferAmount,
+                                    successful = false,
+                                    error = IllegalStateException("Order delivery failed"),
+                                )
+                            }
                             false
                         }
                         // The deposit may still land later; the session's foreground sweep
                         // will reconcile it. Don't claim success we can't confirm.
                         OrderDeliveryResult.TimedOut -> {
                             dispatchEvent(Event.UpdateProcessingState(loading = false, error = true))
+                            addMoneyMethod?.let { method ->
+                                analytics.addMoney(
+                                    method = method,
+                                    amount = netTransferAmount,
+                                    successful = false,
+                                    error = IllegalStateException("Order delivery timed out"),
+                                )
+                            }
                             false
                         }
                     }
@@ -743,6 +782,9 @@ class SwapViewModel @Inject constructor(
                 tokenCoordinator.balanceForToken(Mint.usdf).first { it > baseline }
                 feedCoordinator.fetchSinceLatest()
                 dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
+                addMoneyMethod?.let { method ->
+                    analytics.addMoney(method, netTransferAmount)
+                }
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -898,7 +940,13 @@ class SwapViewModel @Inject constructor(
         coinbaseOnRampController.state
             .onEach { s ->
                 when (s) {
-                    is CoinbaseOnRampState.Failed,
+                    is CoinbaseOnRampState.Failed -> {
+                        addMoneyMethod?.let { method ->
+                            analytics.addMoney(method, successful = false, error = s.error)
+                        }
+                        dispatchEvent(Event.UpdateBuyState())
+                    }
+
                     CoinbaseOnRampState.Idle -> dispatchEvent(Event.UpdateBuyState())
 
                     is CoinbaseOnRampState.Completed,
@@ -990,6 +1038,7 @@ class SwapViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .mapNotNull {
+                analytics.addMoneyOpened(Analytics.AddMoneySource.BuyShortfall)
                 if (!featureFlags.get(FeatureFlag.AddMoneyUX)) {
                     return@mapNotNull AppRoute.Transfers.Deposit(showOtherOptions = false)
                 }
@@ -1071,6 +1120,9 @@ class SwapViewModel @Inject constructor(
             verifiedFiat = amountFiat,
         ).onSuccess {
             trackTransaction(token)
+            addMoneyMethod?.let { method ->
+                analytics.addMoneyPaymentInvoked(method, amountFiat.localFiat.nativeAmount)
+            }
         }.onFailure { error ->
             dispatchEvent(Event.UpdateBuyState())
             when (error) {
@@ -1082,6 +1134,14 @@ class SwapViewModel @Inject constructor(
 
                 else -> {
                     trackTransaction(token, error = error)
+                    addMoneyMethod?.let { method ->
+                        analytics.addMoney(
+                            method = method,
+                            amount = amountFiat.localFiat.nativeAmount,
+                            successful = false,
+                            error = error,
+                        )
+                    }
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_buySellFailed),
                         message = resources.getString(R.string.error_description_buySellFailed),
@@ -1154,6 +1214,9 @@ class SwapViewModel @Inject constructor(
                         OnRampProvider.Phantom,
                         amount.localFiat.underlyingTokenAmount
                     )
+                    addMoneyMethod?.let { method ->
+                        analytics.addMoneyPaymentInvoked(method, amount.localFiat.nativeAmount)
+                    }
                 },
             ).onSuccess { result ->
                 when (result) {
@@ -1180,8 +1243,13 @@ class SwapViewModel @Inject constructor(
 
         if (deeplinkError is DeeplinkOnRampError.WalletProvidedError && deeplinkError.code == DeeplinkError.UserRejectedRequest.code) {
             analytics.walletTransactionCancelled(OnRampProvider.Phantom)
-        } else if (deeplinkError is DeeplinkOnRampError.FailedToSendTransaction) {
-            analytics.walletTransactionFailed(OnRampProvider.Phantom)
+        } else {
+            if (deeplinkError is DeeplinkOnRampError.FailedToSendTransaction) {
+                analytics.walletTransactionFailed(OnRampProvider.Phantom)
+            }
+            addMoneyMethod?.let { method ->
+                analytics.addMoney(method, successful = false, error = deeplinkError)
+            }
         }
 
         trace(

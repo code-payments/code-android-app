@@ -280,39 +280,9 @@ internal sealed interface AnalyticsEvent {
             override fun toProperties() = mapOf("Mint" to mint.base58())
         }
 
-        data class Completed(
-            val method: Analytics.AddMoneyMethod,
-            val amount: Fiat?,
-        ) : AddMoneyEvent {
-            override val name = "Add Money: Completed"
-            override fun toProperties() = buildMap {
-                put("Method", method.propertyValue)
-                amount?.let { putAll(it.asProperties()) }
-            }
-        }
-
-        data class Failed(
-            val method: Analytics.AddMoneyMethod,
-            val stage: Analytics.AddMoneyStage,
-            val error: Throwable?,
-        ) : AddMoneyEvent {
-            override val name = "Add Money: Failed"
-            override fun toProperties() = buildMap {
-                put("Method", method.propertyValue)
-                put("Stage", stage.propertyValue)
-                error?.let { put("Error", it.message.orEmpty()) }
-            }
-        }
-
-        data class Cancelled(
-            val method: Analytics.AddMoneyMethod?,
-            val stage: Analytics.AddMoneyStage,
-        ) : AddMoneyEvent {
-            override val name = "Add Money: Cancelled"
-            override fun toProperties() = buildMap {
-                method?.let { put("Method", it.propertyValue) }
-                put("Stage", stage.propertyValue)
-            }
+        data class Terminal(val method: Analytics.AddMoneyMethod) : AddMoneyEvent {
+            override val name = "Add Money"
+            override fun toProperties() = mapOf("Method" to method.propertyValue)
         }
     }
 
@@ -376,6 +346,9 @@ internal val Analytics.AddMoneySource.propertyValue: String
         Analytics.AddMoneySource.Menu -> "Menu"
         Analytics.AddMoneySource.GiveShortfall -> "Give Shortfall"
         Analytics.AddMoneySource.BuyShortfall -> "Buy Shortfall"
+        Analytics.AddMoneySource.Chat -> "Chat"
+        Analytics.AddMoneySource.Scanner -> "Scanner"
+        Analytics.AddMoneySource.Balance -> "Balance"
     }
 
 internal val Analytics.AddMoneyMethod.propertyValue: String
@@ -384,15 +357,6 @@ internal val Analytics.AddMoneyMethod.propertyValue: String
         Analytics.AddMoneyMethod.Phantom -> "Phantom"
         Analytics.AddMoneyMethod.OtherWallet -> "Other Wallet"
         Analytics.AddMoneyMethod.Reserves -> "Reserves"
-    }
-
-internal val Analytics.AddMoneyStage.propertyValue: String
-    get() = when (this) {
-        Analytics.AddMoneyStage.MethodSelection -> "Method Selection"
-        Analytics.AddMoneyStage.AmountEntry -> "Amount Entry"
-        Analytics.AddMoneyStage.Verification -> "Verification"
-        Analytics.AddMoneyStage.Payment -> "Payment"
-        Analytics.AddMoneyStage.Processing -> "Processing"
     }
 
 internal fun LocalFiat.asProperties(): Map<String, String> {

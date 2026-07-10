@@ -160,23 +160,18 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(AnalyticsEvent.AddMoneyEvent.AddressCopied(mint))
     }
 
-    override fun addMoneyCompleted(method: Analytics.AddMoneyMethod, amount: Fiat?) {
-        track(AnalyticsEvent.AddMoneyEvent.Completed(method, amount))
-    }
-
-    override fun addMoneyFailed(
+    override fun addMoney(
         method: Analytics.AddMoneyMethod,
-        stage: Analytics.AddMoneyStage,
+        amount: Fiat?,
+        successful: Boolean,
         error: Throwable?
     ) {
-        track(AnalyticsEvent.AddMoneyEvent.Failed(method, stage, error))
-    }
-
-    override fun addMoneyCancelled(
-        method: Analytics.AddMoneyMethod?,
-        stage: Analytics.AddMoneyStage
-    ) {
-        track(AnalyticsEvent.AddMoneyEvent.Cancelled(method, stage))
+        track(
+            AnalyticsEvent.AddMoneyEvent.Terminal(method),
+            "State" to if (successful) "Success" else "Failure",
+            *amount?.asProperties()?.toList()?.toTypedArray() ?: emptyArray(),
+            *error.asProperty()
+        )
     }
 
     override fun connectWallet(provider: OnRampProvider.UsesDeeplinks) {
