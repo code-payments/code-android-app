@@ -1,11 +1,15 @@
 package com.flipcash.app.phone
 
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.utils.ErrorUtils
 import io.michaelrocks.libphonenumber.android.PhoneNumberUtil
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
 import io.mockk.mockkStatic
+import io.mockk.unmockkObject
 import io.mockk.unmockkStatic
+import io.mockk.verify
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -207,6 +211,67 @@ class PhoneUtilsTest {
         every { mockPhoneNumberUtil.getNumberType(mockNumber) } returns PhoneNumberUtil.PhoneNumberType.UNKNOWN
 
         assertNull(phoneUtils.toE164("5551234567"))
+    }
+
+    // endregion
+
+    // region cleanNumber
+
+    private val usLocale = CountryLocale(
+        name = "United States",
+        phoneCode = 1,
+        countryCode = "US",
+        resId = null,
+    )
+
+    @Test
+    fun `cleanNumber returns E164 for a valid national number`() {
+        val mockNumber = mockk<io.michaelrocks.libphonenumber.android.Phonenumber.PhoneNumber>(relaxed = true)
+        every { mockPhoneNumberUtil.parse("12025551234", "US") } returns mockNumber
+        every { mockPhoneNumberUtil.format(mockNumber, PhoneNumberUtil.PhoneNumberFormat.E164) } returns "+12025551234"
+
+        assertEquals("+12025551234", phoneUtils.cleanNumber("2025551234", usLocale))
+    }
+
+    @Test
+    fun `cleanNumber returns E164 for a number already prefixed with plus`() {
+        val mockNumber = mockk<io.michaelrocks.libphonenumber.android.Phonenumber.PhoneNumber>(relaxed = true)
+        every { mockPhoneNumberUtil.parse("+12025551234", "US") } returns mockNumber
+        every { mockPhoneNumberUtil.format(mockNumber, PhoneNumberUtil.PhoneNumberFormat.E164) } returns "+12025551234"
+
+        assertEquals("+12025551234", phoneUtils.cleanNumber("+12025551234", usLocale))
+    }
+
+    @Test
+    fun `cleanNumber swallows expected parse failure without reporting`() {
+        mockkObject(ErrorUtils)
+        try {
+            every { mockPhoneNumberUtil.parse("1123", "US") } throws
+                io.michaelrocks.libphonenumber.android.NumberParseException(
+                    io.michaelrocks.libphonenumber.android.NumberParseException.ErrorType.NOT_A_NUMBER,
+                    "incomplete number",
+                )
+
+            // An incomplete number mid-onboarding is expected, not a notifiable error.
+            assertEquals("", phoneUtils.cleanNumber("123", usLocale))
+            verify(exactly = 0) { ErrorUtils.handleError(any()) }
+        } finally {
+            unmockkObject(ErrorUtils)
+        }
+    }
+
+    @Test
+    fun `cleanNumber still reports unexpected failures`() {
+        mockkObject(ErrorUtils)
+        try {
+            every { mockPhoneNumberUtil.parse("12025551234", "US") } throws
+                IllegalStateException("unexpected")
+
+            assertEquals("", phoneUtils.cleanNumber("2025551234", usLocale))
+            verify(exactly = 1) { ErrorUtils.handleError(any()) }
+        } finally {
+            unmockkObject(ErrorUtils)
+        }
     }
 
     // endregion
