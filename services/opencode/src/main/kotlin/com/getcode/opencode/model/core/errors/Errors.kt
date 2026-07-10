@@ -8,6 +8,7 @@ import com.getcode.opencode.model.core.errors.SubmitIntentError.Other
 import com.getcode.opencode.model.core.errors.SubmitIntentError.Signature
 import com.getcode.opencode.model.core.errors.SubmitIntentError.StaleState
 import com.getcode.opencode.model.core.errors.SubmitIntentError.Unrecognized
+import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ConditionallyNotifiable
 import com.getcode.utils.NotifiableError
@@ -277,6 +278,20 @@ sealed class SwapError(
         val insufficientBalance = reasons.contains("insufficient balance")
     }
     class TransactionFailed(reasons: List<String>): SwapError(message = reasons.joinToString()), NotifiableError
+
+    /**
+     * Poller exhausted all attempts without reaching the target state.
+     * An expected outcome (slow finalization / backend delay), not an app defect —
+     * deliberately NOT a NotifiableError so it is not reported to Bugsnag.
+     */
+    class Timeout : SwapError(message = "Polling timed out")
+
+    /**
+     * Backend moved the swap to a terminal non-target state (FAILED / CANCELLED).
+     * An expected backend-driven outcome, not an app defect —
+     * deliberately NOT a NotifiableError so it is not reported to Bugsnag.
+     */
+    class Terminal(val state: SwapState) : SwapError(message = "Swap reached terminal state: $state")
 
     data class Other(override val cause: Throwable? = null) : SwapError(message = cause?.message, cause = cause), NotifiableError
 

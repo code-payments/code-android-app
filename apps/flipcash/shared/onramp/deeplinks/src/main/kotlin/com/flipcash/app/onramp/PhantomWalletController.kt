@@ -404,7 +404,12 @@ class PhantomWalletController @Inject constructor(
                             )
                         }
                         else -> {
-                            ErrorUtils.handleError(error)
+                            // Simulation / on-chain program rejections (e.g. "custom program
+                            // error: 0x1") are expected transaction outcomes, not app defects —
+                            // surface them to the user but do not report to Bugsnag.
+                            if (!(error is RpcException && error.isSimulationError)) {
+                                ErrorUtils.handleError(error)
+                            }
                             return@withContext Result.failure(
                                 DeeplinkOnRampError.FailedToSendTransaction(
                                     code = code ?: -99L,

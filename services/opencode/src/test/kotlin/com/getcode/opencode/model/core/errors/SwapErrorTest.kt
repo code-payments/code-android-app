@@ -4,8 +4,11 @@ import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.StatefulSwa
 import com.codeinc.opencode.gen.transaction.v1.errorDetails
 import com.codeinc.opencode.gen.transaction.v1.reasonStringErrorDetails
 import com.codeinc.opencode.gen.transaction.v1.deniedErrorDetails
+import com.getcode.opencode.model.transactions.SwapState
+import com.getcode.utils.NotifiableError
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -119,5 +122,24 @@ class SwapErrorTest {
         val error = SwapError.Other(cause)
         assertEquals(cause, error.cause)
         assertEquals("swap failed", error.message)
+    }
+
+    // --- Notifiability of expected outcomes ---
+
+    @Test
+    fun timeoutIsNotNotifiable() {
+        assertFalse(SwapError.Timeout() is NotifiableError)
+    }
+
+    @Test
+    fun terminalIsNotNotifiableAndCarriesState() {
+        val error = SwapError.Terminal(SwapState.CANCELLED)
+        assertFalse(error is NotifiableError)
+        assertEquals(SwapState.CANCELLED, error.state)
+    }
+
+    @Test
+    fun otherRemainsNotifiable() {
+        assertTrue(SwapError.Other() is NotifiableError)
     }
 }
