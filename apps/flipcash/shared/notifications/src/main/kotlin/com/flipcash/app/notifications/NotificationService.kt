@@ -76,6 +76,10 @@ class NotificationService : FirebaseMessagingService(),
     @Inject
     lateinit var chatCoordinator: ChatCoordinator
 
+    // TODO(firebase-messaging): 25.1.0 deprecated onNewToken in favor of FID-based onRegistered().
+    //  Migrate once Firebase ships a stable guide and the backend accepts FID registration.
+    //  Tracking: https://github.com/firebase/firebase-android-sdk/issues/8087
+    @Suppress("DEPRECATION")
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         authenticateIfNeeded {
