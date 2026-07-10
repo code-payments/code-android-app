@@ -300,20 +300,20 @@ internal sealed interface AnalyticsEvent {
 internal fun LocalFiat.asProperties(): Map<String, String> {
     return buildMap {
         putAll(underlyingTokenAmount.asProperties())
-        "Fiat" to nativeAmount.decimalValue.toString()
-        "Exchange Rate" to rate.fx.toString()
-        "Currency" to rate.currency.name
-        "Mint" to mint.base58()
+        put("Fiat", nativeAmount.decimalValue.toString())
+        put("Exchange Rate", rate.fx.toString())
+        put("Currency", rate.currency.name)
+        put("Mint", mint.base58())
     }
 }
 
 
 internal fun Fiat.asProperties(): Map<String, String> {
     return buildMap {
-        "Fiat" to decimalValue.toString()
-        "Currency" to currencyCode.name
-        "USDC" to decimalValue.toString()
-        "Quarks" to quarks.toDouble().toString()
+        put("Fiat", decimalValue.toString())
+        put("Currency", currencyCode.name)
+        put("USDC", decimalValue.toString())
+        put("Quarks", quarks.toDouble().toString())
     }
 }
 
