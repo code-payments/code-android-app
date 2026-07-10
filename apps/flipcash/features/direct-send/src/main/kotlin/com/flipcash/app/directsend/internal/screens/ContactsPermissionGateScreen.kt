@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -106,6 +107,7 @@ internal fun ContactsPermissionGateScreen() {
         topBar = {
             AppBarWithTitle(
                 title = stringResource(R.string.title_send),
+                titleAlignment = Alignment.CenterHorizontally,
                 endContent = {
                     AppBarDefaults.Close { flowNavigator.exitCanceled() }
                 },
