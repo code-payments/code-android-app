@@ -242,6 +242,80 @@ internal sealed interface AnalyticsEvent {
         }
     }
 
+    sealed interface AddMoneyEvent : AnalyticsEvent {
+        data class Opened(val source: Analytics.AddMoneySource) : AddMoneyEvent {
+            override val name = "Add Money: Opened"
+            override fun toProperties() = mapOf("Source" to source.propertyValue)
+        }
+
+        data class MethodSelected(val method: Analytics.AddMoneyMethod) : AddMoneyEvent {
+            override val name = "Add Money: Method Selected"
+            override fun toProperties() = mapOf("Method" to method.propertyValue)
+        }
+
+        data class AmountConfirmed(
+            val method: Analytics.AddMoneyMethod,
+            val amount: Fiat,
+        ) : AddMoneyEvent {
+            override val name = "Add Money: Amount Confirmed"
+            override fun toProperties() = buildMap {
+                put("Method", method.propertyValue)
+                putAll(amount.asProperties())
+            }
+        }
+
+        data class PaymentInvoked(
+            val method: Analytics.AddMoneyMethod,
+            val amount: Fiat,
+        ) : AddMoneyEvent {
+            override val name = "Add Money: Payment Invoked"
+            override fun toProperties() = buildMap {
+                put("Method", method.propertyValue)
+                putAll(amount.asProperties())
+            }
+        }
+
+        data class AddressCopied(val mint: Mint) : AddMoneyEvent {
+            override val name = "Add Money: Address Copied"
+            override fun toProperties() = mapOf("Mint" to mint.base58())
+        }
+
+        data class Completed(
+            val method: Analytics.AddMoneyMethod,
+            val amount: Fiat?,
+        ) : AddMoneyEvent {
+            override val name = "Add Money: Completed"
+            override fun toProperties() = buildMap {
+                put("Method", method.propertyValue)
+                amount?.let { putAll(it.asProperties()) }
+            }
+        }
+
+        data class Failed(
+            val method: Analytics.AddMoneyMethod,
+            val stage: Analytics.AddMoneyStage,
+            val error: Throwable?,
+        ) : AddMoneyEvent {
+            override val name = "Add Money: Failed"
+            override fun toProperties() = buildMap {
+                put("Method", method.propertyValue)
+                put("Stage", stage.propertyValue)
+                error?.let { put("Error", it.message.orEmpty()) }
+            }
+        }
+
+        data class Cancelled(
+            val method: Analytics.AddMoneyMethod?,
+            val stage: Analytics.AddMoneyStage,
+        ) : AddMoneyEvent {
+            override val name = "Add Money: Cancelled"
+            override fun toProperties() = buildMap {
+                method?.let { put("Method", it.propertyValue) }
+                put("Stage", stage.propertyValue)
+            }
+        }
+    }
+
     sealed interface OpenTokenInfoEvent : AnalyticsEvent {
         val mint: Mint
         override fun toProperties() = mapOf("Mint" to mint.base58())
@@ -296,6 +370,30 @@ internal sealed interface AnalyticsEvent {
         }
     }
 }
+
+internal val Analytics.AddMoneySource.propertyValue: String
+    get() = when (this) {
+        Analytics.AddMoneySource.Menu -> "Menu"
+        Analytics.AddMoneySource.GiveShortfall -> "Give Shortfall"
+        Analytics.AddMoneySource.BuyShortfall -> "Buy Shortfall"
+    }
+
+internal val Analytics.AddMoneyMethod.propertyValue: String
+    get() = when (this) {
+        Analytics.AddMoneyMethod.Coinbase -> "Coinbase"
+        Analytics.AddMoneyMethod.Phantom -> "Phantom"
+        Analytics.AddMoneyMethod.OtherWallet -> "Other Wallet"
+        Analytics.AddMoneyMethod.Reserves -> "Reserves"
+    }
+
+internal val Analytics.AddMoneyStage.propertyValue: String
+    get() = when (this) {
+        Analytics.AddMoneyStage.MethodSelection -> "Method Selection"
+        Analytics.AddMoneyStage.AmountEntry -> "Amount Entry"
+        Analytics.AddMoneyStage.Verification -> "Verification"
+        Analytics.AddMoneyStage.Payment -> "Payment"
+        Analytics.AddMoneyStage.Processing -> "Processing"
+    }
 
 internal fun LocalFiat.asProperties(): Map<String, String> {
     return buildMap {
