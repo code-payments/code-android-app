@@ -48,7 +48,7 @@ internal class SwapPoller @Inject constructor(
                 type = TraceType.Error,
                 message = "Polling timed out after $maxAttempts attempts, Swap ID: ${swapId.publicKey.base58()}"
             )
-            throw SwapError.Other()
+            throw SwapError.Timeout()
         }
 
         val metadata = try {
@@ -71,7 +71,7 @@ internal class SwapPoller @Inject constructor(
                     type = TraceType.Error,
                     message = "Swap reached terminal state: ${metadata.state}, Swap ID: ${swapId.publicKey.base58()}"
                 )
-                throw SwapError.Other()
+                throw SwapError.Terminal(metadata.state)
             }
             SwapState.UNKNOWN -> {
                 trace(

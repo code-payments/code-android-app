@@ -219,4 +219,14 @@ class RpcException(
     val isBlockhashNotFound: Boolean
         get() = message.contains("Blockhash not found", ignoreCase = true) ||
                 message.contains("BlockhashNotFound", ignoreCase = true)
+
+    /**
+     * True when the failure is a Solana transaction simulation / on-chain program
+     * rejection (e.g. "Transaction simulation failed ... custom program error: 0x1").
+     * These are expected transaction outcomes (insufficient funds, slippage, program
+     * guards), NOT app defects — callers should not report them to Bugsnag.
+     */
+    val isSimulationError: Boolean
+        get() = message.contains("simulation failed", ignoreCase = true) ||
+                message.contains("custom program error", ignoreCase = true)
 }
