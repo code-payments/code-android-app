@@ -1,6 +1,7 @@
 package com.flipcash.app.cash.internal
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import com.flipcash.app.analytics.StubFlipcashAnalytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.tokens.TokenCoordinator
@@ -78,6 +79,7 @@ class CashScreenViewModelTest {
             verifiedFiatCalculator = verifiedFiatCalculator,
             tokenCoordinator = tokenCoordinator,
             transactionController = transactionController,
+            analytics = StubFlipcashAnalytics(),
             dispatchers = dispatchers,
         )
     }

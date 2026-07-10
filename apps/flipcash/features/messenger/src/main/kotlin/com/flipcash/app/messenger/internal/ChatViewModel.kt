@@ -535,6 +535,7 @@ internal class ChatViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .onEach {
+                analytics.addMoneyOpened(Analytics.AddMoneySource.Chat)
                 purchaseMethodController.presentDepositOptions()?.let { route ->
                     dispatchEvent(Event.OpenScreen(route))
                 }

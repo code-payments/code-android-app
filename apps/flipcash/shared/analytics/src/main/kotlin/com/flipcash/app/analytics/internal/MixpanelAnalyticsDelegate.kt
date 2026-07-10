@@ -140,6 +140,40 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(event)
     }
 
+    override fun addMoneyOpened(source: Analytics.AddMoneySource) {
+        track(AnalyticsEvent.AddMoneyEvent.Opened(source))
+    }
+
+    override fun addMoneyMethodSelected(method: Analytics.AddMoneyMethod) {
+        track(AnalyticsEvent.AddMoneyEvent.MethodSelected(method))
+    }
+
+    override fun addMoneyAmountConfirmed(method: Analytics.AddMoneyMethod, amount: Fiat) {
+        track(AnalyticsEvent.AddMoneyEvent.AmountConfirmed(method, amount))
+    }
+
+    override fun addMoneyPaymentInvoked(method: Analytics.AddMoneyMethod, amount: Fiat) {
+        track(AnalyticsEvent.AddMoneyEvent.PaymentInvoked(method, amount))
+    }
+
+    override fun addMoneyAddressCopied(mint: Mint) {
+        track(AnalyticsEvent.AddMoneyEvent.AddressCopied(mint))
+    }
+
+    override fun addMoney(
+        method: Analytics.AddMoneyMethod,
+        amount: Fiat?,
+        successful: Boolean,
+        error: Throwable?
+    ) {
+        track(
+            AnalyticsEvent.AddMoneyEvent.Terminal(method),
+            "State" to if (successful) "Success" else "Failure",
+            *amount?.asProperties()?.toList()?.toTypedArray() ?: emptyArray(),
+            *error.asProperty()
+        )
+    }
+
     override fun connectWallet(provider: OnRampProvider.UsesDeeplinks) {
         track(AnalyticsEvent.WalletConnect(provider))
     }

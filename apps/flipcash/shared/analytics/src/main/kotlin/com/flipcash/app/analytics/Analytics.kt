@@ -21,6 +21,12 @@ interface FlipcashAnalyticsService : AnalyticsService {
     fun openOnramp(source: Analytics.OnrampSource)
     fun onrampVerification(step: Analytics.OnrampVerificationStep)
     fun onrampPurchase(step: Analytics.OnrampPurchaseStep, amount: Fiat? = null)
+    fun addMoneyOpened(source: Analytics.AddMoneySource)
+    fun addMoneyMethodSelected(method: Analytics.AddMoneyMethod)
+    fun addMoneyAmountConfirmed(method: Analytics.AddMoneyMethod, amount: Fiat)
+    fun addMoneyPaymentInvoked(method: Analytics.AddMoneyMethod, amount: Fiat)
+    fun addMoneyAddressCopied(mint: Mint)
+    fun addMoney(method: Analytics.AddMoneyMethod, amount: Fiat? = null, successful: Boolean = true, error: Throwable? = null)
     fun connectWallet(provider: OnRampProvider.UsesDeeplinks)
     fun amountSelectedForWalletTransfer(provider: OnRampProvider.UsesDeeplinks, amount: Fiat)
     fun transactionSubmittedToWallet(provider: OnRampProvider.UsesDeeplinks)
@@ -60,6 +66,8 @@ object Analytics {
         data object SentCash : Transfer
     }
     enum class OnrampSource { Settings, Balance, Give }
+    enum class AddMoneySource { Menu, GiveShortfall, BuyShortfall, Chat, Scanner, Balance }
+    enum class AddMoneyMethod { Coinbase, Phantom, OtherWallet, Reserves }
     enum class OnrampVerificationStep { ShowInfo, EnterPhone, ConfirmPhone, EnterEmail, ConfirmEmail }
     enum class OnrampPurchaseStep { PresetSelected, EnterCustomAmount, InvokePayment, InvokePaymentCustom, Completed }
     enum class TokenInfoSource { Deeplink, Wallet, Give }
@@ -88,6 +96,13 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun openOnramp(source: Analytics.OnrampSource) = Unit
     override fun onrampVerification(step: Analytics.OnrampVerificationStep) = Unit
     override fun onrampPurchase(step: Analytics.OnrampPurchaseStep, amount: Fiat?) = Unit
+
+    override fun addMoneyOpened(source: Analytics.AddMoneySource) = Unit
+    override fun addMoneyMethodSelected(method: Analytics.AddMoneyMethod) = Unit
+    override fun addMoneyAmountConfirmed(method: Analytics.AddMoneyMethod, amount: Fiat) = Unit
+    override fun addMoneyPaymentInvoked(method: Analytics.AddMoneyMethod, amount: Fiat) = Unit
+    override fun addMoneyAddressCopied(mint: Mint) = Unit
+    override fun addMoney(method: Analytics.AddMoneyMethod, amount: Fiat?, successful: Boolean, error: Throwable?) = Unit
 
     override fun connectWallet(provider: OnRampProvider.UsesDeeplinks) = Unit
     override fun amountSelectedForWalletTransfer(provider: OnRampProvider.UsesDeeplinks, amount: Fiat) = Unit

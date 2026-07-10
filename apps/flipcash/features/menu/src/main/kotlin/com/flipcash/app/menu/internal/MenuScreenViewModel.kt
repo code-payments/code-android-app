@@ -1,6 +1,8 @@
 package com.flipcash.app.menu.internal
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.Analytics
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
@@ -53,6 +55,7 @@ internal class MenuScreenViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
     releaseStageProvider: ReleaseStageProvider,
     purchaseMethodController: PurchaseMethodController,
+    analytics: FlipcashAnalyticsService,
 ) :
     BaseViewModel<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
         initialState = State(),
@@ -165,6 +168,7 @@ internal class MenuScreenViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .mapNotNull {
+                analytics.addMoneyOpened(Analytics.AddMoneySource.Menu)
                 val depositFirstUx = featureFlags.get(FeatureFlag.AddMoneyUX)
                 if (!depositFirstUx) {
                     return@mapNotNull AppRoute.Transfers.Deposit()

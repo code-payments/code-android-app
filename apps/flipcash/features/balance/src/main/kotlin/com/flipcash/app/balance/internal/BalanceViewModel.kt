@@ -1,6 +1,8 @@
 package com.flipcash.app.balance.internal
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.Analytics
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
@@ -28,6 +30,7 @@ internal class BalanceViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
     purchaseMethodController: PurchaseMethodController,
     featureFlags: FeatureFlagController,
+    analytics: FlipcashAnalyticsService,
 ) : BaseViewModel<BalanceViewModel.State, BalanceViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -68,6 +71,7 @@ internal class BalanceViewModel @Inject constructor(
                     dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery))
                     return@mapNotNull null
                 }
+                analytics.addMoneyOpened(Analytics.AddMoneySource.Balance)
                 purchaseMethodController.presentDepositOptions(popToRoot = true) }
             .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)

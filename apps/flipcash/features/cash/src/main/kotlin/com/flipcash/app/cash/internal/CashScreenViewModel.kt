@@ -1,6 +1,8 @@
 package com.flipcash.app.cash.internal
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.Analytics
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.tokens.SwapPurpose
@@ -24,6 +26,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
@@ -55,6 +58,7 @@ internal class CashScreenViewModel @Inject constructor(
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     tokenCoordinator: TokenCoordinator,
     transactionController: TransactionOperations,
+    analytics: FlipcashAnalyticsService,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<CashScreenViewModel.State, CashScreenViewModel.Event>(
     initialState = State(),
@@ -272,6 +276,9 @@ internal class CashScreenViewModel @Inject constructor(
             .onEach { shortfall ->
                 // route directly to the swap amount screen, skipping token info
                 val mint = stateFlow.value.selectedTokenAddress!!
+                if (mint == Mint.usdf) {
+                    analytics.addMoneyOpened(Analytics.AddMoneySource.GiveShortfall)
+                }
                 dispatchEvent(
                     Event.OpenScreen(
                         AppRoute.Token.Swap(

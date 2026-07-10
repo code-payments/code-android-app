@@ -1,5 +1,7 @@
 package com.flipcash.app.session.internal.delegates
 
+import com.flipcash.app.analytics.Analytics
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
@@ -38,6 +40,7 @@ class DepositDelegate @Inject constructor(
     private val usdcSweep: UsdcDepositSweep,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
+    private val analytics: FlipcashAnalyticsService,
     dispatchers: DispatcherProvider,
     featureFlagController: FeatureFlagController,
 ) : DepositOperations {
@@ -77,6 +80,8 @@ class DepositDelegate @Inject constructor(
                     text = resources.getString(R.string.action_addMoney)
                 ) {
                     scope.launch {
+                        // the scanner's Give action is the only session caller today
+                        analytics.addMoneyOpened(Analytics.AddMoneySource.Scanner)
                         val destination = purchaseMethodController.presentDepositOptions(popToRoot = true)
                         if (destination != null) {
                             onRoute?.invoke(destination)
