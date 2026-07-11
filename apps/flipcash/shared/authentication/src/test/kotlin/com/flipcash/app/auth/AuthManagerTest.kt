@@ -3,6 +3,7 @@ package com.flipcash.app.auth
 import androidx.core.app.NotificationManagerCompat
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.internal.credentials.AccountMetadata
+import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.featureflags.FeatureFlagController
@@ -371,5 +372,36 @@ class AuthManagerTest {
 
         assertTrue(result.isSuccess)
         verify(exactly = 0) { userManager.set(AuthState.Ready) }
+    }
+
+    @Test
+    fun `init skips soft-login when already logged in`() = runTest {
+        // Simulates the FCM push handler calling init after app startup already
+        // authenticated: a second soft-login would re-init the DB and could close
+        // its connection pool out from under active Room queries.
+        every { userManager.authState } returns AuthState.Ready
+
+        var initializedCalled = false
+        authManager.init { initializedCalled = true }
+
+        assertTrue(initializedCalled)
+        coVerify(exactly = 0) { credentialManager.lookup() }
+        verify(exactly = 0) { persistence.openDatabase(any()) }
+    }
+
+    @Test
+    fun `init soft-logs-in when no account is established`() = runTest {
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        val accountMetadata: AccountMetadata = mockk(relaxed = true)
+        every { accountMetadata.id } returns listOf<Byte>(1, 2, 3)
+
+        every { userManager.authState } returns AuthState.Unknown
+        coEvery { credentialManager.lookup() } returns LookupResult.ExistingAccountFound(entropy)
+        coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
+
+        authManager.init()
+
+        coVerify { credentialManager.lookup() }
+        verify { persistence.openDatabase(entropy) }
     }
 }

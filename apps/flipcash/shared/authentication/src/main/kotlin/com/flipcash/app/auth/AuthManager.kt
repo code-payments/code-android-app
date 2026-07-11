@@ -32,6 +32,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -74,6 +76,14 @@ class AuthManager @Inject constructor(
     private var softLoginDisabled: Boolean = false
 
     /**
+     * Serializes [init] so concurrent callers (app startup and the FCM push
+     * handler both call it when no account is established) can't launch two
+     * soft-logins at once — a second login re-inits the per-user database and
+     * would close the connection pool out from under active Room queries.
+     */
+    private val initMutex = Mutex()
+
+    /**
      * Entropy for the account being switched to. Set before logout so App.kt's
      * auth guard can navigate to Login(entropy) instead of seedless Login().
      */
@@ -93,18 +103,28 @@ class AuthManager @Inject constructor(
 
     fun init(onInitialized: () -> Unit = { }) {
         launch {
-            when (val result = credentialManager.lookup()
-                .also { taggedTrace("lookup result: ${it::class.simpleName}") }) {
-                is LookupResult.ExistingAccountFound -> {
-                    val token = result.entropy
-                    softLogin(token)
-                        .onSuccess { onInitialized() }
+            initMutex.withLock {
+                // A concurrent init already logged us in (e.g. app startup won the
+                // race against an FCM push). Don't run a second soft-login that
+                // would re-init the database and close its connection pool mid-query.
+                if (userManager.authState is AuthState.LoggedIn) {
+                    onInitialized()
+                    return@withLock
                 }
 
-                LookupResult.NoAccountFound -> Unit
-                is LookupResult.TemporaryAccountCreated -> {
-                    userManager.establish(entropy = result.entropy)
-                    userManager.set(AuthState.Onboarding(result.resumePoint))
+                when (val result = credentialManager.lookup()
+                    .also { taggedTrace("lookup result: ${it::class.simpleName}") }) {
+                    is LookupResult.ExistingAccountFound -> {
+                        val token = result.entropy
+                        softLogin(token)
+                            .onSuccess { onInitialized() }
+                    }
+
+                    LookupResult.NoAccountFound -> Unit
+                    is LookupResult.TemporaryAccountCreated -> {
+                        userManager.establish(entropy = result.entropy)
+                        userManager.set(AuthState.Onboarding(result.resumePoint))
+                    }
                 }
             }
         }
