@@ -31,6 +31,7 @@ class PhoneVerificationViewModelTest {
     private val phoneUtils: PhoneUtils = mockk(relaxed = true) {
         coEvery { ensureLoaded() } returns Unit
         every { defaultCountryLocale } returns testLocale
+        every { countryLocales } returns listOf(testLocale)
         every { formatNumber(any(), any(), any()) } returns ""
         every { isPhoneNumberValid(any(), any()) } returns false
         every { parseInternationalNumber(any()) } returns null
@@ -79,5 +80,18 @@ class PhoneVerificationViewModelTest {
         // After advancing: ensureLoaded completes, OnCountrySelected is dispatched
         advanceUntilIdle()
         assertEquals(testLocale, viewModel.stateFlow.value.selectedLocale)
+    }
+
+    @Test
+    fun `countryLocales populated in state after ensureLoaded completes`() = runTest(mainCoroutineRule.dispatcher) {
+        val dispatchers = TestDispatchers(testScheduler)
+        val viewModel = createViewModel(dispatchers)
+
+        // Before advancing: list is empty (not read eagerly)
+        assertEquals(emptyList(), viewModel.stateFlow.value.countryLocales)
+
+        // After advancing: OnCountryLocalesLoaded dispatched with phoneUtils.countryLocales
+        advanceUntilIdle()
+        assertEquals(listOf(testLocale), viewModel.stateFlow.value.countryLocales)
     }
 }

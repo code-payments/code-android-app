@@ -61,6 +61,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
         val canSendCode: Boolean = false,
         val formattedPhone: String = "",
         val selectedLocale: CountryLocale = CountryLocale.Stub,
+        val countryLocales: List<CountryLocale> = emptyList(),
         val sendingCode: LoadingSuccessState = LoadingSuccessState(),
         val verifyingCode: LoadingSuccessState = LoadingSuccessState(),
         val isResendTimerRunning: Boolean = false,
@@ -103,6 +104,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
         data object OnPhoneVerificationComplete : Event
 
         data object OnMaxAttemptsReached : Event
+        data class OnCountryLocalesLoaded(val locales: List<CountryLocale>) : Event
     }
 
     private var timer: Timer? = null
@@ -122,8 +124,10 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 // functions (formatting may be degraded until a later load succeeds).
                 trace(message = "PhoneUtils.ensureLoaded failed: $e", type = TraceType.Error)
             }
-            if (stateFlow.value.selectedLocale.isStub()) {
-                dispatchEvent(Event.OnCountrySelected(phoneUtils.defaultCountryLocale))
+            dispatchEvent(Event.OnCountryLocalesLoaded(phoneUtils.countryLocales))
+            val loaded = phoneUtils.defaultCountryLocale
+            if (stateFlow.value.selectedLocale.isStub() && !loaded.isStub()) {
+                dispatchEvent(Event.OnCountrySelected(loaded))
             }
             observePhoneNumberInput()
         }
@@ -415,6 +419,8 @@ internal class PhoneVerificationViewModel @Inject constructor(
                         )
                     )
                 }
+
+                is Event.OnCountryLocalesLoaded -> { state -> state.copy(countryLocales = event.locales) }
             }
         }
     }

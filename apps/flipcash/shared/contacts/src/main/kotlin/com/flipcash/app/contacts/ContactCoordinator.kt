@@ -404,6 +404,11 @@ class ContactCoordinator @Inject constructor(
     private suspend fun performSync(): Result<Unit> {
         if (cluster.value == null) return Result.failure(IllegalStateException("No active session"))
 
+        // Ensure libphonenumber metadata is loaded before formatting any E.164 numbers.
+        // This is normally a no-op (pre-warmed at app startup) but guards against the
+        // first sync racing ahead of the warm-up, which would produce empty region hints.
+        phoneUtils.ensureLoaded()
+
         _state.update { it.copy(syncState = SyncState.Syncing) }
 
         try {

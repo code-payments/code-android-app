@@ -23,7 +23,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.phone.CountryLocale
-import com.flipcash.app.phone.LocalPhoneUtils
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.shared.phone.R
 import com.getcode.theme.CodeTheme
@@ -42,9 +41,8 @@ private fun PhoneCountryCodeScreenContent(
     state: PhoneVerificationViewModel.State,
     dispatchEvent: (PhoneVerificationViewModel.Event) -> Unit,
 ) {
-    val phoneUtils = LocalPhoneUtils.current
     PhoneCountrySelectionList(
-        availableLocales = phoneUtils.countryLocales,
+        availableLocales = state.countryLocales,
         modifier = Modifier.fillMaxSize()
     ) {
         dispatchEvent(PhoneVerificationViewModel.Event.OnCountrySelected(it))
