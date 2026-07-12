@@ -315,7 +315,12 @@ class AuthManager @Inject constructor(
         notificationManager.cancelAll()
         userManager.clear()
         tokenCoordinator.reset()
-        persistence.close()
+        // Intentionally do NOT close the Room DB here. Closing it while the just-
+        // dismissed Cash screen's stateIn(WhileSubscribed(5000)) flows are still
+        // active tears the connection pool out from under an in-flight Room query
+        // -> "SQLException: connection is closed" (SQLITE_MISUSE). The DB lifecycle
+        // is owned by FlipcashDatabase.init(): a same-user re-login reuses the open
+        // instance, and a different user's login rebuilds it for their entropy.
         featureFlags.reset()
         appSettings.reset()
         userFlags.clearAll()

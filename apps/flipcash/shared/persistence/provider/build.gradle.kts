@@ -15,4 +15,8 @@ android {
 
 dependencies {
     implementation(project(":apps:flipcash:shared:persistence:db"))
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.robolectric)
 }

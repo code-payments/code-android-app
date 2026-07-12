@@ -147,7 +147,10 @@ class AuthManagerTest {
         verify { userManager.clear() }
         verify { notificationManager.cancelAll() }
         coVerify { tokenCoordinator.reset() }
-        verify { persistence.close() }
+        // The DB is intentionally left open on logout/reset — closing it races
+        // still-active Cash screen Room flows. FlipcashDatabase.init() owns the
+        // lifecycle (reuse on same-user re-login, rebuild for a different user).
+        verify(exactly = 0) { persistence.close() }
         verify { featureFlagController.reset() }
         verify { appSettings.reset() }
         verify { userFlags.clearAll() }
@@ -207,7 +210,8 @@ class AuthManagerTest {
         verify { userManager.clear() }
         verify { notificationManager.cancelAll() }
         coVerify { tokenCoordinator.reset() }
-        verify { persistence.close() }
+        // DB stays open on logout — see resetStateForUser; init() owns lifecycle.
+        verify(exactly = 0) { persistence.close() }
         verify { featureFlagController.reset() }
         verify { appSettings.reset() }
         verify { userFlags.clearAll() }
