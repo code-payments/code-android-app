@@ -290,7 +290,6 @@ private fun <S : FlowStep, R : Parcelable> FlowHostImpl(
     val flowNavigator = remember(innerNavigator) {
         InnerFlowNavigator<S, R>(
             navigator = innerNavigator,
-            outerNavigator = outerNavigator,
             onExit = { reason -> currentOnExit.value(reason, isSheetRoot) },
             steps = { currentSteps.value },
             completedResult = { currentCompletedResult.value },
@@ -346,9 +345,8 @@ private fun <S : FlowStep, R : Parcelable> FlowHostImpl(
     }
 }
 
-private class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
+internal class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
     private val navigator: CodeNavigator,
-    private val outerNavigator: CodeNavigator,
     private val onExit: (FlowExitReason<R>) -> Unit,
     private val steps: () -> List<S>,
     private val completedResult: () -> R?,
@@ -381,17 +379,17 @@ private class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
     }
 
     override fun back(): Boolean {
-        return if (canGoBack) {
-            navigator.backStack.removeAt(navigator.backStack.lastIndex)
-            true
-        } else {
-            onExit(FlowExitReason.BackedOutOfRoot)
-            false
-        }
+        // Delegate to the hierarchical navigator: it pops when possible, otherwise its
+        // onRootReached fires the same onExit(BackedOutOfRoot) this used to call directly.
+        val couldGoBack = canGoBack
+        navigator.navigateBack()
+        return couldGoBack
     }
 
     override fun exitWithResult(result: R) {
-        onExit(FlowExitReason.Completed(result))
+        // navigateBackWithResult delegates to FlowScope.exitWithResult, which reaches the same
+        // onExit(Completed(result)) as before.
+        navigator.navigateBackWithResult(result)
     }
 
     override fun exitCanceled() {
@@ -429,7 +427,11 @@ private class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
     }
 
     override fun navigate(route: NavKey) {
-        outerNavigator.push(route)
+        // For app-level routes (the documented use — see FlowNavigator.navigate), route-type
+        // dispatch bubbles the route up the parent chain to the app-root stack, the same
+        // destination as the old outerNavigator.push(route). Callers must pass app routes only:
+        // a FlowStep here would instead be dispatched onto the flow's own stack.
+        navigator.navigate(route)
     }
 }
 
