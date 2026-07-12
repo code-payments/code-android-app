@@ -167,11 +167,24 @@ abstract class FlipcashDatabase : RoomDatabase() {
 
         fun isOpen() = instance?.isOpen == true
 
+        @Synchronized
         fun init(context: Context, entropyB64: String) {
             val dbUniqueName = Base58.encode(entropyB64.toByteArray().subByteArray(0, 6))
+            val targetName = "$dbNamePrefix-$dbUniqueName.db"
+
+            // Same-user DB already built: don't tear down the existing instance.
+            // A concurrent or soft re-login (e.g. app startup racing an FCM push
+            // that also calls AuthManager.init) must not close the DB out from
+            // under in-flight Room queries such as CashScreenViewModel's balance
+            // Flow — doing so throws "connection pool has been closed". Key on the
+            // DB name, not isOpen(): Room opens the file lazily, so the instance
+            // can be live-but-not-yet-open in exactly this racy window.
+            // closeDb() nulls `instance`, so a non-null instance here is current.
+            if (instance != null && dbName == targetName) return
+
             trace("database init start $dbUniqueName", type = TraceType.Process)
             instance?.close()
-            dbName = "$dbNamePrefix-$dbUniqueName.db"
+            dbName = targetName
 
             instance =
                 Room.databaseBuilder(context, FlipcashDatabase::class.java, dbName)
