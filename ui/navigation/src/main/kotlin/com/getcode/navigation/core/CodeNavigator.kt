@@ -43,7 +43,7 @@ fun rememberCodeNavigator(
     flowScope: FlowScope? = null,
 ): CodeNavigator {
     val navResultStore = rememberNavResultStore(resultStateRegistry = resultStateRegistry)
-    return remember(navResultStore, onRootReached) {
+    return remember(navResultStore, onRootReached, flowScope) {
         CodeNavigator(
             backStack = backStack,
             resultStore = navResultStore,
@@ -245,6 +245,8 @@ class CodeNavigator(
         val scope = flowScope
         when {
             scope != null -> scope.dismiss()
+            // Empty lambda = "animate the sheet out, no post-dismiss action"; the sheet scene
+            // observes pendingSheetDismiss, animates to Hidden, then pops the entry.
             currentRouteKey is Sheet -> pendingSheetDismiss = {}
             else -> navigateBack()
         }

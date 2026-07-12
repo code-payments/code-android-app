@@ -79,4 +79,16 @@ class CodeNavigatorIntentTest {
         assertTrue(rootReached)
         assertEquals(listOf(AppHome), nav.backStack.toList())
     }
+
+    @Test
+    fun `navigateBackWithResult with a parent but no flow scope is a no-op`() {
+        val root = testNavigator(AppHome)
+        val child = testNavigator(CallerScreen, parent = root)  // parent set, but scope = null
+
+        // Must not throw and must not mutate either stack.
+        child.navigateBackWithResult(DemoResult("ignored"))
+
+        assertEquals(listOf(CallerScreen), child.backStack.toList())
+        assertEquals(listOf(AppHome), root.backStack.toList())
+    }
 }

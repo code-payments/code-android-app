@@ -267,7 +267,7 @@ private fun <S : FlowStep, R : Parcelable> FlowHostImpl(
                 // The sheet scene removes the sheet entry from the outer backstack when the
                 // animation completes, then runs this lambda — so onExit must not pop the
                 // sheet entry again.
-                if (nav != null) {
+                if (isSheetRoot && nav != null) {
                     nav.pendingSheetDismiss = {
                         currentOnExit.value(FlowExitReason.BackedOutOfRoot, isSheetRoot)
                     }
