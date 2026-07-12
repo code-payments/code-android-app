@@ -9,6 +9,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.appsettings.AppSettingsCoordinator
@@ -137,6 +140,11 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
         enableEdgeToEdge()
+
+        // Warm libphonenumber metadata off the main thread so the phone
+        // verification / country picker screens are instant and never block
+        // the UI thread building the country list.
+        lifecycleScope.launch(Dispatchers.Default) { phoneUtils.ensureLoaded() }
 
         setContent {
             CompositionLocalProvider(

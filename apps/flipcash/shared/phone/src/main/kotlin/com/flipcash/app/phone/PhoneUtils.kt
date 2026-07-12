@@ -10,47 +10,73 @@ import io.michaelrocks.libphonenumber.android.PhoneNumberUtil
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 @Singleton
 class PhoneUtils @Inject constructor(
     @ApplicationContext private val context: Context,
-    exchange: Exchange,
+    private val exchange: Exchange,
 ) {
-    var countryLocales: List<CountryLocale> = listOf()
-    private var countryCodesMap: Map<Int, CountryLocale> = mapOf()
-    var defaultCountryLocale: CountryLocale
+    @Volatile
+    var countryLocales: List<CountryLocale> = emptyList()
 
-    private val phoneNumberUtil = PhoneNumberUtil.createInstance(context)
+    @Volatile
+    private var countryCodesMap: Map<Int, CountryLocale> = emptyMap()
 
-    init {
-        countryLocales = phoneNumberUtil.supportedRegions.map { region ->
-            val countryCode = phoneNumberUtil.getCountryCodeForRegion(region)
-            val resId: Int? = exchange.getFlag(region)
-            val displayCountry = Locale(Locale.getDefault().language, region).displayCountry
+    @Volatile
+    var defaultCountryLocale: CountryLocale = CountryLocale.Stub
 
-            CountryLocale(
-                name = displayCountry,
-                phoneCode = countryCode,
-                countryCode = region,
-                resId = resId
-            )
-        }
-            .sortedBy { it.name }
-            .filter { it.resId != null }
+    // Lazy so libphonenumber's metadata blob is parsed on first *use* (a
+    // background caller), never during construction on the main thread.
+    private val phoneNumberUtil by lazy { PhoneNumberUtil.createInstance(context) }
 
-        countryCodesMap = countryLocales.map { it }.associateBy { it.phoneCode }
-        val isoCountry = Locale.getDefault().country
-        defaultCountryLocale =
-            countryLocales.find { it.countryCode == isoCountry }
-                ?: countryLocales.firstOrNull()
-                ?: CountryLocale(
-                    name = Locale(Locale.getDefault().language, isoCountry).displayCountry,
-                    phoneCode = phoneNumberUtil.getCountryCodeForRegion(isoCountry),
-                    countryCode = isoCountry,
-                    resId = null
+    private val loadMutex = Mutex()
+
+    @Volatile
+    private var loaded = false
+
+    /**
+     * Loads libphonenumber metadata and builds the sorted country list. Heavy
+     * (metadata parse + ~250-region enumeration; hundreds of ms on low-end
+     * devices), so it MUST be called from a background dispatcher — never during
+     * construction or on the main thread. Idempotent and safe to call from
+     * multiple sites.
+     */
+    suspend fun ensureLoaded() {
+        if (loaded) return
+        loadMutex.withLock {
+            if (loaded) return
+            val locales = phoneNumberUtil.supportedRegions.map { region ->
+                val countryCode = phoneNumberUtil.getCountryCodeForRegion(region)
+                val resId: Int? = exchange.getFlag(region)
+                val displayCountry = Locale(Locale.getDefault().language, region).displayCountry
+
+                CountryLocale(
+                    name = displayCountry,
+                    phoneCode = countryCode,
+                    countryCode = region,
+                    resId = resId,
                 )
-    }
+            }
+                .sortedBy { it.name }
+                .filter { it.resId != null }
 
+            countryLocales = locales
+            countryCodesMap = locales.associateBy { it.phoneCode }
+            val isoCountry = Locale.getDefault().country
+            defaultCountryLocale =
+                locales.find { it.countryCode == isoCountry }
+                    ?: locales.firstOrNull()
+                    ?: CountryLocale(
+                        name = Locale(Locale.getDefault().language, isoCountry).displayCountry,
+                        phoneCode = phoneNumberUtil.getCountryCodeForRegion(isoCountry),
+                        countryCode = isoCountry,
+                        resId = null,
+                    )
+            loaded = true
+        }
+    }
 
     fun getCountryCode(number: String): String {
         val map = countryCodesMap
@@ -138,6 +164,9 @@ class PhoneUtils @Inject constructor(
     /**
      * Parse an international phone number (e.g. "+15551234567") into its country locale
      * and national number digits. Returns null if parsing fails.
+     *
+     * Requires [ensureLoaded] to have completed before calling — parsing uses
+     * [defaultCountryLocale] as the hint region, which is empty until loaded.
      */
     fun parseInternationalNumber(number: String): Pair<CountryLocale, String>? {
         val cleaned = number.filter { it.isDigit() || it == '+' }
@@ -156,6 +185,13 @@ class PhoneUtils @Inject constructor(
         }
     }
 
+    /**
+     * Converts a raw phone number string to E.164 format. Returns null if the
+     * number is blank, unparseable, invalid, or of UNKNOWN type.
+     *
+     * Requires [ensureLoaded] to have completed before calling — parsing uses
+     * [defaultCountryLocale] as the hint region, which is empty until loaded.
+     */
     fun toE164(rawNumber: String): String? {
         val cleaned = rawNumber.filter { it.isDigit() || it == '+' }
         if (cleaned.isBlank()) return null

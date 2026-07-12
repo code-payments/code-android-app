@@ -8,6 +8,7 @@ import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.phone.CountryLocale
 import com.flipcash.app.phone.PhoneUtils
+import com.flipcash.app.phone.isStub
 import com.flipcash.features.contact.verification.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ContactVerificationController
@@ -30,7 +31,9 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Timer
 import javax.inject.Inject
 import kotlin.concurrent.fixedRateTimer
@@ -48,7 +51,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
 ) : BaseViewModel<PhoneVerificationViewModel.State, PhoneVerificationViewModel.Event>(
-    initialState = State(selectedLocale = phoneUtils.defaultCountryLocale),
+    initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
@@ -58,6 +61,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
         val canSendCode: Boolean = false,
         val formattedPhone: String = "",
         val selectedLocale: CountryLocale = CountryLocale.Stub,
+        val countryLocales: List<CountryLocale> = emptyList(),
         val sendingCode: LoadingSuccessState = LoadingSuccessState(),
         val verifyingCode: LoadingSuccessState = LoadingSuccessState(),
         val isResendTimerRunning: Boolean = false,
@@ -100,59 +104,33 @@ internal class PhoneVerificationViewModel @Inject constructor(
         data object OnPhoneVerificationComplete : Event
 
         data object OnMaxAttemptsReached : Event
+        data class OnCountryLocalesLoaded(val locales: List<CountryLocale>) : Event
     }
 
     private var timer: Timer? = null
 
     init {
-        stateFlow
-            .map { it.numberTextFieldState }
-            .flatMapLatest { ts -> snapshotFlow { ts.text } }
-            .distinctUntilChanged()
-            .onEach { enteredNumber ->
-                val raw = enteredNumber.toString()
-
-                // Handle autofilled international numbers (e.g. "+15551234567")
-                if (raw.contains("+")) {
-                    val result = phoneUtils.parseInternationalNumber(raw)
-                    if (result != null) {
-                        val (locale, nationalNumber) = result
-                        dispatchEvent(Event.OnCountrySelected(locale))
-                        stateFlow.value.numberTextFieldState.edit {
-                            replace(0, length, nationalNumber)
-                        }
-                        return@onEach
-                    }
-                }
-
-                val countryCode = stateFlow.value.selectedLocale.phoneCode.toString()
-                val phoneInputFiltered = raw.replace("+$countryCode", "")
-                val phoneNumber = "+$countryCode$phoneInputFiltered"
-                val formattedNumber = phoneUtils.formatNumber(
-                    number = phoneNumber,
-                    countryCode = countryCode,
-                    plus = false
-                ).replaceFirst(countryCode, "").replaceFirst("+", "").trimStart()
-
-                dispatchEvent(
-                    Event.OnPhoneNumberFormatted(
-                        phoneUtils.formatNumber(
-                            number = formattedNumber,
-                            countryCode = stateFlow.value.selectedLocale.countryCode,
-                            plus = false
-                        )
-                    )
-                )
-
-                dispatchEvent(
-                    Event.OnCanSendCode(
-                        enabled = phoneUtils.isPhoneNumberValid(
-                            number = enteredNumber.toString(),
-                            countryCode = stateFlow.value.selectedLocale.countryCode
-                        )
-                    )
-                )
-            }.launchIn(viewModelScope)
+        viewModelScope.launch {
+            // PhoneUtils is normally pre-warmed at app startup, so ensureLoaded()
+            // is typically a cheap no-op. Input observation is intentionally started
+            // after it completes so libphonenumber parse/format never runs on the
+            // main thread before metadata is loaded on a background thread.
+            try {
+                withContext(dispatchers.Default) { phoneUtils.ensureLoaded() }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Metadata load failed; continue with the Stub locale. Input still
+                // functions (formatting may be degraded until a later load succeeds).
+                trace(message = "PhoneUtils.ensureLoaded failed: $e", type = TraceType.Error)
+            }
+            dispatchEvent(Event.OnCountryLocalesLoaded(phoneUtils.countryLocales))
+            val loaded = phoneUtils.defaultCountryLocale
+            if (stateFlow.value.selectedLocale.isStub() && !loaded.isStub()) {
+                dispatchEvent(Event.OnCountrySelected(loaded))
+            }
+            observePhoneNumberInput()
+        }
 
         eventFlow
             .filterIsInstance<Event.OnSendCodeClicked>()
@@ -257,6 +235,57 @@ internal class PhoneVerificationViewModel @Inject constructor(
                     dispatchEvent(Event.OnPhoneVerificationComplete)
                 }
             ).launchIn(viewModelScope)
+    }
+
+    private fun observePhoneNumberInput() {
+        stateFlow
+            .map { it.numberTextFieldState }
+            .flatMapLatest { ts -> snapshotFlow { ts.text } }
+            .distinctUntilChanged()
+            .onEach { enteredNumber ->
+                val raw = enteredNumber.toString()
+
+                // Handle autofilled international numbers (e.g. "+15551234567")
+                if (raw.contains("+")) {
+                    val result = phoneUtils.parseInternationalNumber(raw)
+                    if (result != null) {
+                        val (locale, nationalNumber) = result
+                        dispatchEvent(Event.OnCountrySelected(locale))
+                        stateFlow.value.numberTextFieldState.edit {
+                            replace(0, length, nationalNumber)
+                        }
+                        return@onEach
+                    }
+                }
+
+                val countryCode = stateFlow.value.selectedLocale.phoneCode.toString()
+                val phoneInputFiltered = raw.replace("+$countryCode", "")
+                val phoneNumber = "+$countryCode$phoneInputFiltered"
+                val formattedNumber = phoneUtils.formatNumber(
+                    number = phoneNumber,
+                    countryCode = countryCode,
+                    plus = false
+                ).replaceFirst(countryCode, "").replaceFirst("+", "").trimStart()
+
+                dispatchEvent(
+                    Event.OnPhoneNumberFormatted(
+                        phoneUtils.formatNumber(
+                            number = formattedNumber,
+                            countryCode = stateFlow.value.selectedLocale.countryCode,
+                            plus = false
+                        )
+                    )
+                )
+
+                dispatchEvent(
+                    Event.OnCanSendCode(
+                        enabled = phoneUtils.isPhoneNumberValid(
+                            number = enteredNumber.toString(),
+                            countryCode = stateFlow.value.selectedLocale.countryCode
+                        )
+                    )
+                )
+            }.launchIn(viewModelScope)
     }
 
     private suspend fun handleSendVerificationCode(method: ContactMethod) {
@@ -390,6 +419,8 @@ internal class PhoneVerificationViewModel @Inject constructor(
                         )
                     )
                 }
+
+                is Event.OnCountryLocalesLoaded -> { state -> state.copy(countryLocales = event.locales) }
             }
         }
     }

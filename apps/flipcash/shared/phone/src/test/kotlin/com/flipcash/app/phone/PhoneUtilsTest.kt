@@ -10,6 +10,7 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkObject
 import io.mockk.unmockkStatic
 import io.mockk.verify
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -126,19 +127,54 @@ class PhoneUtilsTest {
     // region getCountryCode
 
     @Test
-    fun `getCountryCode detects US from prefix 1`() {
+    fun `getCountryCode detects US from prefix 1`() = runBlocking {
+        phoneUtils.ensureLoaded()
         assertEquals("US", phoneUtils.getCountryCode("12025551234"))
     }
 
     @Test
-    fun `getCountryCode detects UK from prefix 44`() {
+    fun `getCountryCode detects UK from prefix 44`() = runBlocking {
+        phoneUtils.ensureLoaded()
         assertEquals("GB", phoneUtils.getCountryCode("447911123456"))
     }
 
     @Test
     fun `getCountryCode returns default for unknown prefix`() {
+        // Intentionally no ensureLoaded() — exercises the empty-map/default path.
         val result = phoneUtils.getCountryCode("99999999999")
         assertTrue(result.isNotEmpty())
+    }
+
+    // endregion
+
+    // region ensureLoaded / lazy construction
+
+    @Test
+    fun `construction does not touch libphonenumber metadata`() {
+        // phoneUtils was constructed in setUp(); no load has run yet.
+        verify(exactly = 0) { mockPhoneNumberUtil.supportedRegions }
+        assertTrue(phoneUtils.countryLocales.isEmpty())
+        assertEquals(CountryLocale.Stub, phoneUtils.defaultCountryLocale)
+    }
+
+    @Test
+    fun `ensureLoaded populates countryLocales and default`() = runBlocking {
+        phoneUtils.ensureLoaded()
+
+        // setUp() stubs 4 regions (US, GB, CA, DE) and getFlag returns 0 (non-null),
+        // so all survive the resId != null filter.
+        assertEquals(4, phoneUtils.countryLocales.size)
+        assertTrue(phoneUtils.defaultCountryLocale != CountryLocale.Stub)
+    }
+
+    @Test
+    fun `ensureLoaded is idempotent`() = runBlocking {
+        phoneUtils.ensureLoaded()
+        phoneUtils.ensureLoaded()
+
+        // Region enumeration must run exactly once despite two calls.
+        // The count of 1 assumes setUp() does NOT call ensureLoaded().
+        verify(exactly = 1) { mockPhoneNumberUtil.supportedRegions }
     }
 
     // endregion
@@ -146,7 +182,8 @@ class PhoneUtilsTest {
     // region toE164
 
     @Test
-    fun `toE164 normalizes international number with plus`() {
+    fun `toE164 normalizes international number with plus`() = runBlocking {
+        phoneUtils.ensureLoaded()
         val mockNumber = mockk<io.michaelrocks.libphonenumber.android.Phonenumber.PhoneNumber>(relaxed = true)
         every { mockPhoneNumberUtil.parse("+12025551234", "US") } returns mockNumber
         every { mockPhoneNumberUtil.isValidNumber(mockNumber) } returns true
@@ -157,7 +194,8 @@ class PhoneUtilsTest {
     }
 
     @Test
-    fun `toE164 normalizes national number without country code`() {
+    fun `toE164 normalizes national number without country code`() = runBlocking {
+        phoneUtils.ensureLoaded()
         val mockNumber = mockk<io.michaelrocks.libphonenumber.android.Phonenumber.PhoneNumber>(relaxed = true)
         every { mockPhoneNumberUtil.parse("2025551234", "US") } returns mockNumber
         every { mockPhoneNumberUtil.isValidNumber(mockNumber) } returns true
@@ -168,7 +206,8 @@ class PhoneUtilsTest {
     }
 
     @Test
-    fun `toE164 strips formatting characters`() {
+    fun `toE164 strips formatting characters`() = runBlocking {
+        phoneUtils.ensureLoaded()
         val mockNumber = mockk<io.michaelrocks.libphonenumber.android.Phonenumber.PhoneNumber>(relaxed = true)
         every { mockPhoneNumberUtil.parse("+12025551234", "US") } returns mockNumber
         every { mockPhoneNumberUtil.isValidNumber(mockNumber) } returns true
