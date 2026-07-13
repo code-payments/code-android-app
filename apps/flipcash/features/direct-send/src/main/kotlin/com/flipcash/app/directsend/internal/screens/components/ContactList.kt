@@ -1,6 +1,7 @@
 package com.flipcash.app.directsend.internal.screens.components
 
 import android.text.format.DateFormat
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,7 +22,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -30,6 +33,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -51,9 +55,11 @@ import com.flipcash.app.contacts.ui.ContactAvatar
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.directsend.internal.ContactListItem
+import com.flipcash.app.directsend.internal.Conversation
 import com.flipcash.app.permissions.ContactAccessHandle
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.features.directsend.R
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ui.AnimatedConversationPaymentsPreview
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
@@ -66,6 +72,9 @@ import com.getcode.util.permissions.PermissionResult
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 @Composable
@@ -396,11 +405,14 @@ private fun ContactRowItem(
                                 color = CodeTheme.colors.textSecondary,
                             )
                         }
-                        lastActivity != null && isActiveChat -> {
+                        lastActivity != null -> {
+                            val activityTextColor by animateColorAsState(
+                                if (unreadCount > 0) CodeTheme.colors.indicator else CodeTheme.colors.textSecondary
+                            )
                             Text(
                                 text = formatLastActivity(lastActivity),
                                 style = CodeTheme.typography.caption,
-                                color = CodeTheme.colors.textSecondary,
+                                color = activityTextColor,
                             )
                         }
                     }
@@ -413,7 +425,7 @@ private fun ContactRowItem(
                             ),
                             count = unreadCount
                         )
-                    } else if (isActiveChat) {
+                    } else if (isOnFlipcash) {
                         Icon(
                             modifier = Modifier.scale(0.6f),
                             painter = painterResource(id = R.drawable.ic_chevron_right),
@@ -423,8 +435,6 @@ private fun ContactRowItem(
                     }
                 }
 
-                val showSubtitle = lastMessagePreview != null || !isOnFlipcash
-
                 when {
                     isTyping -> Text(
                         text = stringResource(R.string.label_isTyping),
@@ -432,11 +442,11 @@ private fun ContactRowItem(
                         color = CodeTheme.colors.textSecondary,
                     )
 
-                    showSubtitle -> Text(
+                    else -> Text(
                         text = if (isOnFlipcash && !lastMessagePreview.isNullOrEmpty()) {
                             lastMessagePreview
                         } else {
-                            contact.displayNumber.ifEmpty { contact.e164 }
+                            "${contact.displayName} joined Flipcash"
                         },
                         style = CodeTheme.typography.textSmall,
                         color = CodeTheme.colors.textSecondary,
@@ -446,15 +456,7 @@ private fun ContactRowItem(
                 }
             }
 
-            if (isOnFlipcash) {
-                if (!isActiveChat) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_chevron_right),
-                        contentDescription = null,
-                        tint = CodeTheme.colors.textSecondary,
-                    )
-                }
-            } else {
+            if (!isOnFlipcash) {
                 Text(
                     modifier = Modifier
                         .background(
@@ -583,7 +585,7 @@ private fun ContactListPreview() {
     val fakeNames = listOf(
         "Alice Anderson", "Bob Baker", "Charlie Chen", "Dana Davis",
         "Eli Evans", "Fiona Fisher", "George Garcia", "Hannah Hill",
-        "Isaac Ingram", "Julia Jones", "Kevin Kim", "Latif Peracha",
+        "Isaac Ingram", "Julia Jones", "Kevin Kim", "Lenny Johnson",
         "Maya Martinez", "Noah Nguyen", "Olivia Ortiz", "Paul Park",
         "Quinn Quinn", "Rachel Robinson", "Sam Smith", "Tina Torres",
     )
@@ -613,11 +615,51 @@ private fun ContactListPreview() {
         )
     }
 
+    val now = Clock.System.now()
+    val recents = listOf(
+        // Unread conversation with a message preview
+        ContactListItem.ContactRow(
+            contact = flipcashContacts[0].contact,
+            isOnFlipcash = true,
+            lastActivity = now - 5.minutes,
+            conversation = Conversation(
+                chatId = ChatId(byteArrayOf(1)),
+                lastMessagePreview = "Sent you $10.00",
+                unreadCount = 2,
+            ),
+        ),
+        // Contact is currently typing
+        ContactListItem.ContactRow(
+            contact = flipcashContacts[1].contact,
+            isOnFlipcash = true,
+            lastActivity = now - 1.hours,
+            conversation = Conversation(
+                chatId = ChatId(byteArrayOf(2)),
+                lastMessagePreview = "See you soon",
+                isTyping = true,
+            ),
+        ),
+        // Read conversation from yesterday
+        ContactListItem.ContactRow(
+            contact = flipcashContacts[2].contact,
+            isOnFlipcash = true,
+            lastActivity = now - 26.hours,
+            conversation = Conversation(
+                chatId = ChatId(byteArrayOf(3)),
+                lastMessagePreview = "You: Thanks!",
+            ),
+        ),
+    )
+
     val items = buildList {
-        add(ContactListItem.Header("Recents"))
-        addAll(flipcashContacts.take(3))
-        add(ContactListItem.Header("On Flipcash"))
-        addAll(flipcashContacts.drop(3))
+        addAll(recents)
+        // On-Flipcash contacts without a chat still rank by joinedAt,
+        // so they carry a lastActivity timestamp too.
+        addAll(
+            flipcashContacts.drop(3).mapIndexed { i, row ->
+                row.copy(lastActivity = now - (i + 2).days)
+            }
+        )
         add(ContactListItem.Header("Not On Flipcash Yet"))
         addAll(otherContacts)
     }
@@ -627,5 +669,127 @@ private fun ContactListPreview() {
         searchState = TextFieldState(),
         listState = rememberLazyListState(),
         accessHandle = ContactAccessHandle(launch = {}),
+    )
+}
+
+@Preview(heightDp = 1400)
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun ContactRowItemStatesPreview() {
+    val now = Clock.System.now()
+    val known = DeviceContact(
+        e164 = "+15550001234",
+        androidContactId = 1L,
+        displayName = "Bob Baker",
+        photoUri = null,
+        displayNumber = "(555) 000-1234",
+    )
+    val unknown = DeviceContact.unknownContact(
+        e164 = "+15559998888",
+        displayName = "+1 (555) 999-8888",
+        displayNumber = "+1 (555) 999-8888",
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(CodeTheme.colors.background)
+            .verticalScroll(rememberScrollState()),
+    ) {
+        // On Flipcash · active chat · read (message preview, timestamp, chevron)
+        StateLabel("On Flipcash · active chat · read")
+        ContactRowItem(
+            contact = known,
+            isOnFlipcash = true,
+            lastMessagePreview = "See you tomorrow!",
+            lastActivity = now - 30.minutes,
+        ) {}
+
+        // On Flipcash · active chat · unread (badge + indicator-colored timestamp)
+        StateLabel("On Flipcash · active chat · unread")
+        ContactRowItem(
+            contact = known,
+            isOnFlipcash = true,
+            lastMessagePreview = "Sent you $5.00",
+            lastActivity = now - 5.minutes,
+            unreadCount = 3,
+        ) {}
+
+        // On Flipcash · typing (subtitle overridden by "is typing…")
+        StateLabel("On Flipcash · typing")
+        ContactRowItem(
+            contact = known,
+            isOnFlipcash = true,
+            lastMessagePreview = "Old message",
+            lastActivity = now - 2.hours,
+            isTyping = true,
+        ) {}
+
+        // On Flipcash · typing + unread
+        StateLabel("On Flipcash · typing · unread")
+        ContactRowItem(
+            contact = known,
+            isOnFlipcash = true,
+            lastMessagePreview = "Old message",
+            lastActivity = now - 2.hours,
+            unreadCount = 1,
+            isTyping = true,
+        ) {}
+
+        // On Flipcash · no chat yet (still shows joinedAt timestamp, no subtitle)
+        StateLabel("On Flipcash · no chat yet")
+        ContactRowItem(
+            contact = known,
+            isOnFlipcash = true,
+            lastActivity = now - 3.days,
+        ) {}
+
+        // On Flipcash · long preview (single line, ellipsized)
+        StateLabel("On Flipcash · long preview (ellipsized)")
+        ContactRowItem(
+            contact = known,
+            isOnFlipcash = true,
+            lastMessagePreview = "This is a really long message preview that should be truncated with an ellipsis when it runs out of room",
+            lastActivity = now - 26.hours,
+        ) {}
+
+        // On Flipcash · older activity (date formatting instead of time)
+        StateLabel("On Flipcash · older activity")
+        ContactRowItem(
+            contact = known,
+            isOnFlipcash = true,
+            lastMessagePreview = "Thanks!",
+            lastActivity = now - 4.days,
+        ) {}
+
+        // On Flipcash · unknown contact ("Unknown" label replaces timestamp)
+        StateLabel("On Flipcash · unknown contact")
+        ContactRowItem(
+            contact = unknown,
+            isOnFlipcash = true,
+            lastMessagePreview = "Hey, is this you?",
+            lastActivity = now - 10.minutes,
+        ) {}
+
+        // Not on Flipcash · invite (phone number subtitle + Invite chip)
+        StateLabel("Not on Flipcash · invite")
+        ContactRowItem(
+            contact = known,
+            isOnFlipcash = false,
+        ) {}
+    }
+}
+
+@Composable
+private fun StateLabel(text: String) {
+    Text(
+        modifier = Modifier.padding(
+            start = CodeTheme.dimens.inset,
+            top = CodeTheme.dimens.grid.x3,
+            bottom = CodeTheme.dimens.grid.x1,
+        ),
+        text = text,
+        style = CodeTheme.typography.caption,
+        color = CodeTheme.colors.textSecondary,
     )
 }

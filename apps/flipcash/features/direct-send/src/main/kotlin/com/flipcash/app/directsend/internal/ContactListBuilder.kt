@@ -154,7 +154,14 @@ internal class ContactListBuilder @Inject constructor(
         val sentBySelf = lastMsg.senderId != null && lastMsg.senderId == selfId
         return lastMsg.content.firstOrNull()?.let { content ->
             when (content) {
-                is MessageContent.Text -> content.text.takeIf { it.isNotEmpty() }
+                is MessageContent.Text -> {
+                    val message = content.text.takeIf { it.isNotEmpty() } ?: return null
+                    if (sentBySelf) {
+                        resources.getString(R.string.label_chat_preview_sentMessage, message)
+                    } else {
+                        message
+                    }
+                }
                 is MessageContent.Cash -> {
                     val formatted = content.amount.formatted()
                     val name = content.tokenName.ifBlank { tokensByMint[content.mint]?.name.orEmpty() }
