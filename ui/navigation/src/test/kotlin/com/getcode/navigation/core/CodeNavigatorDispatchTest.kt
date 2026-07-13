@@ -2,9 +2,12 @@ package com.getcode.navigation.core
 
 import com.getcode.navigation.AppHome
 import com.getcode.navigation.AppRegion
+import com.getcode.navigation.DemoFlow
+import com.getcode.navigation.DemoResult
 import com.getcode.navigation.StepOne
 import com.getcode.navigation.StepTwo
 import com.getcode.navigation.testNavigator
+import com.getcode.navigation.results.navigateForResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
@@ -103,5 +106,25 @@ class CodeNavigatorDispatchTest {
         val flow = testNavigator(StepOne, parent = root, isFlow = true)
         assertSame(root, flow.rootNavigator)
         assertSame(root, root.rootNavigator)
+    }
+
+    @Test
+    fun `navigateForResult from a flow nav pushes the route onto the root, not the flow stack`() {
+        val root = testNavigator(AppHome)
+        val flow = testNavigator(StepOne, parent = root, isFlow = true)
+
+        flow.navigateForResult<DemoResult>(DemoFlow()) { /* no-op */ }
+
+        // The result route lands on the root (where the returning screen will deliver its result),
+        // not on the flow navigator's own stack.
+        assertEquals(DemoFlow(), root.backStack.last())
+        assertEquals(listOf(StepOne), flow.backStack.toList())
+    }
+
+    // Coverage for dispatchTarget's else branch (FlowStep with no flow host), mirroring navigate's drop test.
+    @Test
+    fun `dispatchTarget returns this for a FlowStep with no flow host`() {
+        val root = testNavigator(AppHome)
+        assertSame(root, root.dispatchTarget(StepTwo))
     }
 }

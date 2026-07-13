@@ -294,9 +294,14 @@ inline fun <reified T : Parcelable> CodeNavigator.navigateForResult(
         trace("navigateForResult: route=$route, currentRouteKey=$currentRouteKey", type = TraceType.Navigation)
     }
     coroutineScope.launchOrRun {
-        val curKey = currentRouteKey ?: error("No current route to register result callback with")
-        this.resultStore.registerCallback(curKey, route.asKey(), onResult)
-        navigate(route = route, options = options.copy(navigatingForResult = true))
+        // Register the callback on the navigator the route will actually land on (the dispatch
+        // target up the parent chain), so the returning screen — which delivers through that same
+        // navigator's resultStore — is matched. For an intra-flow FlowStep result the target is
+        // this navigator, unchanged.
+        val target = dispatchTarget(route)
+        val curKey = target.currentRouteKey ?: error("No current route to register result callback with")
+        target.resultStore.registerCallback(curKey, route.asKey(), onResult)
+        target.navigate(route = route, options = options.copy(navigatingForResult = true))
     }
 }
 
