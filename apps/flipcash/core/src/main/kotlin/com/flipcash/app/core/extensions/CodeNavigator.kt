@@ -13,18 +13,23 @@ import com.getcode.navigation.core.NavOptions
  * open, the current sheet is animated closed before the new one opens.
  */
 fun CodeNavigator.openAsSheet(route: AppRoute, innerRoutes: List<AppRoute> = emptyList()) {
+    // Sheets are hosted by the parent-chain root navigator — the one whose NavDisplay runs the
+    // ModalBottomSheetSceneStrategy and observes pendingSheetDismiss/sheetGeneration. Route the
+    // operation there so it works even when called from a flow's inner navigator. For a caller
+    // that is already the root, `host` is `this`, so behavior is unchanged.
+    val host = rootNavigator
     val destination = AppRoute.Main.Sheet(route, innerRoutes)
-    val hasSheet = backStack.any { it is AppRoute.Main.Sheet }
+    val hasSheet = host.backStack.any { it is AppRoute.Main.Sheet }
 
     if (hasSheet) {
-        pendingSheetDismiss = {
+        host.pendingSheetDismiss = {
             Snapshot.withMutableSnapshot {
-                sheetGeneration++
-                navigate(destination)
+                host.sheetGeneration++
+                host.navigate(destination)
             }
         }
     } else {
-        navigate(destination)
+        host.navigate(destination)
     }
 }
 
