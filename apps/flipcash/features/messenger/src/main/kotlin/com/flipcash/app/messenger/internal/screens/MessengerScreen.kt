@@ -35,8 +35,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -348,30 +347,39 @@ private fun ChatInputScaffold(
     bottomBar: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    val density = LocalDensity.current
-    var topBarHeight by remember { mutableStateOf(0.dp) }
-    var bottomBarHeight by remember { mutableStateOf(0.dp) }
+    // Overlay scaffold: the content fills the whole area (drawn behind the blurred bars) and is
+    // inset by the bar heights. SubcomposeLayout measures the bars BEFORE the content in the same
+    // layout pass, so the content receives correct padding on the very first frame. The previous
+    // onSizeChanged approach fed 0 padding on frame 1 and snapped to the real heights on frame 2,
+    // which made the message list visibly jump on every open and every pop-back.
+    SubcomposeLayout(
+        modifier = Modifier
+            .imePadding()
+            .testTag("chat_screen"),
+    ) { constraints ->
+        val looseConstraints = constraints.copy(minWidth = 0, minHeight = 0)
 
-    Box(modifier = Modifier.imePadding().testTag("chat_screen")) {
-        content(
-            PaddingValues(
-                top = topBarHeight,
-                bottom = bottomBarHeight,
-            )
+        val topPlaceables = subcompose(ChatScaffoldSlot.Top, topBar).map { it.measure(looseConstraints) }
+        val bottomPlaceables = subcompose(ChatScaffoldSlot.Bottom, bottomBar).map { it.measure(looseConstraints) }
+        val topHeight = topPlaceables.maxOfOrNull { it.height } ?: 0
+        val bottomHeight = bottomPlaceables.maxOfOrNull { it.height } ?: 0
+
+        val padding = PaddingValues(
+            top = topHeight.toDp(),
+            bottom = bottomHeight.toDp(),
         )
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .onSizeChanged { topBarHeight = with(density) { it.height.toDp() } }
-        ) {
-            topBar()
-        }
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .onSizeChanged { bottomBarHeight = with(density) { it.height.toDp() } }
-        ) {
-            bottomBar()
+
+        val contentPlaceables = subcompose(ChatScaffoldSlot.Content) { content(padding) }
+            .map { it.measure(constraints) }
+
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            contentPlaceables.forEach { it.place(0, 0) }
+            topPlaceables.forEach { it.place((constraints.maxWidth - it.width) / 2, 0) }
+            bottomPlaceables.forEach {
+                it.place((constraints.maxWidth - it.width) / 2, constraints.maxHeight - it.height)
+            }
         }
     }
 }
+
+private enum class ChatScaffoldSlot { Top, Bottom, Content }

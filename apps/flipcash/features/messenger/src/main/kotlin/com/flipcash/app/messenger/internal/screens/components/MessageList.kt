@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
@@ -108,7 +109,10 @@ internal fun MessageList(
         // Track when the initial Paging refresh has truly completed (Loading → NotLoading).
         // This avoids showing the ContactInfoContainer before messages arrive,
         // which would cause the list to start scrolled to the wrong position.
-        var refreshSettled by remember { mutableStateOf(false) }
+        // rememberSaveable so it survives the screen being torn down and rebuilt when the
+        // amount-entry step is pushed over the conversation — otherwise the content gate
+        // re-arms on pop-back and the list re-settles (visible reflow).
+        var refreshSettled by rememberSaveable { mutableStateOf(false) }
         LaunchedEffect(Unit) {
             snapshotFlow { messages.loadState.refresh }
                 .dropWhile { it !is LoadState.Loading }
