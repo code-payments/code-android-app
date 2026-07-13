@@ -54,7 +54,6 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.core.NavOptions
 import com.getcode.navigation.flow.FlowExitReason
 import com.getcode.navigation.flow.FlowHost
-import com.getcode.navigation.flow.LocalOuterCodeNavigator
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.flow.rememberInitialStack
 import com.getcode.navigation.results.NavResultStateRegistry
@@ -282,7 +281,7 @@ private fun LoginStepContent(seed: String?) {
     val vm = hiltViewModel<LoginViewModel>()
     val state by vm.stateFlow.collectAsStateWithLifecycle()
     val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
-    val outerNavigator = LocalOuterCodeNavigator.current
+    val navigator = LocalCodeNavigator.current
     var visible by remember { mutableStateOf(false) }
     val activity = LocalActivity.current
 
@@ -354,7 +353,7 @@ private fun LoginStepContent(seed: String?) {
             login = { flowNavigator.navigateTo(OnboardingStep.SeedInput) },
             isLabsOpen = state.betaOptionsVisible,
             onLogoTapped = { vm.dispatchEvent(LoginViewModel.Event.OnLogoTapped) },
-            openBetaFlags = { outerNavigator.openAsSheet(AppRoute.Menu.Lab(onboarding = true)) },
+            openBetaFlags = { navigator.openAsSheet(AppRoute.Menu.Lab(onboarding = true)) },
         )
     }
 }
