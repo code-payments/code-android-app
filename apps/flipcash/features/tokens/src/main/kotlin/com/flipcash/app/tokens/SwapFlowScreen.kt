@@ -13,7 +13,6 @@ import com.flipcash.app.core.tokens.SwapStep
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.flowAnnotatedEntry
 import com.getcode.navigation.flow.rememberInitialStack
 import com.getcode.navigation.flow.FlowExitReason
 import com.getcode.navigation.flow.FlowHost
@@ -72,7 +71,10 @@ private fun swapEntryProvider(
     val depositFirstPurpose = (route.purpose as? SwapPurpose.Buy)
         ?.takeIf { it.fundingSource == FundingSource.Phantom }
 
-    flowAnnotatedEntry<SwapStep.Entry> { step ->
+    // annotatedEntry (not flowAnnotatedEntry): SwapEntryScreen no longer reads LocalCodeNavigator —
+    // it targets the outer navigator explicitly (LocalOuterCodeNavigator) for its cross-boundary
+    // navigateForResult/push — so the old outer re-shadow is inert.
+    annotatedEntry<SwapStep.Entry> { step ->
         SwapEntryScreen(step.purpose, step.initialAmount)
     }
     annotatedEntry<SwapStep.SellReceipt> { SellReceiptScreen() }

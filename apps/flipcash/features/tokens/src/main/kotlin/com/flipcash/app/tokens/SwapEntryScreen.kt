@@ -20,7 +20,7 @@ import com.flipcash.app.onramp.LocalCoinbaseOnRampController
 import com.flipcash.app.tokens.internal.SwapEntryScreenContent
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
-import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.flow.LocalOuterCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.results.NavResultOrCanceled
@@ -38,7 +38,9 @@ internal fun SwapEntryScreen(
     initialAmount: Fiat? = null,
 ) {
     val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
-    val navigator = LocalCodeNavigator.current
+    // Result nav crosses the flow boundary: the callback must register on the same (app) store the
+    // Verification screen returns to, so this is explicitly the outer/app navigator.
+    val appNavigator = LocalOuterCodeNavigator.current
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val coinbaseOnRampController = LocalCoinbaseOnRampController.current
@@ -105,7 +107,7 @@ internal fun SwapEntryScreen(
             .onEach { event ->
                 val (phone, email) = event
                 val mint = (viewModel.stateFlow.value.purpose as? SwapPurpose.Buy)?.mint ?: return@onEach
-                navigator.navigateForResult<VerificationResult>(
+                appNavigator.navigateForResult<VerificationResult>(
                     AppRoute.Verification(
                         origin = AppRoute.Token.Swap(SwapPurpose.Buy(mint)),
                         includePhone = phone,
@@ -149,7 +151,7 @@ internal fun SwapEntryScreen(
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.OpenScreen>()
-            .onEach { navigator.push(it.screen) }
+            .onEach { appNavigator.push(it.screen) }
             .launchIn(this)
     }
 
