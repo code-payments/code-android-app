@@ -35,7 +35,6 @@ import com.getcode.navigation.flow.PreviewFlowNavigator
 import com.getcode.navigation.flow.deliverFlowResult
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.flow.rememberInitialStack
-import com.getcode.navigation.flowAnnotatedEntry
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.ui.components.AppBarWithTitle
@@ -86,7 +85,7 @@ fun DepositFlowScreen(
 private fun depositEntryProvider(
     showOtherOptions: Boolean,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
-    flowAnnotatedEntry<DepositStep.UsdcInformational> {
+    annotatedEntry<DepositStep.UsdcInformational> {
         UsdcDepositInformationScreen(showOtherOptions)
     }
     annotatedEntry<DepositStep.SelectToken> {
