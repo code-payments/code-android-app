@@ -103,13 +103,15 @@ class CodeNavigator(
      * flow stack; every other route bubbles up to the app-root stack. A screen calls this the same
      * way whether it is top-level, in a flow, or in a sheet.
      */
+    private fun belongsHere(route: NavKey): Boolean =
+        if (route is FlowStep) isFlowNavigator else parent == null
+
     fun navigate(
         route: NavKey,
         options: NavOptions = NavOptions(),
     ) {
-        val belongsHere = if (route is FlowStep) isFlowNavigator else parent == null
         when {
-            belongsHere -> navigateHere(route, options)
+            belongsHere(route) -> navigateHere(route, options)
             parent != null -> parent.navigate(route, options)
             else -> trace(
                 "Dropped navigation to FlowStep $route: no flow host on the stack",
@@ -117,6 +119,22 @@ class CodeNavigator(
             )
         }
     }
+
+    /**
+     * The navigator a [route] will actually land on under [navigate]'s route-type dispatch:
+     * a [FlowStep] stays on the nearest flow navigator, anything else bubbles to the root.
+     * Returns [this] for the unresolvable case (a [FlowStep] with no flow host), matching
+     * [navigate], which traces and drops it.
+     */
+    fun dispatchTarget(route: NavKey): CodeNavigator = when {
+        belongsHere(route) -> this
+        parent != null -> parent.dispatchTarget(route)
+        else -> this
+    }
+
+    /** The root of the [parent] chain — the app-level navigator that hosts sheets. */
+    val rootNavigator: CodeNavigator
+        get() = parent?.rootNavigator ?: this
 
     private fun navigateHere(
         route: NavKey,

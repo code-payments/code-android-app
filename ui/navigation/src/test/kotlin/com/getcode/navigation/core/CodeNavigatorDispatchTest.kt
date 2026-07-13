@@ -7,6 +7,7 @@ import com.getcode.navigation.StepTwo
 import com.getcode.navigation.testNavigator
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertSame
 
 class CodeNavigatorDispatchTest {
 
@@ -74,5 +75,33 @@ class CodeNavigatorDispatchTest {
 
         assertEquals(listOf(StepTwo, StepOne), flow.backStack.toList())
         assertEquals(listOf(AppHome), root.backStack.toList())
+    }
+
+    @Test
+    fun `dispatchTarget returns this for a route that belongs here`() {
+        val root = testNavigator(AppHome)
+        assertSame(root, root.dispatchTarget(AppRegion))
+    }
+
+    @Test
+    fun `dispatchTarget bubbles a non-FlowStep route to the root`() {
+        val root = testNavigator(AppHome)
+        val flow = testNavigator(StepOne, parent = root, isFlow = true)
+        assertSame(root, flow.dispatchTarget(AppRegion))
+    }
+
+    @Test
+    fun `dispatchTarget keeps a FlowStep on the flow navigator`() {
+        val root = testNavigator(AppHome)
+        val flow = testNavigator(StepOne, parent = root, isFlow = true)
+        assertSame(flow, flow.dispatchTarget(StepTwo))
+    }
+
+    @Test
+    fun `rootNavigator walks the parent chain to the top`() {
+        val root = testNavigator(AppHome)
+        val flow = testNavigator(StepOne, parent = root, isFlow = true)
+        assertSame(root, flow.rootNavigator)
+        assertSame(root, root.rootNavigator)
     }
 }
