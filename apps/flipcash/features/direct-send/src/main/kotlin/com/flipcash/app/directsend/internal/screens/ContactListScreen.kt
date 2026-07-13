@@ -30,7 +30,6 @@ import com.flipcash.app.permissions.ContactAccessResult
 import com.flipcash.app.permissions.rememberContactAccessHandle
 import com.flipcash.features.directsend.R
 import com.getcode.libs.analytics.LocalAnalytics
-import com.getcode.navigation.flow.LocalOuterCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
@@ -48,7 +47,6 @@ import kotlinx.coroutines.flow.filterIsInstance
 internal fun ContactListScreen() {
     val flowNavigator = rememberFlowNavigator<SendStep, SendResult>()
     val viewModel = flowSharedViewModel<SendFlowViewModel>()
-    val navigator = LocalOuterCodeNavigator.current
     val analytics = LocalAnalytics.current
 
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
@@ -57,7 +55,9 @@ internal fun ContactListScreen() {
         viewModel.eventFlow
             .filterIsInstance<SendFlowViewModel.Event.SendInvite>()
             .collect { event ->
-                navigator.show(AppRoute.Main.InviteContact(event.contact.e164))
+                // App route -> flowNavigator.navigate bubbles it to the app stack (identical to the
+                // old outerNavigator.show, since show(r) == navigate(r)).
+                flowNavigator.navigate(AppRoute.Main.InviteContact(event.contact.e164))
             }
     }
 
