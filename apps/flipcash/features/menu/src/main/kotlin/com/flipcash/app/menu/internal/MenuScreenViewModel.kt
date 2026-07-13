@@ -263,7 +263,7 @@ internal class MenuScreenViewModel @Inject constructor(
                             flags = event.flags
                         ),
                         flags = event.flags,
-                        addMoneyUxEnabled = event.flags.find { it.flag == FeatureFlag.AddMoneyUX }?.enabled ?: false,
+                        addMoneyUxEnabled = event.flags.find { it.flag == FeatureFlag.AddMoneyUX }?.enabled ?: true,
                     )
                 }
             }
