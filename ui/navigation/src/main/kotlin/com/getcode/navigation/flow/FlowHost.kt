@@ -324,7 +324,6 @@ private fun <S : FlowStep, R : Parcelable> FlowHostImpl(
     }
 
     CompositionLocalProvider(
-        LocalOuterCodeNavigator provides outerNavigator,
         LocalCodeNavigator provides innerNavigator,
         LocalFlowNavigator provides flowNavigator,
         LocalFlowViewModelStoreOwner provides flowOwner,

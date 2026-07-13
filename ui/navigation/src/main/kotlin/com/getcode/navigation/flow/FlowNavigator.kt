@@ -67,16 +67,6 @@ val LocalFlowNavigator =
     staticCompositionLocalOf<FlowNavigator<*, *>> { error("No FlowNavigator provided") }
 
 /**
- * The app-level [CodeNavigator] captured by [com.getcode.navigation.flow.FlowHost] *before* it
- * overrides [com.getcode.navigation.core.LocalCodeNavigator] with the inner flow navigator.
- *
- * Use [flowAnnotatedEntry] to automatically re-provide this as [com.getcode.navigation.core.LocalCodeNavigator]
- * for flow steps that need to push routes onto the outer/app nav graph (e.g. region selection).
- */
-val LocalOuterCodeNavigator =
-    staticCompositionLocalOf<CodeNavigator> { error("No outer CodeNavigator provided — are you inside a FlowHost?") }
-
-/**
  * A no-op [FlowNavigator] for use in Compose `@Preview` functions.
  * All navigation calls are silently ignored.
  */
