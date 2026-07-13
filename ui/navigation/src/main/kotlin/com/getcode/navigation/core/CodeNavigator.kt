@@ -291,11 +291,6 @@ class CodeNavigator(
     /** Push a route onto the back stack (equivalent to Voyager Navigator.push). */
     fun push(route: NavKey) = navigate(route)
 
-    /** Push multiple routes onto the back stack. */
-    fun push(routes: List<NavKey>) {
-        routes.forEach { navigate(it) }
-    }
-
     /** Pop the current route (equivalent to Voyager Navigator.pop). */
     fun pop() = navigateBack()
 
@@ -304,14 +299,6 @@ class CodeNavigator(
 
     /** Replace entire back stack with multiple routes. */
     fun replaceAll(routes: List<NavKey>) = restoreRouting(routes)
-
-    /** Show a sheet route (sheets are identified by metadata in Nav3). */
-    fun show(route: NavKey) = navigate(route)
-
-    /** Show multiple sheet routes (pushes each in order). */
-    fun show(routes: List<NavKey>) {
-        routes.forEach { navigate(it) }
-    }
 
     /** Hide/dismiss a sheet (pops the current route). */
     fun hide() {
