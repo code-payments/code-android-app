@@ -71,9 +71,8 @@ private fun swapEntryProvider(
     val depositFirstPurpose = (route.purpose as? SwapPurpose.Buy)
         ?.takeIf { it.fundingSource == FundingSource.Phantom }
 
-    // annotatedEntry (not flowAnnotatedEntry): SwapEntryScreen no longer reads LocalCodeNavigator —
-    // it targets the outer navigator explicitly (LocalOuterCodeNavigator) for its cross-boundary
-    // navigateForResult/push — so the old outer re-shadow is inert.
+    // SwapEntryScreen reads only the inner LocalCodeNavigator; its cross-boundary result nav
+    // resolves to the app navigator via the dispatcher, so a plain annotatedEntry is correct.
     annotatedEntry<SwapStep.Entry> { step ->
         SwapEntryScreen(step.purpose, step.initialAmount)
     }
