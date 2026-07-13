@@ -12,6 +12,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import com.getcode.navigation.Sheet
+import com.getcode.navigation.flow.FlowStep
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.results.NavResultStore
 import com.getcode.navigation.results.NavResultStoreImpl
@@ -37,17 +38,33 @@ fun rememberCodeNavigator(
     backStack: NavBackStack<NavKey>,
     resultStateRegistry: NavResultStateRegistry,
     onRootReached: () -> Unit,
+    parent: CodeNavigator? = null,
+    isFlowNavigator: Boolean = false,
+    flowScope: FlowScope? = null,
 ): CodeNavigator {
     val navResultStore = rememberNavResultStore(resultStateRegistry = resultStateRegistry)
-    return remember(navResultStore, onRootReached) {
-        CodeNavigator(backStack = backStack, resultStore = navResultStore, onRootReached = onRootReached)
+    return remember(navResultStore, onRootReached, flowScope) {
+        CodeNavigator(
+            backStack = backStack,
+            resultStore = navResultStore,
+            onRootReached = onRootReached,
+            parent = parent,
+            isFlowNavigator = isFlowNavigator,
+            flowScope = flowScope,
+        )
     }
 }
 
-data class CodeNavigator(
+class CodeNavigator(
     val backStack: NavBackStack<NavKey>,
     val resultStore: NavResultStore,
     val onRootReached: () -> Unit,
+    /** The navigator this one is nested inside (the app-level navigator for a flow). Null at the app root. */
+    val parent: CodeNavigator? = null,
+    /** True when this navigator owns a flow's inner back stack (its stack holds [com.getcode.navigation.flow.FlowStep]s). */
+    val isFlowNavigator: Boolean = false,
+    /** Non-null only when this is a flow's inner navigator. See [FlowScope]. */
+    val flowScope: FlowScope? = null,
 ) {
     /**
      * When set, signals the active sheet to animate its dismiss. The callback
@@ -81,7 +98,45 @@ data class CodeNavigator(
     val currentRouteKey: NavKey?
         get() = backStack.lastOrNull()
 
+    /**
+     * Route-type-aware navigation. [com.getcode.navigation.flow.FlowStep]s land on the nearest
+     * flow stack; every other route bubbles up to the app-root stack. A screen calls this the same
+     * way whether it is top-level, in a flow, or in a sheet.
+     */
+    private fun belongsHere(route: NavKey): Boolean =
+        if (route is FlowStep) isFlowNavigator else parent == null
+
     fun navigate(
+        route: NavKey,
+        options: NavOptions = NavOptions(),
+    ) {
+        when {
+            belongsHere(route) -> navigateHere(route, options)
+            parent != null -> parent.navigate(route, options)
+            else -> trace(
+                "Dropped navigation to FlowStep $route: no flow host on the stack",
+                type = TraceType.Error,
+            )
+        }
+    }
+
+    /**
+     * The navigator a [route] will actually land on under [navigate]'s route-type dispatch:
+     * a [FlowStep] stays on the nearest flow navigator, anything else bubbles to the root.
+     * Returns [this] for the unresolvable case (a [FlowStep] with no flow host), matching
+     * [navigate], which traces and drops it.
+     */
+    fun dispatchTarget(route: NavKey): CodeNavigator = when {
+        belongsHere(route) -> this
+        parent != null -> parent.dispatchTarget(route)
+        else -> this
+    }
+
+    /** The root of the [parent] chain — the app-level navigator that hosts sheets. */
+    val rootNavigator: CodeNavigator
+        get() = parent?.rootNavigator ?: this
+
+    private fun navigateHere(
         route: NavKey,
         options: NavOptions = NavOptions(),
     ) {
@@ -156,14 +211,14 @@ data class CodeNavigator(
     fun restoreRouting(routes: List<NavKey>) {
         val list = routes.toMutableList()
         val base = list.removeAt(0)
-        navigate(
+        navigateHere(
             route = base,
             options = NavOptions(
                 popUpTo = NavOptions.PopUpTo.ClearAll
             ),
         )
         list.forEach {
-            navigate(it)
+            navigateHere(it)
         }
     }
 
@@ -178,6 +233,41 @@ data class CodeNavigator(
         }
 
         backStack.removeAt(backStack.lastIndex)
+    }
+
+    /**
+     * Delivers [result] to the enclosing flow's caller by exiting via [FlowScope.exitWithResult].
+     * The flow host tears down the flow after receiving this signal.
+     * No-op (with a trace) when called outside a flow — there is no caller to return to.
+     */
+    fun navigateBackWithResult(result: android.os.Parcelable) {
+        val scope = flowScope
+        if (scope != null) {
+            scope.exitWithResult(result)
+        } else {
+            trace(
+                "navigateBackWithResult($result) called outside a flow scope; ignored",
+                type = TraceType.Error,
+            )
+        }
+    }
+
+    /**
+     * Leave the current bounded scope, regardless of depth:
+     *  - inside a flow -> delegates to [FlowScope.dismiss]; FlowHost animates the sheet out first
+     *    when the flow is a sheet root;
+     *  - a plain sheet -> animate the sheet out via [pendingSheetDismiss]; the scene pops it on completion;
+     *  - otherwise -> [navigateBack].
+     */
+    fun dismiss() {
+        val scope = flowScope
+        when {
+            scope != null -> scope.dismiss()
+            // Empty lambda = "animate the sheet out, no post-dismiss action"; the sheet scene
+            // observes pendingSheetDismiss, animates to Hidden, then pops the entry.
+            currentRouteKey is Sheet -> pendingSheetDismiss = {}
+            else -> navigateBack()
+        }
     }
 
     fun <T : NavKey> clearToFirst(routeClass: KClass<T>): Boolean {
@@ -201,11 +291,6 @@ data class CodeNavigator(
     /** Push a route onto the back stack (equivalent to Voyager Navigator.push). */
     fun push(route: NavKey) = navigate(route)
 
-    /** Push multiple routes onto the back stack. */
-    fun push(routes: List<NavKey>) {
-        routes.forEach { navigate(it) }
-    }
-
     /** Pop the current route (equivalent to Voyager Navigator.pop). */
     fun pop() = navigateBack()
 
@@ -214,14 +299,6 @@ data class CodeNavigator(
 
     /** Replace entire back stack with multiple routes. */
     fun replaceAll(routes: List<NavKey>) = restoreRouting(routes)
-
-    /** Show a sheet route (sheets are identified by metadata in Nav3). */
-    fun show(route: NavKey) = navigate(route)
-
-    /** Show multiple sheet routes (pushes each in order). */
-    fun show(routes: List<NavKey>) {
-        routes.forEach { navigate(it) }
-    }
 
     /** Hide/dismiss a sheet (pops the current route). */
     fun hide() {

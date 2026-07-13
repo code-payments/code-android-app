@@ -271,6 +271,17 @@ internal class ChatViewModel @Inject constructor(
                     is ChatIdentifier.ByChatId -> identifier.chatId
                 }
 
+                // Re-entering the same, already-open chat (e.g. returning from the amount-entry
+                // step) re-dispatches OnChatOpened. The chat is already resolved and its messages
+                // are cached in Room, so skip the re-resolve + network reload that would invalidate
+                // Paging and reflow the message list. Still keep the chat active and clear
+                // notifications.
+                if (chatId != null && stateFlow.value.chatId == chatId) {
+                    chatCoordinator.setActiveChatId(chatId)
+                    chatCoordinator.dismissNotifications(chatId)
+                    return@onEach
+                }
+
                 if (chatId != null) {
                     dispatchEvent(Event.ChatFound(chatId))
                     chatCoordinator.setActiveChatId(chatId)

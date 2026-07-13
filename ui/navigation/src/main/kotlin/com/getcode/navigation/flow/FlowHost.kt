@@ -40,6 +40,7 @@ import com.getcode.navigation.core.rememberCodeNavigator
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.results.asKey
+import com.getcode.navigation.core.FlowScope
 import com.getcode.navigation.scenes.LocalSheetNavigator
 
 /**
@@ -247,16 +248,48 @@ private fun <S : FlowStep, R : Parcelable> FlowHostImpl(
     // onRootReached and onExit read through rememberUpdatedState so the references
     // never change — preventing unnecessary recompositions of children that read
     // the composition locals.
+
+    // FlowScope exposes flow-exit + sheet-aware dismiss to the inner CodeNavigator, so steps can
+    // call navigator.navigateBackWithResult(...) / navigator.dismiss() instead of reaching for
+    // FlowNavigator or the outer navigator.
+    val currentSheetNavigator = rememberUpdatedState(sheetNavigator)
+    val flowScope = remember(isSheetRoot) {
+        object : FlowScope {
+            override val isSheetRoot: Boolean = isSheetRoot
+
+            override fun exitWithResult(result: Parcelable) {
+                @Suppress("UNCHECKED_CAST")
+                currentOnExit.value(FlowExitReason.Completed(result as R), isSheetRoot)
+            }
+
+            override fun dismiss() {
+                val nav = currentSheetNavigator.value
+                // The sheet scene removes the sheet entry from the outer backstack when the
+                // animation completes, then runs this lambda — so onExit must not pop the
+                // sheet entry again.
+                if (isSheetRoot && nav != null) {
+                    nav.pendingSheetDismiss = {
+                        currentOnExit.value(FlowExitReason.BackedOutOfRoot, isSheetRoot)
+                    }
+                } else {
+                    currentOnExit.value(FlowExitReason.BackedOutOfRoot, isSheetRoot)
+                }
+            }
+        }
+    }
+
     val innerNavigator = rememberCodeNavigator(
         backStack = innerBackStack,
         resultStateRegistry = resultStateRegistry,
         onRootReached = remember { { currentOnExit.value(FlowExitReason.BackedOutOfRoot, isSheetRoot) } },
+        parent = outerNavigator,
+        isFlowNavigator = true,
+        flowScope = flowScope,
     )
 
     val flowNavigator = remember(innerNavigator) {
         InnerFlowNavigator<S, R>(
             navigator = innerNavigator,
-            outerNavigator = outerNavigator,
             onExit = { reason -> currentOnExit.value(reason, isSheetRoot) },
             steps = { currentSteps.value },
             completedResult = { currentCompletedResult.value },
@@ -291,7 +324,6 @@ private fun <S : FlowStep, R : Parcelable> FlowHostImpl(
     }
 
     CompositionLocalProvider(
-        LocalOuterCodeNavigator provides outerNavigator,
         LocalCodeNavigator provides innerNavigator,
         LocalFlowNavigator provides flowNavigator,
         LocalFlowViewModelStoreOwner provides flowOwner,
@@ -312,9 +344,8 @@ private fun <S : FlowStep, R : Parcelable> FlowHostImpl(
     }
 }
 
-private class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
+internal class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
     private val navigator: CodeNavigator,
-    private val outerNavigator: CodeNavigator,
     private val onExit: (FlowExitReason<R>) -> Unit,
     private val steps: () -> List<S>,
     private val completedResult: () -> R?,
@@ -347,17 +378,17 @@ private class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
     }
 
     override fun back(): Boolean {
-        return if (canGoBack) {
-            navigator.backStack.removeAt(navigator.backStack.lastIndex)
-            true
-        } else {
-            onExit(FlowExitReason.BackedOutOfRoot)
-            false
-        }
+        // Delegate to the hierarchical navigator: it pops when possible, otherwise its
+        // onRootReached fires the same onExit(BackedOutOfRoot) this used to call directly.
+        val couldGoBack = canGoBack
+        navigator.navigateBack()
+        return couldGoBack
     }
 
     override fun exitWithResult(result: R) {
-        onExit(FlowExitReason.Completed(result))
+        // navigateBackWithResult delegates to FlowScope.exitWithResult, which reaches the same
+        // onExit(Completed(result)) as before.
+        navigator.navigateBackWithResult(result)
     }
 
     override fun exitCanceled() {
@@ -395,7 +426,11 @@ private class InnerFlowNavigator<S : FlowStep, R : Parcelable>(
     }
 
     override fun navigate(route: NavKey) {
-        outerNavigator.push(route)
+        // For app-level routes (the documented use — see FlowNavigator.navigate), route-type
+        // dispatch bubbles the route up the parent chain to the app-root stack, the same
+        // destination as the old outerNavigator.push(route). Callers must pass app routes only:
+        // a FlowStep here would instead be dispatched onto the flow's own stack.
+        navigator.navigate(route)
     }
 }
 

@@ -37,7 +37,6 @@ import com.getcode.navigation.flow.PreviewFlowNavigator
 import com.getcode.navigation.flow.deliverFlowResult
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.flow.rememberInitialStack
-import com.getcode.navigation.flowAnnotatedEntry
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.ui.components.AppBarWithTitle
@@ -91,7 +90,7 @@ private fun withdrawalEntryProvider(
     annotatedEntry<WithdrawalStep.SelectToken> {
         WithdrawalSelectTokenScreen()
     }
-    flowAnnotatedEntry<WithdrawalStep.Amount> { step ->
+    annotatedEntry<WithdrawalStep.Amount> { step ->
         WithdrawalEntryScreen(step.mint)
     }
     annotatedEntry<WithdrawalStep.Destination> {
