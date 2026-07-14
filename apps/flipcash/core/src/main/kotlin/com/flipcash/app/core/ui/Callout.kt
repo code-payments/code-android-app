@@ -105,10 +105,10 @@ private fun CalloutContent(
         Row(
             modifier = Modifier.height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             if (icon != null) {
-                Box(modifier = Modifier.fillMaxHeight()) {
+                Box {
                     icon.invoke()
                 }
             }

@@ -6,6 +6,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -26,6 +27,7 @@ import com.flipcash.app.core.send.SendResult
 import com.flipcash.app.core.send.SendStep
 import com.flipcash.app.directsend.internal.SendFlowViewModel
 import com.flipcash.app.directsend.internal.screens.components.ContactList
+import com.flipcash.app.directsend.internal.screens.components.ContactPermissionCallout
 import com.flipcash.app.permissions.ContactAccessResult
 import com.flipcash.app.permissions.rememberContactAccessHandle
 import com.flipcash.features.directsend.R
@@ -55,8 +57,6 @@ internal fun ContactListScreen() {
         viewModel.eventFlow
             .filterIsInstance<SendFlowViewModel.Event.SendInvite>()
             .collect { event ->
-                // App route -> flowNavigator.navigate bubbles it to the app stack (identical to the
-                // old outerNavigator.show, since show(r) == navigate(r)).
                 flowNavigator.navigate(AppRoute.Main.InviteContact(event.contact.e164))
             }
     }
@@ -128,59 +128,76 @@ internal fun ContactListScreen() {
             }
         }
 
-        PullToReveal(
-            state = pullToRevealState,
+        Column(
             modifier = Modifier.padding(innerPadding),
-            onSuppressDismissChange = { suppress -> setSheetGesturesEnabled(!suppress) },
-            // Telegram (iOS)-style reveal: a soft, low-stiffness spring that springs
-            // down and settles with a single gentle overshoot — the bit of bounce
-            // that makes it feel alive. Fade is synced so it moves in lockstep.
-            enter = fadeIn(
-                animationSpec = spring(stiffness = Spring.StiffnessLow),
-            ) + expandVertically(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow,
-                ),
-            ),
-            // Collapse quickly and cleanly with no bounce.
-            exit = fadeOut(
-                animationSpec = spring(stiffness = Spring.StiffnessMedium),
-            ) + shrinkVertically(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMedium,
-                ),
-            ),
-            revealContent = {
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = CodeTheme.dimens.grid.x3)
-                        .padding(vertical = CodeTheme.dimens.grid.x3),
-                ) {
-                    SearchInput(
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("send_search_field"),
-                        state = state.searchState,
-                        contentPadding = PaddingValues(start = CodeTheme.dimens.grid.x1),
-                    )
-                }
-            },
         ) {
-            ContactList(
-                items = state.listItems,
-                searchState = state.searchState,
-                listState = listState,
+            ContactPermissionCallout(
+                modifier = Modifier.padding(
+                    start = CodeTheme.dimens.inset,
+                    end = CodeTheme.dimens.inset,
+                    top = CodeTheme.dimens.grid.x3,
+                ),
+                state = state,
                 accessHandle = accessHandle,
-                isPickerMode = state.isPickerMode,
-                onItemClick = { contact ->
-                    viewModel.dispatchEvent(SendFlowViewModel.Event.OnContactClicked(contact))
-                },
-                onItemDismissed = { contact ->
-                    viewModel.dispatchEvent(SendFlowViewModel.Event.ContactRemoved(contact.contact.e164))
-                },
+                onDismiss = {
+                    viewModel.dispatchEvent(SendFlowViewModel.Event.DismissedPermissionCallout)
+                }
             )
+
+            PullToReveal(
+                state = pullToRevealState,
+                modifier = Modifier.weight(1f),
+                onSuppressDismissChange = { suppress -> setSheetGesturesEnabled(!suppress) },
+                // Telegram (iOS)-style reveal: a soft, low-stiffness spring that springs
+                // down and settles with a single gentle overshoot — the bit of bounce
+                // that makes it feel alive. Fade is synced so it moves in lockstep.
+                enter = fadeIn(
+                    animationSpec = spring(stiffness = Spring.StiffnessLow),
+                ) + expandVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow,
+                    ),
+                ),
+                // Collapse quickly and cleanly with no bounce.
+                exit = fadeOut(
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                ) + shrinkVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium,
+                    ),
+                ),
+                revealContent = {
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.grid.x3)
+                            .padding(vertical = CodeTheme.dimens.grid.x3),
+                    ) {
+                        SearchInput(
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("send_search_field"),
+                            state = state.searchState,
+                            contentPadding = PaddingValues(start = CodeTheme.dimens.grid.x1),
+                        )
+                    }
+                },
+            ) {
+                ContactList(
+                    items = state.listItems,
+                    searchState = state.searchState,
+                    listState = listState,
+                    accessHandle = accessHandle,
+                    isPickerMode = state.isPickerMode,
+                    onItemClick = { contact ->
+                        viewModel.dispatchEvent(SendFlowViewModel.Event.OnContactClicked(contact))
+                    },
+                    onItemDismissed = { contact ->
+                        viewModel.dispatchEvent(SendFlowViewModel.Event.ContactRemoved(contact.contact.e164))
+                    },
+                )
+            }
         }
     }
 }

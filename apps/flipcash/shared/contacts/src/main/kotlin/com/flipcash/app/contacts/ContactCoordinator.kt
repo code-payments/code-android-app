@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -66,6 +67,7 @@ import javax.inject.Singleton
 import kotlin.collections.map
 import kotlin.time.Instant
 import kotlin.collections.mapValues
+import kotlin.time.Duration.Companion.days
 
 
 @Singleton
@@ -88,6 +90,14 @@ class ContactCoordinator @Inject constructor(
     companion object {
         private const val TAG = "ContactCoordinator"
         private val KEY_LINKED_FOR_PAYMENT = booleanPreferencesKey("linked_for_payment")
+        private val KEY_DISMISSED_PERMISSION_CALLOUT = longPreferencesKey("dismissed_permission_callout")
+
+        /**
+         * How long a dismissed permission callout stays hidden before we re-prompt.
+         * `null` disables re-prompting entirely (dismissal is permanent). Set to a
+         * duration (e.g. `7.days.inWholeMilliseconds`) to turn re-prompting on.
+         */
+        private val CALLOUT_REPROMPT_WINDOW_MS: Long? = null
     }
 
     private val contactPrefs = PreferenceDataStoreFactory.create(
@@ -115,6 +125,7 @@ class ContactCoordinator @Inject constructor(
     private val cluster = MutableStateFlow<AccountCluster?>(null)
     private val _state = MutableStateFlow(ContactState())
     private val _isLinkedForPayment = MutableStateFlow(false)
+    private val _isPermissionCalloutDismissed = MutableStateFlow(false)
     private var syncJob: Job? = null
 
     val state: StateFlow<ContactState>
@@ -122,6 +133,9 @@ class ContactCoordinator @Inject constructor(
 
     val isLinkedForPayment: StateFlow<Boolean>
         get() = _isLinkedForPayment.asStateFlow()
+
+    val isPermissionCalloutDismissed: StateFlow<Boolean>
+        get() = _isPermissionCalloutDismissed.asStateFlow()
 
     val selfPhone: String?
         get() = userManager.profile?.verifiedPhoneNumber
@@ -149,6 +163,14 @@ class ContactCoordinator @Inject constructor(
             .onEach { _isLinkedForPayment.value = it }
             .launchIn(scope)
 
+        // Hydrate permission-callout dismissal from DataStore so the screen can
+        // observe the visible -> dismissed transition.
+        contactPrefs.data
+            .map { it[KEY_DISMISSED_PERMISSION_CALLOUT] != null }
+            .distinctUntilChanged()
+            .onEach { _isPermissionCalloutDismissed.value = it }
+            .launchIn(scope)
+
         cluster.filterNotNull()
             .flatMapLatest { networkObserver.state.map { it.connected } }
             .distinctUntilChanged()
@@ -161,6 +183,8 @@ class ContactCoordinator @Inject constructor(
     }
 
     override fun onStart(owner: LifecycleOwner) {
+        scope.launch { expirePermissionCalloutIfStale() }
+
         if (cluster.value != null) {
             syncJob?.cancel()
             syncJob = scope.launch {
@@ -290,6 +314,27 @@ class ContactCoordinator @Inject constructor(
         _state.update { it.copy(hasDiscoveredFlipcashContacts = false) }
     }
 
+    suspend fun onPermissionCalloutDismissed() {
+        contactPrefs.edit { it[KEY_DISMISSED_PERMISSION_CALLOUT] = System.currentTimeMillis() }
+    }
+
+    /**
+     * Clears the dismissal timestamp once it's older than [CALLOUT_REPROMPT_WINDOW_MS],
+     * which flips [isPermissionCalloutDismissed] back to `false` so the callout re-appears.
+     * Evaluated on each foreground ([onStart]) rather than reactively, since DataStore
+     * won't re-emit purely because wall-clock time has passed.
+     */
+    private suspend fun expirePermissionCalloutIfStale() {
+        val window = CALLOUT_REPROMPT_WINDOW_MS ?: return
+        val dismissedAt = contactPrefs.data
+            .map { it[KEY_DISMISSED_PERMISSION_CALLOUT] }
+            .firstOrNull() ?: return
+        if (System.currentTimeMillis() - dismissedAt >= window) {
+            contactPrefs.edit { it.remove(KEY_DISMISSED_PERMISSION_CALLOUT) }
+            trace(tag = TAG, message = "Permission callout dismissal expired, re-prompting", type = TraceType.Process)
+        }
+    }
+
     suspend fun reset() {
         syncJob?.cancel()
         _state.value = ContactState()
@@ -297,6 +342,7 @@ class ContactCoordinator @Inject constructor(
         contactReader.reset()
         contactDataSource.clear()
         contactPrefs.edit { it.remove(KEY_LINKED_FOR_PAYMENT) }
+        contactPrefs.edit { it.remove(KEY_DISMISSED_PERMISSION_CALLOUT) }
         trace(tag = TAG, message = "reset complete", type = TraceType.Process)
     }
 
