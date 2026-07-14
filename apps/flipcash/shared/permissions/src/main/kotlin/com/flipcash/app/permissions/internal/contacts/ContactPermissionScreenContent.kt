@@ -148,6 +148,11 @@ private fun SimplifiedContactScreenContent(
                         textColor = CodeTheme.colors.textMain,
                     )
                     BulletRow(
+                        painter = painterResource(com.flipcash.core.R.drawable.ic_lock),
+                        text = stringResource(com.flipcash.core.R.string.rationale_bullet_secure),
+                        textColor = CodeTheme.colors.textMain,
+                    )
+                    BulletRow(
                         painter = painterResource(com.flipcash.core.R.drawable.ic_people_gear),
                         text = stringResource(com.flipcash.core.R.string.rationale_bullet_changeAccess),
                         textColor = CodeTheme.colors.textMain,
