@@ -105,16 +105,10 @@ internal class ChatViewModel @Inject constructor(
         data object Failed : ResolveState
     }
 
-    sealed interface UserState {
-        data object Reading: UserState
-        data object Typing: UserState
-    }
-
     data class State(
         val separatorConfig: SeparatorConfig= SeparatorConfig.Continuous(),
         val chatId: ChatId? = null,
         val chattingWith: DeviceContact? = null,
-        val userState: UserState = UserState.Reading,
         val chatInputState: TextFieldState = TextFieldState(),
         val typists: Set<ActiveTypist> = emptySet(),
         val resolveState: ResolveState = ResolveState.Pending,
@@ -124,11 +118,13 @@ internal class ChatViewModel @Inject constructor(
         val token: Token? = null,
         val limits: Limits? = null,
         val isAnonymous: Boolean = false,
+        val cashSymbol: String = "$",
     )
 
     sealed interface Event {
         data class OnChatOpened(val identifier: ChatIdentifier) : Event
         data class OnContactFound(val contact: DeviceContact): Event
+        data class OnCurrencySymbolUpdated(val symbol: String): Event
         data object RefreshContact : Event
         data class ChatFound(val chatId: ChatId) : Event
         data object OnSendCash: Event
@@ -381,6 +377,7 @@ internal class ChatViewModel @Inject constructor(
                 val currency = exchange.getCurrency(rate.currency.name)
                 if (currency != null) {
                     amountDelegate.onCurrencyChanged(currency)
+                    dispatchEvent(Event.OnCurrencySymbolUpdated(currency.symbol))
                 }
             }.launchIn(viewModelScope)
 
@@ -755,11 +752,12 @@ internal class ChatViewModel @Inject constructor(
                         chattingWith = event.contact
                     )
                 }
+                is Event.OnCurrencySymbolUpdated -> { state -> state.copy(cashSymbol = event.symbol) }
                 is Event.RefreshContact -> { state -> state }
                 is Event.ChatFound -> { state -> state.copy(chatId = event.chatId) }
                 Event.OnSendCash -> { state -> state }
-                Event.OnStartMessageInput -> { state -> state.copy(userState = UserState.Typing) }
-                Event.OnStopMessageInput -> { state -> state.copy(userState = UserState.Reading) }
+                Event.OnStartMessageInput -> { state -> state }
+                Event.OnStopMessageInput -> { state -> state }
                 is Event.TypistsUpdated -> { state -> state.copy(typists = event.typists) }
                 is Event.ResolveCompleted -> { state ->
                     state.copy(resolveState = ResolveState.Resolved(event.authority))

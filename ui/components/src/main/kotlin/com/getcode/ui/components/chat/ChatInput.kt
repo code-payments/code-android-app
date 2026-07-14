@@ -67,7 +67,7 @@ fun ChatInput(
             .clip(shape)
             .then(modifier)
             .fillMaxWidth()
-            .animateContentSize(),
+            .animateContentSize(alignment = Alignment.BottomEnd),
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         verticalAlignment = Alignment.Bottom
     ) {
