@@ -1,6 +1,7 @@
 package com.flipcash.app.currencycreator.internal.screens
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
@@ -80,7 +81,7 @@ internal fun NameSelectionContent(
                     .padding(
                         top = CodeTheme.dimens.grid.x6,
                         bottom = CodeTheme.dimens.grid.x3
-                    ),
+                    ).imePadding(),
                 text = stringResource(R.string.action_next),
                 enabled = state.hasName && state.processingState.isIdle,
                 isLoading = state.processingState.loading,

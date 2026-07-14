@@ -34,7 +34,17 @@ internal fun BillCustomizationScreen() {
 
     BillCustomizationContent(state, viewModel::dispatchEvent)
 
-    LaunchedEffect(state.customizations, state.purchaseAmount) {
+    // Seed the playground from the VM's state, but ONLY for genuinely external
+    // changes — the arrival of a (restored) customization set and changes to the
+    // purchase amount. We must NOT key this on `state.customizations` itself:
+    // BillCustomizationContent feeds the playground's edits back into the VM via
+    // CustomizationsChanged, so keying on `state.customizations` created an infinite
+    // Load -> CustomizationsChanged -> Load feedback loop that repainted the bill on
+    // every pass (the "spastic" color flicker). Keying on the null/non-null
+    // transition seeds once when customizations first appear and then leaves the
+    // playground as the source of truth.
+    val hasCustomizations = state.customizations != null
+    LaunchedEffect(hasCustomizations, state.purchaseAmount) {
         controller.dispatchEvent(
             Event.Load(
                 customizations = state.customizations,
