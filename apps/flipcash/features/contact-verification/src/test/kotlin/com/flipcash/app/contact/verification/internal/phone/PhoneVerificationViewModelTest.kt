@@ -50,6 +50,7 @@ class PhoneVerificationViewModelTest {
         featureFlags = featureFlags,
         resources = resources,
         dispatchers = dispatchers,
+        analytics = mockk(relaxed = true),
     )
 
     /**
