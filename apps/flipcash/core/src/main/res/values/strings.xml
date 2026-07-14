@@ -800,6 +800,7 @@
     <string name="action_swipeToSend">Swipe to Send</string>
 
     <string name="action_sendCash">Send Cash</string>
+    <string name="action_sendCashViaSymbol">Send %1$s</string>
     <string name="action_sendMessage">Send Message</string>
 
     <string name="subtitle_chatNoLongerAvailable">This user unlinked their phone number and this conversation is no longer available</string>
