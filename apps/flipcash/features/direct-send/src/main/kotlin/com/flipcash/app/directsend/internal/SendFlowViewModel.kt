@@ -55,6 +55,7 @@ internal class SendFlowViewModel @Inject constructor(
         val isPickerMode: Boolean = false,
         val contactSyncState: LoadingSuccessState = LoadingSuccessState(),
         val listItems: List<ContactListItem> = emptyList(),
+        val hasCalloutBeenDismissed: Boolean = true,
     )
 
     sealed interface Event {
@@ -77,6 +78,12 @@ internal class SendFlowViewModel @Inject constructor(
 
         data class NavigateToChat(val identifier: ChatIdentifier) : Event
         data object ContactsRevoked : Event
+
+        /** User tapped dismiss on the permission callout. */
+        data object DismissedPermissionCallout : Event
+
+        /** Observed dismissal state from [ContactCoordinator.isPermissionCalloutDismissed]. */
+        data class CalloutDismissalChanged(val dismissed: Boolean) : Event
     }
 
     init {
@@ -226,6 +233,18 @@ internal class SendFlowViewModel @Inject constructor(
             .onEach { contactCoordinator.clearServerContactSetIfRevoked() }
             .launchIn(viewModelScope)
 
+        // Observe the persisted callout-dismissal state so the callout hides when
+        // dismissed and re-appears if the coordinator ever expires the dismissal.
+        contactCoordinator.isPermissionCalloutDismissed
+            .onEach { dismissed -> dispatchEvent(Event.CalloutDismissalChanged(dismissed)) }
+            .launchIn(viewModelScope)
+
+        // Persist the dismissal when the user taps dismiss.
+        eventFlow
+            .filterIsInstance<Event.DismissedPermissionCallout>()
+            .onEach { contactCoordinator.onPermissionCalloutDismissed() }
+            .launchIn(viewModelScope)
+
         combine(
             contactCoordinator.state,
             stateFlow.map { it.currentStep },
@@ -280,6 +299,10 @@ internal class SendFlowViewModel @Inject constructor(
                 is Event.SendInvite -> { state -> state }
                 is Event.NavigateToChat -> { state -> state }
                 is Event.ContactsRevoked -> { state -> state }
+                is Event.DismissedPermissionCallout -> { state -> state }
+                is Event.CalloutDismissalChanged -> { state ->
+                    state.copy(hasCalloutBeenDismissed = event.dismissed)
+                }
             }
         }
     }

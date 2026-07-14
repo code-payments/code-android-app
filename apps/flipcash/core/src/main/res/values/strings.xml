@@ -832,5 +832,8 @@
     <string name="label_isTyping">Is Typing…</string>
 
     <string name="label_unknownContact">Unknown Contact</string>
+    <string name="title_allowFullContactAccess">Allow Full Contact Access</string>
+    ><string name="subtitle_allowFullContactAccess">Make sure you can send cash and identify people you know</string>
+    <string name="action_allowAccess">Allow Access</string>">
 
 </resources>

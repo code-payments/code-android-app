@@ -155,53 +155,6 @@ internal fun ContactList(
             }
         }
 
-        if (accessHandle.permissionStatus != PermissionResult.Granted && !isPickerMode) {
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillParentMaxWidth()
-                        .padding(horizontal = CodeTheme.dimens.inset)
-                        .border(
-                            width = CodeTheme.dimens.border,
-                            color = CodeTheme.colors.divider,
-                            shape = CodeTheme.shapes.extraLarge,
-                        )
-                        .padding(
-                            horizontal = CodeTheme.dimens.grid.x2,
-                            vertical = CodeTheme.dimens.grid.x2,
-                        ),
-                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    AnimatedConversationPaymentsPreview(
-                        modifier = Modifier.fillMaxWidth(),
-                        animate = false,
-                    )
-                    Text(
-                        text = stringResource(R.string.permissions_title_contactsRationale),
-                        style = CodeTheme.typography.displayExtraSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = CodeTheme.colors.textMain,
-                    )
-                    CodeButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = when (accessHandle.permissionStatus) {
-                            PermissionResult.Denied -> stringResource(R.string.action_allowContactAccessInSettings)
-                            PermissionResult.Granted -> ""
-                            PermissionResult.NotRequested -> stringResource(R.string.action_giveAccessToContacts)
-                            PermissionResult.PermanentlyDenied -> stringResource(R.string.action_allowContactAccessInSettings)
-                        },
-                    ) {
-                        when (accessHandle.permissionStatus) {
-                            PermissionResult.NotRequested -> accessHandle.launch()
-                            PermissionResult.Granted -> Unit
-                            PermissionResult.Denied,
-                            PermissionResult.PermanentlyDenied -> context.launchAppSettings()
-                        }
-                    }
-                }
-            }
-        }
-
         if (isPickerMode) {
             item {
                 PickerModeHeader(
