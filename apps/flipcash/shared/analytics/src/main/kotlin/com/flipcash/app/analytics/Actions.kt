@@ -3,6 +3,17 @@ package com.flipcash.app.analytics
 import com.getcode.libs.analytics.AppAction
 
 sealed interface Action : AppAction {
+    data object EnteredPhoneNumber : Action {
+        override val value: String = "Entered Phone Number"
+    }
+    data object VerifiedPhoneNumber: Action {
+        override val value: String = "Verified Phone Number"
+    }
+
+    data object LinkedPhoneNumber: Action {
+        override val value: String = "Linked Phone Number"
+    }
+
     data object CompletedOnboarding : Action {
         override val value: String = "Complete Onboarding"
     }

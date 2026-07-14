@@ -13,6 +13,8 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.flipcash.app.analytics.Action
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.contacts.device.DeviceContactLookup
 import com.flipcash.app.contacts.device.PickedContactData
 import com.flipcash.app.contacts.device.ScopeAwareContactReader
@@ -55,6 +57,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -79,6 +82,7 @@ class ContactCoordinator @Inject constructor(
     private val userManager: UserManager,
     private val featureFlagController: FeatureFlagController,
     private val dispatchers: DispatcherProvider,
+    private val analytics: FlipcashAnalyticsService,
 ) : SessionListener, DefaultLifecycleObserver {
 
     companion object {
@@ -265,14 +269,16 @@ class ContactCoordinator @Inject constructor(
                 // Profile may not be loaded yet on the first Ready transition;
                 // wait for the verified phone number to arrive.
                 val phone = userManager.state
-                    .map { it.userProfile?.verifiedPhoneNumber }
-                    .filterNotNull()
-                    .first()
+                    .mapNotNull { it.userProfile?.verifiedPhoneNumber }
+                    .firstOrNull()
 
-                contactVerificationController.linkForPayment(ContactMethod.Phone(phone))
-                    .onSuccess {
-                        contactPrefs.edit { it[KEY_LINKED_FOR_PAYMENT] = true }
-                    }
+                if (phone != null) {
+                    contactVerificationController.linkForPayment(ContactMethod.Phone(phone))
+                        .onSuccess {
+                            analytics.action(Action.LinkedPhoneNumber)
+                            contactPrefs.edit { it[KEY_LINKED_FOR_PAYMENT] = true }
+                        }
+                }
             } finally {
                 linkMutex.unlock()
             }

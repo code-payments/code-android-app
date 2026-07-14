@@ -13,6 +13,7 @@ dependencies {
 
     implementation(project(":services:flipcash"))
     implementation(project(":services:opencode"))
+    implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:persistence:db"))
     implementation(project(":apps:flipcash:shared:persistence:sources"))
     implementation(project(":apps:flipcash:shared:phone"))
