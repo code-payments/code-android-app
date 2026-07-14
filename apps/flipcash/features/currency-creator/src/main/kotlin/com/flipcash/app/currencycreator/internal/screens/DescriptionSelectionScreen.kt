@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -124,7 +125,7 @@ internal fun DescriptionSelectionContent(
                         .navigationBarsPadding()
                         .padding(
                             bottom = CodeTheme.dimens.grid.x3
-                        ),
+                        ).imePadding(),
                     text = stringResource(R.string.action_next),
                     enabled = state.hasDescription && state.processingState.isIdle,
                     isLoading = state.processingState.loading,
