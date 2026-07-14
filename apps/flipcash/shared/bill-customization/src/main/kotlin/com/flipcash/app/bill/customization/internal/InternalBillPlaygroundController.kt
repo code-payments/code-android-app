@@ -20,6 +20,7 @@ import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdc
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.ui.BillBackground
 import com.getcode.opencode.model.ui.BlendMode
@@ -154,8 +155,21 @@ class InternalBillPlaygroundController(
         when (event) {
             // high level actions
             is Event.Load -> {
-                // Reset to fresh random state
-                backgroundController.restore(ColorState())
+                // Background: apply the saved background if one exists, otherwise
+                // fall back to a fresh (random) default. Restoring the random
+                // ColorState() default on *every* Load is what caused the bill to
+                // flicker through random colors on entry: Load is re-dispatched
+                // whenever the playground echoes its customizations back to the
+                // screen, so each pass re-rolled buildGradient() and repainted the
+                // bill before the real customization was applied.
+                val savedBackground = event.customizations?.background
+                if (savedBackground != null) {
+                    backgroundController.load(savedBackground)
+                } else {
+                    backgroundController.restore(ColorState())
+                }
+
+                // Textures carry no random default, so resetting them each Load is safe.
                 textureController.restore(
                     GraphicState(
                         enabled = textureController.state.value.enabled,
@@ -164,8 +178,6 @@ class InternalBillPlaygroundController(
                     )
                 )
 
-                // Load existing customizations if provided
-                event.customizations?.background?.let { backgroundController.load(it) }
                 event.customizations?.texture?.let { texture ->
                     textureController.apply(texture.index - 1) // 1-based → 0-based
                     val mode = when (texture.blendMode) {
