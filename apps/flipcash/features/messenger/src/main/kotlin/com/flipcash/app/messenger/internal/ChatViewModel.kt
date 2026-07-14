@@ -377,7 +377,7 @@ internal class ChatViewModel @Inject constructor(
                 val currency = exchange.getCurrency(rate.currency.name)
                 if (currency != null) {
                     amountDelegate.onCurrencyChanged(currency)
-                    dispatchEvent(Event.OnCurrencySymbolUpdated(currency.symbol))
+                    dispatchEvent(Event.OnCurrencySymbolUpdated(currency.symbol.ifEmpty { "$" }))
                 }
             }.launchIn(viewModelScope)
 
