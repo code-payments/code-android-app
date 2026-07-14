@@ -3,8 +3,9 @@ package com.flipcash.app.contact.verification.internal.phone
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.Action
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.extensions.onResult
-import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.phone.CountryLocale
 import com.flipcash.app.phone.PhoneUtils
@@ -50,6 +51,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
     private val featureFlags: FeatureFlagController,
     private val resources: ResourceHelper,
     private val dispatchers: DispatcherProvider,
+    private val analytics: FlipcashAnalyticsService,
 ) : BaseViewModel<PhoneVerificationViewModel.State, PhoneVerificationViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -140,7 +142,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 val cleanedNumber = phoneUtils.cleanNumber(number, locale)
                 ContactMethod.Phone(cleanedNumber)
             }
-            .onEach { handleSendVerificationCode(it) }
+            .onEach { handleSendVerificationCode(it, false) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -151,7 +153,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 val cleanedNumber = phoneUtils.cleanNumber(number, locale)
                 ContactMethod.Phone(cleanedNumber)
             }
-            .onEach { handleSendVerificationCode(it) }
+            .onEach { handleSendVerificationCode(it, true) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -179,6 +181,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
 
                     viewModelScope.launch {
                         delay(1.seconds)
+                        analytics.action(Action.VerifiedPhoneNumber)
                         dispatchEvent(Event.OnCodeVerified)
                         dispatchEvent(Event.OnVerifyingCodeChanged())
                     }
@@ -228,6 +231,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
             .onResult(
                 onSuccess = {
                     trace(message = "linkForPayment succeeded", type = TraceType.Process)
+                    analytics.action(Action.LinkedPhoneNumber)
                     dispatchEvent(Event.OnPhoneVerificationComplete)
                 },
                 onError = {
@@ -288,7 +292,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
             }.launchIn(viewModelScope)
     }
 
-    private suspend fun handleSendVerificationCode(method: ContactMethod) {
+    private suspend fun handleSendVerificationCode(method: ContactMethod, isResend: Boolean) {
         dispatchEvent(Event.OnSendingCodeChanged(loading = true))
         if (stateFlow.value.attempts >= 3) {
             dispatchEvent(Event.OnSendingCodeChanged())
@@ -299,6 +303,10 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 dispatchEvent(Event.OnMaxAttemptsReached)
             }
             return
+        }
+
+        if (!isResend) {
+            analytics.action(Action.EnteredPhoneNumber)
         }
 
         verificationController.sendVerificationCode(method)
@@ -336,17 +344,6 @@ internal class PhoneVerificationViewModel @Inject constructor(
             }
     }
 
-    suspend fun awaitLinkForPayment() {
-        val isEnabled = featureFlags.observe(FeatureFlag.PhoneNumberSend).value ||
-            userManager.state.value.flags?.enablePhoneNumberSend == true
-        if (!isEnabled) return
-
-        val number = stateFlow.value.numberTextFieldState.text.toString()
-        val locale = stateFlow.value.selectedLocale
-        val cleanedNumber = phoneUtils.cleanNumber(number, locale)
-        verificationController.linkForPayment(ContactMethod.Phone(cleanedNumber))
-    }
-
     private fun startTimer() {
         dispatchEvent(
             Event.OnTimerTick(
@@ -376,7 +373,6 @@ internal class PhoneVerificationViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        super.onCleared()
         stopTimer()
     }
 
