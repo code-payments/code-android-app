@@ -40,6 +40,7 @@ import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.CurrencyController
 import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
@@ -109,6 +110,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     val purchaseMethodController: PurchaseMethodController,
     private val featureFlags: FeatureFlagController,
     private val currencyCreatorCoordinator: CurrencyCreatorCoordinator,
+    private val exchange: Exchange,
 ) : BaseViewModel<CurrencyCreatorViewModel.State, CurrencyCreatorViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -432,9 +434,14 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     purchaseAmount = stateFlow.value.totalCost,
                     feeAmount = stateFlow.value.feeAmount,
                     paymentAction = PaymentAction.Pay,
-                    canUseOtherWallets = false, // can not use external deposit for this flow
                 )
-                purchaseMethodController.present(metadata)
+                val reservesBalance = tokenCoordinator.reservesBalance()
+                val rate = exchange.preferredRate
+                val localizedBalance = LocalFiat(
+                    usdf = reservesBalance,
+                    nativeAmount = reservesBalance.convertingTo(rate),
+                )
+                purchaseMethodController.select(PurchaseMethod.CashReserves(localizedBalance), metadata)
             }
             .launchIn(viewModelScope)
 
