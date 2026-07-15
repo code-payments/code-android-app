@@ -43,6 +43,7 @@ class AuthManager @Inject constructor(
     private val userManager: UserManager,
     private val notificationManager: NotificationManagerCompat,
     private val accountController: AccountController,
+    private val ocpAccountController: com.getcode.opencode.controllers.AccountController,
     private val profileController: ProfileController,
     private val pushController: PushController,
     private val pushTokenProvider: PushTokenProvider,
@@ -133,6 +134,19 @@ class AuthManager @Inject constructor(
     private suspend fun softLogin(entropyB64: String): Result<ID> {
         if (softLoginDisabled) return Result.failure(Throwable("Disabled"))
         return login(entropyB64, isSoftLogin = true)
+    }
+
+    /**
+     * Provisions the core OCP USDF account and awaits the result. Onboarding calls
+     * this at the access-key step to gate release to the scanner. Returns
+     * [Result.failure] (e.g. antispam denial) when the caller must not proceed.
+     */
+    suspend fun ensureCoreAccountProvisioned(): Result<Unit> {
+        val owner = userManager.accountCluster
+            ?: return Result.failure(
+                IllegalStateException("Cannot provision core account: no account cluster established")
+            )
+        return ocpAccountController.ensureCoreAccount(owner)
     }
 
     suspend fun createAccount(): Result<Unit> {

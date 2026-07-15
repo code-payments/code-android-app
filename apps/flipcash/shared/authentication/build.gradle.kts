@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:profile"))
     implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":services:flipcash"))
+    implementation(project(":services:opencode"))
 
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
