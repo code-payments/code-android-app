@@ -9,8 +9,10 @@ import com.flipcash.app.core.storage.MediaSaver
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.features.login.R
 import com.flipcash.services.user.UserManager
 import com.getcode.libs.qr.QRCodeGenerator
+import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.LoadingSuccessState
@@ -21,7 +23,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 internal class LoginAccessKeyViewModel @Inject constructor(
-    resources: ResourceHelper,
+    private val resources: ResourceHelper,
     mnemonicManager: MnemonicManager,
     qrCodeGenerator: QRCodeGenerator,
     mediaSaver: MediaSaver,
@@ -39,9 +41,20 @@ internal class LoginAccessKeyViewModel @Inject constructor(
         return runCatching {
             authManager.onUserAccessKeySeen()
             authManager.presentCredentialStorage()
+            val requiresIap = userFlags.resolvedFlags.value.requiresIapForRegistration.effectiveValue
+            if (!requiresIap) {
+                // Gate: provision the core account before advancing. On failure this
+                // throws, runCatching yields Result.failure, and the screen stays put.
+                authManager.ensureCoreAccountProvisioned()
+                    .onFailure { showAccountSetupError() }
+                    .getOrThrow()
+            }
             delay(150)
             uiFlow.update { s -> s.copy(skipState = LoadingSuccessState(success = true)) }
-            userFlags.resolvedFlags.value.requiresIapForRegistration.effectiveValue
+            requiresIap
+        }.onFailure {
+            // Reset the spinner so the button is tappable again to retry.
+            uiFlow.update { s -> s.copy(skipState = LoadingSuccessState()) }
         }
     }
 
@@ -51,10 +64,25 @@ internal class LoginAccessKeyViewModel @Inject constructor(
             .onSuccess { authManager.onUserAccessKeySeen() }
             .mapCatching {
                 authManager.presentCredentialStorage()
+                val requiresIap = userFlags.resolvedFlags.value.requiresIapForRegistration.effectiveValue
+                if (!requiresIap) {
+                    // Gate: provision the core account before advancing. On failure this
+                    // throws, mapCatching yields Result.failure, and the screen stays put.
+                    authManager.ensureCoreAccountProvisioned()
+                        .onFailure { showAccountSetupError() }
+                        .getOrThrow()
+                }
                 delay(150)
                 uiFlow.update { s -> s.copy(exportState = LoadingSuccessState(success = true)) }
-                userFlags.resolvedFlags.value.requiresIapForRegistration.effectiveValue
+                requiresIap
             }
+    }
+
+    private fun showAccountSetupError() {
+        BottomBarManager.showError(
+            title = resources.getString(R.string.error_title_accountSetupFailed),
+            message = resources.getString(R.string.error_description_accountSetupFailed),
+        )
     }
 
     private fun trackButton(button: Button): Result<Unit> {
