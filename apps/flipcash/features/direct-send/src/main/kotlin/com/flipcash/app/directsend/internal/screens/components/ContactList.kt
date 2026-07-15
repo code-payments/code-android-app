@@ -300,7 +300,6 @@ private fun ContactRowItem(
     showDivider: Boolean = true,
     onClick: () -> Unit,
 ) {
-    val isActiveChat = lastMessagePreview != null
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -398,8 +397,10 @@ private fun ContactRowItem(
                     else -> Text(
                         text = if (isOnFlipcash && !lastMessagePreview.isNullOrEmpty()) {
                             lastMessagePreview
-                        } else {
+                        } else if (isOnFlipcash) {
                             "${contact.displayName} joined Flipcash"
+                        } else {
+                            contact.displayNumber
                         },
                         style = CodeTheme.typography.textSmall,
                         color = CodeTheme.colors.textSecondary,
