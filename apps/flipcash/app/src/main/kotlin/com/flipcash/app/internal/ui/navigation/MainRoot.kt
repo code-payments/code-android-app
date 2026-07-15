@@ -186,13 +186,27 @@ internal fun buildNavGraphForLaunch(
     deepLink: () -> DeepLink?,
 ): LaunchNavGraph? {
     return when (state) {
-        is AuthState.Onboarding -> {
-            val resumePoint = when (state.resumePoint) {
-                AuthState.ResumePoint.AccessKey -> AppRoute.OnboardingFlow.ResumePoint.AccessKey
-                AuthState.ResumePoint.AccessKeyThenPurchase -> AppRoute.OnboardingFlow.ResumePoint.AccessKeyThenPurchase
-                AuthState.ResumePoint.PostAccessKey -> AppRoute.OnboardingFlow.ResumePoint.PostAccessKey
-            }
-            LaunchNavGraph(listOf(AppRoute.OnboardingFlow(resumeAt = resumePoint)))
+        is AuthState.Onboarding -> when (state.resumePoint) {
+            // Resume directly into phone verification; on success it replaces the
+            // stack with the access-key resume (see VerificationFlowScreen target).
+            AuthState.ResumePoint.PhoneNumber -> LaunchNavGraph(
+                listOf(
+                    AppRoute.Verification(
+                        origin = AppRoute.OnboardingFlow(),
+                        includePhone = true,
+                        includeEmail = false,
+                        target = AppRoute.OnboardingFlow(resumeAt = AppRoute.OnboardingFlow.ResumePoint.AccessKey),
+                        fullScreen = true,
+                    )
+                )
+            )
+
+            AuthState.ResumePoint.AccessKey ->
+                LaunchNavGraph(listOf(AppRoute.OnboardingFlow(resumeAt = AppRoute.OnboardingFlow.ResumePoint.AccessKey)))
+            AuthState.ResumePoint.AccessKeyThenPurchase ->
+                LaunchNavGraph(listOf(AppRoute.OnboardingFlow(resumeAt = AppRoute.OnboardingFlow.ResumePoint.AccessKeyThenPurchase)))
+            AuthState.ResumePoint.PostAccessKey ->
+                LaunchNavGraph(listOf(AppRoute.OnboardingFlow(resumeAt = AppRoute.OnboardingFlow.ResumePoint.PostAccessKey)))
         }
 
         AuthState.Ready -> {

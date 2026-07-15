@@ -13,6 +13,9 @@
     <string name="action_tryDifferentFlipcashAccount">Try a Different Flipcash Account</string>
     <string name="error_title_createAccountFailed">Create Account Failed</string>
     <string name="error_description_createAccountFailed">Something went wrong</string>
+    <string name="error_title_accountSetupFailed">Account setup incomplete</string>
+    <string name="error_description_accountSetupFailed">We couldn\'t finish setting up your account. Please check your connection and try again.</string>
+    <string name="error_description_accountSetupFailedAfterPurchase">Your purchase went through but we couldn\'t finish setting up your account. Please check your connection and try again.</string>
     <string name="error_title_loginFailed">Login Failed</string>
     <string name="error_description_loginFailed">Something went wrong</string>
 

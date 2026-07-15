@@ -49,6 +49,8 @@ sealed interface AuthState {
     data object Unknown : AuthState
 
     enum class ResumePoint {
+        /** User created account but has not verified their phone number yet. */
+        PhoneNumber,
         /** User created account but has not seen their access key. */
         AccessKey,
         /** User has seen their access key but must complete IAP before registration. */

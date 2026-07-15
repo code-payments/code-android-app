@@ -11,6 +11,7 @@ dependencies {
     testImplementation(libs.bundles.unit.testing)
     testImplementation(testFixtures(project(":ui:resources")))
     testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.bundles.compose.ui.testing)
 
     implementation(project(":apps:flipcash:shared:accesskey"))
     implementation(project(":apps:flipcash:shared:analytics"))

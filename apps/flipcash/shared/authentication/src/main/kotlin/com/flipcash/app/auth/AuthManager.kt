@@ -5,6 +5,7 @@ import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.push.PushTokenProvider
@@ -43,6 +44,7 @@ class AuthManager @Inject constructor(
     private val userManager: UserManager,
     private val notificationManager: NotificationManagerCompat,
     private val accountController: AccountController,
+    private val ocpAccountController: com.getcode.opencode.controllers.AccountController,
     private val profileController: ProfileController,
     private val pushController: PushController,
     private val pushTokenProvider: PushTokenProvider,
@@ -135,7 +137,21 @@ class AuthManager @Inject constructor(
         return login(entropyB64, isSoftLogin = true)
     }
 
+    /**
+     * Provisions the core OCP USDF account and awaits the result. Onboarding calls
+     * this at the access-key step to gate release to the scanner. Returns
+     * [Result.failure] (e.g. antispam denial) when the caller must not proceed.
+     */
+    suspend fun ensureCoreAccountProvisioned(): Result<Unit> {
+        val owner = userManager.accountCluster
+            ?: return Result.failure(
+                IllegalStateException("Cannot provision core account: no account cluster established")
+            )
+        return ocpAccountController.ensureCoreAccount(owner)
+    }
+
     suspend fun createAccount(): Result<Unit> {
+        trace(tag = "Onboarding", message = "Registering new account", type = TraceType.Process)
         return credentialManager.createAccount()
             .fold(
                 onSuccess = { entropy ->
@@ -152,9 +168,12 @@ class AuthManager @Inject constructor(
             ).onSuccess { entropy ->
                 persistence.openDatabase(entropy)
             }.map { Unit }
+            .onSuccess { trace(tag = "Onboarding", message = "Account registered (identity)", type = TraceType.Process) }
+            .onFailure { trace(tag = "Onboarding", message = "Account registration failed", error = it, type = TraceType.Error) }
     }
 
     suspend fun onUserAccessKeySeen(): Result<Unit> {
+        trace(tag = "Onboarding", message = "Access key seen", type = TraceType.Process)
         return credentialManager.onUserAccessKeySeen()
             .onSuccess {
                 if (userManager.authState !is AuthState.LoggedIn) {
@@ -178,6 +197,7 @@ class AuthManager @Inject constructor(
     }
 
     suspend fun onAccountPurchased(): Result<Unit> {
+        trace(tag = "Onboarding", message = "Finalizing account purchase", type = TraceType.Process)
         return credentialManager.onAccountPurchased()
             .fold(
                 onSuccess = {
@@ -235,16 +255,24 @@ class AuthManager @Inject constructor(
                         // Soft logins (app restart) can trust the persisted flag.
                         val completedOnboarding = if (!isSoftLogin) false
                             else credentialManager.hasCompletedOnboarding()
+                        // If phone verification is required but not yet completed, onboarding
+                        // should resume at the phone-verification step (which precedes the
+                        // access key) rather than jumping ahead to the access key.
+                        val phoneVerificationEnabled = featureFlags.get(FeatureFlag.OnboardingPhoneVerification)
+                        val phoneUnverified = userManager.profile?.verifiedPhoneNumber == null
                         if (flags != null) {
                             userManager.set(flags)
                             if (flags.isRegistered && seenAccessKey && completedOnboarding) {
                                 userManager.set(AuthState.Ready)
                             } else {
                                 val resumePoint = when {
+                                    !seenAccessKey && (phoneVerificationEnabled || flags.enablePhoneNumberSend) && phoneUnverified ->
+                                        AuthState.ResumePoint.PhoneNumber
                                     !seenAccessKey -> AuthState.ResumePoint.AccessKey
                                     flags.requiresIapForRegistration -> AuthState.ResumePoint.AccessKeyThenPurchase
                                     else -> AuthState.ResumePoint.PostAccessKey
                                 }
+                                trace(tag = "Onboarding", message = "Resuming onboarding at $resumePoint", type = TraceType.Process)
                                 userManager.set(AuthState.Onboarding(resumePoint))
                             }
                         } else {
@@ -252,8 +280,12 @@ class AuthManager @Inject constructor(
                             if (seenAccessKey && completedOnboarding) {
                                 userManager.set(authState = AuthState.Ready)
                             } else {
-                                val resumePoint = if (seenAccessKey) AuthState.ResumePoint.PostAccessKey
-                                    else AuthState.ResumePoint.AccessKey
+                                val resumePoint = when {
+                                    seenAccessKey -> AuthState.ResumePoint.PostAccessKey
+                                    phoneVerificationEnabled && phoneUnverified -> AuthState.ResumePoint.PhoneNumber
+                                    else -> AuthState.ResumePoint.AccessKey
+                                }
+                                trace(tag = "Onboarding", message = "Resuming onboarding at $resumePoint (flags unavailable)", type = TraceType.Process)
                                 userManager.set(authState = AuthState.Onboarding(resumePoint))
                             }
                         }

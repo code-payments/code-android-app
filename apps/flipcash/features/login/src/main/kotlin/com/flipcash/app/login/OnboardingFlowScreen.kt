@@ -49,6 +49,8 @@ import com.flipcash.app.purchase.internal.PurchaseAccountViewModel
 import com.flipcash.features.login.R
 import com.flipcash.services.user.AuthState
 import com.getcode.libs.analytics.LocalAnalytics
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.core.NavOptions
@@ -68,6 +70,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Entry point for the unified onboarding flow.
@@ -180,6 +183,7 @@ private fun PermissionsPhaseFlowHost(
             when (reason) {
                 is FlowExitReason.Completed -> {
                     analytics.action(Action.CompletedOnboarding)
+                    trace(tag = "Onboarding", message = "Onboarding complete — releasing to scanner", type = TraceType.Process)
                     userManager?.set(AuthState.Ready)
                     outerNavigator.navigate(
                         route = AppRoute.Main.Scanner,
@@ -189,6 +193,7 @@ private fun PermissionsPhaseFlowHost(
 
                 FlowExitReason.BackedOutOfRoot -> {
                     // All permissions already granted
+                    trace(tag = "Onboarding", message = "Onboarding complete (permissions already granted) — releasing to scanner", type = TraceType.Process)
                     userManager?.set(AuthState.Ready)
                     outerNavigator.navigate(
                         route = AppRoute.Main.Scanner,
@@ -292,9 +297,10 @@ private fun LoginStepContent(seed: String?) {
 
     LaunchedEffect(vm) {
         vm.eventFlow
-            .filterIsInstance<LoginViewModel.Event.OnAccountCreated>()
+            .filterIsInstance<LoginViewModel.Event.CreateAccountSettled>()
             .onEach {
                 if (state.needsPhoneVerification) {
+                    trace(tag = "Onboarding", message = "Account created — navigating to phone verification", type = TraceType.Process)
                     flowNavigator.navigate(
                         AppRoute.Verification(
                             origin = AppRoute.OnboardingFlow(),
@@ -307,6 +313,7 @@ private fun LoginStepContent(seed: String?) {
                         )
                     )
                 } else {
+                    trace(tag = "Onboarding", message = "Account created — navigating to access key", type = TraceType.Process)
                     flowNavigator.navigateTo(OnboardingStep.AccessKey)
                 }
             }
@@ -316,7 +323,7 @@ private fun LoginStepContent(seed: String?) {
     LaunchedEffect(vm) {
         vm.eventFlow
             .filterIsInstance<LoginViewModel.Event.LoggedInSuccessfully>()
-            .onEach { delay(500) }
+            .onEach { delay(500.milliseconds) }
             .onEach { flowNavigator.exitWithResult(OnboardingResult.LoggedIn) }
             .launchIn(this)
     }
@@ -324,7 +331,7 @@ private fun LoginStepContent(seed: String?) {
     LaunchedEffect(vm) {
         vm.eventFlow
             .filterIsInstance<LoginViewModel.Event.LoggedInRequiresPayment>()
-            .onEach { delay(500) }
+            .onEach { delay(500.milliseconds) }
             .onEach {
                 flowNavigator.replaceStack(
                     listOf(
@@ -349,6 +356,7 @@ private fun LoginStepContent(seed: String?) {
     ) {
         LoginRouterScreenContent(
             isLoggingIn = state.loggingIn,
+            isCreatingAccount = state.creatingAccount,
             createAccount = { vm.dispatchEvent(LoginViewModel.Event.CreateAccount) },
             login = { flowNavigator.navigateTo(OnboardingStep.SeedInput) },
             isLabsOpen = state.betaOptionsVisible,
