@@ -9,6 +9,7 @@ import com.getcode.opencode.model.accounts.AccountType
 import com.getcode.opencode.model.accounts.unusable
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.GetAccountsError
+import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.opencode.repositories.AccountRepository
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.TraceType
@@ -86,6 +87,42 @@ class AccountController @Inject constructor(
      */
     suspend fun createUserAccount(ownerForMint: AccountCluster, mint: Mint): Result<ID> {
         return accountRepository.createUserAccount(scope, ownerForMint, mint)
+    }
+
+    /**
+     * Ensures the core USDF account exists for [owner], creating it if the server
+     * reports none yet. Idempotent: a no-op once the account is known.
+     *
+     * Unlike [fetchAdditionalAccountInfo] (the reactive bootstrap that runs after
+     * login), this is an explicit, awaitable call used to GATE onboarding before
+     * the user is released to the scanner. A [Result.failure] — e.g. an antispam
+     * [SubmitIntentError.Denied] — means the caller must NOT proceed.
+     */
+    suspend fun ensureCoreAccount(owner: AccountCluster): Result<Unit> {
+        if (hasAccountFor(Mint.usdf)) return Result.success(Unit)
+        return getAccounts(owner, owner).fold(
+            onSuccess = { response ->
+                accounts.value = response.accounts.values.toList()
+                Result.success(Unit)
+            },
+            onFailure = { error ->
+                if (error is GetAccountsError.NotFound) {
+                    createUserAccount(owner, mint = Mint.usdf).fold(
+                        onSuccess = {
+                            // Best-effort refresh so hasAccountFor(USDF) is true for
+                            // downstream grabs; the account already exists server-side.
+                            getAccounts(owner, owner).onSuccess {
+                                accounts.value = it.accounts.values.toList()
+                            }
+                            Result.success(Unit)
+                        },
+                        onFailure = { Result.failure(it) }
+                    )
+                } else {
+                    Result.failure(error)
+                }
+            }
+        )
     }
 
     suspend fun getAccounts(
