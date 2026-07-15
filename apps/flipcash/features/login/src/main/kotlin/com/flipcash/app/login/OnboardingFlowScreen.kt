@@ -349,6 +349,7 @@ private fun LoginStepContent(seed: String?) {
     ) {
         LoginRouterScreenContent(
             isLoggingIn = state.loggingIn,
+            isCreatingAccount = state.creatingAccount,
             createAccount = { vm.dispatchEvent(LoginViewModel.Event.CreateAccount) },
             login = { flowNavigator.navigateTo(OnboardingStep.SeedInput) },
             isLabsOpen = state.betaOptionsVisible,

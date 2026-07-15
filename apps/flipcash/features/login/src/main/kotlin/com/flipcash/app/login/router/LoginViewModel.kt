@@ -25,7 +25,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import com.getcode.vendor.Base58
+import kotlinx.coroutines.delay
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -44,6 +47,7 @@ class LoginViewModel @Inject constructor(
     data class State(
         val followerModeEnabled: Boolean = false,
         val loggingIn: LoadingSuccessState = LoadingSuccessState(),
+        val creatingAccount: LoadingSuccessState = LoadingSuccessState(),
         val logoTapCount: Int = 0,
         val betaOptionsVisible: Boolean = false,
         val needsPhoneVerification: Boolean = false,
@@ -59,9 +63,12 @@ class LoginViewModel @Inject constructor(
         data object LoggedInRequiresPayment : Event
         data object LogInFailed : Event
         data object OnAccountCreated : Event
+        data object CreateAccountSettled : Event
         data object CreateFailed : Event
         data class PhoneVerificationUpdated(val needed: Boolean) : Event
     }
+
+    private val createInFlight = AtomicBoolean(false)
 
     init {
         combine(
@@ -85,18 +92,27 @@ class LoginViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.CreateAccount>()
+            .filter { createInFlight.compareAndSet(false, true) }
             .onEach { analytics.buttonTapped(Button.CreateAccount) }
-            .map {
-                authManager.createAccount()
-                    .onFailure {
-                        dispatchEvent(Event.CreateFailed)
-                        BottomBarManager.showError(
-                            title = resources.getString(R.string.error_title_createAccountFailed),
-                            message = it.localizedMessage ?: resources.getString(R.string.error_description_createAccountFailed)
-                        )
-                    }.onSuccess {
-                        dispatchEvent(Event.OnAccountCreated)
-                    }
+            .onEach {
+                try {
+                    authManager.createAccount()
+                        .onFailure {
+                            dispatchEvent(Event.CreateFailed)
+                            BottomBarManager.showError(
+                                title = resources.getString(R.string.error_title_createAccountFailed),
+                                message = it.localizedMessage ?: resources.getString(R.string.error_description_createAccountFailed)
+                            )
+                        }.onSuccess {
+                            dispatchEvent(Event.OnAccountCreated)
+                            // Show the success state briefly, then settle back to idle
+                            // as the flow navigates on to the next onboarding step.
+                            delay(1.seconds)
+                            dispatchEvent(Event.CreateAccountSettled)
+                        }
+                } finally {
+                    createInFlight.set(false)
+                }
             }
             .launchIn(viewModelScope)
 
@@ -170,9 +186,10 @@ class LoginViewModel @Inject constructor(
         private const val TAP_THRESHOLD = 6
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                Event.CreateAccount -> { state -> state }
-                Event.OnAccountCreated -> { state -> state }
-                Event.CreateFailed -> { state -> state }
+                Event.CreateAccount -> { state -> state.copy(creatingAccount = LoadingSuccessState(loading = true)) }
+                Event.OnAccountCreated -> { state -> state.copy(creatingAccount = LoadingSuccessState(loading = false, success = true)) }
+                Event.CreateAccountSettled -> { state -> state.copy(creatingAccount = LoadingSuccessState()) }
+                Event.CreateFailed -> { state -> state.copy(creatingAccount = LoadingSuccessState(loading = false)) }
 
                 is Event.BetaOptionsUnlocked -> { state -> state.copy(betaOptionsVisible = true) }
                 is Event.OnLogoTapped -> { state ->
