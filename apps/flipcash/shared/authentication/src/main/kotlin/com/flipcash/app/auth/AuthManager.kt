@@ -5,6 +5,7 @@ import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.push.PushTokenProvider
@@ -249,12 +250,19 @@ class AuthManager @Inject constructor(
                         // Soft logins (app restart) can trust the persisted flag.
                         val completedOnboarding = if (!isSoftLogin) false
                             else credentialManager.hasCompletedOnboarding()
+                        // If phone verification is required but not yet completed, onboarding
+                        // should resume at the phone-verification step (which precedes the
+                        // access key) rather than jumping ahead to the access key.
+                        val phoneVerificationEnabled = featureFlags.get(FeatureFlag.OnboardingPhoneVerification)
+                        val phoneUnverified = userManager.profile?.verifiedPhoneNumber == null
                         if (flags != null) {
                             userManager.set(flags)
                             if (flags.isRegistered && seenAccessKey && completedOnboarding) {
                                 userManager.set(AuthState.Ready)
                             } else {
                                 val resumePoint = when {
+                                    !seenAccessKey && (phoneVerificationEnabled || flags.enablePhoneNumberSend) && phoneUnverified ->
+                                        AuthState.ResumePoint.PhoneNumber
                                     !seenAccessKey -> AuthState.ResumePoint.AccessKey
                                     flags.requiresIapForRegistration -> AuthState.ResumePoint.AccessKeyThenPurchase
                                     else -> AuthState.ResumePoint.PostAccessKey
@@ -266,8 +274,11 @@ class AuthManager @Inject constructor(
                             if (seenAccessKey && completedOnboarding) {
                                 userManager.set(authState = AuthState.Ready)
                             } else {
-                                val resumePoint = if (seenAccessKey) AuthState.ResumePoint.PostAccessKey
-                                    else AuthState.ResumePoint.AccessKey
+                                val resumePoint = when {
+                                    seenAccessKey -> AuthState.ResumePoint.PostAccessKey
+                                    phoneVerificationEnabled && phoneUnverified -> AuthState.ResumePoint.PhoneNumber
+                                    else -> AuthState.ResumePoint.AccessKey
+                                }
                                 userManager.set(authState = AuthState.Onboarding(resumePoint))
                             }
                         }

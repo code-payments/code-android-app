@@ -326,6 +326,10 @@ class RealSessionController @Inject constructor(
                                         else currentState.resumePoint
 
                                     AuthState.ResumePoint.AccessKey -> currentState.resumePoint
+
+                                    // Phone verification precedes the access key and is
+                                    // unrelated to IAP correction — leave it unchanged.
+                                    AuthState.ResumePoint.PhoneNumber -> currentState.resumePoint
                                 }
                                 if (corrected != currentState.resumePoint) {
                                     userManager.set(authState = AuthState.Onboarding(corrected))

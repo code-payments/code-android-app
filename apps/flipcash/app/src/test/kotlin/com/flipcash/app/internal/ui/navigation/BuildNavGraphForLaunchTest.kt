@@ -150,6 +150,16 @@ class BuildNavGraphForLaunchTest {
         assertEquals(AppRoute.OnboardingFlow.ResumePoint.AccessKeyThenPurchase, route.resumeAt)
     }
 
+    @Test
+    fun `onboarding at PhoneNumber resume point routes to phone verification then access key`() {
+        val result = build(AuthState.Onboarding(AuthState.ResumePoint.PhoneNumber))!!
+        val route = assertIs<AppRoute.Verification>(result.baseRoutes.single())
+        assertTrue(route.includePhone)
+        assertEquals(false, route.includeEmail)
+        val target = assertIs<AppRoute.OnboardingFlow>(route.target)
+        assertEquals(AppRoute.OnboardingFlow.ResumePoint.AccessKey, target.resumeAt)
+    }
+
     // -- Authenticating --
 
     @Test
