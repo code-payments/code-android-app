@@ -171,9 +171,20 @@ class PurchaseAccountViewModel @Inject constructor(
             .onEach {
                 authManager.onAccountPurchased()
                     .onSuccess {
-                        dispatchEvent(Event.OnCreatingChanged(creating = false, created = true))
-                        delay(2.seconds)
-                        dispatchEvent(Event.OnAccountCreated)
+                        // Gate: provision the core account after purchase before completing.
+                        authManager.ensureCoreAccountProvisioned()
+                            .onSuccess {
+                                dispatchEvent(Event.OnCreatingChanged(creating = false, created = true))
+                                delay(2.seconds)
+                                dispatchEvent(Event.OnAccountCreated)
+                            }
+                            .onFailure {
+                                dispatchEvent(Event.OnCreatingChanged(creating = false, created = false))
+                                BottomBarManager.showError(
+                                    title = resources.getString(R.string.error_title_accountSetupFailed),
+                                    message = resources.getString(R.string.error_description_accountSetupFailedAfterPurchase),
+                                )
+                            }
                     }
                     .onFailure {
                         dispatchEvent(Event.OnCreatingChanged(creating = false, created = true))
