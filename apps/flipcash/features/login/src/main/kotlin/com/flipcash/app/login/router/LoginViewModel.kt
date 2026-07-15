@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import com.getcode.vendor.Base58
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
@@ -101,14 +102,15 @@ class LoginViewModel @Inject constructor(
                             dispatchEvent(Event.CreateFailed)
                             BottomBarManager.showError(
                                 title = resources.getString(R.string.error_title_createAccountFailed),
-                                message = it.localizedMessage ?: resources.getString(R.string.error_description_createAccountFailed)
+                                message = resources.getString(R.string.error_description_createAccountFailed)
                             )
                         }.onSuccess {
+                            viewModelScope.launch {
+                                // Show the success state briefly, then settle back to idle
+                                // as the flow navigates on to the next onboarding step.
+                                delay(1.seconds)
+                                dispatchEvent(Event.CreateAccountSettled) }
                             dispatchEvent(Event.OnAccountCreated)
-                            // Show the success state briefly, then settle back to idle
-                            // as the flow navigates on to the next onboarding step.
-                            delay(1.seconds)
-                            dispatchEvent(Event.CreateAccountSettled)
                         }
                 } finally {
                     createInFlight.set(false)

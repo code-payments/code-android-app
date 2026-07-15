@@ -151,6 +151,7 @@ class AuthManager @Inject constructor(
     }
 
     suspend fun createAccount(): Result<Unit> {
+        trace(tag = "Onboarding", message = "Registering new account", type = TraceType.Process)
         return credentialManager.createAccount()
             .fold(
                 onSuccess = { entropy ->
@@ -167,9 +168,12 @@ class AuthManager @Inject constructor(
             ).onSuccess { entropy ->
                 persistence.openDatabase(entropy)
             }.map { Unit }
+            .onSuccess { trace(tag = "Onboarding", message = "Account registered (identity)", type = TraceType.Process) }
+            .onFailure { trace(tag = "Onboarding", message = "Account registration failed", error = it, type = TraceType.Error) }
     }
 
     suspend fun onUserAccessKeySeen(): Result<Unit> {
+        trace(tag = "Onboarding", message = "Access key seen", type = TraceType.Process)
         return credentialManager.onUserAccessKeySeen()
             .onSuccess {
                 if (userManager.authState !is AuthState.LoggedIn) {
@@ -193,6 +197,7 @@ class AuthManager @Inject constructor(
     }
 
     suspend fun onAccountPurchased(): Result<Unit> {
+        trace(tag = "Onboarding", message = "Finalizing account purchase", type = TraceType.Process)
         return credentialManager.onAccountPurchased()
             .fold(
                 onSuccess = {
@@ -267,6 +272,7 @@ class AuthManager @Inject constructor(
                                     flags.requiresIapForRegistration -> AuthState.ResumePoint.AccessKeyThenPurchase
                                     else -> AuthState.ResumePoint.PostAccessKey
                                 }
+                                trace(tag = "Onboarding", message = "Resuming onboarding at $resumePoint", type = TraceType.Process)
                                 userManager.set(AuthState.Onboarding(resumePoint))
                             }
                         } else {
@@ -279,6 +285,7 @@ class AuthManager @Inject constructor(
                                     phoneVerificationEnabled && phoneUnverified -> AuthState.ResumePoint.PhoneNumber
                                     else -> AuthState.ResumePoint.AccessKey
                                 }
+                                trace(tag = "Onboarding", message = "Resuming onboarding at $resumePoint (flags unavailable)", type = TraceType.Process)
                                 userManager.set(authState = AuthState.Onboarding(resumePoint))
                             }
                         }

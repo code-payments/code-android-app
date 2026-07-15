@@ -99,16 +99,22 @@ class AccountController @Inject constructor(
      * [SubmitIntentError.Denied] — means the caller must NOT proceed.
      */
     suspend fun ensureCoreAccount(owner: AccountCluster): Result<Unit> {
-        if (hasAccountFor(Mint.usdf)) return Result.success(Unit)
+        if (hasAccountFor(Mint.usdf)) {
+            trace(tag = "Onboarding", message = "USDF core account already present", type = TraceType.Process)
+            return Result.success(Unit)
+        }
         return getAccounts(owner, owner).fold(
             onSuccess = { response ->
                 accounts.value = response.accounts.values.toList()
+                trace(tag = "Onboarding", message = "USDF core account already present", type = TraceType.Process)
                 Result.success(Unit)
             },
             onFailure = { error ->
                 if (error is GetAccountsError.NotFound) {
+                    trace(tag = "Onboarding", message = "Provisioning USDF core account (onboarding gate)", type = TraceType.Process)
                     createUserAccount(owner, mint = Mint.usdf).fold(
                         onSuccess = {
+                            trace(tag = "Onboarding", message = "USDF core account provisioned", type = TraceType.Process)
                             // Best-effort refresh so hasAccountFor(USDF) is true for
                             // downstream grabs; the account already exists server-side.
                             getAccounts(owner, owner).onSuccess {
@@ -116,9 +122,13 @@ class AccountController @Inject constructor(
                             }
                             Result.success(Unit)
                         },
-                        onFailure = { Result.failure(it) }
+                        onFailure = {
+                            trace(tag = "Onboarding", message = "USDF core account provisioning failed", error = it, type = TraceType.Error)
+                            Result.failure(it)
+                        }
                     )
                 } else {
+                    trace(tag = "Onboarding", message = "USDF core account lookup failed", error = error, type = TraceType.Error)
                     Result.failure(error)
                 }
             }

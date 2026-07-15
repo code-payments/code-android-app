@@ -15,6 +15,7 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ContactVerificationController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.ContactMethod
+import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.flipcash.services.models.PhoneVerificationError
 import com.getcode.manager.BottomBarManager
@@ -111,7 +112,14 @@ internal class PhoneVerificationViewModel @Inject constructor(
 
     private var timer: Timer? = null
 
+    // Composite trace tag so verification steps that happen during onboarding read as
+    // "[Onboarding · Verification]" (matched by both an "\[Onboarding" and a
+    // "Verification" grep), and as plain "[Verification]" when linking a phone later.
+    private val traceTag: String
+        get() = if (userManager.authState is AuthState.Onboarding) "Onboarding · Verification" else "Verification"
+
     init {
+        trace(tag = traceTag, message = "Phone verification started", type = TraceType.Process)
         viewModelScope.launch {
             // PhoneUtils is normally pre-warmed at app startup, so ensureLoaded()
             // is typically a cheap no-op. Input observation is intentionally started
@@ -124,7 +132,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
             } catch (e: Exception) {
                 // Metadata load failed; continue with the Stub locale. Input still
                 // functions (formatting may be degraded until a later load succeeds).
-                trace(message = "PhoneUtils.ensureLoaded failed: $e", type = TraceType.Error)
+                trace(tag = traceTag, message = "PhoneUtils.ensureLoaded failed: $e", type = TraceType.Error)
             }
             dispatchEvent(Event.OnCountryLocalesLoaded(phoneUtils.countryLocales))
             val loaded = phoneUtils.defaultCountryLocale
@@ -165,14 +173,14 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 ContactMethod.Phone(cleanedNumber)
             }
             .onEach {
-                trace(message = "Verifying code", type = TraceType.Process)
+                trace(tag = traceTag, message = "Verifying code", type = TraceType.Process)
                 dispatchEvent(Event.OnVerifyingCodeChanged(loading = true))
             }
             .map { method ->
                 verificationController.checkVerificationCode(method, stateFlow.value.codeTextFieldState.text.toString())
             }.onResult(
                 onSuccess = {
-                    trace(message = "Code verified successfully", type = TraceType.Process)
+                    trace(tag = traceTag, message = "Code verified successfully", type = TraceType.Process)
                     stopTimer()
                     dispatchEvent(Event.OnVerifyingCodeChanged(success = true))
                     viewModelScope.launch {
@@ -187,7 +195,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
                     }
                 },
                 onError = { cause ->
-                    trace(message = "Code verification failed: $cause", type = TraceType.Error)
+                    trace(tag = traceTag, message = "Code verification failed: $cause", type = TraceType.Error)
                     dispatchEvent(Event.OnVerifyingCodeChanged())
                     val (title, message) = when (cause) {
                         is PhoneVerificationError -> when (cause) {
@@ -224,13 +232,13 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 val number = stateFlow.value.numberTextFieldState.text.toString()
                 val locale = stateFlow.value.selectedLocale
                 val cleanedNumber = phoneUtils.cleanNumber(number, locale)
-                trace(message = "Calling linkForPayment", type = TraceType.Process)
+                trace(tag = traceTag, message = "Calling linkForPayment", type = TraceType.Process)
                 ContactMethod.Phone(cleanedNumber)
             }
             .map { method -> verificationController.linkForPayment(method) }
             .onResult(
                 onSuccess = {
-                    trace(message = "linkForPayment succeeded", type = TraceType.Process)
+                    trace(tag = traceTag, message = "linkForPayment succeeded", type = TraceType.Process)
                     analytics.action(Action.LinkedPhoneNumber)
                     dispatchEvent(Event.OnPhoneVerificationComplete)
                 },
@@ -295,6 +303,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
     private suspend fun handleSendVerificationCode(method: ContactMethod, isResend: Boolean) {
         dispatchEvent(Event.OnSendingCodeChanged(loading = true))
         if (stateFlow.value.attempts >= 3) {
+            trace(tag = traceTag, message = "Max verification attempts reached", type = TraceType.Error)
             dispatchEvent(Event.OnSendingCodeChanged())
             BottomBarManager.showAlert(
                 title = resources.getString(R.string.error_title_maxAttemptsReached),
@@ -309,8 +318,10 @@ internal class PhoneVerificationViewModel @Inject constructor(
             analytics.action(Action.EnteredPhoneNumber)
         }
 
+        trace(tag = traceTag, message = if (isResend) "Resending verification code" else "Sending verification code", type = TraceType.Process)
         verificationController.sendVerificationCode(method)
             .onSuccess {
+                trace(tag = traceTag, message = "Verification code sent", type = TraceType.Process)
                 dispatchEvent(Event.OnSendingCodeChanged(success = true))
                 viewModelScope.launch {
                     delay(1.seconds)
@@ -320,6 +331,7 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 startTimer()
             }
             .onFailure { error ->
+                trace(tag = traceTag, message = "Failed to send verification code: $error", type = TraceType.Error)
                 val (title, message) = when (error) {
                     is PhoneVerificationError -> when (error) {
                         is PhoneVerificationError.Denied -> null to null
