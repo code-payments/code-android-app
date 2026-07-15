@@ -53,6 +53,7 @@ class AuthManagerTest {
     private val userManager: UserManager = mockk(relaxed = true)
     private val notificationManager: NotificationManagerCompat = mockk(relaxed = true)
     private val accountController: AccountController = mockk(relaxed = true)
+    private val ocpAccountController: com.getcode.opencode.controllers.AccountController = mockk(relaxed = true)
     private val profileController: ProfileController = mockk(relaxed = true)
     private val pushController: PushController = mockk(relaxed = true)
     private val pushTokenProvider: PushTokenProvider = mockk(relaxed = true)
@@ -90,6 +91,7 @@ class AuthManagerTest {
             userManager = userManager,
             notificationManager = notificationManager,
             accountController = accountController,
+            ocpAccountController = ocpAccountController,
             profileController = profileController,
             pushController = pushController,
             pushTokenProvider = pushTokenProvider,
