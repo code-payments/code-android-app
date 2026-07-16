@@ -88,6 +88,40 @@ class SwapInstructionsTest {
         createdAt = Clock.System.now(),
     )
 
+    private val destinationVmMetadata = VmMetadata(
+        authority = generateRandomPublicKeyForTest(),
+        vm = generateRandomPublicKeyForTest(),
+        lockDurationInDays = 21,
+    )
+
+    private val destinationLaunchpadMetadata = LaunchpadMetadata(
+        currencyConfig = generateRandomPublicKeyForTest(),
+        liquidityPool = generateRandomPublicKeyForTest(),
+        seed = generateRandomPublicKeyForTest(),
+        authority = generateRandomPublicKeyForTest(),
+        mintVault = generateRandomPublicKeyForTest(),
+        coreMintVault = generateRandomPublicKeyForTest(),
+        currentCirculatingSupplyQuarks = 0,
+        sellFeeBps = 0,
+        price = Fiat.MIN_VALUE,
+        marketCap = Fiat.MIN_VALUE,
+    )
+
+    private val destinationMint = MintMetadata(
+        address = Mint(PublicKey.generate().bytes),
+        vmMetadata = destinationVmMetadata,
+        launchpadMetadata = destinationLaunchpadMetadata,
+        decimals = 6,
+        name = "Dest Token",
+        symbol = "DTOK",
+        description = "",
+        imageUrl = "",
+        billCustomizations = null,
+        socialLinks = emptyList(),
+        holderMetrics = HolderMetrics.None,
+        createdAt = Clock.System.now(),
+    )
+
     // Mock Server Response (Stateless for simplicity)
     private val mockServerParams = StatefulSwapResponseServerParameters.ExistingCurrency(
         payer = mockPayer,
@@ -631,6 +665,103 @@ class SwapInstructionsTest {
         assertEquals(mockTreasury, instructions[6].accounts[0].publicKey)
         assertTrue(instructions[6].accounts[0].isSigner)
         assertEquals(treasuryCoreMintAta, instructions[6].accounts[7].publicKey)
+    }
+
+    @Test
+    fun testBuildCrossCurrencyExistingSwapInstructionsCount() {
+        val instructions = buildCrossCurrencyExistingSwapInstructions(
+            serverParameters = mockServerParams,
+            nonce = mockNonce,
+            authority = mockAuthority,
+            swapAuthority = mockSwapAuthority,
+            fromMintMetadata = targetMint,
+            toMintMetadata = destinationMint,
+            coreMintMetadata = coreMint,
+            amount = 100_000L,
+        )
+
+        // Expected sequence (12 instructions):
+        // 1. System::AdvanceNonce
+        // 2. ComputeBudget::SetComputeUnitLimit
+        // 3. ComputeBudget::SetComputeUnitPrice
+        // 4. Memo::Memo
+        // 5. AssociatedTokenAccount::CreateIdempotent (temp core mint ATA)
+        // 6. AssociatedTokenAccount::CreateIdempotent (temp source mint ATA)
+        // 7. VM::TransferForSwap
+        // 8. Reserve::SellTokens
+        // 9. Reserve::BuyAndDepositIntoVm
+        // 10. Token::CloseAccount (temp core)
+        // 11. Token::CloseAccount (temp source)
+        // 12. VM::CloseSwapAccountIfEmpty
+        assertEquals("Should generate 12 instructions", 12, instructions.size)
+    }
+
+    @Test
+    fun testBuildCrossCurrencyExistingSwapInstructionPrograms() {
+        val instructions = buildCrossCurrencyExistingSwapInstructions(
+            serverParameters = mockServerParams,
+            nonce = mockNonce,
+            authority = mockAuthority,
+            swapAuthority = mockSwapAuthority,
+            fromMintMetadata = targetMint,
+            toMintMetadata = destinationMint,
+            coreMintMetadata = coreMint,
+            amount = 100_000L,
+        )
+
+        assertEquals(SystemProgram.address, instructions[0].program)
+        assertEquals(ComputeBudgetProgram.address, instructions[1].program)
+        assertEquals(ComputeBudgetProgram.address, instructions[2].program)
+        assertEquals(MemoProgram.address, instructions[3].program)
+        assertEquals(AssociatedTokenProgram.address, instructions[4].program)
+        assertEquals(AssociatedTokenProgram.address, instructions[5].program)
+        assertEquals(VirtualMachineProgram.address, instructions[6].program)
+        assertEquals(CurrencyCreatorProgram.address, instructions[7].program)
+        assertEquals(CurrencyCreatorProgram.address, instructions[8].program)
+        assertEquals(TokenProgram.address, instructions[9].program)
+        assertEquals(TokenProgram.address, instructions[10].program)
+        assertEquals(VirtualMachineProgram.address, instructions[11].program)
+    }
+
+    @Test
+    fun testBuildCrossCurrencyExistingSwapInstructionAccounts() {
+        val instructions = buildCrossCurrencyExistingSwapInstructions(
+            serverParameters = mockServerParams,
+            nonce = mockNonce,
+            authority = mockAuthority,
+            swapAuthority = mockSwapAuthority,
+            fromMintMetadata = targetMint,
+            toMintMetadata = destinationMint,
+            coreMintMetadata = coreMint,
+            amount = 100_000L,
+        )
+
+        val tempCoreMintAta = PublicKey.deriveAssociatedAccount(
+            mockSwapAuthority, coreMint.address
+        ).publicKey
+        val tempSourceMintAta = PublicKey.deriveAssociatedAccount(
+            mockSwapAuthority, targetMint.address
+        ).publicKey
+
+        // 7. TransferForSwap: source VM authority(0)/vm(1); swapper(2)=owner; destination(5)=temp source ATA
+        assertEquals(targetMint.vmMetadata.authority, instructions[6].accounts[0].publicKey)
+        assertEquals(targetMint.vmMetadata.vm, instructions[6].accounts[1].publicKey)
+        assertEquals(mockAuthority, instructions[6].accounts[2].publicKey)
+        assertEquals(tempSourceMintAta, instructions[6].accounts[5].publicKey)
+
+        // 8. SellTokens: the swap authority is the seller/signer; core proceeds land in the temp core ATA
+        //    (seller=0, sellerTarget=6, sellerBase=7)
+        assertEquals(mockSwapAuthority, instructions[7].accounts[0].publicKey)
+        assertTrue(instructions[7].accounts[0].isSigner)
+        assertEquals(targetMint.launchpadMetadata!!.liquidityPool, instructions[7].accounts[1].publicKey)
+        assertEquals(tempSourceMintAta, instructions[7].accounts[6].publicKey)
+        assertEquals(tempCoreMintAta, instructions[7].accounts[7].publicKey)
+
+        // 9. BuyAndDepositIntoVm: buyer(0)=swap authority, buyerBase(6)=temp core ATA (no buyerTarget,
+        //    since it deposits straight into the destination VM); vtaOwner is the owner
+        assertEquals(mockSwapAuthority, instructions[8].accounts[0].publicKey)
+        assertEquals(destinationMint.launchpadMetadata!!.liquidityPool, instructions[8].accounts[1].publicKey)
+        assertEquals(tempCoreMintAta, instructions[8].accounts[6].publicKey)
     }
 
     @Test

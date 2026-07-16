@@ -7,6 +7,7 @@ import com.getcode.opencode.model.transactions.SwapRoute
 import com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.transactions.FundSwapPool
+import com.getcode.opencode.solana.swap.buildCrossCurrencyExistingSwapInstructions
 import com.getcode.opencode.solana.swap.buildExistingCurrencyBuyInstructions
 import com.getcode.opencode.solana.swap.buildNewCurrencyBuyInstructions
 import com.getcode.opencode.solana.swap.buildSellInstructions
@@ -74,8 +75,17 @@ object TransactionBuilder {
             SwapRoute.WithdrawUsdc -> throw IllegalArgumentException("Withdraw USDC should not be used with ExistingCurrency params")
 
             // Cross-currency (currency -> currency) swaps between two existing currencies map to the
-            // server's buy+sell handler, whose client-side instruction builder is not implemented yet.
-            is SwapRoute.CrossCurrency -> throw NotImplementedError("Cross-currency existing currency swaps are not supported client-side yet")
+            // server's buy+sell handler: sell the source into the core mint, then buy the destination.
+            is SwapRoute.CrossCurrency -> buildCrossCurrencyExistingSwapInstructions(
+                serverParameters = response,
+                nonce = response.nonce,
+                authority = authority,
+                swapAuthority = swapAuthority,
+                fromMintMetadata = route.from,
+                toMintMetadata = route.to,
+                coreMintMetadata = coreMint,
+                amount = amount,
+            )
         }
 
         return SolanaTransaction.newV0Instance(
