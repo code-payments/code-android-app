@@ -17,6 +17,12 @@ data class StatefulSwapRequest(
     val feeAmount: LocalFiat?,
     val swapId: SwapId,
     val verifiedState: VerifiedState,
+    /**
+     * Verified exchange data over the full amount (swap + fee), keyed to the source mint. Required
+     * by the server when initializing a new reserve currency from a source mint other than the core
+     * mint (the treasury-funded flow); null otherwise.
+     */
+    val fullAmountExchangeData: ExchangeData.Verified? = null,
 ) {
     val fundingIntentId: List<Byte>
         get() = when (kind) {

@@ -204,6 +204,18 @@ sealed interface StatefulSwapResponseServerParameters {
          * Destination account where fee should be paid
          */
         val feeDestination: PublicKey,
+        /**
+         * Server-controlled treasury account for flows that require it (e.g.
+         * initializing a new reserve currency outside of the core mint). Null
+         * when the swap is funded directly with the core mint.
+         */
+        val treasury: PublicKey?,
+        /**
+         * The amount of core mint tokens used for the purchase when funding
+         * through the [treasury]. Client should validate this matches a
+         * pre-coordinated amount accepted by the user. Zero when unused.
+         */
+        val treasuryPurchaseAmount: Long,
     ): StatefulSwapResponseServerParameters
 
     /**

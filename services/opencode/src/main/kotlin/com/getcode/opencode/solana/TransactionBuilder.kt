@@ -10,6 +10,7 @@ import com.getcode.opencode.model.transactions.FundSwapPool
 import com.getcode.opencode.solana.swap.buildExistingCurrencyBuyInstructions
 import com.getcode.opencode.solana.swap.buildNewCurrencyBuyInstructions
 import com.getcode.opencode.solana.swap.buildSellInstructions
+import com.getcode.opencode.solana.swap.buildTreasuryFundedNewCurrencyBuyInstructions
 import com.getcode.opencode.solana.swap.buildStablecoinSwapperInstructions
 import com.getcode.opencode.solana.swap.buildStatelessSwapInstructions
 import com.getcode.opencode.solana.swap.buildUsdcDepositInstructions
@@ -150,18 +151,34 @@ object TransactionBuilder {
     fun buyNewCurrency(
         response: StatefulSwapResponseServerParameters.NewCurrency,
         authority: PublicKey,
+        sourceMintMetadata: MintMetadata,
         coreMintMetadata: MintMetadata,
         amount: Long,
         feeAmount: Long?,
     ): SolanaTransaction {
-        val instructions = buildNewCurrencyBuyInstructions(
-            serverParameters = response,
-            nonce = response.nonce,
-            authority = authority,
-            coreMintMetadata = coreMintMetadata,
-            amount = amount,
-            feeAmount = feeAmount ?: 0,
-        )
+        // When the server provides a treasury the initial buy is funded from a non-core source mint
+        // (cross-currency), which uses a distinct instruction layout. Otherwise the buy is paid for
+        // directly with the core mint.
+        val instructions = if (response.treasury != null) {
+            buildTreasuryFundedNewCurrencyBuyInstructions(
+                serverParameters = response,
+                nonce = response.nonce,
+                authority = authority,
+                sourceMintMetadata = sourceMintMetadata,
+                coreMintMetadata = coreMintMetadata,
+                swapAmount = amount,
+                feeAmount = feeAmount ?: 0,
+            )
+        } else {
+            buildNewCurrencyBuyInstructions(
+                serverParameters = response,
+                nonce = response.nonce,
+                authority = authority,
+                coreMintMetadata = coreMintMetadata,
+                amount = amount,
+                feeAmount = feeAmount ?: 0,
+            )
+        }
 
         return SolanaTransaction.newV0Instance(
             payer = response.payer,

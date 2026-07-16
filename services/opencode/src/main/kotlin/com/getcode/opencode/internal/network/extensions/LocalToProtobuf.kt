@@ -291,6 +291,14 @@ internal fun StatefulSwapRequest.currencyCreatorParams(): OcpTransactionService.
                 .setSwapAmount(this@currencyCreatorParams.swapAmount.underlyingTokenAmount.quarks)
                 .setFeeAmount(this@currencyCreatorParams.feeAmount?.underlyingTokenAmount?.quarks ?: 0)
                 .apply {
+                    // Required by the server when creating a new reserve currency from a non-core
+                    // source mint (treasury-funded flow); omitted otherwise.
+                    val fullAmountExchangeData = this@currencyCreatorParams.fullAmountExchangeData
+                    if (fullAmountExchangeData != null) {
+                        setFullAmountExchangeData(fullAmountExchangeData.asProtobufExchangeData())
+                    }
+                }
+                .apply {
                     when (val source = details.fundingSource) {
                         is SwapFundingSource.ExternalWallet -> {
                             setFundingSource(OcpTransactionService.FundingSource.FUNDING_SOURCE_EXTERNAL_WALLET)

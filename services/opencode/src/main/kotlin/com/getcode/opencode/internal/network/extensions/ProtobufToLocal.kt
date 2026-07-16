@@ -170,6 +170,8 @@ internal fun OcpTransactionService.StatefulSwapResponse.ServerParameters.Reserve
         sellFeeBps = sellFeeBps,
         vmLockDurationInDays = vmLockDurationInDays,
         feeDestination = feeDestination.toPublicKey(),
+        treasury = if (hasTreasury()) treasury.toPublicKey() else null,
+        treasuryPurchaseAmount = treasuryPurchaseAmount,
     )
 }
 

@@ -351,7 +351,16 @@ class SwapInstructionsTest {
         sellFeeBps = 100,
         vmLockDurationInDays = 21,
         alts = emptyList(),
-        feeDestination = mockFeeDestination
+        feeDestination = mockFeeDestination,
+        treasury = null,
+        treasuryPurchaseAmount = 0,
+    )
+
+    private val mockTreasury = generateRandomPublicKeyForTest()
+
+    private val mockTreasuryNewCurrencyServerParams = mockNewCurrencyServerParams.copy(
+        treasury = mockTreasury,
+        treasuryPurchaseAmount = 250_000L,
     )
 
     @Test
@@ -535,6 +544,93 @@ class SwapInstructionsTest {
         assertEquals(expectedCoreMintAta, instructions[10].accounts[0].publicKey)
         assertEquals(mockNewCurrencyAuthority, instructions[10].accounts[1].publicKey)
         assertEquals(mockNewCurrencyAuthority, instructions[10].accounts[2].publicKey)
+    }
+
+    @Test
+    fun testBuildTreasuryFundedNewCurrencyBuyInstructionsCount() {
+        val instructions = buildTreasuryFundedNewCurrencyBuyInstructions(
+            serverParameters = mockTreasuryNewCurrencyServerParams,
+            nonce = mockNonce,
+            authority = mockNewCurrencyAuthority,
+            sourceMintMetadata = targetMint,
+            coreMintMetadata = coreMint,
+            swapAmount = 95_000L,
+            feeAmount = 5_000L,
+        )
+
+        // Expected sequence (7 instructions):
+        // 1. System::AdvanceNonce
+        // 2. ComputeBudget::SetComputeUnitLimit
+        // 3. ComputeBudget::SetComputeUnitPrice
+        // 4. AssociatedTokenAccount::CreateIdempotent (treasury from_mint ATA)
+        // 5. VM::TransferForSwapWithFee
+        // 6. Reserve::SellTokens
+        // 7. Reserve::BuyTokens
+        assertEquals("Should generate 7 instructions", 7, instructions.size)
+    }
+
+    @Test
+    fun testBuildTreasuryFundedNewCurrencyBuyInstructionPrograms() {
+        val instructions = buildTreasuryFundedNewCurrencyBuyInstructions(
+            serverParameters = mockTreasuryNewCurrencyServerParams,
+            nonce = mockNonce,
+            authority = mockNewCurrencyAuthority,
+            sourceMintMetadata = targetMint,
+            coreMintMetadata = coreMint,
+            swapAmount = 95_000L,
+            feeAmount = 5_000L,
+        )
+
+        assertEquals(SystemProgram.address, instructions[0].program)
+        assertEquals(ComputeBudgetProgram.address, instructions[1].program)
+        assertEquals(ComputeBudgetProgram.address, instructions[2].program)
+        assertEquals(AssociatedTokenProgram.address, instructions[3].program)
+        assertEquals(VirtualMachineProgram.address, instructions[4].program)
+        assertEquals(CurrencyCreatorProgram.address, instructions[5].program)
+        assertEquals(CurrencyCreatorProgram.address, instructions[6].program)
+    }
+
+    @Test
+    fun testBuildTreasuryFundedNewCurrencyBuyInstructionAccounts() {
+        val instructions = buildTreasuryFundedNewCurrencyBuyInstructions(
+            serverParameters = mockTreasuryNewCurrencyServerParams,
+            nonce = mockNonce,
+            authority = mockNewCurrencyAuthority,
+            sourceMintMetadata = targetMint,
+            coreMintMetadata = coreMint,
+            swapAmount = 95_000L,
+            feeAmount = 5_000L,
+        )
+
+        val treasuryFromMintAta = PublicKey.deriveAssociatedAccount(
+            mockTreasury, targetMint.address
+        ).publicKey
+        val treasuryCoreMintAta = PublicKey.deriveAssociatedAccount(
+            mockTreasury, coreMint.address
+        ).publicKey
+
+        // 4. CreateIdempotent for the treasury's from_mint ATA: owner=treasury(1), mint=from(3)
+        assertEquals(mockTreasury, instructions[3].accounts[1].publicKey)
+        assertEquals(targetMint.address, instructions[3].accounts[3].publicKey)
+
+        // 5. TransferForSwapWithFee: source VM authority(0)/vm(1); both destination(5) and
+        //    feeDestination(6) route the full swap + fee into the treasury's from_mint ATA
+        assertEquals(targetMint.vmMetadata.authority, instructions[4].accounts[0].publicKey)
+        assertEquals(targetMint.vmMetadata.vm, instructions[4].accounts[1].publicKey)
+        assertEquals(treasuryFromMintAta, instructions[4].accounts[5].publicKey)
+        assertEquals(treasuryFromMintAta, instructions[4].accounts[6].publicKey)
+
+        // 6. SellTokens: the treasury is the seller/signer; core mint proceeds route to the fee
+        //    destination (seller=0, sellerTarget=6, sellerBase=7)
+        assertEquals(mockTreasury, instructions[5].accounts[0].publicKey)
+        assertTrue(instructions[5].accounts[0].isSigner)
+        assertEquals(treasuryFromMintAta, instructions[5].accounts[6].publicKey)
+        assertEquals(mockFeeDestination, instructions[5].accounts[7].publicKey)
+
+        // 7. BuyTokens: the treasury funds the buy from its own core mint ATA (buyer=0, buyerBase=7)
+        assertEquals(mockTreasury, instructions[6].accounts[0].publicKey)
+        assertTrue(instructions[6].accounts[0].isSigner)
+        assertEquals(treasuryCoreMintAta, instructions[6].accounts[7].publicKey)
     }
 
     @Test

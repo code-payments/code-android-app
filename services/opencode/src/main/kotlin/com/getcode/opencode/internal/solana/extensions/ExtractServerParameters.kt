@@ -34,6 +34,8 @@ sealed interface ExtractedServerParams {
         val sellFeeBps: Int,
         val vmLockDurationInDays: Int,
         val feeDestination: PublicKey,
+        val treasury: PublicKey?,
+        val treasuryPurchaseAmount: Long,
     ): ExtractedServerParams
 }
 
@@ -62,6 +64,8 @@ internal fun extractServerParameters(serverParameters: StatefulSwapResponseServe
         seed = serverParameters.seed,
         sellFeeBps = serverParameters.sellFeeBps,
         vmLockDurationInDays = serverParameters.vmLockDurationInDays,
-        feeDestination = serverParameters.feeDestination
+        feeDestination = serverParameters.feeDestination,
+        treasury = serverParameters.treasury,
+        treasuryPurchaseAmount = serverParameters.treasuryPurchaseAmount,
     )
 }

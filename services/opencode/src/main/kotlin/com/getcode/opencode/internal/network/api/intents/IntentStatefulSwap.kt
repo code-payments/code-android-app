@@ -53,6 +53,7 @@ internal class IntentStatefulSwap(
             is StatefulSwapResponseServerParameters.NewCurrency -> TransactionBuilder.buyNewCurrency(
                 response = parameters,
                 authority = request.owner.authorityPublicKey,
+                sourceMintMetadata = request.direction.sourceMint,
                 coreMintMetadata = Token.usdf,
                 amount = request.swapAmount.underlyingTokenAmount.quarks,
                 feeAmount = request.feeAmount?.underlyingTokenAmount?.quarks,
