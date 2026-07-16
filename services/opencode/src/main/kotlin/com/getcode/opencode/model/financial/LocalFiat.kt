@@ -148,3 +148,10 @@ operator fun LocalFiat.plus(other: LocalFiat): LocalFiat {
         nativeAmount = nativeAmount + other.nativeAmount
     )
 }
+
+/**
+ * Compares two [LocalFiat] values by their [underlyingTokenAmount], which is always
+ * USD-denominated and therefore the common denominator regardless of native currency.
+ */
+operator fun LocalFiat.compareTo(other: LocalFiat): Int =
+    underlyingTokenAmount.compareTo(other.underlyingTokenAmount)

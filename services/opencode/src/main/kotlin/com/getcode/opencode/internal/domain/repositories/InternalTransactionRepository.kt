@@ -8,6 +8,7 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.StatelessSwapRequest
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.StatefulSwapRequest
@@ -99,6 +100,32 @@ internal class InternalTransactionRepository @Inject constructor(
         of = of,
         owner = owner,
         verifiedState = verifiedState
+    ).onFailure { ErrorUtils.handleError(it) }
+
+    override suspend fun crossCurrencySwap(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        amount: LocalFiat,
+        feeAmount: LocalFiat?,
+        from: Token,
+        to: Token,
+        verifiedState: VerifiedState,
+        fullAmountExchangeData: ExchangeData.Verified?,
+        swapId: SwapId?,
+        source: SwapFundingSource,
+        fund: (suspend (StatefulSwapRequest) -> Result<Unit>)?,
+    ): Result<SwapId> = service.crossCurrencySwap(
+        scope = scope,
+        amount = amount,
+        feeAmount = feeAmount,
+        from = from,
+        to = to,
+        owner = owner,
+        verifiedState = verifiedState,
+        fullAmountExchangeData = fullAmountExchangeData,
+        swapId = swapId,
+        source = source,
+        fund = fund,
     ).onFailure { ErrorUtils.handleError(it) }
 
     override suspend fun withdrawUsdf(
