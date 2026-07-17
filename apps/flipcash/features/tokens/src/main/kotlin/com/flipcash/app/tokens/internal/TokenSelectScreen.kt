@@ -15,17 +15,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.TokenBalanceStyle
 import com.flipcash.app.core.ui.TokenSelectionStyle
 import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
-import com.flipcash.app.theme.FlipcashPreview
+import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
-import com.getcode.utils.trace
 
 @Composable
 internal fun SelectTokenScreen(
@@ -49,13 +49,28 @@ private fun SelectTokenScreenContent(
         selectedToken = state.selectedToken,
         styling = rememberTokenBalanceRowStyling(
             balanceDisplayStyle = TokenBalanceStyle.Pill(),
-            selectionStyle = if (state.purpose is TokenPurpose.Select) TokenSelectionStyle.Checkbox else TokenSelectionStyle.Chevron,
+            selectionStyle = when (state.purpose) {
+                TokenPurpose.Balance -> TokenSelectionStyle.Chevron
+                TokenPurpose.Deposit -> TokenSelectionStyle.Chevron
+                is TokenPurpose.Swap -> TokenSelectionStyle.Chevron
+                is TokenPurpose.LaunchFunding -> TokenSelectionStyle.Chevron
+                is TokenPurpose.Select -> TokenSelectionStyle.Checkbox
+                TokenPurpose.Withdraw -> TokenSelectionStyle.Chevron
+            }
         ),
         showSelections = state.purpose is TokenPurpose.Select,
-        showFlags = state.purpose !is TokenPurpose.Select,
+        showFlags = when (state.purpose) {
+            is TokenPurpose.Select -> false
+            is TokenPurpose.Swap -> false
+            is TokenPurpose.LaunchFunding -> false
+            else -> true
+        },
         enableGreaterThanAmount = { _, amount ->
             when (val purpose = state.purpose) {
-                is TokenPurpose.Purchase -> {
+                is TokenPurpose.Swap -> {
+                    amount.nativeAmount.valueGreaterThanOrEqualTo(purpose.amount)
+                }
+                is TokenPurpose.LaunchFunding -> {
                     amount.nativeAmount.valueGreaterThanOrEqualTo(purpose.amount)
                 }
                 else -> true
@@ -98,15 +113,12 @@ private fun SelectTokenScreenContent(
 
 @Composable
 @Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
 private fun PreviewEmptyState() {
-    FlipcashPreview(showBackground = true) {
-        SelectTokenScreenContent(
-            state = SelectTokenViewModel.State(
-                purpose = TokenPurpose.Select,
-                tokens = emptyList(),
-            ),
-        ) {
-
-        }
-    }
+    SelectTokenScreenContent(
+        state = SelectTokenViewModel.State(
+            purpose = TokenPurpose.Select,
+            tokens = emptyList(),
+        ),
+    ) {}
 }

@@ -4,6 +4,7 @@ import android.os.Parcelable
 import com.getcode.navigation.NonDismissableRoute
 import com.getcode.navigation.NonDraggableRoute
 import com.getcode.navigation.flow.FlowStep
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
@@ -44,7 +45,11 @@ sealed interface CurrencyCreatorStep: FlowStep, Parcelable, NonDismissableRoute,
 
     @Parcelize
     @Serializable
-    data object BillReviewAndPurchase: CurrencyCreatorStep
+    data object BillReview: CurrencyCreatorStep
+
+    @Parcelize
+    @Serializable
+    data object FundingSourceSelection: CurrencyCreatorStep
 
     @Parcelize
     @Serializable

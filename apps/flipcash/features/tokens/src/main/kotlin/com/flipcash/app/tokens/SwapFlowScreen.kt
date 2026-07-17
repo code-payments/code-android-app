@@ -2,9 +2,7 @@ package com.flipcash.app.tokens
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -28,7 +26,6 @@ import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
-import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -116,7 +113,7 @@ private fun SwapPurchaseTokenSelectScreen(targetMint: Mint, amount: Fiat) {
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
 
-    TokenSelectScreen(TokenPurpose.Purchase(targetMint, amount))
+    TokenSelectScreen(TokenPurpose.Swap(targetMint, amount))
 
     LaunchedEffect(selectionViewModel) {
         selectionViewModel.eventFlow

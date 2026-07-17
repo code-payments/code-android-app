@@ -250,6 +250,12 @@ class CurrencyServiceTest {
         description = null,
         bill = null,
         icon = null,
+        // Funding is consumed by the controller, not the launchToken API mapping under test here.
+        funding = TokenCreateRequest.Funding(
+            token = mockk(relaxed = true),
+            amount = mockk(relaxed = true),
+            fullAmount = mockk(relaxed = true),
+        ),
     )
 
     private fun makeIconRequest() = TokenUpdateRequest.Icon(

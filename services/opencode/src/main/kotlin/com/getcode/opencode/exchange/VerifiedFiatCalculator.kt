@@ -22,6 +22,17 @@ data class VerifiedFiat(
     val verifiedState: VerifiedState? = null,
 ) : Parcelable
 
+/**
+ * Returns this amount with its [LocalFiat.nativeAmount] pinned to [value], keeping the on-chain
+ * [LocalFiat.underlyingTokenAmount] (the funding-token quarks) intact.
+ *
+ * [compute] reports a bonding-curve sell estimate as the native amount. Some server flows — the
+ * treasury launch swap and its funding intent — instead require the exact input value (a fixed USD
+ * cost), so pin it here without disturbing the token quarks the swap actually moves.
+ */
+fun VerifiedFiat.valuedAt(value: Fiat): VerifiedFiat =
+    copy(localFiat = localFiat.copy(nativeAmount = value))
+
 interface VerifiedFiatCalculator {
     suspend fun resolveVerifiedState(
         currencyCode: CurrencyCode,

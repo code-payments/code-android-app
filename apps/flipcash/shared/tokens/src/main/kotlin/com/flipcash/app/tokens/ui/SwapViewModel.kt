@@ -56,12 +56,12 @@ import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
-import com.getcode.opencode.model.financial.div
 import com.getcode.opencode.model.financial.grossingUpLaunchpadSellFee
 import com.getcode.opencode.model.financial.launchpadSellFee
+import com.getcode.opencode.model.financial.max
+import com.getcode.opencode.model.financial.min
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.plus
-import com.getcode.opencode.model.financial.times
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapState
@@ -76,11 +76,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -91,6 +93,8 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.CancellationException
 import javax.inject.Inject
 import kotlin.collections.listOf
+import kotlin.collections.map
+import kotlin.collections.orEmpty
 
 data class AmountEntryState(
     val limits: Limits? = null,
@@ -161,15 +165,18 @@ class SwapViewModel @Inject constructor(
         stateFlow.map { it.purpose },
         stateFlow.map { it.amountEntryState.maxToAdd },
         stateFlow.map { it.tokenBalance },
-        stateFlow.map { it.reservesBalance },
-    ) { purpose, maxToAdd, tokenBalance, reservesBalance ->
+        tokenCoordinator.tokenBalances.distinctUntilChanged(),
+    ) { purpose, maxToAdd, tokenBalance, tokenBalances ->
         when (purpose) {
             is SwapPurpose.Buy -> {
+                val limit = maxToAdd?.let { Fiat(it.first, it.second) }
                 val mustAddMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
                 if (mustAddMoney && !stateFlow.value.isAddingMoney) {
-                    return@combine reservesBalance
+                    val maxTokenBalance = tokenBalances.maxOf { it.balance }
+                    return@combine limit?.let { min(maxTokenBalance, it) } ?: maxTokenBalance
                 }
-                maxToAdd?.let { Fiat(it.first, it.second) }
+
+                limit
             }
             is SwapPurpose.Sell -> tokenBalance
             null -> null
@@ -426,22 +433,25 @@ class SwapViewModel @Inject constructor(
         )
     }
 
-    private val transactionLimit: Fiat
-        get() = when (stateFlow.value.purpose) {
+    private suspend fun transactionLimit(): Fiat {
+        return when (stateFlow.value.purpose) {
             is SwapPurpose.Buy -> {
                 val mustAddMoney = featureFlags.observe(FeatureFlag.AddMoneyUX).value
-                if (mustAddMoney && !stateFlow.value.isAddingMoney) {
-                    return stateFlow.value.reservesBalance
-                }
-
                 val sendLimit = enteredAmount.currencyCode.let {
                     stateFlow.value.amountEntryState.limits?.sendLimitFor(it)
                 } ?: SendLimit.Zero
-                sendLimit.maxPerDay.toFiat(enteredAmount.currencyCode)
+                val maxSendPerDay = sendLimit.maxPerDay.toFiat(enteredAmount.currencyCode)
+                if (mustAddMoney && !stateFlow.value.isAddingMoney) {
+                    val balances = tokenCoordinator.tokenBalances.firstOrNull().orEmpty().map { it.balance }
+                    min((balances.maxOrNull() ?: Fiat.Zero), maxSendPerDay)
+                } else {
+                    maxSendPerDay
+                }
             }
             is SwapPurpose.Sell -> stateFlow.value.tokenBalance
             null -> Fiat.Zero
         }
+    }
 
     val checkBalanceLimit: () -> Boolean = {
         val amount = amountDelegate.state.value.enteredAmount
@@ -482,7 +492,7 @@ class SwapViewModel @Inject constructor(
     }
 
     val checkFundingAmount: suspend () -> Boolean = {
-        val limit = transactionLimit
+        val limit = transactionLimit()
         val isOverLimit = enteredAmount.valueGreaterThan(limit)
         val mustAddMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
         val isAddingMoney = stateFlow.value.isAddingMoney
@@ -972,7 +982,7 @@ class SwapViewModel @Inject constructor(
                 } else {
                     // `amount` is grossed up; the pool's sell fee is applied on-chain during the
                     // swap, so feeAmount is left null (the server rejects a non-zero fee here).
-                    transactionController.crossCurrencySwap(
+                    transactionController.swap(
                         owner = owner,
                         amount = amount,
                         from = fundingToken.token,

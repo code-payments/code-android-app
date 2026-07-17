@@ -7,7 +7,6 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.SwapMetadata
 import com.getcode.opencode.model.transactions.StatefulSwapRequest
@@ -46,18 +45,17 @@ interface TransactionOperations {
     ): Result<SwapId>
 
     /**
-     * Swaps one launchpad currency directly for another (neither side the core mint). When [to] is
-     * a freshly-launched stub the server creates it during the swap using a treasury-funded flow,
-     * which requires [fullAmountExchangeData] — a USD valuation over the full swap + fee amount keyed
-     * to [from]. For existing destinations [fullAmountExchangeData] is not needed.
+     * Swaps one launchpad currency directly for another existing currency (neither side the core
+     * mint). To fund a brand-new currency launch by swapping from another currency, use
+     * [TransactionController.launchToken] — that path is treasury-funded and creates the
+     * destination during the swap.
      */
-    suspend fun crossCurrencySwap(
+    suspend fun swap(
         owner: AccountCluster,
         amount: VerifiedFiat,
         feeAmount: LocalFiat? = null,
         from: Token,
         to: Token,
-        fullAmountExchangeData: ExchangeData.Verified? = null,
         swapId: SwapId? = null,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         fund: (suspend (StatefulSwapRequest) -> Result<Unit>)? = null,

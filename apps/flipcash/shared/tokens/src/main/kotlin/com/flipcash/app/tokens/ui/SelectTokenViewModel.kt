@@ -1,16 +1,11 @@
 package com.flipcash.app.tokens.ui
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.analytics.Analytics
-import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
-import com.flipcash.services.internal.model.thirdparty.OnRampProvider
-import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.shared.tokens.R
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Fiat
@@ -31,7 +26,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -109,11 +103,15 @@ class SelectTokenViewModel @Inject constructor(
                     tokenCoordinator.tokenBalances,
                     exchange.observePreferredRate()
                 ) { balances, rate ->
+                    val rateForPurpose = when (purpose) {
+                        is TokenPurpose.LaunchFunding -> exchange.rateForUsd()
+                        else -> rate
+                    }
                     balances
                         .map {
                             val balance = LocalFiat(
                                 usdf = it.balance,
-                                nativeAmount = it.balance.convertingTo(rate),
+                                nativeAmount = it.balance.convertingTo(rateForPurpose),
                             )
 
                             // USD reserves don't appreciate so we track that as MIN_VALUE internally to avoid confusion
@@ -121,12 +119,12 @@ class SelectTokenViewModel @Inject constructor(
                             val appreciation = if (it.appreciation == Fiat.MIN_VALUE) {
                                 LocalFiat(
                                     usdf = 0.toFiat(),
-                                    nativeAmount = 0.toFiat(rate.currency),
+                                    nativeAmount = 0.toFiat(rateForPurpose.currency),
                                 )
                             } else {
                                 LocalFiat(
                                     usdf = it.appreciation,
-                                    nativeAmount = it.appreciation.convertingTo(rate),
+                                    nativeAmount = it.appreciation.convertingTo(rateForPurpose),
                                 )
                             }
 
@@ -136,23 +134,10 @@ class SelectTokenViewModel @Inject constructor(
                                 appreciation = appreciation,
                                 displayName = when (purpose) {
                                     TokenPurpose.Balance -> it.token.name
-                                    TokenPurpose.Deposit -> {
-                                        if (it.token.address == Mint.usdf) {
-                                            resources.getString(R.string.displayName_usdf)
-                                        } else {
-                                            it.token.name
-                                        }
-                                    }
 
-                                    is TokenPurpose.Purchase -> {
-                                        if (it.token.address == Mint.usdf) {
-                                            resources.getString(R.string.displayName_usdf)
-                                        } else {
-                                            it.token.name
-                                        }
-                                    }
-
-                                    TokenPurpose.Select -> it.token.name
+                                    is TokenPurpose.Swap,
+                                    is TokenPurpose.LaunchFunding,
+                                    TokenPurpose.Deposit,
                                     TokenPurpose.Withdraw -> {
                                         if (it.token.address == Mint.usdf) {
                                             resources.getString(R.string.displayName_usdf)
@@ -160,6 +145,9 @@ class SelectTokenViewModel @Inject constructor(
                                             it.token.name
                                         }
                                     }
+
+                                    is TokenPurpose.Select -> it.token.name
+
                                 }
                             )
                         }
@@ -169,10 +157,11 @@ class SelectTokenViewModel @Inject constructor(
                         )
                         .filter {
                             val hasBalance = it.balance.nativeAmount.hasDisplayableValue
-                            when (val details = purpose) {
+                            when (purpose) {
                                 // show all tokens we have accounts for as deposit targets
                                 TokenPurpose.Deposit -> true
-                                TokenPurpose.Select -> {
+
+                                is TokenPurpose.Select -> {
                                     if (it.token.address == Mint.usdf) {
                                         stateFlow.value.canGiveUsdf && hasBalance
                                     } else {
@@ -180,8 +169,12 @@ class SelectTokenViewModel @Inject constructor(
                                     }
                                 }
 
-                                is TokenPurpose.Purchase -> {
-                                    if (it.token.address != details.desiredToken) {
+                                is TokenPurpose.LaunchFunding -> {
+                                    hasBalance
+                                }
+
+                                is TokenPurpose.Swap -> {
+                                    if (it.token.address != purpose.desiredToken) {
                                         hasBalance
                                     } else {
                                         false

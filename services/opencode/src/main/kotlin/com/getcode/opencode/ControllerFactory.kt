@@ -40,6 +40,7 @@ object ControllerFactory {
     fun createCurrencyController(context: Context, config: ProtocolConfig): CurrencyController {
         return CurrencyController(
             repository = RepositoryFactory.createCurrencyRepository(context, config),
+            transactionController = createTransactionController(context, config),
         )
     }
 

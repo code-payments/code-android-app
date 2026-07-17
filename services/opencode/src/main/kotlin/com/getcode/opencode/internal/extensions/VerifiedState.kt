@@ -14,7 +14,7 @@ private val DefaultBillExchangeDataTimeout = 15.minutes
 fun VerifiedState.exchangeDataFor(
     amount: LocalFiat,
     mint: Mint,
-    billExchangeDataTimeout: Duration?
+    billExchangeDataTimeout: Duration? = null
 ): ExchangeData.Verified? {
     val timeout = billExchangeDataTimeout ?: DefaultBillExchangeDataTimeout
     if (timeout <= Duration.ZERO) return null

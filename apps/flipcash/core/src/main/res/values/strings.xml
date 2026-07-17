@@ -489,6 +489,9 @@
     <string name="placeholder_currencyName">Currency Name</string>
     <string name="placeholder_currencyTicker">$BadBoys</string>
     <string name="action_buyFirstToCreate">Pay %1$s to Create</string>
+    <string name="title_readyToCreate">Ready To Create?</string>
+    <string name="description_readyToCreate">You won\'t be able to change the name once your currency is created.</string>
+    <string name="action_payToCreateCurrency">Pay To Create Currency</string>
     <string name="title_creatingCurrency">Creating %1$s</string>
     <string name="title_currencyIsLive">%1$s Is Live</string>
     <string name="subtitle_currencyIsLive">Your currency is ready to receive and use</string>
