@@ -10,7 +10,7 @@ kotlinx-coroutines = "1.11.0"
 kotlinx-serialization = "1.11.0"
 kotlinx-datetime = "0.8.0"
 
-kover = "0.9.8"
+kover = "0.9.9"
 agp = "9.2.1"
 google-services = "4.5.0"
 
