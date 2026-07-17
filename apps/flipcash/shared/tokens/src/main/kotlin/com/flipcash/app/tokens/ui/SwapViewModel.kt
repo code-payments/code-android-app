@@ -1138,6 +1138,12 @@ class SwapViewModel @Inject constructor(
             .onEach { (method, metadata) ->
                 when (method) {
                     PurchaseMethod.CoinbaseOnRamp -> {
+                        // The add-money deposit sheet (presentDepositOptions) emits a Plain
+                        // selection with no amount and owns its own email/phone gate + navigation.
+                        // Only react to an actual purchase (which carries an amount) here — reacting
+                        // to the deposit selection would push the verification screen a second time.
+                        val amount = metadata.purchaseAmount ?: return@onEach
+
                         analytics.buttonTapped(Button.TokenBuyWithCoinbase)
                         dispatchEvent(Event.CoinbaseSelected)
 
@@ -1162,8 +1168,6 @@ class SwapViewModel @Inject constructor(
                             )
                             return@onEach
                         }
-
-                        val amount = metadata.purchaseAmount ?: return@onEach
 
                         if (amount < minimumCoinbasePurchaseAmount) {
                             BottomBarManager.showAlert(

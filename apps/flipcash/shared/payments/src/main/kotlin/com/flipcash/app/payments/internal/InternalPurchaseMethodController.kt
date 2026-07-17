@@ -167,10 +167,18 @@ class InternalPurchaseMethodController @Inject constructor(
             PurchaseMethod.CoinbaseOnRamp -> {
                 val profile = userManager.profile
                 val needsPhone = profile?.verifiedPhoneNumber == null
-                val email = profile?.email?.value
                 val needsEmailVerification = userFlags.resolvedFlags.value
                     .requireCoinbaseEmailVerification.effectiveValue
-                val needsEmail = needsEmailVerification || email == null
+                // Match CoinbaseOnRampController.resolveEmail(): when verification is required only a
+                // server-verified email is usable, otherwise any entered email counts. Diverging here
+                // (forcing verification whenever the flag is on) made this gate disagree with the
+                // purchase-time check and could send an already-verified user to verification.
+                val email = if (needsEmailVerification) {
+                    profile?.verifiedEmailAddress
+                } else {
+                    profile?.email?.value
+                }
+                val needsEmail = email == null
                 trace("needsPhone: $needsPhone, needsEmail: $needsEmail, needsEmailVerification: $needsEmailVerification")
                 val swapRoute = AppRoute.Token.Swap(
                     purpose = SwapPurpose.Buy(Mint.usdf, FundingSource.Coinbase),
