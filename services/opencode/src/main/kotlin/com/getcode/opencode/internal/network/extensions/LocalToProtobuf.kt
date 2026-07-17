@@ -21,7 +21,7 @@ import com.getcode.opencode.model.transactions.GiveRequest
 import com.getcode.opencode.model.transactions.GrabRequest
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.StatefulSwapRequest
-import com.getcode.opencode.model.transactions.SwapStartKind
+import com.getcode.opencode.model.transactions.SwapProgram
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.TransferRequest
 import com.getcode.opencode.model.ui.BillBackground
@@ -282,14 +282,22 @@ internal fun LocalFiat.asExchangeData(): OcpTransactionService.ExchangeData {
 }
 
 internal fun StatefulSwapRequest.currencyCreatorParams(): OcpTransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.Builder {
-    return when (val details = kind) {
-        is SwapStartKind.Reserve -> {
+    return when (val details = program) {
+        is SwapProgram.Reserve -> {
             OcpTransactionService.StatefulSwapRequest.Initiate.ReserveSwapClientParameters.newBuilder()
                 .setId(swapId.asSwapId())
                 .setFromMint(details.fromMint.asSolanaAccountId())
                 .setToMint(details.toMint.asSolanaAccountId())
                 .setSwapAmount(this@currencyCreatorParams.swapAmount.underlyingTokenAmount.quarks)
                 .setFeeAmount(this@currencyCreatorParams.feeAmount?.underlyingTokenAmount?.quarks ?: 0)
+                .apply {
+                    // Required by the server when creating a new reserve currency from a non-core
+                    // source mint (treasury-funded flow); omitted otherwise.
+                    val fullAmountExchangeData = this@currencyCreatorParams.fullAmountExchangeData
+                    if (fullAmountExchangeData != null) {
+                        setFullAmountExchangeData(fullAmountExchangeData.asProtobufExchangeData())
+                    }
+                }
                 .apply {
                     when (val source = details.fundingSource) {
                         is SwapFundingSource.ExternalWallet -> {
@@ -312,25 +320,25 @@ internal fun StatefulSwapRequest.currencyCreatorParams(): OcpTransactionService.
                 }
         }
 
-        is SwapStartKind.Stablecoin -> {
+        is SwapProgram.Stablecoin -> {
             throw IllegalStateException("Stablecoin should not be used for currency creator params")
         }
     }
 }
 
 internal fun StatefulSwapRequest.stablecoinParams(): OcpTransactionService.StatefulSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.Builder {
-    return when (val details = kind) {
-        is SwapStartKind.Reserve -> {
+    return when (val details = program) {
+        is SwapProgram.Reserve -> {
             throw IllegalStateException("Reserve should not be used for stable swapper params")
         }
 
-        is SwapStartKind.Stablecoin -> {
+        is SwapProgram.Stablecoin -> {
             OcpTransactionService.StatefulSwapRequest.Initiate.CoinbaseStableSwapperClientParameters.newBuilder()
                 .setId(swapId.asSwapId())
                 .setFromMint(details.fromMint.asSolanaAccountId())
                 .setToMint(details.toMint.asSolanaAccountId())
                 .setSwapAmount(this@stablecoinParams.swapAmount.underlyingTokenAmount.quarks)
-                .setDestinationOwner(this@stablecoinParams.kind.destinationOwner.asSolanaAccountId())
+                .setDestinationOwner(this@stablecoinParams.program.destinationOwner.asSolanaAccountId())
                 .setFeeAmount(this@stablecoinParams.feeAmount?.underlyingTokenAmount?.quarks ?: 0)
                 .setFundingSource(OcpTransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
                 .setFundingId(details.fundingSource.id.base58)
@@ -341,12 +349,12 @@ internal fun StatefulSwapRequest.stablecoinParams(): OcpTransactionService.State
 internal fun StatefulSwapRequest.verifiedMetadata(): OcpTransactionService.VerifiedSwapMetadata.Builder {
     return OcpTransactionService.VerifiedSwapMetadata.newBuilder()
         .apply {
-            when (kind) {
-                is SwapStartKind.Reserve -> setReserve(
+            when (program) {
+                is SwapProgram.Reserve -> setReserve(
                     OcpTransactionService.VerifiedReserveSwapMetadata.newBuilder()
                         .setClientParameters(currencyCreatorParams())
                 )
-                is SwapStartKind.Stablecoin -> setStablecoin(
+                is SwapProgram.Stablecoin -> setStablecoin(
                     OcpTransactionService.VerifiedCoinbaseStableSwapperSwapMetadata.newBuilder()
                         .setClientParameters(stablecoinParams())
                 )

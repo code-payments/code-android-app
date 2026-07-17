@@ -404,6 +404,63 @@ class TransactionController @Inject constructor(
             }
     }
 
+    override suspend fun crossCurrencySwap(
+        owner: AccountCluster,
+        amount: VerifiedFiat,
+        feeAmount: LocalFiat?,
+        from: Token,
+        to: Token,
+        fullAmountExchangeData: ExchangeData.Verified?,
+        swapId: SwapId?,
+        source: SwapFundingSource,
+        fund: (suspend (StatefulSwapRequest) -> Result<Unit>)?,
+    ): Result<SwapId> {
+        trace("Starting cross-currency swap of ${from.symbol} -> ${to.symbol}")
+
+        // A freshly-launched stub destination is created by the swap itself, so no destination
+        // account needs provisioning; existing destinations need a VM account to receive the buy.
+        val initializesDestination = to.launchpadMetadata == null && to.address != Mint.usdf
+        val tokenizedOwner = owner.withTimelockForToken(to)
+        val accountResult = when {
+            initializesDestination -> Result.success(Unit)
+            accountController.hasAccountFor(to.address) -> Result.success(Unit)
+            else -> accountController.createUserAccount(
+                ownerForMint = tokenizedOwner,
+                mint = to.address,
+            )
+        }
+
+        val verifiedState = amount.verifiedState
+            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+
+        return accountResult.fold(
+            onSuccess = {
+                repository.crossCurrencySwap(
+                    scope = scope,
+                    owner = owner,
+                    amount = amount.localFiat,
+                    feeAmount = feeAmount,
+                    from = from,
+                    to = to,
+                    verifiedState = verifiedState,
+                    fullAmountExchangeData = fullAmountExchangeData,
+                    swapId = swapId,
+                    source = source,
+                    fund = fund,
+                ).onSuccess { refreshAccountState() }
+            },
+            onFailure = { error ->
+                trace(
+                    tag = "TransactionController",
+                    message = error.message.orEmpty(),
+                    type = TraceType.Error,
+                    error = error
+                )
+                Result.failure(error)
+            }
+        )
+    }
+
     override suspend fun pollSwapForState(
         swapId: SwapId,
         owner: AccountCluster,

@@ -7,6 +7,7 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.TransactionMetadata
@@ -63,6 +64,20 @@ interface TransactionRepository {
         amount: LocalFiat,
         of: Token,
         verifiedState: VerifiedState,
+    ): Result<SwapId>
+
+    suspend fun crossCurrencySwap(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        amount: LocalFiat,
+        feeAmount: LocalFiat? = null,
+        from: Token,
+        to: Token,
+        verifiedState: VerifiedState,
+        fullAmountExchangeData: ExchangeData.Verified? = null,
+        swapId: SwapId? = null,
+        source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
+        fund: (suspend (StatefulSwapRequest) -> Result<Unit>)? = null,
     ): Result<SwapId>
 
     suspend fun withdrawUsdf(

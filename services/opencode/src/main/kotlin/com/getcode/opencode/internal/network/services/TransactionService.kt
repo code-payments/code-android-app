@@ -23,11 +23,12 @@ import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.StatelessSwapRequest
-import com.getcode.opencode.model.transactions.SwapDirection
+import com.getcode.opencode.model.transactions.SwapRoute
 import com.getcode.opencode.model.transactions.SwapFundingSource
-import com.getcode.opencode.model.transactions.SwapStartKind
+import com.getcode.opencode.model.transactions.SwapProgram
 import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.opencode.model.transactions.WithdrawalAvailability
 import com.getcode.opencode.solana.intents.IntentType
@@ -196,12 +197,12 @@ internal class TransactionService @Inject constructor(
         val request = StatefulSwapRequest(
             owner = owner,
             swapAuthority = swapAuthority,
-            kind = SwapStartKind.Reserve(
+            program = SwapProgram.Reserve(
                 fromMint = Mint.usdf,
                 toMint = of.address,
                 fundingSource = source,
             ),
-            direction = SwapDirection.Buy(of),
+            route = SwapRoute.Buy(of),
             swapAmount = netAmount,
             feeAmount = feeAmount,
             swapId = swapId ?: SwapId.generate(),
@@ -226,18 +227,68 @@ internal class TransactionService @Inject constructor(
             owner = tokenCluster,
             swapId = SwapId.generate(),
             swapAuthority = Ed25519.createKeyPair(),
-            kind = SwapStartKind.Reserve(
+            program = SwapProgram.Reserve(
                 fromMint = of.address,
                 toMint = Mint.usdf,
                 fundingSource = source,
             ),
-            direction = SwapDirection.Sell(of),
+            route = SwapRoute.Sell(of),
             swapAmount = amount,
             feeAmount = null,
             verifiedState = verifiedState,
         )
 
         return statefulSwap(scope, request, tokenCluster)
+    }
+
+    /**
+     * Swaps one launchpad currency directly for another (neither side the core mint).
+     *
+     * When [to] is an existing currency the server returns RESERVE_EXISTING_CURRENCY parameters and
+     * the swap runs through a one-time [swapAuthority]. When [to] is a freshly-launched stub
+     * (launchpadMetadata == null && address != USDF), the server creates the currency during the
+     * swap and returns RESERVE_NEW_CURRENCY parameters funded by a server-controlled treasury; that
+     * path requires owner == swapAuthority and a [fullAmountExchangeData] valuation over the full
+     * swap + fee amount, keyed to [from] and denominated in USD.
+     */
+    suspend fun crossCurrencySwap(
+        scope: CoroutineScope,
+        amount: LocalFiat,
+        feeAmount: LocalFiat?,
+        from: Token,
+        to: Token,
+        owner: AccountCluster,
+        verifiedState: VerifiedState,
+        fullAmountExchangeData: ExchangeData.Verified? = null,
+        swapId: SwapId? = null,
+        source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
+        fund: (suspend (StatefulSwapRequest) -> Result<Unit>)? = null,
+    ): Result<SwapId> {
+        val initializesDestination = to.launchpadMetadata == null && to.address != Mint.usdf
+        // New currency requires owner == swapAuthority; existing swaps use a one-time authority.
+        val swapAuthority =
+            if (initializesDestination) owner.authority.keyPair else Ed25519.createKeyPair()
+
+        val netAmount = amount - (feeAmount ?: LocalFiat.Zero)
+        val tokenCluster = owner.withTimelockForToken(from)
+        val request = StatefulSwapRequest(
+            owner = tokenCluster,
+            swapAuthority = swapAuthority,
+            swapId = swapId ?: SwapId.generate(),
+            program = SwapProgram.Reserve(
+                fromMint = from.address,
+                toMint = to.address,
+                fundingSource = source,
+            ),
+            route = SwapRoute.CrossCurrency(from = from, to = to),
+            swapAmount = netAmount,
+            feeAmount = feeAmount,
+            verifiedState = verifiedState,
+            fullAmountExchangeData = fullAmountExchangeData,
+        )
+
+        val fundedWith = fund ?: { swapFunding.fund(scope, tokenCluster, it).map { Unit } }
+        return statefulSwap(scope, request, tokenCluster, fundedWith)
     }
 
     suspend fun withdrawUsdf(
@@ -254,13 +305,13 @@ internal class TransactionService @Inject constructor(
             owner = owner,
             swapId = SwapId.generate(),
             swapAuthority = Ed25519.createKeyPair(),
-            kind = SwapStartKind.Stablecoin(
+            program = SwapProgram.Stablecoin(
                 fromMint = Mint.usdf,
                 toMint = Mint.usdc,
                 fundingSource = SwapFundingSource.SubmitIntent(),
                 destinationOwner = destinationOwner
             ),
-            direction = SwapDirection.WithdrawUsdc,
+            route = SwapRoute.WithdrawUsdc,
             swapAmount = netAmount,
             feeAmount = fee,
             verifiedState = verifiedState,

@@ -24,7 +24,7 @@ internal class SwapFunding @Inject constructor(
             intentId = PublicKey(request.fundingIntentId),
             sourceCluster = request.owner,
             amount = request.totalTransferAmount,
-            fromMint = request.direction.sourceMint,
+            fromMint = request.route.sourceMint,
             verifiedState = request.verifiedState,
         )
 

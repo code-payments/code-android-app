@@ -15,6 +15,7 @@ import com.getcode.opencode.internal.solana.programs.ComputeBudgetProgram_SetCom
 import com.getcode.opencode.internal.solana.programs.CurrencyCreatorProgram_BuyTokens
 import com.getcode.opencode.internal.solana.programs.CurrencyCreatorProgram_InitializeCurrency
 import com.getcode.opencode.internal.solana.programs.CurrencyCreatorProgram_InitializePool
+import com.getcode.opencode.internal.solana.programs.CurrencyCreatorProgram_SellTokens
 import com.getcode.opencode.internal.solana.programs.SystemProgram_AdvanceNonce
 import com.getcode.opencode.internal.solana.programs.TokenProgram_CloseAccount
 import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram_InitVm
@@ -209,6 +210,162 @@ internal fun buildNewCurrencyBuyInstructions(
                 account = createTemporaryCoreMintAta.address,
                 destination = serverParams.authority,
                 owner = authority,
+            ).instruction()
+        )
+    }
+}
+
+/**
+ * Builds the list of instructions for the treasury-funded new currency purchase flow, used when
+ * the initial buy for a new currency is funded from a source mint other than the core mint (i.e.
+ * a cross-currency purchase). This mirrors the server's
+ * `ReserveTreasuryFundedCreateAndBuySwapHandler`.
+ *
+ * Unlike [buildNewCurrencyBuyInstructions], the destination currency, its VM, and the buyer's
+ * destination VM deposit ATA are initialized in a prior transaction, so they are only referenced
+ * here. The full swap + fee amount of the source mint is collected into a server-controlled
+ * treasury, sold for the core mint (proceeds routed to the fee destination), and the new currency
+ * is then bought using the treasury's own core mint holdings for a pre-coordinated
+ * [StatefulSwapResponseServerParameters.NewCurrency.treasuryPurchaseAmount]. The treasury signs the
+ * sell/buy instructions server-side; the client only signs as the swapper.
+ *
+ * Instruction format (matches the server's "all other cases" reserve new currency layout):
+ * 1. System::AdvanceNonce
+ * 2. ComputeBudget::SetComputeUnitLimit
+ * 3. ComputeBudget::SetComputeUnitPrice
+ * 4. AssociatedTokenAccount::CreateIdempotent (open treasury's from_mint ATA)
+ * 5. VM::TransferForSwapWithFee (from_mint VM swap ATA -> treasury's from_mint ATA (swap + fee))
+ * 6. Reserve::SellTokens (sell the full swap + fee amount, core mint proceeds -> fee destination)
+ * 7. Reserve::BuyTokens (buy funded by the treasury's core mint ATA -> to_mint VM deposit ATA)
+ *
+ * @param serverParameters Parameters provided by the server for the new currency flow. Must carry a
+ *                         non-null [StatefulSwapResponseServerParameters.NewCurrency.treasury].
+ * @param nonce The nonce account to use for the transaction.
+ * @param authority The currency creator / buyer (owner == swapAuthority for the new currency flow).
+ * @param sourceMintMetadata Metadata for the source (from) mint being sold to fund the purchase.
+ * @param coreMintMetadata Metadata for the core mint (the reserve base currency).
+ * @param swapAmount The amount of the source mint to swap (in quarks).
+ * @param feeAmount The fee amount of the source mint to collect (in quarks).
+ * @return A list of [Instruction]s to execute the treasury-funded new currency buy.
+ */
+internal fun buildTreasuryFundedNewCurrencyBuyInstructions(
+    serverParameters: StatefulSwapResponseServerParameters.NewCurrency,
+    nonce: PublicKey,
+    authority: PublicKey,
+    sourceMintMetadata: MintMetadata,
+    coreMintMetadata: MintMetadata,
+    swapAmount: Long,
+    feeAmount: Long,
+): List<Instruction> {
+    val serverParams = extractServerParameters(serverParameters)
+
+    val treasury = serverParams.treasury
+        ?: throw IllegalStateException("treasury is required for the treasury-funded new currency buy")
+    val purchaseCoreQuarks = serverParams.treasuryPurchaseAmount
+
+    val sourceLaunchpad = sourceMintMetadata.launchpadMetadata
+        ?: throw IllegalStateException("source mint has no launchpad metadata")
+    val sourceVm = sourceMintMetadata.vmMetadata
+
+    // Derive the destination (new) currency accounts deterministically from the server params.
+    // The currency, pool, VM and deposit ATA are initialized in a prior transaction and only
+    // referenced here.
+    val targetMint = PublicKey.deriveCurrencyMintAddress(
+        authority = serverParams.authority,
+        name = serverParams.name,
+        seed = serverParams.seed,
+    ).publicKey
+
+    val currencyConfig = PublicKey.deriveCurrencyConfigAddress(targetMint).publicKey
+    val pool = PublicKey.deriveLiquidityPoolAddress(currencyConfig).publicKey
+    val vaultTarget = PublicKey.deriveVaultAddress(pool, targetMint).publicKey
+    val vaultBase = PublicKey.deriveVaultAddress(pool, coreMintMetadata.address).publicKey
+
+    val vm = PublicKey.deriveVirtualMachineAccount(
+        mint = targetMint,
+        authority = serverParams.authority,
+        lockout = serverParams.vmLockDurationInDays.toUByte(),
+    ).publicKey
+    val depositPda = PublicKey.deriveDepositAccount(vm, authority)
+    val vmDepositAta = AssociatedTokenProgram_CreateIdempotent(
+        subsidizer = serverParams.payer,
+        owner = depositPda.publicKey,
+        mint = targetMint,
+    ).address
+
+    // Treasury accounts. The from_mint ATA is opened by this transaction; the core mint ATA is
+    // pre-funded server-side and only referenced.
+    val createTreasuryFromMintAta = AssociatedTokenProgram_CreateIdempotent(
+        subsidizer = serverParams.payer,
+        owner = treasury,
+        mint = sourceMintMetadata.address,
+    )
+    val treasuryCoreMintAta = AssociatedTokenProgram_CreateIdempotent(
+        subsidizer = serverParams.payer,
+        owner = treasury,
+        mint = coreMintMetadata.address,
+    ).address
+
+    val sourceTimelockAccounts = sourceMintMetadata.timelockSwapAccounts(authority)
+
+    return buildList {
+        // 1. System::AdvanceNonce
+        add(SystemProgram_AdvanceNonce(nonce, serverParams.payer).instruction())
+
+        // 2. ComputeBudget::SetComputeUnitLimit
+        add(ComputeBudgetProgram_SetComputeUnitLimit(units = serverParams.computeUnitLimit).instruction())
+
+        // 3. ComputeBudget::SetComputeUnitPrice
+        add(ComputeBudgetProgram_SetComputeUnitPrice(microLamports = serverParams.computeUnitPrice).instruction())
+
+        // 4. AssociatedTokenAccount::CreateIdempotent (open treasury's from_mint ATA)
+        add(createTreasuryFromMintAta.instruction())
+
+        // 5. VM::TransferForSwapWithFee (from_mint VM swap ATA -> treasury's from_mint ATA (swap + fee))
+        add(
+            VirtualMachineProgram_TransferForSwapWithFee(
+                vmAuthority = sourceVm.authority,
+                vm = sourceVm.vm,
+                swapper = authority,
+                swapPda = sourceTimelockAccounts.pda.publicKey,
+                swapAta = sourceTimelockAccounts.ata.publicKey,
+                destination = createTreasuryFromMintAta.address,
+                feeDestination = createTreasuryFromMintAta.address,
+                swapAmount = swapAmount,
+                feeAmount = feeAmount,
+                bump = sourceTimelockAccounts.pda.bump,
+            ).instruction()
+        )
+
+        // 6. Reserve::SellTokens (sell full swap + fee of from_mint; core mint proceeds -> fee destination)
+        add(
+            CurrencyCreatorProgram_SellTokens(
+                inAmount = swapAmount + feeAmount,
+                minOutAmount = 0,
+                seller = treasury,
+                pool = sourceLaunchpad.liquidityPool,
+                targetMint = sourceMintMetadata.address,
+                baseMint = coreMintMetadata.address,
+                vaultTarget = sourceLaunchpad.mintVault,
+                vaultBase = sourceLaunchpad.coreMintVault,
+                sellerTarget = createTreasuryFromMintAta.address,
+                sellerBase = serverParams.feeDestination,
+            ).instruction()
+        )
+
+        // 7. Reserve::BuyTokens (buy funded by the treasury's core mint ATA -> to_mint VM deposit ATA)
+        add(
+            CurrencyCreatorProgram_BuyTokens(
+                inAmount = purchaseCoreQuarks,
+                minOutAmount = 0,
+                buyer = treasury,
+                pool = pool,
+                targetMint = targetMint,
+                baseMint = coreMintMetadata.address,
+                vaultTarget = vaultTarget,
+                vaultBase = vaultBase,
+                buyerTarget = vmDepositAta,
+                buyerBase = treasuryCoreMintAta,
             ).instruction()
         )
     }

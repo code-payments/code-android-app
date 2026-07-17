@@ -229,8 +229,6 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
             val readonlyLUTIndexes = MutableList(sortedLuts.size) { mutableListOf<Byte>() }
 
             val staticAccountKeys = mutableListOf<PublicKey>()
-            val dynamicWritableAccountKeys = mutableListOf<PublicKey>()
-            val dynamicReadOnlyAccountKeys = mutableListOf<PublicKey>()
 
             var requiredSigners = 0
             var readOnlySigners = 0
@@ -252,10 +250,8 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
                                         isDynamicallyLoaded = true
                                         if (account.isWritable) {
                                             writableLUTIndexes[lutIndex].add(addressIndex.toByte())
-                                            dynamicWritableAccountKeys.add(pk)
                                         } else {
                                             readonlyLUTIndexes[lutIndex].add(addressIndex.toByte())
-                                            dynamicReadOnlyAccountKeys.add(pk)
                                         }
                                         skip = true
                                     }
@@ -286,9 +282,19 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
                 readOnly = readOnly,
             )
 
-            // Build complete account list for instruction compilation:
-            // static keys + dynamic writable + dynamic readonly (in that order)
-            val allAccounts = staticAccountKeys + dynamicWritableAccountKeys + dynamicReadOnlyAccountKeys
+            // Build complete account list for instruction compilation. Loaded
+            // accounts resolve on-chain grouped BY TABLE — every table's writable
+            // addresses first, then every table's readonly addresses — not in the
+            // global sort order they were discovered in. With a single table the
+            // two orderings coincide; with multiple tables only the table-grouped
+            // order matches the runtime (and the server's expected transaction).
+            val loadedWritableAccounts = sortedLuts.withIndex().flatMap { (lutIndex, lut) ->
+                writableLUTIndexes[lutIndex].map { lut.addresses[it.toInt() and 0xFF] }
+            }
+            val loadedReadonlyAccounts = sortedLuts.withIndex().flatMap { (lutIndex, lut) ->
+                readonlyLUTIndexes[lutIndex].map { lut.addresses[it.toInt() and 0xFF] }
+            }
+            val allAccounts = staticAccountKeys + loadedWritableAccounts + loadedReadonlyAccounts
 
             // Build address table lookups (only include LUTs that are actually used)
             val addressTableLookups = mutableListOf<MessageAddressLookupTable>()

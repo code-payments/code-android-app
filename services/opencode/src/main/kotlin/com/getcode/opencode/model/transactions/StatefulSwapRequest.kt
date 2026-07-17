@@ -11,17 +11,23 @@ import com.getcode.solana.keys.PublicKey
 data class StatefulSwapRequest(
     val owner: AccountCluster,
     val swapAuthority: KeyPair,
-    val kind: SwapStartKind,
-    val direction: SwapDirection,
+    val program: SwapProgram,
+    val route: SwapRoute,
     val swapAmount: LocalFiat,
     val feeAmount: LocalFiat?,
     val swapId: SwapId,
     val verifiedState: VerifiedState,
+    /**
+     * Verified exchange data over the full amount (swap + fee), keyed to the source mint. Required
+     * by the server when initializing a new reserve currency from a source mint other than the core
+     * mint (the treasury-funded flow); null otherwise.
+     */
+    val fullAmountExchangeData: ExchangeData.Verified? = null,
 ) {
     val fundingIntentId: List<Byte>
-        get() = when (kind) {
-            is SwapStartKind.Reserve -> kind.fundingIntentId
-            is SwapStartKind.Stablecoin -> kind.fundingIntentId
+        get() = when (program) {
+            is SwapProgram.Reserve -> program.fundingIntentId
+            is SwapProgram.Stablecoin -> program.fundingIntentId
         }
 
     val totalTransferAmount: LocalFiat
@@ -31,7 +37,7 @@ data class StatefulSwapRequest(
         }
 }
 
-sealed interface SwapStartKind {
+sealed interface SwapProgram {
     /**
      * Server parameters for starting swaps against the Reserve program
      */
@@ -48,7 +54,7 @@ sealed interface SwapStartKind {
          * Where "amount" of "from_mint" will be sent from to the VM swap PDA
          */
         val fundingSource: SwapFundingSource,
-    ) : SwapStartKind {
+    ) : SwapProgram {
         val fundingIntentId: List<Byte>
             get() = when (fundingSource) {
                 is SwapFundingSource.ExternalWallet -> fundingSource.transactionSignature
@@ -78,7 +84,7 @@ sealed interface SwapStartKind {
          * Where "amount" of "from_mint" will be sent from to the VM swap PDA
          */
         val fundingSource: SwapFundingSource.SubmitIntent,
-    ): SwapStartKind {
+    ): SwapProgram {
         val fundingIntentId: List<Byte> = fundingSource.id
     }
 }

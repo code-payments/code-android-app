@@ -11,7 +11,7 @@ import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.SwapResult
-import com.getcode.opencode.model.transactions.SwapStartKind
+import com.getcode.opencode.model.transactions.SwapProgram
 import com.getcode.opencode.model.transactions.VerifiedSwapMetadata
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.diff
@@ -60,24 +60,24 @@ internal class SwapExecutor(
 
         streamReference.retain()
 
-        val metadata = when (request.kind) {
-            is SwapStartKind.Reserve -> VerifiedSwapMetadata.Reserve(
+        val metadata = when (request.program) {
+            is SwapProgram.Reserve -> VerifiedSwapMetadata.Reserve(
                 id = request.swapId,
-                fromMint = request.direction.sourceMint.address,
-                toMint = request.direction.destinationMint.address,
+                fromMint = request.route.sourceMint.address,
+                toMint = request.route.destinationMint.address,
                 swapAmount = request.swapAmount.underlyingTokenAmount,
                 feeAmount = request.feeAmount?.underlyingTokenAmount,
-                fundingSource = request.kind.fundingSource
+                fundingSource = request.program.fundingSource
             )
 
-            is SwapStartKind.Stablecoin -> VerifiedSwapMetadata.StableCoin(
+            is SwapProgram.Stablecoin -> VerifiedSwapMetadata.StableCoin(
                 id = request.swapId,
-                fromMint = request.direction.sourceMint.address,
-                toMint = request.direction.destinationMint.address,
+                fromMint = request.route.sourceMint.address,
+                toMint = request.route.destinationMint.address,
                 swapAmount = request.swapAmount.underlyingTokenAmount,
                 feeAmount = request.feeAmount?.underlyingTokenAmount,
-                fundingSource = request.kind.fundingSource,
-                destinationOwner = request.kind.destinationOwner
+                fundingSource = request.program.fundingSource,
+                destinationOwner = request.program.destinationOwner
             )
         }
 
