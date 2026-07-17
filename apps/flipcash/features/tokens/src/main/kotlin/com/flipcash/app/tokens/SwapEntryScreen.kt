@@ -77,6 +77,14 @@ internal fun SwapEntryScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.SelectFundingToken>()
+            .map { it.amount }
+            .onEach { flowNavigator.navigateTo(SwapStep.TokenSelection(it)) }
+            .launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.ShowSellReceipt>()
             .onEach {
                 flowNavigator.navigateTo(SwapStep.SellReceipt)

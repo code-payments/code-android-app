@@ -25,6 +25,7 @@ import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
+import com.getcode.utils.trace
 
 @Composable
 internal fun SelectTokenScreen(
@@ -52,6 +53,14 @@ private fun SelectTokenScreenContent(
         ),
         showSelections = state.purpose is TokenPurpose.Select,
         showFlags = state.purpose !is TokenPurpose.Select,
+        enableGreaterThanAmount = { _, amount ->
+            when (val purpose = state.purpose) {
+                is TokenPurpose.Purchase -> {
+                    amount.nativeAmount.valueGreaterThanOrEqualTo(purpose.amount)
+                }
+                else -> true
+            }
+        },
         emptyState = {
             Box(
                 modifier = Modifier
