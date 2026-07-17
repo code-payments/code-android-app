@@ -4,7 +4,7 @@ android-minSdk = "29"
 android-targetSdk = "37"
 android-java = "21"
 
-kotlin = "2.3.21"
+kotlin = "2.4.10"
 ksp = "2.3.10"
 kotlinx-coroutines = "1.11.0"
 kotlinx-serialization = "1.11.0"
