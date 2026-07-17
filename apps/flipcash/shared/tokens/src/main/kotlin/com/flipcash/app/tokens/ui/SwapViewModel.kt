@@ -56,6 +56,11 @@ import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
+import com.getcode.opencode.model.financial.div
+import com.getcode.opencode.model.financial.grossingUpLaunchpadSellFee
+import com.getcode.opencode.model.financial.launchpadSellFee
+import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.financial.plus
 import com.getcode.opencode.model.financial.times
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdf
@@ -134,7 +139,7 @@ class SwapViewModel @Inject constructor(
                 }
 
                 isBuy -> {
-                    AmountEntryLabel.Plain(resources.getString(R.string.action_buy))
+                    AmountEntryLabel.Plain(resources.getString(R.string.action_next))
                 }
 
                 else -> {
@@ -207,6 +212,7 @@ class SwapViewModel @Inject constructor(
         val confirmedFeeAmount: Fiat? = null,
         val minimumBuyAmount: Fiat? = null,
         val pendingInitialAmount: Fiat? = null,
+        val fundingTokenWithBalance: TokenWithBalance? = null,
     ) {
         val sellFee: Double?
             get() {
@@ -260,6 +266,11 @@ class SwapViewModel @Inject constructor(
         data object ConfirmPhantomTransaction : Event
         data object OnAmountConfirmed : Event
 
+        data class SelectFundingToken(val amount: Fiat): Event
+        data class OnFundingTokenSelected(val mint: Mint): Event
+        data class OnFundingTokenResolved(val token: TokenWithBalance): Event
+
+        data object OnBuyConfirmed: Event
         data object OnSellConfirmed : Event
 
         data class UpdateBuyState(
@@ -345,8 +356,9 @@ class SwapViewModel @Inject constructor(
 
     private val feeAmount: Fiat
         get() {
-            val fee = stateFlow.value.sellFee ?: return Fiat.Zero
-            return enteredAmount * (fee / 100.0)
+            val bps = stateFlow.value.tokenWithBalance?.token
+                ?.launchpadMetadata?.sellFeeBps ?: return Fiat.Zero
+            return enteredAmount.launchpadSellFee(bps)
         }
 
     private val netTransferAmount: Fiat
@@ -357,6 +369,62 @@ class SwapViewModel @Inject constructor(
                 currencyCode = enteredAmount.currencyCode,
             )
         }
+
+    /**
+     * Cross-currency buys pay the funding pool's sell fee on top of the entered amount, so
+     * "You Pay" = amount + fee. If that total exceeds the funding token's wallet balance, the user
+     * can't cover it — surface a modal (automatically, on landing the receipt) offering to drop to
+     * the maximum affordable amount rather than letting the buy fail.
+     *
+     * No-op for USDF funding (no fee), and sub-cent rounding is tolerated so applying the max
+     * doesn't immediately re-prompt. All comparisons are in USD ([Fiat.convertingToUsdIfNeeded]),
+     * the common denominator across native currencies.
+     */
+    private fun maybePromptInsufficientBalanceAfterFees(
+        fundingToken: Token,
+        payTotal: Fiat,
+        rate: Rate,
+    ) {
+        if (fundingToken.address == Mint.usdf) return
+
+        val balanceUsd = tokenCoordinator.balanceForToken(fundingToken).convertingToUsdIfNeeded(rate)
+        val payUsd = payTotal.convertingToUsdIfNeeded(rate)
+        if ((payUsd - balanceUsd) <= balanceUsd.smallestUnit) return
+
+        BottomBarManager.showInfo(
+            title = resources.getString(R.string.title_insufficientBalanceAfterFees),
+            message = resources.getString(R.string.description_insufficientBalanceAfterFees),
+            actions = listOf(
+                BottomBarAction(
+                    text = resources.getString(R.string.action_buyMaximumAmount),
+                    style = BottomBarManager.BottomBarButtonStyle.Filled,
+                ) {
+                    // The most we can pay is the full balance, so the most we can receive (net of
+                    // the fee) is balance - fee(balance). This only corrects the displayed receipt
+                    // (via OnAmountAccepted, a pure state update): the buy already caps the pay amount
+                    // to the balance on-chain, and the entered amount is left untouched so returning
+                    // to amount entry preserves what the user typed. selectedAmount is passed through
+                    // unchanged.
+                    val balanceNative = balanceUsd.convertingTo(rate)
+                    val maxReceive = balanceNative -
+                        balanceNative.launchpadSellFee(fundingToken.launchpadMetadata?.sellFeeBps ?: 0)
+                    val maxFee = balanceNative - maxReceive
+                    dispatchEvent(
+                        Event.OnAmountAccepted(
+                            amount = stateFlow.value.amountEntryState.selectedAmount,
+                            netTransferAmount = maxReceive,
+                            enteredAmount = maxReceive,
+                            feeAmount = maxFee,
+                        )
+                    )
+                },
+                BottomBarAction(
+                    text = resources.getString(R.string.action_dismiss),
+                    style = BottomBarManager.BottomBarButtonStyle.Text,
+                ),
+            ),
+        )
+    }
 
     private val transactionLimit: Fiat
         get() = when (stateFlow.value.purpose) {
@@ -582,13 +650,6 @@ class SwapViewModel @Inject constructor(
                 when (purpose) {
                     is SwapPurpose.Buy -> {
                         val rate = exchange.preferredRate
-                        val currencyCode = delegateState.currency.code ?: CurrencyCode.USD
-                        val conversionRate = exchange.rateToUsd(currencyCode) ?: Rate.ignore
-                        val enteredInUsdf = Fiat(
-                            delegateState.enteredAmount,
-                            currencyCode,
-                        ).convertingTo(conversionRate)
-                        val reservesBalance = stateFlow.value.reservesBalance
 
                         when {
                             purpose.fundingSource == FundingSource.Phantom -> {
@@ -598,36 +659,19 @@ class SwapViewModel @Inject constructor(
                                 dispatchEvent(Event.ConfirmPhantomTransaction)
                             }
 
-                            !isAddingMoney && enteredInUsdf <= reservesBalance.rounded() -> {
-                                // Sufficient USDF reserves — buy the token directly from reserves
-                                val amountFiat = verifiedFiatCalculator.compute(
-                                    amount = Fiat(delegateState.enteredAmount, rate.currency),
-                                    token = Token.usdf,
-                                    balance = reservesBalance.convertingToUsdIfNeeded(rate),
-                                    rate = rate
-                                ).getOrElse {
-                                    BottomBarManager.showAlert(
-                                        title = resources.getString(R.string.error_title_staleRates),
-                                        message = resources.getString(R.string.error_description_staleRates),
-                                    )
-                                    return@onEach
-                                }
-                                val netAmount = amountFiat.localFiat.nativeAmount
-
-                                dispatchEvent(Event.UpdateBuyState(loading = true))
+                            !isAddingMoney -> {
+                                // Direct buy — let the user choose which token funds it.
+                                // The reserves-vs-cross-currency decision is deferred to
+                                // the buyOrSwap flow, once a funding token is selected.
                                 dispatchEvent(
-                                    Event.OnAmountAccepted(
-                                        amountFiat,
-                                        netTransferAmount = netAmount,
-                                        enteredAmount = enteredAmount,
-                                        feeAmount = feeAmount,
+                                    Event.SelectFundingToken(
+                                        Fiat(delegateState.enteredAmount, rate.currency)
                                     )
                                 )
-                                dispatchEvent(Event.ProceedWithPurchase(amountFiat))
                             }
 
                             else -> {
-                                // Insufficient reserves — check available purchase methods
+                                // Adding money via an external source — check purchase methods
                                 val mint = purpose.mint
                                 val metadata = PurchaseMethodMetadata(
                                     mint = mint,
@@ -796,29 +840,155 @@ class SwapViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnFundingTokenSelected>()
+            .filter {  stateFlow.value.purpose is SwapPurpose.Buy }
+            .map { it.mint }
+            .mapNotNull {
+                val token = tokenCoordinator.getTokenMetadata(it).getOrNull()?.token ?: return@mapNotNull null
+                val delegateState = amountDelegate.state.value
+                val rate = exchange.preferredRate
+                val amountFiat = verifiedFiatCalculator.compute(
+                    amount = Fiat(delegateState.enteredAmount, rate.currency),
+                    token = token,
+                    rate = rate,
+                ).getOrElse {
+                    BottomBarManager.showAlert(
+                        title = resources.getString(R.string.error_title_staleRates),
+                        message = resources.getString(R.string.error_description_staleRates),
+                    )
+                    return@mapNotNull null
+                }
+
+                val nativeAmount = amountFiat.localFiat.nativeAmount
+
+                val tokenWithBalance = TokenWithBalance(
+                    token = token,
+                    balance = nativeAmount
+                )
+
+                val exchangeFee = if (token.address == Mint.usdf) {
+                    0.toFiat((rate.currency))
+                } else {
+                    // The pool's sell fee is grossed up on top of the entered amount, so the
+                    // fee is (amount / (1 - fee)) - amount. Uses the funding pool's own bps,
+                    // matching the gross-up applied at buy time in OnBuyConfirmed.
+                    nativeAmount.grossingUpLaunchpadSellFee(
+                        token.launchpadMetadata?.sellFeeBps ?: 0,
+                    ) - nativeAmount
+                }
+
+                dispatchEvent(
+                    Event.OnAmountAccepted(
+                        amountFiat,
+                        // The success screen shows this as "amount received of {token}", so it must
+                        // be the purchase amount — what lands in the target token — not the grossed-up
+                        // debit. The confirmation's "you pay" total is recomputed from enteredAmount +
+                        // feeAmount separately (see BuyReceipt), so it stays correct.
+                        netTransferAmount = amountFiat.localFiat.nativeAmount,
+                        enteredAmount = enteredAmount,
+                        feeAmount = exchangeFee,
+                    )
+                )
+                dispatchEvent(Event.OnFundingTokenResolved(tokenWithBalance))
+
+                // Landing the receipt: if the fee pushes "You Pay" past the funding token's
+                // wallet balance, auto-offer to drop to the maximum affordable amount.
+                maybePromptInsufficientBalanceAfterFees(
+                    fundingToken = token,
+                    payTotal = nativeAmount + exchangeFee,
+                    rate = rate,
+                )
+            }.onEach {
+
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnBuyConfirmed>()
+            .onEach { event ->
+                if (stateFlow.value.purpose !is SwapPurpose.Buy) return@onEach
+                // Guard: the executor force-unwraps the target token.
+                stateFlow.value.tokenWithBalance?.token ?: return@onEach
+                val rate = exchange.preferredRate
+
+                val fundingToken = stateFlow.value.fundingTokenWithBalance?.token ?: return@onEach
+
+                // The amount delegate persists across the token-select screen, so the
+                // entered amount can be recomputed here rather than threaded through state.
+                val enteredFiat = Fiat(amountDelegate.state.value.enteredAmount, rate.currency)
+                // Non-USDF funding pays the pool's sell fee, applied implicitly on-chain during
+                // the swap. Gross up the entered (net) amount by 1/(1 - fee) so the on-chain fee
+                // deduction nets back down to exactly what was entered. The fee is the FUNDING
+                // pool's — that's the token being sold — and is sent as zero (server-enforced) in
+                // the swap request below. USDF pays no pool fee.
+                val amountFiat = verifiedFiatCalculator.compute(
+                    amount = if (fundingToken.address == Mint.usdf) enteredFiat
+                        else enteredFiat.grossingUpLaunchpadSellFee(
+                            bps = fundingToken.launchpadMetadata?.sellFeeBps ?: 0,
+                        ),
+                    token = fundingToken,
+                    balance = tokenCoordinator.balanceForToken(fundingToken).convertingToUsdIfNeeded(rate),
+                    rate = rate,
+                ).getOrElse {
+                    BottomBarManager.showAlert(
+                        title = resources.getString(R.string.error_title_staleRates),
+                        message = resources.getString(R.string.error_description_staleRates),
+                    )
+                    return@onEach
+                }
+
+                dispatchEvent(Event.ProceedWithPurchase(amountFiat))
+            }.launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.ProceedWithPurchase>()
             .onEach { dispatchEvent(Event.UpdateBuyState(loading = true)) }
-            .map { it.amount }
-            .mapNotNull { amount ->
+            .mapNotNull { event ->
                 val owner = userManager.accountCluster ?: return@mapNotNull null
-                val purpose = stateFlow.value.purpose ?: return@mapNotNull null
-                owner to purpose to amount
+                stateFlow.value.purpose ?: return@mapNotNull null
+                val targetToken = stateFlow.value.tokenWithBalance?.token ?: return@mapNotNull null
+                Triple(owner, targetToken, event)
             }
-            .map { (owner, purpose, amount) -> owner to stateFlow.value.tokenWithBalance!!.token to amount }
-            .onEach { (owner, token, amount) ->
-                transactionController.buy(
-                    owner = owner,
-                    amount = amount,
-                    of = token,
-                ).onSuccess { swapId ->
-                    trackTransaction(token)
+            .onEach { (owner, targetToken, event) ->
+                val amount = event.amount
+                // The funding token was chosen on the token-select screen; USDF means
+                // buy straight from reserves, anything else is a cross-currency swap.
+                val fundingToken = stateFlow.value.fundingTokenWithBalance
+
+                if (fundingToken == null) {
+                    dispatchEvent(Event.UpdateBuyState(loading = false, success = false))
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_buySellFailed),
+                        message = resources.getString(R.string.error_description_buySellFailed),
+                    )
+                    return@onEach
+                }
+
+                val result = if (fundingToken.token.address == Mint.usdf) {
+                    transactionController.buy(
+                        owner = owner,
+                        amount = amount,
+                        of = targetToken,
+                    )
+                } else {
+                    // `amount` is grossed up; the pool's sell fee is applied on-chain during the
+                    // swap, so feeAmount is left null (the server rejects a non-zero fee here).
+                    transactionController.crossCurrencySwap(
+                        owner = owner,
+                        amount = amount,
+                        from = fundingToken.token,
+                        to = targetToken,
+                    )
+                }
+
+                result.onSuccess { swapId ->
+                    trackTransaction(targetToken)
                     dispatchEvent(Event.OnSwapIdChanged(swapId))
-                    dispatchEvent(Event.OnPurchaseSubmitted(token, swapId))
+                    dispatchEvent(Event.OnPurchaseSubmitted(targetToken, swapId))
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = true))
-                    // buy submitted from reserves, drop reserves balance
-                    tokenCoordinator.subtract(Token.usdf, amount.localFiat)
+                    // buy/swap submitted, drop the spent balance from the funding token
+                    tokenCoordinator.subtract(fundingToken.token, amount.localFiat)
                 }.onFailure { cause ->
-                    trackTransaction(token, error = cause)
+                    trackTransaction(targetToken, error = cause)
                     dispatchEvent(Event.UpdateBuyState(loading = false, success = false))
                     if (cause is SwapError.InvalidSwap) {
                         if (cause.insufficientBalance) {
@@ -1362,7 +1532,12 @@ class SwapViewModel @Inject constructor(
                 is Event.PhantomNavigateToProcessing,
                 Event.PhantomCeremonyFailed,
                 is Event.DepositSubmitted,
+                Event.OnBuyConfirmed,
                 Event.OnAmountConfirmed -> { state -> state }
+
+                is Event.SelectFundingToken -> { state -> state }
+                is Event.OnFundingTokenSelected -> { state -> state }
+                is Event.OnFundingTokenResolved -> { state -> state.copy(fundingTokenWithBalance = event.token) }
 
                 is Event.UpdateBuyState -> { state ->
                     val entryState = state.buyProgress

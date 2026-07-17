@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -28,6 +29,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
+import com.getcode.opencode.model.financial.compareTo
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
@@ -49,6 +51,7 @@ fun TokenList(
     showSelections: Boolean = false,
     includeReserves: Boolean = true,
     pinFooter: Boolean = false,
+    enableGreaterThanAmount: (mint: Mint, LocalFiat) -> Boolean = { _, _ -> true },
     emptyState: (@Composable LazyItemScope.() -> Unit)? = null,
     reserves: (@Composable LazyItemScope.(mint: Mint, cashReserves: LocalFiat) -> Unit)? = null,
     header: (@Composable () -> Unit)? = null,
@@ -68,6 +71,7 @@ fun TokenList(
     val footerSettled by remember {
         derivedStateOf { !pinFooter || !listState.canScrollForward || listState.isScrolledToEnd() }
     }
+
 
     Box(modifier = modifier) {
         LazyColumn(
@@ -95,6 +99,7 @@ fun TokenList(
                     items = filteredTokens.orEmpty(),
                     key = { item -> item.token.address.base58() },
                     contentType = { "token_row" }) { item ->
+                    val updatedIsEnabled by rememberUpdatedState(enableGreaterThanAmount(item.token.address, item.balance))
                     TokenBalanceRow(
                         modifier = Modifier
                             .fillParentMaxWidth()
@@ -104,6 +109,7 @@ fun TokenList(
                         showFlag = showFlags,
                         styling = styling,
                         isSelected = (selectedToken == item.token.address).takeIf { showSelections },
+                        isEnabled = updatedIsEnabled,
                     ) { onTokenSelected(item.token) }
 
                     HorizontalDivider(color = CodeTheme.colors.dividerVariant)

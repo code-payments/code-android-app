@@ -26,57 +26,66 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 fun TokenSelectScreen(purpose: TokenPurpose) {
     val navigator = LocalCodeNavigator.current
+    val viewModel = hiltViewModel<SelectTokenViewModel>()
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            title = stringResource(R.string.title_selectCurrency),
+            title = when (purpose) {
+                is TokenPurpose.Purchase -> stringResource(R.string.title_selectPaymentCurrency)
+                else -> stringResource(R.string.title_selectCurrency)
+            },
             backButton = true,
             onBackIconClicked = { navigator.pop() },
             titleAlignment = Alignment.CenterHorizontally,
         )
-        val viewModel = hiltViewModel<SelectTokenViewModel>()
+
+
         SelectTokenScreen(viewModel)
+    }
 
-        LaunchedEffect(viewModel) {
-            viewModel.dispatchEvent(SelectTokenViewModel.Event.OnPurposeChanged(purpose))
-        }
+    LaunchedEffect(viewModel) {
+        viewModel.dispatchEvent(SelectTokenViewModel.Event.OnPurposeChanged(purpose))
+    }
 
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<SelectTokenViewModel.Event.OpenScreen>()
-                .map { it.route }
-                .onEach { navigator.push(it) }
-                .launchIn(this)
-        }
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SelectTokenViewModel.Event.OpenScreen>()
+            .map { it.route }
+            .onEach { navigator.push(it) }
+            .launchIn(this)
+    }
 
-        // handle the cases where we are inserted in a flow to select a token
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
-                .filter { it.fromUser }
-                .map { it.mint }
-                .onEach { token ->
-                    when (purpose) {
-                        TokenPurpose.Balance -> Unit
-                        TokenPurpose.Select -> Unit
-                        TokenPurpose.Withdraw -> {
-                            navigator.push(Withdrawal())
-                        }
-                        TokenPurpose.Deposit -> {
-                            navigator.push(Deposit())
-                        }
+    // handle the cases where we are inserted in a flow to select a token
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
+            .filter { it.fromUser }
+            .map { it.mint }
+            .onEach {
+                when (purpose) {
+                    TokenPurpose.Balance -> Unit
+                    TokenPurpose.Select -> Unit
+                    TokenPurpose.Withdraw -> {
+                        navigator.push(Withdrawal())
                     }
-                }.launchIn(this)
-        }
 
-        // handle the case where we are changing the selected token
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<SelectTokenViewModel.Event.OnTokenChanged>()
-                .onEach { navigator.pop() }
-                .launchIn(this)
-        }
+                    TokenPurpose.Deposit -> {
+                        navigator.push(Deposit())
+                    }
+
+                    is TokenPurpose.Purchase -> Unit
+                }
+            }.launchIn(this)
+    }
+
+    // handle the case where we are changing the selected token
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SelectTokenViewModel.Event.OnTokenChanged>()
+            .onEach { navigator.pop() }
+            .launchIn(this)
     }
 }

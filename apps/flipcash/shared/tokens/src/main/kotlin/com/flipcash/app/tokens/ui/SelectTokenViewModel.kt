@@ -144,6 +144,14 @@ class SelectTokenViewModel @Inject constructor(
                                         }
                                     }
 
+                                    is TokenPurpose.Purchase -> {
+                                        if (it.token.address == Mint.usdf) {
+                                            resources.getString(R.string.displayName_usdf)
+                                        } else {
+                                            it.token.name
+                                        }
+                                    }
+
                                     TokenPurpose.Select -> it.token.name
                                     TokenPurpose.Withdraw -> {
                                         if (it.token.address == Mint.usdf) {
@@ -161,7 +169,7 @@ class SelectTokenViewModel @Inject constructor(
                         )
                         .filter {
                             val hasBalance = it.balance.nativeAmount.hasDisplayableValue
-                            when (purpose) {
+                            when (val details = purpose) {
                                 // show all tokens we have accounts for as deposit targets
                                 TokenPurpose.Deposit -> true
                                 TokenPurpose.Select -> {
@@ -169,6 +177,14 @@ class SelectTokenViewModel @Inject constructor(
                                         stateFlow.value.canGiveUsdf && hasBalance
                                     } else {
                                         hasBalance
+                                    }
+                                }
+
+                                is TokenPurpose.Purchase -> {
+                                    if (it.token.address != details.desiredToken) {
+                                        hasBalance
+                                    } else {
+                                        false
                                     }
                                 }
                                 // show all tokens with non-zero balance

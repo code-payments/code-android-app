@@ -1,6 +1,10 @@
 package com.flipcash.app.tokens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -10,6 +14,9 @@ import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
+import com.flipcash.app.core.tokens.TokenPurpose
+import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.SwapViewModel
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -17,8 +24,17 @@ import com.getcode.navigation.flow.rememberInitialStack
 import com.getcode.navigation.flow.FlowExitReason
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.deliverFlowResult
+import com.getcode.navigation.flow.flowSharedViewModel
+import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.solana.keys.Mint
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 
 @Composable
 fun SwapFlowScreen(
@@ -76,6 +92,12 @@ private fun swapEntryProvider(
     annotatedEntry<SwapStep.Entry> { step ->
         SwapEntryScreen(step.purpose, step.initialAmount)
     }
+    annotatedEntry<SwapStep.TokenSelection> { key ->
+        SwapPurchaseTokenSelectScreen(route.purpose.mint, key.amount)
+    }
+    annotatedEntry<SwapStep.BuyReceipt> {
+        BuyReceiptScreen()
+    }
     annotatedEntry<SwapStep.SellReceipt> { SellReceiptScreen() }
     annotatedEntry<SwapStep.PhantomConnect> {
         PhantomConnectConfirmationScreen(depositFirstPurpose = depositFirstPurpose)
@@ -85,5 +107,26 @@ private fun swapEntryProvider(
     }
     annotatedEntry<SwapStep.Processing> {
         SwapProcessingScreen()
+    }
+}
+
+@Composable
+private fun SwapPurchaseTokenSelectScreen(targetMint: Mint, amount: Fiat) {
+    val selectionViewModel = hiltViewModel<SelectTokenViewModel>()
+    val viewModel = flowSharedViewModel<SwapViewModel>()
+    val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
+
+    TokenSelectScreen(TokenPurpose.Purchase(targetMint, amount))
+
+    LaunchedEffect(selectionViewModel) {
+        selectionViewModel.eventFlow
+            .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
+            .filter { it.fromUser }
+            .map { it.mint }
+            .onEach {
+                viewModel.dispatchEvent(SwapViewModel.Event.OnFundingTokenSelected(it))
+                flowNavigator.navigateTo(SwapStep.BuyReceipt)
+            }
+            .launchIn(this)
     }
 }

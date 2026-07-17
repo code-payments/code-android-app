@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -26,23 +28,24 @@ import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
+import com.getcode.opencode.model.financial.plus
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.bolded
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import kotlin.math.roundToInt
 
 @Composable
-internal fun TokenSellReceiptScreen(viewModel: SwapViewModel) {
+internal fun TokenBuyReceiptScreen(viewModel: SwapViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    TokenSellReceiptScreen(state, viewModel::dispatchEvent)
+    TokenBuyReceiptScreen(state, viewModel::dispatchEvent)
 }
 
 @Composable
-private fun TokenSellReceiptScreen(
+private fun TokenBuyReceiptScreen(
     state: SwapViewModel.State,
     dispatchEvent: (SwapViewModel.Event) -> Unit,
 ) {
@@ -71,12 +74,12 @@ private fun TokenSellReceiptScreen(
                         .navigationBarsPadding()
                         .imePadding()
                         .padding(bottom = CodeTheme.dimens.grid.x3),
-                    text = stringResource(R.string.action_sell),
+                    text = stringResource(R.string.action_buy),
                     buttonState = ButtonState.Filled,
-                    isLoading = state.sellProgress.loading,
-                    isSuccess = state.sellProgress.success,
+                    isLoading = state.buyProgress.loading,
+                    isSuccess = state.buyProgress.success,
                 ) {
-                    dispatchEvent(SwapViewModel.Event.OnSellConfirmed)
+                    dispatchEvent(SwapViewModel.Event.OnBuyConfirmed)
                 }
             }
         }
@@ -93,26 +96,31 @@ private fun TokenSellReceiptScreen(
                 alignment = Alignment.CenterVertically
             )
         ) {
-            SellReceipt(
-                grossTransferAmount = state.enteredAmount,
-                netTransferAmount = state.netTransferAmount,
+            BuyReceipt(
+                fundingToken = state.fundingTokenWithBalance!!.token,
+                desiredToken = state.tokenWithBalance!!.token,
+                purchaseAmount = state.confirmedEnteredAmount!!,
                 feeAmount = state.feeAmount,
-                feePercentage = state.sellFee,
-                tokenWithBalance = state.tokenWithBalance!!,
             )
         }
     }
 }
 
 @Composable
-private fun SellReceipt(
-    tokenWithBalance: TokenWithBalance,
-    grossTransferAmount: Fiat,
-    netTransferAmount: Fiat,
-    feePercentage: Double?,
+private fun BuyReceipt(
+    fundingToken: Token,
+    desiredToken: Token,
+    purchaseAmount: Fiat,
     feeAmount: Fiat,
     modifier: Modifier = Modifier,
 ) {
+    val feeAdjustedPurchaseAmount by remember(purchaseAmount, feeAmount) {
+        derivedStateOf {
+            if (!feeAmount.hasDisplayableValue) return@derivedStateOf purchaseAmount
+            purchaseAmount + feeAmount
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -128,31 +136,59 @@ private fun SellReceipt(
             )
             .then(modifier),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x6),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Column(
-            modifier = modifier,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            ReceiptLineItem(
-                modifier = Modifier.fillMaxWidth(),
-                label = stringResource(R.string.label_sellAmount),
-                amount = grossTransferAmount.formatted(),
+            Text(
+                text = stringResource(R.string.subtitle_youPay),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
             )
+            TokenBalanceRow(
+                tokenWithBalance = TokenWithBalance(
+                    token = fundingToken,
+                    balance = feeAdjustedPurchaseAmount
+                ),
+                showName = false,
+                showLogo = true,
+                showFlag = false,
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                styling = rememberTokenBalanceRowStyling(
+                    balanceDisplayStyle = TokenBalanceStyle.Large(
+                        textStyle = CodeTheme.typography.displaySmall.bolded()
+                    ),
+                ),
+                contentPadding = PaddingValues(0.dp),
+            )
+        }
 
-            if (feePercentage != null) {
+        if (feeAmount.isPositive) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+            ) {
                 ReceiptLineItem(
                     modifier = Modifier.fillMaxWidth(),
-                    label = stringResource(R.string.label_percentFee, feePercentage.roundToInt()),
+                    label = stringResource(R.string.label_amountToBuy),
+                    amount = purchaseAmount.formatted()
+                )
+                ReceiptLineItem(
+                    modifier = Modifier.fillMaxWidth(),
+                    label = stringResource(R.string.label_exchangeFee),
                     amount = feeAmount.formatted(
                         extraPrefix = if (feeAmount.decimalValue < 0.01) "~" else null,
-                    ),
+                    )
                 )
             }
         }
 
         Column(
             modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -160,18 +196,19 @@ private fun SellReceipt(
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
             )
-
             TokenBalanceRow(
-                tokenWithBalance = tokenWithBalance.copy(balance = netTransferAmount),
+                tokenWithBalance = TokenWithBalance(
+                    token = desiredToken,
+                    balance = purchaseAmount
+                ),
                 showName = false,
-                showLogo = false,
-                showFlag = true,
+                showLogo = true,
+                showFlag = false,
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 styling = rememberTokenBalanceRowStyling(
                     balanceDisplayStyle = TokenBalanceStyle.Large(
                         textStyle = CodeTheme.typography.displaySmall.bolded()
                     ),
-                    flagSize = CodeTheme.dimens.grid.x4,
                 ),
                 contentPadding = PaddingValues(0.dp),
             )

@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -56,6 +57,7 @@ data class TokenBalanceRowStyling(
     val iconSize: Dp,
     val flagSize: Dp,
     val selectionStyle: TokenSelectionStyle,
+    val disabledAlpha: Float,
 )
 
 @Composable
@@ -65,13 +67,15 @@ fun rememberTokenBalanceRowStyling(
     iconSize: Dp = CodeTheme.dimens.staticGrid.x6,
     flagSize: Dp = CodeTheme.dimens.staticGrid.x3,
     selectionStyle: TokenSelectionStyle = TokenSelectionStyle.None,
+    disabledAlpha: Float = 0.8f,
 ): TokenBalanceRowStyling =
     TokenBalanceRowStyling(
         nameTextStyle = nameTextStyle,
         balanceDisplayStyle = balanceDisplayStyle,
         iconSize = iconSize,
         flagSize = flagSize,
-        selectionStyle = selectionStyle
+        selectionStyle = selectionStyle,
+        disabledAlpha = disabledAlpha
     )
 
 @Composable
@@ -82,6 +86,7 @@ fun TokenBalanceRow(
     showFlag: Boolean = false,
     showLogo: Boolean = true,
     isSelected: Boolean? = null,
+    isEnabled: Boolean = true,
     iconOverride: @Composable ((Any?) -> Any?) = { it },
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
@@ -97,6 +102,7 @@ fun TokenBalanceRow(
         iconOverride = iconOverride,
         formattedBalance = formattedBalance,
         isSelected = isSelected,
+        isEnabled = isEnabled,
         modifier = modifier,
         showName = showName,
         showFlag = showFlag,
@@ -116,6 +122,7 @@ fun TokenBalanceRow(
     showLogo: Boolean = true,
     showFlag: Boolean = false,
     isSelected: Boolean? = null,
+    isEnabled: Boolean = true,
     iconOverride: @Composable ((Any?) -> Any?) = { it },
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
@@ -132,6 +139,7 @@ fun TokenBalanceRow(
         showLogo = showLogo,
         showFlag = showFlag,
         isSelected = isSelected,
+        isEnabled = isEnabled,
         modifier = modifier,
         styling = styling,
         iconOverride = iconOverride,
@@ -153,6 +161,7 @@ fun TokenBalanceRow(
     showLogo: Boolean = true,
     showFlag: Boolean = false,
     isSelected: Boolean? = null,
+    isEnabled: Boolean = true,
     iconOverride: @Composable ((Any?) -> Any?) = { it },
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
@@ -161,14 +170,21 @@ fun TokenBalanceRow(
     onClick: (() -> Unit)? = null,
 ) {
     val exchange = LocalExchange.current
+    val backgroundColor = CodeTheme.colors.background
     Row(
         modifier = Modifier
-            .addIf(onClick != null) {
+            .addIf(onClick != null && isEnabled) {
                 Modifier.clickable {
                     onClick?.invoke()
                 }
             }
             .then(modifier)
+            .addIf(!isEnabled) {
+                Modifier.drawWithContent {
+                    drawContent()
+                    drawRect(color = backgroundColor, alpha = styling.disabledAlpha)
+                }
+            }
             .padding(contentPadding),
         horizontalArrangement = horizontalArrangement,
         verticalAlignment = Alignment.CenterVertically,

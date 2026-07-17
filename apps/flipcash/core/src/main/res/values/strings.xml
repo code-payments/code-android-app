@@ -430,6 +430,7 @@
     <string name="subtitle_addCashToWallet">Add Solana USDF to your Flipcash wallet</string>
 
     <string name="title_selectCurrency">Select Currency</string>
+    <string name="title_selectPaymentCurrency">Select Payment Currency</string>
     <string name="title_selectRegion">Select Region</string>
     <string name="title_recentRegions">Recent Regions</string>
     <string name="title_otherRegions">Other Regions</string>
@@ -441,7 +442,12 @@
     <string name="error_title_tokenNotFound">Something Went Wrong</string>
     <string name="error_description_tokenNotFound">Failed to fetch token metadata. Please try again</string>
 
+    <string name="subtitle_youPay">You Pay</string>
     <string name="subtitle_youReceive">You Receive</string>
+
+    <string name="title_insufficientBalanceAfterFees">Insufficient Balance After Fees</string>
+    <string name="description_insufficientBalanceAfterFees">Switch to maximum amount, or go back and enter a smaller amount</string>
+    <string name="action_buyMaximumAmount">Buy Maximum Amount</string>
 
     <string name="action_give">Give</string>
     <string name="action_send">Send</string>
@@ -529,6 +535,7 @@
     <string name="action_sell">Sell</string>
     <string name="title_amountToWithdraw">Amount to Withdraw</string>
     <string name="label_solanaUsdc">Solana USDC with</string>
+    <string name="title_buyToken">Buy</string>
     <string name="title_sellToken">Sell %1$s</string>
     <string name="title_purchasingToken">Purchasing %1$s</string>
     <string name="title_addingMoney">Adding Money</string>
@@ -836,7 +843,9 @@
 
     <string name="label_unknownContact">Unknown Contact</string>
     <string name="title_allowFullContactAccess">Allow Full Contact Access</string>
-    ><string name="subtitle_allowFullContactAccess">Make sure you can send cash and identify people you know</string>
-    <string name="action_allowAccess">Allow Access</string>">
+    <string name="subtitle_allowFullContactAccess">Make sure you can send cash and identify people you know</string>
+    <string name="action_allowAccess">Allow Access</string>
 
+    <string name="label_amountToBuy">Amount to buy</string>
+    <string name="label_exchangeFee">Exchange fee</string>
 </resources>

@@ -17,6 +17,14 @@ sealed interface SwapStep : FlowStep, Parcelable {
 
     @Parcelize
     @Serializable
+    data class TokenSelection(val amount: Fiat) : SwapStep
+
+    @Parcelize
+    @Serializable
+    data object BuyReceipt : SwapStep
+
+    @Parcelize
+    @Serializable
     data object SellReceipt : SwapStep
 
     @Parcelize
