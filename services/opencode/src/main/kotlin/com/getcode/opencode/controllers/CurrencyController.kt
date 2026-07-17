@@ -1,7 +1,9 @@
 package com.getcode.opencode.controllers
 
-import com.getcode.ed25519.Ed25519
+import com.getcode.opencode.internal.solana.model.SwapId
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
+import com.getcode.opencode.model.core.errors.LaunchTokenError
 import com.getcode.opencode.model.financial.LiveMintDataResponse
 import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -9,9 +11,8 @@ import com.getcode.opencode.model.financial.HistoricalMintData
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenCreateRequest
-import com.getcode.opencode.model.moderation.ModerationAttestation
+import com.getcode.opencode.model.financial.fromLaunch
 import com.getcode.opencode.model.ui.DiscoverCategory
-import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.opencode.repositories.CurrencyRepository
 import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.CoroutineScope
@@ -35,6 +36,7 @@ import javax.inject.Singleton
 @Singleton
 class CurrencyController @Inject constructor(
     private val repository: CurrencyRepository,
+    private val transactionController: TransactionController,
 ) {
     /**
      * Returns a long-lived [Flow] of [LiveMintDataResponse] events for the
@@ -133,10 +135,53 @@ class CurrencyController @Inject constructor(
             }
     }
 
+    /**
+     * Registers the new currency's metadata on-chain and funds it in one operation, returning the
+     * created [Mint] and the funding [SwapId].
+     *
+     * Funding is driven by [TokenCreateRequest.funding] and routed by [TransactionController.launchToken]:
+     * USDF funds via a plain buy of the freshly-launched stub, any other currency via the treasury
+     * swap that creates and funds the new currency in a single transaction.
+     */
     suspend fun launchToken(
         request: TokenCreateRequest,
-        owner: Ed25519.KeyPair,
-    ): Result<Mint> {
-        return repository.launchToken(request, owner)
+        owner: AccountCluster,
+        existingMint: Mint? = null,
+        onMinted: (Mint) -> Unit = {},
+    ): Result<LaunchResult> {
+        val funding = request.funding
+        return repository.launchToken(request, owner.authority.keyPair)
+            .recoverCatching { cause ->
+                // The server returns Exists when the mint is already registered. If a prior attempt
+                // this session minted but its funding failed, reuse that mint so funding can retry.
+                if (cause is LaunchTokenError.Exists && existingMint != null) existingMint
+                else throw cause
+            }
+            .mapCatching { mint ->
+                // Surface the mint before funding so the caller can track it for a retry.
+                onMinted(mint)
+                val stub = MintMetadata.fromLaunch(
+                    mint = mint,
+                    request = request,
+                    owner = owner.authorityPublicKey,
+                )
+
+                val swapId = transactionController.launchToken(
+                    owner = owner,
+                    amount = funding.amount,
+                    fullAmount = funding.fullAmount,
+                    feeAmount = funding.feeAmount,
+                    fundingSource = funding.token,
+                    newToken = stub,
+                ).getOrThrow()
+
+                LaunchResult(mint = mint, swapId = swapId)
+            }
     }
 }
+
+/** The result of launching and funding a new currency. */
+data class LaunchResult(
+    val mint: Mint,
+    val swapId: SwapId,
+)

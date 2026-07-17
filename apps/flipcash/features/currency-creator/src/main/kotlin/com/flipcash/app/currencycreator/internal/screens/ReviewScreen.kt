@@ -36,24 +36,23 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun ReviewAndPurchaseScreen() {
+internal fun BillReviewScreen() {
     val flowNavigator = rememberFlowNavigator<CurrencyCreatorStep, CurrencyCreatorResult>()
     val viewModel = flowSharedViewModel<CurrencyCreatorViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    ReviewAndPurchaseContent(state, viewModel::dispatchEvent)
+    ReviewContent(state, viewModel::dispatchEvent)
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<CurrencyCreatorViewModel.Event.PurchaseSubmitted>()
-            .map { it.swapId }
+            .filterIsInstance<CurrencyCreatorViewModel.Event.Purchase>()
             .onEach {
-                flowNavigator.navigateTo(CurrencyCreatorStep.Processing)
+                flowNavigator.navigateTo(CurrencyCreatorStep.FundingSourceSelection)
             }.launchIn(this)
     }
 }
 
 @Composable
-internal fun ReviewAndPurchaseContent(
+internal fun ReviewContent(
     state: CurrencyCreatorViewModel.State,
     dispatch: (CurrencyCreatorViewModel.Event) -> Unit
 ) {

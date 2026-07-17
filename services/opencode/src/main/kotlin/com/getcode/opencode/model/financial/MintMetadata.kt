@@ -117,7 +117,7 @@ fun MintMetadata.Companion.fromLaunch(
     address = mint,
     decimals = 10,
     name = request.name.text,
-    symbol = request.symbol?.text ?: "",
+    symbol = request.symbol?.text ?: request.name.text.take(6).uppercase(),
     description = request.description?.text.orEmpty(),
     createdAt = Clock.System.now(),
     imageUrl = "",

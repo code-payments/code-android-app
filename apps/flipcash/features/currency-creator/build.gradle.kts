@@ -8,6 +8,7 @@ android {
 
 dependencies {
     implementation(project(":apps:flipcash:features:bill-customization"))
+    implementation(project(":apps:flipcash:features:tokens"))
     implementation(project(":apps:flipcash:shared:bills"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:currency-creator"))

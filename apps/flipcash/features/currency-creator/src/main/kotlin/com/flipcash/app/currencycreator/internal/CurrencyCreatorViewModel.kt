@@ -12,17 +12,7 @@ import com.flipcash.app.core.tokens.CurrencyCreatorDraft
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.currencycreator.CurrencyCreatorCoordinator
 import com.flipcash.app.currencycreator.internal.components.CurrencyCreatorTopBarController
-import com.flipcash.app.onramp.DeeplinkError
-import com.flipcash.app.onramp.DeeplinkOnRampError
-import com.flipcash.app.onramp.PhantomSwapResult
-import com.flipcash.app.onramp.PhantomWalletController
-import com.flipcash.app.onramp.isAlert
-import com.flipcash.app.onramp.isNetworkCause
-import com.flipcash.app.onramp.messaging
-import com.flipcash.app.payments.PaymentAction
-import com.flipcash.app.payments.PurchaseMethod
 import com.flipcash.app.payments.PurchaseMethodController
-import com.flipcash.app.payments.PurchaseMethodMetadata
 import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
@@ -39,18 +29,14 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.CurrencyController
-import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.core.errors.CheckTokenAvailabilityError
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
-import com.getcode.opencode.model.core.errors.GetMintsError
-import com.getcode.opencode.model.core.errors.LaunchTokenError
 import com.getcode.opencode.model.core.errors.ValidationException
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
-import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenCreateRequest
@@ -60,7 +46,6 @@ import com.getcode.opencode.model.financial.plus
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.moderation.ModerationAttestation
-import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ContentReader
@@ -77,6 +62,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -100,9 +87,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     userFlags: UserFlagsCoordinator,
     moderationController: ModerationController,
     currencyController: CurrencyController,
-    transactionController: TransactionController,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
-    private val phantomWalletController: PhantomWalletController,
     tokenCoordinator: TokenCoordinator,
     balancePoller: BalancePoller,
     private val resources: ResourceHelper,
@@ -168,7 +153,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 CurrencyCreatorStep.IconSelection::class,
                 CurrencyCreatorStep.DescriptionSelection::class,
                 CurrencyCreatorStep.BillCustomization::class,
-                CurrencyCreatorStep.BillReviewAndPurchase::class,
+                CurrencyCreatorStep.BillReview::class,
             )
         }
     }
@@ -198,12 +183,10 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
         data class CustomizationsChanged(val customizations: TokenBillCustomizations): Event
 
-        data class LaunchToken(val method: PurchaseMethod) : Event
+        data class LaunchToken(val fundedWith: Mint) : Event
         data class OnTokenMinted(val mint: Mint): Event
         data object Purchase : Event
-        data class PurchaseWithReserves(val context: LaunchedContext) : Event
-        data class PurchaseWithPhantom(val context: LaunchedContext) : Event
-        data class PurchaseWithGooglePay(val context: LaunchedContext) : Event
+        data class ConfirmPurchase(val fundedWith: Mint): Event
 
         data class PurchaseSubmitted(val swapId: SwapId, val mint: Mint) : Event
         data class PurchaseCompleted(val token: Token): Event
@@ -214,13 +197,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         data class OpenScreen(val screen: AppRoute) : Event
     }
 
-    data class LaunchedContext(
-        val method: PurchaseMethod,
-        val token: Token,
-        val amount: Fiat,
-        val feeAmount: Fiat?,
-    )
-
     init {
         userFlags.resolvedFlags
             .onEach { flags ->
@@ -230,13 +206,74 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        eventFlow
+            .filterIsInstance<Event.OnIntroContinue>()
+            .onEach {
+                val addMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
+                if (addMoney) {
+                    // A currency can now be funded by any held currency, not just USDF reserves.
+                    // No balance at all gates first; having some balance but none large enough to
+                    // cover the cost gates second.
+                    val totalCost = stateFlow.value.totalCost
+                    val balances = tokenCoordinator.tokenBalances.firstOrNull().orEmpty().map { it.balance }
+
+                    if (balances.none { it.hasDisplayableValue }) {
+                        // No balance in any currency — require a deposit first.
+                        BottomBarManager.showInfo(
+                            title = resources.getString(R.string.title_noBalanceYet),
+                            message = resources.getString(R.string.description_noBalanceYetToCreate),
+                            actions = listOf(
+                                BottomBarAction(
+                                    text = resources.getString(R.string.action_addMoney)
+                                ) {
+                                    dispatchEvent(Event.PresentDepositOptions)
+                                },
+                            ),
+                            showCancel = true,
+                        )
+                        return@onEach
+                    } else if (balances.none { it > totalCost }) {
+                        // Has balance, but no single currency covers the cost — require a top-up.
+                        BottomBarManager.showInfo(
+                            title = resources.getString(R.string.title_insufficientBalance),
+                            message = resources.getString(R.string.description_insufficientBalanceToCreate),
+                            actions = listOf(
+                                BottomBarAction(
+                                    text = resources.getString(R.string.action_addMoreMoney)
+                                ) {
+                                    dispatchEvent(Event.PresentDepositOptions)
+                                },
+                            ),
+                            showCancel = true,
+                        )
+                        return@onEach
+                    }
+                }
+
+                dispatchEvent(Event.AdvanceFromInfo)
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PresentDepositOptions>()
+            .mapNotNull {
+                if (!featureFlags.get(FeatureFlag.AddMoneyUX)) {
+                    return@mapNotNull AppRoute.Transfers.Deposit(showOtherOptions = false)
+                }
+                // popToRoot = false so finishing the deposit returns to the currency
+                // creator (which pushed this flow) rather than tearing down the whole
+                // sheet and losing the user's place in the flow.
+                purchaseMethodController.presentDepositOptions(popToRoot = false)
+            }
+            .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
+            .launchIn(viewModelScope)
+
         // Debounced draft persistence — save state 300ms after changes.
         // The coordinator handles ID assignment; the VM is ID-unaware.
         @OptIn(FlowPreview::class)
         stateFlow
             .drop(1) // skip initial empty state
             .filter { it.currentStep != null }
-            .debounce(300)
+            .debounce(300.milliseconds)
             .distinctUntilChanged()
             .onEach { state ->
                 currencyCreatorCoordinator.saveDraft(
@@ -346,7 +383,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 onSuccess = { attestation ->
                     viewModelScope.launch {
                         dispatchEvent(Event.UpdateProcessingState(success = true))
-                        delay(500)
+                        delay(500.milliseconds)
                         dispatchEvent(Event.OnImageApproved(attestation))
                         dispatchEvent(Event.UpdateProcessingState())
                     }
@@ -398,7 +435,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 onSuccess = { attestation ->
                     viewModelScope.launch {
                         dispatchEvent(Event.UpdateProcessingState(success = true))
-                        delay(500)
+                        delay(500.milliseconds)
                         dispatchEvent(Event.OnDescriptionApproved(attestation))
                         dispatchEvent(Event.UpdateProcessingState())
                     }
@@ -427,38 +464,81 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.Purchase>()
-            .onEach {
-                val metadata = PurchaseMethodMetadata(
-                    mint = null,
-                    purchaseAmount = stateFlow.value.totalCost,
-                    feeAmount = stateFlow.value.feeAmount,
-                    paymentAction = PaymentAction.Pay,
+            .filterIsInstance<Event.ConfirmPurchase>()
+            .onEach { event ->
+                // Confirm before paying — creating a currency is irreversible and the name locks in.
+                BottomBarManager.showMessage(
+                    title = resources.getString(R.string.title_readyToCreate),
+                    message = resources.getString(R.string.description_readyToCreate),
+                    actions = listOf(
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_payToCreateCurrency),
+                        ) {
+                            dispatchEvent(Event.LaunchToken(event.fundedWith))
+                        },
+                    ),
+                    showCancel = true,
                 )
-                val reservesBalance = tokenCoordinator.reservesBalance()
-                val rate = exchange.preferredRate
-                val localizedBalance = LocalFiat(
-                    usdf = reservesBalance,
-                    nativeAmount = reservesBalance.convertingTo(rate),
-                )
-                purchaseMethodController.select(PurchaseMethod.CashReserves(localizedBalance), metadata)
-            }
-            .launchIn(viewModelScope)
-
-        purchaseMethodController.selections
-            // Only the final "pay for the created token" selection should launch the
-            // token. The shared controller also emits for the add-money/deposit sheet
-            // (PaymentAction.Plain); reacting to those would try to launch a token with
-            // an empty, un-moderated name and fail name validation.
-            .filter { (_, metadata) -> metadata.paymentAction == PaymentAction.Pay }
-            .onEach { (method, _) ->
-                dispatchEvent(Event.LaunchToken(method))
             }
             .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.LaunchToken>()
-            .map { event ->
+            .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
+            .mapNotNull { event ->
+                val accountCluster = userManager.accountCluster ?: run {
+                    dispatchEvent(Event.UpdateProcessingState())
+                    return@mapNotNull null
+                }
+                val fundingToken = tokenCoordinator.getTokenMetadata(event.fundedWith)
+                    .getOrNull()?.token ?: run {
+                    dispatchEvent(Event.UpdateProcessingState())
+                    return@mapNotNull null
+                }
+
+                // Value the launch at the full total cost against the funding token: USDF prices 1:1,
+                // a launchpad currency prices through its bonding curve. The amount is NOT grossed up
+                // for the pool sell fee — the treasury-funded launch covers it, and the server
+                // requires the full amount to value at exactly the total cost. Priced in USD: the
+                // server requires the full-amount exchange data (and its verified rate) to be USD,
+                // not the user's preferred currency. launchToken routes buy vs swap from the token.
+                val isUsdf = fundingToken.address == Mint.usdf
+                val rate = if (isUsdf) Rate.oneToOne else exchange.rateForUsd()
+                val amount = verifiedFiatCalculator.compute(
+                    amount = stateFlow.value.totalCost,
+                    token = fundingToken,
+                    rate = rate,
+                ).getOrElse {
+                    dispatchEvent(Event.UpdateProcessingState())
+                    BottomBarManager.showAlert(
+                        title = resources.getString(R.string.error_title_staleRates),
+                        message = resources.getString(R.string.error_description_staleRates),
+                    )
+                    return@mapNotNull null
+                }
+
+                // The pool fee, in FUNDING-TOKEN quarks: the server sells them against the reserve
+                // and expects the fee's USD value. Compute it against the funding token, like the
+                // amount. (USDF funds a plain buy, whose fee stays USD.)
+                val feeAmount = stateFlow.value.feeAmount?.let { fee ->
+                    if (isUsdf) {
+                        LocalFiat.fromUsd(usdf = fee)
+                    } else {
+                        verifiedFiatCalculator.compute(
+                            amount = fee,
+                            token = fundingToken,
+                            rate = rate,
+                        ).getOrElse {
+                            dispatchEvent(Event.UpdateProcessingState())
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_staleRates),
+                                message = resources.getString(R.string.error_description_staleRates),
+                            )
+                            return@mapNotNull null
+                        }.localFiat
+                    }
+                }
+
                 val request = TokenCreateRequest(
                     name = ModerationAttestation.Text(
                         text = stateFlow.value.nameFieldState.text.trim().toString(),
@@ -475,133 +555,29 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                         attestation = stateFlow.value.attestations.icon.rawValue,
                     ),
                     bill = stateFlow.value.customizations,
-                )
-                request to event.method
-            }
-            .mapNotNull { (request, method) ->
-                val accountCluster = userManager.accountCluster ?: return@mapNotNull null
-                Triple(request, method, accountCluster)
-            }
-            .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
-            .map { (request, method, accountCluster) ->
-                currencyController.launchToken(request, accountCluster.authority.keyPair)
-                    .recoverCatching { cause ->
-                        // The server returns Exists when the mint address is already
-                        // registered. If we minted in a prior attempt this session
-                        // but the subsequent purchase failed (e.g. transient OCP
-                        // error), the mint exists on-chain yet has no funded token
-                        // account. Recover the mint so the purchase step can retry.
-                        if (cause !is LaunchTokenError.Exists) throw cause
-                        val mint = stateFlow.value.createdMint ?: throw cause
-                        val notFound = tokenCoordinator.getTokenMetadata(mint)
-                            .exceptionOrNull() is GetMintsError.NotFound
-                        if (!notFound) throw cause
-                        mint
-                    }
-                    .map { mint ->
-                        dispatchEvent(Event.OnTokenMinted(mint))
-                        val token = MintMetadata.fromLaunch(
-                            mint = mint,
-                            request = request,
-                            owner = accountCluster.authorityPublicKey,
-                        )
-                        LaunchedContext(
-                            method = method,
-                            token = token,
-                            amount = stateFlow.value.totalCost,
-                            feeAmount = stateFlow.value.feeAmount,
-                        )
-                    }
-            }
-            .onResult(
-                onSuccess = { ctx ->
-                    when (ctx.method) {
-                        is PurchaseMethod.CashReserves ->
-                            dispatchEvent(Event.PurchaseWithReserves(ctx))
-
-                        PurchaseMethod.PhantomWallet ->
-                            dispatchEvent(Event.PurchaseWithPhantom(ctx))
-
-                        PurchaseMethod.CoinbaseOnRamp -> {
-                            dispatchEvent(Event.PurchaseWithGooglePay(ctx))
-                        }
-
-                        PurchaseMethod.OtherWallet -> {
-                            // TODO:
-                        }
-                    }
-                },
-                onError = {
-                    dispatchEvent(Event.UpdateProcessingState())
-                    BottomBarManager.showError(
-                        title = resources.getString(R.string.error_title_launchTokenFailed),
-                        message = resources.getString(R.string.error_description_launchTokenFailed),
-                    )
-                }
-            )
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.PurchaseWithPhantom>()
-            .onEach { event ->
-                val totalAmount = verifiedFiatCalculator.compute(
-                    amount = event.context.amount,
-                    token = Token.usdf,
-                    rate = Rate.oneToOne,
-                ).getOrElse {
-                    BottomBarManager.showAlert(
-                        title = resources.getString(R.string.error_title_staleRates),
-                        message = resources.getString(R.string.error_description_staleRates),
-                    )
-                    return@onEach
-                }
-
-                val feeAmount = event.context.feeAmount?.let { LocalFiat.fromUsd(usdf = it) }
-                    ?: LocalFiat.Zero
-                val token = event.context.token
-
-                viewModelScope.launch {
-                    phantomWalletController.connectAndSwap(
-                        amount = totalAmount,
-                        fee = feeAmount,
-                        token = token,
-                    ).onSuccess { result ->
-                        val swapId = (result as PhantomSwapResult.WithSwapId).swapId
-                        dispatchEvent(Event.PurchaseSubmitted(swapId, token.address))
-                    }.onFailure { error ->
-                        handlePhantomError(error)
-                    }
-                }
-            }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.PurchaseWithReserves>()
-            .mapNotNull { event ->
-                val owner = userManager.accountCluster ?: return@mapNotNull null
-                Pair(owner, event.context)
-            }
-            .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
-            .map { (owner, context) ->
-                verifiedFiatCalculator.compute(
-                    amount = context.amount,
-                    token = Token.usdf,
-                    rate = Rate.oneToOne,
-                ).mapCatching { totalAmount ->
-                    val feeAmount = context.feeAmount?.let { LocalFiat.fromUsd(usdf = it) }
-                    transactionController.buy(
-                        owner = owner,
-                        amount = totalAmount,
+                    funding = TokenCreateRequest.Funding(
+                        token = fundingToken,
+                        amount = amount,
+                        // The exact USD launch cost; the service pins the swap's native value to it.
+                        fullAmount = stateFlow.value.totalCost,
                         feeAmount = feeAmount,
-                        of = context.token,
-                        source = SwapFundingSource.SubmitIntent(),
-                        fund = null,
-                    ).getOrThrow()
-                }.map { swapId -> swapId to context.token.address }
+                    ),
+                )
+                accountCluster to request
+            }
+            .map { (accountCluster, request) ->
+                currencyController.launchToken(
+                    request = request,
+                    owner = accountCluster,
+                    // Recover a prior-attempt mint whose funding failed, so the retry re-funds
+                    // rather than failing on Exists.
+                    existingMint = stateFlow.value.createdMint,
+                    onMinted = { dispatchEvent(Event.OnTokenMinted(it)) },
+                )
             }
             .onResult(
-                onSuccess = { (swapId, mint) ->
-                    dispatchEvent(Event.PurchaseSubmitted(swapId, mint))
+                onSuccess = { result ->
+                    dispatchEvent(Event.PurchaseSubmitted(result.swapId, result.mint))
                 },
                 onError = { cause ->
                     dispatchEvent(Event.UpdateProcessingState())
@@ -612,8 +588,8 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                         )
                     } else {
                         BottomBarManager.showError(
-                            title = resources.getString(R.string.error_title_buyNewCurrencyFailed),
-                            message = resources.getString(R.string.error_description_buyNewCurrencyFailed),
+                            title = resources.getString(R.string.error_title_launchTokenFailed),
+                            message = resources.getString(R.string.error_description_launchTokenFailed),
                         )
                     }
                 }
@@ -641,60 +617,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     dispatchEvent(Event.UpdateProcessingState())
                 }
             ).launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnIntroContinue>()
-            .onEach {
-                val addMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
-                if (addMoney) {
-                    if (!purchaseMethodController.state.value.hasReserves) {
-                        // Creating a currency is funded from USDF reserves; require a deposit first.
-                        BottomBarManager.showInfo(
-                            title = resources.getString(R.string.title_noBalanceYet),
-                            message = resources.getString(R.string.description_noBalanceYetToCreate),
-                            actions = listOf(
-                                BottomBarAction(
-                                    text = resources.getString(R.string.action_addMoney)
-                                ) {
-                                    dispatchEvent(Event.PresentDepositOptions)
-                                },
-                            ),
-                            showCancel = true,
-                        )
-                        return@onEach
-                    } else if (purchaseMethodController.state.value.reservesBalance.nativeAmount <= stateFlow.value.totalCost) {
-                        BottomBarManager.showInfo(
-                            title = resources.getString(R.string.title_insufficientBalance),
-                            message = resources.getString(R.string.description_insufficientBalanceToCreate),
-                            actions = listOf(
-                                BottomBarAction(
-                                    text = resources.getString(R.string.action_addMoreMoney)
-                                ) {
-                                    dispatchEvent(Event.PresentDepositOptions)
-                                },
-                            ),
-                            showCancel = true,
-                        )
-                        return@onEach
-                    }
-                }
-
-                dispatchEvent(Event.AdvanceFromInfo)
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.PresentDepositOptions>()
-            .mapNotNull {
-                if (!featureFlags.get(FeatureFlag.AddMoneyUX)) {
-                    return@mapNotNull AppRoute.Transfers.Deposit(showOtherOptions = false)
-                }
-                // popToRoot = false so finishing the deposit returns to the currency
-                // creator (which pushed this flow) rather than tearing down the whole
-                // sheet and losing the user's place in the flow.
-                purchaseMethodController.presentDepositOptions(popToRoot = false)
-            }
-            .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
-            .launchIn(viewModelScope)
     }
 
     /**
@@ -710,42 +632,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 controller.progress = state.progress
             }
             .launchIn(viewModelScope)
-    }
-
-    private fun handlePhantomError(error: Throwable) {
-        val deeplinkError = error as? DeeplinkOnRampError
-            ?: DeeplinkOnRampError.FailedToCreateTransaction(message = error.message, cause = error)
-
-        if (deeplinkError is DeeplinkOnRampError.WalletProvidedError && deeplinkError.code == DeeplinkError.UserRejectedRequest.code) {
-            // user cancelled — not an error worth reporting
-        } else {
-            trace(
-                tag = "onramp::deeplinks",
-                message = "Phantom error in currency creator",
-                type = TraceType.Error,
-                error = deeplinkError.takeUnless { it.isAlert }
-            )
-        }
-
-        val providerName = resources.getString(com.flipcash.shared.onramp.deeplinks.R.string.label_phantom)
-        val (title, message) = deeplinkError.messaging(resources::getString, providerName)
-
-        when {
-            deeplinkError.isNetworkCause -> {
-                BottomBarManager.showAlert(
-                    title = resources.getString(com.flipcash.shared.onramp.deeplinks.R.string.error_title_noInternet),
-                    message = resources.getString(com.flipcash.shared.onramp.deeplinks.R.string.error_description_noInternet),
-                )
-            }
-            deeplinkError.isAlert -> {
-                BottomBarManager.showAlert(title = title, message = message)
-            }
-            else -> {
-                BottomBarManager.showError(title = title, message = message)
-            }
-        }
-
-        dispatchEvent(Event.UpdateProcessingState())
     }
 
     internal companion object {
@@ -795,6 +681,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 is Event.OnTokenMinted -> { state -> state.copy(createdMint = event.mint) }
 
                 is Event.Purchase -> { state -> state }
+                is Event.ConfirmPurchase -> { state -> state }
                 is Event.CheckName -> { state -> state }
                 is Event.CheckDescription -> { state -> state }
                 is Event.CheckImage -> { state -> state }
@@ -813,13 +700,10 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                     state.copy(attestations = attestations.copy(icon = event.attestation))
                 }
 
-                is Event.PurchaseWithReserves -> { state -> state }
                 Event.OnIntroContinue -> { state -> state }
                 Event.AdvanceFromInfo -> { state -> state }
                 Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
-                is Event.PurchaseWithPhantom -> { state -> state }
-                is Event.PurchaseWithGooglePay -> { state -> state }
                 is Event.PurchaseSubmitted -> { state -> state }
                 is Event.PurchaseCompleted -> { state ->
                     state.copy(launchedToken = event.token)

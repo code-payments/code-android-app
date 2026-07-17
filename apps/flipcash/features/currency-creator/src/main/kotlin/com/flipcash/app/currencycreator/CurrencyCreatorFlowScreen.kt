@@ -2,7 +2,6 @@ package com.flipcash.app.currencycreator
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,10 +44,10 @@ import com.flipcash.app.currencycreator.internal.screens.NameSelectionContent
 import com.flipcash.app.currencycreator.internal.screens.NameSelectionScreen
 import com.flipcash.app.currencycreator.internal.screens.ProcessingContent
 import com.flipcash.app.currencycreator.internal.screens.ProcessingScreen
-import com.flipcash.app.currencycreator.internal.screens.ReviewAndPurchaseContent
-import com.flipcash.app.currencycreator.internal.screens.ReviewAndPurchaseScreen
+import com.flipcash.app.currencycreator.internal.screens.ReviewContent
+import com.flipcash.app.currencycreator.internal.screens.BillReviewScreen
+import com.flipcash.app.currencycreator.internal.screens.FundingSourceSelectionScreen
 import com.flipcash.app.session.LocalSessionController
-import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.core.R
 import com.getcode.navigation.annotatedEntry
@@ -96,6 +95,21 @@ fun CurrencyCreatorFlowScreen(
                             )
                         }
                     }
+
+                    // TokenSelectScreen's own top bar is hidden on this step (showTopBar = false)
+                    // to avoid stacking two bars; surface its title here instead. Matches the
+                    // LaunchFunding title the select screen would show, and like Bill Review this
+                    // step shows no progress indicator (title replaces the progress slot).
+                    is CurrencyCreatorStep.FundingSourceSelection -> {
+                        {
+                            Text(
+                                text = stringResource(R.string.title_selectPaymentCurrency),
+                                style = CodeTheme.typography.textLarge,
+                                color = CodeTheme.colors.textMain,
+                            )
+                        }
+                    }
+
                     is CurrencyCreatorStep.Processing -> {
                         {
                             val text = if (state.processingState.success) {
@@ -185,7 +199,8 @@ private fun currencyCreatorEntryProvider(): (NavKey) -> NavEntry<NavKey> = entry
     annotatedEntry<CurrencyCreatorStep.IconSelection> { SyncTopBar(it); IconSelectionScreen() }
     annotatedEntry<CurrencyCreatorStep.DescriptionSelection> { SyncTopBar(it); DescriptionSelectionScreen() }
     annotatedEntry<CurrencyCreatorStep.BillCustomization> { SyncTopBar(it); BillCustomizationScreen() }
-    annotatedEntry<CurrencyCreatorStep.BillReviewAndPurchase> { SyncTopBar(it); ReviewAndPurchaseScreen() }
+    annotatedEntry<CurrencyCreatorStep.BillReview> { SyncTopBar(it); BillReviewScreen() }
+    annotatedEntry<CurrencyCreatorStep.FundingSourceSelection> { SyncTopBar(it); FundingSourceSelectionScreen() }
     annotatedEntry<CurrencyCreatorStep.Processing> { SyncTopBar(it); ProcessingScreen() }
 }
 
@@ -213,7 +228,7 @@ private fun SyncTopBar(step: CurrencyCreatorStep) {
         topBar.onEndAction = {
             val bill = billPlaygroundController.state.value.customizedBill
             viewModel.dispatchEvent(CurrencyCreatorViewModel.Event.OnBillConfirmed(bill))
-            flowNavigator.navigateTo(CurrencyCreatorStep.BillReviewAndPurchase)
+            flowNavigator.navigateTo(CurrencyCreatorStep.BillReview)
         }
     }
 }
@@ -286,7 +301,7 @@ private fun Preview_Bill() {
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 private fun Preview_Review() {
-    CurrencyCreatorPreview { ReviewAndPurchaseContent(it) {} }
+    CurrencyCreatorPreview { ReviewContent(it) {} }
 }
 
 @Preview

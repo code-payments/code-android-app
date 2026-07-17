@@ -8,7 +8,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.AppRoute.Transfers.Deposit
 import com.flipcash.app.core.AppRoute.Transfers.Withdrawal
 import com.flipcash.app.core.tokens.TokenPurpose
@@ -24,7 +23,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun TokenSelectScreen(purpose: TokenPurpose) {
+fun TokenSelectScreen(
+    purpose: TokenPurpose,
+    showTopBar: Boolean = purpose !is TokenPurpose.LaunchFunding,
+) {
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<SelectTokenViewModel>()
 
@@ -32,16 +34,18 @@ fun TokenSelectScreen(purpose: TokenPurpose) {
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        AppBarWithTitle(
-            title = when (purpose) {
-                is TokenPurpose.Purchase -> stringResource(R.string.title_selectPaymentCurrency)
-                else -> stringResource(R.string.title_selectCurrency)
-            },
-            backButton = true,
-            onBackIconClicked = { navigator.pop() },
-            titleAlignment = Alignment.CenterHorizontally,
-        )
-
+        if (showTopBar) {
+            AppBarWithTitle(
+                title = when (purpose) {
+                    is TokenPurpose.Swap -> stringResource(R.string.title_selectPaymentCurrency)
+                    is TokenPurpose.LaunchFunding -> stringResource(R.string.title_selectPaymentCurrency)
+                    else -> stringResource(R.string.title_selectCurrency)
+                },
+                backButton = true,
+                onBackIconClicked = { navigator.pop() },
+                titleAlignment = Alignment.CenterHorizontally,
+            )
+        }
 
         SelectTokenScreen(viewModel)
     }
@@ -67,7 +71,7 @@ fun TokenSelectScreen(purpose: TokenPurpose) {
             .onEach {
                 when (purpose) {
                     TokenPurpose.Balance -> Unit
-                    TokenPurpose.Select -> Unit
+                    is TokenPurpose.Select -> Unit
                     TokenPurpose.Withdraw -> {
                         navigator.push(Withdrawal())
                     }
@@ -76,7 +80,8 @@ fun TokenSelectScreen(purpose: TokenPurpose) {
                         navigator.push(Deposit())
                     }
 
-                    is TokenPurpose.Purchase -> Unit
+                    is TokenPurpose.LaunchFunding -> Unit
+                    is TokenPurpose.Swap -> Unit
                 }
             }.launchIn(this)
     }

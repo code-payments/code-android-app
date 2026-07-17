@@ -2,11 +2,13 @@ package com.getcode.opencode.controllers
 
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.exchange.VerifiedFiat
+import com.getcode.opencode.exchange.valuedAt
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.network.api.intents.IntentDistribution
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteReceive
 import com.getcode.opencode.internal.network.api.intents.IntentRemoteSend
 import com.getcode.opencode.internal.network.api.intents.IntentTransfer
+import com.getcode.opencode.internal.extensions.exchangeDataFor
 import com.getcode.opencode.internal.solana.extensions.newInstance
 import com.getcode.opencode.internal.network.api.intents.IntentWithdraw
 import com.getcode.opencode.internal.solana.model.SwapId
@@ -404,7 +406,80 @@ class TransactionController @Inject constructor(
             }
     }
 
-    override suspend fun crossCurrencySwap(
+    override suspend fun swap(
+        owner: AccountCluster,
+        amount: VerifiedFiat,
+        feeAmount: LocalFiat?,
+        from: Token,
+        to: Token,
+        swapId: SwapId?,
+        source: SwapFundingSource,
+        fund: (suspend (StatefulSwapRequest) -> Result<Unit>)?,
+    ): Result<SwapId> = doCrossCurrencySwap(
+        owner = owner,
+        amount = amount,
+        feeAmount = feeAmount,
+        from = from,
+        to = to,
+        fullAmountExchangeData = null,
+        swapId = swapId,
+        source = source,
+        fund = fund,
+    )
+
+    /**
+     * Funds a brand-new currency launch of the freshly-launched stub [newToken] using [fundingSource]. USDF
+     * triggers a plain [buy] of [newToken] under the hood; any other currency triggers the treasury-funded
+     * swap that creates and funds the new currency in a single transaction, deriving the required
+     * full-amount exchange data from [amount]'s verified state.
+     */
+    suspend fun launchToken(
+        owner: AccountCluster,
+        amount: VerifiedFiat,
+        fullAmount: Fiat,
+        feeAmount: LocalFiat? = null,
+        fundingSource: Token,
+        newToken: Token,
+        swapId: SwapId? = null,
+        source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
+        fund: (suspend (StatefulSwapRequest) -> Result<Unit>)? = null,
+    ): Result<SwapId> {
+        if (fundingSource.address == Mint.usdf) {
+            // USDF-backed launch is just a buy of the freshly-launched stub.
+            return buy(
+                owner = owner,
+                amount = amount,
+                feeAmount = feeAmount,
+                swapId = swapId,
+                of = newToken,
+                source = source,
+                fund = fund,
+            )
+        }
+
+        // The treasury flow is checked against the exact USD launch cost, but compute() reports a
+        // bonding-curve sell estimate as the native amount — pin it to [fullAmount], keeping the
+        // funding-token quarks. The pinned amount feeds both the full-amount exchange data and the
+        // swap (whose funding intent is validated against the same USD value).
+        val funded = amount.valuedAt(fullAmount)
+        val fullAmountExchangeData = funded.verifiedState?.exchangeDataFor(
+            amount = funded.localFiat,
+            mint = fundingSource.address,
+        )
+        return doCrossCurrencySwap(
+            owner = owner,
+            amount = funded,
+            feeAmount = feeAmount,
+            from = fundingSource,
+            to = newToken,
+            fullAmountExchangeData = fullAmountExchangeData,
+            swapId = swapId,
+            source = source,
+            fund = fund,
+        )
+    }
+
+    private suspend fun doCrossCurrencySwap(
         owner: AccountCluster,
         amount: VerifiedFiat,
         feeAmount: LocalFiat?,
