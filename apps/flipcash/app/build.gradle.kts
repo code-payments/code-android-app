@@ -136,7 +136,7 @@ bugsnag {
 
 composeCompiler {
     // Isolated Projects-safe root access (see AndroidLibraryComposeConventionPlugin).
-    stabilityConfigurationFile.set(
+    stabilityConfigurationFiles.add(
         isolated.rootProject.projectDirectory.file("compose_compiler_config.conf")
     )
 }

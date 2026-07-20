@@ -26,7 +26,7 @@ class AndroidLibraryComposeConventionPlugin : Plugin<Project> {
                 // `rootProject.layout` reaches into another project's model, which
                 // Isolated Projects forbids; `isolated.rootProject` is the blessed
                 // read-only view that exposes the root project directory safely.
-                stabilityConfigurationFile.set(
+                stabilityConfigurationFiles.add(
                     isolated.rootProject.projectDirectory.file("compose_compiler_config.conf")
                 )
             }
