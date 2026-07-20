@@ -88,7 +88,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     moderationController: ModerationController,
     currencyController: CurrencyController,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
-    tokenCoordinator: TokenCoordinator,
+    private val tokenCoordinator: TokenCoordinator,
     balancePoller: BalancePoller,
     private val resources: ResourceHelper,
     val contentReader: ContentReader,
@@ -113,6 +113,9 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         val bill: Bill? = null,
         val createdMint: Mint? = null,
         val launchedToken: Token? = null,
+        // The celebratory give-bill for the freshly launched currency, priced through the
+        // token's bonding curve (not USDF 1:1) and carrying the verified state a grab needs.
+        val launchBill: Bill.Cash? = null,
         val purchaseAmount: Fiat = 5.toFiat(),
         val feeAmount: Fiat? = null,
         val processingState: LoadingSuccessState = LoadingSuccessState(),
@@ -189,7 +192,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         data class ConfirmPurchase(val fundedWith: Mint): Event
 
         data class PurchaseSubmitted(val swapId: SwapId, val mint: Mint) : Event
-        data class PurchaseCompleted(val token: Token): Event
+        data class PurchaseCompleted(val token: Token, val bill: Bill.Cash?): Event
 
         data object OnIntroContinue : Event
         data object AdvanceFromInfo : Event
@@ -608,15 +611,51 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 ).map { event.mint }
             }.flatMapResult { mint ->
                 tokenCoordinator.getTokenMetadata(mint)
+            }.flatMapResult { result ->
+                // Build the celebratory give-bill for the new currency. A failure to price it
+                // (e.g. stale rates) must not fail the launch — the currency was created — so
+                // carry a null bill and let the flow simply close instead.
+                Result.success(result.token to buildLaunchBill(result.token))
             }.onResult(
-                onSuccess = { result ->
-                    dispatchEvent(Event.PurchaseCompleted(result.token))
+                onSuccess = { (token, bill) ->
+                    dispatchEvent(Event.PurchaseCompleted(token, bill))
                     dispatchEvent(Event.UpdateProcessingState(success = true))
                 },
                 onError = {
                     dispatchEvent(Event.UpdateProcessingState())
                 }
             ).launchIn(viewModelScope)
+    }
+
+    /**
+     * Builds the give-bill presented after a currency launch. The bill is for the newly
+     * minted [token], valued at the USD [State.purchaseAmount] but priced through the token's
+     * bonding curve via [VerifiedFiatCalculator.compute] — the same path the normal give flow
+     * uses. This yields a [LocalFiat] carrying the token's real mint and exchange rate plus the
+     * [VerifiedState] the grab intent submits, so the server's "expected sell value" check passes.
+     *
+     * Using `LocalFiat.fromUsd()` here instead would hard-code the USDF mint and a 1:1 rate,
+     * causing the grab to fail with `native amount does not match expected sell value`.
+     *
+     * Returns null if the verified fiat can't be computed; the launch still succeeds.
+     */
+    private suspend fun buildLaunchBill(token: Token): Bill.Cash? {
+        val balance = tokenCoordinator.tokenBalances.firstOrNull()
+            ?.firstOrNull { it.token.address == token.address }
+            ?.balance
+        val verifiedFiat = verifiedFiatCalculator.compute(
+            amount = stateFlow.value.purchaseAmount,
+            token = token,
+            balance = balance,
+            rate = exchange.preferredRate,
+        ).getOrNull() ?: return null
+
+        return Bill.Cash(
+            token = token,
+            amount = verifiedFiat.localFiat,
+            verifiedState = verifiedFiat.verifiedState,
+            didReceive = true,
+        )
     }
 
     /**
@@ -706,7 +745,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                 is Event.OpenScreen -> { state -> state }
                 is Event.PurchaseSubmitted -> { state -> state }
                 is Event.PurchaseCompleted -> { state ->
-                    state.copy(launchedToken = event.token)
+                    state.copy(launchedToken = event.token, launchBill = event.bill)
                 }
             }
         }
