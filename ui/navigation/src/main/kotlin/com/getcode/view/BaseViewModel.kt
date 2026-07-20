@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
@@ -38,8 +39,12 @@ abstract class BaseViewModel<ViewState : Any, Event : Any>(
         }
     }
 
+    // Events are dispatched from multiple threads — the UI thread and background flows on
+    // defaultDispatcher — so this must be an atomic compare-and-set, not a plain
+    // read-modify-write. A non-atomic assignment lets concurrent reducers derive from the same
+    // snapshot and clobber each other, silently dropping one event's state change.
     private fun setState(update: ViewState.() -> ViewState) {
-        _stateFlow.value = _stateFlow.value.update()
+        _stateFlow.update(update)
     }
 }
 
