@@ -102,7 +102,7 @@ screenshot = "0.0.1-alpha15"
 
 secrets-gradle-plugin = "2.0.1"
 firebase-perf-plugin = "2.0.2"
-uiToolingPreview = "1.11.2"
+uiToolingPreview = "1.11.4"
 uiTooling = "1.11.4"
 
 [libraries]
