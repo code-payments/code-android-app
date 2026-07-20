@@ -1,6 +1,7 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.internal.network.services.EventStreamReference
+import com.flipcash.services.models.chat.BlobUpdate
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.repository.EventStreamingRepository
@@ -113,6 +114,7 @@ private class FakeEventStreamingRepository : EventStreamingRepository {
         scope: CoroutineScope,
         owner: Ed25519.KeyPair,
         onEvent: (ChatUpdate) -> Unit,
+        onBlobUpdate: (BlobUpdate) -> Unit,
         onError: (Throwable) -> Unit,
     ): EventStreamReference {
         // Widen the controller's check-then-act window so an unsynchronized

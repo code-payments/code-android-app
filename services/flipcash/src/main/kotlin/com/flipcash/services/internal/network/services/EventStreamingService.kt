@@ -4,8 +4,10 @@ import com.codeinc.flipcash.gen.events.v1.EventStreamingService as RpcEventStrea
 import com.codeinc.flipcash.gen.events.v1.Model as EventModel
 import com.flipcash.services.internal.network.api.EventStreamingApi
 import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.toBlobUpdate
 import com.flipcash.services.internal.network.extensions.toChatUpdate
 import com.flipcash.services.models.StreamEventsError
+import com.flipcash.services.models.chat.BlobUpdate
 import com.flipcash.services.models.chat.ChatUpdate
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
@@ -30,6 +32,7 @@ internal class EventStreamingService @Inject constructor(
         scope: CoroutineScope,
         owner: KeyPair,
         onEvent: (ChatUpdate) -> Unit,
+        onBlobUpdate: (BlobUpdate) -> Unit = {},
         onError: (Throwable) -> Unit = {},
     ): EventStreamReference {
         trace(tag = "event-stream", message = "Opening stream.")
@@ -43,7 +46,7 @@ internal class EventStreamingService @Inject constructor(
         }
 
         streamReference.coroutineScope.launch {
-            openStream(scope, owner, streamReference, onEvent, onError)
+            openStream(scope, owner, streamReference, onEvent, onBlobUpdate, onError)
         }
 
         return streamReference
@@ -54,6 +57,7 @@ internal class EventStreamingService @Inject constructor(
         owner: KeyPair,
         streamRef: EventStreamReference,
         onEvent: (ChatUpdate) -> Unit,
+        onBlobUpdate: (BlobUpdate) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
         openBidirectionalStream(
@@ -98,6 +102,9 @@ internal class EventStreamingService @Inject constructor(
                             when (event.typeCase) {
                                 EventModel.Event.TypeCase.CHAT_UPDATE -> {
                                     onEvent(event.chatUpdate.toChatUpdate())
+                                }
+                                EventModel.Event.TypeCase.BLOB_UPDATE -> {
+                                    onBlobUpdate(event.blobUpdate.toBlobUpdate())
                                 }
                                 else -> {
                                     trace(

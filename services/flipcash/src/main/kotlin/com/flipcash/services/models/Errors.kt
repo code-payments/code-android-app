@@ -200,6 +200,7 @@ sealed class SetDisplayNameError(
 ): CodeServerError(message, cause) {
     class InvalidDisplayName: SetDisplayNameError("Invalid display name")
     class Denied: SetDisplayNameError("Denied")
+    class FailedModerated(val category: ModerationResult.FlaggedCategory) : SetDisplayNameError("Content flagged: $category")
     class Unrecognized : SetDisplayNameError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : SetDisplayNameError(message = cause?.message, cause = cause), NotifiableError
 }

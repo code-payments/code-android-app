@@ -3,6 +3,7 @@ package com.flipcash.services.internal.network.services
 import com.codeinc.flipcash.gen.profile.v1.Model
 import com.codeinc.flipcash.gen.profile.v1.ProfileService
 import com.flipcash.services.internal.network.api.ProfileApi
+import com.flipcash.services.internal.network.extensions.toFlaggedCategory
 import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.LinkSocialAccountError
@@ -48,6 +49,8 @@ internal class ProfileService @Inject constructor(
                     ProfileService.SetDisplayNameResponse.Result.OK -> Result.success(Unit)
                     ProfileService.SetDisplayNameResponse.Result.INVALID_DISPLAY_NAME -> Result.failure(SetDisplayNameError.InvalidDisplayName())
                     ProfileService.SetDisplayNameResponse.Result.DENIED -> Result.failure(SetDisplayNameError.Denied())
+                    ProfileService.SetDisplayNameResponse.Result.FAILED_MODERATED ->
+                        Result.failure(SetDisplayNameError.FailedModerated(response.flaggedCategory.toFlaggedCategory()))
                     ProfileService.SetDisplayNameResponse.Result.UNRECOGNIZED -> Result.failure(SetDisplayNameError.Unrecognized())
                 }
             },

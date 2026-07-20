@@ -1,6 +1,7 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.internal.network.services.EventStreamReference
+import com.flipcash.services.models.chat.BlobUpdate
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.repository.EventStreamingRepository
 import com.flipcash.services.user.UserManager
@@ -19,6 +20,9 @@ class EventStreamingController @Inject constructor(
 ) {
     private val _chatUpdates = Channel<ChatUpdate>(capacity = Channel.UNLIMITED)
     val chatUpdates: Flow<ChatUpdate> = _chatUpdates.receiveAsFlow()
+
+    private val _blobUpdates = Channel<BlobUpdate>(capacity = Channel.UNLIMITED)
+    val blobUpdates: Flow<BlobUpdate> = _blobUpdates.receiveAsFlow()
 
     // Guards all reads/writes of [streamRef]. open()/close() are invoked
     // concurrently from multiple triggers (login, lifecycle onStart, network
@@ -51,6 +55,10 @@ class EventStreamingController @Inject constructor(
             onEvent = { update ->
                 trace("EventStreamingController: Received chat update, messages=${update.newMessages.size}")
                 _chatUpdates.trySend(update)
+            },
+            onBlobUpdate = { update ->
+                trace("EventStreamingController: Received blob update, blobs=${update.blobs.size}")
+                _blobUpdates.trySend(update)
             },
             onError = { error ->
                 trace("EventStreamingController: Stream error: ${error.message}")

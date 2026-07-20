@@ -7,6 +7,7 @@ import com.codeinc.flipcash.gen.push.v1.Model as PushModels
 import com.flipcash.services.internal.extensions.toChecksum
 import com.flipcash.services.internal.extensions.toMint
 import com.flipcash.services.internal.extensions.toPublicKey
+import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.NavigationTrigger
 import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
@@ -26,6 +27,11 @@ import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.chat.EmojiReaction
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.BlobMetadata
+import com.flipcash.services.models.chat.BlobRejection
+import com.flipcash.services.models.chat.BlobState
+import com.flipcash.services.models.chat.BlobStatus
+import com.flipcash.services.models.chat.BlobUpdate
+import com.flipcash.services.models.chat.RejectionReason
 import com.flipcash.services.models.chat.ImageMetadata
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.MediaItemRendition
@@ -366,4 +372,56 @@ internal fun EventModel.ChatUpdate.toChatUpdate(
         events = if (hasEvents()) events.eventsList.map { it.toChatEvent() } else emptyList(),
         reactionUpdates = if (hasReactionUpdates()) reactionUpdates.reactionUpdatesList.map { it.toReactionUpdate() } else emptyList(),
     )
+}
+
+// -- EventModel.BlobUpdate --
+
+internal fun EventModel.BlobUpdate.toBlobUpdate(): BlobUpdate {
+    return BlobUpdate(
+        blobs = blobs.blobsList.map { it.toBlobState() },
+    )
+}
+
+internal fun com.codeinc.flipcash.gen.blob.v1.Model.Blob.toBlobState(): BlobState {
+    return BlobState(
+        id = BlobId(id.value.toByteArray()),
+        status = status.toBlobStatus(),
+        metadata = if (hasMetadata()) metadata.toBlobMetadata() else null,
+        rejection = if (hasRejection()) rejection.toBlobRejection() else null,
+    )
+}
+
+internal fun com.codeinc.flipcash.gen.blob.v1.Model.BlobStatus.toBlobStatus(): BlobStatus {
+    return when (this) {
+        com.codeinc.flipcash.gen.blob.v1.Model.BlobStatus.BLOB_STATUS_PENDING -> BlobStatus.PENDING
+        com.codeinc.flipcash.gen.blob.v1.Model.BlobStatus.BLOB_STATUS_PROCESSING -> BlobStatus.PROCESSING
+        com.codeinc.flipcash.gen.blob.v1.Model.BlobStatus.BLOB_STATUS_READY -> BlobStatus.READY
+        com.codeinc.flipcash.gen.blob.v1.Model.BlobStatus.BLOB_STATUS_REJECTED -> BlobStatus.REJECTED
+        else -> BlobStatus.UNKNOWN
+    }
+}
+
+internal fun com.codeinc.flipcash.gen.blob.v1.Model.RejectionMetadata.toBlobRejection(): BlobRejection {
+    return BlobRejection(
+        reason = reason.toRejectionReason(),
+        flaggedCategory = flaggedCategory.toFlaggedCategory(),
+    )
+}
+
+internal fun com.codeinc.flipcash.gen.blob.v1.Model.RejectionReason.toRejectionReason(): RejectionReason {
+    return when (this) {
+        com.codeinc.flipcash.gen.blob.v1.Model.RejectionReason.REJECTION_REASON_MODERATION -> RejectionReason.MODERATION
+        com.codeinc.flipcash.gen.blob.v1.Model.RejectionReason.REJECTION_REASON_UNSUPPORTED_TYPE -> RejectionReason.UNSUPPORTED_TYPE
+        com.codeinc.flipcash.gen.blob.v1.Model.RejectionReason.REJECTION_REASON_MISMATCHED_TYPE -> RejectionReason.MISMATCHED_TYPE
+        com.codeinc.flipcash.gen.blob.v1.Model.RejectionReason.REJECTION_REASON_TOO_LARGE -> RejectionReason.TOO_LARGE
+        com.codeinc.flipcash.gen.blob.v1.Model.RejectionReason.REJECTION_REASON_CORRUPT -> RejectionReason.CORRUPT
+        com.codeinc.flipcash.gen.blob.v1.Model.RejectionReason.REJECTION_REASON_INTERNAL -> RejectionReason.INTERNAL
+        com.codeinc.flipcash.gen.blob.v1.Model.RejectionReason.REJECTION_REASON_PRIVACY_METADATA -> RejectionReason.PRIVACY_METADATA
+        else -> RejectionReason.UNKNOWN
+    }
+}
+
+internal fun com.codeinc.flipcash.gen.moderation.v1.Model.FlaggedCategory.toFlaggedCategory(): ModerationResult.FlaggedCategory {
+    return ModerationResult.FlaggedCategory.entries.firstOrNull { it.name == name }
+        ?: ModerationResult.FlaggedCategory.OTHER
 }
