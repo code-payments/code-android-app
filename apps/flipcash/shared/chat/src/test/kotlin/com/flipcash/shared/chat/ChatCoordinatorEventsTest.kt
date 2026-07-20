@@ -483,4 +483,37 @@ class ChatCoordinatorEventsTest {
     }
 
     // endregion
+
+    // region Session lifecycle
+
+    @Test
+    fun `re-login after reset resumes chat sync on a fresh scope`() = runTest(testDispatchers.dispatcher) {
+        // First session wires the delegate collectors onto the coordinator scope.
+        coordinator.onUserLoggedIn(mockk(relaxed = true))
+        runCurrent()
+
+        // Logout cancels the coordinator's supervisor job (and thus its scope).
+        coordinator.reset()
+        runCurrent()
+
+        // Re-login in the same process. Before the fix, the scope stayed cancelled,
+        // so every launch in onUserLoggedIn was a silent no-op and incoming chat
+        // updates were dropped until a process restart rebuilt the singleton.
+        coordinator.onUserLoggedIn(mockk(relaxed = true))
+        runCurrent()
+
+        val msg = textMessage(id = 7, eventSequence = 1)
+        chatUpdatesChannel.send(ChatUpdate(chatId = chatId, events = listOf(chatEvent(1, msg))))
+        advanceTimeBy(1_000.milliseconds)
+        runCurrent()
+
+        coVerify {
+            messageDataSource.upsert(chatId, match { messages ->
+                messages.size == 1 && messages[0].messageId == 7L
+            })
+        }
+        coordinator.reset()
+    }
+
+    // endregion
 }

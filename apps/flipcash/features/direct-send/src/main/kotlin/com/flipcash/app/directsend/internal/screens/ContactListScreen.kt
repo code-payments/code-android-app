@@ -128,6 +128,24 @@ internal fun ContactListScreen() {
             }
         }
 
+        // When the user grants contacts access from the inline callout, the sync runs
+        // in two passes: device contacts land first (only the "Not on Flipcash"
+        // section), then the "On Flipcash" contacts are fetched and prepended to the
+        // top. LazyColumn's key-based scroll anchoring pins the previously-visible
+        // first row, which pushes the freshly-prepended "On Flipcash" section above the
+        // viewport. Keep the list pinned to the top while a user-initiated sync is
+        // settling so that section stays visible instead of being scrolled offscreen.
+        LaunchedEffect(listState) {
+            snapshotFlow {
+                (state.contactSyncState.loading || state.contactSyncState.success) to
+                    state.listItems.size
+            }.collect { (syncing, _) ->
+                if (syncing && listState.firstVisibleItemIndex != 0) {
+                    listState.scrollToItem(0)
+                }
+            }
+        }
+
         Column(
             modifier = Modifier.padding(innerPadding),
         ) {

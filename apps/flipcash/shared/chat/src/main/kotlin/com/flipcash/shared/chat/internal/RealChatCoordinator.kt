@@ -76,8 +76,8 @@ class RealChatCoordinator @Inject constructor(
     private val stateHolder: ChatStateHolder,
     private val userManager: UserManager,
     private val featureFlags: FeatureFlagController,
-    networkObserver: NetworkConnectivityListener,
-    dispatchers: DispatcherProvider,
+    private val networkObserver: NetworkConnectivityListener,
+    private val dispatchers: DispatcherProvider,
 ) : ChatCoordinator,
     SessionListener,
     DefaultLifecycleObserver,
@@ -89,8 +89,12 @@ class RealChatCoordinator @Inject constructor(
         private const val TAG = "ChatCoordinator"
     }
 
-    private val supervisorJob = SupervisorJob()
-    private val scope = CoroutineScope(dispatchers.IO + supervisorJob)
+    // Recreated on re-login: [reset] cancels [supervisorJob] on logout, which would
+    // otherwise leave the scope permanently dead for this @Singleton and no-op every
+    // launch in a subsequent [onUserLoggedIn] (chats never sync until a process
+    // restart rebuilds the singleton). See [onUserLoggedIn].
+    private var supervisorJob = SupervisorJob()
+    private var scope = CoroutineScope(dispatchers.IO + supervisorJob)
     private val cluster = MutableStateFlow<AccountCluster?>(null)
     private var flagObserverJob: Job? = null
     private var networkObserverJob: Job? = null
@@ -103,6 +107,14 @@ class RealChatCoordinator @Inject constructor(
 
     override suspend fun onUserLoggedIn(cluster: AccountCluster) {
         trace(tag = TAG, message = "User logged in, hydrating chat", type = TraceType.User)
+        // A prior logout in this process cancels [supervisorJob] via [reset], leaving
+        // the scope dead. Rebuild it and re-establish the lifetime wiring before the
+        // session work below, otherwise every launch here is a silent no-op.
+        if (!supervisorJob.isActive) {
+            supervisorJob = SupervisorJob()
+            scope = CoroutineScope(dispatchers.IO + supervisorJob)
+            wireDelegateRouting()
+        }
         this.cluster.value = cluster
         feedDelegate.initialize(scope)
         eventStreamDelegate.initialize(scope)
@@ -119,7 +131,16 @@ class RealChatCoordinator @Inject constructor(
 
     init {
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+        wireDelegateRouting()
+    }
 
+    /**
+     * Launches the lifetime collectors — cross-delegate event routing and the
+     * network-reconnect re-sync — onto [scope]. Called once at construction and
+     * again from [onUserLoggedIn] whenever the scope had to be rebuilt after a
+     * [reset], so these collectors are never left orphaned on a dead scope.
+     */
+    private fun wireDelegateRouting() {
         feedDelegate.events
             .onEach { event ->
                 when (event) {
