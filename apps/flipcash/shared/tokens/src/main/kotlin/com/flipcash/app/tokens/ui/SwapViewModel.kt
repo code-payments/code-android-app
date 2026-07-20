@@ -860,6 +860,7 @@ class SwapViewModel @Inject constructor(
                 val amountFiat = verifiedFiatCalculator.compute(
                     amount = Fiat(delegateState.enteredAmount, rate.currency),
                     token = token,
+                    balance = tokenCoordinator.balanceForToken(token),
                     rate = rate,
                 ).getOrElse {
                     BottomBarManager.showAlert(

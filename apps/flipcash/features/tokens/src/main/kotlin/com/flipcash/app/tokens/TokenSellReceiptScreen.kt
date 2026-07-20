@@ -19,7 +19,6 @@ import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Composable
@@ -33,7 +32,7 @@ internal fun SellReceiptScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            title = stringResource(R.string.title_sellToken, state.tokenName),
+            title = stringResource(R.string.title_confirmSale),
             titleAlignment = Alignment.CenterHorizontally,
             backButton = true,
             onBackIconClicked = {
