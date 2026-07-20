@@ -519,7 +519,7 @@ class ContactCoordinator @Inject constructor(
                 onSuccess = { serverChecksum ->
                     // Checksums match — skip upload
                     trace(tag = TAG, message = "Contacts in sync with server", type = TraceType.Process)
-                    contactDataSource.persistSyncState(newChecksum)
+                    contactDataSource.persistSyncState(serverChecksum)
                 },
                 onFailure = { error ->
                     when (error) {
