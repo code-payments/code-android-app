@@ -67,9 +67,6 @@ private fun SelectTokenScreenContent(
         },
         enableGreaterThanAmount = { _, amount ->
             when (val purpose = state.purpose) {
-                is TokenPurpose.Swap -> {
-                    amount.nativeAmount.valueGreaterThanOrEqualTo(purpose.amount)
-                }
                 is TokenPurpose.LaunchFunding -> {
                     amount.nativeAmount.valueGreaterThanOrEqualTo(purpose.amount)
                 }

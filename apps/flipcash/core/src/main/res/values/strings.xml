@@ -538,12 +538,15 @@
     <string name="action_sell">Sell</string>
     <string name="title_amountToWithdraw">Amount to Withdraw</string>
     <string name="label_solanaUsdc">Solana USDC with</string>
-    <string name="title_buyToken">Buy</string>
+    <string name="title_buyToken">Buy %1$s</string>
     <string name="title_sellToken">Sell %1$s</string>
+    <string name="title_confirmPurchase">Confirm Purchase</string>
+    <string name="title_confirmSale">Confirm Sale</string>
     <string name="title_purchasingToken">Purchasing %1$s</string>
     <string name="title_addingMoney">Adding Money</string>
     <string name="title_sellingToken">Selling %1$s</string>
     <string name="label_sellWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
+    <string name="label_buyWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
 
     <string name="label_yes">Yes</string>
     <string name="label_no">No</string>

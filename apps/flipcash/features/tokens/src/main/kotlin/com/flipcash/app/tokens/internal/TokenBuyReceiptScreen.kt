@@ -3,13 +3,19 @@ package com.flipcash.app.tokens.internal
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -25,6 +31,7 @@ import com.flipcash.app.core.ui.ReceiptLineItem
 import com.flipcash.app.core.ui.TokenBalanceRow
 import com.flipcash.app.core.ui.TokenBalanceStyle
 import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
+import com.flipcash.app.core.ui.shimmer
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.opencode.model.financial.Fiat
@@ -62,7 +69,7 @@ private fun TokenBuyReceiptScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = CodeTheme.dimens.grid.x5),
-                    text = stringResource(R.string.label_sellWarning),
+                    text = stringResource(R.string.label_buyWarning),
                     style = CodeTheme.typography.textSmall,
                     color = CodeTheme.colors.textSecondary,
                     textAlign = TextAlign.Center,
@@ -97,9 +104,9 @@ private fun TokenBuyReceiptScreen(
             )
         ) {
             BuyReceipt(
-                fundingToken = state.fundingTokenWithBalance!!.token,
-                desiredToken = state.tokenWithBalance!!.token,
-                purchaseAmount = state.confirmedEnteredAmount!!,
+                fundingToken = state.fundingTokenWithBalance?.token,
+                desiredToken = state.tokenWithBalance?.token,
+                purchaseAmount = state.confirmedEnteredAmount,
                 feeAmount = state.feeAmount,
             )
         }
@@ -108,16 +115,20 @@ private fun TokenBuyReceiptScreen(
 
 @Composable
 private fun BuyReceipt(
-    fundingToken: Token,
-    desiredToken: Token,
-    purchaseAmount: Fiat,
+    fundingToken: Token?,
+    desiredToken: Token?,
+    purchaseAmount: Fiat?,
     feeAmount: Fiat,
     modifier: Modifier = Modifier,
 ) {
+    // The funding token and confirmed amount resolve asynchronously after landing here, so
+    // either can briefly be null on first composition. Render a shimmer in place of each token
+    // row until its data arrives rather than crashing or hiding the row entirely.
     val feeAdjustedPurchaseAmount by remember(purchaseAmount, feeAmount) {
         derivedStateOf {
-            if (!feeAmount.hasDisplayableValue) return@derivedStateOf purchaseAmount
-            purchaseAmount + feeAmount
+            purchaseAmount?.let {
+                if (!feeAmount.hasDisplayableValue) it else it + feeAmount
+            }
         }
     }
 
@@ -144,29 +155,34 @@ private fun BuyReceipt(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = stringResource(R.string.subtitle_youPay),
+                text = stringResource(R.string.subtitle_youReceive),
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
             )
-            TokenBalanceRow(
-                tokenWithBalance = TokenWithBalance(
-                    token = fundingToken,
-                    balance = feeAdjustedPurchaseAmount
-                ),
-                showName = false,
-                showLogo = true,
-                showFlag = false,
-                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                styling = rememberTokenBalanceRowStyling(
-                    balanceDisplayStyle = TokenBalanceStyle.Large(
-                        textStyle = CodeTheme.typography.displaySmall.bolded()
+
+            if (desiredToken != null && purchaseAmount != null) {
+                TokenBalanceRow(
+                    tokenWithBalance = TokenWithBalance(
+                        token = desiredToken,
+                        balance = purchaseAmount
                     ),
-                ),
-                contentPadding = PaddingValues(0.dp),
-            )
+                    showName = false,
+                    showLogo = true,
+                    showFlag = false,
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                    styling = rememberTokenBalanceRowStyling(
+                        balanceDisplayStyle = TokenBalanceStyle.Large(
+                            textStyle = CodeTheme.typography.displaySmall.bolded()
+                        ),
+                    ),
+                    contentPadding = PaddingValues(0.dp),
+                )
+            } else {
+                TokenBalanceRowPlaceholder()
+            }
         }
 
-        if (feeAmount.isPositive) {
+        if (feeAmount.isPositive && purchaseAmount != null) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
@@ -192,26 +208,56 @@ private fun BuyReceipt(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = stringResource(R.string.subtitle_youReceive),
+                text = stringResource(R.string.subtitle_youPay),
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
             )
-            TokenBalanceRow(
-                tokenWithBalance = TokenWithBalance(
-                    token = desiredToken,
-                    balance = purchaseAmount
-                ),
-                showName = false,
-                showLogo = true,
-                showFlag = false,
-                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                styling = rememberTokenBalanceRowStyling(
-                    balanceDisplayStyle = TokenBalanceStyle.Large(
-                        textStyle = CodeTheme.typography.displaySmall.bolded()
+            if (fundingToken != null && feeAdjustedPurchaseAmount != null) {
+                TokenBalanceRow(
+                    tokenWithBalance = TokenWithBalance(
+                        token = fundingToken,
+                        balance = feeAdjustedPurchaseAmount!!
                     ),
-                ),
-                contentPadding = PaddingValues(0.dp),
-            )
+                    showName = false,
+                    showLogo = true,
+                    showFlag = false,
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                    styling = rememberTokenBalanceRowStyling(
+                        balanceDisplayStyle = TokenBalanceStyle.Large(
+                            textStyle = CodeTheme.typography.displaySmall.bolded()
+                        ),
+                    ),
+                    contentPadding = PaddingValues(0.dp),
+                )
+            } else {
+                TokenBalanceRowPlaceholder()
+            }
         }
+    }
+}
+
+/**
+ * Shimmer stand-in for a [TokenBalanceRow] shown with a logo + large balance, used while the
+ * token or amount is still resolving. Mirrors the row's layout: a circular logo followed by the
+ * balance text.
+ */
+@Composable
+private fun TokenBalanceRowPlaceholder(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(CodeTheme.dimens.staticGrid.x6)
+                .shimmer(CircleShape)
+        )
+        Box(
+            Modifier
+                .width(CodeTheme.dimens.grid.x20)
+                .height(CodeTheme.dimens.grid.x6)
+                .shimmer()
+        )
     }
 }
