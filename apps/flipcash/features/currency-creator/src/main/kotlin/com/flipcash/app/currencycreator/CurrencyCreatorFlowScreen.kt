@@ -1,8 +1,10 @@
 package com.flipcash.app.currencycreator
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -63,6 +65,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.rememberDynamicAccent
 import com.getcode.ui.core.unboundedClickable
 
 @Composable
@@ -136,15 +139,24 @@ fun CurrencyCreatorFlowScreen(
                 endContent = when (state.currentStep) {
                     is CurrencyCreatorStep.BillCustomization -> {
                         {
+                            val (accent, onAccent) = rememberDynamicAccent(
+                                fallbackAccent = CodeTheme.colors.secondary,
+                                fallbackOnAccent = CodeTheme.colors.onAction,
+                            )
+
                             Text(
-                                text = stringResource(R.string.action_done),
+                                text = stringResource(R.string.action_next),
                                 style = CodeTheme.typography.textMedium,
-                                color = Color.White,
+                                color = onAccent,
                                 modifier = Modifier
+                                    .background(accent, shape = CircleShape)
                                     .unboundedClickable {
                                         topBarController.onEndAction?.invoke()
                                     }
-                                    .padding(5.dp),
+                                    .padding(
+                                        horizontal = CodeTheme.dimens.grid.x2,
+                                        vertical = CodeTheme.dimens.grid.x1
+                                    ),
                             )
                         }
                     }
