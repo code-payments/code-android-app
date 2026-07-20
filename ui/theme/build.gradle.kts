@@ -13,6 +13,7 @@ android {
 dependencies {    debugImplementation(libs.compose.ui.tools)
     implementation(libs.compose.ui.tools.preview)
     implementation(libs.compose.material)
+    implementation(libs.compose.material3)
     implementation(libs.compose.accompanist)
 
     implementation(libs.androidx.appcompat)
