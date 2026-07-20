@@ -35,7 +35,7 @@ androidx-webkit = "1.16.0"
 
 sqlcipher = "4.5.4"
 
-compose-bom = "2026.05.01"
+compose-bom = "2026.06.01"
 compose-activities = "1.13.0"
 compose-view-models = "2.11.0"
 compose-paging = "3.5.0"
