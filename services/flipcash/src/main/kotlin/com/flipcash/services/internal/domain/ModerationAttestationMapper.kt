@@ -1,6 +1,6 @@
 package com.flipcash.services.internal.domain
 
-import com.codeinc.flipcash.gen.moderation.v1.ModerationService
+import com.codeinc.flipcash.gen.moderation.v1.Model
 import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.internal.network.extensions.toPublicKey
 import com.flipcash.services.internal.network.extensions.toSignature
@@ -10,8 +10,8 @@ import com.getcode.opencode.mapper.Mapper
 import javax.inject.Inject
 import kotlin.time.Instant
 
-class ModerationAttestationMapper @Inject constructor(): Mapper<ModerationService.ModerationAttestation, ModerationResult.Attestation> {
-    override fun map(from: ModerationService.ModerationAttestation): ModerationResult.Attestation {
+class ModerationAttestationMapper @Inject constructor(): Mapper<Model.ModerationAttestation, ModerationResult.Attestation> {
+    override fun map(from: Model.ModerationAttestation): ModerationResult.Attestation {
         return ModerationResult.Attestation(
             rawValue = from.toByteArray().toList(),
             hash = Sha256Hash.of(from.contentHash.toByteArray()),

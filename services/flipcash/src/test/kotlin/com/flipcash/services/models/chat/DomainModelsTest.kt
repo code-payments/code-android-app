@@ -11,9 +11,10 @@ class DomainModelsTest {
 
     @Test
     fun `ChatType has expected values`() {
-        assertEquals(2, ChatType.entries.size)
+        assertEquals(3, ChatType.entries.size)
         assertIs<ChatType>(ChatType.UNKNOWN)
-        assertIs<ChatType>(ChatType.DM)
+        assertIs<ChatType>(ChatType.CONTACT_DM)
+        assertIs<ChatType>(ChatType.TIP_DM)
     }
 
     @Test
@@ -77,7 +78,7 @@ class DomainModelsTest {
     fun `MetadataUpdate FullRefresh holds metadata`() {
         val metadata = ChatMetadata(
             chatId = ChatId(ByteArray(32)),
-            type = ChatType.DM,
+            type = ChatType.CONTACT_DM,
             members = emptyList(),
             lastMessage = null,
             lastActivity = Instant.fromEpochSeconds(500),

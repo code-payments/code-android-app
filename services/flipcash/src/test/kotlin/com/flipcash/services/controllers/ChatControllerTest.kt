@@ -156,7 +156,7 @@ class ChatControllerTest {
 
     private fun stubMetadata(chatId: ChatId = ChatId(ByteArray(32))) = ChatMetadata(
         chatId = chatId,
-        type = ChatType.DM,
+        type = ChatType.CONTACT_DM,
         members = emptyList(),
         lastMessage = null,
         lastActivity = Instant.fromEpochSeconds(1000),

@@ -66,7 +66,7 @@ class ChatMetadataMapperTest {
         block: ChatModel.Metadata.Builder.() -> Unit = {},
     ): ChatModel.Metadata = ChatModel.Metadata.newBuilder()
         .setChatId(chatId())
-        .setType(ChatModel.Metadata.ChatType.DM)
+        .setType(ChatModel.ChatType.CONTACT_DM)
         .setLastActivity(Timestamp.newBuilder().setSeconds(2000))
         .apply(block)
         .build()
@@ -74,7 +74,7 @@ class ChatMetadataMapperTest {
     @Test
     fun `maps chat type DM`() {
         val result = mapper.map(metadata())
-        assertEquals(ChatType.DM, result.type)
+        assertEquals(ChatType.CONTACT_DM, result.type)
     }
 
     @Test

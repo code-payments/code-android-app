@@ -50,7 +50,7 @@ internal class ContactListBuilder @Inject constructor(
             }
         }
 
-        val dmChats = chatFeed.filter { it.metadata.type == ChatType.DM }
+        val dmChats = chatFeed.filter { it.metadata.type == ChatType.CONTACT_DM }
         // Build a reverse lookup: e164 -> chatId string for contacts with DMs
         val e164ToChatId = contactState.dmChatIds
 
