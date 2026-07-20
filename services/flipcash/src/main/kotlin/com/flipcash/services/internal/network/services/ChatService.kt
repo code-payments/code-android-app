@@ -7,6 +7,7 @@ import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.GetDmChatFeedError
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.utils.toValidationOrElse
@@ -40,9 +41,10 @@ internal class ChatService @Inject constructor(
     suspend fun getDmChatFeed(
         owner: KeyPair,
         queryOptions: QueryOptions,
+        chatType: ChatType,
     ): Result<RpcChatService.GetDmChatFeedResponse> {
         return runCatching {
-            api.getDmChatFeed(owner, queryOptions)
+            api.getDmChatFeed(owner, queryOptions, chatType)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {

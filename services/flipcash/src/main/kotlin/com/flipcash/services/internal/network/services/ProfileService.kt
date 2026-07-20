@@ -8,9 +8,13 @@ import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.LinkSocialAccountError
 import com.flipcash.services.models.SetDisplayNameError
+import com.flipcash.services.models.SetProfilePictureError
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
 import com.flipcash.services.models.UnlinkSocialAccountError
+import com.flipcash.services.models.chat.BlobId
+import com.flipcash.services.models.chat.MediaItem
+import com.flipcash.services.internal.network.extensions.toMediaItem
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.model.core.ID
@@ -55,6 +59,28 @@ internal class ProfileService @Inject constructor(
                 }
             },
             onFailure = { Result.failure(it.toValidationOrElse { cause -> SetDisplayNameError.Other(cause) }) }
+        )
+    }
+
+    suspend fun setProfilePicture(
+        blobId: BlobId,
+        owner: Ed25519.KeyPair,
+    ): Result<MediaItem> {
+        return runCatching {
+            api.setProfilePicture(blobId, owner)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    ProfileService.SetProfilePictureResponse.Result.OK -> Result.success(response.profilePicture.toMediaItem())
+                    ProfileService.SetProfilePictureResponse.Result.DENIED -> Result.failure(SetProfilePictureError.Denied())
+                    ProfileService.SetProfilePictureResponse.Result.BLOB_NOT_FOUND -> Result.failure(SetProfilePictureError.BlobNotFound())
+                    ProfileService.SetProfilePictureResponse.Result.BLOB_NOT_READY -> Result.failure(SetProfilePictureError.BlobNotReady())
+                    ProfileService.SetProfilePictureResponse.Result.BLOB_REJECTED -> Result.failure(SetProfilePictureError.BlobRejected())
+                    ProfileService.SetProfilePictureResponse.Result.INVALID_BLOB -> Result.failure(SetProfilePictureError.InvalidBlob())
+                    ProfileService.SetProfilePictureResponse.Result.UNRECOGNIZED -> Result.failure(SetProfilePictureError.Unrecognized())
+                }
+            },
+            onFailure = { Result.failure(it.toValidationOrElse { cause -> SetProfilePictureError.Other(cause) }) }
         )
     }
 

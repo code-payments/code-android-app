@@ -8,6 +8,7 @@ import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.PointerType
@@ -20,6 +21,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
 import com.google.protobuf.Timestamp
 import kotlin.time.Instant
+import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
 import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
 
 internal fun Checksum.asHash(): Common.Hash {
@@ -176,6 +178,14 @@ internal fun com.flipcash.services.models.chat.MediaItemRendition.Role.asProtoRo
 
 internal fun com.flipcash.services.models.chat.Emoji.asEmoji(): MessagingModel.Emoji {
     return MessagingModel.Emoji.newBuilder().setValue(value).build()
+}
+
+internal fun ChatType.asProtoChatType(): ChatModel.ChatType {
+    return when (this) {
+        ChatType.UNKNOWN -> ChatModel.ChatType.UNKNOWN
+        ChatType.CONTACT_DM -> ChatModel.ChatType.CONTACT_DM
+        ChatType.TIP_DM -> ChatModel.ChatType.TIP_DM
+    }
 }
 
 internal fun Long.asMessageId(): MessagingModel.MessageId {

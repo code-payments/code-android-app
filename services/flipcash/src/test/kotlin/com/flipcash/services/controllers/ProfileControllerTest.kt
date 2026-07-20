@@ -6,6 +6,8 @@ import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.VerifiableContactMethod
+import com.flipcash.services.models.chat.BlobId
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.repository.ProfileRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
@@ -299,11 +301,13 @@ class ProfileControllerTest {
 private class FakeProfileRepository : ProfileRepository {
     var getProfileResult: Result<UserProfile> = Result.failure(RuntimeException("not configured"))
     var setDisplayNameResult: Result<Unit> = Result.success(Unit)
+    var setProfilePictureResult: Result<MediaItem> = Result.failure(RuntimeException("not configured"))
     var linkSocialAccountResult: Result<SocialAccount> = Result.failure(RuntimeException("not configured"))
     var unlinkSocialAccountResult: Result<Unit> = Result.success(Unit)
 
     override suspend fun getProfile(userId: ID, owner: Ed25519.KeyPair) = getProfileResult
     override suspend fun setDisplayName(displayName: String, owner: Ed25519.KeyPair) = setDisplayNameResult
+    override suspend fun setProfilePicture(blobId: BlobId, owner: Ed25519.KeyPair) = setProfilePictureResult
     override suspend fun linkSocialAccount(request: SocialAccountLinkRequest, owner: Ed25519.KeyPair) =
         linkSocialAccountResult
     override suspend fun unlinkSocialAccount(request: SocialAccountUnlinkRequest, owner: Ed25519.KeyPair) =

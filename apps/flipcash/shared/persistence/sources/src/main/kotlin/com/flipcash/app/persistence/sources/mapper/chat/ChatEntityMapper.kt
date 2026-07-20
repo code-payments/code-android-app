@@ -275,6 +275,7 @@ private fun UserProfile.toSerialized(): UserProfileSerialized = UserProfileSeria
     socialAccounts = socialAccounts.map { it.toSerialized() },
     phoneNumber = phoneNumber,
     email = email,
+    profilePicture = profilePicture,
 )
 
 private fun UserProfileSerialized.toDomain(): UserProfile = UserProfile(
@@ -282,6 +283,7 @@ private fun UserProfileSerialized.toDomain(): UserProfile = UserProfile(
     socialAccounts = socialAccounts.map { it.toDomain() },
     phoneNumber = phoneNumber,
     email = email,
+    profilePicture = profilePicture,
 )
 
 private fun SocialAccount.toSerialized(): SocialAccountSerialized = when (this) {

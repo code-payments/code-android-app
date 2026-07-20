@@ -8,6 +8,7 @@ import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.FeedOperations
@@ -156,7 +157,7 @@ class FeedSyncDelegate @Inject constructor(
 
     private suspend fun performFeedSync() {
         stateHolder.update { it.copy(feedSyncState = FeedSyncState.Syncing) }
-        chatController.getDmChatFeed()
+        chatController.getDmChatFeed(ChatType.CONTACT_DM)
             .onSuccess { page ->
                 metadataDataSource.upsert(page.chats)
 

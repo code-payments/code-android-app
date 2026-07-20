@@ -8,9 +8,11 @@ import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.internal.network.extensions.linkingToken
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
+import com.flipcash.services.models.chat.BlobId
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.model.core.ID
+import com.getcode.utils.toByteString
 import com.codeinc.flipcash.gen.profile.v1.validate
 import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
@@ -58,6 +60,30 @@ internal class ProfileApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.setDisplayName(request)
+        }
+    }
+
+    /**
+     * Sets the caller's profile picture to a blob they have already uploaded via
+     * BlobStorage. The server derives the DISPLAY/THUMBNAIL renditions and returns
+     * the full set.
+     */
+    suspend fun setProfilePicture(
+        blobId: BlobId,
+        owner: Ed25519.KeyPair,
+    ): ProfileService.SetProfilePictureResponse {
+        val request = ProfileService.SetProfilePictureRequest.newBuilder()
+            .setBlobId(
+                com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
+                    .setValue(blobId.bytes.toByteString())
+            )
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.setProfilePicture(request)
         }
     }
 
