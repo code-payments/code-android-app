@@ -11,7 +11,7 @@ kotlinx-serialization = "1.11.0"
 kotlinx-datetime = "0.8.0"
 
 kover = "0.9.9"
-agp = "9.2.1"
+agp = "9.3.0"
 google-services = "4.5.0"
 
 androidx-appcompat = "1.7.1"
