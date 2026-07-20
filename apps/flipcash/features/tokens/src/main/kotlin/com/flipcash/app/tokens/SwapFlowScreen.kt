@@ -27,6 +27,7 @@ import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.solana.keys.Mint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -122,8 +123,18 @@ private fun SwapPurchaseTokenSelectScreen(targetMint: Mint, amount: Fiat) {
             .map { it.mint }
             .onEach {
                 viewModel.dispatchEvent(SwapViewModel.Event.OnFundingTokenSelected(it))
-                flowNavigator.navigateTo(SwapStep.BuyReceipt)
             }
+            .launchIn(this)
+    }
+
+    // Resolving the funding token is async (metadata + rate/reserve lookup) and can fail
+    // (e.g. stale rates), in which case OnFundingTokenResolved never fires. Navigate to the
+    // receipt only once it actually resolves, so we never land on a receipt with no funding
+    // token — a failed resolve surfaces its alert here on the select screen instead.
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.OnFundingTokenResolved>()
+            .onEach { flowNavigator.navigateTo(SwapStep.BuyReceipt) }
             .launchIn(this)
     }
 }
