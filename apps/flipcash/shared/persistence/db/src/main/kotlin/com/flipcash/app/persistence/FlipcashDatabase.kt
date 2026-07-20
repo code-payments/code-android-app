@@ -70,8 +70,9 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 19, to = 20),
         AutoMigration(from = 20, to = 21),
         AutoMigration(from = 21, to = 22),
+        AutoMigration(from = 22, to = 23, spec = FlipcashDatabase.Migration22To23::class),
     ],
-    version = 22,
+    version = 23,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -154,6 +155,17 @@ abstract class FlipcashDatabase : RoomDatabase() {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("DELETE FROM tokens")
             db.execSQL("DELETE FROM token_valuation")
+        }
+    }
+
+    // Data-only migration: the chat.v1.ChatType proto enum renamed DM -> CONTACT_DM
+    // (and added TIP_DM), and chat_type is persisted as the domain enum's name. There
+    // is no schema change, so this rides the auto migration and rewrites existing rows
+    // in onPostMigrate so they keep resolving after the rename instead of falling
+    // through to UNKNOWN.
+    class Migration22To23 : AutoMigrationSpec {
+        override fun onPostMigrate(db: SupportSQLiteDatabase) {
+            db.execSQL("UPDATE chat_metadata SET chat_type = 'CONTACT_DM' WHERE chat_type = 'DM'")
         }
     }
 

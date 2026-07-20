@@ -150,13 +150,13 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
     }
 }
 
-internal fun MessagingModel.MediaItem.toMediaItem(): MediaItem {
+internal fun com.codeinc.flipcash.gen.blob.v1.Model.Media.toMediaItem(): MediaItem {
     return MediaItem(
         renditions = renditionsList.map { it.toMediaItemRendition() },
     )
 }
 
-internal fun MessagingModel.MediaItemRendition.toMediaItemRendition(): MediaItemRendition {
+internal fun com.codeinc.flipcash.gen.blob.v1.Model.Rendition.toMediaItemRendition(): MediaItemRendition {
     return MediaItemRendition(
         role = role.toRole(),
         blobId = BlobId(blobId.value.toByteArray()),
@@ -164,11 +164,11 @@ internal fun MessagingModel.MediaItemRendition.toMediaItemRendition(): MediaItem
     )
 }
 
-internal fun MessagingModel.MediaItemRendition.Role.toRole(): MediaItemRendition.Role {
+internal fun com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role.toRole(): MediaItemRendition.Role {
     return when (this) {
-        MessagingModel.MediaItemRendition.Role.ORIGINAL -> MediaItemRendition.Role.ORIGINAL
-        MessagingModel.MediaItemRendition.Role.DISPLAY -> MediaItemRendition.Role.DISPLAY
-        MessagingModel.MediaItemRendition.Role.THUMBNAIL -> MediaItemRendition.Role.THUMBNAIL
+        com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role.ORIGINAL -> MediaItemRendition.Role.ORIGINAL
+        com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role.DISPLAY -> MediaItemRendition.Role.DISPLAY
+        com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role.THUMBNAIL -> MediaItemRendition.Role.THUMBNAIL
         else -> MediaItemRendition.Role.UNKNOWN
     }
 }
@@ -177,7 +177,7 @@ internal fun com.codeinc.flipcash.gen.blob.v1.Model.BlobMetadata.toBlobMetadata(
     return BlobMetadata(
         mimeType = mimeType,
         sizeBytes = sizeBytes,
-        downloadUrl = downloadUrl,
+        downloadUrl = downloadUrl.url,
         image = if (hasImage()) image.toImageMetadata() else null,
     )
 }
@@ -317,9 +317,10 @@ internal fun ChatModel.MetadataUpdate.toMetadataUpdate(
 
 // -- Chat type --
 
-internal fun ChatModel.Metadata.ChatType.toChatType(): ChatType {
+internal fun ChatModel.ChatType.toChatType(): ChatType {
     return when (this) {
-        ChatModel.Metadata.ChatType.DM -> ChatType.DM
+        ChatModel.ChatType.CONTACT_DM -> ChatType.CONTACT_DM
+        ChatModel.ChatType.TIP_DM -> ChatType.TIP_DM
         else -> ChatType.UNKNOWN
     }
 }

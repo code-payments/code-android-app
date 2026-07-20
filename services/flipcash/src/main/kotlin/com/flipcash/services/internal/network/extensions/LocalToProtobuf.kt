@@ -149,14 +149,14 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
     }
 }
 
-internal fun com.flipcash.services.models.chat.MediaItem.asMediaItem(): MessagingModel.MediaItem {
-    return MessagingModel.MediaItem.newBuilder()
+internal fun com.flipcash.services.models.chat.MediaItem.asMediaItem(): com.codeinc.flipcash.gen.blob.v1.Model.Media {
+    return com.codeinc.flipcash.gen.blob.v1.Model.Media.newBuilder()
         .addAllRenditions(renditions.map { it.asRendition() })
         .build()
 }
 
-internal fun com.flipcash.services.models.chat.MediaItemRendition.asRendition(): MessagingModel.MediaItemRendition {
-    return MessagingModel.MediaItemRendition.newBuilder()
+internal fun com.flipcash.services.models.chat.MediaItemRendition.asRendition(): com.codeinc.flipcash.gen.blob.v1.Model.Rendition {
+    return com.codeinc.flipcash.gen.blob.v1.Model.Rendition.newBuilder()
         .setRole(role.asProtoRole())
         .setBlobId(
             com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
@@ -165,12 +165,12 @@ internal fun com.flipcash.services.models.chat.MediaItemRendition.asRendition():
         .build()
 }
 
-internal fun com.flipcash.services.models.chat.MediaItemRendition.Role.asProtoRole(): MessagingModel.MediaItemRendition.Role {
+internal fun com.flipcash.services.models.chat.MediaItemRendition.Role.asProtoRole(): com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role {
     return when (this) {
-        com.flipcash.services.models.chat.MediaItemRendition.Role.ORIGINAL -> MessagingModel.MediaItemRendition.Role.ORIGINAL
-        com.flipcash.services.models.chat.MediaItemRendition.Role.DISPLAY -> MessagingModel.MediaItemRendition.Role.DISPLAY
-        com.flipcash.services.models.chat.MediaItemRendition.Role.THUMBNAIL -> MessagingModel.MediaItemRendition.Role.THUMBNAIL
-        com.flipcash.services.models.chat.MediaItemRendition.Role.UNKNOWN -> MessagingModel.MediaItemRendition.Role.UNKNOWN
+        com.flipcash.services.models.chat.MediaItemRendition.Role.ORIGINAL -> com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role.ORIGINAL
+        com.flipcash.services.models.chat.MediaItemRendition.Role.DISPLAY -> com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role.DISPLAY
+        com.flipcash.services.models.chat.MediaItemRendition.Role.THUMBNAIL -> com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role.THUMBNAIL
+        com.flipcash.services.models.chat.MediaItemRendition.Role.UNKNOWN -> com.codeinc.flipcash.gen.blob.v1.Model.Rendition.Role.UNKNOWN
     }
 }
 
