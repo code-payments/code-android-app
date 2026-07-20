@@ -15,8 +15,16 @@ class BidirectionalStreamReference<Request, Response>(
     val instanceLabel: String = ""
 ) : AutoCloseable {
 
-    private val supervisorJob = SupervisorJob()
-    val coroutineScope = CoroutineScope(supervisorJob + scope.coroutineContext)
+    // supervisorJob must be THE Job of coroutineScope so destroy()/cancel() can
+    // tear down every coroutine launched on this reference. CoroutineContext.plus
+    // lets the right operand win on key collision, so supervisorJob has to come
+    // LAST — otherwise scope's own Job overrides it and the reconnect loop is
+    // launched under the outer scope instead, leaving destroy() to cancel an
+    // orphaned job while the loop keeps reconnecting (the server's
+    // "ABORTED: stream already exists" storm). Parenting it to scope's Job keeps
+    // the reference tied to the outer lifecycle (scope cancel → ref cancel).
+    private val supervisorJob = SupervisorJob(scope.coroutineContext[Job])
+    val coroutineScope = CoroutineScope(scope.coroutineContext + supervisorJob)
 
     val isActive: Boolean get() = isStreamActive
 
