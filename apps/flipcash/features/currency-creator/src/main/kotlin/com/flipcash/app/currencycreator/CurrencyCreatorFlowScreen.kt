@@ -27,7 +27,6 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.currencycreator.internal.screens.BillCustomizationContent
@@ -62,7 +61,6 @@ import com.getcode.navigation.flow.deliverFlowResult
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.rememberDynamicAccent
@@ -181,17 +179,13 @@ fun CurrencyCreatorFlowScreen(
                     )
 
                     if (result is CurrencyCreatorResult.Success) {
-                        if (state.purchaseAmount > Fiat.Zero) {
-                            val token = state.launchedToken
-                            if (token != null) {
-                                val bill = Bill.Cash(
-                                    token = token,
-                                    amount = LocalFiat.fromUsd(usdf = state.purchaseAmount),
-                                    didReceive = true,
-                                )
-                                outerNavigator.hide()
-                                session?.showBill(bill)
-                            }
+                        // The bill is priced through the new token's bonding curve in the
+                        // ViewModel (see buildLaunchBill); presenting it lets someone grab the
+                        // newly created currency. It's null if pricing failed — just close then.
+                        val bill = state.launchBill
+                        if (state.purchaseAmount > Fiat.Zero && bill != null) {
+                            outerNavigator.hide()
+                            session?.showBill(bill)
                         } else {
                             outerNavigator.pop()
                         }
