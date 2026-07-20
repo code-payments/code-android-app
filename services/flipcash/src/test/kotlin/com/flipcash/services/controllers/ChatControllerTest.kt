@@ -88,7 +88,7 @@ class ChatControllerTest {
     fun `getDmChatFeed fails when no account cluster`() = runTest {
         every { userManager.accountCluster } returns null
 
-        val result = controller.getDmChatFeed()
+        val result = controller.getDmChatFeed(ChatType.CONTACT_DM)
 
         assertTrue(result.isFailure)
     }
@@ -98,7 +98,7 @@ class ChatControllerTest {
         stubOwner()
         repository.getDmChatFeedResult = Result.success(ChatFeedPage(emptyList(), null, false))
 
-        controller.getDmChatFeed()
+        controller.getDmChatFeed(ChatType.CONTACT_DM)
 
         assertEquals(QueryOptions(), repository.lastQueryOptions)
     }
@@ -110,11 +110,21 @@ class ChatControllerTest {
         val options = QueryOptions(limit = 25, token = token, descending = false)
         repository.getDmChatFeedResult = Result.success(ChatFeedPage(emptyList(), null, false))
 
-        controller.getDmChatFeed(options)
+        controller.getDmChatFeed(ChatType.CONTACT_DM, options)
 
         assertEquals(25, repository.lastQueryOptions?.limit)
         assertEquals(token, repository.lastQueryOptions?.token)
         assertEquals(false, repository.lastQueryOptions?.descending)
+    }
+
+    @Test
+    fun `getDmChatFeed forwards chat type filter`() = runTest {
+        stubOwner()
+        repository.getDmChatFeedResult = Result.success(ChatFeedPage(emptyList(), null, false))
+
+        controller.getDmChatFeed(ChatType.TIP_DM)
+
+        assertEquals(ChatType.TIP_DM, repository.lastChatType)
     }
 
     @Test
@@ -130,7 +140,7 @@ class ChatControllerTest {
         )
         repository.getDmChatFeedResult = Result.success(page)
 
-        val result = controller.getDmChatFeed()
+        val result = controller.getDmChatFeed(ChatType.CONTACT_DM)
 
         val returned = result.getOrThrow()
         assertEquals(2, returned.chats.size)
@@ -144,7 +154,7 @@ class ChatControllerTest {
         val cause = RuntimeException("server error")
         repository.getDmChatFeedResult = Result.failure(cause)
 
-        val result = controller.getDmChatFeed()
+        val result = controller.getDmChatFeed(ChatType.CONTACT_DM)
 
         assertTrue(result.isFailure)
         assertSame(cause, result.exceptionOrNull())
@@ -172,14 +182,20 @@ private class FakeChatRepository : ChatRepository {
     var getDmChatFeedResult: Result<ChatFeedPage> = Result.failure(RuntimeException("not configured"))
     var lastChatId: ChatId? = null
     var lastQueryOptions: QueryOptions? = null
+    var lastChatType: ChatType? = null
 
     override suspend fun getChat(owner: Ed25519.KeyPair, chatId: ChatId): Result<ChatMetadata> {
         lastChatId = chatId
         return getChatResult
     }
 
-    override suspend fun getDmChatFeed(owner: Ed25519.KeyPair, queryOptions: QueryOptions): Result<ChatFeedPage> {
+    override suspend fun getDmChatFeed(
+        owner: Ed25519.KeyPair,
+        queryOptions: QueryOptions,
+        chatType: ChatType,
+    ): Result<ChatFeedPage> {
         lastQueryOptions = queryOptions
+        lastChatType = chatType
         return getDmChatFeedResult
     }
 }

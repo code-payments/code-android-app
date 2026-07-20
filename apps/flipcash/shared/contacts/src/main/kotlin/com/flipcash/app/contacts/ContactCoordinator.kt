@@ -227,7 +227,7 @@ class ContactCoordinator @Inject constructor(
     }
 
     suspend fun resolve(e164: String): Result<PublicKey> {
-        return resolverController.resolve(ContactMethod.Phone(e164))
+        return resolverController.resolve(phone = ContactMethod.Phone(e164))
     }
 
     fun refreshContact(e164: String): DeviceContact? {

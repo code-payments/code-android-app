@@ -72,7 +72,7 @@ class ChatCoordinatorEventsTest {
         every { eventStreamingController.isStreamActive } returns true
 
         val chatController = mockk<ChatController>(relaxed = true)
-        coEvery { chatController.getDmChatFeed() } returns Result.failure(RuntimeException("not needed"))
+        coEvery { chatController.getDmChatFeed(any(), any()) } returns Result.failure(RuntimeException("not needed"))
 
         metadataDataSource = mockk(relaxed = true)
         messageDataSource = mockk(relaxed = true)

@@ -4,6 +4,7 @@ import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.repository.ChatRepository
 import com.flipcash.services.user.UserManager
 import javax.inject.Inject
@@ -21,10 +22,13 @@ class ChatController @Inject constructor(
         return repository.getChat(owner, chatId)
     }
 
-    suspend fun getDmChatFeed(queryOptions: QueryOptions = QueryOptions()): Result<ChatFeedPage> {
+    suspend fun getDmChatFeed(
+        chatType: ChatType,
+        queryOptions: QueryOptions = QueryOptions(),
+    ): Result<ChatFeedPage> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
-        return repository.getDmChatFeed(owner, queryOptions)
+        return repository.getDmChatFeed(owner, queryOptions, chatType)
     }
 }
