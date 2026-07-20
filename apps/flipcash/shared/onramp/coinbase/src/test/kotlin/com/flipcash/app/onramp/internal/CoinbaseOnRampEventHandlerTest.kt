@@ -295,13 +295,13 @@ class CoinbaseOnRampWebErrorTest {
 
     @Test
     fun guestRegionMismatchIsNotNotifiable() {
-        val error = CoinbaseOnRampWebError.RegionNotSupported.RegionMismatch()
+        val error: CoinbaseOnRampWebError = CoinbaseOnRampWebError.RegionNotSupported.RegionMismatch()
         assertFalse(error is NotifiableError)
     }
 
     @Test
     fun paymentSheetTimeoutIsNotNotifiable() {
-        val error = CoinbaseOnRampWebError.PaymentSheetTimeout()
+        val error: CoinbaseOnRampWebError = CoinbaseOnRampWebError.PaymentSheetTimeout()
         assertFalse(error is NotifiableError)
     }
 }

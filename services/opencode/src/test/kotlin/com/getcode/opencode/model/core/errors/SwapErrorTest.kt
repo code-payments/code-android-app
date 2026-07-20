@@ -128,13 +128,14 @@ class SwapErrorTest {
 
     @Test
     fun timeoutIsNotNotifiable() {
-        assertFalse(SwapError.Timeout() is NotifiableError)
+        val error: SwapError = SwapError.Timeout()
+        assertFalse(error is NotifiableError)
     }
 
     @Test
     fun terminalIsNotNotifiableAndCarriesState() {
         val error = SwapError.Terminal(SwapState.CANCELLED)
-        assertFalse(error is NotifiableError)
+        assertFalse((error as SwapError) is NotifiableError)
         assertEquals(SwapState.CANCELLED, error.state)
     }
 
