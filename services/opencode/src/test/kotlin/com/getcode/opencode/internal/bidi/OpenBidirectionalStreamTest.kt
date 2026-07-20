@@ -159,6 +159,58 @@ class OpenBidirectionalStreamTest {
     }
 
     /**
+     * Regression for the "ABORTED: stream already exists" storm on device.
+     *
+     * destroy() MUST cancel the running reconnect loop. If the reference's
+     * SupervisorJob is not actually the parent of the launched loop (context
+     * composition order bug), destroy() cancels an orphaned job and the loop
+     * keeps reconnecting — spawning a second live gRPC stream and producing the
+     * server's "ABORTED: stream already exists".
+     *
+     * Here the loop reconnects forever on ABORTED (maxReconnectAttempts high,
+     * healthy resets disabled by a frozen clock). On the 3rd attempt we call
+     * destroy() from inside the stream. With the fix the loop is cancelled and
+     * attemptCount freezes at 3. Without it, the loop runs on to give-up.
+     */
+    @Test
+    fun `destroy cancels the reconnect loop`() = runTest {
+        var attemptCount = 0
+        val timeSource = TestTimeSource() // frozen → never healthy, never resets
+
+        val streamRef = BidirectionalStreamReference<String, String>(this, "test-stream")
+        streamRef.retain()
+
+        openBidirectionalStream<String, String, BidirectionalStreamReference<String, String>>(
+            streamRef = streamRef,
+            apiCall = { requestFlow ->
+                attemptCount++
+                flow {
+                    requestFlow.first()
+                    emit("activation")
+                    if (attemptCount >= 3) streamRef.destroy()
+                    throw Status.ABORTED.withDescription("stream already exists").asRuntimeException()
+                }
+            },
+            initialRequest = { "req" },
+            responseHandler = { _: String, _: (String) -> Unit -> },
+            onError = { },
+            reconnectOnAborted = true,
+            maxReconnectAttempts = 50,
+            reconnectDelayMs = 0,
+            healthyThreshold = 30.seconds,
+            timeSource = timeSource,
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(
+            3,
+            attemptCount,
+            "destroy() must cancel the loop; it kept reconnecting to $attemptCount attempts"
+        )
+    }
+
+    /**
      * A stream that stays healthy (survives past healthyThreshold) between failures
      * must reset the backoff counter and keep reconnecting well beyond
      * maxReconnectAttempts, until a non-retryable error stops it.
