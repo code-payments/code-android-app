@@ -8,6 +8,8 @@ import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.BlobId
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.repository.ProfileRepository
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.core.ID
@@ -33,6 +35,14 @@ internal class InternalProfileRepository(
         owner: Ed25519.KeyPair
     ): Result<Unit> {
         return service.setDisplayName(displayName, owner)
+            .onFailure { ErrorUtils.handleError(it) }
+    }
+
+    override suspend fun setProfilePicture(
+        blobId: BlobId,
+        owner: Ed25519.KeyPair
+    ): Result<MediaItem> {
+        return service.setProfilePicture(blobId, owner)
             .onFailure { ErrorUtils.handleError(it) }
     }
 

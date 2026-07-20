@@ -6,6 +6,8 @@ import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.BlobId
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.repository.ProfileRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
@@ -82,6 +84,19 @@ class ProfileController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.setDisplayName(displayName, owner)
+    }
+
+    /**
+     * Sets the caller's profile picture to a blob already uploaded via BlobStorage.
+     * Returns the full set of renditions the server derived from it.
+     */
+    suspend fun setProfilePicture(
+        blobId: BlobId,
+    ): Result<MediaItem> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.setProfilePicture(blobId, owner)
     }
 
     suspend fun linkTwitterXAccount(

@@ -1,14 +1,18 @@
 package com.flipcash.services.internal.domain
 
+import com.codeinc.flipcash.gen.blob.v1.Model as BlobModel
 import com.codeinc.flipcash.gen.email.v1.emailAddress
 import com.codeinc.flipcash.gen.phone.v1.phoneNumber
 import com.codeinc.flipcash.gen.profile.v1.Model
 import com.codeinc.flipcash.gen.profile.v1.socialProfile
 import com.codeinc.flipcash.gen.profile.v1.xProfile
 import com.flipcash.services.models.SocialAccount
+import com.flipcash.services.models.chat.MediaItemRendition
+import com.google.protobuf.ByteString
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class UserProfileMapperTest {
@@ -80,5 +84,30 @@ class UserProfileMapperTest {
         val result = mapper.map(proto)
         assertNull(result.verifiedPhoneNumber)
         assertNull(result.verifiedEmailAddress)
+    }
+
+    @Test
+    fun `maps profile picture renditions`() {
+        val proto = userProfile {
+            displayName = "Grace"
+            profilePicture = BlobModel.Media.newBuilder()
+                .addRenditions(
+                    BlobModel.Rendition.newBuilder()
+                        .setRole(BlobModel.Rendition.Role.DISPLAY)
+                        .setBlobId(BlobModel.BlobId.newBuilder().setValue(ByteString.copyFrom(ByteArray(4) { 1 })))
+                )
+                .build()
+        }
+
+        val result = mapper.map(proto)
+        val picture = assertNotNull(result.profilePicture)
+        assertEquals(1, picture.renditions.size)
+        assertEquals(MediaItemRendition.Role.DISPLAY, picture.renditions.first().role)
+    }
+
+    @Test
+    fun `no profile picture returns null`() {
+        val proto = userProfile { displayName = "Heidi" }
+        assertNull(mapper.map(proto).profilePicture)
     }
 }

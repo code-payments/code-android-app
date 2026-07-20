@@ -77,6 +77,7 @@ class ChatTypeConverters {
                         ?: compat.verifiedEmailAddress?.let { address ->
                             VerifiableContactMethod(address, verified = true)
                         },
+                    profilePicture = compat.profilePicture,
                 )
             }.getOrNull()
         }
@@ -163,6 +164,7 @@ data class UserProfileSerialized(
     val socialAccounts: List<SocialAccountSerialized>,
     val phoneNumber: VerifiableContactMethod? = null,
     val email: VerifiableContactMethod? = null,
+    val profilePicture: MediaItem? = null,
 )
 
 /**
@@ -179,6 +181,7 @@ private data class UserProfileSerializedCompat(
     val email: VerifiableContactMethod? = null,
     val verifiedPhoneNumber: String? = null,
     val verifiedEmailAddress: String? = null,
+    val profilePicture: MediaItem? = null,
 )
 
 @Serializable

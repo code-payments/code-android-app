@@ -205,6 +205,23 @@ sealed class SetDisplayNameError(
     data class Other(override val cause: Throwable? = null) : SetDisplayNameError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class SetProfilePictureError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: SetProfilePictureError("Denied")
+    // No such blob, or it is not owned by the caller.
+    class BlobNotFound: SetProfilePictureError("Blob not found")
+    // Blob is still PENDING/PROCESSING; retry once READY.
+    class BlobNotReady: SetProfilePictureError("Blob not ready")
+    // Blob failed validation or moderation; terminal for this id, must upload again.
+    class BlobRejected: SetProfilePictureError("Blob rejected")
+    // Blob is READY but unusable as a picture (e.g. not an image).
+    class InvalidBlob: SetProfilePictureError("Invalid blob")
+    class Unrecognized : SetProfilePictureError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SetProfilePictureError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class LinkSocialAccountError(
     override val message: String? = null,
     override val cause: Throwable? = null
