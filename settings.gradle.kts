@@ -112,6 +112,7 @@ include(
     ":apps:flipcash:features:transactions",
     ":apps:flipcash:features:bill-customization",
     ":apps:flipcash:features:discovery",
+    ":apps:flipcash:features:user-profile",
     ":apps:flipcash:features:userflags",
 
     // protobuf model and service implementations for the Open Code Protocol

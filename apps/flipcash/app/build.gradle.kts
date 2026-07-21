@@ -230,6 +230,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:messenger"))
     implementation(project(":apps:flipcash:features:invite"))
     implementation(project(":apps:flipcash:features:discovery"))
+    implementation(project(":apps:flipcash:features:user-profile"))
     implementation(project(":apps:flipcash:features:userflags"))
 
     implementation(project(":libs:crypto:solana"))

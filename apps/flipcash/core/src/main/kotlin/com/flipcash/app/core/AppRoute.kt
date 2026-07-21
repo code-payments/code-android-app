@@ -3,31 +3,33 @@ package com.flipcash.app.core
 import android.os.Parcelable
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.deposit.DepositResult
 import com.flipcash.app.core.deposit.DepositStep
+import com.flipcash.app.core.onboarding.OnboardingStep
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
+import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
 import com.flipcash.app.core.tokens.TokenPurpose
+import com.flipcash.app.core.ui.flow.SteppedFlowRoute
+import com.flipcash.app.core.userprofile.UpdateProfileResult
+import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.core.verification.VerificationStep
 import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
-import com.flipcash.app.core.chat.ChatStep
-import com.flipcash.app.core.onboarding.OnboardingStep
-import com.flipcash.app.core.tokens.FundingSource
-import com.flipcash.app.core.ui.flow.SteppedFlowRoute
 import com.getcode.navigation.flow.FlowRoute
 import com.getcode.navigation.flow.FlowRouteWithResult
 import com.getcode.navigation.flow.FlowStep
-import kotlin.reflect.KClass
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
+import kotlin.reflect.KClass
 
 @Serializable
 @Parcelize
@@ -140,6 +142,18 @@ sealed interface AppRoute : NavKey, Parcelable {
 
     @Serializable
     @Parcelize
+    data class UpdateUserProfile(
+        val origin: AppRoute,
+        val includeName: Boolean = true,
+        val includePhoto: Boolean = true,
+        val target: AppRoute? = null,
+    ): AppRoute, FlowRouteWithResult<UpdateProfileResult> {
+        override val initialStack: List<NavKey>
+            get() = buildUpdateUserProfileStack(includeName, includePhoto)
+    }
+
+    @Serializable
+    @Parcelize
     sealed interface Sheets : AppRoute {
         @Serializable
         data class TokenSelection(val purpose: TokenPurpose) : Sheets
@@ -155,6 +169,7 @@ sealed interface AppRoute : NavKey, Parcelable {
          */
         @Serializable
         data class Send(val resumed: Boolean = false): Sheets
+
         @Serializable
         data object Wallet : Sheets
         @Serializable
@@ -299,4 +314,14 @@ private fun buildVerificationInitialStack(
         }
     }
     return emptyList()
+}
+
+// Ordered list of the steps the flow should walk (via FlowNavigator.proceed()) — name first, then
+// photo. In edit mode only the requested step(s) are included.
+private fun buildUpdateUserProfileStack(
+    includeName: Boolean,
+    includePhoto: Boolean,
+): List<NavKey> = buildList {
+    if (includeName) add(UpdateProfileStep.Name)
+    if (includePhoto) add(UpdateProfileStep.Photo)
 }

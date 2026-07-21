@@ -16,6 +16,15 @@ data class UserProfile(
 
     /** The email address only when it has been verified — backwards-compatible accessor. */
     val verifiedEmailAddress: String? get() = email?.takeIf { it.verified }?.value
+
+    companion object {
+        val Empty = UserProfile(
+            displayName = null,
+            socialAccounts = emptyList(),
+            phoneNumber = null,
+            email = null,
+        )
+    }
 }
 
 sealed interface SocialAccount {
