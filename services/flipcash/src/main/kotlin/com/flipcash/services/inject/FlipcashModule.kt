@@ -12,8 +12,11 @@ import com.flipcash.services.internal.domain.SocialAccountMapper
 import com.flipcash.services.internal.domain.TextModerationResponseMapper
 import com.flipcash.services.internal.domain.UserProfileMapper
 import com.flipcash.services.internal.domain.ChatMetadataMapper
+import com.flipcash.services.BlobUploader
+import com.flipcash.services.internal.network.HttpBlobUploader
 import com.flipcash.services.internal.network.services.AccountService
 import com.flipcash.services.internal.network.services.ActivityFeedService
+import com.flipcash.services.internal.network.services.BlobStorageService
 import com.flipcash.services.internal.network.services.ChatService
 import com.flipcash.services.internal.network.services.EventStreamingService
 import com.flipcash.services.internal.network.services.ChatMessagingService
@@ -29,6 +32,7 @@ import com.flipcash.services.internal.network.services.SettingsService
 import com.flipcash.services.internal.network.services.ThirdPartyService
 import com.flipcash.services.internal.repositories.InternalAccountRepository
 import com.flipcash.services.internal.repositories.InternalActivityFeedRepository
+import com.flipcash.services.internal.repositories.InternalBlobStorageRepository
 import com.flipcash.services.internal.repositories.InternalChatRepository
 import com.flipcash.services.internal.repositories.InternalEventStreamingRepository
 import com.flipcash.services.internal.repositories.InternalChatMessagingRepository
@@ -52,6 +56,7 @@ import com.flipcash.services.repository.ModerationRepository
 import com.flipcash.services.repository.ProfileRepository
 import com.flipcash.services.repository.PurchaseRepository
 import com.flipcash.services.repository.PushRepository
+import com.flipcash.services.repository.BlobStorageRepository
 import com.flipcash.services.repository.ResolverRepository
 import com.flipcash.services.repository.SettingsRepository
 import com.flipcash.services.repository.ThirdPartyRepository
@@ -171,6 +176,16 @@ internal object FlipcashModule {
     internal fun providesResolverRepository(
         service: ResolverService,
     ): ResolverRepository = InternalResolverRepository(service)
+
+    @Provides
+    internal fun providesBlobStorageRepository(
+        service: BlobStorageService,
+    ): BlobStorageRepository = InternalBlobStorageRepository(service)
+
+    @Provides
+    internal fun providesBlobUploader(
+        uploader: HttpBlobUploader,
+    ): BlobUploader = uploader
 
     @Provides
     internal fun providesAccountRepository(

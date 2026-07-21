@@ -493,3 +493,52 @@ sealed class GetReactionSummariesError(
     class Unrecognized : GetReactionSummariesError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : GetReactionSummariesError(message = cause?.message, cause = cause), NotifiableError
 }
+sealed class InitiateExternalUploadError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Denied : InitiateExternalUploadError("Denied")
+    // policyVersion is echoed by the server on a policy-driven denial so the client can detect a
+    // stale cached upload policy and re-fetch it.
+    class UnsupportedType(val policyVersion: String? = null) : InitiateExternalUploadError("Unsupported type")
+    class TooLarge(val policyVersion: String? = null) : InitiateExternalUploadError("Too large")
+    class QuotaExceeded : InitiateExternalUploadError("Quota exceeded")
+    class Unrecognized : InitiateExternalUploadError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : InitiateExternalUploadError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class CompleteExternalUploadError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class NotFound : CompleteExternalUploadError("Not found")
+    class NotUploaded : CompleteExternalUploadError("Not uploaded")
+    class Unrecognized : CompleteExternalUploadError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : CompleteExternalUploadError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetBlobsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Denied : GetBlobsError("Denied")
+    class Unrecognized : GetBlobsError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetBlobsError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetUploadPolicyError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Denied : GetUploadPolicyError("Denied")
+    class Unrecognized : GetUploadPolicyError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetUploadPolicyError(message = cause?.message, cause = cause), NotifiableError
+}
+
+// Thrown when a reserved blob failed server-side finalization (moderation / decode / size).
+// Terminal: the client must reserve a fresh upload to retry.
+class BlobRejectedException(val rejection: com.flipcash.services.models.chat.BlobRejection?) :
+    Exception("Blob rejected: ${rejection?.reason}")
+
+// Thrown when a blob did not reach READY within the client's polling window.
+class BlobNotReadyException : Exception("Blob did not become ready in time")
