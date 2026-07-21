@@ -92,6 +92,9 @@ class CodeScanDelegate @Inject constructor(
         when (codePayload.kind) {
             PayloadKind.Cash -> onCashScanned(codePayload)
             PayloadKind.MultiMintCash -> onCashScanned(codePayload)
+            // TODO(tipping): route tip scans to the tip flow. Deliberately not handled as a cash
+            // grab — onCashScanned force-unwraps payload.fiat, which is null for a Tip payload.
+            PayloadKind.Tip -> Unit
             PayloadKind.Unknown -> Unit
         }
     }

@@ -63,8 +63,8 @@ class OpenCodePayloadTest {
         val decoded = OpenCodePayload.fromList(encoded)
 
         assertEquals(PayloadKind.Cash, decoded.kind)
-        assertEquals(CurrencyCode.USD, decoded.value.currencyCode)
-        assertEquals(12345L, decoded.value.quarks)
+        assertEquals(CurrencyCode.USD, decoded.fiat!!.currencyCode)
+        assertEquals(12345L, decoded.fiat!!.quarks)
     }
 
     @Test
@@ -76,8 +76,8 @@ class OpenCodePayloadTest {
         val decoded = OpenCodePayload.fromList(encoded)
 
         assertEquals(PayloadKind.MultiMintCash, decoded.kind)
-        assertEquals(CurrencyCode.CAD, decoded.value.currencyCode)
-        assertEquals(99999L, decoded.value.quarks)
+        assertEquals(CurrencyCode.CAD, decoded.fiat!!.currencyCode)
+        assertEquals(99999L, decoded.fiat!!.quarks)
     }
 
     @Test
@@ -112,8 +112,8 @@ class OpenCodePayloadTest {
             val encoded = encodePayload(PayloadKind.Cash, fiat, nonce)
             val decoded = OpenCodePayload.fromList(encoded)
 
-            assertEquals(currency, decoded.value.currencyCode, "Currency roundtrip failed for $currency")
-            assertEquals(42L, decoded.value.quarks, "Quarks roundtrip failed for $currency")
+            assertEquals(currency, decoded.fiat!!.currencyCode, "Currency roundtrip failed for $currency")
+            assertEquals(42L, decoded.fiat!!.quarks, "Quarks roundtrip failed for $currency")
         }
     }
 
@@ -124,7 +124,7 @@ class OpenCodePayloadTest {
         val encoded = encodePayload(PayloadKind.MultiMintCash, fiat, nonce)
         val decoded = OpenCodePayload.fromList(encoded)
 
-        assertEquals(1_000_000_000L, decoded.value.quarks)
+        assertEquals(1_000_000_000L, decoded.fiat!!.quarks)
     }
 
     // endregion
