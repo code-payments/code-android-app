@@ -25,6 +25,10 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.chat.EmojiReaction
+import com.flipcash.services.models.blob.ImageConstraints
+import com.flipcash.services.models.blob.MimeTypeConstraints
+import com.flipcash.services.models.blob.UploadPolicy
+import com.flipcash.services.models.blob.UploadTarget
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.BlobMetadata
 import com.flipcash.services.models.chat.BlobRejection
@@ -51,6 +55,8 @@ import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
+import kotlin.time.Duration.Companion.nanoseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 import com.codeinc.flipcash.gen.activity.v1.Model as ActivityModels
 import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
@@ -389,6 +395,40 @@ internal fun com.codeinc.flipcash.gen.blob.v1.Model.Blob.toBlobState(): BlobStat
         status = status.toBlobStatus(),
         metadata = if (hasMetadata()) metadata.toBlobMetadata() else null,
         rejection = if (hasRejection()) rejection.toBlobRejection() else null,
+    )
+}
+
+internal fun com.codeinc.flipcash.gen.blob.v1.Model.UploadPolicy.toUploadPolicy(): UploadPolicy {
+    return UploadPolicy(
+        version = version.value,
+        ttl = ttl.seconds.seconds + ttl.nanos.nanoseconds,
+        mimeTypeConstraints = mimeTypeConstraintsList.map { constraint ->
+            MimeTypeConstraints(
+                mimeTypePattern = constraint.mimeTypePattern,
+                maxSizeBytes = constraint.maxSizeBytes,
+                image = if (constraint.hasImage()) {
+                    ImageConstraints(
+                        maxWidth = constraint.image.maxWidth,
+                        maxHeight = constraint.image.maxHeight,
+                        maxPixels = constraint.image.maxPixels,
+                    )
+                } else null,
+            )
+        },
+    )
+}
+
+internal fun com.codeinc.flipcash.gen.blob.v1.Model.UploadTarget.toUploadTarget(): UploadTarget {
+    return UploadTarget(
+        method = when (method) {
+            com.codeinc.flipcash.gen.blob.v1.Model.UploadTarget.Method.PUT -> UploadTarget.Method.PUT
+            com.codeinc.flipcash.gen.blob.v1.Model.UploadTarget.Method.POST -> UploadTarget.Method.POST
+            else -> UploadTarget.Method.UNKNOWN
+        },
+        url = url,
+        headers = headersMap,
+        formFields = formFieldsMap,
+        expiresAt = Instant.fromEpochSeconds(expiresAt.seconds, expiresAt.nanos.toLong()),
     )
 }
 
