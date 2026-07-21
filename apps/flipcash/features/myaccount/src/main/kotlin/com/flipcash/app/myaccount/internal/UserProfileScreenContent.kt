@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -41,8 +42,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight.Companion.W600
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.contacts.ui.ContactAvatar
 import com.flipcash.core.R
 import com.flipcash.services.models.SocialAccount
+import com.flipcash.services.models.chat.MediaItem
+import com.flipcash.services.models.chat.MediaItemRendition
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SwipeAction
 import com.getcode.ui.components.SwipeActionRow
@@ -58,6 +62,16 @@ internal fun UserProfileScreenContent(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = inset),
     ) {
+        // Profile header — avatar (tap to edit photo) + name with a pencil (tap to edit name).
+        item(contentType = "profile_header") {
+            ProfileHeader(
+                displayName = state.displayName,
+                profilePicture = state.profilePicture,
+                onEditName = { dispatch(UserProfileViewModel.Event.EditNameClicked) },
+                onEditPhoto = { dispatch(UserProfileViewModel.Event.EditPhotoClicked) },
+            )
+        }
+
         // Account Info section
         val hasAccountInfo = !state.publicKey.isNullOrEmpty() ||
                 !state.accountId.isNullOrEmpty() ||
@@ -135,27 +149,6 @@ internal fun UserProfileScreenContent(
                             )
                         }
                     }
-                }
-            }
-        }
-
-        // Display Name section
-        item(contentType = "section_header") { SectionHeader(stringResource(R.string.title_sectionDisplayName)) }
-        item(contentType = "profile_value") {
-            val name = state.displayName
-            if (!name.isNullOrEmpty()) {
-                CardRow { ProfileValueRow(value = name) }
-            } else {
-                CardRow {
-                    Text(
-                        text = stringResource(R.string.subtitle_noDisplayName),
-                        style = CodeTheme.typography.textMedium,
-                        color = CodeTheme.colors.textSecondary,
-                        modifier = Modifier.padding(
-                            horizontal = CodeTheme.dimens.inset,
-                            vertical = CodeTheme.dimens.grid.x3,
-                        ),
-                    )
                 }
             }
         }
@@ -271,6 +264,58 @@ internal fun UserProfileScreenContent(
     }
 }
 
+@Composable
+private fun ProfileHeader(
+    displayName: String?,
+    profilePicture: MediaItem?,
+    onEditName: () -> Unit,
+    onEditPhoto: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = CodeTheme.dimens.grid.x6),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+    ) {
+        ContactAvatar(
+            photoUri = profilePicture.displayUrl(),
+            displayName = displayName.orEmpty(),
+            modifier = Modifier
+                .size(96.dp)
+                .clip(CircleShape)
+                .clickable { onEditPhoto() },
+        )
+        Row(
+            modifier = Modifier.clickable { onEditName() },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+        ) {
+            Text(
+                text = displayName?.takeIf { it.isNotEmpty() }
+                    ?: stringResource(R.string.subtitle_noDisplayName),
+                style = CodeTheme.typography.textLarge,
+                color = CodeTheme.colors.textMain,
+            )
+            Icon(
+                imageVector = Icons.Default.Edit,
+                contentDescription = null,
+                tint = CodeTheme.colors.textSecondary,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+    }
+}
+
+// Prefer the DISPLAY rendition (falling back to THUMBNAIL / any) for the avatar image URL.
+private fun MediaItem?.displayUrl(): String? {
+    val renditions = this?.renditions ?: return null
+    return (renditions.firstOrNull { it.role == MediaItemRendition.Role.DISPLAY }
+        ?: renditions.firstOrNull { it.role == MediaItemRendition.Role.THUMBNAIL }
+        ?: renditions.firstOrNull())
+        ?.blob?.downloadUrl
+}
+
 /** Non-swipeable card wrapper — just visual styling. */
 @Composable
 private fun CardRow(
@@ -290,19 +335,6 @@ private fun Modifier.cardStyle(shape: Shape = CodeTheme.shapes.medium): Modifier
         .background(CodeTheme.colors.bannerThemed, shape)
         .clip(shape)
         .fillMaxWidth()
-}
-
-@Composable
-private fun ProfileValueRow(value: String) {
-    Text(
-        text = value,
-        style = CodeTheme.typography.textMedium,
-        color = CodeTheme.colors.textMain,
-        modifier = Modifier.padding(
-            horizontal = CodeTheme.dimens.inset,
-            vertical = CodeTheme.dimens.grid.x3,
-        ),
-    )
 }
 
 @Composable

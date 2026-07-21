@@ -11,6 +11,7 @@ import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.VerifiableContactMethod
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -45,6 +46,7 @@ internal class UserProfileViewModel @Inject constructor(
 ) {
     internal data class State(
         val displayName: String? = null,
+        val profilePicture: MediaItem? = null,
         val phone: VerifiableContactMethod? = null,
         val email: VerifiableContactMethod? = null,
         val phoneLinkedForPayment: Boolean = false,
@@ -57,11 +59,18 @@ internal class UserProfileViewModel @Inject constructor(
     internal sealed interface Event {
         data class OnProfileUpdated(
             val displayName: String?,
+            val profilePicture: MediaItem?,
             val phone: VerifiableContactMethod?,
             val email: VerifiableContactMethod?,
             val linkedForPayment: Boolean,
             val socialAccounts: List<SocialAccount>,
         ) : Event
+
+        /** Open the update-profile flow to set/replace the display name. */
+        data object EditNameClicked : Event
+
+        /** Open the update-profile flow to set/replace the profile picture. */
+        data object EditPhotoClicked : Event
 
         data object UnlinkPhoneClicked : Event
         data object UnlinkEmailClicked : Event
@@ -94,6 +103,7 @@ internal class UserProfileViewModel @Inject constructor(
             dispatchEvent(
                 Event.OnProfileUpdated(
                     displayName = profile?.displayName,
+                    profilePicture = profile?.profilePicture,
                     // Carry the contact (value + verified) so unverified entries still show.
                     phone = profile?.phoneNumber,
                     email = profile?.email,
@@ -272,6 +282,7 @@ internal class UserProfileViewModel @Inject constructor(
                 is Event.OnProfileUpdated -> { state ->
                     state.copy(
                         displayName = event.displayName,
+                        profilePicture = event.profilePicture,
                         phone = event.phone,
                         email = event.email,
                         phoneLinkedForPayment = event.linkedForPayment,
@@ -293,6 +304,8 @@ internal class UserProfileViewModel @Inject constructor(
                 Event.ConnectEmailClicked,
                 Event.ReplacePhoneClicked,
                 Event.ReplaceEmailClicked,
+                Event.EditNameClicked,
+                Event.EditPhotoClicked,
                 is Event.UnlinkSocialAccountClicked,
                 Event.NavigateToPhoneVerification,
                 Event.NavigateToEmailVerification,

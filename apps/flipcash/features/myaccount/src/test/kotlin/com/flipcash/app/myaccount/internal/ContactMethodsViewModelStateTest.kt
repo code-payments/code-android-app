@@ -39,6 +39,7 @@ class ContactMethodsViewModelStateTest {
         val updated = reduce(
             UserProfileViewModel.Event.OnProfileUpdated(
                 displayName = "Alice",
+                profilePicture = null,
                 phone = VerifiableContactMethod("+15551234567", verified = true),
                 email = VerifiableContactMethod("test@example.com", verified = false),
                 linkedForPayment = true,
@@ -58,6 +59,7 @@ class ContactMethodsViewModelStateTest {
         val updated = reduce(
             UserProfileViewModel.Event.OnProfileUpdated(
                 displayName = null,
+                profilePicture = null,
                 phone = null,
                 email = null,
                 linkedForPayment = false,
