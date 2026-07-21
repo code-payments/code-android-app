@@ -5,6 +5,7 @@ import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.libs.currency.math.MarketState
 import com.flipcash.libs.currency.math.Valuation
 import com.getcode.opencode.internal.extensions.fractionDigits
+import com.getcode.opencode.model.core.PayloadValue
 import com.getcode.opencode.utils.roundTo
 import com.getcode.opencode.utils.toLocaleAwareDoubleOrNull
 import com.getcode.solana.keys.Mint
@@ -21,7 +22,7 @@ import kotlin.math.roundToLong
 data class Fiat(
     val quarks: Long, // Changed from ULong to Long to support negative values
     val currencyCode: CurrencyCode = CurrencyCode.USD
-) : Comparable<Fiat>, Parcelable {
+) : Comparable<Fiat>, Parcelable, PayloadValue {
 
     val decimalValue: Double
         get() = quarks.toDouble() / MULTIPLIER

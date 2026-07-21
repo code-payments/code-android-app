@@ -81,6 +81,7 @@ internal class GrabBillTransactor(
             PayloadKind.Unknown -> logAndFail(GrabTransactorError.Other(message = "Unknown payload kind"))
             PayloadKind.Cash -> handleLegacyScan(ownerKey, data)
             PayloadKind.MultiMintCash -> handleMultiMintScan(ownerKey, data)
+            PayloadKind.Tip -> logAndFail(GrabTransactorError.Other(message = "Tip payload is not grabbable"))
         }
     }
 
