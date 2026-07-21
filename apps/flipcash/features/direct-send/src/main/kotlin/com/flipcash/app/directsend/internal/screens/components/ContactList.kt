@@ -24,8 +24,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
@@ -36,39 +36,33 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.flipcash.app.contacts.ui.ContactAvatar
-import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.directsend.internal.ContactListItem
-import com.flipcash.app.directsend.internal.Conversation
 import com.flipcash.app.permissions.ContactAccessHandle
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.features.directsend.R
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.shared.chat.ui.AnimatedConversationPaymentsPreview
+import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
-import com.getcode.theme.extraLarge
 import com.getcode.theme.extraSmall
 import com.getcode.ui.core.verticalScrollStateGradient
-import com.getcode.ui.theme.CodeButton
 import com.getcode.util.formatLocalized
-import com.getcode.util.permissions.PermissionResult
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -576,7 +570,7 @@ private fun ContactListPreview() {
             contact = flipcashContacts[0].contact,
             isOnFlipcash = true,
             lastActivity = now - 5.minutes,
-            conversation = Conversation(
+            conversation = ConversationReference(
                 chatId = ChatId(byteArrayOf(1)),
                 lastMessagePreview = "Sent you $10.00",
                 unreadCount = 2,
@@ -587,7 +581,7 @@ private fun ContactListPreview() {
             contact = flipcashContacts[1].contact,
             isOnFlipcash = true,
             lastActivity = now - 1.hours,
-            conversation = Conversation(
+            conversation = ConversationReference(
                 chatId = ChatId(byteArrayOf(2)),
                 lastMessagePreview = "See you soon",
                 isTyping = true,
@@ -598,7 +592,7 @@ private fun ContactListPreview() {
             contact = flipcashContacts[2].contact,
             isOnFlipcash = true,
             lastActivity = now - 26.hours,
-            conversation = Conversation(
+            conversation = ConversationReference(
                 chatId = ChatId(byteArrayOf(3)),
                 lastMessagePreview = "You: Thanks!",
             ),

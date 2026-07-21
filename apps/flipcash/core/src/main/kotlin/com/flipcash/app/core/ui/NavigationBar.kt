@@ -59,7 +59,7 @@ import com.getcode.ui.utils.heightOrZero
 import com.getcode.ui.utils.widthOrZero
 
 data class NavigationBarState(
-    val notificationUnreadCount: Int = 0,
+    val contactDmUnreadCount: Int = 0,
     val showToast: Boolean = false,
     val toastText: String? = null,
     val isPaused: Boolean = false,
@@ -144,7 +144,7 @@ fun NavigationBar(
                 NavBarButton.Send -> BottomBarAction(
                     modifier = buttonModifier,
                     label = stringResource(R.string.action_send),
-                    badgeCount = state.notificationUnreadCount,
+                    badgeCount = state.contactDmUnreadCount,
                     painter = painterResource(R.drawable.ic_send_outlined),
                     onClick = { onButtonClick(NavBarButton.Send) }
                 )
@@ -301,7 +301,7 @@ private fun BottomBarAction(
 @Composable
 private fun NavigationBarPreview() {
     NavigationBar(
-        state = NavigationBarState(notificationUnreadCount = 100),
+        state = NavigationBarState(contactDmUnreadCount = 100),
     )
 }
 @Preview

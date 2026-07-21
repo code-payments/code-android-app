@@ -2,6 +2,7 @@ package com.flipcash.app.directsend.internal
 
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.shared.chat.ui.ConversationReference
 import kotlin.time.Instant
 
 internal sealed interface ContactListItem {
@@ -22,14 +23,6 @@ internal sealed interface ContactListItem {
         val contact: DeviceContact,
         val isOnFlipcash: Boolean,
         val lastActivity: Instant? = null,
-        val conversation: Conversation? = null,
+        val conversation: ConversationReference? = null,
     ) : ContactListItem
 }
-
-/** Presentation state derived from an existing DM with a contact. */
-internal data class Conversation(
-    val chatId: ChatId,
-    val lastMessagePreview: String? = null,
-    val unreadCount: Int = 0,
-    val isTyping: Boolean = false,
-)

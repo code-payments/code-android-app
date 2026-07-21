@@ -9,6 +9,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatSummary
+import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
@@ -109,7 +110,7 @@ internal class ContactListBuilder @Inject constructor(
                 contact = contact,
                 isOnFlipcash = true,
                 lastActivity = summary.metadata.lastActivity,
-                conversation = Conversation(
+                conversation = ConversationReference(
                     chatId = chatId,
                     lastMessagePreview = formatPreview(summary, selfId, tokensByMint),
                     unreadCount = summary.unreadCount,

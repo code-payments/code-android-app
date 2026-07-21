@@ -72,37 +72,44 @@ class FeedSyncDelegate @Inject constructor(
 
     // region FeedOperations
 
-    override val feed: Flow<List<ChatSummary>>
-        get() = stateHolder.state.map { state ->
+    override fun feed(chatType: ChatType): Flow<List<ChatSummary>> =
+        stateHolder.state.map { state ->
             val selfId = userManager.accountId
             val selfPhone = userManager.profile?.verifiedPhoneNumber
             val isSelf = { member: ChatMember ->
                 member.userId == selfId || (selfPhone != null && member.userProfile.verifiedPhoneNumber == selfPhone)
             }
-            state.feed.mapNotNull { metadata ->
-                val otherMember = metadata.members.firstOrNull { !isSelf(it) }
-                    ?: return@mapNotNull null
-                val profile = otherMember.userProfile
-                val hasIdentity = !profile.displayName.isNullOrBlank() ||
-                    !profile.verifiedPhoneNumber.isNullOrBlank()
-                if (!hasIdentity) return@mapNotNull null
+            state.feed
+                .filter { it.type == chatType }
+                .mapNotNull { metadata ->
+                    val otherMember = metadata.members.firstOrNull { !isSelf(it) }
+                        ?: return@mapNotNull null
 
-                val readPointer = metadata.members
-                    .firstOrNull { it.userId == selfId }
-                    ?.pointers
-                    ?.firstOrNull { it.type == PointerType.READ }
-                    ?.value ?: 0L
+                    // Contact DMs require a resolvable identity (phone / display name). Tip DMs are
+                    // identified by user id and have no phone by design, so they are never dropped.
+                    if (chatType == ChatType.CONTACT_DM) {
+                        val profile = otherMember.userProfile
+                        val hasIdentity = !profile.displayName.isNullOrBlank() ||
+                            !profile.verifiedPhoneNumber.isNullOrBlank()
+                        if (!hasIdentity) return@mapNotNull null
+                    }
 
-                val unreadCount = metadata.lastMessage?.let { lastMsg ->
-                    if (lastMsg.messageId > readPointer && lastMsg.senderId != selfId) 1 else 0
-                } ?: 0
+                    val readPointer = metadata.members
+                        .firstOrNull { it.userId == selfId }
+                        ?.pointers
+                        ?.firstOrNull { it.type == PointerType.READ }
+                        ?.value ?: 0L
 
-                ChatSummary(metadata = metadata, unreadCount = unreadCount)
-            }
+                    val unreadCount = metadata.lastMessage?.let { lastMsg ->
+                        if (lastMsg.messageId > readPointer && lastMsg.senderId != selfId) 1 else 0
+                    } ?: 0
+
+                    ChatSummary(metadata = metadata, unreadCount = unreadCount)
+                }
         }
 
-    override fun observeUnreadConversations(): Flow<Int> {
-        return feed.map { summaries -> summaries.count { it.unreadCount > 0 } }
+    override fun observeUnreadConversations(chatType: ChatType): Flow<Int> {
+        return feed(chatType).map { summaries -> summaries.count { it.unreadCount > 0 } }
     }
 
     override fun refreshFeed() {
@@ -155,13 +162,25 @@ class FeedSyncDelegate @Inject constructor(
         }
     }
 
+    /**
+     * Fetches the CONTACT_DM and TIP_DM feeds and returns their merged chats. The contact feed is
+     * required (its failure fails the whole sync, preserving prior behaviour); a TIP_DM failure is
+     * tolerated so tips never break the main DM list. Each chat carries its own [ChatType].
+     */
+    internal suspend fun fetchCombinedFeed(): Result<List<ChatMetadata>> {
+        val contact = chatController.getDmChatFeed(ChatType.CONTACT_DM)
+            .getOrElse { return Result.failure(it) }
+        val tip = chatController.getDmChatFeed(ChatType.TIP_DM).getOrNull()
+        return Result.success(contact.chats + (tip?.chats ?: emptyList()))
+    }
+
     private suspend fun performFeedSync() {
         stateHolder.update { it.copy(feedSyncState = FeedSyncState.Syncing) }
-        chatController.getDmChatFeed(ChatType.CONTACT_DM)
-            .onSuccess { page ->
-                metadataDataSource.upsert(page.chats)
+        fetchCombinedFeed()
+            .onSuccess { chats ->
+                metadataDataSource.upsert(chats)
 
-                for (chat in page.chats) {
+                for (chat in chats) {
                     memberDataSource.upsert(chat.chatId, chat.members)
                     chat.lastMessage?.let { msg ->
                         messageDataSource.upsert(chat.chatId, listOf(msg))
@@ -169,9 +188,9 @@ class FeedSyncDelegate @Inject constructor(
                 }
 
                 stateHolder.update { it.copy(feedSyncState = FeedSyncState.Synced) }
-                trace(tag = TAG, message = "Feed synced: ${page.chats.size} chats", type = TraceType.Process)
+                trace(tag = TAG, message = "Feed synced: ${chats.size} chats", type = TraceType.Process)
 
-                for (chat in page.chats) {
+                for (chat in chats) {
                     if (chat.latestEventSequence > 0) {
                         val localSeq = metadataDataSource.getLatestEventSequence(chat.chatId)
                         if (localSeq > 0 && localSeq < chat.latestEventSequence) {
