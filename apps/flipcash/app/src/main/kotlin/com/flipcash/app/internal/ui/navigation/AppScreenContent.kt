@@ -50,6 +50,7 @@ import com.flipcash.app.tokens.TokenSelectScreen
 
 import com.flipcash.app.transactions.TransactionHistoryScreen
 import com.flipcash.app.userflags.UserFlagsScreen
+import com.flipcash.app.userprofile.UpdateUserProfileFlowScreen
 import com.flipcash.app.withdrawal.WithdrawalFlowScreen
 import com.getcode.navigation.AppNavHost
 import com.getcode.navigation.NonDismissableRoute
@@ -121,6 +122,12 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Verification> { key ->
         VerificationFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
+
+    // User Profile Management
+    annotatedEntry<AppRoute.UpdateUserProfile> { key ->
+        UpdateUserProfileFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
+    }
+
 
     // Menu
     annotatedEntry<AppRoute.Menu.AppSettings> { AppSettingsScreen() }

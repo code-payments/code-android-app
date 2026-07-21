@@ -84,6 +84,9 @@ class ProfileController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.setDisplayName(displayName, owner)
+            // Reflect the change locally so anything observing the profile (e.g. a setup flow
+            // deciding which steps remain) sees it without waiting for a refresh.
+            .onSuccess { mergeLocalProfile { it.copy(displayName = displayName) } }
     }
 
     /**
@@ -97,6 +100,14 @@ class ProfileController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.setProfilePicture(blobId, owner)
+            .onSuccess { media -> mergeLocalProfile { it.copy(profilePicture = media) } }
+    }
+
+    // Applies [transform] to the locally cached profile (or a minimal one if none is cached yet)
+    // and publishes it through UserManager.
+    private fun mergeLocalProfile(transform: (UserProfile) -> UserProfile) {
+        val base = userManager.profile ?: UserProfile.Empty
+        userManager.set(transform(base))
     }
 
     suspend fun linkTwitterXAccount(
