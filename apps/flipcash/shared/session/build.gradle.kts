@@ -12,6 +12,7 @@ dependencies {
     testImplementation(testFixtures(project(":libs:coroutines")))
     testImplementation(testFixtures(project(":ui:resources")))
 
+    implementation(project(":apps:flipcash:shared:blob"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:activityfeed"))

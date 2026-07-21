@@ -6,6 +6,7 @@ import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.core.internal.bill.BillController
@@ -100,6 +101,7 @@ class RealSessionController @Inject constructor(
     private val tokenCoordinator: TokenCoordinator,
     private val contactCoordinator: ContactCoordinator,
     private val chatCoordinator: ChatCoordinator,
+    private val blobStorageCoordinator: BlobStorageCoordinator,
     networkObserver: NetworkConnectivityListener,
     featureFlagController: FeatureFlagController,
     appSettingsCoordinator: AppSettingsCoordinator,
@@ -198,6 +200,15 @@ class RealSessionController @Inject constructor(
             .flatMapLatest { chatCoordinator.observeUnreadConversations(ChatType.CONTACT_DM) }
             .distinctUntilChanged()
             .onEach { count -> stateHolder.update { it.copy(contactDmUnreadCount = count) } }
+            .launchIn(scope)
+
+        // Preload the blob upload policy once registered so profile-photo selection can filter and
+        // validate against it without a network round-trip. Cached in the BlobStorageCoordinator.
+        userManager.state
+            .map { it.authState }
+            .filter { it.isAtLeastRegistered }
+            .distinctUntilChanged()
+            .onEach { blobStorageCoordinator.preloadPolicy() }
             .launchIn(scope)
 
         appSettingsCoordinator
