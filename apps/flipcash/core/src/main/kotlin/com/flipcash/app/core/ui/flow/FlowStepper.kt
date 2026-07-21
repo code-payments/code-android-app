@@ -1,4 +1,4 @@
-package com.flipcash.app.currencycreator.internal.components
+package com.flipcash.app.core.ui.flow
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,89 +19,48 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.flipcash.core.R
-import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.minus
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
 
+/**
+ * One entry in a [FlowStepper]. [weight] > 0 makes the row expand and draws a gradient connector to
+ * the next item when [showConnector] is true.
+ */
+data class StepperItem(
+    val icon: Painter,
+    val title: String,
+    val description: String,
+    val weight: Float = 0.6f,
+    val showConnector: Boolean = weight > 0f,
+)
+
+/** Vertical wizard stepper. Content is fully caller-supplied via [items]. */
 @Composable
-internal fun Stepper(modifier: Modifier = Modifier, cost: Fiat, fee: Fiat?) {
-    val receiving = cost - (fee ?: Fiat.Zero)
-    val isReceivingAmount = receiving > Fiat.Zero
-
+fun FlowStepper(
+    items: List<StepperItem>,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier = modifier) {
-        StepperItem(
-            icon = painterResource(R.drawable.ic_currencycreator_name),
-            title = stringResource(R.string.title_currencyCreatorStepName),
-            description = stringResource(R.string.subtitle_currencyCreatorStepName),
-            weight = 0.6f,
-        )
-        StepperItem(
-            icon = painterResource(R.drawable.ic_currencycreator_icon),
-            title = stringResource(R.string.title_currencyCreatorStepIcon),
-            description = stringResource(R.string.subtitle_currencyCreatorStepIcon),
-            weight = 0.6f,
-        )
-        StepperItem(
-            painterResource(R.drawable.ic_currencycreator_description),
-            title = stringResource(R.string.title_currencyCreatorStepDescription),
-            description = stringResource(R.string.subtitle_currencyCreatorStepDescription),
-            weight = 0.6f,
-        )
-        StepperItem(
-            painterResource(R.drawable.ic_currencycreator_cashbill),
-            title = stringResource(R.string.title_currencyCreatorStepDesign),
-            description = stringResource(R.string.subtitle_currencyCreatorStepDesign),
-            weight = 0.6f,
-        )
-        StepperItem(
-            painterResource(R.drawable.ic_currencycreator_purchase),
-            title = stringResource(
-                R.string.title_currencyCreatorStepPurchase,
-                cost.formatted(
-                    rule = Fiat.FormattingRule.Truncated,
-                    suffix = stringResource(R.string.subtitle_usdSuffix)
-                )
-            ),
-            description = stringResource(R.string.subtitle_currencyCreatorStepPurchase),
-            weight = 0.6f,
-            showConnector = isReceivingAmount,
-        )
-
-        if (isReceivingAmount) {
-            StepperItem(
-                painterResource(R.drawable.ic_currencycreator_gift),
-                title = stringResource(
-                    R.string.title_currencyCreatorStepPurchaseFreeGift,
-                    receiving.formatted(rule = Fiat.FormattingRule.Truncated)
-                ),
-                description = stringResource(
-                    R.string.subtitle_currencyCreatorStepPurchaseFreeGift,
-                    receiving.formatted(rule = Fiat.FormattingRule.Truncated)
-                ),
-                weight = 0.6f,
-                showConnector = false
+        items.forEach { item ->
+            StepperRow(
+                icon = item.icon,
+                title = item.title,
+                description = item.description,
+                weight = item.weight,
+                showConnector = item.showConnector,
             )
         }
     }
 }
 
-/**
- * A single step in the vertical stepper. When [weight] > 0 the item expands
- * proportionally and a gradient connector line fills the space between the
- * icon box and the next item. The last item should pass [weight] = 0.
- */
 @Composable
-private fun ColumnScope.StepperItem(
+private fun ColumnScope.StepperRow(
     icon: Painter,
     title: String,
     description: String,
     weight: Float,
-    showConnector: Boolean = weight > 0f
+    showConnector: Boolean,
 ) {
     val hasConnector = weight > 0f
     Row(

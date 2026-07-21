@@ -11,7 +11,6 @@ import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.tokens.CurrencyCreatorDraft
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.currencycreator.CurrencyCreatorCoordinator
-import com.flipcash.app.currencycreator.internal.components.CurrencyCreatorTopBarController
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.TokenCoordinator
@@ -133,14 +132,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         val hasDescription: Boolean
             get() = descriptionFieldState.text.isNotBlank() &&
                     remainingSpaceForDescription >= 0
-
-        val progress: Float
-            get() {
-                val step = currentStep ?: return 0f
-                val index = PROGRESS_STEPS.indexOfFirst { it.isInstance(step) }
-                if (index < 0) return 0f
-                return (index + 1).toFloat() / PROGRESS_STEPS.size
-            }
 
         val totalCost: Fiat
             get() {
@@ -656,21 +647,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             verifiedState = verifiedFiat.verifiedState,
             didReceive = true,
         )
-    }
-
-    /**
-     * Connect the ViewModel to the top bar controller. The ViewModel pushes
-     * [State.progress] to the controller whenever the current step changes.
-     */
-    fun connectTopBar(controller: CurrencyCreatorTopBarController) {
-        stateFlow
-            .map { it.currentStep }
-            .distinctUntilChanged()
-            .onEach { _ ->
-                val state = stateFlow.value
-                controller.progress = state.progress
-            }
-            .launchIn(viewModelScope)
     }
 
     internal companion object {

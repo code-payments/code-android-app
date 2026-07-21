@@ -1,4 +1,4 @@
-package com.flipcash.app.currencycreator.internal.components
+package com.flipcash.app.core.ui.flow
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
@@ -21,10 +21,15 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.utils.rememberKeyboardController
 
+/**
+ * Top bar for a [SteppedFlowScaffold]. Shows a centered [LinearProgressIndicator] in the title slot
+ * while [FlowStepBarController.progress] is strictly between 0 and 1, unless [mainContent] overrides
+ * the title (used by steps like intro / processing that show a title instead of progress).
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun CurrencyCreatorTopBar(
-    controller: CurrencyCreatorTopBarController,
+fun FlowStepBar(
+    controller: FlowStepBarController,
     mainContent: (@Composable () -> Unit)? = null,
     endContent: (@Composable () -> Unit)? = null,
 ) {

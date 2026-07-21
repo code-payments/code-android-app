@@ -18,8 +18,11 @@ import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.onboarding.OnboardingStep
 import com.flipcash.app.core.tokens.FundingSource
+import com.flipcash.app.core.ui.flow.SteppedFlowRoute
 import com.getcode.navigation.flow.FlowRoute
 import com.getcode.navigation.flow.FlowRouteWithResult
+import com.getcode.navigation.flow.FlowStep
+import kotlin.reflect.KClass
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
@@ -208,9 +211,18 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object Discovery: AppRoute
 
         @Serializable
-        data object CurrencyCreator : Token, FlowRouteWithResult<CurrencyCreatorResult> {
+        data object CurrencyCreator : Token, SteppedFlowRoute<CurrencyCreatorResult> {
             override val initialStack: List<NavKey>
                 get() = listOf(CurrencyCreatorStep.Info)
+
+            override val progressSteps: List<KClass<out FlowStep>>
+                get() = listOf(
+                    CurrencyCreatorStep.NameSelection::class,
+                    CurrencyCreatorStep.IconSelection::class,
+                    CurrencyCreatorStep.DescriptionSelection::class,
+                    CurrencyCreatorStep.BillCustomization::class,
+                    CurrencyCreatorStep.BillReview::class,
+                )
         }
     }
 
