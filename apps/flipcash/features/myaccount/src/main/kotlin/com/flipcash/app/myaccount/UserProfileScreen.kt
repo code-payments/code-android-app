@@ -45,6 +45,34 @@ fun UserProfileScreen() {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
+            .filterIsInstance<UserProfileViewModel.Event.EditNameClicked>()
+            .onEach {
+                navigator.push(
+                    AppRoute.UpdateUserProfile(
+                        origin = AppRoute.Menu.UserProfile,
+                        includeName = true,
+                        includePhoto = false,
+                    )
+                )
+            }.launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<UserProfileViewModel.Event.EditPhotoClicked>()
+            .onEach {
+                navigator.push(
+                    AppRoute.UpdateUserProfile(
+                        origin = AppRoute.Menu.UserProfile,
+                        includeName = false,
+                        includePhoto = true,
+                    )
+                )
+            }.launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
             .filterIsInstance<UserProfileViewModel.Event.NavigateToPhoneVerification>()
             .onEach {
                 navigator.push(
