@@ -14,6 +14,7 @@ import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.permissions.PickedContact
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.directsend.R
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.getcode.manager.BottomBarManager
@@ -92,7 +93,7 @@ internal class SendFlowViewModel @Inject constructor(
             featureFlags.observe(FeatureFlag.PhoneNumberSend),
             featureFlags.observe(FeatureFlag.ContactPickerMode),
             contactCoordinator.state,
-            chatCoordinator.feed,
+            chatCoordinator.feed(ChatType.CONTACT_DM),
         ) { userState, phoneNumberSendFlag, contactPickerMode, contactState, chats ->
             val hasLinkedPhone = userState.userProfile?.verifiedPhoneNumber != null
             val phoneNumberSendEnabled = phoneNumberSendFlag ||
@@ -119,7 +120,7 @@ internal class SendFlowViewModel @Inject constructor(
                 .map { it.searchState }
                 .distinctUntilChanged()
                 .flatMapLatest { snapshotFlow { it.text } },
-            chatCoordinator.feed,
+            chatCoordinator.feed(ChatType.CONTACT_DM),
             tokenCoordinator.tokens,
         ) { contactState, searchText, chatFeed, tokens ->
             contactListBuilder.build(

@@ -59,7 +59,7 @@ data class SessionState(
     val billResult: BillDeterminationResult = BillDeterminationResult.None,
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
-    val notificationUnreadCount: Int = 0,
+    val contactDmUnreadCount: Int = 0,
     val tokens: List<Token> = emptyList(),
     val isPhoneNumberSendEnabled: Boolean = false,
     val addMoneyUx: Boolean = false,

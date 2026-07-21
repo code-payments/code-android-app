@@ -6,6 +6,7 @@ import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.updater.ProfileUpdater
@@ -194,9 +195,9 @@ class RealSessionController @Inject constructor(
             .map { it.authState }
             .filter { it.isAtLeastRegistered }
             .distinctUntilChanged()
-            .flatMapLatest { chatCoordinator.observeUnreadConversations() }
+            .flatMapLatest { chatCoordinator.observeUnreadConversations(ChatType.CONTACT_DM) }
             .distinctUntilChanged()
-            .onEach { count -> stateHolder.update { it.copy(notificationUnreadCount = count) } }
+            .onEach { count -> stateHolder.update { it.copy(contactDmUnreadCount = count) } }
             .launchIn(scope)
 
         appSettingsCoordinator

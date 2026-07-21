@@ -8,6 +8,7 @@ import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.ReactionSummary
@@ -21,11 +22,11 @@ import kotlinx.coroutines.flow.StateFlow
  * Implemented by [com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate].
  */
 interface FeedOperations {
-    /** Reactive list of all DM conversations, sorted by last activity. */
-    val feed: Flow<List<ChatSummary>>
+    /** Reactive list of [chatType] conversations, sorted by last activity. */
+    fun feed(chatType: ChatType): Flow<List<ChatSummary>>
 
-    /** Emits the number of conversations that have unread messages. */
-    fun observeUnreadConversations(): Flow<Int>
+    /** Emits the number of [chatType] conversations that have unread messages. */
+    fun observeUnreadConversations(chatType: ChatType): Flow<Int>
 
     /** Triggers a server-side feed sync. Safe to call redundantly. */
     fun refreshFeed()
