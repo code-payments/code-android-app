@@ -1,5 +1,6 @@
 package com.flipcash.app.core.bill
 
+import com.flipcash.services.models.UserProfile
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -94,6 +95,6 @@ sealed interface Scannable {
 
     data class TipCard(
         override val data: List<Byte>,
-        val username: String,
+        val user: UserProfile
     ) : Scannable
 }

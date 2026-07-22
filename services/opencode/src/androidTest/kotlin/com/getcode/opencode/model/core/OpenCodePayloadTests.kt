@@ -30,9 +30,10 @@ class OpenCodePayloadTests {
 
     @Test
     fun tipPayloadEncoding() {
+        val userId: List<Byte> = (1..16).map { it.toByte() }
         val payload = OpenCodePayload(
             kind = PayloadKind.Tip,
-            value = Username("bob"),
+            value = UserId(userId),
         )
 
         val encoded = payload.encode()
@@ -42,23 +43,24 @@ class OpenCodePayloadTests {
 
         assertEquals(OpenCodePayload.LENGTH, encoded.size)
         assertEquals(PayloadKind.Tip.value, decoded.kind.value)
-        // The username is hash-padded on encode and recovered by stripping at the '.' delimiter.
-        assertEquals("bob", decoded.username)
+        // The 16-byte user id round-trips.
+        assertEquals(userId, decoded.userId)
         // Tip payloads carry no fiat amount and no nonce.
         assertNull(decoded.fiat)
         assertEquals(emptyList<Byte>(), decoded.nonce)
     }
 
     @Test
-    fun tipPayloadEncodingFullLengthUsername() {
-        val username = "fifteencharname" // exactly USERNAME_LENGTH (15)
-        val payload = OpenCodePayload(
+    fun tipPayloadUserIdIsWrittenAtOffsetOne() {
+        val userId: List<Byte> = (1..16).map { it.toByte() }
+        val encoded = OpenCodePayload(
             kind = PayloadKind.Tip,
-            value = Username(username),
-        )
+            value = UserId(userId),
+        ).encode()
 
-        val decoded = OpenCodePayload.Companion.fromList(payload.encode())
-
-        assertEquals(username, decoded.username)
+        assertEquals(PayloadKind.Tip.value, encoded[0].toInt())
+        assertEquals(userId, encoded.subList(1, 17))
+        // Trailing bytes reserved / zero.
+        assertEquals(listOf<Byte>(0, 0, 0), encoded.subList(17, 20))
     }
 }
