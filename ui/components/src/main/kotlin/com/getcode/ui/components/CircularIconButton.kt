@@ -24,19 +24,21 @@ private val ButtonBackground = Color.White.copy(alpha = 0.1f)
 @Composable
 fun CircularIconButton(
     modifier: Modifier = Modifier,
+    imageSize: Dp = IconSize,
+    buttonSize: Dp = ButtonSize,
     onClick: () -> Unit,
     testTag: String? = null,
     content: @Composable (Dp) -> Unit,
 ) {
     Box(
         modifier = modifier
-            .size(ButtonSize)
+            .size(buttonSize)
             .background(ButtonBackground, CircleShape)
             .clip(CircleShape)
             .clickable { onClick() }
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        content(IconSize)
+        content(imageSize)
     }
 }

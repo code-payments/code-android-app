@@ -27,10 +27,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import com.flipcash.app.contacts.ui.ContactAvatar
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.features.messenger.R
+import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 
 @Composable

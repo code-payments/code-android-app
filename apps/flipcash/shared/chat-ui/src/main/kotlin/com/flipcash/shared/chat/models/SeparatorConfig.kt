@@ -1,4 +1,4 @@
-package com.flipcash.shared.chat.ui
+package com.flipcash.shared.chat.models
 
 import com.getcode.util.toLocalDate
 import kotlin.time.Duration

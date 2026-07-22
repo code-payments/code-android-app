@@ -1,4 +1,4 @@
-package com.flipcash.app.contacts.ui
+package com.flipcash.shared.common.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -7,11 +7,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +32,8 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.flipcash.app.core.contacts.DeviceContact
+import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.MediaItemRendition
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 
@@ -44,33 +44,7 @@ fun ContactAvatar(
     includeBorder: Boolean = true,
 ) {
     if (contact == null || contact.isUnknown) {
-        Box(
-            modifier = modifier
-                .background(Brush.linearGradient(CodeTheme.colors.contactAvatar.colors))
-                .addIf(includeBorder) {
-                    Modifier.border(
-                        CodeTheme.dimens.border,
-                        CodeTheme.colors.divider,
-                        CircleShape,
-                    )
-                },
-            contentAlignment = Alignment.BottomCenter,
-        ) {
-            Image(
-                imageVector = Icons.Default.Person,
-                contentDescription = null,
-                colorFilter = ColorFilter.tint(CodeTheme.colors.textSecondary),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        val scale = 1.2f
-                        scaleX = scale
-                        scaleY = scale
-                        translationY = size.height * 0.18f
-                    },
-                contentScale = ContentScale.Fit,
-            )
-        }
+        UnknownContactAvatar(modifier = modifier, includeBorder = includeBorder)
     } else {
         ContactAvatar(
             modifier = Modifier
@@ -121,6 +95,78 @@ fun ContactAvatar(
         } else {
             InitialsText(displayName)
         }
+    }
+}
+
+@Composable
+fun ContactAvatar(
+    userProfile: UserProfile,
+    imageRole: MediaItemRendition.Role = MediaItemRendition.Role.THUMBNAIL,
+    modifier: Modifier = Modifier,
+) {
+    BoxWithConstraints(
+        modifier = modifier.background(
+            Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)
+        )
+    ) {
+        val photoUri = userProfile.profilePicture?.url(imageRole)
+        if (photoUri != null) {
+            var isError by rememberSaveable(photoUri) { mutableStateOf(false) }
+            if (!isError) {
+                val context = LocalContext.current
+                val request = remember(photoUri) {
+                    ImageRequest.Builder(context)
+                        .crossfade(true)
+                        .data(photoUri.toUri())
+                        .build()
+                }
+                AsyncImage(
+                    modifier = Modifier.matchParentSize(),
+                    model = request,
+                    contentDescription = null,
+                    onError = { isError = true },
+                )
+            }
+            if (isError) {
+                UnknownContactAvatar(includeBorder = true)
+            }
+        } else {
+            UnknownContactAvatar(includeBorder = true)
+        }
+    }
+}
+
+@Composable
+private fun UnknownContactAvatar(
+    includeBorder: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .background(Brush.linearGradient(CodeTheme.colors.contactAvatar.colors))
+            .addIf(includeBorder) {
+                Modifier.border(
+                    CodeTheme.dimens.border,
+                    CodeTheme.colors.divider,
+                    CircleShape,
+                )
+            },
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        Image(
+            imageVector = Icons.Default.Person,
+            contentDescription = null,
+            colorFilter = ColorFilter.tint(CodeTheme.colors.textSecondary),
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    val scale = 1.2f
+                    scaleX = scale
+                    scaleY = scale
+                    translationY = size.height * 0.18f
+                },
+            contentScale = ContentScale.Fit,
+        )
     }
 }
 

@@ -20,8 +20,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.contacts.ui.ContactAvatar
 import com.flipcash.app.core.contacts.DeviceContact
+import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults

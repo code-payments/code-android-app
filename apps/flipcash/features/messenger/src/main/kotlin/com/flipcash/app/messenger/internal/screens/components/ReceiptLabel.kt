@@ -32,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.theme.FlipcashThemeWrapper
-import com.flipcash.shared.chat.ui.ReceiptStatus
+import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
