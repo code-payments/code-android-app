@@ -5,16 +5,13 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.core.R
-import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.financial.usdf
-import com.getcode.solana.keys.Mint
 import kotlin.time.Duration
 
 data class BillState(
-    val bill: Bill?,
+    val bill: Scannable.Payable?,
     val showToast: Boolean,
     val toast: BillToast?,
     val valuation: Valuation?,
@@ -86,51 +83,6 @@ data class BillState(
     }
 }
 
-sealed interface Bill {
-    val didReceive: Boolean
-    val confirmationDelay: Duration
-    val token: Token
-    val amount: LocalFiat
-    val data: List<Byte>
-    val disableGestures: Boolean
-
-    enum class Kind {
-        cash, airdrop
-    }
-
-    val canSwipeToDismiss: Boolean
-        get() = when (this) {
-            is Cash -> !disableGestures
-        }
-
-    val canFlip: Boolean
-
-    val metadata: Metadata
-        get() {
-            return when (this) {
-                is Cash -> Metadata(
-                    token = token,
-                    amount = amount,
-                    data = data
-                )
-            }
-        }
-
-    data class Cash(
-        override val token: Token,
-        override val amount: LocalFiat,
-        override val didReceive: Boolean = false,
-        override val disableGestures: Boolean = false,
-        override val confirmationDelay: Duration = Duration.ZERO,
-        override val data: List<Byte> = emptyList(),
-        val kind: Kind = Kind.cash,
-        val verifiedState: VerifiedState? = null,
-        val nonce: List<Byte> = emptyList(),
-        val renderAsBill: Boolean = token.address != Mint.usdf,
-    ) : Bill {
-        override val canFlip: Boolean = false
-    }
-}
 
 sealed interface Valuation
 data class PaymentValuation(val amount: Fiat): Valuation

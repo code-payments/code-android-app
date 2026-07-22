@@ -3,8 +3,8 @@ package com.flipcash.app.session.internal.delegates
 import app.cash.turbine.test
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.MainCoroutineRule
-import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.session.internal.SessionStateHolder
 import com.flipcash.app.tokens.TokenCoordinator
@@ -87,11 +87,11 @@ class DelegateEventEmissionTest {
         val amount = mockk<LocalFiat>(relaxed = true) {
             every { nativeAmount.decimalValue } returns 5.0
         }
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = mockk(relaxed = true),
             amount = amount,
             didReceive = false,
-            kind = Bill.Kind.cash,
+            kind = Scannable.Payable.Kind.cash,
             verifiedState = mockk(relaxed = true),
         )
 
@@ -144,11 +144,11 @@ class DelegateEventEmissionTest {
         val amount = mockk<LocalFiat>(relaxed = true) {
             every { nativeAmount.decimalValue } returns 3.0
         }
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = mockk(relaxed = true),
             amount = amount,
             didReceive = false,
-            kind = Bill.Kind.cash,
+            kind = Scannable.Payable.Kind.cash,
         )
 
         delegate.awaitBillGrab(bill, accountCluster)

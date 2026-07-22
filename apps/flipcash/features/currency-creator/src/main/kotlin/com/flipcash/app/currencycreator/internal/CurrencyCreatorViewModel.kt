@@ -4,7 +4,7 @@ import android.net.Uri
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.core.text.trimmedLength
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.extensions.flatMapResult
 import com.flipcash.app.core.extensions.onResult
@@ -109,12 +109,12 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         val descriptionFieldState: TextFieldState = TextFieldState(),
         val icon: Loadable<Uri> = Loadable.Loading(),
         val customizations: TokenBillCustomizations? = null,
-        val bill: Bill? = null,
+        val bill: Scannable.Payable? = null,
         val createdMint: Mint? = null,
         val launchedToken: Token? = null,
         // The celebratory give-bill for the freshly launched currency, priced through the
         // token's bonding curve (not USDF 1:1) and carrying the verified state a grab needs.
-        val launchBill: Bill.Cash? = null,
+        val launchBill: Scannable.Payable? = null,
         val purchaseAmount: Fiat = 5.toFiat(),
         val feeAmount: Fiat? = null,
         val processingState: LoadingSuccessState = LoadingSuccessState(),
@@ -169,7 +169,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
         data class OnPurchaseAmountChanged(val amount: Fiat, val feeAmount: Fiat) : Event
 
-        data class OnBillConfirmed(val bill: Bill?) : Event
+        data class OnBillConfirmed(val bill: Scannable.Payable?) : Event
         data class UpdateProcessingState(
             val loading: Boolean = false,
             val success: Boolean = false,
@@ -183,7 +183,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         data class ConfirmPurchase(val fundedWith: Mint): Event
 
         data class PurchaseSubmitted(val swapId: SwapId, val mint: Mint) : Event
-        data class PurchaseCompleted(val token: Token, val bill: Bill.Cash?): Event
+        data class PurchaseCompleted(val token: Token, val bill: Scannable.Payable?): Event
 
         data object OnIntroContinue : Event
         data object AdvanceFromInfo : Event
@@ -392,7 +392,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
                         is ImageModerationError.Denied -> {
                             BottomBarManager.showAlert(
                                 title = resources.getString(R.string.error_title_imageNotAllowed),
-                                message = resources.getString(R.string.error_description_nameNotAllowed)
+                                message = resources.getString(R.string.error_description_imageNotAllowed)
                             )
                         }
 
@@ -630,7 +630,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
      *
      * Returns null if the verified fiat can't be computed; the launch still succeeds.
      */
-    private suspend fun buildLaunchBill(token: Token): Bill.Cash? {
+    private suspend fun buildLaunchBill(token: Token): Scannable.Payable? {
         val balance = tokenCoordinator.tokenBalances.firstOrNull()
             ?.firstOrNull { it.token.address == token.address }
             ?.balance
@@ -641,7 +641,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             rate = exchange.preferredRate,
         ).getOrNull() ?: return null
 
-        return Bill.Cash(
+        return Scannable.Payable.forToken(
             token = token,
             amount = verifiedFiat.localFiat,
             verifiedState = verifiedFiat.verifiedState,

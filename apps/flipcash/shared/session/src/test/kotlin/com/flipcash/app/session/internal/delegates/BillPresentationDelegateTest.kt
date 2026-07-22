@@ -2,8 +2,8 @@ package com.flipcash.app.session.internal.delegates
 
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.MainCoroutineRule
-import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.session.PutInWallet
 import com.flipcash.app.session.internal.SessionStateHolder
@@ -89,11 +89,11 @@ class BillPresentationDelegateTest {
         val amount = mockk<LocalFiat>(relaxed = true) {
             every { nativeAmount.decimalValue } returns 0.0
         }
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = mockk(relaxed = true),
             amount = amount,
             didReceive = false,
-            kind = Bill.Kind.cash,
+            kind = Scannable.Payable.Kind.cash,
         )
 
         val delegate = createDelegate()
@@ -109,11 +109,11 @@ class BillPresentationDelegateTest {
         val amount = mockk<LocalFiat>(relaxed = true) {
             every { nativeAmount.decimalValue } returns 5.0
         }
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = mockk(relaxed = true),
             amount = amount,
             didReceive = false,
-            kind = Bill.Kind.cash,
+            kind = Scannable.Payable.Kind.cash,
         )
 
         val delegate = createDelegate()
@@ -129,11 +129,11 @@ class BillPresentationDelegateTest {
         val amount = mockk<LocalFiat>(relaxed = true) {
             every { nativeAmount.decimalValue } returns 5.0
         }
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = mockk(relaxed = true),
             amount = amount,
             didReceive = false,
-            kind = Bill.Kind.cash,
+            kind = Scannable.Payable.Kind.cash,
         )
 
         val delegate = createDelegate()
@@ -152,11 +152,11 @@ class BillPresentationDelegateTest {
         val amount = mockk<LocalFiat>(relaxed = true) {
             every { nativeAmount.decimalValue } returns 5.0
         }
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = mockk(relaxed = true),
             amount = amount,
             didReceive = false,
-            kind = Bill.Kind.airdrop,
+            kind = Scannable.Payable.Kind.airdrop,
         )
 
         val delegate = createDelegate()
@@ -175,11 +175,11 @@ class BillPresentationDelegateTest {
         val amount = mockk<LocalFiat>(relaxed = true) {
             every { nativeAmount.decimalValue } returns 5.0
         }
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = mockk(relaxed = true),
             amount = amount,
             didReceive = true,
-            kind = Bill.Kind.cash,
+            kind = Scannable.Payable.Kind.cash,
         )
 
         val delegate = createDelegate()
@@ -198,11 +198,11 @@ class BillPresentationDelegateTest {
         val amount = mockk<LocalFiat>(relaxed = true) {
             every { nativeAmount.decimalValue } returns 5.0
         }
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = mockk(relaxed = true),
             amount = amount,
             didReceive = false,
-            kind = Bill.Kind.cash,
+            kind = Scannable.Payable.Kind.cash,
         )
 
         val delegate = createDelegate()
@@ -220,11 +220,11 @@ class BillPresentationDelegateTest {
         val amount = mockk<LocalFiat>(relaxed = true) {
             every { nativeAmount.decimalValue } returns 5.0
         }
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = mockk(relaxed = true),
             amount = amount,
             didReceive = false,
-            kind = Bill.Kind.cash,
+            kind = Scannable.Payable.Kind.cash,
         )
 
         val delegate = createDelegate()
@@ -283,11 +283,11 @@ class BillPresentationDelegateTest {
         val amount = mockk<LocalFiat>(relaxed = true) {
             every { nativeAmount.decimalValue } returns 3.0
         }
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = mockk(relaxed = true),
             amount = amount,
             didReceive = false,
-            kind = Bill.Kind.cash,
+            kind = Scannable.Payable.Kind.cash,
         )
 
         delegate.awaitBillGrab(bill, accountCluster)
@@ -324,11 +324,11 @@ class BillPresentationDelegateTest {
         val amount = mockk<LocalFiat>(relaxed = true) {
             every { nativeAmount.decimalValue } returns 3.0
         }
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = mockk(relaxed = true),
             amount = amount,
             didReceive = false,
-            kind = Bill.Kind.cash,
+            kind = Scannable.Payable.Kind.cash,
         )
 
         delegate.awaitBillGrab(bill, accountCluster)

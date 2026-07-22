@@ -4,7 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.ui.CurrencyHolder
 import com.flipcash.app.tokens.TokenCoordinator
@@ -105,7 +105,7 @@ internal class CashScreenViewModel @Inject constructor(
         data class OnCurrencyChanged(val model: com.getcode.opencode.model.financial.Currency) : Event
         data class OnLimitsChanged(val limits: Limits?) : Event
         data object OnGive : Event
-        data class PresentBill(val bill: Bill.Cash) : Event
+        data class PresentBill(val bill: Scannable.Payable) : Event
 
         data class AddCashToWallet(val amount: Fiat) : Event
         data class UpdateLoadingState(val loading: Boolean = false, val success: Boolean = false) :
@@ -260,7 +260,7 @@ internal class CashScreenViewModel @Inject constructor(
                     return@onEach
                 }
 
-                val bill = Bill.Cash(
+                val bill = Scannable.Payable.forToken(
                     token = stateFlow.value.token!!.token,
                     amount = result.localFiat,
                     verifiedState = result.verifiedState,

@@ -65,7 +65,7 @@ class BillStateTest {
 
     @Test
     fun `canSwipeToDismiss returns true when bill allows gestures`() {
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = testToken(),
             amount = testLocalFiat(),
             disableGestures = false,
@@ -77,7 +77,7 @@ class BillStateTest {
 
     @Test
     fun `canSwipeToDismiss returns false when bill disableGestures is true`() {
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = testToken(),
             amount = testLocalFiat(),
             disableGestures = true,
@@ -100,7 +100,7 @@ class BillStateTest {
 
     @Test
     fun `confirmationDelayMillis converts Duration correctly`() {
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = testToken(),
             amount = testLocalFiat(),
             confirmationDelay = 3.seconds,
@@ -127,7 +127,7 @@ class BillStateTest {
         val amount = testLocalFiat()
         val data = listOf<Byte>(1, 2, 3)
 
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = token,
             amount = amount,
             data = data,
@@ -142,7 +142,7 @@ class BillStateTest {
 
     @Test
     fun `Bill Cash canFlip is always false`() {
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = testToken(),
             amount = testLocalFiat(),
         )

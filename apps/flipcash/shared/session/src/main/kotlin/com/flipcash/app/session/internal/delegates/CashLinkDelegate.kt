@@ -2,7 +2,7 @@ package com.flipcash.app.session.internal.delegates
 
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
-import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.session.CashLinkOperations
@@ -48,7 +48,7 @@ class CashLinkDelegate @Inject constructor(
 ) : CashLinkOperations {
 
     sealed interface Event {
-        data class BillReady(val bill: Bill) : Event
+        data class BillReady(val bill: Scannable.Payable) : Event
         data object RefreshFeed : Event
         data object CheckPendingFeed : Event
     }
@@ -128,7 +128,7 @@ class CashLinkDelegate @Inject constructor(
                 tokenCoordinator.add(token, amount)
                 giftCardClaimInProgress.value = null
                 analytics.transfer(Analytics.Transfer.ClaimedCashLink, amount = amount)
-                val bill = Bill.Cash(
+                val bill = Scannable.Payable.forToken(
                     amount = amount,
                     token = token,
                     didReceive = true,

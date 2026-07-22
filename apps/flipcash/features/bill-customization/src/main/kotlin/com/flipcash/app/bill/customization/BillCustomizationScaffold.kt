@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bill.customization.components.BillPlayground
 import com.flipcash.app.bills.AnimatedBill
-import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.features.bill.playground.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
@@ -82,7 +82,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
         derivedStateOf {
             if (!playgroundState.context.renderAsOverlay) return@derivedStateOf null
             val bill = playgroundState.bill ?: return@derivedStateOf null
-            if (bill !is Bill.Cash) return@derivedStateOf null
+            if (bill !is Scannable.CashBill) return@derivedStateOf null
             bill.copy(
                 token = bill.token.copy(
                     billCustomizations = customizationsOptions

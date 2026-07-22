@@ -19,7 +19,7 @@ import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.bill.customization.PlaygroundContext
 import com.flipcash.app.bill.customization.components.BillPlayground
 import com.flipcash.app.bills.RenderedBill
-import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.ui.transitions.SharedTransition
 import com.flipcash.app.core.ui.transitions.sharedBoundsTransition
 import com.flipcash.app.currencycreator.internal.CurrencyCreatorViewModel
@@ -71,7 +71,7 @@ internal fun BillCustomizationContent(
     ) {
         derivedStateOf {
             val bill = playgroundState.bill ?: return@derivedStateOf null
-            if (bill !is Bill.Cash) return@derivedStateOf null
+            if (bill !is Scannable.CashBill) return@derivedStateOf null
             bill.copy(
                 token = bill.token.copy(
                     billCustomizations = state.customizations
@@ -97,7 +97,7 @@ internal fun BillCustomizationContent(
                     .sharedBoundsTransition(
                         transition = SharedTransition.CurrencyBill
                     ),
-                bill = bill as Bill,
+                bill = bill,
             )
         }
 

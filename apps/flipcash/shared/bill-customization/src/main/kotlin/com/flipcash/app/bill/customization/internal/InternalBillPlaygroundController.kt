@@ -13,7 +13,7 @@ import com.flipcash.app.bill.customization.internal.features.ColorState
 import com.flipcash.app.bill.customization.internal.features.GraphicState
 import com.flipcash.app.bill.customization.internal.features.TextureController
 import com.flipcash.app.bill.customization.models.PlaygroundFeature
-import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
@@ -135,12 +135,11 @@ class InternalBillPlaygroundController(
             nonce = nonce
         )
         // create bill for token
-        val bill = Bill.Cash(
+        val bill = Scannable.CashBill(
             token = token.copy(billCustomizations = customizations),
             amount = demoAmount,
             disableGestures = true,
             data = payloadInfo.codeData.toList(),
-            renderAsBill = true,
         )
 
         _state.update { current ->

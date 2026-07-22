@@ -2,8 +2,8 @@ package com.flipcash.app.session.internal.delegates
 
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
-import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.bill.PaymentValuation
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.errors.showNetworkError
@@ -66,7 +66,7 @@ class BillPresentationDelegate @Inject constructor(
 ) : BillOperations {
 
     sealed interface Event {
-        data class SendAsLinkRequested(val bill: Bill.Cash, val owner: AccountCluster) : Event
+        data class SendAsLinkRequested(val bill: Scannable.Payable, val owner: AccountCluster) : Event
         data object RefreshFeed : Event
     }
 
@@ -77,7 +77,7 @@ class BillPresentationDelegate @Inject constructor(
 
     override val billState: StateFlow<BillState> get() = billController.state
 
-    override fun showBill(bill: Bill) {
+    override fun showBill(bill: Scannable.Payable) {
         if (bill.amount.nativeAmount.decimalValue == 0.0) return
         val owner = userManager.accountCluster ?: return
 
@@ -85,44 +85,29 @@ class BillPresentationDelegate @Inject constructor(
             return ErrorUtils.showNetworkError(resources)
         }
 
-        when (bill) {
-            is Bill.Cash -> {
-                when (bill.kind) {
-                    Bill.Kind.airdrop -> {
-                        billController.update {
-                            it.copy(
-                                primaryAction = null,
-                                secondaryAction = null,
-                            )
-                        }
-                    }
-
-                    Bill.Kind.cash -> {
-                        if (bill.didReceive) {
-                            billController.update {
-                                it.copy(
-                                    primaryAction = null,
-                                    secondaryAction = null,
-                                )
-                            }
-                        } else {
-                            billController.update {
-                                it.copy(
-                                    primaryAction = BillState.Action.SendAsLink(
-                                        action = {
-                                            billController.cancelAwaitForGrab()
-                                            _events.trySend(Event.SendAsLinkRequested(bill, owner))
-                                        }
-                                    ),
-                                    secondaryAction = BillState.Action.Cancel(
-                                        action = { dismissBill(PutInWallet) }
-                                    ),
-                                )
-                            }
-                        }
-                        awaitBillGrab(bill, owner)
+        when (bill.kind) {
+            Scannable.Payable.Kind.airdrop -> {
+                billController.update { it.copy(primaryAction = null, secondaryAction = null) }
+            }
+            Scannable.Payable.Kind.cash -> {
+                if (bill.didReceive) {
+                    billController.update { it.copy(primaryAction = null, secondaryAction = null) }
+                } else {
+                    billController.update {
+                        it.copy(
+                            primaryAction = BillState.Action.SendAsLink(
+                                action = {
+                                    billController.cancelAwaitForGrab()
+                                    _events.trySend(Event.SendAsLinkRequested(bill, owner))
+                                }
+                            ),
+                            secondaryAction = BillState.Action.Cancel(
+                                action = { dismissBill(PutInWallet) }
+                            ),
+                        )
                     }
                 }
+                awaitBillGrab(bill, owner)
             }
         }
     }
@@ -135,13 +120,13 @@ class BillPresentationDelegate @Inject constructor(
         }
     }
 
-    internal fun awaitBillGrab(bill: Bill, owner: AccountCluster) {
+    internal fun awaitBillGrab(bill: Scannable.Payable, owner: AccountCluster) {
         analytics.transferStart(Analytics.Transfer.Initiate.GiveBillStart)
         billController.awaitGrab(
             amount = bill.amount,
             token = bill.token,
-            verifiedState = (bill as? Bill.Cash)?.verifiedState,
-            nonce = (bill as? Bill.Cash)?.nonce?.takeIf { it.isNotEmpty() },
+            verifiedState = bill.verifiedState,
+            nonce = bill.nonce.takeIf { it.isNotEmpty() },
             owner = owner,
             onGrabbed = { amount ->
                 tokenCoordinator.subtract(bill.token, amount)
@@ -187,15 +172,10 @@ class BillPresentationDelegate @Inject constructor(
         )
     }
 
-    private fun presentBillToUser(data: List<Byte>, nonce: List<Byte>, bill: Bill) {
+    private fun presentBillToUser(data: List<Byte>, nonce: List<Byte>, bill: Scannable.Payable) {
         if (billController.state.value.bill != null) return
 
-        val presentedBill = when (bill) {
-            is Bill.Cash -> bill.copy(
-                data = data,
-                nonce = nonce,
-            )
-        }
+        val presentedBill = bill.stamped(code = data, nonce = nonce)
 
         billController.update {
             it.copy(

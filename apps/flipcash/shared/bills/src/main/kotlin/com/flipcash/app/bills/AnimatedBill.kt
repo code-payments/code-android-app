@@ -14,7 +14,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.Scannable
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CustomSwipeToDismiss
 
@@ -28,9 +28,9 @@ fun AnimatedBill(
     ),
     dismissState: DismissState,
     dismissed: Boolean,
-    transitionSpec: AnimatedContentTransitionScope<Bill?>.() -> ContentTransform,
-    contentKey: (Bill?) -> Any? = { it },
-    bill: Bill?,
+    transitionSpec: AnimatedContentTransitionScope<Scannable.Payable?>.() -> ContentTransform,
+    contentKey: (Scannable.Payable?) -> Any? = { it },
+    bill: Scannable.Payable?,
 ) {
     AnimatedContent(
         modifier = modifier,

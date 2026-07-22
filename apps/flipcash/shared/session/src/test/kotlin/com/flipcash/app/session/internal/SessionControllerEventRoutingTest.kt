@@ -2,7 +2,7 @@ package com.flipcash.app.session.internal
 
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.core.MainCoroutineRule
-import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.session.BillDeterminationResult
@@ -133,7 +133,7 @@ class SessionControllerEventRoutingTest {
     fun `CashLinkDelegate BillReady event routes to showBill on billDelegate`() = runTest {
         createController() // init block wires up collectors
 
-        val bill = mockk<Bill>(relaxed = true)
+        val bill = mockk<Scannable.Payable>(relaxed = true)
         cashLinkDelegateEvents.emit(CashLinkDelegate.Event.BillReady(bill))
 
         advanceUntilIdle()
@@ -149,7 +149,7 @@ class SessionControllerEventRoutingTest {
     fun `CodeScanDelegate BillReady event routes to showBill on billDelegate`() = runTest {
         createController()
 
-        val bill = mockk<Bill>(relaxed = true)
+        val bill = mockk<Scannable.Payable>(relaxed = true)
         scanDelegateEvents.emit(CodeScanDelegate.Event.BillReady(bill))
 
         advanceUntilIdle()
@@ -165,7 +165,7 @@ class SessionControllerEventRoutingTest {
     fun `BillPresentationDelegate SendAsLinkRequested event routes to shareGiftCard on giftCardDelegate`() = runTest {
         createController()
 
-        val bill = mockk<Bill.Cash>(relaxed = true)
+        val bill = mockk<Scannable.Payable>(relaxed = true)
         val owner = mockk<AccountCluster>(relaxed = true)
         billDelegateEvents.emit(BillPresentationDelegate.Event.SendAsLinkRequested(bill, owner))
 
@@ -199,7 +199,7 @@ class SessionControllerEventRoutingTest {
     fun `GiftCardSharingDelegate RestartBillGrab event routes to awaitBillGrab on billDelegate`() = runTest {
         createController()
 
-        val bill = mockk<Bill>(relaxed = true)
+        val bill = mockk<Scannable.Payable>(relaxed = true)
         val owner = mockk<AccountCluster>(relaxed = true)
         giftCardDelegateEvents.emit(GiftCardSharingDelegate.Event.RestartBillGrab(bill, owner))
 
@@ -254,8 +254,8 @@ class SessionControllerEventRoutingTest {
     fun `multiple BillReady events from different delegates each call showBill once`() = runTest {
         createController()
 
-        val billFromScan = mockk<Bill>(relaxed = true)
-        val billFromLink = mockk<Bill>(relaxed = true)
+        val billFromScan = mockk<Scannable.Payable>(relaxed = true)
+        val billFromLink = mockk<Scannable.Payable>(relaxed = true)
 
         scanDelegateEvents.emit(CodeScanDelegate.Event.BillReady(billFromScan))
         cashLinkDelegateEvents.emit(CashLinkDelegate.Event.BillReady(billFromLink))

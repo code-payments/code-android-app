@@ -2,7 +2,7 @@ package com.flipcash.app.session.internal.delegates
 
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
-import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.session.CodeScanOperations
 import com.flipcash.app.session.internal.SessionStateHolder
@@ -51,7 +51,7 @@ class CodeScanDelegate @Inject constructor(
 ) : CodeScanOperations {
 
     sealed interface Event {
-        data class BillReady(val bill: Bill) : Event
+        data class BillReady(val bill: Scannable.Payable) : Event
         data object RefreshFeed : Event
         data object CheckPendingFeed : Event
     }
@@ -119,7 +119,7 @@ class CodeScanDelegate @Inject constructor(
                     Clock.System.now().toEpochMilliseconds() - it
                 }
 
-                val bill = Bill.Cash(
+                val bill = Scannable.Payable.forToken(
                     amount = amount,
                     token = token,
                     didReceive = true,
