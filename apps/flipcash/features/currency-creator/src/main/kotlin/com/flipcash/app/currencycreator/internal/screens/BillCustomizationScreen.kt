@@ -71,7 +71,6 @@ internal fun BillCustomizationContent(
     ) {
         derivedStateOf {
             val bill = playgroundState.bill ?: return@derivedStateOf null
-            if (bill !is Scannable.CashBill) return@derivedStateOf null
             bill.copy(
                 token = bill.token.copy(
                     billCustomizations = state.customizations

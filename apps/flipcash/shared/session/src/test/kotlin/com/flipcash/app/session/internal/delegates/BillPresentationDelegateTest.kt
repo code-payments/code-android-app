@@ -165,6 +165,7 @@ class BillPresentationDelegateTest {
         val updatedState = updateSlot.captured(BillState.Default)
         assertNull(updatedState.primaryAction)
         assertNull(updatedState.secondaryAction)
+        verify(exactly = 0) { billController.awaitGrab(any(), any(), any(), any(), any(), any(), any(), any(), any()) }
     }
 
     @Test

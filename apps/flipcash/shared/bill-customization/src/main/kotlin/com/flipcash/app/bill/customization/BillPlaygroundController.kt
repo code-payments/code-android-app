@@ -82,7 +82,6 @@ data class PlaygroundState(
     val customizedBill: Scannable.CashBill?
         get() {
             if (bill == null) return null
-            if (bill !is Scannable.CashBill) return null
             return bill.copy(
                 token = bill.token.copy(
                     billCustomizations = customizations

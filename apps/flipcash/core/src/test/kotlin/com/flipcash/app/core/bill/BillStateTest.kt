@@ -119,7 +119,7 @@ class BillStateTest {
 
     // endregion
 
-    // region Bill.Cash metadata and canFlip
+    // region Scannable.CashBill metadata and canFlip
 
     @Test
     fun `Bill Cash metadata extracts token and amount`() {

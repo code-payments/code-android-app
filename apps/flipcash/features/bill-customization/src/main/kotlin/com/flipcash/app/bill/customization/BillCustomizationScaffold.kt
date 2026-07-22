@@ -82,7 +82,6 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
         derivedStateOf {
             if (!playgroundState.context.renderAsOverlay) return@derivedStateOf null
             val bill = playgroundState.bill ?: return@derivedStateOf null
-            if (bill !is Scannable.CashBill) return@derivedStateOf null
             bill.copy(
                 token = bill.token.copy(
                     billCustomizations = customizationsOptions
