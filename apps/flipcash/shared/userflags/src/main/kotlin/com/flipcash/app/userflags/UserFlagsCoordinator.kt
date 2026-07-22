@@ -11,6 +11,7 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.internal.model.thirdparty.UsdcLiquidtyPool
+import com.flipcash.services.models.TipPresets
 import com.flipcash.services.models.UserFlags
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -179,6 +180,7 @@ private data class CachedFlags(
     val enablePhoneNumberSend: Boolean,
     val minimumHolderValue: CachedFiat,
     val requireCoinbaseEmailVerification: Boolean,
+    val tipPresets: List<CachedTipPresets> = emptyList(),
 ) {
     fun toDomain(): UserFlags = UserFlags(
         isStaff = isStaff,
@@ -197,6 +199,7 @@ private data class CachedFlags(
         enablePhoneNumberSend = enablePhoneNumberSend,
         minimumHolderValue = minimumHolderValue.toDomain(),
         requireCoinbaseEmailVerification = requireCoinbaseEmailVerification,
+        tipPresets = tipPresets.map { it.toDomain() },
     )
 
     companion object {
@@ -219,6 +222,34 @@ private data class CachedFlags(
             enablePhoneNumberSend = flags.enablePhoneNumberSend,
             minimumHolderValue = CachedFiat.fromDomain(flags.minimumHolderValue),
             requireCoinbaseEmailVerification = flags.requireCoinbaseEmailVerification,
+            tipPresets = flags.tipPresets.map { CachedTipPresets.fromDomain(it) },
+        )
+    }
+}
+
+@Serializable
+private data class CachedTipPresets(
+    val region: String,
+    val minimum: Double,
+    val low: Double,
+    val medium: Double,
+    val high: Double,
+) {
+    fun toDomain(): TipPresets = TipPresets(
+        region = region,
+        minimum = minimum,
+        low = low,
+        medium = medium,
+        high = high,
+    )
+
+    companion object {
+        fun fromDomain(presets: TipPresets): CachedTipPresets = CachedTipPresets(
+            region = presets.region,
+            minimum = presets.minimum,
+            low = presets.low,
+            medium = presets.medium,
+            high = presets.high,
         )
     }
 }

@@ -2,6 +2,7 @@ package com.flipcash.services.internal.domain
 
 import com.codeinc.flipcash.gen.account.v1.FlipcashAccountService
 import com.flipcash.services.internal.domain.mapper.Mapper
+import com.flipcash.services.models.TipPresets
 import com.flipcash.services.models.UserFlags
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
@@ -29,9 +30,18 @@ internal class UserFlagsMapper @Inject constructor():
             enablePhoneNumberSend = from.enablePhoneNumberSend,
             minimumHolderValue = Fiat(quarks = from.minimumHolderValue),
             requireCoinbaseEmailVerification = from.requireCoinbaseEmailVerification,
+            tipPresets = from.tipPresetsList.map { it.toDomain() },
         )
     }
 }
+
+private fun FlipcashAccountService.TipPresets.toDomain(): TipPresets = TipPresets(
+    region = region.value,
+    minimum = minimum,
+    low = low,
+    medium = medium,
+    high = high,
+)
 
 private fun FlipcashAccountService.UserFlags.OnRampProvider.toDomain(): OnRampProvider {
     return when (this) {

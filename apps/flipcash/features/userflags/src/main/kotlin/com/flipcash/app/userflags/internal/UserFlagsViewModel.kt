@@ -9,8 +9,11 @@ import com.flipcash.app.userflags.ResolvedFlag
 import com.flipcash.app.userflags.ResolvedUserFlags
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.app.userflags.internal.components.FieldEditorSheet
+import com.flipcash.app.currency.PreferredCurrencyController
 import com.flipcash.features.userflags.R
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filterIsInstance
@@ -21,6 +24,7 @@ import javax.inject.Inject
 @HiltViewModel
 internal class UserFlagsViewModel @Inject constructor(
     flagsCoordinator: UserFlagsCoordinator,
+    preferredCurrencyController: PreferredCurrencyController,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<UserFlagsViewModel.State, UserFlagsViewModel.Event>(
     initialState = State(),
@@ -29,6 +33,7 @@ internal class UserFlagsViewModel @Inject constructor(
 ) {
     internal data class State(
         val flags: Loadable<ResolvedUserFlags> = Loadable.Loading(),
+        val preferredCurrency: String? = null,
     ) {
         val readOnlyEntries: List<ReadOnlyEntry>
             get() = when (flags) {
@@ -54,6 +59,30 @@ internal class UserFlagsViewModel @Inject constructor(
                 else -> emptyList()
             }
 
+        val readOnlyTextEntries: List<ReadOnlyTextEntry>
+            get() = when (flags) {
+                is Loadable.Loaded -> {
+                    val code = preferredCurrency?.let { CurrencyCode.tryValueOf(it) } ?: CurrencyCode.USD
+                    val presets = flags.data.tipPresets.effectiveValue
+                        .firstOrNull { it.region.equals(code.name, ignoreCase = true) }
+                    fun format(amount: Double) = Fiat(fiat = amount, currencyCode = code).formatted()
+                    listOf(
+                        ReadOnlyTextEntry(
+                            R.string.label_flag_tipPresets,
+                            if (presets == null) "None"
+                            else listOf(
+                                "Min ${format(presets.minimum)}",
+                                "Low ${format(presets.low)}",
+                                "Med ${format(presets.medium)}",
+                                "High ${format(presets.high)}",
+                            ).joinToString(separator = "\n")
+                        ),
+                    )
+                }
+
+                else -> emptyList()
+            }
+
         val editableEntries: List<EditableEntry<*>>
             get() = when (flags) {
                 is Loadable.Loaded -> flags.data.editableEntries()
@@ -63,6 +92,7 @@ internal class UserFlagsViewModel @Inject constructor(
 
     internal sealed interface Event {
         data class FlagsUpdated(val flags: Loadable<ResolvedUserFlags>) : Event
+        data class PreferredCurrencyUpdated(val currencyCode: String) : Event
         data class UpdateFlag<Stored, Domain>(
             val field: Field<Stored, Domain>,
             val value: Domain,
@@ -79,6 +109,10 @@ internal class UserFlagsViewModel @Inject constructor(
     init {
         flagsCoordinator.resolvedFlags
             .onEach { dispatchEvent(Event.FlagsUpdated(Loadable.Loaded(it))) }
+            .launchIn(viewModelScope)
+
+        preferredCurrencyController.observePreferredCurrency()
+            .onEach { dispatchEvent(Event.PreferredCurrencyUpdated(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -105,6 +139,10 @@ internal class UserFlagsViewModel @Inject constructor(
                     state.copy(flags = event.flags)
                 }
 
+                is Event.PreferredCurrencyUpdated -> { state ->
+                    state.copy(preferredCurrency = event.currencyCode)
+                }
+
                 is Event.UpdateFlag<*, *> -> { state -> state }
                 is Event.ResetFlag<*> -> { state -> state }
                 is Event.Reset -> { state -> state }
@@ -114,6 +152,8 @@ internal class UserFlagsViewModel @Inject constructor(
 }
 
 internal data class ReadOnlyEntry(@get:StringRes val label: Int, val value: Boolean)
+
+internal data class ReadOnlyTextEntry(@get:StringRes val label: Int, val value: String)
 
 internal data class EditableEntry<Domain>(
     val field: Field<*, Domain>,

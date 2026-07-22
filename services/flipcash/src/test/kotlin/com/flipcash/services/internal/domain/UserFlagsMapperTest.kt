@@ -148,4 +148,36 @@ class UserFlagsMapperTest {
 
         assertEquals(42, result.minimumVersion)
     }
+
+    @Test
+    fun `maps tip presets`() {
+        val proto = FlipcashAccountService.UserFlags.newBuilder()
+            .addTipPresets(
+                FlipcashAccountService.TipPresets.newBuilder()
+                    .setRegion(com.codeinc.flipcash.gen.common.v1.Common.Region.newBuilder().setValue("usd"))
+                    .setMinimum(1.0)
+                    .setLow(2.0)
+                    .setMedium(5.0)
+                    .setHigh(10.0)
+            ).build()
+
+        val result = mapper.map(proto)
+
+        assertEquals(1, result.tipPresets.size)
+        val presets = result.tipPresets.first()
+        assertEquals("usd", presets.region)
+        assertEquals(1.0, presets.minimum)
+        assertEquals(2.0, presets.low)
+        assertEquals(5.0, presets.medium)
+        assertEquals(10.0, presets.high)
+    }
+
+    @Test
+    fun `maps empty tip presets by default`() {
+        val proto = userFlags { }
+
+        val result = mapper.map(proto)
+
+        assertTrue(result.tipPresets.isEmpty())
+    }
 }
