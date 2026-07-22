@@ -81,10 +81,9 @@ is `Mint.usdf`: a buy spends USDF to mint tokens (adding USDF to the pool's
 Creating a currency (`CurrencyCreatorViewModel`) seeds an **initial USDF buy**
 (default ~$5, from a user flag) and hands the creator a cash bill of the new token.
 
-**Sending/sharing carries any token.** A cash bill (`Bill.Cash`) holds whichever
+**Sending/sharing carries any token.** A cash bill (`Scannable.Payable`) holds whichever
 `Token` is selected — a launchpad currency *or* USDF. Launchpad currencies render as
-a custom bill (`renderAsBill = token.address != Mint.usdf`); USDF renders as plain
-cash.
+`Scannable.CashBill`; USDF renders as `Scannable.GoldBar` (decided at construction time by `Scannable.Payable.forToken`).
 
 > **Two senses of "reserves" — don't conflate them.** (1) The on-chain USDF locked in
 > a launchpad token's `coreMintVault` is the token's **backing**. (2)

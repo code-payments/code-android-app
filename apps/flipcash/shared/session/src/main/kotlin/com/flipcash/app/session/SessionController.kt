@@ -1,8 +1,8 @@
 package com.flipcash.app.session
 
 import androidx.compose.runtime.staticCompositionLocalOf
-import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.session.BillDeterminationResult.ActedUpon
 import com.getcode.opencode.model.financial.Token
 import com.flipcash.app.core.AppRoute
@@ -20,7 +20,7 @@ data object PutInWallet : BillDeterminationResult, ActedUpon
 
 interface BillOperations {
     val billState: StateFlow<BillState>
-    fun showBill(bill: Bill)
+    fun showBill(bill: Scannable.Payable)
     fun dismissBill(action: BillDeterminationResult)
 }
 

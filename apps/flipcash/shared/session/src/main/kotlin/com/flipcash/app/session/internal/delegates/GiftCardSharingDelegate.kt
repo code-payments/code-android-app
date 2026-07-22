@@ -2,7 +2,7 @@ package com.flipcash.app.session.internal.delegates
 
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
-import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.session.BillDeterminationResult
 import com.flipcash.app.session.Grabbed
@@ -80,7 +80,7 @@ class GiftCardSharingDelegate @Inject constructor(
 
     sealed interface Event {
         data class DismissBill(val action: BillDeterminationResult) : Event
-        data class RestartBillGrab(val bill: Bill, val owner: AccountCluster) : Event
+        data class RestartBillGrab(val bill: Scannable.Payable, val owner: AccountCluster) : Event
         data object RefreshFeed : Event
     }
 
@@ -91,7 +91,7 @@ class GiftCardSharingDelegate @Inject constructor(
 
     private val giftCardFundingInProgress = AtomicBoolean(false)
 
-    fun shareGiftCard(bill: Bill.Cash, owner: AccountCluster) {
+    fun shareGiftCard(bill: Scannable.Payable, owner: AccountCluster) {
         val amount = bill.amount
         val token = bill.token
         val verifiedState = bill.verifiedState!!

@@ -6,7 +6,7 @@ import com.flipcash.app.bill.customization.internal.features.BlendMode
 import com.flipcash.app.bill.customization.internal.features.ColorState
 import com.flipcash.app.bill.customization.internal.features.GraphicState
 import com.flipcash.app.bill.customization.models.PlaygroundFeature
-import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.Scannable
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.toFiat
@@ -29,7 +29,7 @@ interface BillPlaygroundController {
 }
 
 data class PlaygroundState(
-    val bill: Bill? = null,
+    val bill: Scannable.CashBill? = null,
     val context: PlaygroundContext = PlaygroundContext.Standalone,
     val features: List<PlaygroundFeature> = PlaygroundFeature.entries.toList(),
     val selectedFeature: PlaygroundFeature = PlaygroundFeature.Background,
@@ -79,10 +79,9 @@ data class PlaygroundState(
             icon = null,
         )
 
-    val customizedBill: Bill?
+    val customizedBill: Scannable.CashBill?
         get() {
             if (bill == null) return null
-            if (bill !is Bill.Cash) return null
             return bill.copy(
                 token = bill.token.copy(
                     billCustomizations = customizations

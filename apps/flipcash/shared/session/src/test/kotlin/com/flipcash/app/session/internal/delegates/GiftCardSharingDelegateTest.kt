@@ -3,8 +3,8 @@ package com.flipcash.app.session.internal.delegates
 import app.cash.turbine.test
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.MainCoroutineRule
-import com.flipcash.app.core.bill.Bill
 import com.flipcash.app.core.bill.BillState
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.session.PutInWallet
 import com.flipcash.core.R
@@ -111,11 +111,11 @@ class GiftCardSharingDelegateTest {
         )
     }
 
-    private fun makeBill(): Bill.Cash = Bill.Cash(
+    private fun makeBill(): Scannable.CashBill = Scannable.CashBill(
         token = token,
         amount = amount,
         didReceive = false,
-        kind = Bill.Kind.cash,
+        kind = Scannable.Payable.Kind.cash,
         verifiedState = verifiedState,
     )
 

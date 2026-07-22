@@ -4,42 +4,32 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.flipcash.app.core.bill.Bill
-import com.getcode.opencode.model.core.OpenCodePayload
-import com.getcode.opencode.model.core.PayloadKind
+import com.flipcash.app.core.bill.Scannable
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
-import com.getcode.opencode.model.financial.usdf
-import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 
 @Composable
 fun RenderedBill(
     modifier: Modifier = Modifier,
-    bill: Bill,
+    bill: Scannable.Payable,
 ) {
     when (bill) {
-        is Bill.Cash -> {
-            if (bill.renderAsBill) {
-                CashBill(
-                    modifier = modifier,
-                    payloadData = bill.data,
-                    amount = bill.amount,
-                    token = bill.token
-                )
-            } else {
-                GoldBar(
-                    modifier = modifier
-                        .padding(horizontal = CodeTheme.dimens.inset),
-                    payloadData = bill.data,
-                    amount = bill.amount.underlyingTokenAmount,
-                )
-            }
-        }
+        is Scannable.CashBill -> CashBill(
+            modifier = modifier,
+            payloadData = bill.data,
+            amount = bill.amount,
+            token = bill.token
+        )
+        is Scannable.GoldBar -> GoldBar(
+            modifier = modifier.padding(horizontal = CodeTheme.dimens.inset),
+            payloadData = bill.data,
+            amount = bill.amount.underlyingTokenAmount,
+        )
     }
 }
 

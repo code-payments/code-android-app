@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.core.bill.Bill
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.money.formatted
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.features.scanner.R
@@ -24,7 +24,7 @@ import com.getcode.ui.theme.CodeButton
 
 @Composable
 internal fun ReceivedFundsConfirmation(
-    bill: Bill,
+    bill: Scannable.Payable,
     onClaim: () -> Unit,
 ) {
     val exchange = LocalExchange.current
