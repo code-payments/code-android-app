@@ -11,6 +11,7 @@ dependencies {
     implementation(libs.firebase.messaging)
 
     implementation(project(":libs:messaging"))
+    implementation(project(":apps:flipcash:shared:common-ui"))
 
     implementation(libs.androidx.datastore)
 }

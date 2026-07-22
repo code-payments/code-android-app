@@ -18,8 +18,7 @@ import com.flipcash.app.bill.customization.Event
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.bill.customization.PlaygroundContext
 import com.flipcash.app.bill.customization.components.BillPlayground
-import com.flipcash.app.bills.RenderedBill
-import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.bills.ScannableRenderer
 import com.flipcash.app.core.ui.transitions.SharedTransition
 import com.flipcash.app.core.ui.transitions.sharedBoundsTransition
 import com.flipcash.app.currencycreator.internal.CurrencyCreatorViewModel
@@ -88,7 +87,7 @@ internal fun BillCustomizationContent(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         augmentedBill?.let { bill ->
-            RenderedBill(
+            ScannableRenderer(
                 modifier = Modifier
                     .padding(top = CodeTheme.dimens.grid.x3)
                     .fillMaxWidth()
@@ -96,7 +95,7 @@ internal fun BillCustomizationContent(
                     .sharedBoundsTransition(
                         transition = SharedTransition.CurrencyBill
                     ),
-                bill = bill,
+                scannable = bill,
             )
         }
 

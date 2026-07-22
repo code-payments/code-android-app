@@ -1,4 +1,4 @@
-package com.flipcash.app.bills
+package com.flipcash.app.bills.components.receipts
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.bills.components.ScannableCode
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.LocalFiat

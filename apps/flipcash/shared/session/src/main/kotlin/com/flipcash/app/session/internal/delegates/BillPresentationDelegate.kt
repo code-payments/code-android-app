@@ -112,6 +112,14 @@ class BillPresentationDelegate @Inject constructor(
         }
     }
 
+    override fun showTipCard(tipCard: Scannable.TipCard) {
+        // Single bill slot — don't clobber a bill that's already presented.
+        if (billController.state.value.bill != null) return
+        // No grab/await, no valuation: just place the card in the container.
+        billController.update { it.copy(bill = tipCard, valuation = null) }
+        stateHolder.update { it.copy(billResult = PutInWallet) }
+    }
+
     override fun dismissBill(action: BillDeterminationResult) {
         scope.launch {
             stateHolder.update { it.copy(billResult = action) }

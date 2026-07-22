@@ -1,6 +1,12 @@
-package com.flipcash.app.bills
+package com.flipcash.app.bills.components.bills
 
 import android.content.Context
+import android.graphics.BitmapShader
+import android.graphics.Matrix
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.RuntimeShader
+import android.graphics.Shader
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -78,18 +84,20 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.set
 import androidx.compose.ui.res.stringResource
+import com.flipcash.app.bills.components.ScannableCode
 import com.flipcash.shared.bills.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.DesignSystem
 import com.getcode.ui.utils.nonScaledSp
+import kotlin.math.abs
 import kotlin.random.Random
 import android.graphics.Paint as NativePaint
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun GoldBar(
+internal fun GoldBar(
     modifier: Modifier = Modifier,
     payloadData: List<Byte> = emptyList(),
     amount: Fiat,
@@ -326,20 +334,20 @@ private fun Modifier.brushedMetal(
                     shape.createOutline(size, layoutDirection, Density(density))
                 )
             }
-            val streakShader = android.graphics.BitmapShader(
+            val streakShader = BitmapShader(
                 streakBitmap,
-                android.graphics.Shader.TileMode.REPEAT,
-                android.graphics.Shader.TileMode.REPEAT,
+                Shader.TileMode.REPEAT,
+                Shader.TileMode.REPEAT,
             ).apply {
-                val matrix = android.graphics.Matrix()
+                val matrix = Matrix()
                 matrix.setRotate(highlightRotation)
                 setLocalMatrix(matrix)
             }
             val streakPaint = NativePaint().apply {
                 shader = streakShader
                 alpha = grainAlpha
-                xfermode = android.graphics.PorterDuffXfermode(
-                    android.graphics.PorterDuff.Mode.OVERLAY
+                xfermode = PorterDuffXfermode(
+                    PorterDuff.Mode.OVERLAY
                 )
             }
             onDrawBehind {
@@ -614,7 +622,7 @@ private fun Modifier.recessWithCodeCutout(
             val grooveCount = 50
             val strokePx = 1f // exactly 1 physical pixel — crisp, no AA blur
             val groovePaint = NativePaint().apply {
-                style = android.graphics.Paint.Style.STROKE
+                style = NativePaint.Style.STROKE
                 strokeWidth = strokePx
                 isAntiAlias = false // pixel-sharp, no soft halos
             }
@@ -723,8 +731,8 @@ private fun Modifier.recessWithCodeCutout(
                 canvas.nativeCanvas.drawRect(
                     0f, 0f, size.width, size.height,
                     NativePaint().apply {
-                        xfermode = android.graphics.PorterDuffXfermode(
-                            android.graphics.PorterDuff.Mode.SRC_ATOP
+                        xfermode = PorterDuffXfermode(
+                            PorterDuff.Mode.SRC_ATOP
                         )
                         color = argb
                     },
@@ -755,8 +763,8 @@ private fun Modifier.recessWithCodeCutout(
             val sc = canvas.nativeCanvas.saveLayer(
                 null,
                 NativePaint().apply {
-                    xfermode = android.graphics.PorterDuffXfermode(
-                        android.graphics.PorterDuff.Mode.DST_OUT
+                    xfermode = PorterDuffXfermode(
+                        PorterDuff.Mode.DST_OUT
                     )
                 },
             )
@@ -874,7 +882,7 @@ private fun Modifier.agslBrushedMetal(
     lightSource: Offset = DefaultLightSource,
     rotation: Float = 0f,
 ): Modifier = this.drawWithCache {
-    val shader = android.graphics.RuntimeShader(AGSL_BRUSHED_METAL)
+    val shader = RuntimeShader(AGSL_BRUSHED_METAL)
     shader.setFloatUniform("iResolution", size.width, size.height)
     val sl = safeLight(lightSource)
     shader.setFloatUniform("iTilt", sl.x, sl.y)
@@ -1107,9 +1115,9 @@ private fun rememberTiltState(): State<TiltState> {
 
                 // Dead zone — only update state if change is perceptible
                 val prev = state.value
-                val dx = kotlin.math.abs(smoothX - prev.x)
-                val dy = kotlin.math.abs(smoothY - prev.y)
-                val dr = kotlin.math.abs(smoothRot - prev.rotation)
+                val dx = abs(smoothX - prev.x)
+                val dy = abs(smoothY - prev.y)
+                val dr = abs(smoothRot - prev.rotation)
                 if (dx > deadZone || dy > deadZone || dr > 0.5f) {
                     state.value = TiltState(smoothX, smoothY, smoothRot)
                 }

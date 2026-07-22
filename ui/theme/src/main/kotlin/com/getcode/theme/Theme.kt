@@ -52,6 +52,7 @@ internal val CodeDefaultColorScheme = ColorScheme(
     toggleUncheckedTrackColor = BrandToggleUncheckedTrackColor,
     cashBill = CashBill,
     cashBillDecorColor = CashBillDecor,
+    tipCard = Brand,
     betaIndicator = BetaIndicator,
     bannerThemed = Brand,
     bannerError = Error,
@@ -153,6 +154,7 @@ class ColorScheme(
     toggleUncheckedTrackColor: Color,
     cashBill: Color,
     cashBillDecorColor: Color,
+    tipCard: Color,
     betaIndicator: Color,
     bannerThemed: Color,
     bannerError: Color,
@@ -229,6 +231,8 @@ class ColorScheme(
         private set
     var cashBillDecorColor by mutableStateOf(cashBillDecorColor)
         private set
+    var tipCardColor by mutableStateOf(tipCard)
+        private set
     var betaIndicator by mutableStateOf(betaIndicator)
         private set
 
@@ -285,6 +289,7 @@ class ColorScheme(
         toggleUncheckedTrackColor = other.toggleUncheckedTrackColor
         cashBillColor = other.cashBillColor
         cashBillDecorColor = other.cashBillDecorColor
+        tipCardColor = other.tipCardColor
         betaIndicator = other.betaIndicator
         bannerThemed = other.bannerThemed
         bannerError = other.bannerError
@@ -330,6 +335,7 @@ class ColorScheme(
         toggleUncheckedTrackColor = toggleUncheckedTrackColor,
         cashBill = cashBillColor,
         cashBillDecorColor = cashBillDecorColor,
+        tipCard = tipCardColor,
         betaIndicator = betaIndicator,
         bannerThemed = bannerThemed,
         bannerError = bannerError,

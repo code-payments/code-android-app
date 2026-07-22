@@ -28,7 +28,7 @@ val Shapes.extraLarge: CornerBasedShape
     @Composable get() = RoundedCornerShape(20.dp)
 
 val Shapes.xxl: CornerBasedShape
-    @Composable get() = RoundedCornerShape(25.dp)
+    @Composable get() = RoundedCornerShape(30.dp)
 
 @Composable
 fun Shapes.receipt(step: Dp = CodeTheme.dimens.grid.x2) = TriangleCutShape(step)

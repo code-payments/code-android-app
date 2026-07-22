@@ -9,6 +9,7 @@ import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.updater.ProfileUpdater
 import com.flipcash.app.featureflags.FeatureFlag
@@ -202,6 +203,15 @@ class RealSessionController @Inject constructor(
             .onEach { count -> stateHolder.update { it.copy(contactDmUnreadCount = count) } }
             .launchIn(scope)
 
+        userManager.state
+            .map { it.authState }
+            .filter { it.isAtLeastRegistered }
+            .distinctUntilChanged()
+            .flatMapLatest { chatCoordinator.observeUnreadConversations(ChatType.TIP_DM) }
+            .distinctUntilChanged()
+            .onEach { count -> stateHolder.update { it.copy(tipsUnreadCount = count) } }
+            .launchIn(scope)
+
         // Preload the blob upload policy once registered so profile-photo selection can filter and
         // validate against it without a network round-trip. Cached in the BlobStorageCoordinator.
         userManager.state
@@ -252,6 +262,10 @@ class RealSessionController @Inject constructor(
             .onEach { enabled -> stateHolder.update { it.copy(isPhoneNumberSendEnabled = enabled) } }
             .launchIn(scope)
 
+        featureFlagController.observe(FeatureFlag.Tipping)
+            .onEach { enabled -> stateHolder.update { it.copy(isTippingEnabled = enabled) } }
+            .launchIn(scope)
+
         // Retry updateUserFlags when network is restored
         networkObserver.state
             .map { it.connected }
@@ -292,7 +306,8 @@ class RealSessionController @Inject constructor(
         toastController.clear()
 
         val bill = billController.state.value.bill
-        if (!shareSheetController.isCheckingForShare || (bill != null && !bill.didReceive)) {
+        if (!shareSheetController.isCheckingForShare ||
+            (bill != null && (bill as? Scannable.Payable)?.didReceive != true)) {
             BottomBarManager.clear()
             billController.cancelAwaitForGrab()
             dismissBill(PutInWallet)

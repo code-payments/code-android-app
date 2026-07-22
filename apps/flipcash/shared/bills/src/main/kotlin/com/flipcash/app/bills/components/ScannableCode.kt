@@ -1,4 +1,4 @@
-package com.flipcash.app.bills
+package com.flipcash.app.bills.components
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory

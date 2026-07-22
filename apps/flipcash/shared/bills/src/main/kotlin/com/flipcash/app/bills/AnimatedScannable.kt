@@ -20,7 +20,7 @@ import com.getcode.ui.theme.CustomSwipeToDismiss
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun AnimatedBill(
+fun AnimatedScannable(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(
         horizontal = CodeTheme.dimens.inset,
@@ -28,9 +28,9 @@ fun AnimatedBill(
     ),
     dismissState: DismissState,
     dismissed: Boolean,
-    transitionSpec: AnimatedContentTransitionScope<Scannable.Payable?>.() -> ContentTransform,
-    contentKey: (Scannable.Payable?) -> Any? = { it },
-    bill: Scannable.Payable?,
+    transitionSpec: AnimatedContentTransitionScope<Scannable?>.() -> ContentTransform,
+    contentKey: (Scannable?) -> Any? = { it },
+    bill: Scannable?,
 ) {
     AnimatedContent(
         modifier = modifier,
@@ -47,16 +47,16 @@ fun AnimatedBill(
                 state = dismissState,
                 dismissContent = {
                     if (b != null && !dismissed) {
-                        RenderedBill(
+                        ScannableRenderer(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
                                 .padding(contentPadding),
-                            bill = b
+                            scannable = b
                         )
                     }
                 },
-                directions = if (b?.disableGestures ?: false) {
+                directions = if ((b as? Scannable.Payable)?.disableGestures == true) {
                     emptySet()
                 } else {
                     setOf(DismissDirection.EndToStart, DismissDirection.StartToEnd)

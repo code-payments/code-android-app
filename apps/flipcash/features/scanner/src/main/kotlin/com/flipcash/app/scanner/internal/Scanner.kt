@@ -18,7 +18,7 @@ import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.LocalRouter
-import com.flipcash.app.scanner.internal.bills.BillContainer
+import com.flipcash.app.scanner.internal.bills.ScannableContainer
 import com.flipcash.app.session.LocalSessionController
 import com.getcode.libs.code.detection.CodeScanResult
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -74,7 +74,7 @@ internal fun Scanner() {
     }
 
     @SuppressLint("LocalContextGetResourceValueCall")
-    BillContainer(
+    ScannableContainer(
         isPaused = isPaused,
         isPinching = isPinching,
         zoomRatio = zoomRatio,
@@ -90,7 +90,7 @@ internal fun Scanner() {
                             navigator.openAsSheet(route)
                         }
 
-                        return@BillContainer
+                        return@ScannableContainer
                     }
                 }
                 else -> Unit

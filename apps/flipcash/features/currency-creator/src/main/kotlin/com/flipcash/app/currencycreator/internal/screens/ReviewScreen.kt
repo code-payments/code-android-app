@@ -16,7 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.flipcash.app.bills.RenderedBill
+import com.flipcash.app.bills.ScannableRenderer
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.core.ui.TokenIconWithName
@@ -32,7 +32,6 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 @Composable
@@ -120,14 +119,14 @@ internal fun ReviewContent(
             }
 
             state.bill?.let { bill ->
-                RenderedBill(
+                ScannableRenderer(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .sharedBoundsTransition(
                             transition = SharedTransition.CurrencyBill
                         ),
-                    bill = bill,
+                    scannable = bill,
                 )
             }
         }
