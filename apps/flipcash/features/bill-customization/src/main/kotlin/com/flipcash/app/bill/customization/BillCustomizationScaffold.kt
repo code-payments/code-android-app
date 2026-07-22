@@ -40,11 +40,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bill.customization.components.BillPlayground
-import com.flipcash.app.bills.AnimatedBill
-import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.bills.AnimatedScannable
 import com.flipcash.features.bill.playground.R
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.core.measured
 import androidx.compose.foundation.clickable
 import com.getcode.ui.utils.AnimationUtils
@@ -104,7 +102,7 @@ fun BillPlaygroundScaffold(content: @Composable () -> Unit) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         content()
-        AnimatedBill(
+        AnimatedScannable(
             modifier = Modifier.fillMaxSize(),
             dismissState = billDismissState,
             dismissed = !isUsingPlayground,

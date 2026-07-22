@@ -140,7 +140,7 @@ class GiftCardSharingDelegate @Inject constructor(
                             message = "Cash link not sent. Restarting awaiting grab",
                             type = TraceType.User,
                         )
-                        val currentBill = billController.state.value.bill ?: bill
+                        val currentBill = billController.state.value.bill as? Scannable.Payable ?: bill
                         _events.trySend(Event.RestartBillGrab(currentBill, owner))
                     }
                 }

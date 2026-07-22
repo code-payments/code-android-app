@@ -1,4 +1,4 @@
-package com.flipcash.app.bills
+package com.flipcash.app.bills.components.bills
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -9,9 +9,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.min
-import androidx.compose.ui.unit.sp
 import com.flipcash.shared.bills.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.nonScaledSp

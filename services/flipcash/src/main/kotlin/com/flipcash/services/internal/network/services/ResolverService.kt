@@ -21,24 +21,22 @@ internal class ResolverService @Inject constructor(
         return runCatching {
             api.resolve(owner, identifier)
         }.foldWithSuppression(
-            onSuccess = { it.toResult() },
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcResolverService.ResolveResponse.Result.OK ->
+                        Result.success(response.resolution.address.toPublicKey())
+                    RpcResolverService.ResolveResponse.Result.NOT_FOUND ->
+                        Result.failure(ResolveContactError.NotFound())
+                    RpcResolverService.ResolveResponse.Result.DENIED ->
+                        Result.failure(ResolveContactError.Denied())
+                    RpcResolverService.ResolveResponse.Result.UNRECOGNIZED ->
+                        Result.failure(ResolveContactError.Unrecognized())
+                    else -> Result.failure(ResolveContactError.Other())
+                }
+            },
             onFailure = { cause ->
                 Result.failure(cause.toValidationOrElse { ResolveContactError.Other(cause = it) })
             }
         )
-    }
-
-    private fun RpcResolverService.ResolveResponse.toResult(): Result<PublicKey> {
-        return when (result) {
-            RpcResolverService.ResolveResponse.Result.OK ->
-                Result.success(resolution.address.toPublicKey())
-            RpcResolverService.ResolveResponse.Result.NOT_FOUND ->
-                Result.failure(ResolveContactError.NotFound())
-            RpcResolverService.ResolveResponse.Result.DENIED ->
-                Result.failure(ResolveContactError.Denied())
-            RpcResolverService.ResolveResponse.Result.UNRECOGNIZED ->
-                Result.failure(ResolveContactError.Unrecognized())
-            else -> Result.failure(ResolveContactError.Other())
-        }
     }
 }

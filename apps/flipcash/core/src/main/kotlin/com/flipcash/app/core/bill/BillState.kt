@@ -11,7 +11,7 @@ import com.getcode.opencode.model.financial.Token
 import kotlin.time.Duration
 
 data class BillState(
-    val bill: Scannable.Payable?,
+    val bill: Scannable?,
     val showToast: Boolean,
     val toast: BillToast?,
     val valuation: Valuation?,
@@ -19,10 +19,15 @@ data class BillState(
     val secondaryAction: Action?,
 ) {
     val canSwipeToDismiss: Boolean
-        get() = bill?.canSwipeToDismiss == true
+        get() = when (val b = bill) {
+            null -> false
+            is Scannable.Payable -> b.canSwipeToDismiss
+            else -> true // non-payment scannables (e.g. TipCard) are dismissable
+        }
 
     val confirmationDelayMillis: Int
-        get() = (bill?.confirmationDelay ?: Duration.ZERO).inWholeMilliseconds.toInt()
+        get() = ((bill as? Scannable.Payable)?.confirmationDelay ?: Duration.ZERO)
+            .inWholeMilliseconds.toInt()
 
     companion object {
         val Default = BillState(

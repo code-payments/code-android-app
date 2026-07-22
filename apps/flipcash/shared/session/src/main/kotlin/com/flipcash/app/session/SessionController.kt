@@ -21,6 +21,13 @@ data object PutInWallet : BillDeterminationResult, ActedUpon
 interface BillOperations {
     val billState: StateFlow<BillState>
     fun showBill(bill: Scannable.Payable)
+
+    /**
+     * Presents a non-payment [Scannable.TipCard] in the bill container. Unlike [showBill],
+     * this runs no grab/await transaction and sets no valuation — the card is simply shown
+     * until dismissed.
+     */
+    fun showTipCard(tipCard: Scannable.TipCard)
     fun dismissBill(action: BillDeterminationResult)
 }
 
@@ -60,8 +67,10 @@ data class SessionState(
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val contactDmUnreadCount: Int = 0,
+    val tipsUnreadCount: Int = 0,
     val tokens: List<Token> = emptyList(),
     val isPhoneNumberSendEnabled: Boolean = false,
+    val isTippingEnabled: Boolean = false,
     val addMoneyUx: Boolean = false,
 )
 

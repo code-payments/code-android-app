@@ -1,6 +1,5 @@
-package com.flipcash.app.bills
+package com.flipcash.app.bills.components.bills
 
-import android.R.attr.fillType
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -35,8 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -56,7 +53,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
@@ -77,28 +73,22 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
-import androidx.compose.ui.zIndex
+import com.flipcash.app.bills.components.ScannableCode
 import com.flipcash.app.core.money.formatted
 import com.flipcash.shared.bills.R
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.BillBackground
-import com.getcode.opencode.model.ui.BillTexture
 import com.getcode.opencode.model.ui.TokenBillCustomizations
-import com.getcode.solana.keys.Mint
 import com.getcode.opencode.model.ui.BlendMode as PlaygroundBlendMode
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.core.blendMode
-import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.patternBlend
 import com.getcode.ui.core.punchCircle
 import com.getcode.ui.core.punchRectangle
 import com.getcode.ui.utils.Geometry
-import com.getcode.ui.utils.deriveTargetColor
 import com.getcode.ui.utils.hexToColor
-import com.getcode.ui.utils.hls
 import com.getcode.ui.utils.nonScaledSp
 import kotlin.math.ceil
 import kotlin.math.roundToInt
@@ -665,7 +655,7 @@ private class BillPunchShape(
 
 fun punchColorsFrom(billColors: List<Color>): List<Color> {
     return billColors.map { color ->
-        lerp(color, Color.Black, 0.30f)
+        lerp(color, Black, 0.30f)
     }
 }
 
