@@ -5,9 +5,10 @@ enum class NavBarButton {
     Wallet,
     Discover,
     Send,
+    Tips,
     ;
 
     companion object {
-        val defaultOrder = listOf(Discover, Give, Send, Wallet,)
+        val defaultOrder = listOf(Discover, Give, Send, Tips, Wallet,)
     }
 }

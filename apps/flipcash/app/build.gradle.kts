@@ -232,6 +232,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:discovery"))
     implementation(project(":apps:flipcash:features:user-profile"))
     implementation(project(":apps:flipcash:features:userflags"))
+    implementation(project(":apps:flipcash:features:tipping"))
 
     implementation(project(":libs:crypto:solana"))
     implementation(project(":libs:datetime"))
@@ -259,7 +260,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.navigation.ui)
     implementation(libs.androidx.work)
-    implementation("androidx.webkit:webkit:1.16.0")
+    implementation(libs.androidx.webkit)
 
     //hilt dependency injection
     implementation(libs.hilt.android)
@@ -273,7 +274,7 @@ dependencies {
     testImplementation(libs.hilt.android.test)
     kspTest(libs.hilt.android.compiler)
 
-    androidTestImplementation("io.mockk:mockk:1.14.11")
+    androidTestImplementation(libs.mockk)
 
     //Jetpack compose
     implementation(platform(libs.compose.bom))

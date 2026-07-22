@@ -855,6 +855,12 @@
     <string name="label_amountToBuy">Amount to buy</string>
     <string name="label_exchangeFee">Exchange fee</string>
 
+    <string name="action_tips">Tips</string>
+    <string name="title_tips">Tips</string>
+    <string name="title_tipIntro">Receive Tips From Everyone</string>
+    <string name="subtitle_tipIntro">Add your name and a picture to receive tips</string>
+    <string name="action_startReceivingTips">Start Receiving Tips</string>
+
     <string name="title_profileNameSelection">What is your name?</string>
     <string name="hint_profileName">Your Name</string>
     <string name="error_title_profileNameNotAllowed">This Name is Not Allowed</string>
@@ -863,4 +869,6 @@
     <string name="subtitle_profileImageSelection">CThis photo will be shown when receiving tips</string>
     <string name="placeholder_profileDisplayName">Your Name</string>
     <string name="subtitle_profileImageRecommended">500x500 Recommended</string>
+    <string name="title_myTipCard">My Tip Card</string>
+
 </resources>
