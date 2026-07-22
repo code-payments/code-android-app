@@ -49,9 +49,17 @@ sealed interface Scannable {
                 verifiedState: VerifiedState? = null,
                 nonce: List<Byte> = emptyList(),
             ): Payable = if (token.address == Mint.usdf) {
-                GoldBar(token, amount, didReceive, disableGestures, confirmationDelay, data, kind, verifiedState, nonce)
+                GoldBar(
+                    token = token, amount = amount, didReceive = didReceive,
+                    disableGestures = disableGestures, confirmationDelay = confirmationDelay,
+                    data = data, kind = kind, verifiedState = verifiedState, nonce = nonce,
+                )
             } else {
-                CashBill(token, amount, didReceive, disableGestures, confirmationDelay, data, kind, verifiedState, nonce)
+                CashBill(
+                    token = token, amount = amount, didReceive = didReceive,
+                    disableGestures = disableGestures, confirmationDelay = confirmationDelay,
+                    data = data, kind = kind, verifiedState = verifiedState, nonce = nonce,
+                )
             }
         }
     }

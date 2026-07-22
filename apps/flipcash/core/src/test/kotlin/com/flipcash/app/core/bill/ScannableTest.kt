@@ -13,6 +13,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 class ScannableTest {
 
@@ -58,14 +59,25 @@ class ScannableTest {
 
     @Test
     fun `forToken preserves passed-through fields`() {
+        val expectedData = listOf<Byte>(1, 2, 3)
+        val expectedNonce = listOf<Byte>(9)
+        val expectedDelay = 4.seconds
         val bill = Scannable.Payable.forToken(
             token = tokenWith(nonUsdfMint),
             amount = localFiat(),
             didReceive = true,
+            disableGestures = true,
+            confirmationDelay = expectedDelay,
+            data = expectedData,
             kind = Scannable.Payable.Kind.airdrop,
+            nonce = expectedNonce,
         )
         assertTrue(bill.didReceive)
+        assertTrue(bill.disableGestures)
+        assertEquals(expectedDelay, bill.confirmationDelay)
+        assertEquals(expectedData, bill.data)
         assertEquals(Scannable.Payable.Kind.airdrop, bill.kind)
+        assertEquals(expectedNonce, bill.nonce)
     }
 
     @Test
@@ -86,5 +98,6 @@ class ScannableTest {
         val stamped = bar.stamped(code = listOf(7), nonce = emptyList())
         assertIs<Scannable.GoldBar>(stamped)
         assertEquals(listOf<Byte>(7), stamped.data)
+        assertEquals(bar.token, stamped.token)
     }
 }
