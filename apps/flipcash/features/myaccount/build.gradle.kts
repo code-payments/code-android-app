@@ -12,6 +12,7 @@ dependencies {
     testImplementation(libs.bundles.compose.ui.testing)
 
     implementation(project(":apps:flipcash:shared:authentication"))
+    implementation(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:menu"))

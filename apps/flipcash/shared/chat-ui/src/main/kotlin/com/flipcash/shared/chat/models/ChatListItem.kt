@@ -1,4 +1,4 @@
-package com.flipcash.shared.chat.ui
+package com.flipcash.shared.chat.models
 
 import com.flipcash.services.models.chat.MessageContent
 import kotlin.time.Instant

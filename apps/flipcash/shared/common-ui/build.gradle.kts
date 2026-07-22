@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "${Gradle.flipcashNamespace}.shared.chat.ui"
+    namespace = "${Gradle.flipcashNamespace}.shared.common.ui"
 }
 
 dependencies {
@@ -13,12 +13,9 @@ dependencies {
     implementation(project(":ui:theme"))
     implementation(project(":ui:resources"))
     implementation(project(":services:flipcash"))
-    implementation(project(":services:opencode-compose"))
     implementation(project(":libs:datetime"))
-    implementation(libs.androidx.paging.runtime)
-    implementation(libs.compose.paging)
-    api(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:theme"))
 
+    api(libs.compose.material.icons.extended)
     testImplementation(libs.robolectric)
 }

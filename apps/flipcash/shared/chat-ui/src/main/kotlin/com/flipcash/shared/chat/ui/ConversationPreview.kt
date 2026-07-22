@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.ui.ScreenFrame
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.SeparatorConfig
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.core.RandomId

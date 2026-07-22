@@ -17,9 +17,9 @@ import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.shared.chat.ui.ChatListItem
-import com.flipcash.shared.chat.ui.ReceiptStatus
-import com.flipcash.shared.chat.ui.SeparatorConfig
+import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.ReceiptStatus
+import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.app.payments.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R

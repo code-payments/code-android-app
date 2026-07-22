@@ -55,6 +55,7 @@ include(
     ":apps:flipcash:shared:bill-customization",
     ":apps:flipcash:shared:chat",
     ":apps:flipcash:shared:chat-ui",
+    ":apps:flipcash:shared:common-ui",
     ":apps:flipcash:shared:contacts",
     ":apps:flipcash:shared:currency-creator",
     ":apps:flipcash:shared:onramp:coinbase",

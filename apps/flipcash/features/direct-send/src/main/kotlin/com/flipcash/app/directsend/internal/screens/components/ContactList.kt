@@ -45,19 +45,24 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import com.flipcash.app.contacts.ui.ContactAvatar
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.directsend.internal.ContactListItem
 import com.flipcash.app.permissions.ContactAccessHandle
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.features.directsend.R
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.shared.chat.ui.ChatListRow
 import com.flipcash.shared.chat.ui.ConversationReference
+import com.flipcash.shared.chat.ui.ChatRowSubtitle
+import com.flipcash.shared.chat.ui.ChatRowTrailing
+import com.flipcash.shared.chat.ui.SubtitleText
+import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.theme.extraSmall
@@ -65,6 +70,7 @@ import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.util.formatLocalized
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.compareTo
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -294,116 +300,59 @@ private fun ContactRowItem(
     showDivider: Boolean = true,
     onClick: () -> Unit,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(CodeTheme.colors.background)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("send_contact_row")
-                .clickable(onClick = onClick)
-                .padding(vertical = CodeTheme.dimens.inset)
-                .padding(end = CodeTheme.dimens.inset),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Spacer used by the unread indicator that we moved
-                // left for spacing compatibility and easy add back later
-                Box(modifier = Modifier.requiredWidth(CodeTheme.dimens.inset))
-                ContactAvatar(
-                    contact = contact,
-                    modifier = Modifier
-                        .requiredSize(CodeTheme.dimens.staticGrid.x8)
-                        .clip(CircleShape),
-                    includeBorder = false,
+    ChatListRow(
+        modifier = modifier,
+        avatar = {
+            ContactAvatar(
+                contact = contact,
+                modifier = Modifier
+                    .requiredSize(CodeTheme.dimens.staticGrid.x8)
+                    .clip(CircleShape),
+                includeBorder = false,
+            )
+        },
+        title = {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = contact.displayName,
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textMain,
+            )
+
+            if (contact.isUnknown) {
+                Text(
+                    modifier = Modifier.background(
+                        color = CodeTheme.colors.surfaceVariant,
+                        shape = CircleShape,
+                    ).padding(
+                        vertical = CodeTheme.dimens.grid.x1,
+                        horizontal = CodeTheme.dimens.grid.x2,
+                    ),
+                    text = stringResource(R.string.label_unknownContact),
+                    style = CodeTheme.typography.caption.copy(fontSize = 10.sp, lineHeight = 10.sp),
+                    color = CodeTheme.colors.textSecondary,
                 )
             }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-                ) {
-                    Text(
-                        modifier = Modifier.weight(1f),
-                        text = contact.displayName,
-                        style = CodeTheme.typography.textMedium,
-                        color = CodeTheme.colors.textMain,
-                    )
-
-                    when {
-                        contact.isUnknown -> {
-                            Text(
-                                modifier = Modifier.background(
-                                    color = CodeTheme.colors.surfaceVariant,
-                                    shape = CircleShape,
-                                ).padding(
-                                    vertical = CodeTheme.dimens.grid.x1,
-                                    horizontal = CodeTheme.dimens.grid.x2,
-                                ),
-                                text = stringResource(R.string.label_unknownContact),
-                                style = CodeTheme.typography.caption.copy(fontSize = 10.sp, lineHeight = 10.sp),
-                                color = CodeTheme.colors.textSecondary,
-                            )
-                        }
-                        lastActivity != null -> {
-                            val activityTextColor by animateColorAsState(
-                                if (unreadCount > 0) CodeTheme.colors.indicator else CodeTheme.colors.textSecondary
-                            )
-                            Text(
-                                text = formatLastActivity(lastActivity),
-                                style = CodeTheme.typography.caption,
-                                color = activityTextColor,
-                            )
-                        }
-                    }
-
-                    if (unreadCount > 0) {
-                        UnreadBadge(
-                            modifier = Modifier.padding(
-                                start = CodeTheme.dimens.grid.x1,
-                                end = CodeTheme.dimens.grid.x1,
-                            ),
-                            count = unreadCount
-                        )
-                    } else if (isOnFlipcash) {
-                        Icon(
-                            modifier = Modifier.scale(0.6f),
-                            painter = painterResource(id = R.drawable.ic_chevron_right),
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textSecondary,
-                        )
-                    }
-                }
-
-                when {
-                    isTyping -> Text(
-                        text = stringResource(R.string.label_isTyping),
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
-                    )
-
-                    else -> Text(
-                        text = if (isOnFlipcash && !lastMessagePreview.isNullOrEmpty()) {
-                            lastMessagePreview
-                        } else if (isOnFlipcash) {
-                            "${contact.displayName} joined Flipcash"
-                        } else {
-                            contact.displayNumber
-                        },
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            ChatRowTrailing(
+                lastActivity = lastActivity,
+                unreadCount = unreadCount,
+                canOpen = isOnFlipcash,
+            )
+        },
+        subtitle = {
+            ChatRowSubtitle(
+                isTyping = isTyping,
+                preview = lastMessagePreview.takeIf { isOnFlipcash },
+                fallback = {
+                    SubtitleText(
+                        if (isOnFlipcash) "${contact.displayName} joined Flipcash"
+                        else contact.displayNumber
                     )
                 }
-            }
-
+            )
+        },
+        endAction = {
             if (!isOnFlipcash) {
                 Text(
                     modifier = Modifier
@@ -420,31 +369,9 @@ private fun ContactRowItem(
                     color = CodeTheme.colors.textMain,
                 )
             }
-        }
-        if (showDivider) {
-            HorizontalDivider(
-                color = CodeTheme.colors.divider,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .padding(
-                        start = CodeTheme.dimens.inset + CodeTheme.dimens.staticGrid.x8 + CodeTheme.dimens.grid.x3,
-                        end = CodeTheme.dimens.inset,
-                    ),
-            )
-        }
-    }
-}
-
-@Composable
-private fun UnreadBadge(count: Int, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(CodeTheme.dimens.grid.x2)
-            .background(
-                color = CodeTheme.colors.indicator,
-                shape = CircleShape,
-            ),
+        },
+        showDivider = showDivider,
+        onClick = onClick,
     )
 }
 
@@ -503,26 +430,6 @@ private fun EmptySearchState(
                 color = CodeTheme.colors.textSecondary,
             )
         }
-    }
-}
-
-@Composable
-private fun formatLastActivity(instant: Instant): String {
-    val context = LocalContext.current
-    val is24Hour = DateFormat.is24HourFormat(context)
-    val tz = TimeZone.currentSystemDefault()
-    val todayDate = Clock.System.now().toLocalDateTime(tz).date
-    val messageDate = instant.toLocalDateTime(tz).date
-    val dayDiff = todayDate.toEpochDays() - messageDate.toEpochDays()
-
-    val time = instant.formatLocalized("h:mm a", is24Hour = is24Hour, if24Hour = "H:mm")
-
-    return when {
-        dayDiff == 0L -> time
-        dayDiff == 1L -> stringResource(R.string.label_chatReceipt_yesterday)
-        dayDiff in 2L..6L -> instant.formatLocalized("EEEE")
-        messageDate.year == todayDate.year -> instant.formatLocalized("MMM d")
-        else -> instant.formatLocalized("MMM d, yyyy")
     }
 }
 

@@ -1,4 +1,4 @@
-package com.flipcash.shared.chat.ui
+package com.flipcash.shared.chat.models
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.solana.keys.Mint

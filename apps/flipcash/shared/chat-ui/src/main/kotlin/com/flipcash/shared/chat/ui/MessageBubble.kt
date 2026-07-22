@@ -45,12 +45,15 @@ import androidx.paging.compose.LazyPagingItems
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.shared.chat.models.ChatAction
+import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.LocalChatActionHandler
+import com.flipcash.shared.chat.models.SeparatorConfig
 import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.PriceWithFlag
-import com.getcode.ui.components.chat.messagecontents.MessageContentActionHandler
 import com.getcode.ui.core.addIf
 import com.getcode.util.resources.R
 

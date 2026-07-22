@@ -1,7 +1,6 @@
 package com.flipcash.app.myaccount.internal
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,11 +41,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight.Companion.W600
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.contacts.ui.ContactAvatar
 import com.flipcash.core.R
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.MediaItemRendition
+import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SwipeAction
 import com.getcode.ui.components.SwipeActionRow
@@ -279,7 +278,7 @@ private fun ProfileHeader(
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
     ) {
         ContactAvatar(
-            photoUri = profilePicture.displayUrl(),
+            photoUri = profilePicture?.url(preferred = MediaItemRendition.Role.DISPLAY),
             displayName = displayName.orEmpty(),
             modifier = Modifier
                 .size(96.dp)
@@ -305,15 +304,6 @@ private fun ProfileHeader(
             )
         }
     }
-}
-
-// Prefer the DISPLAY rendition (falling back to THUMBNAIL / any) for the avatar image URL.
-private fun MediaItem?.displayUrl(): String? {
-    val renditions = this?.renditions ?: return null
-    return (renditions.firstOrNull { it.role == MediaItemRendition.Role.DISPLAY }
-        ?: renditions.firstOrNull { it.role == MediaItemRendition.Role.THUMBNAIL }
-        ?: renditions.firstOrNull())
-        ?.blob?.downloadUrl
 }
 
 /** Non-swipeable card wrapper — just visual styling. */
