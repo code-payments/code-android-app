@@ -3,6 +3,7 @@ package com.flipcash.app.userflags
 import com.flipcash.app.userflags.UserFlagsCoordinator.Overrides
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.UsdcLiquidtyPool
+import com.flipcash.services.models.TipPresets
 import com.flipcash.services.models.UserFlags
 import com.getcode.opencode.model.financial.Fiat
 import kotlin.time.Duration
@@ -34,6 +35,7 @@ data class ResolvedUserFlags(
     val enablePhoneNumberSend: ResolvedFlag<Boolean>,
     val minimumHolderAmountForLeaderboard: ResolvedFlag<Fiat>,
     val requireCoinbaseEmailVerification: ResolvedFlag<Boolean>,
+    val tipPresets: ResolvedFlag<List<TipPresets>>,
 )
 
 internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = ResolvedUserFlags(
@@ -51,4 +53,5 @@ internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = Resolv
     enablePhoneNumberSend = ResolvedFlag(enablePhoneNumberSend, FieldOverride.None),
     minimumHolderAmountForLeaderboard = ResolvedFlag(minimumHolderValue, overrides.minimumHolderAmountForLeaderboard),
     requireCoinbaseEmailVerification = ResolvedFlag(requireCoinbaseEmailVerification, overrides.requireCoinbaseEmailVerification),
+    tipPresets = ResolvedFlag(tipPresets, FieldOverride.None),
 )

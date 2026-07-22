@@ -20,6 +20,7 @@ data class UserFlags(
     val enablePhoneNumberSend: Boolean,
     val minimumHolderValue: Fiat,
     val requireCoinbaseEmailVerification: Boolean,
+    val tipPresets: List<TipPresets>,
 ) {
     companion object {
         val Default = UserFlags(
@@ -37,6 +38,7 @@ data class UserFlags(
             enablePhoneNumberSend = false,
             minimumHolderValue = Fiat.Zero,
             requireCoinbaseEmailVerification = false,
+            tipPresets = emptyList(),
         )
     }
 }

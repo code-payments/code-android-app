@@ -24,6 +24,7 @@ import com.flipcash.app.core.data.Loadable
 import com.getcode.navigation.scrim.LocalScrimController
 import com.flipcash.app.userflags.internal.components.EditableRow
 import com.flipcash.app.userflags.internal.components.ReadOnlyRow
+import com.flipcash.app.userflags.internal.components.ReadOnlyTextRow
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.text.SectionHeader
 import com.getcode.ui.core.verticalScrollStateGradient
@@ -81,6 +82,13 @@ private fun UserFlagsEditor(
                         contentType = { "read_only_row" },
                     ) { entry ->
                         ReadOnlyRow(entry)
+                    }
+                    items(
+                        items = state.readOnlyTextEntries,
+                        key = { it.label },
+                        contentType = { "read_only_text_row" },
+                    ) { entry ->
+                        ReadOnlyTextRow(entry)
                     }
 
                     // Editable section
