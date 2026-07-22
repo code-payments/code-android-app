@@ -171,6 +171,10 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class Send(val resumed: Boolean = false): Sheets
 
         @Serializable
+        data class Tips(val resumed: Boolean = false): Sheets {
+        }
+
+        @Serializable
         data object Wallet : Sheets
         @Serializable
         data object Menu : Sheets

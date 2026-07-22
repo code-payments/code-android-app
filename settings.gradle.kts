@@ -116,6 +116,7 @@ include(
     ":apps:flipcash:features:discovery",
     ":apps:flipcash:features:user-profile",
     ":apps:flipcash:features:userflags",
+    ":apps:flipcash:features:tipping",
 
     // protobuf model and service implementations for the Open Code Protocol
     ":definitions:opencode:models",

@@ -1,6 +1,7 @@
 package com.flipcash.app.core.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -60,6 +61,7 @@ import com.getcode.ui.utils.widthOrZero
 
 data class NavigationBarState(
     val contactDmUnreadCount: Int = 0,
+    val tipUnreadCount: Int = 0,
     val showToast: Boolean = false,
     val toastText: String? = null,
     val isPaused: Boolean = false,
@@ -93,6 +95,7 @@ fun NavigationBar(
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.SpaceAround,
     ) {
+        val imageSize by animateDpAsState(if (config.order.size < 5) CodeTheme.dimens.staticGrid.x10 else CodeTheme.dimens.staticGrid.x7)
         config.order.forEachIndexed { index, button ->
             val buttonModifier = if (reorderState != null) {
                 Modifier.weight(1f).longPressDraggable(reorderState, index)
@@ -106,6 +109,7 @@ fun NavigationBar(
                     label = stringResource(config.giveButtonLabel.labelRes),
                     painter = painterResource(R.drawable.ic_cash_bill),
                     badgeCount = 0,
+                    imageSize = imageSize,
                     onClick = { onButtonClick(NavBarButton.Give) }
                 )
                 NavBarButton.Wallet -> BottomBarAction(
@@ -113,6 +117,7 @@ fun NavigationBar(
                     label = stringResource(R.string.action_wallet),
                     painter = painterResource(R.drawable.ic_flipcash_balance),
                     onClick = { onButtonClick(NavBarButton.Wallet) },
+                    imageSize = imageSize,
                     toast = {
                         AnimatedVisibility(
                             visible = state.showToast && state.toastText != null,
@@ -138,6 +143,7 @@ fun NavigationBar(
                     label = stringResource(R.string.action_discover),
                     painter = painterResource(R.drawable.ic_coins),
                     badgeCount = 0,
+                    imageSize = imageSize,
                     onClick = { onButtonClick(NavBarButton.Discover) }
                 )
 
@@ -146,7 +152,17 @@ fun NavigationBar(
                     label = stringResource(R.string.action_send),
                     badgeCount = state.contactDmUnreadCount,
                     painter = painterResource(R.drawable.ic_send_outlined),
+                    imageSize = imageSize,
                     onClick = { onButtonClick(NavBarButton.Send) }
+                )
+
+                NavBarButton.Tips -> BottomBarAction(
+                    modifier = buttonModifier,
+                    label = stringResource(R.string.action_tips),
+                    badgeCount = state.tipUnreadCount,
+                    painter = painterResource(R.drawable.ic_tipping_hand),
+                    imageSize = imageSize,
+                    onClick = { onButtonClick(NavBarButton.Tips) }
                 )
             }
         }
