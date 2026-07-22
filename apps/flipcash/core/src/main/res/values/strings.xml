@@ -722,6 +722,9 @@
     <string name="error_title_imageNotSupported">This Image is Not Supported</string>
     <string name="error_description_imageNotSupported">Try a different image format</string>
 
+    <string name="error_title_imageTooLarge">This Image is Too Large</string>
+    <string name="error_description_imageTooLarge">Try a smaller image</string>
+
     <string name="error_title_descriptionNotAllowed">This Description is Not Allowed</string>
     <string name="error_description_descriptionNotAllowed">Try a different currency description</string>
 

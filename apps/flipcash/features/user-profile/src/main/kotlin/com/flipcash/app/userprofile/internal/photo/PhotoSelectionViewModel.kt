@@ -1,11 +1,13 @@
 package com.flipcash.app.userprofile.internal.photo
 
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.extensions.flatMapResult
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.services.models.blob.ImageConstraints
 import com.flipcash.services.models.blob.UploadPolicy
 import com.flipcash.features.userprofile.R
 import com.flipcash.libs.coroutines.DispatcherProvider
@@ -33,6 +35,8 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.floor
+import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
@@ -87,14 +91,38 @@ class PhotoSelectionViewModel @Inject constructor(
             .filterIsInstance<Event.OnImageSelected>()
             .mapNotNull { event ->
                 val sourceMime = contentReader.mimeType(event.image)
+                // The cache re-encodes to JPEG/PNG, so gate on the type we'd actually upload —
+                // not the source type, which may normalize into an accepted format (e.g. HEIC → PNG).
+                val uploadMime = uploadMimeFor(sourceMime)
+                val policy = stateFlow.value.uploadPolicy
+                val constraints = policy?.constraintsFor(uploadMime)
+                if (policy != null && constraints == null) {
+                    rejectImage(
+                        title = R.string.error_title_imageNotSupported,
+                        message = R.string.error_description_imageNotSupported,
+                    )
+                    return@mapNotNull null
+                }
+                // Downscale to honor the policy's dimension + pixel caps. copyToCache bounds the
+                // longest edge, so the smallest of (maxWidth, maxHeight, √maxPixels) satisfies all three.
                 val cached = contentReader.copyToCache(
                     uri = event.image,
                     fileName = "user_profile_${System.nanoTime()}",
-                    maxSize = 500,
+                    maxSize = maxEdgeFor(constraints?.image),
                     mimeType = sourceMime,
                 ) ?: return@mapNotNull null
+                // Enforce the byte ceiling on the re-encoded output before it rides to the server.
+                val maxBytes = constraints?.maxSizeBytes
+                if (maxBytes != null && (contentReader.size(cached) ?: 0L) > maxBytes) {
+                    contentReader.removeFromCache(cached)
+                    rejectImage(
+                        title = R.string.error_title_imageTooLarge,
+                        message = R.string.error_description_imageTooLarge,
+                    )
+                    return@mapNotNull null
+                }
                 // The cache re-encodes (stripping EXIF); declare the type those bytes actually are.
-                cached to uploadMimeFor(sourceMime)
+                cached to uploadMime
             }
             .flowOn(dispatchers.IO)
             .onEach { (cached, mime) -> dispatchEvent(Event.OnImageCached(cached, mime)) }
@@ -165,7 +193,33 @@ class PhotoSelectionViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    /** Clears the pending selection and surfaces [title]/[message] to the user. */
+    private fun rejectImage(@StringRes title: Int, @StringRes message: Int) {
+        dispatchEvent(Event.OnImageCleared)
+        BottomBarManager.showAlert(
+            title = resources.getString(title),
+            message = resources.getString(message),
+        )
+    }
+
+    /**
+     * The longest-edge cap that satisfies every dimension constraint in [image]: the smallest of
+     * maxWidth, maxHeight, and √maxPixels (bounding the longest edge by √maxPixels keeps total area
+     * ≤ maxPixels). Falls back to [DEFAULT_MAX_EDGE] when the policy names no image constraints.
+     */
+    private fun maxEdgeFor(image: ImageConstraints?): Int {
+        val caps = listOfNotNull(
+            image?.maxWidth,
+            image?.maxHeight,
+            image?.maxPixels?.let { floor(sqrt(it.toDouble())).toInt() },
+        ).filter { it > 0 }
+        return caps.minOrNull() ?: DEFAULT_MAX_EDGE
+    }
+
     companion object {
+
+        // Longest-edge downscale target used when the upload policy specifies no dimension caps.
+        private const val DEFAULT_MAX_EDGE = 500
 
         private val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
