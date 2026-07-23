@@ -53,7 +53,13 @@ data class OpenCodePayload(
             }
 
             val kind = PayloadKind.from(frame[0].toInt())
-            return OpenCodePayload(kind, kind.decode(frame), kind.decodeNonce(frame))
+
+            // `decode` returns null for a frame this kind can't parse — e.g. a foreign or corrupt
+            // Kik code whose currency byte is out of range (Bugsnag 6a5a4523:
+            // IndexOutOfBoundsException on CurrencyCode.entries[232], a 171-entry enum). Treat it
+            // as Empty so the scanner ignores it instead of crashing or attempting a bogus grab.
+            val value = kind.decode(frame) ?: return Empty
+            return OpenCodePayload(kind, value, kind.decodeNonce(frame))
         }
     }
 }

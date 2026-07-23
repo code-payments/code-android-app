@@ -19,8 +19,11 @@ sealed interface PayloadKind {
     /** Encodes [value] (and [nonce], where applicable) into the fixed-length scan frame. */
     fun encode(value: PayloadValue, nonce: List<Byte>): List<Byte>
 
-    /** Reads this kind's [PayloadValue] out of a (zero-padded) scan [frame]. */
-    fun decode(frame: List<Byte>): PayloadValue
+    /**
+     * Reads this kind's [PayloadValue] out of a (zero-padded) scan [frame], or null if the frame
+     * can't be parsed as this kind (e.g. a cash frame whose currency byte is out of range).
+     */
+    fun decode(frame: List<Byte>): PayloadValue?
 
     /** Reads the nonce out of a scan [frame]; empty for kinds that carry none. */
     fun decodeNonce(frame: List<Byte>): List<Byte>
@@ -45,8 +48,11 @@ sealed interface PayloadKind {
             return data
         }
 
-        override fun decode(frame: List<Byte>): PayloadValue {
-            val currency = CurrencyCode.entries[frame[1].byteToUnsignedInt()]
+        override fun decode(frame: List<Byte>): PayloadValue? {
+            // Byte 1 is an index into CurrencyCode. A foreign or corrupt Kik code can carry a byte
+            // outside that range; such a frame isn't a valid cash code, so fail decoding rather
+            // than throw (Bugsnag 6a5a4523: IndexOutOfBoundsException on a 171-entry enum).
+            val currency = CurrencyCode.entries.getOrNull(frame[1].byteToUnsignedInt()) ?: return null
             val quarks = frame.subList(OpenCodePayload.OFFSET_QUARKS, OpenCodePayload.OFFSET_NONCE)
                 .toByteArray().byteArrayToLong()
             return Fiat(currencyCode = currency, quarks = quarks)

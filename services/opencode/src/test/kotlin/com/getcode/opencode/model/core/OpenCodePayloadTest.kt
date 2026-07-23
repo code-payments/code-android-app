@@ -93,6 +93,34 @@ class OpenCodePayloadTest {
     }
 
     @Test
+    fun `fromList does not throw on out-of-range currency byte`() {
+        // A foreign / corrupt Kik code can pass error-correction yet carry a currency byte
+        // outside CurrencyCode's range. Regression for IndexOutOfBoundsException (Bugsnag
+        // 6a5a4523): `CurrencyCode.entries[232]` on a 171-element enum. Such a frame is not a
+        // valid Flipcash cash code, so it must decode to Unknown (which the scanner ignores).
+        val frame = MutableList<Byte>(OpenCodePayload.LENGTH) { 0 }
+        frame[0] = PayloadKind.Cash.value.toByte()
+        frame[1] = 232.toByte() // >= CurrencyCode.entries.size
+
+        val decoded = OpenCodePayload.fromList(frame)
+
+        assertEquals(PayloadKind.Unknown, decoded.kind)
+    }
+
+    @Test
+    fun `fromList decodes highest valid currency index`() {
+        // Boundary: the last valid ordinal must still decode as Cash, not be rejected.
+        val lastCurrency = CurrencyCode.entries.last()
+        val fiat = Fiat(quarks = 7L, currencyCode = lastCurrency)
+        val encoded = encodePayload(PayloadKind.Cash, fiat, List(10) { 0.toByte() })
+
+        val decoded = OpenCodePayload.fromList(encoded)
+
+        assertEquals(PayloadKind.Cash, decoded.kind)
+        assertEquals(lastCurrency, decoded.fiat!!.currencyCode)
+    }
+
+    @Test
     fun `fromList preserves nonce bytes`() {
         val nonce = List(10) { (it * 3).toByte() }
         val encoded = encodePayload(PayloadKind.Cash, Fiat(quarks = 1L), nonce)
