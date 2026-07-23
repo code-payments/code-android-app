@@ -10,6 +10,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
 import com.getcode.util.vibration.Vibrator
@@ -54,6 +55,9 @@ class CodeScanDelegate @Inject constructor(
         data class BillReady(val bill: Scannable.Payable) : Event
         data object RefreshFeed : Event
         data object CheckPendingFeed : Event
+
+        /** A tip [OpenCodePayload] was scanned; the shell resolves & presents the card for [userId]. */
+        data class TipCardScanned(val userId: ID) : Event
     }
 
     private val _events = Channel<Event>(Channel.UNLIMITED)
@@ -92,9 +96,7 @@ class CodeScanDelegate @Inject constructor(
         when (codePayload.kind) {
             PayloadKind.Cash -> onCashScanned(codePayload)
             PayloadKind.MultiMintCash -> onCashScanned(codePayload)
-            // TODO(tipping): route tip scans to the tip flow. Deliberately not handled as a cash
-            // grab — onCashScanned force-unwraps payload.fiat, which is null for a Tip payload.
-            PayloadKind.Tip -> Unit
+            PayloadKind.Tip -> onTipCardScanned(codePayload)
             PayloadKind.Unknown -> Unit
         }
     }
@@ -142,5 +144,13 @@ class CodeScanDelegate @Inject constructor(
                 scannedRendezvous.remove(payload.rendezvous.publicKey)
             }
         )
+    }
+
+    private fun onTipCardScanned(payload: OpenCodePayload) {
+        // Tip payloads carry the recipient's user id (see OpenCodePayload layout 2), not a
+        // rendezvous grab. Hand the id to the shell, which routes to TipCardOperations to
+        // resolve and present the card.
+        val userId = payload.userId ?: return
+        _events.trySend(Event.TipCardScanned(userId))
     }
 }

@@ -14,6 +14,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.analytics.rememberAnalytics
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.AppRoute.Token.*
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.navigation.DeeplinkType
@@ -127,8 +129,8 @@ internal fun Scanner() {
                                     is DeeplinkType.Navigatable -> {
                                         val routes = when (deeplink) {
                                             is DeeplinkType.TokenInfo -> listOf(
-                                                com.flipcash.app.core.AppRoute.Sheets.Wallet,
-                                                com.flipcash.app.core.AppRoute.Token.Info(deeplink.mint, fromDeeplink = true)
+                                                AppRoute.Sheets.Wallet,
+                                                Info(deeplink.mint, fromDeeplink = true)
                                             )
                                             else -> emptyList()
                                         }
@@ -137,6 +139,9 @@ internal fun Scanner() {
                                         }
                                     }
                                     is DeeplinkType.Login -> Unit
+                                    is DeeplinkType.Tipcard -> {
+                                        session.resolveTipCard(deeplink.userId)
+                                    }
                                 }
                             }
                         }

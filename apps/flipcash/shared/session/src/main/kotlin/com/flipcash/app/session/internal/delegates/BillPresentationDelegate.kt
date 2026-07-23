@@ -112,12 +112,19 @@ class BillPresentationDelegate @Inject constructor(
         }
     }
 
-    override fun showTipCard(tipCard: Scannable.TipCard) {
+    /**
+     * Presents an already-resolved, non-payment [Scannable.TipCard] in the bill container.
+     * Unlike [showBill] there's no grab/await transaction and no valuation — the card is just
+     * placed until dismissed. Not part of the public [BillOperations] surface: the single public
+     * entry point for tip cards is [com.flipcash.app.session.TipCardOperations.resolveTipCard],
+     * which resolves the card and routes here through the [com.flipcash.app.session.internal.RealSessionController] shell.
+     */
+    internal fun presentTipCard(tipCard: Scannable.TipCard) {
         // Single bill slot — don't clobber a bill that's already presented.
         if (billController.state.value.bill != null) return
         // No grab/await, no valuation: just place the card in the container.
         billController.update { it.copy(bill = tipCard, valuation = null) }
-        stateHolder.update { it.copy(billResult = PutInWallet) }
+        stateHolder.update { it.copy(billResult = Grabbed) }
     }
 
     override fun dismissBill(action: BillDeterminationResult) {

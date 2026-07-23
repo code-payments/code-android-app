@@ -10,6 +10,8 @@ dependencies {
     api(project(":ui:navigation"))
     api(libs.rinku.compose)
 
+    implementation(project(":libs:models"))
+
     testImplementation(kotlin("test"))
     testImplementation(libs.robolectric)
 }

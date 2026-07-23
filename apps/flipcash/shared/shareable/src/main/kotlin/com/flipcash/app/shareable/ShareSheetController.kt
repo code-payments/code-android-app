@@ -4,6 +4,7 @@ import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.accounts.GiftCardAccount
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import kotlin.time.Duration
@@ -38,6 +39,12 @@ sealed interface Shareable {
     }
 
     data object Invite : Shareable {
+        override val pendingData: ShareablePendingData? = null
+    }
+
+    data class TipCard(
+        val userId: ID
+    ): Shareable {
         override val pendingData: ShareablePendingData? = null
     }
 }

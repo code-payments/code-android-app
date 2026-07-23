@@ -26,6 +26,7 @@ import com.flipcash.app.balance.BalanceScreen
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
+import com.flipcash.app.tipping.TipAmountEntryScreen
 import com.flipcash.app.tipping.TippingFlowScreen
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
@@ -97,6 +98,7 @@ fun appEntryProvider(
         TippingFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
     annotatedEntry<AppRoute.Sheets.TokenSelection> { key -> TokenSelectScreen(key.purpose) }
+    annotatedEntry<AppRoute.Sheets.TipAmountEntry> { TipAmountEntryScreen() }
     annotatedEntry<AppRoute.Sheets.Wallet> { BalanceScreen() }
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
     annotatedEntry<AppRoute.Sheets.Menu> { MenuScreen() }

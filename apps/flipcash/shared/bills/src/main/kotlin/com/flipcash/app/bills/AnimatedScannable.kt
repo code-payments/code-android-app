@@ -31,6 +31,7 @@ fun AnimatedScannable(
     transitionSpec: AnimatedContentTransitionScope<Scannable?>.() -> ContentTransform,
     contentKey: (Scannable?) -> Any? = { it },
     bill: Scannable?,
+    scannableAlignment: Alignment = Alignment.Center,
 ) {
     AnimatedContent(
         modifier = modifier,
@@ -52,7 +53,8 @@ fun AnimatedScannable(
                                 .fillMaxWidth()
                                 .weight(1f)
                                 .padding(contentPadding),
-                            scannable = b
+                            scannable = b,
+                            contentAlignment = scannableAlignment,
                         )
                     }
                 },

@@ -95,6 +95,6 @@ sealed interface Scannable {
 
     data class TipCard(
         override val data: List<Byte>,
-        val user: UserProfile
+        val user: UserProfile,
     ) : Scannable
 }

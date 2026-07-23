@@ -28,6 +28,7 @@ internal class InternalShareConfirmationController(
             is Shareable.DownloadLink -> ShareConfirmationResult.Confirmed(shareResult)
             is Shareable.TokenInfo -> ShareConfirmationResult.Confirmed(shareResult)
             is Shareable.Invite -> ShareConfirmationResult.Confirmed(shareResult)
+            is Shareable.TipCard -> ShareConfirmationResult.Confirmed(shareResult)
         }
     }
 

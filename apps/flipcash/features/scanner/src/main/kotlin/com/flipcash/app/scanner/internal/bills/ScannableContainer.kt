@@ -1,20 +1,17 @@
 package com.flipcash.app.scanner.internal.bills
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
@@ -26,8 +23,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment.Companion.BottomCenter
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -37,9 +35,9 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.app.bills.AnimatedScannable
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.core.tipping.LocalTipCoordinator
 import com.flipcash.app.scanner.internal.ScannerDecorItem
 import com.flipcash.app.scanner.internal.ui.components.DecorView
-import com.flipcash.app.scanner.internal.ui.modals.ReceivedFundsConfirmation
 import com.flipcash.app.session.BillDeterminationResult
 import com.flipcash.app.session.Grabbed
 import com.flipcash.app.session.LocalSessionController
@@ -47,15 +45,17 @@ import com.flipcash.app.session.PutInWallet
 import com.flipcash.app.updates.LocalAppUpdater
 import com.getcode.ui.components.OnLifecycleEvent
 import androidx.lifecycle.Lifecycle
+import com.flipcash.app.scanner.internal.bills.decor.ScannableDecoratorContext
+import com.flipcash.app.scanner.internal.bills.decor.ScannableDecorator
 import com.flipcash.features.scanner.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.biometrics.LocalBiometricsState
-import com.getcode.ui.core.measured
 import com.getcode.ui.scanner.views.CameraDisabledView
 import com.getcode.ui.scanner.views.CameraPermissionsMissingView
 import com.getcode.ui.utils.AnimationUtils
+import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.rememberCameraPermission
 import kotlinx.coroutines.delay
@@ -100,6 +100,11 @@ internal fun ScannableContainer(
 
     val state by session.state.collectAsStateWithLifecycle()
     val billState by session.billState.collectAsStateWithLifecycle()
+
+    // Tip affordability (min-tip balance check) is owned by the tipping coordinator and
+    // surfaced through the shared selection state, so the scanner reads it without
+    // depending on the tipping module.
+    val tipSelection by LocalTipCoordinator.current.selection.collectAsStateWithLifecycle()
 
     val autoStart = state.autoStartCamera == true
     var cameraStarted by remember { mutableStateOf(autoStart) }
@@ -162,24 +167,39 @@ internal fun ScannableContainer(
         val updatedState by rememberUpdatedState(state)
         val updatedBillState by rememberUpdatedState(billState)
 
-        var dismissed by remember(updatedBillState.bill) {
-            mutableStateOf(false)
+        // Not keyed on the bill: it must stay true while the swiped-off card is being removed so
+        // the outgoing content stays hidden through its exit instead of snapping back to center.
+        // Reset explicitly when a fresh bill appears.
+        var dismissed by remember { mutableStateOf(false) }
+        LaunchedEffect(updatedBillState.bill) {
+            if (updatedBillState.bill != null) dismissed = false
         }
 
         // bill dismiss state, restarted for every bill
         val billDismissState = remember(updatedBillState.bill) {
             DismissState(
                 initialValue = DismissValue.Default,
+                // Only gate whether the swipe is allowed. Removing the bill here (mid-swipe) would
+                // recreate this DismissState and snap the card's offset back to center before the
+                // exit slide — the "reset then dismiss" stutter. Removal happens after the swipe
+                // settles the card off-screen (see below).
                 confirmStateChange = {
-                    val canDismiss =
-                        it == DismissValue.DismissedToEnd && updatedBillState.canSwipeToDismiss
-                    if (canDismiss) {
-                        session.dismissBill(PutInWallet)
-                        dismissed = true
-                    }
-                    canDismiss
+                    it == DismissValue.DismissedToEnd && updatedBillState.canSwipeToDismiss
                 }
             )
+        }
+
+        // Once the swipe has carried the card off-screen (currentValue leaves Default), hide it and
+        // remove the bill. The card is already out of view, so the AnimatedContent exit re-shows
+        // nothing and there's no offset reset.
+        LaunchedEffect(billDismissState) {
+            snapshotFlow { billDismissState.currentValue }
+                .collect { value ->
+                    if (value != DismissValue.Default) {
+                        dismissed = true
+                        session.dismissBill(PutInWallet)
+                    }
+                }
         }
 
         LaunchedEffect(dismissed) {
@@ -212,10 +232,35 @@ internal fun ScannableContainer(
 
         val showManagementOptions by remember(updatedBillState) {
             derivedStateOf {
+                // The tip card always shows, but its modal only slides up when the
+                // viewer can afford the minimum tip; otherwise the tip decorator prompts
+                // to add money.
                 billDismissState.targetValue == DismissValue.Default &&
-                        updatedBillState.valuation != null
+                        (updatedBillState.valuation != null ||
+                                (updatedBillState.bill is Scannable.TipCard && tipSelection.canTip))
             }
         }
+
+        // When the tip modal is up, pin the tip card just above it: reserve the modal's height as
+        // bottom inset AND bottom-align the card (bias 0 = centered, 1 = bottom-aligned). Otherwise
+        // the card centers in the region above the (tall) modal and floats high. Both are animated
+        // so the card slides from centered down to just above the modal as it enters, and back.
+        val tipModalUp = managementHeight > 0.dp && updatedBillState.bill is Scannable.TipCard
+        // Drive the card's move with the SAME timing as the tip modal's enter (see
+        // AnimationUtils.modalEnter → ModalAnimationSpeed.Normal): the card holds centered during the
+        // modal's start delay, then slides up in lockstep with the modal instead of lagging behind.
+        val modalSpeed = ModalAnimationSpeed.Normal(updatedBillState.confirmationDelayMillis)
+        val offset = if (updatedBillState.bill is Scannable.TipCard) CodeTheme.dimens.grid.x8 else CodeTheme.dimens.grid.x2
+        val billBottomInset by animateDpAsState(
+            targetValue = managementHeight + offset,
+            animationSpec = tween(durationMillis = modalSpeed.duration, delayMillis = modalSpeed.delay),
+            label = "billBottomInset",
+        )
+        val billVerticalBias by animateFloatAsState(
+            targetValue = if (tipModalUp) 1f else 0f,
+            animationSpec = tween(durationMillis = modalSpeed.duration, delayMillis = modalSpeed.delay),
+            label = "billVerticalBias",
+        )
 
         AnimatedScannable(
             modifier = Modifier.fillMaxSize(),
@@ -225,8 +270,9 @@ internal fun ScannableContainer(
                 start = CodeTheme.dimens.inset,
                 end = CodeTheme.dimens.inset,
                 top = CodeTheme.dimens.grid.x2,
-                bottom = managementHeight + CodeTheme.dimens.grid.x2
+                bottom = billBottomInset,
             ),
+            scannableAlignment = BiasAlignment(horizontalBias = 0f, verticalBias = billVerticalBias),
             bill = updatedBillState.bill,
             transitionSpec = {
                 when (updatedState.billResult) {
@@ -241,84 +287,24 @@ internal fun ScannableContainer(
             }
         )
 
-        // Below-bill content, folded by scannable type. `displayedScannable` retains the
-        // last shown scannable so an arm's modal can still animate OUT as `bill` returns to
-        // null on dismiss (the arm stays mounted; only `visible` flips).
+        // Below-bill content, owned by the scannable type (see `overlays/ScannableOverlays`).
+        // `displayedScannable` retains the last shown scannable so an overlay can still animate
+        // OUT as `bill` returns to null on dismiss (the overlay stays mounted; only `visible` flips).
         var displayedScannable by remember { mutableStateOf<Scannable?>(null) }
         LaunchedEffect(updatedBillState.bill) {
             updatedBillState.bill?.let { displayedScannable = it }
         }
 
-        when (val shown = displayedScannable) {
-            is Scannable.Payable -> {
-                //Bill management options
-                AnimatedVisibility(
-                    modifier = Modifier
-                        .align(BottomCenter)
-                        .measured { managementHeight = it.height },
-                    visible = updatedBillState.bill is Scannable.Payable && showManagementOptions,
-                    enter = fadeIn(),
-                    exit = fadeOut(tween(100)),
-                ) {
-                    var canCancel by remember {
-                        mutableStateOf(false)
-                    }
-                    BillManagementOptions(
-                        modifier = Modifier
-                            .windowInsetsPadding(WindowInsets.navigationBars),
-                        primaryAction = updatedBillState.primaryAction,
-                        secondaryAction = updatedBillState.secondaryAction,
-                        isSending = updatedState.isRemoteSendLoading,
-                        isInteractable = canCancel,
-                    )
-
-                    LaunchedEffect(transition.isRunning, transition.targetState) {
-                        // wait for spring settle to enable cancel to not prematurely cancel
-                        // the enter. doing so causing the exit of the bill to not run, or run its own dismiss animation
-                        if (transition.targetState == EnterExitState.Visible && transition.currentState == transition.targetState) {
-                            delay(500)
-                            canCancel = true
-                        }
-                    }
-
-                    BackHandler(canCancel) {
-                        session.dismissBill(PutInWallet)
-                    }
-                }
-
-                //Bill Received Bottom Dialog
-                AnimatedVisibility(
-                    modifier = Modifier.align(BottomCenter),
-                    visible = (updatedBillState.bill as? Scannable.Payable)?.didReceive == true,
-                    enter = AnimationUtils.modalEnter(billState.confirmationDelayMillis),
-                    exit = AnimationUtils.modalExit,
-                ) {
-                    Box(
-                        contentAlignment = BottomCenter
-                    ) {
-                        ReceivedFundsConfirmation(
-                            bill = shown,
-                            onClaim = { session.dismissBill(PutInWallet) }
-                        )
-                    }
-                }
-            }
-
-            is Scannable.TipCard -> {
-                // TODO(owner): the tip card's bottom modal (analogous to ReceivedFundsConfirmation).
-                //   Gate `visible` on the live bill so it animates out on dismiss, and use `shown`
-                //   (the retained Scannable.TipCard) for content so it persists through the exit:
-                //   AnimatedVisibility(
-                //       modifier = Modifier.align(BottomCenter),
-                //       visible = updatedBillState.bill is Scannable.TipCard,
-                //       enter = AnimationUtils.modalEnter(0),
-                //       exit = AnimationUtils.modalExit,
-                //   ) {
-                //       TipCardModal(tipCard = shown, onDone = { session.dismissBill(PutInWallet) })
-                //   }
-            }
-
-            null -> Unit
+        displayedScannable?.let { ScannableDecorator.forScannable(it) }?.let { overlays ->
+            val overlayContext = ScannableDecoratorContext(
+                liveBill = updatedBillState.bill,
+                billState = updatedBillState,
+                isRemoteSendLoading = updatedState.isRemoteSendLoading,
+                showManagementOptions = showManagementOptions,
+                onManagementHeightMeasured = { managementHeight = it },
+                onDismiss = { session.dismissBill(PutInWallet) },
+            )
+            with(overlays) { Content(overlayContext) }
         }
     }
 }

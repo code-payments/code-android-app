@@ -6,6 +6,7 @@ import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.session.BillDeterminationResult.ActedUpon
 import com.getcode.opencode.model.financial.Token
 import com.flipcash.app.core.AppRoute
+import com.getcode.opencode.model.core.ID
 import com.getcode.ui.core.RestrictionType
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.flow.StateFlow
@@ -21,13 +22,6 @@ data object PutInWallet : BillDeterminationResult, ActedUpon
 interface BillOperations {
     val billState: StateFlow<BillState>
     fun showBill(bill: Scannable.Payable)
-
-    /**
-     * Presents a non-payment [Scannable.TipCard] in the bill container. Unlike [showBill],
-     * this runs no grab/await transaction and sets no valuation — the card is simply shown
-     * until dismissed.
-     */
-    fun showTipCard(tipCard: Scannable.TipCard)
     fun dismissBill(action: BillDeterminationResult)
 }
 
@@ -40,6 +34,10 @@ interface CashLinkOperations {
     fun openCashLink(cashLink: String?)
 }
 
+interface TipCardOperations {
+    fun resolveTipCard(user: ID)
+}
+
 interface DepositOperations {
     /**
      * Presents the appropriate "you can't give yet" prompt based on the user's balance:
@@ -49,7 +47,7 @@ interface DepositOperations {
     fun presentDepositOptions(onRoute: ((AppRoute) -> Unit)? = null)
 }
 
-interface SessionController : BillOperations, CodeScanOperations, CashLinkOperations, DepositOperations {
+interface SessionController : BillOperations, CodeScanOperations, CashLinkOperations, DepositOperations, TipCardOperations {
     val state: StateFlow<SessionState>
     fun onAppInForeground()
     fun onAppInBackground()

@@ -1,8 +1,11 @@
 package com.flipcash.app.messenger
 
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
@@ -88,7 +91,12 @@ internal fun ChatAmountEntryContent(
         appBar = {
             AppBarWithTitle(
                 title = {
-                    TokenSelectionPill(token) {
+                    TokenSelectionPill(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight(),
+                        token = token
+                    ) {
                         navigator.push(
                             AppRoute.Sheets.TokenSelection(TokenPurpose.Select)
                         )

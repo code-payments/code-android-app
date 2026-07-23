@@ -15,15 +15,18 @@ import com.flipcash.app.router.Router
 import com.flipcash.app.router.internal.AppRouter.Companion.cashLink
 import com.flipcash.app.router.internal.AppRouter.Companion.chat
 import com.flipcash.app.router.internal.AppRouter.Companion.login
+import com.flipcash.app.router.internal.AppRouter.Companion.tip
 import com.flipcash.app.router.internal.AppRouter.Companion.token
 import com.flipcash.app.router.internal.AppRouter.Companion.verification
 import com.flipcash.services.user.AuthState
+import com.getcode.opencode.model.core.bytes
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.decodeBase64
 import com.getcode.utils.decodeBase64UrlSafe
 import com.getcode.utils.urlDecode
 import dev.theolm.rinku.DeepLink
 import org.json.JSONObject
+import java.util.UUID
 
 internal class AppRouter(
     private val authStateProvider: () -> AuthState,
@@ -34,6 +37,7 @@ internal class AppRouter(
         val verification = listOf("verify")
         val token = listOf("token")
         val chat = listOf("chat")
+        val tip = listOf("tip")
     }
 
     override fun dispatch(deepLink: DeepLink): DeeplinkAction {
@@ -63,6 +67,8 @@ internal class AppRouter(
             is DeeplinkType.Chat -> DeeplinkAction.Navigate(
                 listOf(AppRoute.Sheets.Send(), AppRoute.Messaging.Chat(type.identifier))
             )
+
+            is DeeplinkType.Tipcard -> DeeplinkAction.PresentTipCard(type.userId)
         }
     }
 
@@ -73,6 +79,7 @@ internal class AppRouter(
             deepLink.isToken() -> deepLink.handleTokenLink()
             deepLink.isEmailVerification() -> deepLink.handleEmailVerification()
             deepLink.isChat() -> deepLink.handleChat()
+            deepLink.isTipCard() -> deepLink.handleTipCard()
             else -> null
         }
     }
@@ -128,6 +135,8 @@ private fun DeepLink.isEmailVerification(): Boolean = verification.contains(path
 
 private fun DeepLink.isChat(): Boolean = chat.contains(pathSegments.getOrNull(0))
 
+private fun DeepLink.isTipCard(): Boolean =  tip.contains(pathSegments.getOrNull(0))
+
 private fun DeepLink.handleLoginLink(): DeeplinkType.Login? {
     val uri = data.toUri()
     var entropy = uri.fragments[Key.entropy]
@@ -168,6 +177,15 @@ private fun DeepLink.handleChat(): DeeplinkType.Chat? {
     }
 
     return DeeplinkType.Chat(identifier)
+}
+
+private fun DeepLink.handleTipCard(): DeeplinkType.Tipcard? {
+    val uri = data.toUri()
+    val userId = uri.pathSegments.getOrNull(1)
+        ?.let { runCatching { UUID.fromString(it).bytes }.getOrNull() }
+        ?: return null
+
+    return DeeplinkType.Tipcard(userId)
 }
 
 //  https://app.flipcash.com/verify?email={email}&code={code}&client_data={data}

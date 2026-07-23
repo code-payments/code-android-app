@@ -2,6 +2,7 @@ package com.flipcash.app.bills
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
@@ -21,6 +22,9 @@ import com.getcode.theme.CodeTheme
 fun ScannableRenderer(
     modifier: Modifier = Modifier,
     scannable: Scannable,
+    // Vertical placement of the card within its area — used to pin a tip card just above its
+    // bottom modal; ignored by bill types that always center.
+    contentAlignment: Alignment = Alignment.Center,
 ) {
     when (scannable) {
         is Scannable.CashBill -> CashBill(
@@ -37,7 +41,8 @@ fun ScannableRenderer(
         is Scannable.TipCard -> TipCard(
             modifier = modifier,
             payloadData = scannable.data,
-            user = scannable.user
+            user = scannable.user,
+            contentAlignment = contentAlignment,
         )
     }
 }

@@ -137,6 +137,7 @@ class SelectTokenViewModel @Inject constructor(
 
                                     is TokenPurpose.Swap,
                                     is TokenPurpose.LaunchFunding,
+                                    is TokenPurpose.Tip,
                                     TokenPurpose.Deposit,
                                     TokenPurpose.Withdraw -> {
                                         if (it.token.address == Mint.usdf) {
@@ -173,6 +174,10 @@ class SelectTokenViewModel @Inject constructor(
                                     hasBalance
                                 }
 
+                                is TokenPurpose.Tip -> {
+                                    hasBalance
+                                }
+
                                 is TokenPurpose.Swap -> {
                                     if (it.token.address != purpose.desiredToken) {
                                         hasBalance
@@ -195,7 +200,7 @@ class SelectTokenViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnTokenSelected>()
-            .filter { stateFlow.value.purpose is TokenPurpose.Select }
+            .filter { stateFlow.value.purpose is TokenPurpose.TriggersChange }
             .filter { it.fromUser }
             .map { it.mint }
             .onEach { tokenCoordinator.selectToken(it) }

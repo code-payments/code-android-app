@@ -274,6 +274,7 @@
     <string name="description_noBalanceYetForBalance">Add money to get started</string>
     <string name="description_noBalanceYetToCreate">Add money to create a currency</string>
     <string name="description_noBalanceYetDiscover">Buy your first currency to get started</string>
+    <string name="description_noBalanceYetToTip">Add money to send tips</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="title_success">Success</string>
 
@@ -884,5 +885,16 @@
     <string name="placeholder_profileDisplayName">Your Name</string>
     <string name="subtitle_profileImageRecommended">500x500 Recommended</string>
     <string name="title_myTipCard">My Tip Card</string>
+    <string name="label_tip">Tip</string>
+    <string name="subtitle_myTipCard">Share Your Tip Card to Get Tipped</string>
+    <string name="action_showTipCard">Show My Tip Card</string>
+    <string name="title_sendTip">Send a Tip</string>
+    <string name="title_amountToTip">Amount to Tip</string>
+    <string name="label_of">of</string>
+    <string name="action_swipeToTip">Swipe to Tip</string>
+    <string name="content_description_customTipAmount">Enter a custom amount</string>
+    <string name="subtitle_tipHintMinimum">Minimum tip %1$s</string>
+    <string name="error_title_tipMinimum">Tips Start at %1$s</string>
+    <string name="error_description_tipMinimum">Enter a larger amount to send this tip</string>
 
 </resources>

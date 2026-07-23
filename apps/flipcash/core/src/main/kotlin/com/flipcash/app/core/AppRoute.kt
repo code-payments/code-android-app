@@ -174,6 +174,13 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class Tips(val resumed: Boolean = false): Sheets {
         }
 
+        /**
+         * Custom tip-amount entry, opened over the still-visible tip card + modal. The entered
+         * amount is written back to the shared tip selection so the modal reflects it on dismiss.
+         */
+        @Serializable
+        data object TipAmountEntry : Sheets
+
         @Serializable
         data object Wallet : Sheets
         @Serializable

@@ -2,6 +2,8 @@ package com.flipcash.app.cash
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,7 +53,12 @@ fun CashScreen(
     ) {
         AppBarWithTitle(
             title = {
-                TokenSelectionPill(state.token?.token) {
+                TokenSelectionPill(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    token = state.token?.token
+                ) {
                     navigator.push(
                         AppRoute.Sheets.TokenSelection(TokenPurpose.Select)
                     )

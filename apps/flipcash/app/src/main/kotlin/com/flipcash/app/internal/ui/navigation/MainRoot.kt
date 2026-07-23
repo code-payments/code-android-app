@@ -219,6 +219,7 @@ internal fun buildNavGraphForLaunch(
                     )
 
                     is DeeplinkAction.OpenCashLink,
+                    is DeeplinkAction.PresentTipCard,
                     is DeeplinkAction.Login -> LaunchNavGraph(
                         baseRoutes = listOf(AppRoute.Main.Scanner),
                         pendingAction = action,

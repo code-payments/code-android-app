@@ -20,9 +20,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.bills.components.ScannableCode
 import com.flipcash.services.models.UserProfile
+import com.flipcash.shared.bills.R
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
@@ -33,18 +36,23 @@ internal fun TipCard(
     payloadData: List<Byte>,
     user: UserProfile,
     modifier: Modifier = Modifier,
+    contentAlignment: Alignment = Alignment.Center,
 ) {
     BoxWithConstraints(
         modifier = modifier
             .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
             .padding(horizontal = CodeTheme.dimens.inset),
-        contentAlignment = Alignment.Center
+        contentAlignment = contentAlignment
     ) {
         val mW = this.maxWidth
         val codeSize = remember { mW * 0.65f }
 
         Column(
-            modifier = Modifier.background(CodeTheme.colors.tipCardColor, shape = CodeTheme.shapes.xxl)
+            modifier = Modifier
+                .background(
+                    CodeTheme.colors.tipCardColor,
+                    shape = CodeTheme.shapes.xxl,
+                )
                 .padding(vertical = CodeTheme.dimens.grid.x8, horizontal = CodeTheme.dimens.grid.x7)
                 .heightIn(0.dp, 800.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -62,7 +70,7 @@ internal fun TipCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Tip",
+                    text = stringResource(R.string.label_tip),
                     style = CodeTheme.typography.textMedium,
                     color = CodeTheme.colors.textMain,
                 )

@@ -22,6 +22,7 @@ import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.LocalContactCoordinator
 import com.flipcash.app.core.LocalUserManager
+import com.flipcash.app.core.tipping.LocalTipCoordinator
 import com.flipcash.app.core.toast.LocalToastController
 import com.flipcash.app.core.toast.ToastController
 import com.flipcash.app.core.verification.email.EmailCodeChannel
@@ -44,6 +45,7 @@ import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.updates.AppUpdateController
 import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.tipping.TippingCoordinator
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.exchange.Exchange
@@ -136,6 +138,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var coinbaseOnRampController: CoinbaseOnRampController
 
+    @Inject
+    lateinit var tippingCoordinator: TippingCoordinator
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -168,6 +173,7 @@ class MainActivity : FragmentActivity() {
                 LocalContactCoordinator provides contactCoordinator,
                 LocalToastController provides toastController,
                 LocalCoinbaseOnRampController provides coinbaseOnRampController,
+                LocalTipCoordinator provides tippingCoordinator,
                 LocalUiTesting provides intent.getBooleanExtra(UI_TEST, false),
             ) {
                 ProvidePermissionChecker(permissionChecker) {

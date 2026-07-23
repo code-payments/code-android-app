@@ -22,6 +22,7 @@ import com.getcode.theme.CodeTheme
 fun Modal(
     modifier: Modifier = Modifier,
     backgroundColor: Color = CodeTheme.colors.brandContainer,
+    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(
@@ -39,7 +40,7 @@ fun Modal(
                 .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x2)
                 .windowInsetsPadding(WindowInsets.navigationBars),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
+            verticalArrangement = verticalArrangement,
         ) {
             content()
         }
