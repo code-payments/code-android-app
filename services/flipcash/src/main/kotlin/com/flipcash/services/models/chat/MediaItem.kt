@@ -16,7 +16,7 @@ data class MediaItem(
      * This never upgrades above [preferred] — e.g. `rendition(Role.THUMBNAIL)` will not
      * return the ORIGINAL.
      */
-    fun rendition(preferred: MediaItemRendition.Role): MediaItemRendition? {
+    fun rendition(preferred: MediaItemRendition.Role = MediaItemRendition.Role.ORIGINAL): MediaItemRendition? {
         val start = QUALITY_LADDER.indexOf(preferred)
         if (start < 0) return null // UNKNOWN / non-ladder roles have no fallback chain
         for (i in start until QUALITY_LADDER.size) {
@@ -27,7 +27,7 @@ data class MediaItem(
     }
 
     /** Download URL of the rendition resolved for [preferred], or null if none is available. */
-    fun url(preferred: MediaItemRendition.Role): String? =
+    fun url(preferred: MediaItemRendition.Role = MediaItemRendition.Role.ORIGINAL): String? =
         rendition(preferred)?.blob?.downloadUrl
 
     companion object {

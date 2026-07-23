@@ -20,6 +20,10 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
 
+    // Coil core (no Compose) to load remote profile-picture avatars for chat
+    // notifications, reusing the app's SingletonImageLoader + disk cache.
+    implementation(libs.coil3.core)
+
     implementation(libs.androidx.datastore)
 
     testImplementation(kotlin("test"))

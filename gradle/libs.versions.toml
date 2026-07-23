@@ -150,6 +150,7 @@ ksp-symbol-processing = { module = "com.google.devtools.ksp:symbol-processing-ap
 
 # Coil
 coil3 = { module = "io.coil-kt.coil3:coil-compose", version.ref = "compose-coil" }
+coil3-core = { module = "io.coil-kt.coil3:coil-core", version.ref = "compose-coil" }
 coil3-network = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "compose-coil" }
 
 # Hilt
