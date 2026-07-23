@@ -125,6 +125,7 @@ class SessionControllerGiftCardErrorTest {
             cashLinkDelegate = cashLinkDelegate,
             depositDelegate = mockk(relaxed = true),
             giftCardDelegate = giftCardDelegate,
+            tippingDelegate = mockk(relaxed = true),
             stateHolder = stateHolder,
             billController = billController,
             userManager = userManager,

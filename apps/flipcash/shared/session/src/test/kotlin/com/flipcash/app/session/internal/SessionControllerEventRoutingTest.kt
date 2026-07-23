@@ -102,6 +102,7 @@ class SessionControllerEventRoutingTest {
             cashLinkDelegate = cashLinkDelegate,
             depositDelegate = mockk(relaxed = true),
             giftCardDelegate = giftCardDelegate,
+            tippingDelegate = mockk(relaxed = true),
             stateHolder = SessionStateHolder(),
             billController = billController,
             userManager = userManager,
