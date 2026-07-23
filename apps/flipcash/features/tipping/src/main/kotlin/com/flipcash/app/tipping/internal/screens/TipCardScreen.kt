@@ -25,6 +25,7 @@ import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.tipping.TipResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.tipping.internal.TipFlowViewModel
+import com.flipcash.app.tipping.internal.TipFlowViewModel.Event
 import com.flipcash.features.tipping.R
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
@@ -63,11 +64,13 @@ internal fun TipCardScreen() {
                     CircularIconButton(
                         imageSize = CodeTheme.dimens.staticGrid.x6,
                         buttonSize = CodeTheme.dimens.grid.x12,
-                        onClick = {}
+                        onClick = {
+                            viewModel.dispatchEvent(Event.ShareTipCard)
+                        }
                     ) { size ->
                         Icon(
                             painter = painterResource(R.drawable.ic_remote_send),
-                            contentDescription = "",
+                            contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.requiredSize(size),
                         )
@@ -89,7 +92,7 @@ internal fun TipCardScreen() {
         ) {
             Text(
                 modifier = Modifier.padding(top = CodeTheme.dimens.grid.x10),
-                text = "Share Your Tipcard to Get Tipped",
+                text = stringResource(R.string.subtitle_myTipCard),
                 style = CodeTheme.typography.textLarge,
                 color = CodeTheme.colors.textMain,
             )

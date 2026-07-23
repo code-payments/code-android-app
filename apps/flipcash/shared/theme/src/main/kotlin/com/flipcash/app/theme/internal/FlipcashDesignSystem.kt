@@ -118,7 +118,7 @@ private val colors = with(Flipcash2ColorSpec) {
         toggleUncheckedTrackColor = Color(0xFF666666),
         cashBill = cashBill,
         cashBillDecorColor = Color.White.copy(0.60f),
-        tipCard = Color.Black.copy(alpha = 0.36f),
+        tipCard = Color(0xFF101011),
         betaIndicator = BetaIndicator,
         bannerThemed = bannerThemed,
         bannerError = Error,

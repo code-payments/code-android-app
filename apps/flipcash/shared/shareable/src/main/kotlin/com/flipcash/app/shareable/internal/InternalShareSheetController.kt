@@ -22,6 +22,7 @@ import com.flipcash.app.shareable.ShareablePendingData.CashLink
 import com.flipcash.shared.shareable.R
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.accounts.entropy
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -32,6 +33,7 @@ import java.security.SecureRandom
 import java.util.Timer
 import java.util.TimerTask
 import kotlin.concurrent.schedule
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 
@@ -100,6 +102,7 @@ internal class InternalShareSheetController(
                 Shareable.DownloadLink -> Unit
                 is Shareable.TokenInfo -> Unit
                 is Shareable.Invite -> Unit
+                is Shareable.TipCard -> Unit
             }
         }
     }
@@ -125,7 +128,7 @@ internal class InternalShareSheetController(
                 pendingShareable = shareable.copy(pendingData = pendingData)
 
                 shareCashLink(shareable.giftCardAccount, shareable.amount)
-                delay(300)
+                delay(300.milliseconds)
                 isChecking = true
                 LocalBroadcastManager.getInstance(context).registerReceiver(
                     shareResultReceiver,
@@ -144,6 +147,8 @@ internal class InternalShareSheetController(
             is Shareable.Invite -> {
                 shareInviteLink()
             }
+
+            is Shareable.TipCard -> shareTipCard(shareable.userId)
         }
     }
 
@@ -272,6 +277,21 @@ internal class InternalShareSheetController(
                 Intent.EXTRA_SUBJECT,
                 resources.getString(R.string.title_shareToken, token.name)
             )
+            putExtra(Intent.EXTRA_TEXT, url)
+            type = "text/plain"
+        }
+
+        val share = Intent.createChooser(intent, null).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+
+        context.startActivity(share)
+    }
+
+    private fun shareTipCard(userId: ID) {
+        val url = Linkify.tipcard(userId)
+        val intent = Intent().apply {
+            action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_TEXT, url)
             type = "text/plain"
         }

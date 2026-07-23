@@ -104,6 +104,7 @@ secrets-gradle-plugin = "2.0.1"
 firebase-perf-plugin = "2.0.2"
 uiToolingPreview = "1.11.4"
 uiTooling = "1.11.4"
+foundationLayout = "1.11.4"
 
 [libraries]
 # Desugaring
@@ -304,6 +305,7 @@ kotlin-serialization-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-ser
 kover-gradle-plugin = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "kover" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview", version.ref = "uiToolingPreview" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", version.ref = "uiTooling" }
+androidx-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 
 [bundles]
 compose = ["compose-ui", "compose-foundation", "compose-material", "compose-material-icons-extended", "compose-animation", "compose-activities"]

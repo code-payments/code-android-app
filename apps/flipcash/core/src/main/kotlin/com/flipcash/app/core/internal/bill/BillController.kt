@@ -28,16 +28,15 @@ class BillController @Inject constructor(
     private val transactionManager: BillTransactionManager,
     private val userFlags: UserFlagsCoordinator,
 ) {
-    private val _state = MutableStateFlow(BillState.Default)
     val state: StateFlow<BillState>
-        get() = _state
+        field = MutableStateFlow(BillState.Default)
 
     fun update(function: (BillState) -> BillState) {
-        _state.update(function)
+        state.update(function)
     }
 
     fun reset(showToast: Boolean = false) {
-        _state.update { state ->
+        state.update { state ->
             BillState.Default.copy(showToast = showToast, toast = state.toast)
         }
         transactionManager.reset()

@@ -194,15 +194,19 @@ class TokenCoordinator @Inject constructor(
     // region Public API — Balances
 
     /** Can I hand money to a person right now? */
-    suspend fun hasGiveableBalance(): Boolean {
+    suspend fun hasGiveableBalance(atLeast: Fiat = Fiat.Zero): Boolean {
         // USDF is only giveable when the GiveUsdf flag is on; otherwise a USDF-only
         // balance must not count as giveable.
         val canGiveUsdf = featureFlags.get(FeatureFlag.GiveUsdf)
         val state = _state.value
         return state.balances.filterKeys { canGiveUsdf || it != Mint.usdf }
             .values
-            .any { it.hasDisplayableValue }
+            .any { balance ->
+                if (atLeast > Fiat.Zero) balance.valueGreaterThanOrEqualTo(atLeast)
+                else balance.hasDisplayableValue
+            }
     }
+
 
     /** Do I have any balance at all, including reserves? */
     suspend fun hasBalance(): Boolean =

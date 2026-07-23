@@ -26,7 +26,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.scene.OverlayScene
@@ -302,6 +301,7 @@ internal fun App(
                                             onDismissed = { }
                                         )
 
+                                        is DeeplinkAction.PresentTipCard -> session.resolveTipCard(action.userId)
                                         is DeeplinkAction.OpenCashLink -> session.openCashLink(
                                             action.entropy
                                         )

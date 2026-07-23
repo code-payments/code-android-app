@@ -21,11 +21,13 @@ import com.flipcash.app.session.DepositOperations
 import com.flipcash.app.session.PutInWallet
 import com.flipcash.app.session.SessionController
 import com.flipcash.app.session.SessionState
+import com.flipcash.app.session.TipCardOperations
 import com.flipcash.app.session.internal.delegates.BillPresentationDelegate
 import com.flipcash.app.session.internal.delegates.CashLinkDelegate
 import com.flipcash.app.session.internal.delegates.CodeScanDelegate
 import com.flipcash.app.session.internal.delegates.DepositDelegate
 import com.flipcash.app.session.internal.delegates.GiftCardSharingDelegate
+import com.flipcash.app.session.internal.delegates.TipCardDelegate
 import com.flipcash.app.session.internal.toast.SessionToastController
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.tokens.TokenCoordinator
@@ -55,15 +57,16 @@ import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Thin orchestration shell that implements [SessionController] by composing five
+ * Thin orchestration shell that implements [SessionController] by composing six
  * focused delegates via Kotlin `by` interface delegation:
  *
  * | Delegate | Interface | Responsibility |
  * |----------|-----------|----------------|
- * | [com.flipcash.app.session.internal.delegates.BillPresentationDelegate] | [BillOperations] | Creating, presenting, and dismissing cash bills |
+ * | [com.flipcash.app.session.internal.delegates.BillPresentationDelegate] | [BillOperations] | Creating, presenting, and dismissing cash bills (and presenting resolved tip cards) |
  * | [com.flipcash.app.session.internal.delegates.CodeScanDelegate] | [CodeScanOperations] | QR/Kik-code scanning and grab attempts |
  * | [com.flipcash.app.session.internal.delegates.CashLinkDelegate] | [CashLinkOperations] | Cash-link claiming |
  * | [com.flipcash.app.session.internal.delegates.DepositDelegate] | [DepositOperations] | Deposit options and USDC sweep |
+ * | [com.flipcash.app.session.internal.delegates.TipCardDelegate] | [TipCardOperations] | Resolving another user's tip card for presentation |
  * | [com.flipcash.app.session.internal.delegates.GiftCardSharingDelegate] | *(internal)* | "Send as Link" gift-card funding + share |
  *
  * **What lives here (and why):**
@@ -87,6 +90,7 @@ class RealSessionController @Inject constructor(
     private val cashLinkDelegate: CashLinkDelegate,
     private val depositDelegate: DepositDelegate,
     private val giftCardDelegate: GiftCardSharingDelegate,
+    private val tippingDelegate: TipCardDelegate,
     private val stateHolder: SessionStateHolder,
     private val billController: BillController,
     private val userManager: UserManager,
@@ -110,7 +114,8 @@ class RealSessionController @Inject constructor(
 ) : SessionController, BillOperations by billDelegate,
     CodeScanOperations by scanDelegate,
     CashLinkOperations by cashLinkDelegate,
-    DepositOperations by depositDelegate {
+    DepositOperations by depositDelegate,
+    TipCardOperations by tippingDelegate {
 
     private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
 
@@ -135,6 +140,17 @@ class RealSessionController @Inject constructor(
                     is CodeScanDelegate.Event.BillReady -> showBill(event.bill)
                     is CodeScanDelegate.Event.RefreshFeed -> bringActivityFeedCurrent()
                     is CodeScanDelegate.Event.CheckPendingFeed -> checkPendingItemsInFeed()
+                    is CodeScanDelegate.Event.TipCardScanned -> resolveTipCard(event.userId)
+                }
+            }.launchIn(scope)
+
+        // Tip card resolved (via scan or deeplink) → hand to the bill delegate to present.
+        // Presentation is already balance-gated in TipCardDelegate, so an unaffordable
+        // tip never reaches here (no card to dismiss).
+        tippingDelegate.events
+            .onEach { event ->
+                when (event) {
+                    is TipCardDelegate.Event.Present -> billDelegate.presentTipCard(event.card)
                 }
             }.launchIn(scope)
 

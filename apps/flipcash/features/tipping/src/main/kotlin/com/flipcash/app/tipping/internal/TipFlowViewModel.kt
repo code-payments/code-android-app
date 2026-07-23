@@ -5,8 +5,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.tipping.TipStep
+import com.flipcash.app.shareable.ShareSheetController
+import com.flipcash.app.shareable.Shareable
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
+import com.getcode.opencode.model.core.ID
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.ui.ConversationReference
@@ -14,6 +17,7 @@ import com.flipcash.shared.tipping.TippingCoordinator
 import com.getcode.view.BaseViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -25,6 +29,7 @@ internal class TipFlowViewModel @Inject constructor(
     chatCoordinator: ChatCoordinator,
     userManager: UserManager,
     tippingCoordinator: TippingCoordinator,
+    shareable: ShareSheetController,
 ) : BaseViewModel<TipFlowViewModel.State, TipFlowViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -47,6 +52,7 @@ internal class TipFlowViewModel @Inject constructor(
         /** How the flow was entered — [resumed] is true for the post-setup handoff re-entry. */
         data class OnResumed(val resumed: Boolean) : Event
         data class OnTipCardPopulated(val card: Scannable.TipCard) : Event
+        data object ShareTipCard: Event
     }
 
     init {
@@ -79,13 +85,27 @@ internal class TipFlowViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         chatCoordinator.feed(ChatType.TIP_DM)
-            .onEach { summaries -> dispatchEvent(Event.ChatsUpdated(summaries.map { it.toPreview() })) }
+            .onEach { summaries ->
+                val selfId = userManager.accountId
+                dispatchEvent(Event.ChatsUpdated(summaries.map { it.toPreview(selfId) }))
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ShareTipCard>()
+            .mapNotNull { tippingCoordinator.currentUserId }
+            .map { shareable.present(Shareable.TipCard(it)) }
             .launchIn(viewModelScope)
     }
 
-    private fun ChatSummary.toPreview(): ConversationReference {
+    private fun ChatSummary.toPreview(selfId: ID?): ConversationReference {
+        // A tip DM has no separate contact, so carry the counterparty's identity (name + avatar)
+        // straight from the chat member that isn't us.
+        val other = metadata.members.firstOrNull { it.userId != selfId }
         return ConversationReference(
             chatId = metadata.chatId,
+            displayName = other?.userProfile?.displayName,
+            image = other?.userProfile?.profilePicture,
             lastMessagePreview = null, // TODO:
             unreadCount = unreadCount,
         )
@@ -99,6 +119,7 @@ internal class TipFlowViewModel @Inject constructor(
                 is Event.ChatsUpdated -> { state -> state.copy(tipChats = event.tips) }
                 is Event.OnResumed -> { state -> state.copy(resumed = event.resumed) }
                 is Event.OnTipCardPopulated -> { state -> state.copy(tipCard = event.card) }
+                is Event.ShareTipCard -> { state -> state }
             }
         }
     }

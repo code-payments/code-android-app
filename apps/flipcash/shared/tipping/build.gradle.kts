@@ -11,6 +11,13 @@ dependencies {
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.robolectric)
 
+    implementation(project(":apps:flipcash:shared:analytics"))
+    implementation(project(":apps:flipcash:shared:chat"))
+    implementation(project(":apps:flipcash:shared:payments"))
+    implementation(project(":apps:flipcash:shared:region-selection:core"))
+    implementation(project(":apps:flipcash:shared:tokens"))
+    implementation(project(":apps:flipcash:shared:userflags"))
+    implementation(project(":libs:messaging"))
     implementation(project(":services:flipcash"))
     implementation(project(":services:opencode"))
 }

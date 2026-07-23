@@ -23,4 +23,5 @@ dependencies {
     implementation(project(":libs:vibrator:bindings"))
     implementation(project(":ui:biometrics"))
     implementation(project(":ui:scanner"))
+    implementation(libs.androidx.foundation.layout)
 }
