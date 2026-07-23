@@ -7,10 +7,14 @@ android {
 }
 
 dependencies {
-    implementation(project(":apps:flipcash:shared:analytics"))
-    implementation(project(":apps:flipcash:shared:featureflags"))
-    implementation(project(":apps:flipcash:shared:tokens:core"))
-    implementation(project(":apps:flipcash:shared:userflags"))
-    implementation(project(":libs:messaging"))
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.robolectric)
+
+    implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:shared:chat"))
+    implementation(project(":apps:flipcash:shared:contacts"))
+    implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":services:flipcash"))
+    implementation(project(":services:opencode"))
 }

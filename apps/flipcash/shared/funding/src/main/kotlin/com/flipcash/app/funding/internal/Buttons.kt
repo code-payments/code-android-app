@@ -1,4 +1,4 @@
-package com.flipcash.app.payments.internal
+package com.flipcash.app.funding.internal
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -19,11 +19,11 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.app.core.money.formatted
-import com.flipcash.app.payments.PaymentAction
-import com.flipcash.app.payments.PurchaseMethod
-import com.flipcash.app.payments.PurchaseMethodMetadata
-import com.flipcash.app.payments.PurchaseMethodState
-import com.flipcash.shared.payments.R
+import com.flipcash.app.funding.PaymentAction
+import com.flipcash.app.funding.PurchaseMethod
+import com.flipcash.app.funding.PurchaseMethodMetadata
+import com.flipcash.app.funding.PurchaseMethodState
+import com.flipcash.shared.funding.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.financial.Fiat

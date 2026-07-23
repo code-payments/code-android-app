@@ -1,14 +1,13 @@
 package com.flipcash.shared.tipping
 
 import com.flipcash.app.currency.PreferredCurrencyController
-import com.flipcash.app.payments.PurchaseMethodController
+import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.controllers.ProfileController
-import com.flipcash.services.controllers.ResolverController
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.UserManager
-import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
@@ -36,7 +35,7 @@ class TippingCoordinatorTest {
 
     private val profileController = mockk<ProfileController>()
     private val userManager = mockk<UserManager>()
-    private val resolverController = mockk<ResolverController>()
+    private val tipPaymentDelegate = mockk<TipPaymentDelegate>(relaxed = true)
     private val userFlags = mockk<UserFlagsCoordinator>(relaxed = true)
     private val preferredCurrency = mockk<PreferredCurrencyController>(relaxed = true)
     private val exchange = mockk<Exchange>(relaxed = true)
@@ -44,7 +43,6 @@ class TippingCoordinatorTest {
     private val transactionController = mockk<TransactionController>(relaxed = true)
     private val verifiedFiatCalculator = mockk<VerifiedFiatCalculator>(relaxed = true)
     private val resources = mockk<ResourceHelper>(relaxed = true)
-    private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true)
     private val purchaseMethodController = mockk<PurchaseMethodController>(relaxed = true)
 
     // Per-transaction send limit of $100 for USD; no limit for any other currency.
@@ -58,13 +56,12 @@ class TippingCoordinatorTest {
         userFlags,
         profileController,
         userManager,
-        resolverController,
+        tipPaymentDelegate,
         exchange,
         tokenCoordinator,
         transactionController,
         verifiedFiatCalculator,
         resources,
-        chatCoordinator,
         purchaseMethodController,
     )
 

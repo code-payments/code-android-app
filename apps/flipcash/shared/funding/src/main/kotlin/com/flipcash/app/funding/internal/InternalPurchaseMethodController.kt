@@ -1,4 +1,4 @@
-package com.flipcash.app.payments.internal
+package com.flipcash.app.funding.internal
 
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
@@ -7,19 +7,19 @@ import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.payments.PaymentAction
-import com.flipcash.app.payments.PurchaseMethod
-import com.flipcash.app.payments.PurchaseMethodController
-import com.flipcash.app.payments.PurchaseMethodMetadata
-import com.flipcash.app.payments.PurchaseMethodSelection
-import com.flipcash.app.payments.PurchaseMethodState
-import com.flipcash.app.payments.PurchasePurpose
+import com.flipcash.app.funding.PaymentAction
+import com.flipcash.app.funding.PurchaseMethod
+import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.app.funding.PurchaseMethodMetadata
+import com.flipcash.app.funding.PurchaseMethodSelection
+import com.flipcash.app.funding.PurchaseMethodState
+import com.flipcash.app.funding.PurchasePurpose
 import com.flipcash.app.tokens.core.ReservesBalanceProvider
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampType
 import com.flipcash.services.user.UserManager
-import com.flipcash.shared.payments.R
+import com.flipcash.shared.funding.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.LocalFiat

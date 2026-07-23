@@ -6,7 +6,7 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.payments.PurchaseMethodController
+import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.AuthState

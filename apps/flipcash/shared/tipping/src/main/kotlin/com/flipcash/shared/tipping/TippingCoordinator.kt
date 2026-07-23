@@ -7,16 +7,13 @@ import com.flipcash.app.core.tipping.TipEvent
 import com.flipcash.app.core.tipping.TipSelectionHolder
 import com.flipcash.app.core.tipping.TipSelectionState
 import com.flipcash.app.currency.PreferredCurrencyController
-import com.flipcash.app.payments.PurchaseMethodController
+import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.controllers.ProfileController
-import com.flipcash.services.controllers.ResolverController
 import com.flipcash.services.models.UserProfile
-import com.flipcash.services.models.buildDmPaymentMetadata
-import com.flipcash.services.models.buildTipDmPaymentMetadata
 import com.flipcash.services.user.UserManager
-import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
@@ -67,15 +64,13 @@ class TippingCoordinator @Inject constructor(
     userFlags: UserFlagsCoordinator,
     private val profileController: ProfileController,
     private val userManager: UserManager,
-    private val resolverController: ResolverController,
+    private val tipPaymentDelegate: TipPaymentDelegate,
     private val exchange: Exchange,
     private val tokenCoordinator: TokenCoordinator,
     private val transactionController: TransactionController,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val resources: ResourceHelper,
-    private val chatCoordinator: ChatCoordinator,
     private val purchaseMethodController: PurchaseMethodController,
-
 ) : TipSelectionHolder {
     /** The signed-in user's id ([UserManager.accountId]), or null if unavailable. */
     val currentUserId: ID?
@@ -245,67 +240,38 @@ class TippingCoordinator @Inject constructor(
                 return@launch
             }
 
-            val canonicalChatId = chatCoordinator.generateChatId(userId = userForTip).getOrNull()
-
-            val appMetadataBytes = buildTipDmPaymentMetadata(
-                chatId = canonicalChatId,
-            )
-
-            resolverController.resolve(userId = userForTip)
-                .fold(
-                    onSuccess = { destination ->
-                        transactionController.directTransfer(
-                            amount = verifiedFiat,
-                            token = token,
-                            source = source,
-                            destinationOwner = destination,
-                            appMetadata = appMetadataBytes,
-                        )
-                    },
-                    onFailure = {
-                        Result.failure(it)
-                    }
-                ).fold(
-                    onSuccess = {
-                        tokenCoordinator.subtract(token, verifiedFiat.localFiat)
-                        Result.success(verifiedFiat)
-                    },
-                    onFailure = { Result.failure(it) }
-                ).onSuccess { amount ->
-                    setSendState(LoadingSuccessState(success = true))
-                    if (canonicalChatId != null) {
-                        chatCoordinator.loadMessages(canonicalChatId)
-                    } else {
-                        // New conversation — server just created the DM chat.
-                        // Sync the feed so it appears in the contact list.
-                        chatCoordinator.refreshFeed()
-                    }
-                    delay(400.milliseconds)
-                    setSendState(LoadingSuccessState())
+            tipPaymentDelegate.send(
+                userId = userForTip,
+                verifiedFiat = verifiedFiat,
+                token = token,
+                source = source,
+            ).onSuccess { canonicalChatId ->
+                setSendState(LoadingSuccessState(success = true))
+                delay(400.milliseconds)
+                setSendState(LoadingSuccessState())
 //                    analytics.transfer(
 //                        event = Analytics.Transfer.SentCash,
 //                        amount = verifiedFiat.localFiat,
 //                        successful = true,
 //                    )
 
-                    // Hand off to the tipped user's chat via the tips flow, so backing out of the
-                    // chat lands on the tips list.
-                    canonicalChatId?.let {
-                        _events.emit(TipEvent.LaunchChat(ChatIdentifier.ByChatId(it)))
-                    }
-
-                }.onFailure { cause ->
-                    setSendState(LoadingSuccessState())
+                // Hand off to the tipped user's chat via the tips flow, so backing out of the
+                // chat lands on the tips list.
+                canonicalChatId?.let {
+                    _events.emit(TipEvent.LaunchChat(ChatIdentifier.ByChatId(it)))
+                }
+            }.onFailure {
+                setSendState(LoadingSuccessState())
 //                    analytics.transfer(
 //                        event = Analytics.Transfer.SentCash,
 //                        amount = verifiedFiat.localFiat,
 //                        error = cause,
 //                    )
-                    BottomBarManager.showError(
-                        title = resources.getString(R.string.error_title_cashFailedToSend),
-                        message = resources.getString(R.string.error_description_cashFailedToSend),
-                    )
-                }
+                BottomBarManager.showError(
+                    title = resources.getString(R.string.error_title_cashFailedToSend),
+                    message = resources.getString(R.string.error_description_cashFailedToSend),
+                )
+            }
         }
     }
 

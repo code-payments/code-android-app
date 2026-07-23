@@ -13,7 +13,7 @@ dependencies {
 
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:featureflags"))
-    implementation(project(":apps:flipcash:shared:payments"))
+    implementation(project(":apps:flipcash:shared:funding"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":libs:datetime"))

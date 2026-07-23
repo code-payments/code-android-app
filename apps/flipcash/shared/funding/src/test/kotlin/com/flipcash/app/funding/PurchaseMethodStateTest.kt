@@ -1,4 +1,4 @@
-package com.flipcash.app.payments
+package com.flipcash.app.funding
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

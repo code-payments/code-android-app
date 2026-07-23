@@ -11,7 +11,7 @@ import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.tokens.CurrencyCreatorDraft
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
 import com.flipcash.app.currencycreator.CurrencyCreatorCoordinator
-import com.flipcash.app.payments.PurchaseMethodController
+import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator

@@ -7,7 +7,7 @@ import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.payments.PurchaseMethodController
+import com.flipcash.app.funding.PurchaseMethodController
 
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable

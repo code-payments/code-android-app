@@ -1,4 +1,4 @@
-package com.flipcash.app.payments
+package com.flipcash.app.funding
 
 import com.flipcash.app.core.AppRoute
 import kotlinx.coroutines.flow.Flow

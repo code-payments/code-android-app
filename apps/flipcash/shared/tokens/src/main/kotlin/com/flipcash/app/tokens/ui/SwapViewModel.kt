@@ -25,9 +25,9 @@ import com.flipcash.app.onramp.PurchaseGate
 import com.flipcash.app.onramp.isAlert
 import com.flipcash.app.onramp.isNetworkCause
 import com.flipcash.app.onramp.messaging
-import com.flipcash.app.payments.PurchaseMethod
-import com.flipcash.app.payments.PurchaseMethodController
-import com.flipcash.app.payments.PurchaseMethodMetadata
+import com.flipcash.app.funding.PurchaseMethod
+import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.app.funding.PurchaseMethodMetadata
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.app.userflags.UserFlagsCoordinator
