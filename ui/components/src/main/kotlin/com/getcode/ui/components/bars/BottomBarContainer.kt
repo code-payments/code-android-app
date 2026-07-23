@@ -17,13 +17,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.Icon
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.Text
@@ -56,6 +52,7 @@ import com.getcode.manager.SelectedBottomBarAction
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White50
+import com.getcode.ui.components.Modal
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.rememberAnimationScale
 import androidx.compose.foundation.clickable
@@ -69,7 +66,10 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
-fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.BottomBarMessage) -> Unit = {}) {
+fun BottomBarContainer(
+    barMessages: BarMessages,
+    onShown: (BottomBarManager.BottomBarMessage) -> Unit = {}
+) {
     val scope = rememberCoroutineScope()
     val bottomBarMessage by barMessages.bottomBar.collectAsStateWithLifecycle()
     val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
@@ -203,24 +203,15 @@ fun BottomBarView(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.BottomCenter
     ) {
-        Column(
-            modifier = Modifier
-                .background(
-                    bottomBarMessage.type.backgroundColor(),
-                    CodeTheme.shapes.medium.copy(
-                        bottomStart = CornerSize(0),
-                        bottomEnd = CornerSize(0)
-                    )
-                )
-                .fillMaxWidth()
-                .padding(top = CodeTheme.dimens.inset)
-                .padding(horizontal = CodeTheme.dimens.inset)
-                .windowInsetsPadding(WindowInsets.navigationBars),
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
+        Modal(
+            backgroundColor = bottomBarMessage.type.backgroundColor(),
         ) {
             if (bottomBarMessage.title.isNotEmpty()) {
                 CompositionLocalProvider(LocalContentColor provides White) {
-                    Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
+                    ) {
                         Text(
                             style = CodeTheme.typography.textMedium,
                             text = bottomBarMessage.title
@@ -296,7 +287,8 @@ fun BottomBarView(
 
                 actions.fastForEachIndexed { index, action ->
                     CodeButton(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .addIf(index == actions.lastIndex) {
                                 Modifier.padding(
                                     bottom = when (action.style) {
@@ -327,6 +319,7 @@ fun BottomBarView(
                                 BottomBarManager.BottomBarButtonStyle.Outlined -> Color.White
                                 BottomBarManager.BottomBarButtonStyle.Text -> White50
                             }
+
                             BottomBarManager.BottomBarMessageType.WARNING -> Color.Black
                             BottomBarManager.BottomBarMessageType.INFO -> when (action.style) {
                                 BottomBarManager.BottomBarButtonStyle.Text -> White50
