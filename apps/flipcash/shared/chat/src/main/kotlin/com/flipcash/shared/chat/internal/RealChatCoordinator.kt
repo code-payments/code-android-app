@@ -12,11 +12,13 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatState
+import com.flipcash.shared.chat.DmChatResolver
 import com.flipcash.shared.chat.EventStreamOperations
 import com.flipcash.shared.chat.FeedOperations
 import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.internal.delegates.EventStreamDelegate
 import com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate
+import com.flipcash.shared.chat.internal.delegates.DmChatResolverDelegate
 import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.providers.SessionListener
@@ -52,6 +54,7 @@ import kotlin.time.Duration.Companion.seconds
  * |----------|-----------|----------------|
  * | [FeedSyncDelegate] | [FeedOperations] | Feed sync, DB observation, unread counts |
  * | [EventStreamDelegate] | [EventStreamOperations] | Event stream, real-time updates, gap-aware sequencing, reactions, typing |
+ * | [DmChatResolverDelegate] | [DmChatResolver] | Resolve a DM's [ChatId] from its participants (derive or look up) |
  * | [MessagingDelegate] | [MessagingOperations] | Per-chat send/receive, read pointers, paging, notifications |
  *
  * **What lives here (and why):**
@@ -72,6 +75,7 @@ import kotlin.time.Duration.Companion.seconds
 class RealChatCoordinator @Inject constructor(
     private val feedDelegate: FeedSyncDelegate,
     private val eventStreamDelegate: EventStreamDelegate,
+    private val dmChatResolverDelegate: DmChatResolverDelegate,
     private val messagingDelegate: MessagingDelegate,
     private val stateHolder: ChatStateHolder,
     private val userManager: UserManager,
@@ -83,6 +87,7 @@ class RealChatCoordinator @Inject constructor(
     DefaultLifecycleObserver,
     FeedOperations by feedDelegate,
     EventStreamOperations by eventStreamDelegate,
+    DmChatResolver by dmChatResolverDelegate,
     MessagingOperations by messagingDelegate {
 
     companion object {

@@ -13,6 +13,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.TypingState
+import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -49,15 +50,53 @@ interface EventStreamOperations {
 }
 
 /**
- * Per-chat messaging operations: sending, receiving, read receipts, and identity.
+ * Resolves the [ChatId] of a DM from its participants, independent of any single
+ * conversation. Two ways to arrive at an id:
  *
- * All methods target a single conversation identified by [ChatId].
+ * - **Derive** ([generateChatId]) — compute the canonical DM id from the
+ *   participants alone. Deterministic and order-independent, so either user
+ *   reaches the same id without a prior lookup, matching the server's
+ *   `MustDeriveDmChatID`. Works even before a chat has been initialized.
+ * - **Look up** ([getChatId]) — return the id of an *already-initialized* DM
+ *   from local persistence, failing with [NoDmChatInitializedException] if none
+ *   exists yet.
+ *
+ * Only tip DMs are derivable client-side: derivation needs the counterparty's
+ * `UserId`, which the client has for a tip target but not for a phone [contact]
+ * (`FlipcashContact` carries no user id). Contact DMs don't need it anyway — the
+ * server pre-derives their id and delivers it via `GetFlipcashContacts`, so a
+ * contact's id is always resolved through [getChatId], never derived.
+ *
+ * Implemented by [com.flipcash.shared.chat.internal.delegates.DmChatResolverDelegate].
+ */
+interface DmChatResolver {
+    /** Derives the canonical TIP_DM [ChatId] between the current user and [userId]. */
+    suspend fun generateChatId(userId: ID): Result<ChatId>
+
+    /** Resolves the [ChatId] for an existing DM with [contact]. */
+    suspend fun getChatId(contact: DeviceContact): Result<ChatId>
+
+    /** Resolves the [ChatId] for an existing DM with [userId] (tip chat). */
+    suspend fun getChatId(userId: ID): Result<ChatId>
+}
+
+/**
+ * Per-chat messaging operations: sending, receiving, and read receipts.
+ *
+ * All methods target a single conversation identified by [ChatId]. Resolving
+ * *which* [ChatId] to operate on is [DmChatResolver]'s job.
  *
  * Implemented by [com.flipcash.shared.chat.internal.delegates.MessagingDelegate].
  */
 interface MessagingOperations {
-    /** Resolves the [ChatId] for an existing DM with [contact]. */
-    suspend fun getChatId(contact: DeviceContact): Result<ChatId>
+    /**
+     * Returns the other member of a DM (fetching from the server and persisting
+     * if not cached locally), or `null` if it can't be resolved. Chat-type
+     * agnostic — the returned [ChatMember] carries the counterparty's
+     * [com.flipcash.services.models.UserProfile] (display name, avatar) for
+     * rendering a sender without a phone contact.
+     */
+    suspend fun getOtherMember(chatId: ChatId): ChatMember?
 
     /** Returns the E.164 phone number of the other member in a DM, or `null` if unknown. */
     suspend fun getOtherMemberE164(chatId: ChatId): String?
@@ -104,7 +143,7 @@ interface MessagingOperations {
 
 /**
  * Unified facade for the chat subsystem, composing [FeedOperations],
- * [EventStreamOperations], and [MessagingOperations].
+ * [EventStreamOperations], [DmChatResolver], and [MessagingOperations].
  *
  * The concrete implementation is
  * [RealChatCoordinator][com.flipcash.shared.chat.internal.RealChatCoordinator],
@@ -113,7 +152,7 @@ interface MessagingOperations {
  *
  * @see com.flipcash.shared.chat.internal.RealChatCoordinator
  */
-interface ChatCoordinator : FeedOperations, EventStreamOperations, MessagingOperations {
+interface ChatCoordinator : FeedOperations, EventStreamOperations, DmChatResolver, MessagingOperations {
     /** Full observable snapshot of chat state (feed, typing, reactions, active chat). */
     val state: StateFlow<ChatState>
 
@@ -122,3 +161,4 @@ interface ChatCoordinator : FeedOperations, EventStreamOperations, MessagingOper
 }
 
 class NoDmChatInitializedException(e164: String) : Exception("No DM chat for $e164")
+class FailedToGenerateChatIdException(identifier: String?) : Exception("Failed to generate chat ID for $identifier")

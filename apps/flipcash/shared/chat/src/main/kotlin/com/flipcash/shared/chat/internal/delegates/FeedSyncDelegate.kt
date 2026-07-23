@@ -19,7 +19,9 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
@@ -167,11 +169,15 @@ class FeedSyncDelegate @Inject constructor(
      * required (its failure fails the whole sync, preserving prior behaviour); a TIP_DM failure is
      * tolerated so tips never break the main DM list. Each chat carries its own [ChatType].
      */
-    internal suspend fun fetchCombinedFeed(): Result<List<ChatMetadata>> {
-        val contact = chatController.getDmChatFeed(ChatType.CONTACT_DM)
-            .getOrElse { return Result.failure(it) }
-        val tip = chatController.getDmChatFeed(ChatType.TIP_DM).getOrNull()
-        return Result.success(contact.chats + (tip?.chats ?: emptyList()))
+    internal suspend fun fetchCombinedFeed(): Result<List<ChatMetadata>> = coroutineScope {
+        // Fetch both feeds concurrently — total time is the slower of the two, not their sum.
+        val contactDeferred = async { chatController.getDmChatFeed(ChatType.CONTACT_DM) }
+        val tipDeferred = async { chatController.getDmChatFeed(ChatType.TIP_DM) }
+
+        // Contact feed is required (its failure fails the whole sync); a TIP_DM failure is tolerated.
+        val contact = contactDeferred.await().getOrElse { return@coroutineScope Result.failure(it) }
+        val tip = tipDeferred.await().getOrNull()
+        Result.success(contact.chats + (tip?.chats ?: emptyList()))
     }
 
     private suspend fun performFeedSync() {
