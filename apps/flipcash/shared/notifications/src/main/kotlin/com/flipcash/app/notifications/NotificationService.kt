@@ -17,6 +17,11 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
+import coil3.SingletonImageLoader
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.toBitmap
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.ContactResolver
@@ -24,7 +29,10 @@ import com.flipcash.app.core.util.Linkify
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.PushController
+import com.flipcash.services.models.SocialAccount
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.NavigationTrigger
 import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
@@ -39,8 +47,10 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.security.SecureRandom
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 @AndroidEntryPoint
 class NotificationService : FirebaseMessagingService(),
@@ -50,6 +60,12 @@ class NotificationService : FirebaseMessagingService(),
         private const val KEY_TITLE = "push_notification_title"
         private const val KEY_BODY = "push_notification_body"
         private const val KEY_PAYLOAD = "flipcash_payload"
+
+        // Upper bound on how long we'll wait for a remote avatar before posting
+        // without one. A memory/disk cache hit returns well under this; the
+        // bound only caps the cold-cache network fetch so the notification isn't
+        // held back indefinitely.
+        private const val AVATAR_FETCH_TIMEOUT_MS = 5_000L
     }
 
     @Inject
@@ -188,7 +204,7 @@ class NotificationService : FirebaseMessagingService(),
             }
 
         val notificationId = if (chatId != null) {
-            builder.applyContactChatStyle(chatId, groupKey, body)
+            builder.applyChatStyle(chatId, groupKey, title, body)
         } else {
             builder.setContentTitle(title).setContentText(body)
             SecureRandom().nextInt(Int.MAX_VALUE)
@@ -209,24 +225,41 @@ class NotificationService : FirebaseMessagingService(),
         }
     }
 
-    private suspend fun NotificationCompat.Builder.applyContactChatStyle(
+    private suspend fun NotificationCompat.Builder.applyChatStyle(
         chatId: ChatId,
         groupKey: String?,
+        title: String?,
         body: String?,
     ): Int {
         val notificationId = chatId.hashCode()
-        val lookupContact = contactCoordinator.lookupContactByDmChatId(chatId.toString())
-        val e164 = lookupContact?.e164
-            ?: chatCoordinator.getOtherMemberE164(chatId)
+
+        // Prefer the device-contact identity (CONTACT_DM, or a counterparty saved
+        // in the address book): the user's own name + photo for them. Only when
+        // that's absent do we fetch the chat member and fall back to their
+        // server-side profile — which is the only identity a TIP_DM has.
+        val contactE164 = contactCoordinator.lookupContactByDmChatId(chatId.toString())?.e164
+        val member = if (contactE164 == null) chatCoordinator.getOtherMember(chatId) else null
+        val e164 = contactE164 ?: member?.userProfile?.verifiedPhoneNumber
+
+        val senderName = e164?.let { contactResolver.resolveName(it) }
+            ?: member?.userProfile?.displayName?.takeIf { it.isNotBlank() }
+            ?: member?.userProfile?.socialHandle()
+            ?: title
+            ?: ""
+
+        // Device-contact photo (local, synchronous) first; otherwise the profile
+        // picture URL loaded through the app's shared Coil loader (cache-first,
+        // network-bounded). Works for CONTACT_DM and TIP_DM alike.
+        val avatar = e164?.let { resolveContactPhoto(it) }
+            ?: member?.userProfile?.profilePicture
+                ?.url(MediaItemRendition.Role.THUMBNAIL)
+                ?.let { loadRemoteAvatar(it) }
 
         trace(
             tag = "NotificationService",
-            message = "applyContactChatStyle: chatId=$chatId, groupKey=$groupKey, lookupE164=${lookupContact?.e164}, e164=$e164, authenticated=${userManager.accountCluster != null}",
+            message = "applyChatStyle: chatId=$chatId, groupKey=$groupKey, e164=$e164, hasMember=${member != null}, hasAvatar=${avatar != null}, authenticated=${userManager.accountCluster != null}",
             type = TraceType.Log,
         )
-
-        val contactPhoto = e164?.let { resolveContactPhoto(it) }
-        val senderName = e164?.let { contactResolver.resolveName(it) } ?: ""
 
         val selfPerson = buildSelfPerson(this@NotificationService, userManager.profile, contactResolver)
 
@@ -234,7 +267,7 @@ class NotificationService : FirebaseMessagingService(),
             .setName(senderName)
             .setKey(groupKey ?: "unknown")
             .apply {
-                if (contactPhoto != null) setIcon(IconCompat.createWithBitmap(contactPhoto.toCircularBitmap()))
+                if (avatar != null) setIcon(IconCompat.createWithBitmap(avatar.toCircularBitmap()))
             }
             .build()
 
@@ -253,6 +286,33 @@ class NotificationService : FirebaseMessagingService(),
 
         return notificationId
     }
+
+    /** First social handle (e.g. an X username) to render as a display name, if any. */
+    private fun UserProfile.socialHandle(): String? =
+        socialAccounts.filterIsInstance<SocialAccount.TwitterX>()
+            .firstOrNull()
+            ?.username
+            ?.let { "@$it" }
+
+    /**
+     * Loads a remote avatar [url] into a software [Bitmap] via the app's shared
+     * Coil [SingletonImageLoader]. Serves from memory/disk cache without a
+     * network trip when possible; the network case is bounded by
+     * [AVATAR_FETCH_TIMEOUT_MS] so a slow fetch never holds back the
+     * notification. Returns `null` on timeout or failure (the notification then
+     * posts with the name monogram).
+     */
+    private suspend fun loadRemoteAvatar(url: String): Bitmap? =
+        withTimeoutOrNull(AVATAR_FETCH_TIMEOUT_MS.milliseconds) {
+            runCatching {
+                val request = ImageRequest.Builder(this@NotificationService)
+                    .data(url)
+                    .allowHardware(false) // notification icons require a software bitmap
+                    .build()
+                val result = SingletonImageLoader.get(this@NotificationService).execute(request)
+                (result as? SuccessResult)?.image?.toBitmap()
+            }.getOrNull()
+        }
 
     private suspend fun resolveContactPhoto(e164: String): Bitmap? {
         val uriString = contactResolver.resolvePhotoUri(e164)

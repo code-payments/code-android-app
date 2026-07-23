@@ -86,6 +86,7 @@ fun ContactAvatar(
                     modifier = Modifier.matchParentSize(),
                     model = request,
                     contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
                     onError = { isError = true },
                 )
             }
@@ -123,6 +124,10 @@ fun ContactAvatar(
                 AsyncImage(
                     modifier = Modifier.matchParentSize(),
                     model = request,
+                    // Crop fills the avatar while preserving aspect ratio (Fit letterboxed and let
+                    // the gradient show through; FillBounds fills but distorts the photo).
+                    // AsyncImage infers the Coil request scale from this, so the request is fine.
+                    contentScale = ContentScale.Crop,
                     contentDescription = null,
                     onError = { isError = true },
                 )
