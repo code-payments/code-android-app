@@ -122,7 +122,7 @@ private fun TipChatRow(
             )
 
             ChatRowTrailing(
-                lastActivity = null,
+                lastActivity = chat.lastActivity,
                 unreadCount = chat.unreadCount,
                 canOpen = true,
             )

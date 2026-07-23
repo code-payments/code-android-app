@@ -6,11 +6,9 @@ import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.features.directsend.R
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatType
-import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatSummary
-import com.flipcash.shared.chat.ui.ConversationReference
-import com.getcode.opencode.model.core.ID
+import com.flipcash.shared.chat.ui.toConversationReference
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
@@ -110,11 +108,7 @@ internal class ContactListBuilder @Inject constructor(
                 contact = contact,
                 isOnFlipcash = true,
                 lastActivity = summary.metadata.lastActivity,
-                conversation = ConversationReference(
-                    chatId = chatId,
-                    lastMessagePreview = formatPreview(summary, selfId, tokensByMint),
-                    unreadCount = summary.unreadCount,
-                ),
+                conversation = summary.toConversationReference(selfId, tokensByMint, resources),
             )
         }
 
@@ -143,47 +137,6 @@ internal class ContactListBuilder @Inject constructor(
         if (other.isNotEmpty()) {
             add(ContactListItem.Header(resources.getString(R.string.title_nonFlipcashContacts)))
             other.forEach { add(ContactListItem.ContactRow(it, isOnFlipcash = false)) }
-        }
-    }
-
-    private fun formatPreview(
-        summary: ChatSummary,
-        selfId: ID?,
-        tokensByMint: Map<Mint, Token>,
-    ): String? {
-        val lastMsg = summary.metadata.lastMessage ?: return null
-        val sentBySelf = lastMsg.senderId != null && lastMsg.senderId == selfId
-        return lastMsg.content.firstOrNull()?.let { content ->
-            when (content) {
-                is MessageContent.Text -> {
-                    val message = content.text.takeIf { it.isNotEmpty() } ?: return null
-                    if (sentBySelf) {
-                        resources.getString(R.string.label_chat_preview_sentMessage, message)
-                    } else {
-                        message
-                    }
-                }
-                is MessageContent.Cash -> {
-                    val formatted = content.amount.formatted()
-                    val name = content.tokenName.ifBlank { tokensByMint[content.mint]?.name.orEmpty() }
-                    val label = if (name.isNotBlank()) {
-                        resources.getString(R.string.label_chat_preview_cash_suffix, formatted, name)
-                    } else {
-                        formatted
-                    }
-                    if (sentBySelf) {
-                        resources.getString(R.string.label_chat_preview_sentCash, label)
-                    } else {
-                        resources.getString(R.string.label_chat_preview_receivedCash, label)
-                    }
-                }
-
-                // TODO:
-                is MessageContent.Deleted -> null
-                is MessageContent.Media -> null
-                is MessageContent.Reply -> null
-                is MessageContent.System -> null
-            }
         }
     }
 }
