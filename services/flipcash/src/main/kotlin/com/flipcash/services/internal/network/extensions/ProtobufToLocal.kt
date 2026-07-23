@@ -385,18 +385,34 @@ internal fun EventModel.ChatUpdate.toChatUpdate(
 
 internal fun EventModel.BlobUpdate.toBlobUpdate(): BlobUpdate {
     return BlobUpdate(
-        blobs = blobs.blobsList.map { it.toBlobState() },
+        blobs = blobs.blobsList.mapNotNull { it.toBlobState() },
     )
 }
 
-internal fun com.codeinc.flipcash.gen.blob.v1.Model.Blob.toBlobState(): BlobState {
-    return BlobState(
-        id = BlobId(id.value.toByteArray()),
-        status = status.toBlobStatus(),
-        metadata = if (hasMetadata()) metadata.toBlobMetadata() else null,
-        rejection = if (hasRejection()) rejection.toBlobRejection() else null,
-    )
+/**
+ * Maps a proto blob to its terminal [BlobState], or null while non-terminal. The sealed model only
+ * represents the two outcomes clients act on — READY (metadata populated) and REJECTED (reason
+ * present); PENDING/PROCESSING/UNKNOWN carry no client-facing payload, so they collapse to null
+ * (callers keep polling / waiting for the next update).
+ */
+internal fun com.codeinc.flipcash.gen.blob.v1.Model.Blob.toBlobState(): BlobState? {
+    val blobId = BlobId(id.value.toByteArray())
+    return when (status.toBlobStatus()) {
+        BlobStatus.READY ->
+            if (hasMetadata()) BlobState.Ready(blobId, metadata.toBlobMetadata()) else null
+        BlobStatus.REJECTED ->
+            BlobState.Rejected(blobId, if (hasRejection()) rejection.toBlobRejection() else UNKNOWN_REJECTION)
+        BlobStatus.UNKNOWN,
+        BlobStatus.PENDING,
+        BlobStatus.PROCESSING -> null
+    }
 }
+
+// A REJECTED blob is terminal even if the server omitted the reason; fall back rather than drop it.
+private val UNKNOWN_REJECTION = BlobRejection(
+    reason = RejectionReason.UNKNOWN,
+    flaggedCategory = ModerationResult.FlaggedCategory.NONE,
+)
 
 internal fun com.codeinc.flipcash.gen.blob.v1.Model.UploadPolicy.toUploadPolicy(): UploadPolicy {
     return UploadPolicy(

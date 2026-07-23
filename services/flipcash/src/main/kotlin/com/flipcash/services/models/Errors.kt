@@ -1,5 +1,6 @@
 package com.flipcash.services.models
 
+import com.flipcash.services.models.chat.BlobRejection
 import com.getcode.solana.keys.Checksum
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
@@ -258,7 +259,7 @@ sealed class TextModerationError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
-    class Flagged(category: ModerationResult.FlaggedCategory) : TextModerationError("Content flagged: $category")
+    class Flagged(val category: ModerationResult.FlaggedCategory) : TextModerationError("Content flagged: $category")
     class Denied : TextModerationError("Denied")
     class UnsupportedLanguage: TextModerationError("Unsupported Language")
     class Unrecognized : TextModerationError("Unrecognized"), NotifiableError
@@ -269,7 +270,7 @@ sealed class ImageModerationError(
     override val message: String? = null,
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
-    class Flagged(category: ModerationResult.FlaggedCategory) : TextModerationError("Content flagged: $category")
+    class Flagged(val category: ModerationResult.FlaggedCategory) : TextModerationError("Content flagged: $category")
 
     class Denied : ImageModerationError("Denied")
     class UnsupportedFormat: ImageModerationError("Unsupported Format")
@@ -537,8 +538,8 @@ sealed class GetUploadPolicyError(
 
 // Thrown when a reserved blob failed server-side finalization (moderation / decode / size).
 // Terminal: the client must reserve a fresh upload to retry.
-class BlobRejectedException(val rejection: com.flipcash.services.models.chat.BlobRejection?) :
-    Exception("Blob rejected: ${rejection?.reason}")
+class BlobRejectedException(val rejection: BlobRejection) :
+    Exception("Blob rejected: ${rejection.reason}")
 
 // Thrown when a blob did not reach READY within the client's polling window.
 class BlobNotReadyException : Exception("Blob did not become ready in time")

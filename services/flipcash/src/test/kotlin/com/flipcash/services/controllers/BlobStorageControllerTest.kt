@@ -5,9 +5,12 @@ import com.flipcash.services.models.BlobNotReadyException
 import com.flipcash.services.models.BlobRejectedException
 import com.flipcash.services.models.blob.UploadReservation
 import com.flipcash.services.models.blob.UploadTarget
+import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.chat.BlobId
+import com.flipcash.services.models.chat.BlobRejection
 import com.flipcash.services.models.chat.BlobState
 import com.flipcash.services.models.chat.BlobStatus
+import com.flipcash.services.models.chat.RejectionReason
 import com.flipcash.services.repository.BlobStorageRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
@@ -49,8 +52,13 @@ class BlobStorageControllerTest {
         every { userManager.accountCluster } returns cluster
     }
 
-    private fun blobState(status: BlobStatus) =
-        BlobState(id = blobId, status = status, metadata = null, rejection = null)
+    // The sealed model only represents terminal outcomes; non-terminal polls surface as an empty
+    // getBlobs list (the service filters PENDING/PROCESSING out), so tests model those with emptyList().
+    private fun readyBlob() = BlobState.Ready(id = blobId, metadata = mockk(relaxed = true))
+    private fun rejectedBlob() = BlobState.Rejected(
+        id = blobId,
+        reason = BlobRejection(RejectionReason.UNKNOWN, ModerationResult.FlaggedCategory.NONE),
+    )
 
     private fun happyPathStubs() {
         coEvery { repository.initiateExternalUpload(any(), any(), any()) } returns
@@ -73,7 +81,7 @@ class BlobStorageControllerTest {
     fun `upload returns the blob id once READY`() = runTest {
         stubOwner()
         happyPathStubs()
-        coEvery { repository.getBlobs(any(), any()) } returns Result.success(listOf(blobState(BlobStatus.READY)))
+        coEvery { repository.getBlobs(any(), any()) } returns Result.success(listOf(readyBlob()))
 
         val result = controller.upload(byteArrayOf(1, 2, 3), "image/png")
 
@@ -85,9 +93,10 @@ class BlobStorageControllerTest {
         stubOwner()
         happyPathStubs()
         coEvery { repository.getBlobs(any(), any()) } returnsMany listOf(
-            Result.success(listOf(blobState(BlobStatus.PENDING))),
-            Result.success(listOf(blobState(BlobStatus.PROCESSING))),
-            Result.success(listOf(blobState(BlobStatus.READY))),
+            // Non-terminal polls resolve to an empty list; the controller keeps polling.
+            Result.success(emptyList()),
+            Result.success(emptyList()),
+            Result.success(listOf(readyBlob())),
         )
 
         val result = controller.upload(byteArrayOf(1, 2, 3), "image/png")
@@ -100,7 +109,7 @@ class BlobStorageControllerTest {
     fun `upload fails with BlobRejectedException when the blob is REJECTED`() = runTest {
         stubOwner()
         happyPathStubs()
-        coEvery { repository.getBlobs(any(), any()) } returns Result.success(listOf(blobState(BlobStatus.REJECTED)))
+        coEvery { repository.getBlobs(any(), any()) } returns Result.success(listOf(rejectedBlob()))
 
         val result = controller.upload(byteArrayOf(1, 2, 3), "image/png")
 
@@ -111,7 +120,8 @@ class BlobStorageControllerTest {
     fun `upload times out with BlobNotReadyException when never READY`() = runTest {
         stubOwner()
         happyPathStubs()
-        coEvery { repository.getBlobs(any(), any()) } returns Result.success(listOf(blobState(BlobStatus.PROCESSING)))
+        // Never terminal — every poll resolves to an empty list until the timeout trips.
+        coEvery { repository.getBlobs(any(), any()) } returns Result.success(emptyList())
 
         val result = controller.upload(byteArrayOf(1, 2, 3), "image/png")
 
@@ -151,7 +161,7 @@ class BlobStorageControllerTest {
         coEvery { uploader.upload(any(), any(), any()) } returns Result.success(Unit)
         coEvery { repository.completeExternalUpload(any(), any()) } returns
             Result.failure(RuntimeException("complete failed"))
-        coEvery { repository.getBlobs(any(), any()) } returns Result.success(listOf(blobState(BlobStatus.READY)))
+        coEvery { repository.getBlobs(any(), any()) } returns Result.success(listOf(readyBlob()))
 
         val result = controller.upload(byteArrayOf(1, 2, 3), "image/png")
 
