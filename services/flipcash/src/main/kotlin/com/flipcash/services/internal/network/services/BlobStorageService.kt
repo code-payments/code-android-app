@@ -108,7 +108,9 @@ internal class BlobStorageService @Inject constructor(
                     when (response.result) {
                         RpcBlobStorageService.GetBlobsResponse.Result.OK ->
                             Result.success(
-                                if (response.hasBlobs()) response.blobs.blobsList.map { it.toBlobState() }
+                                // Drop non-terminal blobs (toBlobState → null) so a still-processing
+                                // id resolves to an empty list and the caller keeps polling.
+                                if (response.hasBlobs()) response.blobs.blobsList.mapNotNull { it.toBlobState() }
                                 else emptyList()
                             )
                         RpcBlobStorageService.GetBlobsResponse.Result.DENIED ->

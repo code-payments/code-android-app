@@ -5,7 +5,7 @@ import com.flipcash.services.models.BlobNotReadyException
 import com.flipcash.services.models.BlobRejectedException
 import com.flipcash.services.models.blob.UploadPolicy
 import com.flipcash.services.models.chat.BlobId
-import com.flipcash.services.models.chat.BlobStatus
+import com.flipcash.services.models.chat.BlobState
 import com.flipcash.services.repository.BlobStorageRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
@@ -66,10 +66,11 @@ class BlobStorageController @Inject constructor(
                 .getOrElse { return Result.failure(it) }
                 .firstOrNull()
 
-            when (blob?.status) {
-                BlobStatus.READY -> return Result.success(blobId)
-                BlobStatus.REJECTED -> return Result.failure(BlobRejectedException(blob.rejection))
-                else -> {
+            when (blob) {
+                is BlobState.Ready -> return Result.success(blobId)
+                is BlobState.Rejected -> return Result.failure(BlobRejectedException(blob.reason))
+                // null — still pending/processing (non-terminal states resolve to null); keep polling.
+                null -> {
                     delay(POLL_INTERVAL)
                     elapsed += POLL_INTERVAL
                 }

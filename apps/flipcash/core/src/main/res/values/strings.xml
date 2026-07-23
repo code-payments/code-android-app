@@ -722,6 +722,9 @@
     <string name="error_title_imageNotSupported">This Image is Not Supported</string>
     <string name="error_description_imageNotSupported">Try a different image format</string>
 
+    <string name="error_title_imageTooLarge">This Image is Too Large</string>
+    <string name="error_description_imageTooLarge">Try a smaller image</string>
+
     <string name="error_title_descriptionNotAllowed">This Description is Not Allowed</string>
     <string name="error_description_descriptionNotAllowed">Try a different currency description</string>
 
@@ -865,8 +868,19 @@
     <string name="hint_profileName">Your Name</string>
     <string name="error_title_profileNameNotAllowed">This Name is Not Allowed</string>
     <string name="error_description_profileNameNotAllowed">Try a different name</string>
+    <string name="error_description_profileNameNotAllowedFlaggedOther">AI flagged this name. Please try a different name. If you think the name was rejected in error please DM @flipcash on X</string>
+    <string name="error_description_profileNameNotAllowedFlaggedNsfw">AI flagged this name as sexually explicit. Please try a different name. If you think the name was rejected in error please DM @flipcash on X</string>
+    <string name="error_description_profileNameNotAllowedFlaggedImpersonation">AI flagged this name for impersonation. Please try a different name. If you think the name was rejected in error please DM @flipcash on X</string>
+    <string name="error_description_profileNameNotAllowedFlaggedMisleading">AI flagged this name as misleading. Please try a different name. If you think the name was rejected in error please DM @flipcash on X</string>
+    <string name="error_description_profileNameNotAllowedFlaggedSpam">AI flagged this name as spam. Please try a different name. If you think the name was rejected in error please DM @flipcash on X</string>
+    <string name="error_title_profilePhotoNotAllowed">This Photo is Not Allowed</string>
+    <string name="error_description_profilePhotoNotAllowedFlaggedOther">AI flagged this photo. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>
+    <string name="error_description_profilePhotoNotAllowedFlaggedNsfw">AI flagged this photo as sexually explicit. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>
+    <string name="error_description_profilePhotoNotAllowedFlaggedImpersonation">AI flagged this photo for impersonation. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>
+    <string name="error_description_profilePhotoNotAllowedFlaggedMisleading">AI flagged this photo as misleading. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>
+    <string name="error_description_profilePhotoNotAllowedFlaggedSpam">AI flagged this photo as spam. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>
     <string name="title_profileImageSelection">Upload Your Photo</string>
-    <string name="subtitle_profileImageSelection">CThis photo will be shown when receiving tips</string>
+    <string name="subtitle_profileImageSelection">This photo will be shown when receiving tips</string>
     <string name="placeholder_profileDisplayName">Your Name</string>
     <string name="subtitle_profileImageRecommended">500x500 Recommended</string>
     <string name="title_myTipCard">My Tip Card</string>

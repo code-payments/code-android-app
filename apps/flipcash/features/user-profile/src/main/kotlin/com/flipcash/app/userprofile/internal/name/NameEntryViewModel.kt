@@ -9,6 +9,7 @@ import com.flipcash.features.userprofile.R
 import com.flipcash.services.controllers.ModerationController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.ModerationResult
+import com.flipcash.services.models.SetDisplayNameError
 import com.flipcash.services.models.TextModerationError
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
@@ -69,16 +70,7 @@ class NameEntryViewModel @Inject constructor(
             .filterIsInstance<Event.CheckName>()
             .map { stateFlow.value.nameFieldState.text.toString() }
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
-            .map { moderationController.moderateText(it.trim()) }
-            .flatMapResult { result ->
-                when (result.flaggedCategory) {
-                    ModerationResult.FlaggedCategory.NONE -> {
-                        Result.success(result.attestation)
-                    }
-
-                    else -> Result.failure(TextModerationError.Flagged(result.flaggedCategory))
-                }
-            }.flatMapResult {
+            .map {
                 profileController.setDisplayName(stateFlow.value.nameFieldState.text.toString())
             }.onResult(
                 onSuccess = {
@@ -91,27 +83,68 @@ class NameEntryViewModel @Inject constructor(
                 },
                 onError = { cause ->
                     dispatchEvent(Event.UpdateProcessingState())
-                    when (cause) {
-                        is ValidationException,
-                        is TextModerationError.Flagged,
-                        is TextModerationError.Denied -> {
-                            BottomBarManager.showAlert(
-                                title = resources.getString(R.string.error_title_profileNameNotAllowed),
-                                message = resources.getString(R.string.error_description_profileNameNotAllowed)
-                            )
-                        }
-
-                        else -> {
-                            BottomBarManager.showError(
-                                title = resources.getString(R.string.error_title_nameCheckFailed),
-                                message = resources.getString(R.string.error_description_nameCheckFailed),
-                            )
-                        }
-                    }
+                    handleNameSetFailure(cause)
                 }
             ).launchIn(viewModelScope)
     }
 
+    private fun handleNameSetFailure(cause: Throwable) {
+        when (cause) {
+            is SetDisplayNameError.FailedModerated -> {
+                when (cause.category) {
+                    ModerationResult.FlaggedCategory.NONE -> {
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_profileNameNotAllowed),
+                            message = resources.getString(R.string.error_description_profileNameNotAllowed)
+                        )
+                    }
+                    ModerationResult.FlaggedCategory.OTHER -> {
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_profileNameNotAllowed),
+                            message = resources.getString(R.string.error_description_profileNameNotAllowedFlaggedOther)
+                        )
+                    }
+                    ModerationResult.FlaggedCategory.NSFW -> {
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_profileNameNotAllowed),
+                            message = resources.getString(R.string.error_description_profileNameNotAllowedFlaggedNsfw)
+                        )
+                    }
+                    ModerationResult.FlaggedCategory.IMPERSONATION -> {
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_profileNameNotAllowed),
+                            message = resources.getString(R.string.error_description_profileNameNotAllowedFlaggedImpersonation)
+                        )
+                    }
+                    ModerationResult.FlaggedCategory.MISLEADING -> {
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_profileNameNotAllowed),
+                            message = resources.getString(R.string.error_description_profileNameNotAllowedFlaggedMisleading)
+                        )
+                    }
+                    ModerationResult.FlaggedCategory.SPAM -> {
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_profileNameNotAllowed),
+                            message = resources.getString(R.string.error_description_profileNameNotAllowedFlaggedSpam)
+                        )
+                    }
+                }
+            }
+            is ValidationException -> {
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.error_title_profileNameNotAllowed),
+                    message = resources.getString(R.string.error_description_profileNameNotAllowed)
+                )
+            }
+
+            else -> {
+                BottomBarManager.showError(
+                    title = resources.getString(R.string.error_title_nameCheckFailed),
+                    message = resources.getString(R.string.error_description_nameCheckFailed),
+                )
+            }
+        }
+    }
     companion object {
         private val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {

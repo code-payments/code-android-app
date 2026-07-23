@@ -21,6 +21,8 @@ interface ContentReader {
      */
     fun copyToCache(uri: Uri, fileName: String, maxSize: Int = Int.MAX_VALUE, mimeType: String? = null): Uri?
     fun removeFromCache(uri: Uri)
+    /** The size of [uri]'s content in bytes, or null if it can't be resolved. */
+    fun size(uri: Uri): Long?
 }
 
 private const val EXTENSION_JPG = "jpg"
@@ -104,5 +106,19 @@ class AndroidContentReader(private val context: Context) : ContentReader {
 
     override fun removeFromCache(uri: Uri) {
         uri.path?.let { File(it).delete() }
+    }
+
+    override fun size(uri: Uri): Long? {
+        // file:// (our cache) — measure the file directly; otherwise ask the resolver.
+        if (uri.scheme == "file") {
+            uri.path?.let { File(it).takeIf(File::exists)?.length()?.let { len -> return len } }
+        }
+        return try {
+            context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { fd ->
+                fd.length.takeIf { it >= 0 }
+            }
+        } catch (_: java.io.FileNotFoundException) {
+            null
+        }
     }
 }

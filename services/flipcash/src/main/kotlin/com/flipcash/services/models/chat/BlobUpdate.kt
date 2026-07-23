@@ -12,15 +12,20 @@ data class BlobUpdate(
 
 // A single blob's current status, plus its metadata once READY — or, once
 // REJECTED, the reason it was rejected.
-data class BlobState(
+sealed class BlobState(
     val id: BlobId,
     val status: BlobStatus,
-    // Server-authoritative metadata (including a freshly minted download URL).
-    // Set only when status == READY.
-    val metadata: BlobMetadata?,
-    // Why the blob was rejected. Set only when status == REJECTED.
-    val rejection: BlobRejection?,
-)
+) {
+    class Ready(
+        id: BlobId,
+        val metadata: BlobMetadata,
+    ) : BlobState(id, BlobStatus.READY)
+    class Rejected(
+        id: BlobId,
+        val reason: BlobRejection,
+    ) : BlobState(id, BlobStatus.REJECTED)
+
+}
 
 enum class BlobStatus {
     UNKNOWN,
