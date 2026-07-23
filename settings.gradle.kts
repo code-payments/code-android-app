@@ -153,7 +153,6 @@ include(
     ":libs:logging",
     ":libs:messaging",
     ":libs:models",
-    ":libs:network:exchange",
     ":libs:opengraph",
 
     ":libs:network:coinbase:onramp",
