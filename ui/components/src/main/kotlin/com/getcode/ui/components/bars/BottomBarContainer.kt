@@ -66,6 +66,7 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.util.resources.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.BottomBarMessage) -> Unit = {}) {
@@ -82,7 +83,7 @@ fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.Bott
             BottomBarManager.setMessageShown(bottomBarMessageDismissId)
             bottomBarVisibleState.targetState = false
 
-            delay(300.scaled(animationScale))
+            delay(300.scaled(animationScale).milliseconds)
             if (fromTimeout) {
                 dismissingMessage?.onTimeout?.invoke()
             } else {
@@ -93,7 +94,7 @@ fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.Bott
     // handle changes in visible state
     LaunchedEffect(bottomBarVisibleState) {
         if (!bottomBarVisibleState.targetState && !bottomBarVisibleState.currentState) {
-            delay(50.scaled(animationScale))
+            delay(50.scaled(animationScale).milliseconds)
             bottomBarVisibleState.targetState = bottomBarMessage != null
 
             if (bottomBarMessageDismissId == bottomBarMessage?.id) {
@@ -105,7 +106,7 @@ fun BottomBarContainer(barMessages: BarMessages, onShown: (BottomBarManager.Bott
     // handle provided timeout duration; triggering onClose with no action
     LaunchedEffect(bottomBarMessage) {
         bottomBarMessage?.timeoutSeconds?.let {
-            delay(it * 1000L)
+            delay((it * 1000L).milliseconds)
             onClose(SelectedBottomBarAction(-1), true)
         }
     }
