@@ -14,10 +14,12 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.shared.chat.internal.ChatIdGenerator
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.internal.RealChatCoordinator
 import com.flipcash.shared.chat.internal.delegates.EventStreamDelegate
 import com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate
+import com.flipcash.shared.chat.internal.delegates.DmChatResolverDelegate
 import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -104,15 +106,22 @@ class ChatCoordinatorEagerBalanceTest {
             metadataDataSource = metadataDataSource,
             messageDataSource = messageDataSource,
             memberDataSource = memberDataSource,
-            contactDataSource = mockk<ContactDataSource>(relaxed = true),
             notificationManager = mockk(relaxed = true),
             userManager = userManager,
             stateHolder = stateHolder,
         )
 
+        val dmChatResolverDelegate = DmChatResolverDelegate(
+            chatIdGenerator = ChatIdGenerator(),
+            userManager = userManager,
+            contactDataSource = mockk<ContactDataSource>(relaxed = true),
+            memberDataSource = memberDataSource,
+        )
+
         coordinator = RealChatCoordinator(
             feedDelegate = feedDelegate,
             eventStreamDelegate = eventStreamDelegate,
+            dmChatResolverDelegate = dmChatResolverDelegate,
             messagingDelegate = messagingDelegate,
             stateHolder = stateHolder,
             userManager = userManager,

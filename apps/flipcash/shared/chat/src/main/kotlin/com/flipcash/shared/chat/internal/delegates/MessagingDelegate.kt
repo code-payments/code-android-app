@@ -8,11 +8,9 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
-import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
-import com.flipcash.app.persistence.sources.ContactDataSource
 import com.flipcash.app.persistence.sources.mediator.ChatMessageRemoteMediator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
@@ -24,10 +22,8 @@ import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.shared.chat.MessagingOperations
-import com.flipcash.shared.chat.NoDmChatInitializedException
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.services.user.UserManager
-import com.getcode.utils.decodeBase58
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -58,7 +54,6 @@ class MessagingDelegate @Inject constructor(
     private val metadataDataSource: ChatMetadataDataSource,
     private val messageDataSource: ChatMessageDataSource,
     private val memberDataSource: ChatMemberDataSource,
-    private val contactDataSource: ContactDataSource,
     private val notificationManager: NotificationManagerCompat,
     private val userManager: UserManager,
     private val stateHolder: ChatStateHolder,
@@ -66,26 +61,18 @@ class MessagingDelegate @Inject constructor(
 
     // region MessagingOperations
 
-    override suspend fun getChatId(contact: DeviceContact): Result<ChatId> {
-        val raw = contactDataSource.getDmChatId(contact.e164)
-        if (raw.isNullOrEmpty()) {
-            return Result.failure(NoDmChatInitializedException(contact.e164))
-        }
-        return runCatching { ChatId(raw.decodeBase58()) }
-    }
-
-    override suspend fun getOtherMemberE164(chatId: ChatId): String? {
+    override suspend fun getOtherMember(chatId: ChatId): ChatMember? {
         val selfId = userManager.accountId
         val localMembers = memberDataSource.getMembersForChat(chatId)
-        val otherMember = localMembers.firstOrNull { it.userId != selfId }
-        if (otherMember != null) return otherMember.userProfile.verifiedPhoneNumber
+        localMembers.firstOrNull { it.userId != selfId }?.let { return it }
 
         val metadata = chatController.getChat(chatId).getOrNull() ?: return null
         memberDataSource.upsert(chatId, metadata.members)
-        return metadata.members
-            .firstOrNull { it.userId != selfId }
-            ?.userProfile?.verifiedPhoneNumber
+        return metadata.members.firstOrNull { it.userId != selfId }
     }
+
+    override suspend fun getOtherMemberE164(chatId: ChatId): String? =
+        getOtherMember(chatId)?.userProfile?.verifiedPhoneNumber
 
     override fun setActiveChatId(chatId: ChatId?) {
         stateHolder.update { it.copy(activeChat = chatId) }

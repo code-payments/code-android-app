@@ -4,7 +4,9 @@ import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessagePointer
+import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
@@ -29,6 +31,14 @@ class ChatMemberDataSource @Inject constructor(
             entities.groupBy { it.chatIdHex }
                 .mapValues { (_, members) -> members.map { mapper.toMember(it) } }
         } ?: emptyFlow()
+
+    /** Resolves the [chatType] DM chat id that [userId] is a member of, or null if none is cached. */
+    suspend fun getChatIdForUser(userId: ID, chatType: ChatType): ChatId? {
+        val hex = db?.chatMemberDao()
+            ?.getChatIdForMember(mapper.userIdHex(userId), chatType.name)
+            ?: return null
+        return mapper.chatIdFromHex(hex)
+    }
 
     suspend fun getMembersForChat(chatId: ChatId): List<ChatMember> =
         getMembersForChat(mapper.chatIdHex(chatId))
