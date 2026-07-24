@@ -12,7 +12,7 @@ import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
-import com.flipcash.app.payments.PurchaseMethodController
+import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.updates.ReleaseStage
 import com.flipcash.app.updates.ReleaseStageProvider
 import com.flipcash.app.userflags.UserFlagsCoordinator

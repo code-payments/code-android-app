@@ -20,7 +20,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:google-play-billing"))
     implementation(project(":apps:flipcash:shared:featureflags"))
-    implementation(project(":apps:flipcash:shared:payments"))
+    implementation(project(":apps:flipcash:shared:funding"))
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:shared:tipping"))
     implementation(project(":apps:flipcash:shared:tokens"))

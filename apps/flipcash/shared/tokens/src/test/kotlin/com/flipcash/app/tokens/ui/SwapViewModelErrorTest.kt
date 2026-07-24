@@ -5,7 +5,7 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.onramp.CoinbaseOnRampController
-import com.flipcash.app.payments.PurchaseMethodController
+import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.services.user.UserManager

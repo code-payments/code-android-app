@@ -19,7 +19,7 @@ dependencies {
     implementation(project(":libs:messaging"))
     implementation(project(":libs:permissions:bindings"))
     implementation(project(":apps:flipcash:shared:featureflags"))
-    implementation(project(":apps:flipcash:shared:payments"))
+    implementation(project(":apps:flipcash:shared:funding"))
     implementation(project(":apps:flipcash:shared:permissions"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:chat-ui"))

@@ -5,7 +5,7 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
-import com.flipcash.app.payments.PurchaseMethodController
+import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.session.DepositOperations
 import com.flipcash.app.session.internal.SessionStateHolder
 import com.flipcash.app.tokens.UsdcDepositSweep

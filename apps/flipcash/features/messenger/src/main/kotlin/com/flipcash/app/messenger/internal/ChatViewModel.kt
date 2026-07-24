@@ -20,7 +20,7 @@ import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
-import com.flipcash.app.payments.PurchaseMethodController
+import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.buildDmPaymentMetadata

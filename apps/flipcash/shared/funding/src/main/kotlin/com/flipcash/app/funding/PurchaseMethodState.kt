@@ -1,4 +1,4 @@
-package com.flipcash.app.payments
+package com.flipcash.app.funding
 
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.getcode.opencode.model.financial.LocalFiat
