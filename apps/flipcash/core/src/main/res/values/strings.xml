@@ -896,5 +896,6 @@
     <string name="subtitle_tipHintMinimum">Minimum tip %1$s</string>
     <string name="error_title_tipMinimum">Tips Start at %1$s</string>
     <string name="error_description_tipMinimum">Enter a larger amount to send this tip</string>
+    <string name="label_viaTipCard">via Tip Card</string>
 
 </resources>
