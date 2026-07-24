@@ -64,6 +64,9 @@ fun CodeScanner(
     onPreviewStateChanged: (Boolean) -> Unit,
     onCodeScanned: (CodeScanResult) -> Unit,
     onError: (Throwable) -> Unit = { },
+    // Surfaces the underlying PreviewView so callers can snapshot the live feed (e.g. to render a
+    // blurred camera backdrop behind an overlay). Non-null while mounted, null on dispose.
+    onPreviewViewChanged: (PreviewView?) -> Unit = { },
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
@@ -72,6 +75,11 @@ fun CodeScanner(
         PreviewView(context).apply {
             implementationMode = PreviewView.ImplementationMode.COMPATIBLE
         }
+    }
+
+    DisposableEffect(previewView) {
+        onPreviewViewChanged(previewView)
+        onDispose { onPreviewViewChanged(null) }
     }
 
     val preview = remember {

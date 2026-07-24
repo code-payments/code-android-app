@@ -8,7 +8,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import android.app.ActivityManager
+import android.os.Build
 import androidx.compose.animation.togetherWith
+import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +19,7 @@ import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
@@ -27,12 +31,19 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.bills.AnimatedScannable
+import com.flipcash.app.bills.components.cards.LocalTipCardBackdrop
+import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
+import com.flipcash.app.bills.components.cards.LocalTipCardColor
+import com.flipcash.app.bills.components.cards.TipCardOpaqueFallback
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.tipping.LocalTipCoordinator
@@ -68,6 +79,7 @@ internal fun ScannableContainer(
     isPaused: Boolean,
     isPinching: Boolean = false,
     zoomRatio: Float = 1f,
+    previewView: PreviewView? = null,
     scannerView: @Composable () -> Unit,
     onAction: (ScannerDecorItem) -> Unit
 ) {
@@ -109,6 +121,18 @@ internal fun ScannableContainer(
     val autoStart = state.autoStartCamera == true
     var cameraStarted by remember { mutableStateOf(autoStart) }
 
+    // Window-space origin of the scanner surface, used to align the blurred camera backdrop under
+    // the tip card wherever it sits.
+    var containerOriginInWindow by remember { mutableStateOf(Offset.Zero) }
+
+    // The frosted camera backdrop snapshots the feed (a GPU→CPU readback). Gate it to devices that
+    // can absorb that — API 31+ for the blur, and not low-RAM. Everywhere else the card falls back
+    // to an opaque approximation of the frosted tone.
+    val supportsFrostedTipCard = remember {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            context.getSystemService(ActivityManager::class.java)?.isLowRamDevice != true
+    }
+
     OnLifecycleEvent { _, event ->
         if (event == Lifecycle.Event.ON_STOP && !autoStart) {
             cameraStarted = false
@@ -119,6 +143,7 @@ internal fun ScannableContainer(
         modifier = Modifier
             .fillMaxSize()
             .then(modifier)
+            .onGloballyPositioned { containerOriginInWindow = it.positionInWindow() }
             .testTag("scanner_view")
     ) {
         val availableUpdate by LocalAppUpdater.current.availableUpdate.collectAsStateWithLifecycle()
@@ -262,30 +287,49 @@ internal fun ScannableContainer(
             label = "billVerticalBias",
         )
 
-        AnimatedScannable(
-            modifier = Modifier.fillMaxSize(),
-            dismissState = billDismissState,
-            dismissed = dismissed,
-            contentPadding = PaddingValues(
-                start = CodeTheme.dimens.inset,
-                end = CodeTheme.dimens.inset,
-                top = CodeTheme.dimens.grid.x2,
-                bottom = billBottomInset,
-            ),
-            scannableAlignment = BiasAlignment(horizontalBias = 0f, verticalBias = billVerticalBias),
-            bill = updatedBillState.bill,
-            transitionSpec = {
-                when (updatedState.billResult) {
-                    BillDeterminationResult.None -> EnterTransition.None
-                    Grabbed -> AnimationUtils.animationBillEnterGrabbed
-                    PutInWallet -> AnimationUtils.animationBillEnterGive
-                } togetherWith when (updatedState.billResult) {
-                    BillDeterminationResult.None -> ExitTransition.None
-                    Grabbed -> AnimationUtils.animationBillExitGrabbed
-                    PutInWallet -> AnimationUtils.animationBillExitReturned
-                }
-            }
+        // Frosted-camera backdrop behind the tip card. Snapshots the feed once (see
+        // rememberCameraTipCardBackdrop) only while a tip card is up and only on capable devices.
+        val isTipCard = updatedBillState.bill is Scannable.TipCard
+        val tipCardBackdrop = rememberCameraTipCardBackdrop(
+            previewView = previewView,
+            enabled = isTipCard && supportsFrostedTipCard,
+            containerOriginInWindow = containerOriginInWindow,
         )
+
+        // Where the frosted backdrop is unavailable, render the tip card as an opaque approximation
+        // of the frosted tone instead of a translucent panel over the (stutter-prone) live camera.
+        val useOpaqueFallback = isTipCard && !supportsFrostedTipCard
+
+        CompositionLocalProvider(
+            LocalTipCardBackdrop provides tipCardBackdrop,
+            LocalTipCardColor provides if (useOpaqueFallback) TipCardOpaqueFallback else Color.Unspecified,
+            LocalTipCardBaseAlpha provides if (useOpaqueFallback) 1f else LocalTipCardBaseAlpha.current,
+        ) {
+            AnimatedScannable(
+                modifier = Modifier.fillMaxSize(),
+                dismissState = billDismissState,
+                dismissed = dismissed,
+                contentPadding = PaddingValues(
+                    start = CodeTheme.dimens.inset,
+                    end = CodeTheme.dimens.inset,
+                    top = CodeTheme.dimens.grid.x2,
+                    bottom = billBottomInset,
+                ),
+                scannableAlignment = BiasAlignment(horizontalBias = 0f, verticalBias = billVerticalBias),
+                bill = updatedBillState.bill,
+                transitionSpec = {
+                    when (updatedState.billResult) {
+                        BillDeterminationResult.None -> EnterTransition.None
+                        Grabbed -> AnimationUtils.animationBillEnterGrabbed
+                        PutInWallet -> AnimationUtils.animationBillEnterGive
+                    } togetherWith when (updatedState.billResult) {
+                        BillDeterminationResult.None -> ExitTransition.None
+                        Grabbed -> AnimationUtils.animationBillExitGrabbed
+                        PutInWallet -> AnimationUtils.animationBillExitReturned
+                    }
+                }
+            )
+        }
 
         // Below-bill content, owned by the scannable type (see `overlays/ScannableOverlays`).
         // `displayedScannable` retains the last shown scannable so an overlay can still animate

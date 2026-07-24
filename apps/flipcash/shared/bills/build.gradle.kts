@@ -14,4 +14,5 @@ dependencies {
     implementation(project(":apps:flipcash:shared:common-ui"))
 
     implementation(libs.androidx.datastore)
+    implementation(libs.bundles.haze)
 }
