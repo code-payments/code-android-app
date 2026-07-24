@@ -25,6 +25,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.TypingState
@@ -250,6 +251,14 @@ internal class ChatViewModel @Inject constructor(
     private val isTipFlow = stateFlow
         .map { it.participant is ChatParticipant.TipUser }
         .distinctUntilChanged()
+
+    /** The [ChatType] backing this conversation, derived from the resolved participant. */
+    private val ChatParticipant?.chatType: ChatType
+        get() = when (this) {
+            is ChatParticipant.TipUser -> ChatType.TIP_DM
+            is ChatParticipant.Contact -> ChatType.CONTACT_DM
+            null -> ChatType.UNKNOWN
+        }
 
     private val amountStyleFlow by lazy {
         isTipFlow
@@ -530,6 +539,7 @@ internal class ChatViewModel @Inject constructor(
                 val textToSend = stateFlow.value.chatInputState.text.toString()
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 if (textToSend.isBlank()) return@onEach
+                val chatType = stateFlow.value.participant.chatType
 
                 stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd("")
 
@@ -537,11 +547,11 @@ internal class ChatViewModel @Inject constructor(
                     chatCoordinator.sendMessage(chatId, textToSend)
                         .onSuccess {
                             trace("message sent successfully")
-                            analytics.messageSentInChat()
+                            analytics.messageSentInChat(type = chatType)
                         }
                         .onFailure { cause ->
                             trace("message failed to send - ${cause.localizedMessage}")
-                            analytics.messageSentInChat(error = cause)
+                            analytics.messageSentInChat(type = chatType, error = cause)
                         }
                 }
             }
@@ -663,11 +673,18 @@ internal class ChatViewModel @Inject constructor(
                         }
                     }
 
+                    // A payment into a tip DM is a tip; a contact DM is a plain cash send.
+                    val transferEvent = if (stateFlow.value.participant is ChatParticipant.TipUser) {
+                        Analytics.Transfer.SentTip
+                    } else {
+                        Analytics.Transfer.SentCash
+                    }
+
                     result.onSuccess {
                         dispatchEvent(Event.SendStateUpdated(success = true))
                         delay(400.milliseconds)
                         analytics.transfer(
-                            event = Analytics.Transfer.SentCash,
+                            event = transferEvent,
                             amount = verifiedFiat.localFiat,
                             successful = true,
                         )
@@ -678,7 +695,7 @@ internal class ChatViewModel @Inject constructor(
                     }.onFailure { cause ->
                         dispatchEvent(Event.SendStateUpdated())
                         analytics.transfer(
-                            event = Analytics.Transfer.SentCash,
+                            event = transferEvent,
                             amount = verifiedFiat.localFiat,
                             error = cause,
                         )

@@ -1,5 +1,7 @@
 package com.flipcash.shared.tipping
 
+import com.flipcash.app.analytics.Analytics
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.tipping.TipAmount
@@ -64,6 +66,7 @@ class TippingCoordinator @Inject constructor(
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val resources: ResourceHelper,
     private val purchaseMethodController: PurchaseMethodController,
+    private val analytics: FlipcashAnalyticsService,
 ) : TipSelectionHolder {
     /** The signed-in user's id ([UserManager.accountId]), or null if unavailable. */
     val currentUserId: ID?
@@ -179,24 +182,24 @@ class TippingCoordinator @Inject constructor(
                 setSendState(LoadingSuccessState(success = true))
                 delay(400.milliseconds)
                 setSendState(LoadingSuccessState())
-//                    analytics.transfer(
-//                        event = Analytics.Transfer.SentCash,
-//                        amount = verifiedFiat.localFiat,
-//                        successful = true,
-//                    )
+                analytics.transfer(
+                    event = Analytics.Transfer.SentTip,
+                    amount = verifiedFiat.localFiat,
+                    successful = true,
+                )
 
                 // Hand off to the tipped user's chat via the tips flow, so backing out of the
                 // chat lands on the tips list.
                 canonicalChatId?.let {
                     _events.emit(TipEvent.LaunchChat(ChatIdentifier.ByChatId(it)))
                 }
-            }.onFailure {
+            }.onFailure { cause ->
                 setSendState(LoadingSuccessState())
-//                    analytics.transfer(
-//                        event = Analytics.Transfer.SentCash,
-//                        amount = verifiedFiat.localFiat,
-//                        error = cause,
-//                    )
+                analytics.transfer(
+                    event = Analytics.Transfer.SentTip,
+                    amount = verifiedFiat.localFiat,
+                    error = cause,
+                )
                 BottomBarManager.showError(
                     title = resources.getString(R.string.error_title_cashFailedToSend),
                     message = resources.getString(R.string.error_description_cashFailedToSend),

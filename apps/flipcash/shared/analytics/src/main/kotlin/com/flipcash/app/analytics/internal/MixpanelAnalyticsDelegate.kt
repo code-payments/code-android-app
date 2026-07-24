@@ -7,6 +7,7 @@ import com.flipcash.app.analytics.asProperties
 import com.flipcash.app.analytics.toAnalyticsEvent
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AppAction
 import com.getcode.libs.analytics.AppActionSource
@@ -238,8 +239,16 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(AnalyticsEvent.TokenTransactionEvent.Sell(mint, amount, feeAmount, error))
     }
 
-    override fun messageSentInChat(error: Throwable?) {
-        track(AnalyticsEvent.ChatEvent.SentMessage(error = error))
+    override fun messageSentInChat(type: ChatType, error: Throwable?) {
+        track(AnalyticsEvent.ChatEvent.SentMessage(chatType = type, error = error))
+    }
+
+    override fun tipCardScanned() {
+        track(AnalyticsEvent.TipCardEvent.Scanned)
+    }
+
+    override fun tipCardPresented() {
+        track(AnalyticsEvent.TipCardEvent.Presented)
     }
 
     override fun deeplinkOpened(url: String) {

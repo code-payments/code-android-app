@@ -3,6 +3,7 @@ package com.flipcash.app.analytics
 import androidx.compose.runtime.Composable
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AnalyticsService
 import com.getcode.libs.analytics.AppAction
@@ -35,7 +36,9 @@ interface FlipcashAnalyticsService : AnalyticsService {
     fun openTokenInfo(source: Analytics.TokenInfoSource, mint: Mint)
     fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable? = null)
     fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable? = null)
-    fun messageSentInChat(error: Throwable? = null)
+    fun messageSentInChat(type: ChatType, error: Throwable? = null)
+    fun tipCardScanned()
+    fun tipCardPresented()
     fun deeplinkOpened(url: String)
     fun deeplinkParsed(type: DeeplinkType?, url: String)
     fun deeplinkRouted(type: DeeplinkType, error: Throwable? = null)
@@ -64,6 +67,7 @@ object Analytics {
         }
 
         data object SentCash : Transfer
+        data object SentTip : Transfer
     }
     enum class OnrampSource { Settings, Balance, Give }
     enum class AddMoneySource { Menu, GiveShortfall, BuyShortfall, Chat, Scanner, Balance }
@@ -114,7 +118,9 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun buy(method: Analytics.PurchaseMethod, mint: Mint, amount: Fiat, error: Throwable?) = Unit
     override fun sell(mint: Mint, amount: Fiat, feeAmount: Fiat, error: Throwable?) = Unit
 
-    override fun messageSentInChat(error: Throwable?) = Unit
+    override fun messageSentInChat(type: ChatType, error: Throwable?) = Unit
+    override fun tipCardScanned() = Unit
+    override fun tipCardPresented() = Unit
 
     override fun deeplinkOpened(url: String) = Unit
     override fun deeplinkParsed(type: DeeplinkType?, url: String) = Unit
