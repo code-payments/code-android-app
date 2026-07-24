@@ -121,6 +121,12 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                             .setQuarks(amount.quarks)
                             .setMint(Common.PublicKey.newBuilder().setValue(mint.bytes.toByteString()))
                     )
+                    .setAction(
+                        when (action) {
+                            MessageContent.Cash.Action.TIPPED -> MessagingModel.CashContent.Action.TIPPED
+                            MessageContent.Cash.Action.SENT -> MessagingModel.CashContent.Action.SENT
+                        }
+                    )
             )
             .build()
         is MessageContent.Reply -> MessagingModel.Content.newBuilder()

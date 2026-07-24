@@ -98,6 +98,7 @@ fun ContentBubble(
                     tokenName = content.tokenName,
                     tokenImageUrl = content.tokenImageUrl,
                     isFromSelf = item.isFromSelf,
+                    action = content.action,
                     position = position,
                     maxWidth = bubbleMaxWidth,
                     onClick = {
@@ -152,6 +153,7 @@ private fun CashBubble(
     isFromSelf: Boolean,
     position: BubblePosition,
     maxWidth: Dp,
+    action: MessageContent.Cash.Action = MessageContent.Cash.Action.SENT,
     onClick: () -> Unit = { },
     modifier: Modifier = Modifier,
 ) {
@@ -208,12 +210,14 @@ private fun CashBubble(
                     .padding(top = CodeTheme.dimens.grid.x5, bottom = CodeTheme.dimens.grid.x8),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                val subtitleRes = when (action) {
+                    MessageContent.Cash.Action.TIPPED ->
+                        if (isFromSelf) R.string.subtitle_youTipped else R.string.subtitle_someoneTippedYou
+                    MessageContent.Cash.Action.SENT ->
+                        if (isFromSelf) R.string.subtitle_youSent else R.string.subtitle_youReceived
+                }
                 Text(
-                    text = if (isFromSelf) {
-                        stringResource(R.string.subtitle_youSent)
-                    } else {
-                        stringResource(R.string.subtitle_youReceived)
-                    },
+                    text = stringResource(subtitleRes),
                     style = CodeTheme.typography.caption.copy(
                         fontWeight = FontWeight.Medium,
                     ),
@@ -479,6 +483,25 @@ private fun Preview_CashBubble_NoTokenName() {
             isFromSelf = true,
             position = BubblePosition.Solo,
             maxWidth = 300.dp,
+        )
+    }
+}
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_CashBubble_Tipped() {
+    CompositionLocalProvider(
+        LocalExchange provides ExchangeStub(context = LocalContext.current)
+    ) {
+        CashBubble(
+            amount = Fiat(fiat = 5.0),
+            tokenName = "USDF",
+            tokenImageUrl = "",
+            isFromSelf = false,
+            position = BubblePosition.Solo,
+            maxWidth = 300.dp,
+            action = MessageContent.Cash.Action.TIPPED,
         )
     }
 }

@@ -59,11 +59,13 @@ private fun ChatSummary.formatPreview(
                 } else {
                     formatted
                 }
-                if (sentBySelf) {
-                    resources.getString(R.string.label_chat_preview_sentCash, label)
-                } else {
-                    resources.getString(R.string.label_chat_preview_receivedCash, label)
+                val previewRes = when (content.action) {
+                    MessageContent.Cash.Action.TIPPED ->
+                        if (sentBySelf) R.string.label_chat_preview_tippedCash else R.string.label_chat_preview_receivedTip
+                    MessageContent.Cash.Action.SENT ->
+                        if (sentBySelf) R.string.label_chat_preview_sentCash else R.string.label_chat_preview_receivedCash
                 }
+                resources.getString(previewRes, label)
             }
 
             // TODO:

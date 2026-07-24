@@ -215,6 +215,7 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
         mint = mint.base58(),
         tokenName = tokenName,
         tokenImageUrl = tokenImageUrl,
+        action = action.name,
     )
     is MessageContent.Reply -> MessageContentSerialized.Reply(
         repliedMessageId = repliedMessageId,
@@ -242,6 +243,8 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
         mint = Mint(mint.decodeBase58().toList()),
         tokenName = tokenName,
         tokenImageUrl = tokenImageUrl,
+        action = MessageContent.Cash.Action.entries.firstOrNull { it.name == action }
+            ?: MessageContent.Cash.Action.SENT,
     )
     is MessageContentSerialized.Reply -> MessageContent.Reply(
         repliedMessageId = repliedMessageId,

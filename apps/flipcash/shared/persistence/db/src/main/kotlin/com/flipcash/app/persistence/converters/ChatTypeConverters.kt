@@ -120,6 +120,7 @@ sealed interface MessageContentSerialized {
         val mint: String = "",
         val tokenName: String = "",
         val tokenImageUrl: String = "",
+        val action: String = "SENT",
     ) : MessageContentSerialized
 
     @Serializable
