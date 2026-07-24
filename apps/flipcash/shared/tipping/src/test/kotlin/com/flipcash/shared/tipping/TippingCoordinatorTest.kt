@@ -1,5 +1,6 @@
 package com.flipcash.shared.tipping
 
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ProfileController
@@ -27,6 +28,7 @@ class TippingCoordinatorTest {
     private val verifiedFiatCalculator = mockk<VerifiedFiatCalculator>(relaxed = true)
     private val resources = mockk<ResourceHelper>(relaxed = true)
     private val purchaseMethodController = mockk<PurchaseMethodController>(relaxed = true)
+    private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
 
     private fun buildCoordinator() = TippingCoordinator(
         profileController,
@@ -37,6 +39,7 @@ class TippingCoordinatorTest {
         verifiedFiatCalculator,
         resources,
         purchaseMethodController,
+        analytics,
     )
 
     private val coordinator = buildCoordinator()
