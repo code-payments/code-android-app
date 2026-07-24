@@ -845,6 +845,10 @@
     <string name="prompt_title_cancelCashLinkPostShare">Are You Sure?</string>
     <string name="prompt_description_cancelCashLinkPostShare">Anyone you sent the link to won\'t be able to collect the cash</string>
 
+    <string name="subtitle_youTipped">You tipped</string>
+    <string name="subtitle_youReceived">You received</string>
+    <string name="subtitle_youSent">You sent</string>
+    <string name="subtitle_youReceivedTip">You received a tip</string>
     <string name="label_chat_preview_cash_suffix">%1$s of %2$s</string>
     <string name="label_chat_preview_sentCash">You sent %1$s</string>
     <string name="label_chat_preview_receivedCash">You received %1$s</string>

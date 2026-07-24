@@ -44,7 +44,7 @@ interface DepositOperations {
      * an add-money prompt when the wallet is empty, or a discover-currencies prompt when
      * the user has funds (e.g. reserves) but nothing giveable.
      */
-    fun presentDepositOptions(onRoute: ((AppRoute) -> Unit)? = null)
+    fun presentDepositOptions(onDismiss: (() -> Unit)? = null, onRoute: ((AppRoute) -> Unit)? = null)
 }
 
 interface SessionController : BillOperations, CodeScanOperations, CashLinkOperations, DepositOperations, TipCardOperations {

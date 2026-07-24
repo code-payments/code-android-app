@@ -53,7 +53,7 @@ class DepositDelegate @Inject constructor(
             .launchIn(scope)
     }
 
-    override fun presentDepositOptions(onRoute: ((AppRoute) -> Unit)?) {
+    override fun presentDepositOptions(onDismiss: (() -> Unit)?, onRoute: ((AppRoute) -> Unit)?) {
         // Prompt to add money only when the wallet is empty and add-money is available.
         // Otherwise the user has funds (e.g. reserves) but nothing giveable — or can't
         // add money at all — so steer them to discover/buy a currency.
@@ -61,13 +61,17 @@ class DepositDelegate @Inject constructor(
         val hasBalance = stateHolder.current.hasBalance
 
         if (!hasBalance) {
-            presentAddMoney(addMoneyEnabled, onRoute)
+            presentAddMoney(addMoneyEnabled, onRoute, onDismiss)
         } else {
-            presentDiscoverCurrencies(onRoute)
+            presentDiscoverCurrencies(onRoute, onDismiss)
         }
     }
 
-    private fun presentAddMoney(addMoneyEnabled: Boolean, onRoute: ((AppRoute) -> Unit)?) {
+    private fun presentAddMoney(
+        addMoneyEnabled: Boolean,
+        onRoute: ((AppRoute) -> Unit)?,
+        onDismiss: (() -> Unit)?
+    ) {
         BottomBarManager.showInfo(
             title = resources.getString(R.string.title_noBalanceYet),
             message = if (addMoneyEnabled) {
@@ -90,10 +94,11 @@ class DepositDelegate @Inject constructor(
                 },
             ),
             showCancel = true,
+            onDismiss = { onDismiss?.invoke() }
         )
     }
 
-    private fun presentDiscoverCurrencies(onRoute: ((AppRoute) -> Unit)?) {
+    private fun presentDiscoverCurrencies(onRoute: ((AppRoute) -> Unit)?, onDismiss: (() -> Unit)?) {
         BottomBarManager.showInfo(
             title = resources.getString(R.string.title_noCommunityCurrenciesYet),
             message = resources.getString(R.string.description_noCommunityCurrenciesYet),
@@ -105,6 +110,7 @@ class DepositDelegate @Inject constructor(
                 },
             ),
             showCancel = true,
+            onDismiss = { onDismiss?.invoke() }
         )
     }
 

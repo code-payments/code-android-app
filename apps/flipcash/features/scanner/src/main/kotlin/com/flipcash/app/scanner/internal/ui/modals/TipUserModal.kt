@@ -81,8 +81,7 @@ internal fun TipUserModal(
             token = selection.token,
             modifier = Modifier.fillMaxWidth(),
             onSelectToken = {
-                val threshold = selection.amount?.value ?: selection.presets.firstOrNull()
-                navigator.openAsSheet(AppRoute.Sheets.TokenSelection(TokenPurpose.Tip(threshold)))
+                navigator.openAsSheet(AppRoute.Sheets.TokenSelection(TokenPurpose.Tip( selection.minimum)))
             },
         )
 
