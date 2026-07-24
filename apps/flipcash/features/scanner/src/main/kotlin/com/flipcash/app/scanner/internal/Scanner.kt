@@ -1,6 +1,7 @@
 package com.flipcash.app.scanner.internal
 
 import android.annotation.SuppressLint
+import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +64,9 @@ internal fun Scanner() {
     var isPinching by remember { mutableStateOf(false) }
     var zoomRatio by remember { mutableFloatStateOf(1f) }
 
+    // Exposed by CodeScanner so the tip card can snapshot the live feed for its blurred backdrop.
+    var previewView by remember { mutableStateOf<PreviewView?>(null) }
+
     LaunchedEffect(biometricsState, previewing) {
         if (previewing == true) {
             focusManager.clearFocus()
@@ -80,6 +84,7 @@ internal fun Scanner() {
         isPaused = isPaused,
         isPinching = isPinching,
         zoomRatio = zoomRatio,
+        previewView = previewView,
         onAction = {
             when (it) {
                 ScannerDecorItem.Give -> {
@@ -111,6 +116,7 @@ internal fun Scanner() {
                     cameraAvailable = true
                     previewing = it
                 },
+                onPreviewViewChanged = { previewView = it },
                 onCodeScanned = { result ->
                     when (result) {
                         is CodeScanResult.QrCode -> {

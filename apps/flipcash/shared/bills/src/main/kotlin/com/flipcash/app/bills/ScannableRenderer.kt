@@ -2,14 +2,12 @@ package com.flipcash.app.bills
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.bills.components.bills.CashBill
 import com.flipcash.app.bills.components.bills.GoldBar
-import com.flipcash.app.bills.components.cards.LocalTipCardColor
 import com.flipcash.app.bills.components.cards.TipCard
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.theme.FlipcashThemeWrapper

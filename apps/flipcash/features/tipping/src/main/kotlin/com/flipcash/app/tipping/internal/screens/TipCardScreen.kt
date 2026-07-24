@@ -22,7 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.ScannableRenderer
-import com.flipcash.app.bills.components.cards.LocalTipCardColor
+import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.tipping.TipResult
 import com.flipcash.app.core.tipping.TipStep
@@ -101,7 +101,7 @@ internal fun TipCardScreen() {
             Spacer(Modifier.weight(1f))
             state.tipCard?.let {
                 CompositionLocalProvider(
-                    LocalTipCardColor provides Color(0xFF101011)
+                    LocalTipCardBaseAlpha provides 0.36f
                 ) {
                     ScannableRenderer(
                         scannable = it,
