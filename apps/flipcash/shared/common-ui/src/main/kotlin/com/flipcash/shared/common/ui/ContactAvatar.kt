@@ -28,12 +28,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.min
 import androidx.core.net.toUri
+import coil3.asImage
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import coil3.request.placeholder
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.UserProfile
-import com.flipcash.services.models.chat.MediaItemRendition
+import com.flipcash.services.models.chat.MediaItem
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 
@@ -102,23 +104,83 @@ fun ContactAvatar(
 @Composable
 fun ContactAvatar(
     userProfile: UserProfile,
-    imageRole: MediaItemRendition.Role = MediaItemRendition.Role.THUMBNAIL,
     modifier: Modifier = Modifier,
+) {
+    ProfileAvatar(
+        image = userProfile.profilePicture,
+        modifier = modifier,
+        fallback = { UnknownContactAvatar(includeBorder = true) },
+    )
+}
+
+/**
+ * Renders a server-side profile picture ([MediaItem]) — the tips list, chat header, info card, etc.
+ * Prefer this over the raw `photoUri` overload for anything backed by a [MediaItem]: it picks the
+ * rendition that matches the avatar's measured pixel size (the server ships several thumbnail /
+ * display sizes) so the image is never grainy or over-fetched, and bridges the load with the
+ * item's BlurHash plus any already-cached smaller rendition. Falls back to [displayName]'s
+ * initials when there's no picture.
+ */
+@Composable
+fun ContactAvatar(
+    image: MediaItem?,
+    displayName: String,
+    modifier: Modifier = Modifier,
+) {
+    ProfileAvatar(
+        image = image,
+        modifier = modifier,
+        fallback = { InitialsText(displayName) },
+    )
+}
+
+@Composable
+private fun ProfileAvatar(
+    image: MediaItem?,
+    modifier: Modifier,
+    fallback: @Composable BoxWithConstraintsScope.() -> Unit,
 ) {
     BoxWithConstraints(
         modifier = modifier.background(
             Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)
         )
     ) {
-        val photoUri = userProfile.profilePicture?.url(imageRole)
-        if (photoUri != null) {
+        // Pick the rendition by the avatar's actual pixel size — the longest bounded side of the
+        // measured constraints (unbounded → request the largest, so it's never under-sized).
+        val targetPx = remember(constraints) {
+            val w = if (constraints.hasBoundedWidth) constraints.maxWidth else 0
+            val h = if (constraints.hasBoundedHeight) constraints.maxHeight else 0
+            maxOf(w, h).takeIf { it > 0 } ?: Int.MAX_VALUE
+        }
+        val photoUri = remember(image, targetPx) { image?.urlForSize(targetPx) }
+        if (image != null && photoUri != null) {
             var isError by rememberSaveable(photoUri) { mutableStateOf(false) }
             if (!isError) {
                 val context = LocalContext.current
-                val request = remember(photoUri) {
+                // Two progressively better placeholders bridge the load so we never flash a blank
+                // gradient while the correctly-sized rendition downloads:
+                //   1. the BlurHash — an instant, self-contained blurred preview, and
+                //   2. the next-smaller rendition — if another surface already cached it (e.g. the
+                //      list loaded the 160 this 320 avatar sits above), Coil shows it immediately
+                //      (see placeholderMemoryCacheKey) and upgrades in place.
+                val blurHash = remember(image) {
+                    BlurHash.decode(image.blurhash(), width = 24, height = 24)?.asImage()
+                }
+                val previewKey = remember(image, targetPx, photoUri) {
+                    image.renditionBelow(targetPx)?.blob?.downloadUrl?.takeIf { it != photoUri }
+                }
+                val request = remember(photoUri, previewKey, blurHash) {
                     ImageRequest.Builder(context)
                         .crossfade(true)
                         .data(photoUri.toUri())
+                        // Key on the download URL alone (not size) so every avatar load of this
+                        // rendition shares one cache entry — which is what lets a smaller rendition
+                        // reliably resolve via placeholderMemoryCacheKey across surfaces.
+                        .memoryCacheKey(photoUri)
+                        .apply {
+                            blurHash?.let { placeholder(it) }
+                            previewKey?.let { placeholderMemoryCacheKey(it) }
+                        }
                         .build()
                 }
                 AsyncImage(
@@ -133,10 +195,10 @@ fun ContactAvatar(
                 )
             }
             if (isError) {
-                UnknownContactAvatar(includeBorder = true)
+                fallback()
             }
         } else {
-            UnknownContactAvatar(includeBorder = true)
+            fallback()
         }
     }
 }

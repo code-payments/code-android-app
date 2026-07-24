@@ -44,7 +44,6 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.chat.MediaItem
-import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SwipeAction
@@ -278,7 +277,7 @@ private fun ProfileHeader(
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
     ) {
         ContactAvatar(
-            photoUri = profilePicture?.url(preferred = MediaItemRendition.Role.DISPLAY),
+            image = profilePicture,
             displayName = displayName.orEmpty(),
             modifier = Modifier
                 .size(96.dp)
