@@ -26,6 +26,7 @@ import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.utils.combine
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.CoroutineScope
@@ -101,16 +102,23 @@ class TippingCoordinator @Inject constructor(
             tokenCoordinator.tokens.map { tokens -> tokens.find { it.address == mint } }
         }
 
+    /** The largest tippable amount (send-limit ∧ balance), surfaced by the amount entry. */
+    val maxTipAmount: StateFlow<Fiat?> get() = tipPaymentDelegate.maxTipAmount
+
+    /** The smallest tippable amount (lowest preset tier), surfaced by the amount entry. */
+    val minTipAmount: StateFlow<Fiat?> get() = tipPaymentDelegate.minTipAmount
+
     /** The combined tip selection (amount chosen in the modal + app-global token + send state). */
     override val selection: StateFlow<TipSelectionState> =
         combine(
-            combine(_amount, selectedToken, _sendState, _userId, _canTip) { amount, token, sendState, userId, canTip ->
+            combine(_amount, selectedToken, _sendState, _userId, _canTip, minTipAmount) { amount, token, sendState, userId, canTip, min ->
                 TipSelectionState(
                     amount = amount,
                     token = token,
                     sendState = sendState,
                     userId = userId,
                     canTip = canTip,
+                    minimum = min
                 )
             },
             tipPaymentDelegate.tipPresets,
@@ -127,12 +135,6 @@ class TippingCoordinator @Inject constructor(
             .onEach { selectAmount(null) }
             .launchIn(scope)
     }
-
-    /** The largest tippable amount (send-limit ∧ balance), surfaced by the amount entry. */
-    val maxTipAmount: StateFlow<Fiat?> get() = tipPaymentDelegate.maxTipAmount
-
-    /** The smallest tippable amount (lowest preset tier), surfaced by the amount entry. */
-    val minTipAmount: StateFlow<Fiat?> get() = tipPaymentDelegate.minTipAmount
 
     /** Whether [amount] exceeds the per-transaction send limit for its currency. */
     fun exceedsSendLimit(amount: Fiat): Boolean = tipPaymentDelegate.exceedsSendLimit(amount)

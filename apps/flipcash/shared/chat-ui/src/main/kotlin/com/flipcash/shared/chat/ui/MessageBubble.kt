@@ -55,7 +55,6 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.PriceWithFlag
 import com.getcode.ui.core.addIf
-import com.getcode.util.resources.R
 
 enum class BubblePosition { Solo, First, Middle, Last }
 
@@ -212,7 +211,7 @@ private fun CashBubble(
             ) {
                 val subtitleRes = when (action) {
                     MessageContent.Cash.Action.TIPPED ->
-                        if (isFromSelf) R.string.subtitle_youTipped else R.string.subtitle_someoneTippedYou
+                        if (isFromSelf) R.string.subtitle_youTipped else R.string.subtitle_youReceivedTip
                     MessageContent.Cash.Action.SENT ->
                         if (isFromSelf) R.string.subtitle_youSent else R.string.subtitle_youReceived
                 }

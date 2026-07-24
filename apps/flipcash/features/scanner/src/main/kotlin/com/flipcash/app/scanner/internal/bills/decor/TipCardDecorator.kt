@@ -57,11 +57,12 @@ internal data class TipCardDecorator(private val tipCard: Scannable.TipCard) : S
         // the UI, so we route directly rather than plumbing a callback through the session.
         LaunchedEffect(tipPresented, selection.canTip) {
             if (tipPresented && !selection.canTip) {
-                session?.presentDepositOptions { route ->
-                    navigator.openAsSheet(route)
+                session?.presentDepositOptions(
                     // No giveable balance to tip with → steer to add-money / discover, and dismiss the
                     // tip card so we don't leave it stranded behind the prompt.
-                    context.onDismiss()
+                    onDismiss = { context.onDismiss() }
+                ) { route ->
+                    navigator.openAsSheet(route)
                 }
             }
         }

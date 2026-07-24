@@ -47,6 +47,7 @@ data class TipSelectionState(
     val canTip: Boolean = false,
     /** Suggested tip presets in the sender's preferred currency; updates when the region changes. */
     val presets: List<Fiat> = emptyList(),
+    val minimum: Fiat? = null,
 ) {
     /** A positive amount is chosen and no submission is currently in flight. */
     val canConfirm: Boolean get() = amount != null && sendState.isIdle
