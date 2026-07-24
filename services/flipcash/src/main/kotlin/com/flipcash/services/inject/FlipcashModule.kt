@@ -5,6 +5,7 @@ import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.annotations.FlipcashManagedStreamingChannel
 import com.flipcash.services.internal.annotations.FlipcashProtocol
 import com.flipcash.services.internal.domain.ActivityFeedMessageMapper
+import com.flipcash.services.internal.domain.BlockedUserMapper
 import com.flipcash.services.internal.domain.ContactMapper
 import com.flipcash.services.internal.domain.ImageModerationResponseMapper
 import com.flipcash.services.internal.domain.UserFlagsMapper
@@ -17,6 +18,7 @@ import com.flipcash.services.internal.network.HttpBlobUploader
 import com.flipcash.services.internal.network.services.AccountService
 import com.flipcash.services.internal.network.services.ActivityFeedService
 import com.flipcash.services.internal.network.services.BlobStorageService
+import com.flipcash.services.internal.network.services.BlocklistService
 import com.flipcash.services.internal.network.services.ChatService
 import com.flipcash.services.internal.network.services.EventStreamingService
 import com.flipcash.services.internal.network.services.ChatMessagingService
@@ -33,6 +35,7 @@ import com.flipcash.services.internal.network.services.ThirdPartyService
 import com.flipcash.services.internal.repositories.InternalAccountRepository
 import com.flipcash.services.internal.repositories.InternalActivityFeedRepository
 import com.flipcash.services.internal.repositories.InternalBlobStorageRepository
+import com.flipcash.services.internal.repositories.InternalBlocklistRepository
 import com.flipcash.services.internal.repositories.InternalChatRepository
 import com.flipcash.services.internal.repositories.InternalEventStreamingRepository
 import com.flipcash.services.internal.repositories.InternalChatMessagingRepository
@@ -47,6 +50,7 @@ import com.flipcash.services.internal.repositories.InternalSettingsRepository
 import com.flipcash.services.internal.repositories.InternalThirdPartyRepository
 import com.flipcash.services.repository.AccountRepository
 import com.flipcash.services.repository.ActivityFeedRepository
+import com.flipcash.services.repository.BlocklistRepository
 import com.flipcash.services.repository.ChatRepository
 import com.flipcash.services.repository.EventStreamingRepository
 import com.flipcash.services.repository.ChatMessagingRepository
@@ -198,6 +202,12 @@ internal object FlipcashModule {
         service: ActivityFeedService,
         mapper: ActivityFeedMessageMapper,
     ): ActivityFeedRepository = InternalActivityFeedRepository(service, mapper)
+
+    @Provides
+    internal fun providesBlocklistRepository(
+        service: BlocklistService,
+        mapper: BlockedUserMapper,
+    ): BlocklistRepository = InternalBlocklistRepository(service, mapper)
 
     @Provides
     internal fun providesPurchaseRepository(
