@@ -264,6 +264,7 @@ sealed interface FeatureFlag<T: Any> {
         override val launched: Boolean = false
         override val visible: Boolean = true
         override val persistLogOut: Boolean = false
+        override val minTrack: FeatureTrack = FeatureTrack.Production
     }
 
     companion object {
