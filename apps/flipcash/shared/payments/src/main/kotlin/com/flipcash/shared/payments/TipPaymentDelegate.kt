@@ -13,6 +13,7 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
 import kotlinx.coroutines.CoroutineScope
@@ -51,14 +52,17 @@ class TipPaymentDelegate @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /**
-     * The user's suggested tip amounts, derived from the server-provided per-region
-     * [com.flipcash.services.models.TipPresets] (via [UserFlagsCoordinator]) and the user's current
-     * preferred currency. Selects the presets whose region matches that currency (region is an ISO
-     * 4217 currency code), falls back to the USD presets, and expresses each tier — low / medium /
-     * high — as a [Fiat] in the matched region's currency. When the server provides no presets at
-     * all, falls back to the built-in [DEFAULT_USD_PRESETS], localized to the preferred currency.
+     * The server tip presets resolved for the user's current preferred currency: the [minimum]
+     * tippable amount and the suggested [tiers] (low / medium / high). Region-matched once and shared
+     * by [tipPresets] and [minTipAmount] so both stay consistent. Null until presets resolve.
+     *
+     * Derived from the server-provided per-region [com.flipcash.services.models.TipPresets] (via
+     * [UserFlagsCoordinator]) and the preferred currency: selects the presets whose region matches
+     * that currency (region is an ISO 4217 currency code), falls back to the USD presets, and — when
+     * the server provides no presets at all — to the built-in [DEFAULT_USD_PRESETS], localized to the
+     * preferred currency.
      */
-    val tipPresets: StateFlow<List<Fiat>> = combine(
+    private val resolvedPresets: StateFlow<ResolvedPresets?> = combine(
         userFlags.resolvedFlags,
         // Drive off the preferred rate (a StateFlow that always emits its current value) rather than
         // observePreferredCurrency() — which can be an empty flow, and combine()'d with the hot
@@ -74,9 +78,20 @@ class TipPaymentDelegate @Inject constructor(
                     ?.let { CurrencyCode.USD to it }
                 ?: return@combine defaultPresets(preferred)
 
-        listOf(matched.low, matched.medium, matched.high)
-            .map { amount -> Fiat(fiat = amount, currencyCode = currency) }
-    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        ResolvedPresets(
+            minimum = Fiat(fiat = matched.minimum, currencyCode = currency),
+            tiers = listOf(matched.low, matched.medium, matched.high)
+                .map { amount -> Fiat(fiat = amount, currencyCode = currency) },
+        )
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * The user's suggested tip amounts — the low / medium / high tiers in the preferred currency,
+     * shown as preset chips. See [resolvedPresets].
+     */
+    val tipPresets: StateFlow<List<Fiat>> =
+        resolvedPresets.map { it?.tiers.orEmpty() }
+            .stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
      * The largest tippable amount, in the user's preferred currency: the smaller of the
@@ -98,12 +113,13 @@ class TipPaymentDelegate @Inject constructor(
         }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**
-     * The smallest tippable amount — the lowest preset tier in the user's preferred currency. The
-     * amount entry surfaces it as a "minimum tip" hint and blocks custom amounts below it. Null until
-     * presets resolve.
+     * The smallest tippable amount — the presets' [com.flipcash.services.models.TipPresets.minimum]
+     * in the user's preferred currency. This is the dedicated minimum, NOT the lowest tier (`low`),
+     * which typically sits above it. The amount entry surfaces it as a "minimum tip" hint and blocks
+     * custom amounts below it. Null until presets resolve.
      */
     val minTipAmount: StateFlow<Fiat?> =
-        tipPresets.map { presets -> presets.minOrNull() }
+        resolvedPresets.map { it?.minimum }
             .stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**
@@ -153,20 +169,38 @@ class TipPaymentDelegate @Inject constructor(
     }
 
     /**
-     * The built-in fallback tip presets ([DEFAULT_USD_PRESETS], in USD), localized to [preferred] via
-     * the current exchange rate when the user isn't on USD. Leaves the amounts in USD if no rate is
-     * available for the preferred currency.
+     * The built-in fallback presets — the [DEFAULT_USD_MINIMUM] and [DEFAULT_USD_PRESETS] tiers (in
+     * USD), localized to [preferred] via the current exchange rate when the user isn't on USD. Leaves
+     * the amounts in USD if no rate is available for the preferred currency.
      */
-    private fun defaultPresets(preferred: CurrencyCode): List<Fiat> {
-        val usd = DEFAULT_USD_PRESETS.map { Fiat(fiat = it, currencyCode = CurrencyCode.USD) }
-        if (preferred == CurrencyCode.USD) return usd
+    private fun defaultPresets(preferred: CurrencyCode): ResolvedPresets {
+        fun localize(amount: Double, rate: Rate?): Fiat {
+            val usd = Fiat(fiat = amount, currencyCode = CurrencyCode.USD)
+            return rate?.let { usd.convertingTo(it).rounded() } ?: usd
+        }
 
-        val rate = exchange.rateFor(preferred) ?: return usd
-        return usd.map { it.convertingTo(rate).rounded() }
+        val rate = if (preferred == CurrencyCode.USD) null else exchange.rateFor(preferred)
+        return ResolvedPresets(
+            minimum = localize(DEFAULT_USD_MINIMUM, rate),
+            tiers = DEFAULT_USD_PRESETS.map { localize(it, rate) },
+        )
     }
+
+    /**
+     * The region-matched tip presets in a single currency: the dedicated [minimum] tippable amount and
+     * the suggested [tiers] (low / medium / high) shown as preset chips. Resolved once so [tipPresets]
+     * and [minTipAmount] stay consistent.
+     */
+    private data class ResolvedPresets(
+        val minimum: Fiat,
+        val tiers: List<Fiat>,
+    )
 
     companion object {
         /** Fallback tip amounts (USD) used when the server provides no presets. */
         private val DEFAULT_USD_PRESETS = listOf(5.0, 10.0, 20.0)
+
+        /** Fallback minimum tip (USD) used when the server provides no presets. */
+        private const val DEFAULT_USD_MINIMUM = 1.0
     }
 }
