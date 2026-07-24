@@ -32,7 +32,6 @@ import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.services.models.NavigationTrigger
 import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
@@ -250,9 +249,14 @@ class NotificationService : FirebaseMessagingService(),
         // Device-contact photo (local, synchronous) first; otherwise the profile
         // picture URL loaded through the app's shared Coil loader (cache-first,
         // network-bounded). Works for CONTACT_DM and TIP_DM alike.
+        //
+        // Size the rendition to the platform's large-icon dimension (density-scaled) rather than
+        // grabbing the smallest THUMBNAIL — the server ships several thumbnail/display sizes and
+        // the tiny 32px one looks grainy on the notification's person icon.
+        val avatarPx = resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
         val avatar = e164?.let { resolveContactPhoto(it) }
             ?: member?.userProfile?.profilePicture
-                ?.url(MediaItemRendition.Role.THUMBNAIL)
+                ?.urlForSize(avatarPx)
                 ?.let { loadRemoteAvatar(it) }
 
         trace(
