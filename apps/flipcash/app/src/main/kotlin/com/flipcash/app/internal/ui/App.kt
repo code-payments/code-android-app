@@ -233,6 +233,8 @@ internal fun App(
                                                     when (action) {
                                                         is DeeplinkAction.OpenCashLink ->
                                                             session.openCashLink(action.entropy)
+                                                        is DeeplinkAction.PresentTipCard ->
+                                                            session.resolveTipCard(action.userId)
                                                         is DeeplinkAction.Login ->
                                                             viewModel.handleLoginEntropy(
                                                                 action.entropy,
