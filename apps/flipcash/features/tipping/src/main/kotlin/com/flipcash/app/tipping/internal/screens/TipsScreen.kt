@@ -24,7 +24,6 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.tipping.internal.TipFlowViewModel
 import com.flipcash.features.tipping.R
-import com.flipcash.services.models.chat.MediaItemRendition
 import com.flipcash.shared.chat.ui.ChatListRow
 import com.flipcash.shared.chat.ui.ChatRowSubtitle
 import com.flipcash.shared.chat.ui.ChatRowTrailing
@@ -106,11 +105,11 @@ private fun TipChatRow(
         modifier = modifier,
         avatar = {
             ContactAvatar(
-                photoUri = chat.image?.url(preferred = MediaItemRendition.Role.THUMBNAIL),
+                image = chat.image,
+                displayName = chat.displayName.orEmpty(),
                 modifier = Modifier
                     .requiredSize(CodeTheme.dimens.staticGrid.x8)
                     .clip(CircleShape),
-                displayName = chat.displayName.orEmpty(),
             )
         },
         title = {
@@ -122,7 +121,7 @@ private fun TipChatRow(
             )
 
             ChatRowTrailing(
-                lastActivity = null,
+                lastActivity = chat.lastActivity,
                 unreadCount = chat.unreadCount,
                 canOpen = true,
             )

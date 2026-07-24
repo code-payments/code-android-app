@@ -68,6 +68,10 @@ internal class AppRouter(
                 listOf(AppRoute.Sheets.Send(), AppRoute.Messaging.Chat(type.identifier))
             )
 
+            is DeeplinkType.TipChat -> DeeplinkAction.Navigate(
+                listOf(AppRoute.Sheets.Tips(), AppRoute.Messaging.Chat(type.identifier))
+            )
+
             is DeeplinkType.Tipcard -> DeeplinkAction.PresentTipCard(type.userId)
         }
     }
@@ -79,6 +83,7 @@ internal class AppRouter(
             deepLink.isToken() -> deepLink.handleTokenLink()
             deepLink.isEmailVerification() -> deepLink.handleEmailVerification()
             deepLink.isChat() -> deepLink.handleChat()
+            deepLink.isTipChat() -> deepLink.handleTipChat()
             deepLink.isTipCard() -> deepLink.handleTipCard()
             else -> null
         }
@@ -135,6 +140,10 @@ private fun DeepLink.isEmailVerification(): Boolean = verification.contains(path
 
 private fun DeepLink.isChat(): Boolean = chat.contains(pathSegments.getOrNull(0))
 
+// https://app.flipcash.com/tip/chat/{url encoded chatId}
+private fun DeepLink.isTipChat(): Boolean =
+    tip.contains(pathSegments.getOrNull(0)) && chat.contains(pathSegments.getOrNull(1))
+
 private fun DeepLink.isTipCard(): Boolean =  tip.contains(pathSegments.getOrNull(0))
 
 private fun DeepLink.handleLoginLink(): DeeplinkType.Login? {
@@ -177,6 +186,17 @@ private fun DeepLink.handleChat(): DeeplinkType.Chat? {
     }
 
     return DeeplinkType.Chat(identifier)
+}
+
+// https://app.flipcash.com/tip/chat/{url encoded chatId}
+private fun DeepLink.handleTipChat(): DeeplinkType.TipChat? {
+    val uri = data.toUri()
+    // Tip chats are always addressed by canonical chat id (base64 url-safe bytes),
+    // never by phone number, so there is no ByContact branch here.
+    val chatTarget = uri.pathSegments.getOrNull(2) ?: return null
+    val chatId = ChatId(chatTarget.decodeBase64UrlSafe().toList())
+
+    return DeeplinkType.TipChat(ChatIdentifier.ByChatId(chatId))
 }
 
 private fun DeepLink.handleTipCard(): DeeplinkType.Tipcard? {

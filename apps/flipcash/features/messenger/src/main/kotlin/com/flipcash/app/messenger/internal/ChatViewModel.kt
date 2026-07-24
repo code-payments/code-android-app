@@ -23,7 +23,7 @@ import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R
-import com.flipcash.services.models.buildDmPaymentMetadata
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
@@ -34,6 +34,9 @@ import com.flipcash.shared.amountentry.AmountEntryLabel
 import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.payments.ContactPaymentDelegate
+import com.flipcash.shared.payments.TipPaymentDelegate
+import com.getcode.opencode.model.core.ID
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
@@ -44,7 +47,6 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
-import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel
@@ -58,6 +60,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -85,6 +88,8 @@ data class TypingConstraints(
 internal class ChatViewModel @Inject constructor(
     private val chatCoordinator: ChatCoordinator,
     private val contactCoordinator: ContactCoordinator,
+    private val contactPaymentDelegate: ContactPaymentDelegate,
+    private val tipPaymentDelegate: TipPaymentDelegate,
     private val transactionController: TransactionController,
     private val tokenCoordinator: TokenCoordinator,
     private val exchange: Exchange,
@@ -101,14 +106,17 @@ internal class ChatViewModel @Inject constructor(
 
     sealed interface ResolveState {
         data object Pending : ResolveState
-        data class Resolved(val authority: PublicKey) : ResolveState
+        // The counterparty resolved to an on-chain address, so the send can proceed. The address
+        // itself isn't held here — the payment delegates re-resolve it at send time (a cache hit),
+        // keyed by the counterparty's phone number or user id.
+        data object Resolved : ResolveState
         data object Failed : ResolveState
     }
 
     data class State(
         val separatorConfig: SeparatorConfig= SeparatorConfig.Continuous(),
         val chatId: ChatId? = null,
-        val chattingWith: DeviceContact? = null,
+        val participant: ChatParticipant? = null,
         val chatInputState: TextFieldState = TextFieldState(),
         val typists: Set<ActiveTypist> = emptySet(),
         val resolveState: ResolveState = ResolveState.Pending,
@@ -124,6 +132,7 @@ internal class ChatViewModel @Inject constructor(
     sealed interface Event {
         data class OnChatOpened(val identifier: ChatIdentifier) : Event
         data class OnContactFound(val contact: DeviceContact): Event
+        data class OnTipUserResolved(val userId: ID, val profile: UserProfile): Event
         data class OnCurrencySymbolUpdated(val symbol: String): Event
         data object RefreshContact : Event
         data class ChatFound(val chatId: ChatId) : Event
@@ -131,20 +140,19 @@ internal class ChatViewModel @Inject constructor(
         data object OnStartMessageInput: Event
         data object OnStopMessageInput: Event
         data class TypistsUpdated(val typists: Set<ActiveTypist>) : Event
-        data class ResolveCompleted(val authority: PublicKey) : Event
+        data object ResolveCompleted : Event
         data object ResolveFailed : Event
 
         data object SendMessage : Event
         data class RetryMessage(val pendingId: String?, val content: MessageContent) : Event
 
-        data class NavigateToAmountEntry(val contact: DeviceContact) : Event
+        data object NavigateToAmountEntry : Event
         data object PresentDepositOptions : Event
         data class OpenScreen(val route: AppRoute, val asSheet: Boolean = false): Event
         data object OnConfirmRequested : Event
         data class OnSendRequested(
             val amount: Fiat,
             val token: Token,
-            val destinationOwner: PublicKey,
         ) : Event
         data class SendStateUpdated(
             val loading: Boolean = false,
@@ -225,19 +233,45 @@ internal class ChatViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     }
 
+    // The amount entry adapts to the chat type: a tip DM swipes to *tip* and enforces the minimum
+    // tip (from the tip payment delegate); a contact DM swipes to *send* with no minimum.
+    private fun amountStyle(isTip: Boolean) = AmountEntryStyle(
+        actionLabel = AmountEntryLabel.Plain(
+            resources.getString(if (isTip) R.string.action_swipeToTip else R.string.action_swipeToSend)
+        ),
+        actionStyle = ConfirmationStyle.Slide,
+        infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
+        overMaxHint = { resources.getString(R.string.subtitle_sendHintLimitExceeded, it) },
+        belowMinHint = if (isTip) {
+            { min -> resources.getString(R.string.subtitle_tipHintMinimum, min) }
+        } else null,
+    )
+
+    private val isTipFlow = stateFlow
+        .map { it.participant is ChatParticipant.TipUser }
+        .distinctUntilChanged()
+
+    private val amountStyleFlow by lazy {
+        isTipFlow
+            .map { amountStyle(isTip = it) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), amountStyle(isTip = false))
+    }
+
+    private val minAmountFlow by lazy {
+        combine(isTipFlow, tipPaymentDelegate.minTipAmount) { isTip, tipMin ->
+            if (isTip) tipMin else null
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    }
+
     val amountDelegate by lazy {
         AmountEntryDelegate(
             exchange = exchange,
             scope = viewModelScope,
-            style = AmountEntryStyle(
-                actionLabel = AmountEntryLabel.Plain(resources.getString(R.string.action_swipeToSend)),
-                actionStyle = ConfirmationStyle.Slide,
-                infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
-                overMaxHint = { resources.getString(R.string.subtitle_sendHintLimitExceeded, it) },
-            ),
+            style = amountStyleFlow,
             loadingState = stateFlow.map { it.sendProgress }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LoadingSuccessState()),
             maxAmount = maxAmountFlow,
+            minimumAmount = minAmountFlow,
         )
     }
 
@@ -299,6 +333,13 @@ internal class ChatViewModel @Inject constructor(
                         )
                         if (contact != null) {
                             dispatchEvent(Event.OnContactFound(contact))
+                        } else {
+                            // No device contact backs this chat — it's a tip DM. Warm the member
+                            // store (fetch + persist if nothing is cached) so the reactive
+                            // tip-identity collector can resolve the counterparty from their server
+                            // profile. Identity is set reactively (see initChatHandlers), not here,
+                            // so it can't be missed by a fast tap on "Send $".
+                            viewModelScope.launch { chatCoordinator.getOtherMember(identifier.chatId) }
                         }
                     }
                 }
@@ -311,7 +352,7 @@ internal class ChatViewModel @Inject constructor(
             .onEach { event ->
                 viewModelScope.launch {
                     contactCoordinator.resolve(event.contact.e164)
-                        .onSuccess { dispatchEvent(Event.ResolveCompleted(it)) }
+                        .onSuccess { dispatchEvent(Event.ResolveCompleted) }
                         .onFailure { dispatchEvent(Event.ResolveFailed) }
                 }
             }.launchIn(viewModelScope)
@@ -319,7 +360,7 @@ internal class ChatViewModel @Inject constructor(
         // Re-resolve the contact from the device (e.g. after adding via system contacts)
         eventFlow
             .filterIsInstance<Event.RefreshContact>()
-            .mapNotNull { stateFlow.value.chattingWith?.e164 }
+            .mapNotNull { (stateFlow.value.participant as? ChatParticipant.Contact)?.contact?.e164 }
             .onEach { e164 ->
                 viewModelScope.launch {
                     val refreshed = contactCoordinator.refreshContact(e164)
@@ -328,6 +369,19 @@ internal class ChatViewModel @Inject constructor(
                     }
                 }
             }
+            .launchIn(viewModelScope)
+
+        // Resolve the tip counterparty reactively from the chat members. Tip DMs have no device
+        // contact, so identity (name + avatar + user id) comes from the other member's server
+        // profile — the same source the tips list uses. Reactive so it settles as soon as the
+        // members are available and can't be missed by the send gate. Never clobbers a device
+        // contact: the OnTipUserResolved reducer keeps an existing Contact participant.
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatCoordinator.observeMembers(it) }
+            .mapNotNull { members -> members.firstOrNull { it.userId != userManager.accountId } }
+            .distinctUntilChanged()
+            .onEach { member -> dispatchEvent(Event.OnTipUserResolved(member.userId, member.userProfile)) }
             .launchIn(viewModelScope)
 
         // Observe member identity — if the other member loses identity (e.g. unlinked
@@ -525,8 +579,10 @@ internal class ChatViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.OnSendCash>()
-            .mapNotNull { stateFlow.value.chattingWith }
-            .onEach { contact ->
+            // Both contact DMs and tip DMs can send cash; the recipient is whichever participant
+            // backs the chat. The final send branches on that type (see Event.OnSendRequested).
+            .filter { stateFlow.value.participant != null }
+            .onEach {
                 val addMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
                 if (!tokenCoordinator.hasGiveableBalance()) {
                     if (!tokenCoordinator.hasBalance()) {
@@ -537,7 +593,7 @@ internal class ChatViewModel @Inject constructor(
                     return@onEach
                 }
                 amountDelegate.reset()
-                dispatchEvent(Event.NavigateToAmountEntry(contact))
+                dispatchEvent(Event.NavigateToAmountEntry)
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -549,9 +605,12 @@ internal class ChatViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-        // Send cash
+        // Send cash. The transfer itself is delegated by chat type: a contact DM pays a phone
+        // number (contact metadata), a tip DM pays a user id (tip metadata). Both delegates resolve
+        // the recipient, transfer, debit the local balance, and sync the feed; this handler owns the
+        // shared amount verification, send state, analytics, and error UI.
         eventFlow.filterIsInstance<Event.OnSendRequested>()
-            .onEach { (amount, token, destination) ->
+            .onEach { (amount, token) ->
                 viewModelScope.launch {
                     val owner = userManager.accountCluster ?: return@launch
                     val rate = exchange.preferredRate
@@ -583,34 +642,29 @@ internal class ChatViewModel @Inject constructor(
                         return@launch
                     }
 
-                    val appMetadataBytes = buildDmPaymentMetadata(
-                        chatId = stateFlow.value.chatId,
-                        sourcePhone = contactCoordinator.selfPhone,
-                        destinationPhone = stateFlow.value.chattingWith?.e164,
-                    )
-
-                    transactionController.directTransfer(
-                        amount = verifiedFiat,
-                        token = token,
-                        source = source,
-                        destinationOwner = destination,
-                        appMetadata = appMetadataBytes,
-                    ).fold(
-                        onSuccess = {
-                            tokenCoordinator.subtract(token, verifiedFiat.localFiat)
-                            Result.success(verifiedFiat)
-                        },
-                        onFailure = { Result.failure(it) }
-                    ).onSuccess { amount ->
-                        dispatchEvent(Event.SendStateUpdated(success = true))
-                        val chatId = stateFlow.value.chatId
-                        if (chatId != null) {
-                            chatCoordinator.loadMessages(chatId)
-                        } else {
-                            // New conversation — server just created the DM chat.
-                            // Sync the feed so it appears in the contact list.
-                            chatCoordinator.refreshFeed()
+                    val chatId = stateFlow.value.chatId
+                    val result = when (val participant = stateFlow.value.participant) {
+                        is ChatParticipant.Contact -> contactPaymentDelegate.send(
+                            contact = participant.contact,
+                            chatId = chatId,
+                            verifiedFiat = verifiedFiat,
+                            token = token,
+                            source = source,
+                        )
+                        is ChatParticipant.TipUser -> tipPaymentDelegate.send(
+                            userId = participant.userId,
+                            verifiedFiat = verifiedFiat,
+                            token = token,
+                            source = source,
+                        )
+                        null -> {
+                            dispatchEvent(Event.SendStateUpdated())
+                            return@launch
                         }
+                    }
+
+                    result.onSuccess {
+                        dispatchEvent(Event.SendStateUpdated(success = true))
                         delay(400.milliseconds)
                         analytics.transfer(
                             event = Analytics.Transfer.SentCash,
@@ -619,7 +673,7 @@ internal class ChatViewModel @Inject constructor(
                         )
                         dispatchEvent(
                             Dispatchers.Main,
-                            Event.SendComplete(amount.localFiat.nativeAmount)
+                            Event.SendComplete(verifiedFiat.localFiat.nativeAmount)
                         )
                     }.onFailure { cause ->
                         dispatchEvent(Event.SendStateUpdated())
@@ -684,12 +738,10 @@ internal class ChatViewModel @Inject constructor(
         val rate = exchange.preferredRate
         val amount = Fiat(enteredAmount, rate.currency)
 
-        val resolve = stateFlow.value.resolveState
-        if (resolve is ResolveState.Resolved) {
+        if (stateFlow.value.resolveState is ResolveState.Resolved) {
             dispatchEvent(Event.OnSendRequested(
                 amount = amount,
                 token = token,
-                destinationOwner = resolve.authority,
             ))
         }
     }
@@ -743,13 +795,22 @@ internal class ChatViewModel @Inject constructor(
             when (event) {
                 is Event.OnChatOpened -> { state ->
                     when (val id = event.identifier) {
-                        is ChatIdentifier.ByContact -> state.copy(chattingWith = id.contact)
+                        is ChatIdentifier.ByContact -> state.copy(participant = ChatParticipant.Contact(id.contact))
                         is ChatIdentifier.ByChatId -> state
                     }
                 }
                 is Event.OnContactFound -> { state ->
-                    state.copy(
-                        chattingWith = event.contact
+                    state.copy(participant = ChatParticipant.Contact(event.contact))
+                }
+                is Event.OnTipUserResolved -> { state ->
+                    // A device contact, once matched, wins over the server profile (it carries the
+                    // phone number and the user's own naming). Otherwise this is a tip DM: adopt the
+                    // profile identity and mark the recipient resolved so the send can proceed (the
+                    // tip user is known to exist; the tip send resolves their address at send time).
+                    if (state.participant is ChatParticipant.Contact) state
+                    else state.copy(
+                        participant = ChatParticipant.TipUser(event.userId, event.profile),
+                        resolveState = ResolveState.Resolved,
                     )
                 }
                 is Event.OnCurrencySymbolUpdated -> { state -> state.copy(cashSymbol = event.symbol) }
@@ -759,15 +820,15 @@ internal class ChatViewModel @Inject constructor(
                 Event.OnStartMessageInput -> { state -> state }
                 Event.OnStopMessageInput -> { state -> state }
                 is Event.TypistsUpdated -> { state -> state.copy(typists = event.typists) }
-                is Event.ResolveCompleted -> { state ->
-                    state.copy(resolveState = ResolveState.Resolved(event.authority))
+                Event.ResolveCompleted -> { state ->
+                    state.copy(resolveState = ResolveState.Resolved)
                 }
                 is Event.ResolveFailed -> { state ->
                     state.copy(resolveState = ResolveState.Failed)
                 }
                 is Event.SendMessage -> { state -> state }
                 is Event.RetryMessage -> { state -> state }
-                is Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
+                Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
                 is Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
                 is Event.OnConfirmRequested -> { state -> state }

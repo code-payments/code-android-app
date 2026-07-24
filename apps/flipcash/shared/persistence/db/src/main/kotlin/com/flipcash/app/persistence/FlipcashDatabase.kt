@@ -71,8 +71,9 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 20, to = 21),
         AutoMigration(from = 21, to = 22),
         AutoMigration(from = 22, to = 23, spec = FlipcashDatabase.Migration22To23::class),
+        AutoMigration(from = 23, to = 24),
     ],
-    version = 23,
+    version = 24,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {

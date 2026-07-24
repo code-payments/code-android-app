@@ -20,6 +20,8 @@ sealed interface DeeplinkType: Parcelable {
 
     @Serializable data class Chat(val identifier: ChatIdentifier): DeeplinkType, Navigatable
 
+    @Serializable data class TipChat(val identifier: ChatIdentifier): DeeplinkType, Navigatable
+
     @Serializable data class Tipcard(val userId: ID): DeeplinkType
 
     @Serializable

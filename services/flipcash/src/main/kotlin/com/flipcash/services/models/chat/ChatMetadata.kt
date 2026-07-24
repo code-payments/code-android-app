@@ -9,4 +9,5 @@ data class ChatMetadata(
     val lastMessage: ChatMessage?,
     val lastActivity: Instant,
     val latestEventSequence: Long = 0,
+    val isHidden: Boolean = false,
 )

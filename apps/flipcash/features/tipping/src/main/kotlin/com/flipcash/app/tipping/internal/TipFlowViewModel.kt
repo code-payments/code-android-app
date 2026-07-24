@@ -7,13 +7,14 @@ import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
-import com.getcode.opencode.model.core.ID
 import com.flipcash.shared.chat.ChatCoordinator
-import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.ui.ConversationReference
+import com.flipcash.shared.chat.ui.toConversationReference
 import com.flipcash.shared.tipping.TippingCoordinator
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -29,7 +30,9 @@ internal class TipFlowViewModel @Inject constructor(
     chatCoordinator: ChatCoordinator,
     userManager: UserManager,
     tippingCoordinator: TippingCoordinator,
+    tokenCoordinator: TokenCoordinator,
     shareable: ShareSheetController,
+    private val resources: ResourceHelper,
 ) : BaseViewModel<TipFlowViewModel.State, TipFlowViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -84,31 +87,20 @@ internal class TipFlowViewModel @Inject constructor(
             .onResult(onSuccess = { card -> dispatchEvent(Event.OnTipCardPopulated(card)) })
             .launchIn(viewModelScope)
 
-        chatCoordinator.feed(ChatType.TIP_DM)
-            .onEach { summaries ->
-                val selfId = userManager.accountId
-                dispatchEvent(Event.ChatsUpdated(summaries.map { it.toPreview(selfId) }))
-            }
-            .launchIn(viewModelScope)
+        combine(
+            chatCoordinator.feed(ChatType.TIP_DM),
+            tokenCoordinator.tokens,
+        ) { summaries, tokens ->
+            val selfId = userManager.accountId
+            val tokensByMint = tokens.associateBy { it.address }
+            summaries.map { it.toConversationReference(selfId, tokensByMint, resources) }
+        }.onEach { dispatchEvent(Event.ChatsUpdated(it)) }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.ShareTipCard>()
             .mapNotNull { tippingCoordinator.currentUserId }
             .map { shareable.present(Shareable.TipCard(it)) }
             .launchIn(viewModelScope)
-    }
-
-    private fun ChatSummary.toPreview(selfId: ID?): ConversationReference {
-        // A tip DM has no separate contact, so carry the counterparty's identity (name + avatar)
-        // straight from the chat member that isn't us.
-        val other = metadata.members.firstOrNull { it.userId != selfId }
-        return ConversationReference(
-            chatId = metadata.chatId,
-            displayName = other?.userProfile?.displayName,
-            image = other?.userProfile?.profilePicture,
-            lastMessagePreview = null, // TODO:
-            unreadCount = unreadCount,
-        )
     }
 
     companion object {

@@ -90,6 +90,18 @@ class ChatMetadataMapperTest {
     }
 
     @Test
+    fun `maps isHidden field`() {
+        val result = mapper.map(metadata { setIsHidden(true) })
+        assertEquals(true, result.isHidden)
+    }
+
+    @Test
+    fun `isHidden defaults to false`() {
+        val result = mapper.map(metadata())
+        assertEquals(false, result.isHidden)
+    }
+
+    @Test
     fun `maps members with pointers`() {
         val result = mapper.map(metadata { addMembers(member()) })
         assertEquals(1, result.members.size)

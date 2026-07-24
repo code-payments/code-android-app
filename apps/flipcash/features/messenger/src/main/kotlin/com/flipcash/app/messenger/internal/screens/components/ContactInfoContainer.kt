@@ -29,16 +29,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.contacts.DeviceContact
+import com.flipcash.app.messenger.internal.ChatParticipant
 import com.flipcash.features.messenger.R
-import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 
 @Composable
 internal fun ContactInfoContainer(
-    contact: DeviceContact?,
+    participant: ChatParticipant?,
     modifier: Modifier = Modifier,
     onRefreshContact: () -> Unit = {},
 ) {
+    // Phone number and the add-to-contacts pill only apply to a device contact; a tip DM's
+    // counterparty (a server profile) has neither.
+    val contact = (participant as? ChatParticipant.Contact)?.contact
     Column(
         modifier = modifier
             .border(
@@ -49,15 +52,15 @@ internal fun ContactInfoContainer(
             .padding(CodeTheme.dimens.grid.x6),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ContactAvatar(
-            contact = contact,
+        ParticipantAvatar(
+            participant = participant,
             modifier = Modifier
                 .size(CodeTheme.dimens.staticGrid.x17)
                 .clip(CircleShape),
         )
         Text(
             modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
-            text = contact?.displayName.orEmpty(),
+            text = participant?.displayName.orEmpty(),
             autoSize = TextAutoSize.StepBased(
                 minFontSize = CodeTheme.typography.textSmall.fontSize,
                 maxFontSize = CodeTheme.typography.textLarge.fontSize,
@@ -68,7 +71,7 @@ internal fun ContactInfoContainer(
             color = CodeTheme.colors.textMain,
         )
 
-        if (contact?.isUnknown == false) {
+        if (contact != null && !contact.isUnknown) {
             Text(
                 modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
                 text = contact.displayNumber,

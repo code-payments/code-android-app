@@ -35,7 +35,9 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.NavigationTrigger
 import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
+import com.flipcash.services.models.PushChatMetadata
 import com.flipcash.services.models.Substitution
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.notifications.R
 import com.getcode.utils.TraceType
@@ -197,7 +199,7 @@ class NotificationService : FirebaseMessagingService(),
             .setSmallIcon(R.drawable.flipcash_logo)
             .setColor(getColor(R.color.notification_color))
             .setAutoCancel(true)
-            .setContentIntent(buildContentIntent(payload?.navigation))
+            .setContentIntent(buildContentIntent(payload?.chatMetadata, payload?.navigation))
             .apply {
                 if (groupKey != null) setGroup(groupKey)
             }
@@ -410,14 +412,21 @@ class NotificationService : FirebaseMessagingService(),
         ).build()
     }
 
-    internal fun Context.buildContentIntent(navigation: NavigationTrigger?): PendingIntent {
+    internal fun Context.buildContentIntent(
+        metadata: PushChatMetadata?,
+        navigation: NavigationTrigger?,
+        ): PendingIntent {
         val target = when (navigation) {
             is NavigationTrigger.CurrencyInfo -> Intent(Intent.ACTION_VIEW).apply {
                 data = Linkify.tokenInfo(navigation.mint).toUri()
             }
 
             is NavigationTrigger.Chat.ById -> Intent(Intent.ACTION_VIEW).apply {
-                data = Linkify.chatById(navigation.chatId).toUri()
+                data = if (metadata?.chatType == ChatType.TIP_DM) {
+                    Linkify.tipChatById(navigation.chatId).toUri()
+                } else {
+                    Linkify.chatById(navigation.chatId).toUri()
+                }
             }
 
             is NavigationTrigger.Chat.ByContact -> Intent(Intent.ACTION_VIEW).apply {

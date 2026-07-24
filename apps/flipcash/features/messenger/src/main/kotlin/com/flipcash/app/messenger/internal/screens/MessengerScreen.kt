@@ -32,7 +32,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val keyboard = rememberKeyboardController()
 
     ChatInputScaffold(
-        topBar = { ChatTopBar(navigator, state.chattingWith) },
+        topBar = { ChatTopBar(navigator, state.participant) },
         bottomBar = {
             UserControlBottomBar(
                 state = state,

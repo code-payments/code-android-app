@@ -54,6 +54,7 @@ class ChatEntityMapper @Inject constructor() {
             lastActivityEpochMs = metadata.lastActivity.toEpochMilliseconds(),
             lastMessageId = metadata.lastMessage?.messageId,
             latestEventSequence = metadata.latestEventSequence,
+            isHidden = metadata.isHidden,
         )
     }
 
@@ -69,6 +70,7 @@ class ChatEntityMapper @Inject constructor() {
             lastMessage = lastMessage,
             lastActivity = Instant.fromEpochMilliseconds(entity.lastActivityEpochMs),
             latestEventSequence = entity.latestEventSequence,
+            isHidden = entity.isHidden,
         )
     }
 
