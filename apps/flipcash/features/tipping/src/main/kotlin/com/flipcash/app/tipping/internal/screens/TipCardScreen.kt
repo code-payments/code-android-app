@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.ScannableRenderer
+import com.flipcash.app.bills.components.cards.LocalTipCardColor
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.tipping.TipResult
 import com.flipcash.app.core.tipping.TipStep
@@ -98,9 +100,13 @@ internal fun TipCardScreen() {
             )
             Spacer(Modifier.weight(1f))
             state.tipCard?.let {
-                ScannableRenderer(
-                    scannable = it,
-                )
+                CompositionLocalProvider(
+                    LocalTipCardColor provides Color(0xFF101011)
+                ) {
+                    ScannableRenderer(
+                        scannable = it,
+                    )
+                }
             }
             Spacer(Modifier.weight(1f))
         }

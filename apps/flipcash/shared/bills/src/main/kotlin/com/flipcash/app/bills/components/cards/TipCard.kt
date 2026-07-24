@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,11 +15,14 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.bills.components.ScannableCode
@@ -30,6 +32,8 @@ import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
 
+val LocalTipCardColor = staticCompositionLocalOf { Color.Unspecified }
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun TipCard(
@@ -38,6 +42,7 @@ internal fun TipCard(
     modifier: Modifier = Modifier,
     contentAlignment: Alignment = Alignment.Center,
 ) {
+    val cardColor = LocalTipCardColor.current.takeOrElse { CodeTheme.colors.tipCardColor }
     BoxWithConstraints(
         modifier = modifier
             .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
@@ -50,7 +55,7 @@ internal fun TipCard(
         Column(
             modifier = Modifier
                 .background(
-                    CodeTheme.colors.tipCardColor,
+                    color = cardColor,
                     shape = CodeTheme.shapes.xxl,
                 )
                 .padding(vertical = CodeTheme.dimens.grid.x8, horizontal = CodeTheme.dimens.grid.x7)
