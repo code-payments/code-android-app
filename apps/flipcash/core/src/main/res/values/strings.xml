@@ -848,6 +848,8 @@
     <string name="label_chat_preview_cash_suffix">%1$s of %2$s</string>
     <string name="label_chat_preview_sentCash">You sent %1$s</string>
     <string name="label_chat_preview_receivedCash">You received %1$s</string>
+    <string name="label_chat_preview_tippedCash">You tipped %1$s</string>
+    <string name="label_chat_preview_receivedTip">Someone tipped you %1$s</string>
     <string name="label_chat_preview_sentMessage">You: %1$s</string>
     <string name="label_isTyping">Is Typing…</string>
 

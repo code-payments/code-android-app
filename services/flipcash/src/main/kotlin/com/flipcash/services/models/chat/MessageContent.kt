@@ -13,7 +13,13 @@ sealed interface MessageContent {
         val mint: Mint,
         val tokenName: String = "",
         val tokenImageUrl: String = "",
-    ) : MessageContent
+        val action: Action = Action.SENT,
+    ) : MessageContent {
+        enum class Action {
+            SENT,
+            TIPPED,
+        }
+    }
     data class Reply(
         val repliedMessageId: Long,
         val content: List<MessageContent>,
