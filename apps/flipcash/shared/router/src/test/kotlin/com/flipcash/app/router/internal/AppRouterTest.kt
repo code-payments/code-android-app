@@ -2,8 +2,11 @@ package com.flipcash.app.router.internal
 
 import android.util.Base64
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.core.util.Linkify
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.AuthState
 import com.getcode.solana.keys.Mint
 import dev.theolm.rinku.DeepLink
@@ -218,6 +221,48 @@ class AppRouterTest {
         assertIs<AppRoute.Token.Info>(tokenInfo)
         assertEquals(Mint(mint), tokenInfo.mint)
         assertTrue(tokenInfo.fromDeeplink)
+    }
+
+    // endregion
+
+    // region classify + dispatch — TipChat
+
+    private val sampleChatId = ChatId(ByteArray(32) { it.toByte() })
+
+    @Test
+    fun `classify recognizes tip chat deeplink and round-trips the chat id`() {
+        val type = router.classify(DeepLink(Linkify.tipChatById(sampleChatId)))
+        assertIs<DeeplinkType.TipChat>(type)
+        val identifier = type.identifier
+        assertIs<ChatIdentifier.ByChatId>(identifier)
+        assertEquals(sampleChatId, identifier.chatId)
+    }
+
+    @Test
+    fun `classify returns null for tip chat without chat id segment`() {
+        val type = router.classify(DeepLink("https://app.flipcash.com/tip/chat"))
+        assertNull(type)
+    }
+
+    @Test
+    fun `classify still recognizes tip card deeplink (not swallowed by tip chat)`() {
+        val userId = "11111111-1111-1111-1111-111111111111"
+        val type = router.classify(DeepLink("https://app.flipcash.com/tip/$userId"))
+        assertIs<DeeplinkType.Tipcard>(type)
+    }
+
+    @Test
+    fun `dispatch returns Navigate with tips sheet and chat for tip chat deeplink`() {
+        loggedIn()
+        val action = router.dispatch(DeepLink(Linkify.tipChatById(sampleChatId)))
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertEquals(2, action.routes.size)
+        assertIs<AppRoute.Sheets.Tips>(action.routes[0])
+        val chat = action.routes[1]
+        assertIs<AppRoute.Messaging.Chat>(chat)
+        val identifier = chat.identifier
+        assertIs<ChatIdentifier.ByChatId>(identifier)
+        assertEquals(sampleChatId, identifier.chatId)
     }
 
     // endregion

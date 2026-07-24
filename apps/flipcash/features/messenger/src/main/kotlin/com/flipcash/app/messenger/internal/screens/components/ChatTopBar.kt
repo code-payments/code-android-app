@@ -20,7 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.core.contacts.DeviceContact
+import com.flipcash.app.messenger.internal.ChatParticipant
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
@@ -31,7 +31,7 @@ import com.getcode.ui.core.measured
 @Composable
 internal fun ChatTopBar(
     navigator: CodeNavigator,
-    chattingWith: DeviceContact?,
+    participant: ChatParticipant?,
 ) {
     var titleHeight by remember { mutableStateOf(0.dp) }
     val bgColor = CodeTheme.colors.background
@@ -60,8 +60,8 @@ internal fun ChatTopBar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 ) {
-                    ContactAvatar(
-                        contact = chattingWith,
+                    ParticipantAvatar(
+                        participant = participant,
                         modifier = Modifier
                             .requiredSize(CodeTheme.dimens.staticGrid.x8)
                             .clip(CircleShape),
@@ -69,7 +69,7 @@ internal fun ChatTopBar(
 
                     Text(
                         modifier = Modifier.weight(1f),
-                        text = chattingWith?.displayName.orEmpty(),
+                        text = participant?.displayName.orEmpty(),
                         style = CodeTheme.typography.textMedium,
                         color = CodeTheme.colors.textMain,
                     )

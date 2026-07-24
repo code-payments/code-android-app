@@ -2,6 +2,7 @@ package com.flipcash.services.internal.network.extensions
 
 
 import com.codeinc.flipcash.gen.common.v1.Common
+import com.codeinc.flipcash.gen.push.v1.navigation
 import com.codeinc.flipcash.gen.push.v1.navigationOrNull
 import com.codeinc.flipcash.gen.push.v1.Model as PushModels
 import com.flipcash.services.internal.extensions.toChecksum
@@ -11,6 +12,7 @@ import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.NavigationTrigger
 import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
+import com.flipcash.services.models.PushChatMetadata
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.Substitution
 import com.flipcash.services.models.UserProfile
@@ -100,12 +102,20 @@ internal fun PushModels.Payload.asPayload(): NotificationPayload {
     val titleSubs = titleSubstitutionsList.mapNotNull { it.asSubstitution() }
     val bodySubs = bodySubstitutionsList.mapNotNull { it.asSubstitution() }
 
+    val pushChatMetadata = if (hasChatMetadata()) {
+        PushChatMetadata(
+            sendingUserId = if (chatMetadata.hasSendingUserId()) chatMetadata.sendingUserId.toId() else null,
+            chatType = chatMetadata.type.toChatType(),
+        )
+    } else null
+
     return NotificationPayload(
         navigation = navigationTrigger,
         category = notificationCategory,
         groupKey = groupKey,
         titleSubstitutions = titleSubs,
         bodySubstitutions = bodySubs,
+        chatMetadata = pushChatMetadata,
     )
 }
 
@@ -361,6 +371,7 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
         lastMessage = if (hasLastMessage()) lastMessage.toChatMessage() else null,
         lastActivity = Instant.fromEpochSeconds(lastActivity.seconds, lastActivity.nanos),
         latestEventSequence = latestEventSequence,
+        isHidden = isHidden,
     )
 }
 

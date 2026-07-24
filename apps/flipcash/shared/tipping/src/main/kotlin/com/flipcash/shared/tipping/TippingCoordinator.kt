@@ -9,14 +9,12 @@ import com.flipcash.app.core.tipping.TipSelectionState
 import com.flipcash.app.currency.PreferredCurrencyController
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
-import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.OpenCodePayload
 import com.getcode.opencode.model.core.PayloadKind
@@ -24,9 +22,7 @@ import com.getcode.opencode.model.core.UserId
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
-import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.LoadingSuccessState
@@ -49,7 +45,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.min
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -61,13 +56,11 @@ import kotlin.time.Duration.Companion.milliseconds
  */
 @Singleton
 class TippingCoordinator @Inject constructor(
-    userFlags: UserFlagsCoordinator,
     private val profileController: ProfileController,
     private val userManager: UserManager,
     private val tipPaymentDelegate: TipPaymentDelegate,
     private val exchange: Exchange,
     private val tokenCoordinator: TokenCoordinator,
-    private val transactionController: TransactionController,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val resources: ResourceHelper,
     private val purchaseMethodController: PurchaseMethodController,
@@ -101,40 +94,6 @@ class TippingCoordinator @Inject constructor(
             tokenCoordinator.tokens.map { tokens -> tokens.find { it.address == mint } }
         }
 
-    /**
-     * The user's suggested tip amounts, derived from the server-provided per-region
-     * [com.flipcash.services.models.TipPresets] (via [UserFlagsCoordinator]) and the user's current
-     * preferred currency. Selects the presets whose region matches that currency (region is an ISO
-     * 4217 currency code), falls back to the USD presets, and expresses each tier — low / medium /
-     * high — as a [Fiat] in the matched region's currency. When the server provides no presets at
-     * all, falls back to the built-in [DEFAULT_USD_PRESETS], localized to the preferred currency.
-     */
-    private val tipPresets: Flow<List<Fiat>> = combine(
-        userFlags.resolvedFlags,
-        // Drive off the preferred rate (a StateFlow that always emits its current value) rather than
-        // observePreferredCurrency() — which can be an empty flow, and combine()'d with the hot
-        // resolvedFlags that never completes would hang firstOrNull() forever (blocking card resolve).
-        // Re-derives when the region changes so the tip modal's presets follow it.
-        exchange.observePreferredRate(),
-    ) { flags, rate ->
-        val presets = flags.tipPresets.effectiveValue
-        val preferred = rate.currency
-        val (currency, matched) =
-            presets.firstOrNull { it.region.equals(preferred.name, ignoreCase = true) }
-                ?.let { preferred to it }
-                ?: presets.firstOrNull {
-                    it.region.equals(
-                        CurrencyCode.USD.name,
-                        ignoreCase = true
-                    )
-                }
-                    ?.let { CurrencyCode.USD to it }
-                ?: return@combine defaultPresets(preferred)
-
-        listOf(matched.low, matched.medium, matched.high)
-            .map { amount -> Fiat(fiat = amount, currencyCode = currency) }
-    }
-
     /** The combined tip selection (amount chosen in the modal + app-global token + send state). */
     override val selection: StateFlow<TipSelectionState> =
         combine(
@@ -147,47 +106,18 @@ class TippingCoordinator @Inject constructor(
                     canTip = canTip,
                 )
             },
-            tipPresets,
+            tipPaymentDelegate.tipPresets,
         ) { state, presets -> state.copy(presets = presets) }
             .stateIn(scope, SharingStarted.WhileSubscribed(5_000), TipSelectionState())
 
-    /**
-     * The largest tippable amount, in the user's preferred currency: the smaller of the
-     * per-transaction send limit and the selected token's balance — mirroring the give/cash/send
-     * amount entries. Null until limits/balance/rate are known. The amount-entry sheet surfaces it
-     * as an "enter up to" hint and blocks amounts above it.
-     */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val maxTipAmount: StateFlow<Fiat?> =
-        combine(
-            transactionController.limits,
-            tokenCoordinator.observeSelectedTokenMint()
-                .flatMapLatest { mint -> tokenCoordinator.balanceForToken(mint) },
-            exchange.observePreferredRate(),
-        ) { limits, balance, rate ->
-            val balanceInLocal = balance.convertingTo(rate)
-            val sendLimit = limits?.sendLimitFor(rate.currency) ?: SendLimit.Zero
-            Fiat(min(sendLimit.nextTransaction, balanceInLocal.toDouble()), rate.currency)
-        }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
+    /** The largest tippable amount (send-limit ∧ balance), surfaced by the amount entry. */
+    val maxTipAmount: StateFlow<Fiat?> get() = tipPaymentDelegate.maxTipAmount
 
-    /**
-     * The smallest tippable amount — the lowest preset tier in the user's preferred currency. The
-     * amount entry surfaces it as a "minimum tip" hint and blocks custom amounts below it. Null until
-     * presets resolve.
-     */
-    val minTipAmount: StateFlow<Fiat?> =
-        tipPresets.map { presets -> presets.minOrNull() }
-            .stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
+    /** The smallest tippable amount (lowest preset tier), surfaced by the amount entry. */
+    val minTipAmount: StateFlow<Fiat?> get() = tipPaymentDelegate.minTipAmount
 
-    /**
-     * Whether [amount] exceeds the per-transaction send limit for its currency — the tip amount
-     * entry gates on this before committing. Balance is enforced separately at send time
-     * ([confirmTip]); false when no limit is known for the currency.
-     */
-    fun exceedsSendLimit(amount: Fiat): Boolean {
-        val limit = transactionController.limits.value?.sendLimitFor(amount.currencyCode) ?: return false
-        return amount.toDouble() > limit.nextTransaction
-    }
+    /** Whether [amount] exceeds the per-transaction send limit for its currency. */
+    fun exceedsSendLimit(amount: Fiat): Boolean = tipPaymentDelegate.exceedsSendLimit(amount)
 
     override fun selectAmount(amount: TipAmount?) {
         _amount.value = amount
@@ -346,19 +276,6 @@ class TippingCoordinator @Inject constructor(
     }
 
     /**
-     * The built-in fallback tip presets ([DEFAULT_USD_PRESETS], in USD), localized to [preferred]
-     * via the current exchange rate when the user isn't on USD. Leaves the amounts in USD if no
-     * rate is available for the preferred currency.
-     */
-    private fun defaultPresets(preferred: CurrencyCode): List<Fiat> {
-        val usd = DEFAULT_USD_PRESETS.map { Fiat(fiat = it, currencyCode = CurrencyCode.USD) }
-        if (preferred == CurrencyCode.USD) return usd
-
-        val rate = exchange.rateFor(preferred) ?: return usd
-        return usd.map { it.convertingTo(rate).rounded() }
-    }
-
-    /**
      * Assembles the scannable [Scannable.TipCard]: the tip [OpenCodePayload] encoding [userId]
      * as the scannable code data, plus [profile] for rendering. Tip presets are surfaced reactively
      * through [selection] (so they follow the region), not baked into the card.
@@ -369,10 +286,5 @@ class TippingCoordinator @Inject constructor(
             data = payload.codeData.toList(),
             user = profile,
         )
-    }
-
-    companion object {
-        /** Fallback tip amounts (USD) used when the server provides no presets. */
-        private val DEFAULT_USD_PRESETS = listOf(5.0, 10.0, 20.0)
     }
 }

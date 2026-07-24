@@ -267,7 +267,7 @@ internal fun MessageList(
                         contentAlignment = Alignment.Center,
                     ) {
                         ContactInfoContainer(
-                            contact = state.chattingWith,
+                            participant = state.participant,
                             modifier = Modifier
                                 .padding(horizontal = CodeTheme.dimens.grid.x12),
                             onRefreshContact = { onAction(ChatAction.RefreshContact) },
