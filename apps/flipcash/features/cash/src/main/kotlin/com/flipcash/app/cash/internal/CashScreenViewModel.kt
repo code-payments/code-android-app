@@ -87,6 +87,7 @@ internal class CashScreenViewModel @Inject constructor(
         loadingState = stateFlow.map { it.generatingBill }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LoadingSuccessState()),
         maxAmount = maxForGiveFlow,
+        tokenChanges = tokenCoordinator.observeSelectedTokenMint(),
     )
     private val tokenInitialized = CompletableDeferred<Mint?>()
 

@@ -281,6 +281,7 @@ internal class ChatViewModel @Inject constructor(
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LoadingSuccessState()),
             maxAmount = maxAmountFlow,
             minimumAmount = minAmountFlow,
+            tokenChanges = tokenCoordinator.observeSelectedTokenMint(),
         )
     }
 
