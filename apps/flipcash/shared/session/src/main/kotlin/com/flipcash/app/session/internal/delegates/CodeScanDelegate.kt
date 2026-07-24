@@ -151,6 +151,7 @@ class CodeScanDelegate @Inject constructor(
         // rendezvous grab. Hand the id to the shell, which routes to TipCardOperations to
         // resolve and present the card.
         val userId = payload.userId ?: return
+        analytics.tipCardScanned()
         _events.trySend(Event.TipCardScanned(userId))
     }
 }

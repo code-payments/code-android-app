@@ -3,6 +3,7 @@ package com.flipcash.app.analytics
 import androidx.core.net.toUri
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -133,19 +134,35 @@ internal sealed interface AnalyticsEvent {
         override val name = "Receive Cash Link"
     }
 
-    sealed interface ChatEvent: AnalyticsEvent {
-        data object SentCash : ChatEvent {
-            override val name = "Sent Cash"
-        }
+    data object SentTip : Transfer {
+        override val name = "Sent Tip"
+    }
 
+    data object SentCash : ChatEvent {
+        override val name = "Sent Cash"
+    }
+
+    sealed interface ChatEvent: AnalyticsEvent {
         data class SentMessage(
+            val chatType: ChatType,
             val error: Throwable? = null
         ): ChatEvent {
             override val name = "Sent Message"
 
             override fun toProperties() = buildMap {
+                put("Chat Type", chatType.propertyValue)
                 error?.let { put("Error", it.message.orEmpty()) }
             }
+        }
+    }
+
+    sealed interface TipCardEvent : AnalyticsEvent {
+        data object Scanned : TipCardEvent {
+            override val name = "Tip Card Scanned"
+        }
+
+        data object Presented : TipCardEvent {
+            override val name = "Tip Card Presented"
         }
     }
 
@@ -359,6 +376,13 @@ internal val Analytics.AddMoneyMethod.propertyValue: String
         Analytics.AddMoneyMethod.Reserves -> "Reserves"
     }
 
+internal val ChatType.propertyValue: String
+    get() = when (this) {
+        ChatType.CONTACT_DM -> "Contact"
+        ChatType.TIP_DM -> "Tip"
+        ChatType.UNKNOWN -> "Unknown"
+    }
+
 internal fun LocalFiat.asProperties(): Map<String, String> {
     return buildMap {
         putAll(underlyingTokenAmount.asProperties())
@@ -388,5 +412,6 @@ internal fun Analytics.Transfer.toAnalyticsEvent(): AnalyticsEvent = when (this)
     is Analytics.Transfer.ClaimedCashLink         -> AnalyticsEvent.ClaimedCashLink
     is Analytics.Transfer.SentCashLink.Clipboard  -> AnalyticsEvent.SentCashLink(clipboard = true)
     is Analytics.Transfer.SentCashLink.App        -> AnalyticsEvent.SentCashLink(app = name)
-    is Analytics.Transfer.SentCash                -> AnalyticsEvent.ChatEvent.SentCash
+    is Analytics.Transfer.SentCash                -> AnalyticsEvent.SentCash
+    is Analytics.Transfer.SentTip                 -> AnalyticsEvent.SentTip
 }

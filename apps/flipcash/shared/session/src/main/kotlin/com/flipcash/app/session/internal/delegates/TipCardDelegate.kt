@@ -1,5 +1,6 @@
 package com.flipcash.app.session.internal.delegates
 
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.session.TipCardOperations
 import com.flipcash.libs.coroutines.DispatcherProvider
@@ -36,6 +37,7 @@ import javax.inject.Singleton
 @Singleton
 class TipCardDelegate @Inject constructor(
     private val tippingCoordinator: TippingCoordinator,
+    private val analytics: FlipcashAnalyticsService,
     dispatchers: DispatcherProvider,
 ) : TipCardOperations {
 
@@ -60,6 +62,7 @@ class TipCardDelegate @Inject constructor(
                     // Always present the card. Whether the tip modal slides up (or an
                     // add-money prompt shows instead) is decided in the UI from the
                     // coordinator's affordability state — see TipCardDecorator.
+                    analytics.tipCardPresented()
                     _events.trySend(Event.Present(card))
                 }
                 .onFailure {
