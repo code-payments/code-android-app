@@ -8,13 +8,18 @@ import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
@@ -29,6 +34,10 @@ class AmountEntryDelegate(
     loadingState: StateFlow<LoadingSuccessState> = MutableStateFlow(LoadingSuccessState()),
     maxAmount: StateFlow<Fiat?> = MutableStateFlow(null),
     minimumAmount: StateFlow<Fiat?> = MutableStateFlow(null),
+    // Emits whenever the selected token changes. Like a region/currency change, switching
+    // tokens re-denominates the entry, so the typed amount is reset (see init). Defaults to a
+    // no-op for flows without a token concept.
+    tokenChanges: Flow<*> = emptyFlow<Any?>(),
 ) : AmountEntryController {
     constructor(
         exchange: Exchange,
@@ -38,7 +47,8 @@ class AmountEntryDelegate(
         loadingState: StateFlow<LoadingSuccessState> = MutableStateFlow(LoadingSuccessState()),
         maxAmount: StateFlow<Fiat?> = MutableStateFlow(null),
         minimumAmount: StateFlow<Fiat?> = MutableStateFlow(null),
-    ) : this(exchange, scope, maxLength, MutableStateFlow(style), loadingState, maxAmount, minimumAmount)
+        tokenChanges: Flow<*> = emptyFlow<Any?>(),
+    ) : this(exchange, scope, maxLength, MutableStateFlow(style), loadingState, maxAmount, minimumAmount, tokenChanges)
 
     data class State(
         val currency: CurrencyHolder = CurrencyHolder(),
@@ -106,13 +116,13 @@ class AmountEntryDelegate(
     init {
         numberInputHelper.reset()
 
-        exchange.observePreferredRate()
-            .onEach {
-                numberInputHelper.reset()
-                _state.update { s ->
-                    s.copy(amountAnimatedModel = AmountAnimatedInputUiModel())
-                }
-            }.launchIn(scope)
+        // Reset the typed amount whenever the entry is re-denominated: a preferred
+        // currency/region change (rate) or a selected-token change. `drop(1)` on the token
+        // stream skips its initial value so an in-flight prefill isn't wiped on construction.
+        merge(
+            exchange.observePreferredRate(),
+            tokenChanges.distinctUntilChanged().drop(1),
+        ).onEach { reset() }.launchIn(scope)
     }
 
     fun onCurrencyChanged(currency: Currency) {

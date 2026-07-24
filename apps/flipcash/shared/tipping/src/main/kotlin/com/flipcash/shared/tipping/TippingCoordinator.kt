@@ -39,10 +39,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -112,6 +116,17 @@ class TippingCoordinator @Inject constructor(
             tipPaymentDelegate.tipPresets,
         ) { state, presets -> state.copy(presets = presets) }
             .stateIn(scope, SharingStarted.WhileSubscribed(5_000), TipSelectionState())
+
+    init {
+        // Switching the tip token re-denominates the tip, so clear any amount chosen in the modal
+        // (preset or custom) — mirroring how the amount-entry keypad resets on a token/region
+        // change. `drop(1)` skips the initial token resolution so startup doesn't clear anything.
+        tokenCoordinator.observeSelectedTokenMint()
+            .distinctUntilChanged()
+            .drop(1)
+            .onEach { selectAmount(null) }
+            .launchIn(scope)
+    }
 
     /** The largest tippable amount (send-limit ∧ balance), surfaced by the amount entry. */
     val maxTipAmount: StateFlow<Fiat?> get() = tipPaymentDelegate.maxTipAmount
