@@ -536,6 +536,44 @@ sealed class GetUploadPolicyError(
     data class Other(override val cause: Throwable? = null) : GetUploadPolicyError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class BlockUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Denied : BlockUserError("Denied")
+    class UserNotFound : BlockUserError("User not found")
+    class CannotBlockSelf : BlockUserError("Cannot block self")
+    class Unrecognized : BlockUserError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : BlockUserError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class UnblockUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Denied : UnblockUserError("Denied")
+    class Unrecognized : UnblockUserError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : UnblockUserError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class IsBlockedError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Denied : IsBlockedError("Denied")
+    class Unrecognized : IsBlockedError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : IsBlockedError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetBlocklistError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Denied : GetBlocklistError("Denied")
+    class Unrecognized : GetBlocklistError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetBlocklistError(message = cause?.message, cause = cause), NotifiableError
+}
+
 // Thrown when a reserved blob failed server-side finalization (moderation / decode / size).
 // Terminal: the client must reserve a fresh upload to retry.
 class BlobRejectedException(val rejection: BlobRejection) :
