@@ -44,6 +44,8 @@ import com.flipcash.app.bills.components.cards.LocalTipCardBackdrop
 import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
 import com.flipcash.app.bills.components.cards.LocalTipCardColor
 import com.flipcash.app.bills.components.cards.TipCardOpaqueFallback
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.core.android.extensions.launchAppSettings
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.tipping.LocalTipCoordinator
@@ -128,10 +130,15 @@ internal fun ScannableContainer(
     // The frosted camera backdrop snapshots the feed (a GPU→CPU readback). Gate it to devices that
     // can absorb that — API 31+ for the blur, and not low-RAM. Everywhere else the card falls back
     // to an opaque approximation of the frosted tone.
-    val supportsFrostedTipCard = remember {
+    val deviceSupportsFrostedTipCard = remember {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             context.getSystemService(ActivityManager::class.java)?.isLowRamDevice != true
     }
+    // Also gated behind a beta flag (off by default); the opaque fallback is used when it's disabled.
+    val frostedTipCardFlagEnabled by LocalFeatureFlags.current
+        .observe(FeatureFlag.FrostedTipCard)
+        .collectAsStateWithLifecycle()
+    val frostedTipCardEnabled = deviceSupportsFrostedTipCard && frostedTipCardFlagEnabled
 
     OnLifecycleEvent { _, event ->
         if (event == Lifecycle.Event.ON_STOP && !autoStart) {
@@ -292,18 +299,19 @@ internal fun ScannableContainer(
         val isTipCard = updatedBillState.bill is Scannable.TipCard
         val tipCardBackdrop = rememberCameraTipCardBackdrop(
             previewView = previewView,
-            enabled = isTipCard && supportsFrostedTipCard,
+            enabled = isTipCard && frostedTipCardEnabled,
             containerOriginInWindow = containerOriginInWindow,
         )
 
-        // Where the frosted backdrop is unavailable, render the tip card as an opaque approximation
-        // of the frosted tone instead of a translucent panel over the (stutter-prone) live camera.
-        val useOpaqueFallback = isTipCard && !supportsFrostedTipCard
+        // Where the frosted backdrop is unavailable (incapable device or the beta flag is off),
+        // render the tip card as an opaque approximation of the frosted tone instead of a
+        // translucent panel over the (stutter-prone) live camera.
+        val useOpaqueFallback = isTipCard && !frostedTipCardEnabled
 
         CompositionLocalProvider(
             LocalTipCardBackdrop provides tipCardBackdrop,
             LocalTipCardColor provides if (useOpaqueFallback) TipCardOpaqueFallback else Color.Unspecified,
-            LocalTipCardBaseAlpha provides if (useOpaqueFallback) 1f else LocalTipCardBaseAlpha.current,
+            LocalTipCardBaseAlpha provides if (useOpaqueFallback) 1f else 0.45f,
         ) {
             AnimatedScannable(
                 modifier = Modifier.fillMaxSize(),

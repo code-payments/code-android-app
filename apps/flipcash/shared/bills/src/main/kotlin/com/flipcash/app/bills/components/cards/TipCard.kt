@@ -55,7 +55,7 @@ val LocalTipCardBackdrop = staticCompositionLocalOf<(@Composable BoxScope.() -> 
 
 
 /** Blur radius used for the card's backdrop, tuned to read like the design's 40px background blur. */
-val TipCardBlurRadius: Dp = 24.dp
+val TipCardBlurRadius: Dp = 16.dp
 
 /**
  * Base tint color for the card. Defaults to the theme's tip-card color; overridden on the opaque
