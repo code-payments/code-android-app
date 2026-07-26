@@ -9,6 +9,8 @@ import com.flipcash.app.core.tipping.TipEvent
 import com.flipcash.app.core.tipping.TipSelectionHolder
 import com.flipcash.app.core.tipping.TipSelectionState
 import com.flipcash.app.currency.PreferredCurrencyController
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ProfileController
@@ -74,6 +76,7 @@ class TippingCoordinator @Inject constructor(
     private val purchaseMethodController: PurchaseMethodController,
     private val analytics: FlipcashAnalyticsService,
     private val vibrator: Vibrator,
+    private val featureFlagController: FeatureFlagController,
 ) : TipSelectionHolder {
     /** The signed-in user's id ([UserManager.accountId]), or null if unavailable. */
     val currentUserId: ID?
@@ -283,6 +286,11 @@ class TippingCoordinator @Inject constructor(
     suspend fun resolveTipCard(userId: ID): Result<Scannable.TipCard> =
         resolveProfile(userId)
             .onSuccess {
+                // Encountering someone else's tip card — by scan or by tip deeplink, both of which
+                // land here — opts the viewer into tipping so they can reciprocate without first
+                // digging the flag out of beta settings themselves.
+                featureFlagController.set(FeatureFlag.Tipping, true)
+
                 // Dual gating, like the send / currency-creator flows: the presentation gate only
                 // asks "is there any giveable balance?" (no amount threshold, so it stays currency-
                 // agnostic). The minimum-tip and per-amount affordability are enforced downstream —
