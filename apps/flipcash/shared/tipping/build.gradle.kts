@@ -19,6 +19,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":libs:messaging"))
+    implementation(project(":libs:vibrator:bindings"))
     implementation(project(":services:flipcash"))
     implementation(project(":services:opencode"))
 }
