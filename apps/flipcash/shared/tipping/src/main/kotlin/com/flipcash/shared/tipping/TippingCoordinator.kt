@@ -28,6 +28,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.utils.combine
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.vibration.Vibrator
 import com.getcode.view.LoadingSuccessState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -72,6 +73,7 @@ class TippingCoordinator @Inject constructor(
     private val resources: ResourceHelper,
     private val purchaseMethodController: PurchaseMethodController,
     private val analytics: FlipcashAnalyticsService,
+    private val vibrator: Vibrator,
 ) : TipSelectionHolder {
     /** The signed-in user's id ([UserManager.accountId]), or null if unavailable. */
     val currentUserId: ID?
@@ -287,6 +289,7 @@ class TippingCoordinator @Inject constructor(
                 // the amount entry's below-min / over-balance gates and confirmTip.
                 _canTip.value = tokenCoordinator.hasGiveableBalance()
                 _userId.value = userId
+                vibrator.vibrate()
             }
             .map { tipCard(userId, it) }
 

@@ -8,7 +8,7 @@ import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed interface TipStep : FlowStep, Parcelable, NonDismissableRoute, NonDraggableRoute {
+sealed interface TipStep : FlowStep, Parcelable {
 
     @Parcelize
     @Serializable
