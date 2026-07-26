@@ -267,6 +267,16 @@ sealed interface FeatureFlag<T: Any> {
         override val minTrack: FeatureTrack = FeatureTrack.Production
     }
 
+    @FeatureFlagMarker
+    data object FrostedTipCard: FeatureFlag<Boolean> {
+        override val key: String = "frosted_tip_card_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+        override val minTrack: FeatureTrack = FeatureTrack.Beta
+    }
+
     companion object {
         val entries: List<FeatureFlag<*>>
             get() = FeatureFlagEntries.entries
@@ -305,6 +315,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.AddMoneyUX -> "Add Money UX"
         FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
         FeatureFlag.Tipping -> "Tipping"
+        FeatureFlag.FrostedTipCard -> "Frosted Tip Card"
     }
 
 val FeatureFlag<*>.message: String
@@ -334,6 +345,7 @@ val FeatureFlag<*>.message: String
         FeatureFlag.AddMoneyUX -> "When enabled, the user experience for getting money into the app will be focused around 'Adding Money'"
         FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
         FeatureFlag.Tipping -> "When enabled, you'll gain the ability to tip other users and set up your own tip card to receive tips"
+        FeatureFlag.FrostedTipCard -> "When enabled, the tip card in the scanner renders as frosted glass over a blurred snapshot of the camera instead of a solid card"
     }
 
 
