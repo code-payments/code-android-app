@@ -293,7 +293,12 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Parcelize
     sealed interface Messaging : AppRoute {
         @Serializable
-        data class Chat(val identifier: ChatIdentifier) : Messaging, FlowRoute {
+        data class Chat(
+            val identifier: ChatIdentifier,
+            // Open straight into composing a reply with the keyboard up. Only the post-tip
+            // hand-off (see TipCardDecorator) sets this; normal opens default to keyboard-closed.
+            val openKeyboard: Boolean = false,
+        ) : Messaging, FlowRoute {
             override val initialStack: List<NavKey>
                 get() = listOf(ChatStep.Conversation)
         }
