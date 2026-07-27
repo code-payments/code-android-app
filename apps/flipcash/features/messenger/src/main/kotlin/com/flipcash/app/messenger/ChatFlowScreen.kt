@@ -4,6 +4,9 @@ import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -38,16 +41,17 @@ fun ChatFlowScreen(
         initialStack = route.rememberInitialStack(),
         resultStateRegistry = resultStateRegistry,
         onExit = { _, _ -> navigator.pop() },
-        entryProvider = chatEntryProvider(route.identifier),
+        entryProvider = chatEntryProvider(route.identifier, route.openKeyboard),
     )
 }
 
 @Composable
 private fun chatEntryProvider(
     identifier: ChatIdentifier,
+    openKeyboard: Boolean,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<ChatStep.Conversation> {
-        FlowConversationScreen(identifier)
+        FlowConversationScreen(identifier, openKeyboard)
     }
     annotatedEntry<ChatStep.AmountEntry> {
         FlowAmountEntryScreen()
@@ -55,7 +59,7 @@ private fun chatEntryProvider(
 }
 
 @Composable
-private fun FlowConversationScreen(identifier: ChatIdentifier) {
+private fun FlowConversationScreen(identifier: ChatIdentifier, openKeyboard: Boolean) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val navigator = LocalCodeNavigator.current
     // The sheet-owning (root) navigator — the one whose back stack holds this chat's Main.Sheet and
@@ -66,6 +70,16 @@ private fun FlowConversationScreen(identifier: ChatIdentifier) {
 
     LaunchedEffect(viewModel, identifier) {
         viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(identifier))
+    }
+
+    var hasOpened by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(openKeyboard) {
+        if (openKeyboard) {
+            if (!hasOpened) {
+                viewModel.dispatchEvent(ChatViewModel.Event.OnStartMessageInput)
+                hasOpened = true
+            }
+        }
     }
 
     LaunchedEffect(viewModel) {

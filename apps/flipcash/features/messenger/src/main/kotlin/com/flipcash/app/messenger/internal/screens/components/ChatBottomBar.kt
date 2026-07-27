@@ -173,6 +173,19 @@ internal fun UserControlBottomBar(
                                 keyboard.restartInput()
                             },
                         )
+
+                        // Restores the pre-#1075 behavior: when OnStartMessageInput raises
+                        // state.messageInputRequested (returning from amount entry after a send, or a
+                        // post-tip open), focus the input and show the keyboard. Co-located with
+                        // ChatInput so focusRequester is guaranteed attached; consumes the request so
+                        // it fires once and a later manual dismiss doesn't re-open it.
+                        LaunchedEffect(state.messageInputRequested) {
+                            if (state.messageInputRequested) {
+                                focusRequester.requestFocus()
+                                keyboard.show()
+                                dispatch(ChatViewModel.Event.OnMessageInputConsumed)
+                            }
+                        }
                     }
                 }
             }

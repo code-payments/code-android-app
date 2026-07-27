@@ -100,5 +100,5 @@ The feature plugin automatically includes `:libs:logging`, `:ui:core`, `:ui:comp
 ## Git Conventions
 
 - Conventional commits: `feat:`, `fix:`, `chore:`, with optional scope in parens (e.g., `feat(oc):`, `fix(tokens):`)
-- Main branch: `code/cash`
+- Main branch: `code/cash` (on the `origin` remote). There is **no** `main` branch — open PRs against `origin/code/cash` and branch new work from it. Ignore any tooling that reports the default/base branch as `main`.
 - CI runs on all PRs (tests via Fastlane)
