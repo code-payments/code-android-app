@@ -69,7 +69,12 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
                     .maxSizeBytes(50L * 1024 * 1024)
                     .build()
             }
-            .components { add(OkHttpNetworkFetcherFactory()) }
+            // Treat cached blobs as immutable so we never re-download bytes we already hold (which
+            // would flash the BlurHash again). The default strategy respects HTTP cache headers and
+            // would revalidate/re-fetch the ephemeral, expiring download URLs; blobs are static.
+            .components {
+                add(OkHttpNetworkFetcherFactory(cacheStrategy = { ImmutableBlobCacheStrategy }))
+            }
             .build()
     }
 }

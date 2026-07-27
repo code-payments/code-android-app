@@ -1,5 +1,6 @@
 package com.flipcash.services.models.chat
 
+import com.getcode.utils.base58
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -55,6 +56,20 @@ data class MediaItem(
         renditionForSize(targetLongestSidePx)?.blob?.downloadUrl
 
     /**
+     * Stable Coil cache key for the rendition [renditionForSize] resolves to, derived from the
+     * durable [MediaItemRendition.blobId] rather than the download URL. The server re-mints and
+     * expires `download_url` on every fetch, so keying the cache on the URL guarantees a miss on
+     * the next fetch even though the bytes are immutable — the blob id is the rendition's stable
+     * identity. Null exactly when [urlForSize] is null.
+     */
+    fun cacheKeyForSize(targetLongestSidePx: Int): String? =
+        renditionForSize(targetLongestSidePx)?.cacheKey
+
+    /** Stable cache key for [renditionBelow], for use as a placeholder memory-cache key. */
+    fun cacheKeyBelow(targetLongestSidePx: Int): String? =
+        renditionBelow(targetLongestSidePx)?.cacheKey
+
+    /**
      * The largest available rendition strictly smaller than [targetLongestSidePx], or null if
      * there isn't one. This is the best intermediate placeholder to show while [renditionForSize]
      * loads: e.g. an info card targeting 320 reuses the 160 the list already cached, upgrading in
@@ -90,5 +105,9 @@ data class MediaItem(
         /** Longest image side (px) of a rendition, or null if it has no image dimensions. */
         private val MediaItemRendition.longestSide: Int?
             get() = blob?.image?.let { maxOf(it.width, it.height) }
+
+        /** Stable, URL-independent cache key for a rendition — its durable blob id, base58-encoded. */
+        private val MediaItemRendition.cacheKey: String
+            get() = blobId.bytes.base58
     }
 }
