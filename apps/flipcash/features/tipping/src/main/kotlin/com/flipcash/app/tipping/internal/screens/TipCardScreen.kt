@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.material3.Icon
@@ -75,7 +76,12 @@ internal fun TipCardScreen() {
                             painter = painterResource(R.drawable.ic_remote_send),
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.requiredSize(size),
+                            // The send glyph is bottom-heavy (wide tray below a thin arrow),
+                            // so geometric centering leaves it sitting visually low in the
+                            // circle. Nudge it up slightly to optically center it.
+                            modifier = Modifier
+                                .requiredSize(size)
+                                .offset(y = (-1.5).dp),
                         )
                     }
                     Text(
