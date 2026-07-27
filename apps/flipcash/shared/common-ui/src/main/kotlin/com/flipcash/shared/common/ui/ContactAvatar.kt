@@ -166,17 +166,26 @@ private fun ProfileAvatar(
                 val blurHash = remember(image) {
                     BlurHash.decode(image.blurhash(), width = 24, height = 24)?.asImage()
                 }
-                val previewKey = remember(image, targetPx, photoUri) {
-                    image.renditionBelow(targetPx)?.blob?.downloadUrl?.takeIf { it != photoUri }
+                // Cache identity is the durable blob id, NOT the download URL: the server re-mints
+                // and expires `download_url` on every fetch, so a URL-keyed cache misses on the next
+                // fetch even though the bytes are immutable — every load would re-download and flash
+                // the BlurHash. Falls back to the URL only if a blob id is somehow unavailable.
+                val cacheKey = remember(image, targetPx, photoUri) {
+                    image.cacheKeyForSize(targetPx) ?: photoUri
                 }
-                val request = remember(photoUri, previewKey, blurHash) {
+                val previewKey = remember(image, targetPx, cacheKey) {
+                    image.cacheKeyBelow(targetPx)?.takeIf { it != cacheKey }
+                }
+                val request = remember(photoUri, cacheKey, previewKey, blurHash) {
                     ImageRequest.Builder(context)
                         .crossfade(true)
                         .data(photoUri.toUri())
-                        // Key on the download URL alone (not size) so every avatar load of this
-                        // rendition shares one cache entry — which is what lets a smaller rendition
-                        // reliably resolve via placeholderMemoryCacheKey across surfaces.
-                        .memoryCacheKey(photoUri)
+                        // Key both caches on the stable blob id (not the ephemeral URL, and not
+                        // size) so every avatar load of this rendition shares one entry that
+                        // survives URL rotation and app restarts — which is also what lets a
+                        // smaller rendition resolve via placeholderMemoryCacheKey across surfaces.
+                        .memoryCacheKey(cacheKey)
+                        .diskCacheKey(cacheKey)
                         .apply {
                             blurHash?.let { placeholder(it) }
                             previewKey?.let { placeholderMemoryCacheKey(it) }
