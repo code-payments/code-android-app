@@ -64,7 +64,7 @@ internal class TipFlowViewModel @Inject constructor(
             stateFlow.map { it.resumed }.distinctUntilChanged(),
         ) { profile, resumed ->
             buildList {
-                val hasProfile = profile?.displayName != null && profile.profilePicture != null
+                val hasProfile = profile?.displayName != null // TODO: explicitly not required right now && profile.profilePicture != null
                 when {
                     // Post-setup handoff: land on TipCard alone, with a close affordance. No Tips
                     // underneath — closing exits, and reopening from home lands on the Tips list.

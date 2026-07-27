@@ -58,7 +58,7 @@ internal fun TipInfoScreen() {
                         AppRoute.UpdateUserProfile(
                             origin = AppRoute.Sheets.Tips(),
                             includeName = userManager?.profile?.displayName.isNullOrEmpty(),
-                            includePhoto = userManager?.profile?.profilePicture == null,
+                            includePhoto = false, // explicity false for now
                             target = AppRoute.Sheets.Tips(resumed = true),
                         )
                     )
