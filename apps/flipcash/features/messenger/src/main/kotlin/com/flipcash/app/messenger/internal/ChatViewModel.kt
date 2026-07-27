@@ -81,6 +81,10 @@ import kotlin.time.Duration.Companion.seconds
 
 data class TypingConstraints(
     val enabled: Boolean = false,
+    // False until the async typing-enabled query (does this chat have a cash message?) has
+    // answered at least once. The bottom bar keeps its layout invisible until this is true so it
+    // never renders the default full-width state and then snaps to the resolved pill + input.
+    val resolved: Boolean = false,
     val interval: Duration = 3.seconds,
     val timeout: Duration = 5.seconds,
 )
@@ -327,6 +331,12 @@ internal class ChatViewModel @Inject constructor(
                     chatCoordinator.setActiveChatId(chatId)
                     viewModelScope.launch { chatCoordinator.loadMessages(chatId) }
                     chatCoordinator.dismissNotifications(chatId)
+                } else {
+                    // No existing chat means no messages yet, so typing stays disabled. The
+                    // observeMessages-driven typing flow only fires once a chatId exists, so mark
+                    // the typing state resolved here explicitly — otherwise the bottom bar would
+                    // stay hidden forever for a brand-new contact.
+                    dispatchEvent(Event.TypingEnabled(false))
                 }
 
                 // 2. Resolve contact
@@ -865,7 +875,10 @@ internal class ChatViewModel @Inject constructor(
                 Event.OnSelfTypingStopped -> { state -> state.copy(isSelfTyping = false) }
                 is Event.TypingEnabled -> { state ->
                     state.copy(
-                        typingConstraints = state.typingConstraints.copy(enabled = event.enabled)
+                        typingConstraints = state.typingConstraints.copy(
+                            enabled = event.enabled,
+                            resolved = true,
+                        )
                     )
                 }
                 is Event.TokenUpdated -> { state -> state.copy(token = event.token) }

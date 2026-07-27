@@ -1,6 +1,9 @@
 package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -24,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.testTag
@@ -113,8 +117,25 @@ internal fun UserControlBottomBar(
                     .measured { buttonHeight = it.height }
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .padding(vertical = CodeTheme.dimens.grid.x3)
-                    .navigationBarsPadding(),
+                    .navigationBarsPadding()
+                    // typingConstraints.enabled starts false and only resolves a frame or two after
+                    // open, once Room confirms whether the chat has a cash message. Rendering the
+                    // default false layout first showed a full-width "Send $" button that then
+                    // scaled down to the pill + input box. Hold the bar invisible (but measured, so
+                    // the message list keeps correct padding) until resolved, then reveal the final
+                    // layout directly — no visible full-width state, no resize.
+                    .alpha(if (state.typingConstraints.resolved) 1f else 0f),
                 targetState = state.typingConstraints.enabled,
+                // The layout only ever changes on the initial async resolution, which is hidden by
+                // the alpha gate above, so snap rather than crossfade. The SendCashButton's own
+                // color/label springs still animate the typing interaction.
+                transitionSpec = {
+                    ContentTransform(
+                        targetContentEnter = EnterTransition.None,
+                        initialContentExit = ExitTransition.None,
+                        sizeTransform = null,
+                    )
+                },
             ) { canType ->
                 Row(
                     modifier = Modifier
