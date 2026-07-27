@@ -60,7 +60,8 @@ class OpenCodePayloadTests {
 
         assertEquals(PayloadKind.Tip.value, encoded[0].toInt())
         assertEquals(userId, encoded.subList(1, 17))
-        // Trailing bytes reserved / zero.
-        assertEquals(listOf<Byte>(0, 0, 0), encoded.subList(17, 20))
+        // Trailing reserved bytes are filled with incrementing digits (1, 2, 3) rather than
+        // zeros, so the native scanner can't drop them as trailing padding.
+        assertEquals(listOf<Byte>(1, 2, 3), encoded.subList(17, 20))
     }
 }

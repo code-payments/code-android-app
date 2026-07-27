@@ -85,10 +85,12 @@ data class OpenCodePayload(
 
    0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19
  +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
- | T |                     User ID (16 bytes)                     |  reserved (0) |
+ | T |                     User ID (16 bytes)                     | 1 | 2 | 3 |
  +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 
  (T) Type (1 byte) — PayloadKind.Tip (2).
  User ID (16 bytes) — the recipient's user id (a UUID) so others can tip them. Raw bytes,
    no rendezvous keypair. Matches the iOS TipCode.Payload frame.
+ Reserved (3 bytes) — filled with incrementing digits (1, 2, 3) instead of zeros so the
+   native scanner doesn't strip them as trailing zero padding.
 */
