@@ -132,6 +132,13 @@ internal class ChatViewModel @Inject constructor(
         val limits: Limits? = null,
         val isAnonymous: Boolean = false,
         val cashSymbol: String = "$",
+        // Transient "focus the message input" request. Set by OnStartMessageInput (dispatched when
+        // returning from amount entry after a send, and on a post-tip chat open) and cleared by
+        // OnMessageInputConsumed once the bottom bar has focused the field and shown the keyboard.
+        // Kept as state (not a one-shot event) because eventFlow is replay-0: a request raised at
+        // open would be missed by the bottom bar before it subscribes, whereas state is durable
+        // until the input is actually composed and can consume it.
+        val messageInputRequested: Boolean = false,
     )
 
     sealed interface Event {
@@ -144,6 +151,7 @@ internal class ChatViewModel @Inject constructor(
         data object OnSendCash: Event
         data object OnStartMessageInput: Event
         data object OnStopMessageInput: Event
+        data object OnMessageInputConsumed: Event
         data class TypistsUpdated(val typists: Set<ActiveTypist>) : Event
         data object ResolveCompleted : Event
         data object ResolveFailed : Event
@@ -845,8 +853,9 @@ internal class ChatViewModel @Inject constructor(
                 is Event.RefreshContact -> { state -> state }
                 is Event.ChatFound -> { state -> state.copy(chatId = event.chatId) }
                 Event.OnSendCash -> { state -> state }
-                Event.OnStartMessageInput -> { state -> state }
+                Event.OnStartMessageInput -> { state -> state.copy(messageInputRequested = true) }
                 Event.OnStopMessageInput -> { state -> state }
+                Event.OnMessageInputConsumed -> { state -> state.copy(messageInputRequested = false) }
                 is Event.TypistsUpdated -> { state -> state.copy(typists = event.typists) }
                 Event.ResolveCompleted -> { state ->
                     state.copy(resolveState = ResolveState.Resolved)
