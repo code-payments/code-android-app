@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.messenger.internal.ChatParticipant
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
@@ -44,7 +45,10 @@ internal fun RowScope.SendCashButton(
     hazeMaterial: HazeBlurStyle,
     onClick: () -> Unit,
 ) {
-    val isTyping = state.chatInputState.text.isNotEmpty()
+    // Tip chats always use the minimized (dark, symbol-only) button. The normal send flow keeps the
+    // expanded "Send $" presentation and only collapses to the symbol once the user starts typing.
+    val isTipChat = state.participant is ChatParticipant.TipUser
+    val isTyping = isTipChat || state.chatInputState.text.isNotEmpty()
     val canType = state.typingConstraints.enabled
 
     // Colors ease slowly and independently of the width/label so the fill change reads as one
