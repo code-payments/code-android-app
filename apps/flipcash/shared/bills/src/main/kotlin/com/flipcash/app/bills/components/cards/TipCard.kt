@@ -9,15 +9,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,7 +31,6 @@ import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.bills.R
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.xxl
 
 
 /** Alpha applied to the card fill so its translucency is identical at every call site. */
@@ -71,13 +69,37 @@ val LocalTipCardColor = staticCompositionLocalOf { Color.Unspecified }
  */
 val TipCardOpaqueFallback = Color(0xFF1A1A1C)
 
+/**
+ * The card's height-to-width proportion. Kept identical to iOS ([TipcardView.aspectRatio]) so the
+ * card renders with the same shape on both platforms.
+ */
+private const val TipCardAspectRatio = 1.16f
+
+/**
+ * Fraction of the available canvas width the card occupies when no explicit width is pinned (i.e.
+ * on the scanner/camera). Capped at [TipCardMaxWidth]. Mirrors iOS `BillCanvas.tipcardSize`.
+ */
+private const val TipCardCanvasWidthFraction = 0.82f
+private val TipCardMaxWidth: Dp = 320.dp
+
+// The card derives its inner metrics from its width, matching iOS `TipcardView`.
+private const val TipCardCodeFraction = 0.68f   // scannable code (square)
+private const val TipCardAvatarFraction = 0.09f // name-row avatar
+private const val TipCardCornerFraction = 0.08f // corner radius
+private const val TipCardNameTopFraction = 0.06f // name-row top padding (of card height)
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun TipCard(
     payloadData: List<Byte>,
     user: UserProfile,
     modifier: Modifier = Modifier,
+    // Explicit card width. When null the card sizes itself to a fraction of the available canvas
+    // (the scanner/camera); callers that want a fixed, device-independent card — the "My Tip Card"
+    // screen — pin a width here. Matches how iOS computes `TipcardView.size` per surface.
+    cardWidth: Dp? = null,
     contentAlignment: Alignment = Alignment.Center,
+    includePhoto: Boolean = false,
 ) {
     val fillColor = LocalTipCardColor.current
         .takeOrElse { CodeTheme.colors.tipCardColor }
@@ -86,29 +108,31 @@ internal fun TipCard(
 
     BoxWithConstraints(
         modifier = modifier
-            .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
-            .padding(horizontal = CodeTheme.dimens.inset),
+            .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
         contentAlignment = contentAlignment
     ) {
-        val mW = this.maxWidth
-        val codeSize = remember { mW * 0.65f }
+        val width = cardWidth ?: minOf(maxWidth * TipCardCanvasWidthFraction, TipCardMaxWidth)
+        val height = width * TipCardAspectRatio
+        val codeSize = width * TipCardCodeFraction
+        val avatarSize = width * TipCardAvatarFraction
+        val cornerRadius = width * TipCardCornerFraction
 
         Box(
-            modifier = Modifier.clip(CodeTheme.shapes.xxl)
+            modifier = Modifier
+                .size(width, height)
+                .clip(RoundedCornerShape(cornerRadius)),
+            contentAlignment = Alignment.Center,
         ) {
-            // Backdrop (blurred content behind the card) sits under the translucent fill. It is
+            // Backdrop (blurred content behind the card) sits under the translucent fill. Both are
             // clipped to the rounded card bounds by the parent's clip.
             if (backdrop != null) {
                 Box(modifier = Modifier.matchParentSize(), content = backdrop)
             }
+            Box(modifier = Modifier.matchParentSize().background(color = fillColor))
 
             Column(
-                modifier = Modifier
-                    .background(color = fillColor)
-                    .padding(vertical = CodeTheme.dimens.grid.x8, horizontal = CodeTheme.dimens.grid.x7)
-                    .heightIn(0.dp, 800.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x4)
+                verticalArrangement = Arrangement.Center,
             ) {
                 if (payloadData.isNotEmpty()) {
                     ScannableCode(
@@ -119,7 +143,9 @@ internal fun TipCard(
                 }
 
                 Row(
+                    modifier = Modifier.padding(top = height * TipCardNameTopFraction),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
                 ) {
                     Text(
                         text = stringResource(R.string.label_tip),
@@ -127,13 +153,15 @@ internal fun TipCard(
                         color = CodeTheme.colors.textMain,
                     )
 
-                    ContactAvatar(
-                        modifier = Modifier
-                            .padding(start = CodeTheme.dimens.grid.x2, end = CodeTheme.dimens.grid.x1)
-                            .size(CodeTheme.dimens.staticGrid.x5)
-                            .clip(CircleShape),
-                        userProfile = user
-                    )
+                    if (includePhoto) {
+                        ContactAvatar(
+                            modifier = Modifier
+                                .padding(horizontal = CodeTheme.dimens.grid.x1)
+                                .size(avatarSize)
+                                .clip(CircleShape),
+                            userProfile = user
+                        )
+                    }
 
                     Text(
                         text = user.displayName.orEmpty(),
