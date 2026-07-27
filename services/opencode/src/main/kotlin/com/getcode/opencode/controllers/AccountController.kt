@@ -62,6 +62,14 @@ class AccountController @Inject constructor(
             message = "onUserLoggedIn",
             type = TraceType.User
         )
+        if (this.cluster.value != cluster) {
+            // A different account than this singleton last served (e.g. logout -> new/again
+            // login without a process restart). Drop the previous account's cached account
+            // list so it can't bleed into the new account — otherwise consumers (balances,
+            // hasAccountFor, and the onboarding core-account gate) can observe the prior
+            // account's accounts, most damagingly its USDF primary.
+            accounts.value = emptyList()
+        }
         this.cluster.value = cluster
     }
 
@@ -99,36 +107,76 @@ class AccountController @Inject constructor(
      * [SubmitIntentError.Denied] — means the caller must NOT proceed.
      */
     suspend fun ensureCoreAccount(owner: AccountCluster): Result<Unit> {
-        if (hasAccountFor(Mint.usdf)) {
-            trace(tag = "Onboarding", message = "USDF core account already present", type = TraceType.Process)
-            return Result.success(Unit)
-        }
+        // Source of truth is the server, not the in-memory [accounts] cache. That cache can
+        // still hold a PRIOR account's USDF primary when a new account onboards in the same
+        // process (logout -> re-onboard, or an account switch). Short-circuiting on it made
+        // this gate report "already present" and release a fresh account to the scanner with
+        // no core account server-side — so it could never receive a direct-send tip until a
+        // process restart cleared the cache. Always confirm the current owner against
+        // getAccounts here.
         return getAccounts(owner, owner).fold(
             onSuccess = { response ->
                 accounts.value = response.accounts.values.toList()
-                trace(tag = "Onboarding", message = "USDF core account already present", type = TraceType.Process)
-                Result.success(Unit)
+                if (hasCoreMintPrimary()) {
+                    trace(tag = "Onboarding", message = "USDF core account already present", type = TraceType.Process)
+                    Result.success(Unit)
+                } else {
+                    // The server responded, but the owner has no USDF core-mint PRIMARY yet
+                    // (e.g. a freshly-onboarded owner with only non-primary/other-mint
+                    // accounts, or a create still racing the reactive bootstrap). The server
+                    // recognizes an OCP user — and can auto-open currency destinations for
+                    // direct-send tips — only once a USDF primary exists, so provision it
+                    // before the onboarding gate releases the user to the scanner. A
+                    // successful lookup that lacks the primary is NOT "already provisioned".
+                    provisionCoreAccount(owner)
+                }
             },
             onFailure = { error ->
                 if (error is GetAccountsError.NotFound) {
-                    trace(tag = "Onboarding", message = "Provisioning USDF core account (onboarding gate)", type = TraceType.Process)
-                    createUserAccount(owner, mint = Mint.usdf).fold(
-                        onSuccess = {
-                            trace(tag = "Onboarding", message = "USDF core account provisioned", type = TraceType.Process)
-                            // Best-effort refresh so hasAccountFor(USDF) is true for
-                            // downstream grabs; the account already exists server-side.
-                            getAccounts(owner, owner).onSuccess {
-                                accounts.value = it.accounts.values.toList()
-                            }
-                            Result.success(Unit)
-                        },
-                        onFailure = {
-                            trace(tag = "Onboarding", message = "USDF core account provisioning failed", error = it, type = TraceType.Error)
-                            Result.failure(it)
-                        }
-                    )
+                    provisionCoreAccount(owner)
                 } else {
                     trace(tag = "Onboarding", message = "USDF core account lookup failed", error = error, type = TraceType.Error)
+                    Result.failure(error)
+                }
+            }
+        )
+    }
+
+    /**
+     * Whether the local account state holds a USDF core-mint PRIMARY. This is the exact
+     * account the OCP server keys owner-recognition off of, so onboarding must confirm it
+     * specifically — a USDF balance under a non-primary account type does not count.
+     */
+    private fun hasCoreMintPrimary(): Boolean =
+        accounts.value.any { it.mint == Mint.usdf && it.accountType == AccountType.Primary }
+
+    /**
+     * Submits the OpenAccounts intent for the USDF core-mint primary and refreshes local
+     * state. Tolerates losing a race to a concurrent provision (e.g. the reactive account
+     * bootstrap): if the create is rejected but a re-fetch shows the primary now exists,
+     * the gate still succeeds rather than blocking onboarding on a redundant open.
+     */
+    private suspend fun provisionCoreAccount(owner: AccountCluster): Result<Unit> {
+        trace(tag = "Onboarding", message = "Provisioning USDF core account (onboarding gate)", type = TraceType.Process)
+        return createUserAccount(owner, mint = Mint.usdf).fold(
+            onSuccess = {
+                trace(tag = "Onboarding", message = "USDF core account provisioned", type = TraceType.Process)
+                getAccounts(owner, owner).onSuccess {
+                    accounts.value = it.accounts.values.toList()
+                }
+                Result.success(Unit)
+            },
+            onFailure = { error ->
+                // A concurrent provision may have already opened the core account, making
+                // this create redundant. Re-check before surfacing the failure.
+                getAccounts(owner, owner).onSuccess {
+                    accounts.value = it.accounts.values.toList()
+                }
+                if (hasCoreMintPrimary()) {
+                    trace(tag = "Onboarding", message = "USDF core account provisioned by concurrent open", type = TraceType.Process)
+                    Result.success(Unit)
+                } else {
+                    trace(tag = "Onboarding", message = "USDF core account provisioning failed", error = error, type = TraceType.Error)
                     Result.failure(error)
                 }
             }
