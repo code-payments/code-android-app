@@ -868,7 +868,7 @@
     <string name="action_tips">Tips</string>
     <string name="title_tips">Tips</string>
     <string name="title_tipIntro">Receive Tips From Everyone</string>
-    <string name="subtitle_tipIntro">Add your name and a picture to receive tips</string>
+    <string name="subtitle_tipIntro">Add your name to receive tips</string>
     <string name="action_startReceivingTips">Start Receiving Tips</string>
 
     <string name="title_profileNameSelection">What is your name?</string>
