@@ -41,11 +41,28 @@ class SessionStateHolderTest {
     }
 
     @Test
-    fun `reset returns to default state`() {
+    fun `reset clears account-scoped state`() {
         val holder = holder()
-        holder.update { it.copy(vibrateOnScan = true, hasGiveableBalance = true) }
+        holder.update { it.copy(hasGiveableBalance = true, contactDmUnreadCount = 3, isPhoneNumberSendEnabled = true) }
         holder.reset()
-        assertEquals(SessionState(), holder.state.value)
+        val state = holder.state.value
+        assertEquals(false, state.hasGiveableBalance)
+        assertEquals(0, state.contactDmUnreadCount)
+        assertEquals(false, state.isPhoneNumberSendEnabled)
+    }
+
+    @Test
+    fun `reset preserves device-scoped feature-flag state`() {
+        // These are driven only by observe(flag) StateFlows, which won't re-emit an
+        // unchanged value to repopulate them after a blanket reset — so logout must
+        // keep them, or the UI desyncs from the still-persisted flag (e.g. Tips tab).
+        val holder = holder()
+        holder.update { it.copy(isTippingEnabled = true, vibrateOnScan = true, showNetworkOffline = true) }
+        holder.reset()
+        val state = holder.state.value
+        assertTrue(state.isTippingEnabled)
+        assertTrue(state.vibrateOnScan)
+        assertTrue(state.showNetworkOffline)
     }
 
     @Test
