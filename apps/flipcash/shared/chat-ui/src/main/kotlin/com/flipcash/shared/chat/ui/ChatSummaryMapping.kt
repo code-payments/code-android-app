@@ -61,7 +61,7 @@ private fun ChatSummary.formatPreview(
                 }
                 val previewRes = when (content.action) {
                     MessageContent.Cash.Action.TIPPED ->
-                        if (sentBySelf) R.string.label_chat_preview_tippedCash else R.string.label_chat_preview_receivedTip
+                        if (sentBySelf) R.string.label_chat_preview_tippedCash else R.string.label_chat_preview_receivedCash
                     MessageContent.Cash.Action.SENT ->
                         if (sentBySelf) R.string.label_chat_preview_sentCash else R.string.label_chat_preview_receivedCash
                 }
