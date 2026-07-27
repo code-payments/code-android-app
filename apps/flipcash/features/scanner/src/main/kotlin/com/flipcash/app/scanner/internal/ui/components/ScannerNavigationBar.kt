@@ -51,6 +51,7 @@ internal fun ScannerNavigationBar(
         config = effectiveConfig,
         state = NavigationBarState(
             contactDmUnreadCount = state.contactDmUnreadCount,
+            tipUnreadCount = state.tipsUnreadCount,
             showToast = billState.showToast && billState.toast != null,
             toastText = billState.toast?.formattedAmount,
             isPaused = isPaused,
