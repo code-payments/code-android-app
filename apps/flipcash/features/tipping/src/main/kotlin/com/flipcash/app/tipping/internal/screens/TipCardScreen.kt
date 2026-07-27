@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.ScannableRenderer
 import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
@@ -104,6 +105,10 @@ internal fun TipCardScreen() {
                     LocalTipCardBaseAlpha provides 0.36f
                 ) {
                     ScannableRenderer(
+                        // Fixed, device-independent card width matching iOS's TipcardScreen (300pt);
+                        // the card derives its QR, corner radius and avatar from this width, so both
+                        // platforms render the tip card at the same proportions.
+                        tipCardWidth = 300.dp,
                         scannable = it,
                     )
                 }

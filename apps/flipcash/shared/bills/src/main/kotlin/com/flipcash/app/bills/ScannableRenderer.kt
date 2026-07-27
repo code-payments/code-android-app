@@ -6,6 +6,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
+import androidx.compose.ui.unit.Dp
 import com.flipcash.app.bills.components.bills.CashBill
 import com.flipcash.app.bills.components.bills.GoldBar
 import com.flipcash.app.bills.components.cards.TipCard
@@ -25,6 +26,10 @@ fun ScannableRenderer(
     // Vertical placement of the card within its area — used to pin a tip card just above its
     // bottom modal; ignored by bill types that always center.
     contentAlignment: Alignment = Alignment.Center,
+    // Explicit tip-card width. Null lets the card size itself off the available canvas (the
+    // scanner/camera); the "My Tip Card" screen pins a fixed, device-independent width. Ignored by
+    // non-tip-card scannables.
+    tipCardWidth: Dp? = null,
 ) {
     when (scannable) {
         is Scannable.CashBill -> CashBill(
@@ -43,6 +48,7 @@ fun ScannableRenderer(
                 modifier = modifier,
                 payloadData = scannable.data,
                 user = scannable.user,
+                cardWidth = tipCardWidth,
                 contentAlignment = contentAlignment,
             )
         }
