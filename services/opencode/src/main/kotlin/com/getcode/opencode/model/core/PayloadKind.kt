@@ -70,8 +70,9 @@ sealed interface PayloadKind {
 
     /**
      * A profile "tip code": the recipient's [UserId] (a 16-byte UUID) written raw at offset 1,
-     * with the trailing bytes reserved. Carries no nonce and derives no rendezvous — matches the
-     * iOS `TipCode.Payload` frame.
+     * with the trailing reserved bytes filled with incrementing digits (1, 2, 3, ...) so the
+     * native scanner can't drop them as trailing zero padding. Carries no nonce and derives no
+     * rendezvous — matches the iOS `TipCode.Payload` frame.
      */
     data object Tip : PayloadKind {
         override val value: Int = 2
@@ -83,6 +84,14 @@ sealed interface PayloadKind {
             val userId = (value as UserId).value
             userId.take(OpenCodePayload.USER_ID_LENGTH).forEachIndexed { index, byte ->
                 data[index + OpenCodePayload.OFFSET_USER_ID] = byte
+            }
+
+            // Fill the reserved trailing space with incrementing digits (1, 2, 3, ...) rather
+            // than zeros, so `Scanner.decode` can't drop them as trailing zero padding and the
+            // frame round-trips at full length.
+            val reservedStart = OpenCodePayload.OFFSET_USER_ID + OpenCodePayload.USER_ID_LENGTH
+            for (index in reservedStart until OpenCodePayload.LENGTH) {
+                data[index] = (index - reservedStart + 1).toByte()
             }
             return data
         }
