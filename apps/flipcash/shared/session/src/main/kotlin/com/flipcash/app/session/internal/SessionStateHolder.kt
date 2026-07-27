@@ -29,6 +29,24 @@ class SessionStateHolder @Inject constructor() {
     /** Atomically update the state via a transform function. */
     fun update(transform: (SessionState) -> SessionState) { _state.update(transform) }
 
-    /** Reset to the default [SessionState] (e.g. on logout). */
-    fun reset() { _state.value = SessionState() }
+    /**
+     * Reset account-scoped state on logout, preserving device-scoped fields that are
+     * derived purely from feature flags via `observe(flag)`.
+     *
+     * Those flag observers are hot [StateFlow]s that only re-emit on a *value change*.
+     * A blanket `SessionState()` reset would clobber these fields to their defaults, and
+     * the observer would not re-push its unchanged current value to repopulate them —
+     * leaving the UI desynced from the still-persisted flag (e.g. Tipping flag on, but the
+     * scanner Tips tab gone). Account/token/settings-derived fields are safe to reset:
+     * their sources re-emit when the account changes, so they self-heal.
+     */
+    fun reset() {
+        _state.update { prev ->
+            SessionState(
+                vibrateOnScan = prev.vibrateOnScan,
+                showNetworkOffline = prev.showNetworkOffline,
+                isTippingEnabled = prev.isTippingEnabled,
+            )
+        }
+    }
 }
