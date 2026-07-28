@@ -42,12 +42,6 @@ class UserProfileScreenContentTest {
     }
 
     @Test
-    fun `no display name placeholder when null`() {
-        setScreen(UserProfileViewModel.State(displayName = null))
-        composeTestRule.onNodeWithText("No display name set").assertIsDisplayed()
-    }
-
-    @Test
     fun `no display name placeholder when empty`() {
         setScreen(UserProfileViewModel.State(displayName = ""))
         composeTestRule.onNodeWithText("No display name set").assertIsDisplayed()

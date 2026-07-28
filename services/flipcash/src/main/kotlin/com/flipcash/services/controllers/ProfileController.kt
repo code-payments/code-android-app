@@ -51,9 +51,7 @@ class ProfileController @Inject constructor(
                     throw error
                 }
 
-                UserProfile(
-                    displayName = null,
-                    socialAccounts = emptyList(),
+                UserProfile.Empty.copy(
                     phoneNumber = unverifiedPhone,
                     email = unverifiedEmail,
                 )

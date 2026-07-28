@@ -15,7 +15,7 @@ class ContactMethodsViewModelStateTest {
     @Test
     fun `default state has null profile fields`() {
         val state = UserProfileViewModel.State()
-        assertNull(state.displayName)
+        assertTrue(state.displayName.isEmpty())
         assertNull(state.phone)
         assertNull(state.email)
         assertFalse(state.phoneLinkedForPayment)
@@ -58,7 +58,7 @@ class ContactMethodsViewModelStateTest {
     fun `OnProfileUpdated with null values`() {
         val updated = reduce(
             UserProfileViewModel.Event.OnProfileUpdated(
-                displayName = null,
+                displayName = "",
                 profilePicture = null,
                 phone = null,
                 email = null,
@@ -66,7 +66,7 @@ class ContactMethodsViewModelStateTest {
                 socialAccounts = emptyList(),
             )
         )(UserProfileViewModel.State())
-        assertNull(updated.displayName)
+        assertTrue(updated.displayName.isEmpty())
         assertNull(updated.phone)
         assertNull(updated.email)
         assertFalse(updated.phoneLinkedForPayment)

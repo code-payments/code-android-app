@@ -82,7 +82,7 @@ private data class CachedProfile(
     val email: VerifiableContactMethod? = null,
 ) {
     fun toDomain(): UserProfile = UserProfile(
-        displayName = displayName,
+        displayName = displayName.orEmpty(),
         socialAccounts = socialAccounts.mapNotNull { it.toDomain() },
         phoneNumber = phoneNumber,
         email = email,

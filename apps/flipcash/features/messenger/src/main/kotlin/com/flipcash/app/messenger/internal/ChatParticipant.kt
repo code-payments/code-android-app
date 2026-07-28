@@ -23,6 +23,6 @@ internal sealed interface ChatParticipant {
     }
 
     data class TipUser(val userId: ID, val profile: UserProfile) : ChatParticipant {
-        override val displayName: String get() = profile.displayName.orEmpty()
+        override val displayName: String get() = profile.displayName
     }
 }

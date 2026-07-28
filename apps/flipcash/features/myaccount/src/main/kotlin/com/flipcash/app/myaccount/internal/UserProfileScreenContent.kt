@@ -264,7 +264,7 @@ internal fun UserProfileScreenContent(
 
 @Composable
 private fun ProfileHeader(
-    displayName: String?,
+    displayName: String,
     profilePicture: MediaItem?,
     onEditName: () -> Unit,
     onEditPhoto: () -> Unit,
@@ -290,7 +290,7 @@ private fun ProfileHeader(
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
         ) {
             Text(
-                text = displayName?.takeIf { it.isNotEmpty() }
+                text = displayName.takeIf { it.isNotEmpty() }
                     ?: stringResource(R.string.subtitle_noDisplayName),
                 style = CodeTheme.typography.textLarge,
                 color = CodeTheme.colors.textMain,

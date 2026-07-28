@@ -84,7 +84,7 @@ internal class ContactListBuilder @Inject constructor(
                     .firstOrNull { !isSelf(it) } ?: return@mapNotNull null
                 val phone = otherMember.userProfile.verifiedPhoneNumber
                 val formattedPhone = phone?.let { phoneUtils.formatNumber(it) }
-                val displayName = otherMember.userProfile.displayName?.takeIf { it.isNotBlank() }
+                val displayName = otherMember.userProfile.displayName.takeIf { it.isNotBlank() }
                     ?: formattedPhone
                     ?: return@mapNotNull null
 

@@ -150,12 +150,7 @@ class ChatEntityMapper @Inject constructor() {
     fun toMember(entity: ChatMemberEntity): ChatMember {
         return ChatMember(
             userId = entity.userIdHex.hexToId(),
-            userProfile = entity.userProfileJson?.toDomain() ?: UserProfile(
-                displayName = null,
-                socialAccounts = emptyList(),
-                phoneNumber = null,
-                email = null,
-            ),
+            userProfile = entity.userProfileJson?.toDomain() ?: UserProfile.Empty,
             pointers = entity.pointersJson?.map { it.toDomain() } ?: emptyList(),
         )
     }
@@ -284,7 +279,7 @@ private fun UserProfile.toSerialized(): UserProfileSerialized = UserProfileSeria
 )
 
 private fun UserProfileSerialized.toDomain(): UserProfile = UserProfile(
-    displayName = displayName,
+    displayName = displayName.orEmpty(),
     socialAccounts = socialAccounts.map { it.toDomain() },
     phoneNumber = phoneNumber,
     email = email,

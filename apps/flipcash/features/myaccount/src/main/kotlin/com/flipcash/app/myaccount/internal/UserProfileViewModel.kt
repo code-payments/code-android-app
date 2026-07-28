@@ -45,7 +45,7 @@ internal class UserProfileViewModel @Inject constructor(
     defaultDispatcher = dispatchers.Default,
 ) {
     internal data class State(
-        val displayName: String? = null,
+        val displayName: String = "",
         val profilePicture: MediaItem? = null,
         val phone: VerifiableContactMethod? = null,
         val email: VerifiableContactMethod? = null,
@@ -58,7 +58,7 @@ internal class UserProfileViewModel @Inject constructor(
 
     internal sealed interface Event {
         data class OnProfileUpdated(
-            val displayName: String?,
+            val displayName: String,
             val profilePicture: MediaItem?,
             val phone: VerifiableContactMethod?,
             val email: VerifiableContactMethod?,
@@ -102,7 +102,7 @@ internal class UserProfileViewModel @Inject constructor(
 
             dispatchEvent(
                 Event.OnProfileUpdated(
-                    displayName = profile?.displayName,
+                    displayName = profile?.displayName.orEmpty(),
                     profilePicture = profile?.profilePicture,
                     // Carry the contact (value + verified) so unverified entries still show.
                     phone = profile?.phoneNumber,

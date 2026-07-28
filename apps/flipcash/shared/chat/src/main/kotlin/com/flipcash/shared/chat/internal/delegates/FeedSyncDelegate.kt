@@ -91,7 +91,7 @@ class FeedSyncDelegate @Inject constructor(
                     // identified by user id and have no phone by design, so they are never dropped.
                     if (chatType == ChatType.CONTACT_DM) {
                         val profile = otherMember.userProfile
-                        val hasIdentity = !profile.displayName.isNullOrBlank() ||
+                        val hasIdentity = profile.displayName.isNotBlank() ||
                             !profile.verifiedPhoneNumber.isNullOrBlank()
                         if (!hasIdentity) return@mapNotNull null
                     }
