@@ -2,7 +2,10 @@ package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
@@ -19,8 +22,11 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,8 +34,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.messenger.internal.ChatParticipant
+import androidx.compose.ui.unit.sp
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
@@ -47,13 +54,22 @@ internal fun RowScope.SendCashButton(
 ) {
     // Tip chats always use the minimized (dark, symbol-only) button. The normal send flow keeps the
     // expanded "Send $" presentation and only collapses to the symbol once the user starts typing.
-    val isTipChat = state.participant is ChatParticipant.TipUser
+    // chatType resolves from the fast local contact lookup, so a tip DM condenses immediately rather
+    // than waiting on the server profile.
+    val isTipChat = state.chatType == ChatType.TIP_DM
     val isTyping = isTipChat || state.chatInputState.text.isNotEmpty()
     val canType = state.typingConstraints.enabled
 
-    // Colors ease slowly and independently of the width/label so the fill change reads as one
-    // calm transition instead of snapping with the resize.
-    val colorSpec = tween<Color>(durationMillis = 350)
+    // Colors ease slowly and independently of the width/label so the fill change reads as one calm
+    // transition instead of snapping with the resize — but NOT on the first settle. A tip chat opens
+    // before its kind is known, briefly reading as a non-tip chat (white); easing that initial commit
+    // would fade white→transparent in view. Snap until the kind resolves and the button commits its
+    // first appearance, then ease subsequent typing toggles.
+    val kindResolved = state.chatType != ChatType.UNKNOWN
+    var hasSettled by remember { mutableStateOf(false) }
+    LaunchedEffect(kindResolved) { if (kindResolved) hasSettled = true }
+    val colorSpec: AnimationSpec<Color> =
+        if (hasSettled) tween(durationMillis = 350) else snap()
     val backgroundColor by animateColorAsState(
         targetValue = if (isTyping) Color.Transparent else Color.White,
         animationSpec = colorSpec,
@@ -75,6 +91,23 @@ internal fun RowScope.SendCashButton(
     val widthSpec = spring<IntSize>(
         dampingRatio = Spring.DampingRatioNoBouncy,
         stiffness = Spring.StiffnessMediumLow,
+    )
+
+    // The symbol grows from textMedium to textLarge as the button condenses. Animating the
+    // fontUnit (rather than swapping styles) lets it ease alongside the width spring so the
+    // resize and the type scale read as one motion. Sizes come from the theme so they track
+    // any typography change.
+    val symbolFontSize by animateFloatAsState(
+        targetValue = if (isTyping) {
+            22.sp.value
+        } else {
+            CodeTheme.typography.textMedium.fontSize.value
+        },
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "send button symbol size",
     )
 
     val shape = if (canType) CodeTheme.shapes.medium else CodeTheme.shapes.small
@@ -107,6 +140,7 @@ internal fun RowScope.SendCashButton(
         val prefix = remember(fullText, state.cashSymbol) {
             fullText.removeSuffix(state.cashSymbol)
         }
+
         AnimatedVisibility(
             visible = !isTyping,
             enter = fadeIn() + expandHorizontally(widthSpec, expandFrom = Alignment.Start),
@@ -123,7 +157,9 @@ internal fun RowScope.SendCashButton(
         Text(
             text = state.cashSymbol,
             color = contentColor,
-            style = CodeTheme.typography.textMedium,
+            // Base style stays textMedium; the animated fontSize carries it up to textLarge in
+            // the condensed state so the symbol matches the "Send " prefix when expanded.
+            style = CodeTheme.typography.textMedium.copy(fontSize = symbolFontSize.sp),
             maxLines = 1,
             softWrap = false,
         )

@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.ChatAnimations
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.ChatInput
@@ -124,7 +125,19 @@ internal fun UserControlBottomBar(
                     // scaled down to the pill + input box. Hold the bar invisible (but measured, so
                     // the message list keeps correct padding) until resolved, then reveal the final
                     // layout directly — no visible full-width state, no resize.
-                    .alpha(if (state.typingConstraints.resolved) 1f else 0f),
+                    //
+                    // The chat kind starts UNKNOWN and, for tip DMs, SendCashButton would otherwise
+                    // read a not-yet-resolved chat as a non-tip chat and show the white expanded pill
+                    // before condensing — a visible flash. Wait until the kind is known (chatType is
+                    // CONTACT_DM or TIP_DM) so the bar reveals already in its final presentation.
+                    // chatType resolves from a local contact lookup, not the network profile, so this
+                    // adds no perceptible delay; a tip chat whose identity never resolves flips to the
+                    // deactivated bar instead, so this can't hide it forever.
+                    .alpha(
+                        if (state.typingConstraints.resolved &&
+                            state.chatType != ChatType.UNKNOWN
+                        ) 1f else 0f
+                    ),
                 targetState = state.typingConstraints.enabled,
                 // The layout only ever changes on the initial async resolution, which is hidden by
                 // the alpha gate above, so snap rather than crossfade. The SendCashButton's own
