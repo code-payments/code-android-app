@@ -221,12 +221,12 @@ fun BottomBarView(
                         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
                     ) {
                         Text(
-                            style = CodeTheme.typography.textMedium,
+                            style = CodeTheme.typography.textLarge,
                             text = bottomBarMessage.title
                         )
                         if (bottomBarMessage.subtitle.isNotEmpty()) {
                             Text(
-                                style = CodeTheme.typography.textSmall,
+                                style = CodeTheme.typography.caption,
                                 text = bottomBarMessage.subtitle,
                                 color = LocalContentColor.current.copy(alpha = 0.8f)
                             )
