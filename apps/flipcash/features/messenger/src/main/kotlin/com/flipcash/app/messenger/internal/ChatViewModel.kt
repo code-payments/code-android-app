@@ -422,7 +422,7 @@ internal class ChatViewModel @Inject constructor(
                 val other = members.firstOrNull { it.userId != selfId }
                 if (other != null) {
                     val profile = other.userProfile
-                    val hasIdentity = !profile.displayName.isNullOrBlank() ||
+                    val hasIdentity = profile.displayName.isNotBlank() ||
                         !profile.verifiedPhoneNumber.isNullOrBlank()
                     !hasIdentity
                 } else false

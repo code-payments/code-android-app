@@ -3,7 +3,7 @@ package com.flipcash.services.models
 import com.flipcash.services.models.chat.MediaItem
 
 data class UserProfile(
-    val displayName: String?,
+    val displayName: String,
     val socialAccounts: List<SocialAccount>,
     val phoneNumber: VerifiableContactMethod?,
     val email: VerifiableContactMethod?,
@@ -19,7 +19,7 @@ data class UserProfile(
 
     companion object {
         val Empty = UserProfile(
-            displayName = null,
+            displayName = "",
             socialAccounts = emptyList(),
             phoneNumber = null,
             email = null,
