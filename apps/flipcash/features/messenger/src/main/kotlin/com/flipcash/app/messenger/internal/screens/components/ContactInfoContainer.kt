@@ -123,8 +123,7 @@ private fun Indicator(
             onClick = onClick
         )
 
-        is ChatParticipant.TipUser -> TipPill(modifier = modifier)
-        null -> Spacer(modifier = modifier.fillMaxWidth())
+        else -> Spacer(modifier = modifier.fillMaxWidth())
     }
 }
 

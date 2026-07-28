@@ -122,6 +122,12 @@ internal class ChatViewModel @Inject constructor(
         val separatorConfig: SeparatorConfig= SeparatorConfig.Continuous(),
         val chatId: ChatId? = null,
         val participant: ChatParticipant? = null,
+        // The kind of DM this conversation is, resolved from the fast local contact lookup ahead of
+        // the participant's server profile (which resolves over the network for tip DMs). Starts
+        // UNKNOWN and settles to CONTACT_DM / TIP_DM as soon as the chat opens; the send button and
+        // bottom bar read it to render the correct (condensed vs expanded) presentation immediately
+        // instead of flashing the expanded white pill while a tip profile loads.
+        val chatType: ChatType = ChatType.UNKNOWN,
         val chatInputState: TextFieldState = TextFieldState(),
         val typists: Set<ActiveTypist> = emptySet(),
         val resolveState: ResolveState = ResolveState.Pending,
@@ -145,6 +151,7 @@ internal class ChatViewModel @Inject constructor(
         data class OnChatOpened(val identifier: ChatIdentifier) : Event
         data class OnContactFound(val contact: DeviceContact): Event
         data class OnTipUserResolved(val userId: ID, val profile: UserProfile): Event
+        data object OnTipDmDetected : Event
         data class OnCurrencySymbolUpdated(val symbol: String): Event
         data object RefreshContact : Event
         data class ChatFound(val chatId: ChatId) : Event
@@ -264,14 +271,6 @@ internal class ChatViewModel @Inject constructor(
         .map { it.participant is ChatParticipant.TipUser }
         .distinctUntilChanged()
 
-    /** The [ChatType] backing this conversation, derived from the resolved participant. */
-    private val ChatParticipant?.chatType: ChatType
-        get() = when (this) {
-            is ChatParticipant.TipUser -> ChatType.TIP_DM
-            is ChatParticipant.Contact -> ChatType.CONTACT_DM
-            null -> ChatType.UNKNOWN
-        }
-
     private val amountStyleFlow by lazy {
         isTipFlow
             .map { amountStyle(isTip = it) }
@@ -362,11 +361,14 @@ internal class ChatViewModel @Inject constructor(
                         if (contact != null) {
                             dispatchEvent(Event.OnContactFound(contact))
                         } else {
-                            // No device contact backs this chat — it's a tip DM. Warm the member
-                            // store (fetch + persist if nothing is cached) so the reactive
-                            // tip-identity collector can resolve the counterparty from their server
-                            // profile. Identity is set reactively (see initChatHandlers), not here,
-                            // so it can't be missed by a fast tap on "Send $".
+                            // No device contact backs this chat — it's a tip DM. Mark it immediately
+                            // (this lookup is local) so the send button renders condensed without
+                            // waiting on the profile below, then warm the member store (fetch +
+                            // persist if nothing is cached) so the reactive tip-identity collector
+                            // can resolve the counterparty from their server profile. Identity is set
+                            // reactively (see initChatHandlers), not here, so it can't be missed by a
+                            // fast tap on "Send $".
+                            dispatchEvent(Event.OnTipDmDetected)
                             viewModelScope.launch { chatCoordinator.getOtherMember(identifier.chatId) }
                         }
                     }
@@ -558,7 +560,7 @@ internal class ChatViewModel @Inject constructor(
                 val textToSend = stateFlow.value.chatInputState.text.toString()
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 if (textToSend.isBlank()) return@onEach
-                val chatType = stateFlow.value.participant.chatType
+                val chatType = stateFlow.value.chatType
 
                 stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd("")
 
@@ -831,13 +833,21 @@ internal class ChatViewModel @Inject constructor(
             when (event) {
                 is Event.OnChatOpened -> { state ->
                     when (val id = event.identifier) {
-                        is ChatIdentifier.ByContact -> state.copy(participant = ChatParticipant.Contact(id.contact))
+                        is ChatIdentifier.ByContact ->
+                            state.copy(
+                                participant = ChatParticipant.Contact(id.contact),
+                                chatType = ChatType.CONTACT_DM,
+                            )
                         is ChatIdentifier.ByChatId -> state
                     }
                 }
                 is Event.OnContactFound -> { state ->
-                    state.copy(participant = ChatParticipant.Contact(event.contact))
+                    state.copy(
+                        participant = ChatParticipant.Contact(event.contact),
+                        chatType = ChatType.CONTACT_DM,
+                    )
                 }
+                Event.OnTipDmDetected -> { state -> state.copy(chatType = ChatType.TIP_DM) }
                 is Event.OnTipUserResolved -> { state ->
                     // A device contact, once matched, wins over the server profile (it carries the
                     // phone number and the user's own naming). Otherwise this is a tip DM: adopt the
@@ -846,6 +856,7 @@ internal class ChatViewModel @Inject constructor(
                     if (state.participant is ChatParticipant.Contact) state
                     else state.copy(
                         participant = ChatParticipant.TipUser(event.userId, event.profile),
+                        chatType = ChatType.TIP_DM,
                         resolveState = ResolveState.Resolved,
                     )
                 }
