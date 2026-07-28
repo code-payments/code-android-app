@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -205,6 +206,13 @@ fun BottomBarView(
     ) {
         Modal(
             backgroundColor = bottomBarMessage.type.backgroundColor(),
+            contentPadding = PaddingValues(
+                top = CodeTheme.dimens.inset,
+                start = CodeTheme.dimens.inset,
+                end = CodeTheme.dimens.inset,
+            ),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         ) {
             if (bottomBarMessage.title.isNotEmpty()) {
                 CompositionLocalProvider(LocalContentColor provides White) {
