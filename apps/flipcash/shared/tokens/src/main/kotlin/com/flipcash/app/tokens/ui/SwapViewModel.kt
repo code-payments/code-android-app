@@ -166,13 +166,19 @@ class SwapViewModel @Inject constructor(
         stateFlow.map { it.amountEntryState.maxToAdd },
         stateFlow.map { it.tokenBalance },
         tokenCoordinator.tokenBalances.distinctUntilChanged(),
-    ) { purpose, maxToAdd, tokenBalance, tokenBalances ->
+        exchange.observePreferredRate(),
+    ) { purpose, maxToAdd, tokenBalance, tokenBalances, rate ->
         when (purpose) {
             is SwapPurpose.Buy -> {
                 val limit = maxToAdd?.let { Fiat(it.first, it.second) }
                 val mustAddMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
                 if (mustAddMoney && !stateFlow.value.isAddingMoney) {
-                    val maxTokenBalance = tokenBalances.maxOf { it.balance }
+                    // tokenBalances are USD-denominated; convert to the user's preferred
+                    // currency so the "Enter up to X" hint is localized and the over-max
+                    // comparison (which relabels the entered amount with max.currencyCode)
+                    // happens in the same currency the user is typing in. `limit` is already
+                    // in the selected currency, so both sides of min() now agree.
+                    val maxTokenBalance = tokenBalances.maxOf { it.balance }.convertingTo(rate)
                     return@combine limit?.let { min(maxTokenBalance, it) } ?: maxTokenBalance
                 }
 
@@ -743,7 +749,12 @@ class SwapViewModel @Inject constructor(
             .onEach {
                 try {
                     val delegateState = amountDelegate.state.value
-                    val rate = exchange.rateForUsd()
+                    // Use the user's preferred (selected) currency rate so the entered amount is
+                    // interpreted in the currency shown in the UI. Forcing rateForUsd() here labelled
+                    // a non-USD amount (e.g. ₹500) as USD, so compute() skipped the FX conversion and
+                    // produced an underlyingTokenAmount ~83× too large — which made checkBalances
+                    // reject the deposit as InsufficientUsdc for INR (and any non-USD) users.
+                    val rate = exchange.preferredRate
                     val amountFiat = verifiedFiatCalculator.compute(
                         amount = Fiat(delegateState.enteredAmount, rate.currency),
                         token = Token.usdf,
@@ -1137,14 +1148,16 @@ class SwapViewModel @Inject constructor(
 
         purchaseMethodController.selections
             .onEach { (method, metadata) ->
+                // The add-money deposit sheet (presentDepositOptions) emits an amount-less
+                // selection and owns its own navigation (it returns the route to open). Only react
+                // to an actual purchase, which carries a purchaseAmount. Reacting to the amount-less
+                // deposit selection would double-navigate: Coinbase would push verification twice,
+                // and Phantom would send this (buy) flow to PhantomConnect *underneath* the pushed
+                // add-money flow — so finishing the add-money flow strands the user on the connect
+                // prompt instead of returning to the token screen.
+                val amount = metadata.purchaseAmount ?: return@onEach
                 when (method) {
                     PurchaseMethod.CoinbaseOnRamp -> {
-                        // The add-money deposit sheet (presentDepositOptions) emits a Plain
-                        // selection with no amount and owns its own email/phone gate + navigation.
-                        // Only react to an actual purchase (which carries an amount) here — reacting
-                        // to the deposit selection would push the verification screen a second time.
-                        val amount = metadata.purchaseAmount ?: return@onEach
-
                         analytics.buttonTapped(Button.TokenBuyWithCoinbase)
                         dispatchEvent(Event.CoinbaseSelected)
 
@@ -1228,7 +1241,9 @@ class SwapViewModel @Inject constructor(
                     return@mapNotNull AppRoute.Transfers.Deposit(showOtherOptions = false)
                 }
                 // present the add-money/deposit sheet; navigate to whatever the user picks.
-                // popToRoot = false so the user returns to the in-progress buy screen.
+                // popToRoot = false: the chosen add-money route replaces this buy flow (see the
+                // OpenScreen handler in SwapEntryScreen), so finishing it pops a single level back
+                // to the token screen — no full pop-to-root needed.
                 purchaseMethodController.presentDepositOptions(popToRoot = false)
             }
             .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }

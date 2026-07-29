@@ -21,6 +21,7 @@ data object DemoSheet : Sheet
 // --- Flow steps ---
 data object StepOne : FlowStep
 data object StepTwo : FlowStep
+data object StepThree : FlowStep
 
 // --- A flow-host route that returns DemoResult ---
 @Parcelize

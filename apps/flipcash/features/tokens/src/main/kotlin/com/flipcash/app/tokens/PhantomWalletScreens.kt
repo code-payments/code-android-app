@@ -163,7 +163,10 @@ internal fun PhantomTransactionConfirmationScreen() {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.PhantomNavigateToProcessing>()
             .onEach {
-                flowNavigator.navigateTo(SwapStep.Processing)
+                // Replace the whole inner stack so Processing is terminal: the connect prompt
+                // and confirm steps are cleared, so leaving Processing exits the flow back to
+                // the origin (e.g. token info) instead of the buried Phantom connect prompt.
+                flowNavigator.replaceStack(listOf(SwapStep.Processing))
             }.launchIn(this)
     }
 
