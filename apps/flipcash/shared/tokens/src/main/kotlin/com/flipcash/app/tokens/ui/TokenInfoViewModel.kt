@@ -69,13 +69,14 @@ class TokenInfoViewModel @Inject constructor(
         val historicalMarketCapData: Map<Period, Loadable<List<MarketCapPoint>>> = emptyMap(),
         val selectedPeriod: Period = Period.All,
         val canGiveUsdf: Boolean = false,
-        val reservesBalance: LocalFiat = LocalFiat.Zero,
+        val fundableBalanceMints: Set<Mint> = emptySet(),
     ) {
         val canSell: Boolean
             get() = balance.underlyingTokenAmount.valueNonZero()
 
-        val hasReserves: Boolean
-            get() = reservesBalance.underlyingTokenAmount.valueNonZero()
+        /** True when the user holds a displayable balance in some token other than [mint], which could fund a buy of it. */
+        val hasFundableBalance: Boolean
+            get() = fundableBalanceMints.any { it != mint }
 
         val isCashReserve: Boolean
             get() = token.dataOrNull?.address == Mint.usdf
@@ -96,7 +97,7 @@ class TokenInfoViewModel @Inject constructor(
 
         data class OnMarketCapPeriodSelected(val period: Period) : Event
         data class OnBalanceUpdated(val balance: LocalFiat) : Event
-        data class OnReservesBalanceUpdated(val balance: LocalFiat): Event
+        data class OnFundableBalancesUpdated(val mints: Set<Mint>): Event
         data class OnAppreciatedEnabled(val enabled: Boolean) : Event
         data class OnTransactionHistoryEnabled(val enabled: Boolean): Event
         data class OnAppreciationUpdated(val amount: LocalFiat?) : Event
@@ -181,18 +182,15 @@ class TokenInfoViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        combine(
-        tokenCoordinator.observeReservesBalance(),
-            exchange.observePreferredRate(),
-        ) { balance, rate ->
-            LocalFiat(
-                usdf = balance,
-                nativeAmount = balance.convertingTo(rate),
-                mint = Mint.usdf,
-            )
-        }.onEach {
-            dispatchEvent(Event.OnReservesBalanceUpdated(it))
-        }.launchIn(viewModelScope)
+        tokenCoordinator.tokenBalances
+            .map { balances ->
+                balances.filter { it.balance.hasDisplayableValue }
+                    .map { it.token.address }
+                    .toSet()
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnFundableBalancesUpdated(it)) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnTokenChanged>()
@@ -289,11 +287,11 @@ class TokenInfoViewModel @Inject constructor(
             .filterIsInstance<Event.OnBuy>()
             .onEach { event ->
                 val mint = stateFlow.value.mint ?: return@onEach
-                // Buying requires cash reserves to fund the swap; if there are none,
-                // send the user to deposit options first instead of the swap screen.
-                // This check is only done if AddMoneyUx FF is enabled.
+                // A buy can be funded by USDF reserves or any other currency the user
+                // holds; only send them to deposit options first when they have nothing
+                // to fund the swap with. This check is only done if AddMoneyUX is enabled.
                 val addMoney = features.get(FeatureFlag.AddMoneyUX)
-                if (!stateFlow.value.hasReserves && addMoney) {
+                if (!stateFlow.value.hasFundableBalance && addMoney) {
                     BottomBarManager.showInfo(
                         title = resources.getString(R.string.title_noBalanceYet),
                         message = resources.getString(R.string.description_noBalanceYetToBuy),
@@ -345,7 +343,7 @@ class TokenInfoViewModel @Inject constructor(
                 is Event.OnTokenChanged -> { state -> state.copy(token = event.token) }
                 is Event.OnMarketCapChanged -> { state -> state.copy(marketCap = event.mcap) }
                 is Event.OnBalanceUpdated -> { state -> state.copy(balance = event.balance) }
-                is Event.OnReservesBalanceUpdated -> { state -> state.copy(reservesBalance = event.balance) }
+                is Event.OnFundableBalancesUpdated -> { state -> state.copy(fundableBalanceMints = event.mints) }
                 is Event.OnAppreciationUpdated -> { state -> state.copy(appreciation = event.amount) }
                 is Event.ExpandDescription -> { state -> state.copy(descriptionExpanded = event.expand) }
                 is Event.PresentDepositOptions -> { state -> state }
