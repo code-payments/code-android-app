@@ -73,6 +73,14 @@ fun BottomBarContainer(
 ) {
     val scope = rememberCoroutineScope()
     val bottomBarMessage by barMessages.bottomBar.collectAsStateWithLifecycle()
+    // The manager clears the message immediately on close (see onClose) so other
+    // screens don't re-show it. Retain the last non-null message so the exit
+    // transition still has content to render, otherwise the bar blanks out and
+    // the slide-out animation isn't visible.
+    var exitingMessage by remember { mutableStateOf(bottomBarMessage) }
+    LaunchedEffect(bottomBarMessage) {
+        if (bottomBarMessage != null) exitingMessage = bottomBarMessage
+    }
     val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
     var bottomBarMessageDismissId by remember { mutableLongStateOf(0L) }
     val animationScale by rememberAnimationScale()
@@ -172,7 +180,7 @@ fun BottomBarContainer(
                 scope.launch { onClose(selection, false) }
             }
             BottomBarView(
-                bottomBarMessage = bottomBarMessage,
+                bottomBarMessage = exitingMessage,
                 onShown = onShown,
                 onClose = closeWith,
                 onBackPressed = { closeWith(SelectedBottomBarAction(-1)) }
