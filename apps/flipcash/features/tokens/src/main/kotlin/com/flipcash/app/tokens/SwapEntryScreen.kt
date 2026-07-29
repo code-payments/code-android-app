@@ -138,11 +138,14 @@ internal fun SwapEntryScreen(
 
     // Deposit-first "Add Money" via Phantom enters the amount here after connecting;
     // confirming it signs the transaction and advances straight to processing.
+    // Replace the whole inner stack so Processing is terminal: the connect prompt and
+    // amount-entry steps are cleared, so leaving Processing exits the flow back to the
+    // origin (e.g. token info) instead of surfacing the buried Phantom connect prompt.
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.PhantomNavigateToProcessing>()
             .onEach {
-                flowNavigator.navigateTo(SwapStep.Processing)
+                flowNavigator.replaceStack(listOf(SwapStep.Processing))
             }.launchIn(this)
     }
 
@@ -157,7 +160,11 @@ internal fun SwapEntryScreen(
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SwapViewModel.Event.OpenScreen>()
-            .onEach { navigator.push(it.screen) }
+            // OpenScreen here is only ever the buy-shortfall add-money route. Replace the buy flow
+            // with it (rather than stacking on top) so that finishing the add-money flow returns
+            // the user to the token screen (the origin) instead of the abandoned amount-to-buy step
+            // — matching how add-money launched directly from the token screen already behaves.
+            .onEach { navigator.replace(it.screen) }
             .launchIn(this)
     }
 
