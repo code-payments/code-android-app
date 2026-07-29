@@ -91,7 +91,7 @@ internal class DiscreteBondingCurve private constructor(
     ): Result<BigDecimal> = runCatching {
         require(tokens.signum() >= 0) { "Tokens to sell must be non-negative" }
 
-        if (tokens == BigDecimal.ZERO) return@runCatching BigDecimal.ZERO
+        if (tokens.signum() == 0) return@runCatching BigDecimal.ZERO
 
         val endSupply = currentSupply  + tokens
         val startStep = currentSupply.divideToIntegralValue(stepSize.toBigDecimal())
@@ -112,7 +112,11 @@ internal class DiscreteBondingCurve private constructor(
         val startPrice = pricingTable[startStep.toInt()]
         val startCost = tokensInStartStep.multiplyWithHighPrecision(startPrice)
 
-        if (startStep == endStep) {
+        // Compare numerically, NOT with `==`: BigDecimal.equals is scale-sensitive, so for a
+        // within-step FRACTIONAL purchase startStep ("0", scale 0) and endStep ("0.0", scale 1) are
+        // equal in value but `==`-unequal — which wrongly fell through to the multi-step path and
+        // produced a negative cost (e.g. tokensToValue(0, 12.5) = -0.750 instead of 0.125).
+        if (startStep.compareTo(endStep) == 0) {
             return@runCatching startCost
         }
 
