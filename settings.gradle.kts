@@ -192,6 +192,9 @@ include(
     ":ui:testing",
     ":ui:theme",
 
+    // cross-platform shared core (Kotlin Multiplatform → iOS XCFramework)
+    ":kmp:shared-core",
+
     // 3rd party imported dependencies
     ":vendor:kik:scanner",
     ":vendor:tipkit:tipkit",

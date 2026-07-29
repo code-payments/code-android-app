@@ -19,4 +19,8 @@ dependencies {
     implementation(libs.androidx.core)
 
     testImplementation(kotlin("test"))
+
+    // Cross-platform derivation test-vector gate (instrumented: wordlist res/raw + JNI ed25519).
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }

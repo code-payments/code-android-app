@@ -8,4 +8,5 @@ android {
 
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation(libs.kotlinx.serialization.json) // parse cross-platform test-vector fixtures
 }
