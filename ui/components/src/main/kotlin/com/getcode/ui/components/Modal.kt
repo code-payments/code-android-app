@@ -3,6 +3,7 @@ package com.getcode.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
@@ -21,6 +22,11 @@ import com.getcode.theme.CodeTheme
 fun Modal(
     modifier: Modifier = Modifier,
     backgroundColor: Color = CodeTheme.colors.brandContainer,
+    contentPadding: PaddingValues = PaddingValues(
+        horizontal = CodeTheme.dimens.inset,
+        vertical = CodeTheme.dimens.grid.x2
+    ),
+    horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -36,9 +42,9 @@ fun Modal(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
-                .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x2)
+                .padding(contentPadding)
                 .windowInsetsPadding(WindowInsets.navigationBars),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = horizontalAlignment,
             verticalArrangement = verticalArrangement,
         ) {
             content()

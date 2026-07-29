@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -72,6 +73,14 @@ fun BottomBarContainer(
 ) {
     val scope = rememberCoroutineScope()
     val bottomBarMessage by barMessages.bottomBar.collectAsStateWithLifecycle()
+    // The manager clears the message immediately on close (see onClose) so other
+    // screens don't re-show it. Retain the last non-null message so the exit
+    // transition still has content to render, otherwise the bar blanks out and
+    // the slide-out animation isn't visible.
+    var exitingMessage by remember { mutableStateOf(bottomBarMessage) }
+    LaunchedEffect(bottomBarMessage) {
+        if (bottomBarMessage != null) exitingMessage = bottomBarMessage
+    }
     val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
     var bottomBarMessageDismissId by remember { mutableLongStateOf(0L) }
     val animationScale by rememberAnimationScale()
@@ -171,7 +180,7 @@ fun BottomBarContainer(
                 scope.launch { onClose(selection, false) }
             }
             BottomBarView(
-                bottomBarMessage = bottomBarMessage,
+                bottomBarMessage = exitingMessage,
                 onShown = onShown,
                 onClose = closeWith,
                 onBackPressed = { closeWith(SelectedBottomBarAction(-1)) }
@@ -205,6 +214,13 @@ fun BottomBarView(
     ) {
         Modal(
             backgroundColor = bottomBarMessage.type.backgroundColor(),
+            contentPadding = PaddingValues(
+                top = CodeTheme.dimens.inset,
+                start = CodeTheme.dimens.inset,
+                end = CodeTheme.dimens.inset,
+            ),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         ) {
             if (bottomBarMessage.title.isNotEmpty()) {
                 CompositionLocalProvider(LocalContentColor provides White) {
@@ -213,12 +229,12 @@ fun BottomBarView(
                         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
                     ) {
                         Text(
-                            style = CodeTheme.typography.textMedium,
+                            style = CodeTheme.typography.textLarge,
                             text = bottomBarMessage.title
                         )
                         if (bottomBarMessage.subtitle.isNotEmpty()) {
                             Text(
-                                style = CodeTheme.typography.textSmall,
+                                style = CodeTheme.typography.caption,
                                 text = bottomBarMessage.subtitle,
                                 color = LocalContentColor.current.copy(alpha = 0.8f)
                             )
