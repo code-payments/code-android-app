@@ -83,6 +83,8 @@ class FeedSyncDelegate @Inject constructor(
             }
             state.feed
                 .filter { it.type == chatType }
+                // Hidden chats (e.g. a DM the user blocked) must not surface in the feed.
+                .filter { !it.isHidden }
                 .mapNotNull { metadata ->
                     val otherMember = metadata.members.firstOrNull { !isSelf(it) }
                         ?: return@mapNotNull null
@@ -116,6 +118,12 @@ class FeedSyncDelegate @Inject constructor(
 
     override fun refreshFeed() {
         syncFeed()
+    }
+
+    override suspend fun setChatHidden(chatId: ChatId, hidden: Boolean) {
+        // Persist the hidden flag; observeFeedFromDb re-emits off the Room change, so the feed
+        // (filtered by isHidden) updates live without a server round-trip.
+        metadataDataSource.setHidden(chatId, hidden = hidden)
     }
 
     // endregion
