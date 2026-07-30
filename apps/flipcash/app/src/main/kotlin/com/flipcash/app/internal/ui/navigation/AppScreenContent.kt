@@ -35,7 +35,6 @@ import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.directsend.SendFlowScreen
 import com.flipcash.app.invite.InviteContactScreen
 import com.flipcash.app.messenger.ChatFlowScreen
-import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.lab.LabsScreen

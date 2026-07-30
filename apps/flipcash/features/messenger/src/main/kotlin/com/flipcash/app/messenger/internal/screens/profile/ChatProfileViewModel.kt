@@ -8,7 +8,6 @@ import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.features.messenger.R
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.flipcash.services.controllers.BlocklistController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction

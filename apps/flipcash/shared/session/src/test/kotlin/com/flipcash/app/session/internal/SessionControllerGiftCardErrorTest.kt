@@ -8,7 +8,6 @@ import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.session.internal.delegates.BillPresentationDelegate
 import com.flipcash.app.session.internal.delegates.CashLinkDelegate
 import com.flipcash.app.session.internal.delegates.CodeScanDelegate
-import com.flipcash.app.session.internal.delegates.DepositDelegate
 import com.flipcash.app.session.internal.delegates.GiftCardSharingDelegate
 import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController

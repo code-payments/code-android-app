@@ -1,10 +1,8 @@
 package com.flipcash.app.tipping.internal.screens
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -25,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.ScannableRenderer
 import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
-import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.tipping.TipResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.tipping.internal.TipFlowViewModel
