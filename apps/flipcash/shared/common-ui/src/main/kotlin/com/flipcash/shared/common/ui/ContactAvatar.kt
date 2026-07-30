@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -126,10 +127,12 @@ fun ContactAvatar(
     image: MediaItem?,
     displayName: String,
     modifier: Modifier = Modifier,
+    blurred: Boolean = false,
 ) {
     ProfileAvatar(
         image = image,
         modifier = modifier,
+        blurred = blurred,
         fallback = { InitialsText(displayName) },
     )
 }
@@ -138,6 +141,7 @@ fun ContactAvatar(
 private fun ProfileAvatar(
     image: MediaItem?,
     modifier: Modifier,
+    blurred: Boolean = false,
     fallback: @Composable BoxWithConstraintsScope.() -> Unit,
 ) {
     BoxWithConstraints(
@@ -145,6 +149,25 @@ private fun ProfileAvatar(
             Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)
         )
     ) {
+        if (blurred) {
+            // Blocked users are shown intentionally obscured — render the media item's self-contained
+            // BlurHash preview instead of the real image, so the avatar stays blurred on every API
+            // level (Modifier.blur needs API 31+) without ever fetching the sharp photo.
+            val blurBitmap = remember(image) {
+                BlurHash.decode(image?.blurhash(), width = 24, height = 24)?.asImageBitmap()
+            }
+            if (blurBitmap != null) {
+                Image(
+                    bitmap = blurBitmap,
+                    contentDescription = null,
+                    modifier = Modifier.matchParentSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                fallback()
+            }
+            return@BoxWithConstraints
+        }
         // Pick the rendition by the avatar's actual pixel size — the longest bounded side of the
         // measured constraints (unbounded → request the largest, so it's never under-sized).
         val targetPx = remember(constraints) {
