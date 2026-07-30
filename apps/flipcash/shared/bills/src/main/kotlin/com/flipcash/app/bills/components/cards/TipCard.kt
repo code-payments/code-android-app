@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.bills.components.ScannableCode
@@ -70,17 +71,16 @@ val LocalTipCardColor = staticCompositionLocalOf { Color.Unspecified }
 val TipCardOpaqueFallback = Color(0xFF1A1A1C)
 
 /**
- * The card's height-to-width proportion. Kept identical to iOS ([TipcardView.aspectRatio]) so the
- * card renders with the same shape on both platforms.
+ * The card's height-to-width proportion, from Figma (269 x 333 dp).
  */
-private const val TipCardAspectRatio = 1.16f
+private const val TipCardAspectRatio = 333f / 269f
 
 /**
  * Fraction of the available canvas width the card occupies when no explicit width is pinned (i.e.
  * on the scanner/camera). Capped at [TipCardMaxWidth]. Mirrors iOS `BillCanvas.tipcardSize`.
  */
 private const val TipCardCanvasWidthFraction = 0.82f
-private val TipCardMaxWidth: Dp = 320.dp
+private val TipCardMaxWidth: Dp = 270.dp
 
 // The card derives its inner metrics from its width, matching iOS `TipcardView`.
 private const val TipCardCodeFraction = 0.68f   // scannable code (square)
@@ -148,25 +148,11 @@ internal fun TipCard(
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
                 ) {
                     Text(
-                        text = stringResource(R.string.label_tip),
+                        text = stringResource(R.string.label_tipUser, user.displayName),
                         style = CodeTheme.typography.textMedium,
                         color = CodeTheme.colors.textMain,
-                    )
-
-                    if (includePhoto) {
-                        ContactAvatar(
-                            modifier = Modifier
-                                .padding(horizontal = CodeTheme.dimens.grid.x1)
-                                .size(avatarSize)
-                                .clip(CircleShape),
-                            userProfile = user
-                        )
-                    }
-
-                    Text(
-                        text = user.displayName.orEmpty(),
-                        style = CodeTheme.typography.textMedium,
-                        color = CodeTheme.colors.textMain,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

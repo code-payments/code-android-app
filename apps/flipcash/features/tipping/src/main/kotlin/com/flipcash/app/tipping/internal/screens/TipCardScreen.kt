@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.ScannableRenderer
 import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
+import com.flipcash.app.bills.components.cards.LocalTipCardColor
 import com.flipcash.app.core.tipping.TipResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.tipping.internal.TipFlowViewModel
@@ -110,13 +111,14 @@ internal fun TipCardScreen() {
         ) {
             state.tipCard?.let {
                 CompositionLocalProvider(
-                    LocalTipCardBaseAlpha provides 0.36f
+                    // Static display (no camera behind the card), so render it opaque at the design's
+                    // flattened color rather than the translucent frosted fill — the 36% alpha
+                    // otherwise multiplies the app's Brand background and reads incorrectly.
+                    // Figma flattens the card to rgb(16,16,17).
+                    LocalTipCardColor provides Color(0xFF101011),
+                    LocalTipCardBaseAlpha provides 1f,
                 ) {
                     ScannableRenderer(
-                        // Fixed, device-independent card width matching iOS's TipcardScreen (300pt);
-                        // the card derives its QR, corner radius and avatar from this width, so both
-                        // platforms render the tip card at the same proportions.
-                        tipCardWidth = 270.dp,
                         scannable = it,
                     )
                 }
