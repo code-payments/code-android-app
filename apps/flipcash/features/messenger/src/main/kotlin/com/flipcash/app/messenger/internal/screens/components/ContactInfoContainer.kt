@@ -8,8 +8,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -123,7 +121,7 @@ private fun Indicator(
             onClick = onClick
         )
 
-        else -> Spacer(modifier = modifier.fillMaxWidth())
+        else -> Unit
     }
 }
 
@@ -248,8 +246,6 @@ private fun Preview_AllStates() {
         ContactInfoContainer(participant = knownContact, modifier = cardWidth)
         ContactInfoContainer(participant = unknownContact, modifier = cardWidth)
         ContactInfoContainer(participant = tipUser, modifier = cardWidth)
-        // Null participant: loading / unknown fallback avatar, name empty, no pill.
-        ContactInfoContainer(participant = null, modifier = cardWidth)
     }
 }
 
