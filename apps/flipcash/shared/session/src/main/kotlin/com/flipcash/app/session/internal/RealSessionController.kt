@@ -5,6 +5,7 @@ import com.flipcash.app.activityfeed.ActivityFeedUpdater
 import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.billing.BillingClient
+import com.flipcash.app.blocklist.BlocklistCoordinator
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.services.models.chat.ChatType
@@ -106,6 +107,7 @@ class RealSessionController @Inject constructor(
     private val tokenCoordinator: TokenCoordinator,
     private val contactCoordinator: ContactCoordinator,
     private val chatCoordinator: ChatCoordinator,
+    private val blocklistCoordinator: BlocklistCoordinator,
     private val blobStorageCoordinator: BlobStorageCoordinator,
     networkObserver: NetworkConnectivityListener,
     featureFlagController: FeatureFlagController,
@@ -308,6 +310,7 @@ class RealSessionController @Inject constructor(
         updateSettings()
         checkPendingItemsInFeed()
         bringActivityFeedCurrent()
+        refreshBlocklist()
         shareSheetController.checkForShare()
         if (userManager.authState.isAtLeastRegistered && userManager.state.value.flags?.requiresIapForRegistration == true) {
             billingClient.connect()
@@ -410,6 +413,14 @@ class RealSessionController @Inject constructor(
         if (userManager.authState.canAccessAuthenticatedApis) {
             scope.launch {
                 feedCoordinator.fetchSinceLatest(count)
+            }
+        }
+    }
+
+    private fun refreshBlocklist() {
+        if (userManager.authState.canAccessAuthenticatedApis) {
+            scope.launch {
+                blocklistCoordinator.refresh()
             }
         }
     }
