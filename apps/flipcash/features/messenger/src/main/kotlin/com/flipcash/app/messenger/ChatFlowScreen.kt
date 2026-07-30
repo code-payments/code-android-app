@@ -28,6 +28,7 @@ import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.results.navigateForResult
 import com.getcode.navigation.results.resultBackNavigator
 import com.getcode.navigation.scenes.LocalSheetNavigator
+import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.filterIsInstance
 
 @Composable
@@ -67,6 +68,7 @@ private fun FlowConversationScreen(identifier: ChatIdentifier, openKeyboard: Boo
     // inspects/mutates this navigator's own back stack), so it can't ride the type dispatcher and
     // must target the sheet navigator explicitly.
     val sheetNavigator = LocalSheetNavigator.current
+    val keyboard = rememberKeyboardController()
 
     LaunchedEffect(viewModel, identifier) {
         viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(identifier))
@@ -100,16 +102,18 @@ private fun FlowConversationScreen(identifier: ChatIdentifier, openKeyboard: Boo
         viewModel.eventFlow
             .filterIsInstance<ChatViewModel.Event.OpenScreen>()
             .collect { (route, asSheet) ->
-                if (asSheet) {
-                    // Dismiss this chat sheet and open [route] as a fresh sheet. openAsSheet on the
-                    // sheet-owning navigator animates the current sheet closed (via pendingSheetDismiss)
-                    // before opening the new one.
-                    sheetNavigator?.openAsSheet(route)
-                } else {
-                    // A full AppRoute (never a ChatStep) -> the dispatcher bubbles it up the parent
-                    // chain to the outer app nav host, the same destination as the old
-                    // outerNavigator.navigate(route).
-                    navigator.navigate(route)
+                keyboard.hideIfVisible {
+                    if (asSheet) {
+                        // Dismiss this chat sheet and open [route] as a fresh sheet. openAsSheet on the
+                        // sheet-owning navigator animates the current sheet closed (via pendingSheetDismiss)
+                        // before opening the new one.
+                        sheetNavigator?.openAsSheet(route)
+                    } else {
+                        // A full AppRoute (never a ChatStep) -> the dispatcher bubbles it up the parent
+                        // chain to the outer app nav host, the same destination as the old
+                        // outerNavigator.navigate(route).
+                        navigator.navigate(route)
+                    }
                 }
             }
     }
