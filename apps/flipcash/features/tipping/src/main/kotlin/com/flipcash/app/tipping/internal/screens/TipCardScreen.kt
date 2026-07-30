@@ -1,10 +1,8 @@
 package com.flipcash.app.tipping.internal.screens
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -25,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.ScannableRenderer
 import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
-import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.bills.components.cards.LocalTipCardColor
 import com.flipcash.app.core.tipping.TipResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.tipping.internal.TipFlowViewModel
@@ -46,12 +44,22 @@ internal fun TipCardScreen() {
 
     CodeScaffold(
         topBar = {
-            AppBarWithTitle(
-                title = stringResource(R.string.title_myTipCard),
-                titleAlignment = Alignment.CenterHorizontally,
-                backButton = true,
-                onBackIconClicked = { flowNavigator.back() },
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x10),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                AppBarWithTitle(
+                    title = stringResource(R.string.title_myTipCard),
+                    titleAlignment = Alignment.CenterHorizontally,
+                    backButton = true,
+                    onBackIconClicked = { flowNavigator.back() },
+                )
+                Text(
+                    text = stringResource(R.string.subtitle_myTipCard),
+                    style = CodeTheme.typography.textLarge,
+                    color = CodeTheme.colors.textMain,
+                )
+            }
         },
         bottomBar = {
             Row(
@@ -62,6 +70,7 @@ internal fun TipCardScreen() {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(
+                    modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x3),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
                 ) {
@@ -98,28 +107,22 @@ internal fun TipCardScreen() {
                 .fillMaxSize()
                 .padding(padding),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x10),
-                text = stringResource(R.string.subtitle_myTipCard),
-                style = CodeTheme.typography.textLarge,
-                color = CodeTheme.colors.textMain,
-            )
-            Spacer(Modifier.weight(1f))
             state.tipCard?.let {
                 CompositionLocalProvider(
-                    LocalTipCardBaseAlpha provides 0.36f
+                    // Static display (no camera behind the card), so render it opaque at the design's
+                    // flattened color rather than the translucent frosted fill — the 36% alpha
+                    // otherwise multiplies the app's Brand background and reads incorrectly.
+                    // Figma flattens the card to rgb(16,16,17).
+                    LocalTipCardColor provides Color(0xFF101011),
+                    LocalTipCardBaseAlpha provides 1f,
                 ) {
                     ScannableRenderer(
-                        // Fixed, device-independent card width matching iOS's TipcardScreen (300pt);
-                        // the card derives its QR, corner radius and avatar from this width, so both
-                        // platforms render the tip card at the same proportions.
-                        tipCardWidth = 300.dp,
                         scannable = it,
                     )
                 }
             }
-            Spacer(Modifier.weight(1f))
         }
     }
 }

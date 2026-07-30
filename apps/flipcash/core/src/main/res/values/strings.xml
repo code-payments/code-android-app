@@ -891,7 +891,7 @@
     <string name="placeholder_profileDisplayName">Your Name</string>
     <string name="subtitle_profileImageRecommended">500x500 Recommended</string>
     <string name="title_myTipCard">My Tip Card</string>
-    <string name="label_tip">Tip</string>
+    <string name="label_tipUser">Tip %1$s</string>
     <string name="subtitle_myTipCard">Share Your Tip Card to Get Tipped</string>
     <string name="action_showTipCard">Show My Tip Card</string>
     <string name="title_sendTip">Send a Tip</string>
