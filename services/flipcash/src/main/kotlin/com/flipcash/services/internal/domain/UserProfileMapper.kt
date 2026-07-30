@@ -8,6 +8,7 @@ import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.VerifiableContactMethod
 import com.getcode.opencode.mapper.Mapper
 import javax.inject.Inject
+import kotlin.time.Instant
 
 class UserProfileMapper @Inject constructor(
     private val socialMapper: SocialAccountMapper,
@@ -20,6 +21,9 @@ class UserProfileMapper @Inject constructor(
             phoneNumber = from.phoneNumberOrNull?.value?.let { VerifiableContactMethod(it, verified = true) },
             email = from.emailAddressOrNull?.value?.let { VerifiableContactMethod(it, verified = true) },
             profilePicture = if (from.hasProfilePicture()) from.profilePicture.toMediaItem() else null,
+            joinedAt = if (from.hasJoinTs()) {
+                Instant.fromEpochSeconds(from.joinTs.seconds, from.joinTs.nanos)
+            } else null,
         )
     }
 }

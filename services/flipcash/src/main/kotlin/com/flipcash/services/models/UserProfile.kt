@@ -1,7 +1,13 @@
 package com.flipcash.services.models
 
+import android.os.Parcelable
 import com.flipcash.services.models.chat.MediaItem
+import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
+@Parcelize
+@Serializable
 data class UserProfile(
     val displayName: String,
     val socialAccounts: List<SocialAccount>,
@@ -10,7 +16,9 @@ data class UserProfile(
     // The user's profile picture, as the renditions it is stored as (DISPLAY for
     // the profile view, THUMBNAIL for avatars). Null when unset.
     val profilePicture: MediaItem? = null,
-) {
+    // When the user joined Flipcash (server-provided). Null when unknown.
+    val joinedAt: Instant? = null,
+): Parcelable {
     /** The phone number only when it has been verified — backwards-compatible accessor. */
     val verifiedPhoneNumber: String? get() = phoneNumber?.takeIf { it.verified }?.value
 
@@ -27,7 +35,8 @@ data class UserProfile(
     }
 }
 
-sealed interface SocialAccount {
+@Parcelize
+sealed interface SocialAccount: Parcelable {
     val id: String
     data class TwitterX(
         override val id: String,
