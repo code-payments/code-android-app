@@ -2,6 +2,7 @@ package com.getcode.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,14 +23,18 @@ import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import androidx.compose.foundation.clickable
 
+/**
+ * Slot-based list row: icon + headline, with the caller driving the trailing [endSlot] — chevron,
+ * loading spinner, beta badge, or any combination. Prefer this overload when the trailing content
+ * is stateful (e.g. swaps to a spinner while the row's action is in flight).
+ */
 @Composable
 fun ListItem(
     headline: String,
     icon: Painter?,
     modifier: Modifier = Modifier,
-    showBetaIndicator: Boolean = false,
-    showChevron: Boolean = true,
     onClick: () -> Unit,
+    endSlot: @Composable RowScope.() -> Unit,
 ) {
     Row(
         modifier = modifier
@@ -62,6 +67,34 @@ fun ListItem(
 
         Spacer(Modifier.weight(1f))
 
+        endSlot()
+    }
+
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+        color = CodeTheme.colors.divider,
+        thickness = 0.5.dp
+    )
+}
+
+/**
+ * Convenience row with the standard trailing content: an optional beta badge and a chevron.
+ */
+@Composable
+fun ListItem(
+    headline: String,
+    icon: Painter?,
+    modifier: Modifier = Modifier,
+    showBetaIndicator: Boolean = false,
+    showChevron: Boolean = true,
+    onClick: () -> Unit,
+) {
+    ListItem(
+        headline = headline,
+        icon = icon,
+        modifier = modifier,
+        onClick = onClick,
+    ) {
         if (showBetaIndicator) {
             BetaIndicator()
         }
@@ -78,10 +111,4 @@ fun ListItem(
             )
         }
     }
-
-    HorizontalDivider(
-        modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-        color = CodeTheme.colors.divider,
-        thickness = 0.5.dp
-    )
 }
