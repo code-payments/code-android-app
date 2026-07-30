@@ -8,6 +8,7 @@ sealed interface ChatAction {
     data class AdvanceReadPointer(val messageId: Long) : ChatAction
     object RefreshContact : ChatAction
     data class ViewToken(val mint: Mint) : ChatAction
+    data object ViewProfile : ChatAction
 }
 
 typealias ChatActionHandler = (ChatAction) -> Unit

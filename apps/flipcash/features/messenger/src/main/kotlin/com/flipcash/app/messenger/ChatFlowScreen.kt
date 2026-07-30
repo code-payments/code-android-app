@@ -13,22 +13,30 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatSendResult
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
+import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
+import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
+import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.flowSharedViewModel
+import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.flow.rememberInitialStack
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.results.navigateForResult
 import com.getcode.navigation.results.resultBackNavigator
 import com.getcode.navigation.scenes.LocalSheetNavigator
+import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 @Composable
 fun ChatFlowScreen(
@@ -56,6 +64,9 @@ private fun chatEntryProvider(
     annotatedEntry<ChatStep.AmountEntry> {
         FlowAmountEntryScreen()
     }
+    annotatedEntry<ChatStep.Profile> { step ->
+        FlowChatProfileScreen(step.contact)
+    }
 }
 
 @Composable
@@ -72,6 +83,7 @@ private fun FlowConversationScreen(identifier: ChatIdentifier, openKeyboard: Boo
         viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(identifier))
     }
 
+    val keyboard = rememberKeyboardController()
     var hasOpened by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(openKeyboard) {
         if (openKeyboard) {
@@ -100,16 +112,18 @@ private fun FlowConversationScreen(identifier: ChatIdentifier, openKeyboard: Boo
         viewModel.eventFlow
             .filterIsInstance<ChatViewModel.Event.OpenScreen>()
             .collect { (route, asSheet) ->
-                if (asSheet) {
-                    // Dismiss this chat sheet and open [route] as a fresh sheet. openAsSheet on the
-                    // sheet-owning navigator animates the current sheet closed (via pendingSheetDismiss)
-                    // before opening the new one.
-                    sheetNavigator?.openAsSheet(route)
-                } else {
-                    // A full AppRoute (never a ChatStep) -> the dispatcher bubbles it up the parent
-                    // chain to the outer app nav host, the same destination as the old
-                    // outerNavigator.navigate(route).
-                    navigator.navigate(route)
+                keyboard.hideIfVisible {
+                    if (asSheet) {
+                        // Dismiss this chat sheet and open [route] as a fresh sheet. openAsSheet on the
+                        // sheet-owning navigator animates the current sheet closed (via pendingSheetDismiss)
+                        // before opening the new one.
+                        sheetNavigator?.openAsSheet(route)
+                    } else {
+                        // A full AppRoute (never a ChatStep) -> the dispatcher bubbles it up the parent
+                        // chain to the outer app nav host, the same destination as the old
+                        // outerNavigator.navigate(route).
+                        navigator.navigate(route)
+                    }
                 }
             }
     }
@@ -136,4 +150,26 @@ private fun FlowAmountEntryScreen() {
         onSendComplete = { resultBack.returnValue(ChatSendResult) }, // intra-flow result -> Conversation
         onExit = { navigator.navigateBack() },                       // pop the AmountEntry step
     )
+}
+
+@Composable
+private fun FlowChatProfileScreen(participant: ChatParticipant) {
+    val viewModel = flowSharedViewModel<ChatProfileViewModel>()
+    val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
+
+    LaunchedEffect(viewModel, participant) {
+        viewModel.dispatchEvent(ChatProfileViewModel.Event.OnParticipantSet(participant))
+    }
+
+    ChatProfileScreen(viewModel)
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<ChatProfileViewModel.Event.BlockSuccessful>()
+            .onEach {
+                // Blocking removes the DM, so exit the whole chat flow (FlowHost.onExit pops the
+                // Chat route) and land back on the Tips list the chat was opened from.
+                flowNavigator.exitCanceled()
+            }.launchIn(this)
+    }
 }

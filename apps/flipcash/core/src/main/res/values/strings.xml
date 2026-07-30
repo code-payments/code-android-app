@@ -904,4 +904,16 @@
     <string name="error_description_tipMinimum">Enter a larger amount to send this tip</string>
     <string name="label_viaTipCard">via Tip Card</string>
 
+    <string name="title_block">Block</string>
+    <string name="title_blocklist">Blocked</string>
+    <string name="action_block">Block</string>
+    <string name="prompt_title_blockUser">Block %1$s?</string>
+    <string name="prompt_description_blockUser">You won’t see messages from them, but you will still receive cash they send you. Flipcash won’t tell them you blocked them</string>
+    <string name="action_unblock">Unblock</string>
+    <string name="prompt_title_unblockUser">Unblock %1$s?</string>
+    <string name="prompt_description_unblockUser">The conversation with them will reappear in Tips</string>
+    <string name="title_blocklistEmpty">No One Blocked</string>
+    <string name="description_blocklistEmpty">Block people from sending you messages by tapping their profile and selecting block</string>
+    <string name="subtitle_joinedDate">Joined %1$s</string>
+
 </resources>

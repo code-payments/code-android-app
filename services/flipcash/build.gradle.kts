@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.flipcash.android.library)
     id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
 android {

@@ -218,6 +218,7 @@ fun BottomBarView(
                 top = CodeTheme.dimens.inset,
                 start = CodeTheme.dimens.inset,
                 end = CodeTheme.dimens.inset,
+                bottom = CodeTheme.dimens.inset,
             ),
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
@@ -234,7 +235,7 @@ fun BottomBarView(
                         )
                         if (bottomBarMessage.subtitle.isNotEmpty()) {
                             Text(
-                                style = CodeTheme.typography.caption,
+                                style = CodeTheme.typography.textSmall,
                                 text = bottomBarMessage.subtitle,
                                 color = LocalContentColor.current.copy(alpha = 0.8f)
                             )

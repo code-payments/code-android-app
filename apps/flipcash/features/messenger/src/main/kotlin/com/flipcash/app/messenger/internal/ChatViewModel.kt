@@ -13,6 +13,7 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.featureflags.FeatureFlag

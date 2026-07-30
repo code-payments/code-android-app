@@ -19,4 +19,8 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data object AmountEntry : ChatStep, NavigationRetVal<ChatSendResult>
+
+    @Parcelize
+    @Serializable
+    data class Profile(val contact: ChatParticipant): ChatStep
 }

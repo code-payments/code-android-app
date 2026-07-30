@@ -46,12 +46,22 @@ internal fun TipCardScreen() {
 
     CodeScaffold(
         topBar = {
-            AppBarWithTitle(
-                title = stringResource(R.string.title_myTipCard),
-                titleAlignment = Alignment.CenterHorizontally,
-                backButton = true,
-                onBackIconClicked = { flowNavigator.back() },
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x10),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                AppBarWithTitle(
+                    title = stringResource(R.string.title_myTipCard),
+                    titleAlignment = Alignment.CenterHorizontally,
+                    backButton = true,
+                    onBackIconClicked = { flowNavigator.back() },
+                )
+                Text(
+                    text = stringResource(R.string.subtitle_myTipCard),
+                    style = CodeTheme.typography.textLarge,
+                    color = CodeTheme.colors.textMain,
+                )
+            }
         },
         bottomBar = {
             Row(
@@ -62,6 +72,7 @@ internal fun TipCardScreen() {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(
+                    modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x3),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
                 ) {
@@ -98,14 +109,8 @@ internal fun TipCardScreen() {
                 .fillMaxSize()
                 .padding(padding),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x10),
-                text = stringResource(R.string.subtitle_myTipCard),
-                style = CodeTheme.typography.textLarge,
-                color = CodeTheme.colors.textMain,
-            )
-            Spacer(Modifier.weight(1f))
             state.tipCard?.let {
                 CompositionLocalProvider(
                     LocalTipCardBaseAlpha provides 0.36f
@@ -114,12 +119,11 @@ internal fun TipCardScreen() {
                         // Fixed, device-independent card width matching iOS's TipcardScreen (300pt);
                         // the card derives its QR, corner radius and avatar from this width, so both
                         // platforms render the tip card at the same proportions.
-                        tipCardWidth = 300.dp,
+                        tipCardWidth = 270.dp,
                         scannable = it,
                     )
                 }
             }
-            Spacer(Modifier.weight(1f))
         }
     }
 }

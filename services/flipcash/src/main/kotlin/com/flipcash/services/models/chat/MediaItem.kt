@@ -1,12 +1,15 @@
 package com.flipcash.services.models.chat
 
+import android.os.Parcelable
 import com.getcode.utils.base58
+import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 
+@Parcelize
 @Serializable
 data class MediaItem(
     val renditions: List<MediaItemRendition>,
-) {
+): Parcelable {
     /**
      * The [preferred] rendition if it's available, otherwise the next lower-quality rendition
      * that is — degrading down the quality ladder ORIGINAL → DISPLAY → THUMBNAIL. Returns

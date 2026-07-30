@@ -35,13 +35,14 @@ import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.directsend.SendFlowScreen
 import com.flipcash.app.invite.InviteContactScreen
 import com.flipcash.app.messenger.ChatFlowScreen
-import com.flipcash.app.messenger.ChatAmountEntryScreen
+import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.lab.LabsScreen
 import com.flipcash.app.lab.NavBarSettingsScreen
 import com.flipcash.app.login.OnboardingFlowScreen
 import com.flipcash.app.menu.MenuScreen
+import com.flipcash.app.myaccount.BlocklistScreen
 import com.flipcash.app.myaccount.UserProfileScreen
 import com.flipcash.app.myaccount.MyAccountScreen
 import com.flipcash.app.scanner.ScannerScreen
@@ -107,9 +108,6 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.Chat> { key ->
         ChatFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
-    annotatedEntry<AppRoute.Messaging.AmountEntry> { key ->
-        ChatAmountEntryScreen(key.identifier)
-    }
 
     // Tokens
     annotatedEntry<AppRoute.Token.Info> { key ->
@@ -141,6 +139,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Menu.NavBarSettings> { NavBarSettingsScreen() }
     annotatedEntry<AppRoute.Menu.UserProfile> { UserProfileScreen() }
     annotatedEntry<AppRoute.Menu.MyAccount> { MyAccountScreen() }
+    annotatedEntry<AppRoute.Menu.Blocklist> { BlocklistScreen() }
     annotatedEntry<AppRoute.Menu.BackupKey> { BackupKeyScreen() }
     annotatedEntry<AppRoute.Menu.AdvancedFeatures> { AdvancedFeaturesScreen() }
     annotatedEntry<AppRoute.Menu.DeviceLogs> { DeviceLogsScreen() }

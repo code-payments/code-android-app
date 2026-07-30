@@ -11,11 +11,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.app.messenger.internal.screens.components.UserControlBottomBar
 import com.flipcash.shared.chat.models.ChatAction
+import com.flipcash.shared.chat.models.ChatActionHandler
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.rememberKeyboardController
 import dev.chrisbanes.haze.hazeSource
@@ -31,8 +33,49 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val hazeState = rememberHazeState()
     val keyboard = rememberKeyboardController()
 
+    val chatActionHandler = { action: ChatAction ->
+        when (action) {
+            is ChatAction.AdvanceReadPointer -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.AdvanceReadPointer(action.messageId))
+            }
+
+            ChatAction.RefreshContact -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.RefreshContact)
+            }
+
+            is ChatAction.RetryMessage -> {
+                keyboard.hideIfVisible {
+                    viewModel.dispatchEvent(
+                        ChatViewModel.Event.RetryMessage(
+                            action.bubble.pendingClientIdHex,
+                            action.bubble.content
+                        )
+                    )
+                }
+            }
+
+            is ChatAction.ViewToken -> {
+                keyboard.hideIfVisible {
+                    viewModel.dispatchEvent(
+                        ChatViewModel.Event.OpenScreen(AppRoute.Token.Info(action.mint))
+                    )
+                }
+            }
+
+            is ChatAction.ViewProfile -> {
+                state.participant?.let {
+                    keyboard.hideIfVisible {
+                        navigator.push(ChatStep.Profile(it))
+                    }
+                }
+            }
+        }
+
+        Unit
+    }
+
     ChatInputScaffold(
-        topBar = { ChatTopBar(navigator, state.participant) },
+        topBar = { ChatTopBar(navigator, state.participant, chatActionHandler) },
         bottomBar = {
             UserControlBottomBar(
                 state = state,
@@ -51,36 +94,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             messages = messages,
             separatorConfig = state.separatorConfig,
             otherReadPointer = otherReadPointer,
-            onAction = { action ->
-                when (action) {
-                    is ChatAction.AdvanceReadPointer -> {
-                        viewModel.dispatchEvent(ChatViewModel.Event.AdvanceReadPointer(action.messageId))
-                    }
-
-                    ChatAction.RefreshContact -> {
-                        viewModel.dispatchEvent(ChatViewModel.Event.RefreshContact)
-                    }
-
-                    is ChatAction.RetryMessage -> {
-                        keyboard.hideIfVisible {
-                            viewModel.dispatchEvent(
-                                ChatViewModel.Event.RetryMessage(
-                                    action.bubble.pendingClientIdHex,
-                                    action.bubble.content
-                                )
-                            )
-                        }
-                    }
-
-                    is ChatAction.ViewToken -> {
-                        keyboard.hideIfVisible {
-                            viewModel.dispatchEvent(
-                                ChatViewModel.Event.OpenScreen(AppRoute.Token.Info(action.mint))
-                            )
-                        }
-                    }
-                }
-            },
+            onAction = chatActionHandler,
         )
     }
 }

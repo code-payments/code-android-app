@@ -1,8 +1,10 @@
-package com.flipcash.app.messenger.internal
+package com.flipcash.app.core.chat
 
+import android.os.Parcelable
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.UserProfile
 import com.getcode.opencode.model.core.ID
+import kotlinx.parcelize.Parcelize
 
 /**
  * The counterparty a DM header and info card renders.
@@ -10,12 +12,13 @@ import com.getcode.opencode.model.core.ID
  * A conversation is backed by one of two identity sources depending on its
  * [com.flipcash.services.models.chat.ChatType]:
  *
- * - [Contact] — a `CONTACT_DM`. Identity comes from a device [DeviceContact]: it has a phone
+ * - [Contact] — a `CONTACT_DM`. Identity comes from a device [com.flipcash.app.core.contacts.DeviceContact]: it has a phone
  *   number and supports the "add to contacts" action.
  * - [TipUser] — a `TIP_DM`. The counterparty has no device contact; identity comes from their
- *   server [UserProfile] (display name + profile picture), the same source the tips list uses.
+ *   server [com.flipcash.services.models.UserProfile] (display name + profile picture), the same source the tips list uses.
  */
-internal sealed interface ChatParticipant {
+@Parcelize
+sealed interface ChatParticipant: Parcelable {
     val displayName: String
 
     data class Contact(val contact: DeviceContact) : ChatParticipant {

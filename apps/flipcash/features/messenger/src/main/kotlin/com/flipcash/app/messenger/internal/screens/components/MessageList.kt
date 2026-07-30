@@ -271,6 +271,9 @@ internal fun MessageList(
                             modifier = Modifier
                                 .padding(horizontal = CodeTheme.dimens.grid.x12),
                             onRefreshContact = { onAction(ChatAction.RefreshContact) },
+                            onOpenProfile = {
+                                onAction(ChatAction.ViewProfile)
+                            }
                         )
                     }
                 }

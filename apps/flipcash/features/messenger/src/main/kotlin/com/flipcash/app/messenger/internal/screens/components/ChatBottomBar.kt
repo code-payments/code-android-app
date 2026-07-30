@@ -160,7 +160,11 @@ internal fun UserControlBottomBar(
                         state = state,
                         hazeState = hazeState,
                         hazeMaterial = material,
-                        onClick = { dispatch(ChatViewModel.Event.OnSendCash) }
+                        onClick = {
+                            keyboard.hideIfVisible {
+                                dispatch(ChatViewModel.Event.OnSendCash)
+                            }
+                        }
                     )
 
                     if (canType) {
