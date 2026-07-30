@@ -1,7 +1,8 @@
-package com.flipcash.app.myaccount.internal
+package com.flipcash.app.myaccount.internal.myaccount
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContactMail
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -20,6 +21,14 @@ internal data object AccessKey : FullMenuItem<MyAccountScreenViewModel.Event>() 
     override val name: String
         @Composable get() = stringResource(R.string.title_accessKey)
     override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnAccessKeyClicked
+}
+
+internal data object Blocklist : FullMenuItem<MyAccountScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = rememberVectorPainter(Icons.Outlined.Block)
+    override val name: String
+        @Composable get() = stringResource(R.string.title_blocklist)
+    override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnBlocklistClicked
 }
 
 internal data object UserProfile : StaffMenuItem<MyAccountScreenViewModel.Event>() {

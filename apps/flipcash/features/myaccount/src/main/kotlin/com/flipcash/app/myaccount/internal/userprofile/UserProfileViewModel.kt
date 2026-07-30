@@ -1,4 +1,4 @@
-package com.flipcash.app.myaccount.internal
+package com.flipcash.app.myaccount.internal.userprofile
 
 import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope

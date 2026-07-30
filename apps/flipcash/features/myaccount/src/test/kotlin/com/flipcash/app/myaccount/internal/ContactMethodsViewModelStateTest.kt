@@ -1,5 +1,6 @@
 package com.flipcash.app.myaccount.internal
 
+import com.flipcash.app.myaccount.internal.userprofile.UserProfileViewModel
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.VerifiableContactMethod
 import kotlin.test.Test

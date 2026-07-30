@@ -1,4 +1,4 @@
-package com.flipcash.app.myaccount.internal
+package com.flipcash.app.myaccount.internal.myaccount
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
@@ -24,6 +24,7 @@ import javax.inject.Inject
 
 private val FullMenuList = buildList {
     add(AccessKey)
+    add(Blocklist)
     add(UserProfile)
     add(LogOut)
     add(DeleteAccount)
@@ -49,7 +50,9 @@ internal class MyAccountScreenViewModel @Inject constructor(
     internal sealed interface Event {
         data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
         data object OnAccessKeyClicked : Event
+        data object OnBlocklistClicked: Event
         data object OnViewAccessKey : Event
+        data object OnViewBlocklist: Event
         data object OnContactMethodsClicked : Event
         data object OnViewUserProfile : Event
         data object OnDeleteAccountClicked : Event
@@ -111,6 +114,12 @@ internal class MyAccountScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnBlocklistClicked>()
+            .onEach {
+                dispatchEvent(Event.OnViewBlocklist)
+            }.launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.OnContactMethodsClicked>()
             .onEach {
                 dispatchEvent(Event.OnViewUserProfile)
@@ -164,7 +173,9 @@ internal class MyAccountScreenViewModel @Inject constructor(
                 Event.OnViewAccessKey,
                 Event.OnDeleteAccountClicked,
                 Event.OnAccountDeleted,
-                Event.OnAccessKeyClicked -> { state -> state }
+                Event.OnAccessKeyClicked,
+                Event.OnBlocklistClicked,
+                Event.OnViewBlocklist -> { state -> state }
 
                 is Event.OnBetaFeaturesUnlocked -> { state ->
                     state.copy(
