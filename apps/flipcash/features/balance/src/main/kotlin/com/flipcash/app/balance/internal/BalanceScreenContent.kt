@@ -54,7 +54,7 @@ internal fun BalanceScreen(
 }
 
 @Composable
-private fun BalanceScreenContent(
+internal fun BalanceScreenContent(
     tokenState: SelectTokenViewModel.State,
     dispatchEvent: (BalanceViewModel.Event) -> Unit
 ) {
