@@ -1,0 +1,42 @@
+appId: com.flipcash.app.android
+name: "Blocking — block & unblock a chat participant"
+tags:
+  - blocklist
+---
+# Enable tipping (to reach the tip chat) + blocklist at launch.
+- runFlow:
+    file: subflows/login_with_flags.yaml
+    env:
+      BETA_FLAGS: "tipping_enabled,blocklist_enabled"
+
+# Open the tip conversation.
+- tapOn: "Tips"
+- extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
+- tapOn: { id: send_contact_row, index: 0 }
+- extendedWaitUntil: { visible: { id: chat_screen }, timeout: 8000 }
+
+# Open the participant's profile from the chat header and block them.
+# (Participant name is specific to the test account's tip chat.)
+- tapOn: { text: "Brandon McAnsh", index: 0 }
+- extendedWaitUntil: { visible: { id: profile_screen }, timeout: 8000 }
+- tapOn: "Block"
+- assertVisible: "Block Brandon McAnsh?"
+- tapOn: { text: "^Block$" }
+- extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
+
+# Verify they appear in My Account -> Blocked.
+- tapOn: { id: action_close, optional: true }
+- extendedWaitUntil: { visible: { id: scanner_screen }, timeout: 8000 }
+- tapOn: { id: menu_button }
+- extendedWaitUntil: { visible: { id: menu_screen }, timeout: 8000 }
+- tapOn: "My Account"
+- extendedWaitUntil: { visible: { id: my_account_screen }, timeout: 8000 }
+- tapOn: "Blocked"
+- extendedWaitUntil: { visible: { id: blocklist_screen }, timeout: 8000 }
+- assertVisible: "Brandon McAnsh"
+
+# Unblock to restore the account to a clean state.
+- tapOn: "Brandon McAnsh"
+- assertVisible: "Unblock Brandon McAnsh?"
+- tapOn: { text: "^Unblock$" }
+- assertVisible: "No One Blocked"

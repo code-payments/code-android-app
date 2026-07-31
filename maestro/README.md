@@ -112,6 +112,8 @@ BETA_FLAGS=tipping_enabled maestro/run.sh maestro/tipping_setup.yaml
 - `deposit.yaml` — menu → Add Money → Other Wallet → USDC deposit (fund-safe)
 - `tipping_setup.yaml` — create account (beta flag) → set up tip card → tip card renders
 - `tip_chat.yaml` — open the tip conversation from the Tips tab and send a message
+- `blocking.yaml` — block a chat participant from their profile, verify in My Account →
+  Blocked, then unblock (leaves the account clean)
 - Give/bill round-trip, token-info deeplink, screenshot suite (existing)
 
 **Account-blocked** (this test account has no phone linked, so it can't reach these; wiring
