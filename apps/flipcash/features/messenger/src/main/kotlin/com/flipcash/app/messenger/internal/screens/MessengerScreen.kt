@@ -114,8 +114,7 @@ private fun ChatInputScaffold(
     // which made the message list visibly jump on every open and every pop-back.
     SubcomposeLayout(
         modifier = Modifier
-            .imePadding()
-            .testTag("chat_screen"),
+            .imePadding(),
     ) { constraints ->
         val looseConstraints = constraints.copy(minWidth = 0, minHeight = 0)
 

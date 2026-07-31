@@ -92,7 +92,8 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Main.InviteContact> { key -> InviteContactScreen(key.phoneNumber) }
 
     // Sheets (inner content — wrapped in Main.Sheet by navigateTo())
-    annotatedEntry<AppRoute.Sheets.Give> { key -> CashScreen(key.mint, key.fromTokenInfo) }
+    // Route type is `Give` but the screen is the Cash/Give screen the flows call cash_screen.
+    annotatedEntry<AppRoute.Sheets.Give>(testTag = "cash_screen") { key -> CashScreen(key.mint, key.fromTokenInfo) }
     annotatedEntry<AppRoute.Sheets.Send> { SendFlowScreen(resultStateRegistry = resultStateRegistry) }
     annotatedEntry<AppRoute.Sheets.Tips> { key ->
         TippingFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
@@ -109,10 +110,12 @@ fun appEntryProvider(
     }
 
     // Tokens
-    annotatedEntry<AppRoute.Token.Info> { key ->
+    annotatedEntry<AppRoute.Token.Info>(testTag = "token_info_screen") { key ->
         TokenInfoScreen(key.mint, key.shortfall, key.fromDeeplink)
     }
-    annotatedEntry<AppRoute.Token.Transactions> { key -> TransactionHistoryScreen(key.mint) }
+    annotatedEntry<AppRoute.Token.Transactions>(testTag = "transaction_history_screen") { key ->
+        TransactionHistoryScreen(key.mint)
+    }
     annotatedEntry<AppRoute.Token.Swap> { key ->
         SwapFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
