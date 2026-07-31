@@ -6,11 +6,12 @@ tags:
 # Send cash to an on-Flipcash contact, then land in the conversation. Mirrors iOS
 # SendSmokeTests (which sends to a fixed contact, "Raul Riera").
 #
-# Requires:
-#   - a send-enabled account (a phone linked), else the flow stops at the phone gate;
-#   - the contact CONTACT_NAME (CONTACT_PHONE) seeded in the emulator's contacts, and that
-#     contact being a real Flipcash user.
-# Until both are provisioned this is a scaffold — the steps encode the expected journey.
+# Requires (see README "Two phone-verification paths"):
+#   - a send-enabled account: a phone linked via the emulator's real number + real SMS
+#     (`adb emu sms send`), not the onboarding test number — else the flow stops at the phone gate;
+#   - the CONTACT_NAME / CONTACT_PHONE contact (a real Flipcash user) in the emulator's contacts —
+#     the runner seeds this automatically.
+# Until the account is phone-linked this is a scaffold — the steps encode the expected journey.
 - runFlow: subflows/login_with_deeplink.yaml
 
 - tapOn: "Send"

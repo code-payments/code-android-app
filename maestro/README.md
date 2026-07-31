@@ -136,8 +136,17 @@ and it runs):
 - `send_to_contact.yaml` — send to an on-Flipcash contact (mirrors iOS `SendSmokeTests`, which uses a
   fixed contact "Raul Riera"). Parameterized by `CONTACT_NAME`/`CONTACT_PHONE`; **the runner seeds this
   contact into the emulator automatically** (idempotent). The only remaining requirement is a
-  **send-enabled** account (a phone linked — use the backend test number `+15005550000`/`000000`, or a
-  real number with `adb emu sms send`), and that `CONTACT_PHONE` maps to a real Flipcash user.
+  **send-enabled account** — i.e. a phone linked to the account (see below), and `CONTACT_PHONE` mapping
+  to a real Flipcash user.
+
+### Two phone-verification paths
+
+- **Onboarding / account creation** uses the **backend test number** `+15005550000` with OTP `000000`
+  (`create_account.yaml`). This is a backend test hook — no real SMS, no linkable identity.
+- **Linking a phone to enable the send flow** must use the **emulator's real number + real SMS**, since
+  the fake test number isn't a linkable identity for send-to-contact. Enter the number in the link-phone
+  screen, then deliver the code to the emulator with `adb emu sms send <sender> <code>` (or the emulator
+  console). This is the path a `send_to_contact` run needs to establish once, per account.
 - **Full Coinbase purchase** — the flow reaches the onramp; completing it needs phone verification
   (which links a phone to the shared account and would flip the send flows) plus driving the Google
   Pay sandbox sheet. Note: **iOS doesn't automate the payment either** — its E2E stops at the same
