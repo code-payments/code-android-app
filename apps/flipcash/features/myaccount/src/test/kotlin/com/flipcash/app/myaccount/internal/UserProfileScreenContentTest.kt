@@ -5,6 +5,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.flipcash.app.myaccount.internal.userprofile.UserProfileScreenContent
+import com.flipcash.app.myaccount.internal.userprofile.UserProfileViewModel
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.VerifiableContactMethod
 import com.getcode.theme.DesignSystem

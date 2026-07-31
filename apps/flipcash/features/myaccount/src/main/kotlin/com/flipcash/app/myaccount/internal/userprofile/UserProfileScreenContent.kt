@@ -1,4 +1,4 @@
-package com.flipcash.app.myaccount.internal
+package com.flipcash.app.myaccount.internal.userprofile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

@@ -31,6 +31,13 @@ interface FeedOperations {
 
     /** Triggers a server-side feed sync. Safe to call redundantly. */
     fun refreshFeed()
+
+    /**
+     * Locally sets [chatId]'s hidden flag so it drops out of / returns to the feed immediately
+     * (optimistic — e.g. right after blocking or unblocking the other member), without waiting for
+     * the next server sync.
+     */
+    suspend fun setChatHidden(chatId: ChatId, hidden: Boolean)
 }
 
 /**

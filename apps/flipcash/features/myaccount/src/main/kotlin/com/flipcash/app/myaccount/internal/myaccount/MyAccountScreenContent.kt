@@ -1,4 +1,4 @@
-package com.flipcash.app.myaccount.internal
+package com.flipcash.app.myaccount.internal.myaccount
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable

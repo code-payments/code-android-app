@@ -2,7 +2,7 @@ package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.flipcash.app.messenger.internal.ChatParticipant
+import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.shared.common.ui.ContactAvatar
 
 /**

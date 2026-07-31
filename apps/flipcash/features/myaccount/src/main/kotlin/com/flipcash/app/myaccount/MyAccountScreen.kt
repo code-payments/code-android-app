@@ -5,14 +5,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.myaccount.internal.MyAccountScreen
-import com.flipcash.app.myaccount.internal.MyAccountScreenViewModel
+import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreen
+import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreenViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarDefaults
@@ -73,6 +72,13 @@ fun MyAccountScreen() {
         viewModel.eventFlow
             .filterIsInstance<MyAccountScreenViewModel.Event.OnViewUserProfile>()
             .onEach { navigator.push(AppRoute.Menu.UserProfile) }
+            .launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<MyAccountScreenViewModel.Event.OnViewBlocklist>()
+            .onEach { navigator.push(AppRoute.Menu.Blocklist) }
             .launchIn(this)
     }
 }

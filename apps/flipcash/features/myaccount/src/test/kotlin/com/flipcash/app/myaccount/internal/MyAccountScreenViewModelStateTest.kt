@@ -1,5 +1,10 @@
 package com.flipcash.app.myaccount.internal
 
+import com.flipcash.app.myaccount.internal.myaccount.AccessKey
+import com.flipcash.app.myaccount.internal.myaccount.DeleteAccount
+import com.flipcash.app.myaccount.internal.myaccount.LogOut
+import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreenViewModel
+import com.flipcash.app.myaccount.internal.myaccount.UserProfile
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

@@ -37,6 +37,9 @@ interface ChatMetadataDao {
     @Query("SELECT latest_event_sequence FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getLatestEventSequence(chatIdHex: String): Long?
 
+    @Query("UPDATE chat_metadata SET is_hidden = :hidden WHERE chat_id_hex = :chatIdHex")
+    suspend fun updateHidden(chatIdHex: String, hidden: Boolean)
+
     @Query("DELETE FROM chat_metadata")
     suspend fun deleteAll()
 }

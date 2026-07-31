@@ -13,6 +13,7 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.app.featureflags.FeatureFlag
@@ -145,7 +146,15 @@ internal class ChatViewModel @Inject constructor(
         // open would be missed by the bottom bar before it subscribes, whereas state is durable
         // until the input is actually composed and can consume it.
         val messageInputRequested: Boolean = false,
-    )
+        // Whether the Blocklist beta flag is enabled. Backs canViewProfile; observed in init.
+        val blocklistEnabled: Boolean = false,
+    ) {
+        // Opening the participant's profile (the entry point to blocking) is only available for tip
+        // DMs, and only when the Blocklist beta flag is on. Derived so it stays correct regardless
+        // of whether the flag or the chat type resolves first.
+        val canViewProfile: Boolean
+            get() = blocklistEnabled && chatType == ChatType.TIP_DM
+    }
 
     sealed interface Event {
         data class OnChatOpened(val identifier: ChatIdentifier) : Event
@@ -189,6 +198,7 @@ internal class ChatViewModel @Inject constructor(
         data class LimitsChanged(val limits: Limits?) : Event
         data class AdvanceReadPointer(val messageId: Long) : Event
         data class ChatDeactivated(val isReadOnly: Boolean) : Event
+        data class BlocklistEnabledChanged(val enabled: Boolean) : Event
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -431,6 +441,10 @@ internal class ChatViewModel @Inject constructor(
             }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.ChatDeactivated(isReadOnly = it)) }
+            .launchIn(viewModelScope)
+
+        featureFlags.observe(FeatureFlag.Blocklist)
+            .onEach { dispatchEvent(Event.BlocklistEnabledChanged(it)) }
             .launchIn(viewModelScope)
 
         // Advance read pointer when user scrolls to messages
@@ -905,6 +919,7 @@ internal class ChatViewModel @Inject constructor(
                 is Event.LimitsChanged -> { state -> state.copy(limits = event.limits) }
                 is Event.AdvanceReadPointer -> { state -> state }
                 is Event.ChatDeactivated -> { state -> state.copy(isAnonymous = event.isReadOnly) }
+                is Event.BlocklistEnabledChanged -> { state -> state.copy(blocklistEnabled = event.enabled) }
             }
         }
     }

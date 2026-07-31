@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.MessageList
@@ -31,8 +32,51 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val hazeState = rememberHazeState()
     val keyboard = rememberKeyboardController()
 
+    val chatActionHandler = { action: ChatAction ->
+        when (action) {
+            is ChatAction.AdvanceReadPointer -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.AdvanceReadPointer(action.messageId))
+            }
+
+            ChatAction.RefreshContact -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.RefreshContact)
+            }
+
+            is ChatAction.RetryMessage -> {
+                keyboard.hideIfVisible {
+                    viewModel.dispatchEvent(
+                        ChatViewModel.Event.RetryMessage(
+                            action.bubble.pendingClientIdHex,
+                            action.bubble.content
+                        )
+                    )
+                }
+            }
+
+            is ChatAction.ViewToken -> {
+                keyboard.hideIfVisible {
+                    viewModel.dispatchEvent(
+                        ChatViewModel.Event.OpenScreen(AppRoute.Token.Info(action.mint))
+                    )
+                }
+            }
+
+            is ChatAction.ViewProfile -> {
+                // The triggers (top-bar tap, contact-card chevron) are only clickable when the
+                // Blocklist beta flag is on, so no gating is needed here.
+                state.participant?.let {
+                    keyboard.hideIfVisible {
+                        navigator.push(ChatStep.Profile(it))
+                    }
+                }
+            }
+        }
+
+        Unit
+    }
+
     ChatInputScaffold(
-        topBar = { ChatTopBar(navigator, state.participant) },
+        topBar = { ChatTopBar(navigator, state, chatActionHandler) },
         bottomBar = {
             UserControlBottomBar(
                 state = state,
@@ -51,36 +95,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             messages = messages,
             separatorConfig = state.separatorConfig,
             otherReadPointer = otherReadPointer,
-            onAction = { action ->
-                when (action) {
-                    is ChatAction.AdvanceReadPointer -> {
-                        viewModel.dispatchEvent(ChatViewModel.Event.AdvanceReadPointer(action.messageId))
-                    }
-
-                    ChatAction.RefreshContact -> {
-                        viewModel.dispatchEvent(ChatViewModel.Event.RefreshContact)
-                    }
-
-                    is ChatAction.RetryMessage -> {
-                        keyboard.hideIfVisible {
-                            viewModel.dispatchEvent(
-                                ChatViewModel.Event.RetryMessage(
-                                    action.bubble.pendingClientIdHex,
-                                    action.bubble.content
-                                )
-                            )
-                        }
-                    }
-
-                    is ChatAction.ViewToken -> {
-                        keyboard.hideIfVisible {
-                            viewModel.dispatchEvent(
-                                ChatViewModel.Event.OpenScreen(AppRoute.Token.Info(action.mint))
-                            )
-                        }
-                    }
-                }
-            },
+            onAction = chatActionHandler,
+            canViewProfile = state.canViewProfile,
         )
     }
 }

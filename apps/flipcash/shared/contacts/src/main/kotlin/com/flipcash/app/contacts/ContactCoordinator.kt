@@ -487,7 +487,11 @@ class ContactCoordinator @Inject constructor(
             val adds = newE164s - existingE164s
             val removes = existingE164s - newE164s
 
-            // 4. Persist all mappings (upsert fixes metadata staleness for name/photo changes)
+            // 4. Persist all mappings (upsert fixes metadata staleness for name/photo changes).
+            // Preserve each existing joinedAtEpochSeconds — the upsert is a REPLACE, so omitting
+            // it here would zero out the server-discovered join date for known contacts.
+            val existingJoinedAt = existingMappings.associate { it.e164 to it.joinedAtEpochSeconds }
+
             val allEntities = deviceContacts.values.map { contact ->
                 ContactMappingEntity(
                     e164 = contact.e164,
@@ -495,6 +499,7 @@ class ContactCoordinator @Inject constructor(
                     displayName = contact.displayName,
                     photoUri = contact.photoUri,
                     displayNumber = phoneUtils.formatNumber(contact.e164),
+                    joinedAtEpochSeconds = existingJoinedAt[contact.e164] ?: 0L,
                 )
             }
             contactDataSource.upsert(allEntities)

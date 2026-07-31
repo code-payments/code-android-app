@@ -8,12 +8,14 @@ android {
 
 dependencies {
     implementation(project(":apps:flipcash:shared:analytics"))
+    implementation(project(":apps:flipcash:shared:blocklist"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:chat-ui"))
     implementation(project(":apps:flipcash:shared:amount-entry"))
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:funding"))
+    implementation(project(":apps:flipcash:shared:menu"))
     implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":libs:vibrator:bindings"))
@@ -23,4 +25,7 @@ dependencies {
     implementation(project(":libs:datetime"))
     implementation(libs.compose.paging)
     implementation(libs.bundles.haze)
+
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.mockito.kotlin)
 }

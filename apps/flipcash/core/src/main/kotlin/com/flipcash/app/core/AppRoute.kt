@@ -275,6 +275,9 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object MyAccount : Menu
         @Serializable
         data object BackupKey : Menu
+
+        @Serializable
+        data object Blocklist: Menu
         @Serializable
         data object AppSettings : Menu
         @Serializable
@@ -302,9 +305,6 @@ sealed interface AppRoute : NavKey, Parcelable {
             override val initialStack: List<NavKey>
                 get() = listOf(ChatStep.Conversation)
         }
-
-        @Serializable
-        data class AmountEntry(val identifier: ChatIdentifier) : Messaging
     }
 
     @Serializable

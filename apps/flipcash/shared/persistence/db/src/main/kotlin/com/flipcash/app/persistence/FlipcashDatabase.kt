@@ -13,6 +13,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.flipcash.app.persistence.converters.ChatTypeConverters
 import com.flipcash.app.persistence.converters.TokenTypeConverters
+import com.flipcash.app.persistence.dao.BlockedUserDao
 import com.flipcash.app.persistence.dao.ChatMemberDao
 import com.flipcash.app.persistence.dao.ChatMessageDao
 import com.flipcash.app.persistence.dao.ChatMetadataDao
@@ -20,6 +21,7 @@ import com.flipcash.app.persistence.dao.ContactDao
 import com.flipcash.app.persistence.dao.CurrencyCreatorDraftDao
 import com.flipcash.app.persistence.dao.MessageDao
 import com.flipcash.app.persistence.dao.TokenDao
+import com.flipcash.app.persistence.entities.BlockedUserEntity
 import com.flipcash.app.persistence.entities.ChatMemberEntity
 import com.flipcash.app.persistence.entities.ChatMessageEntity
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
@@ -47,6 +49,7 @@ import com.getcode.utils.subByteArray
         ChatMetadataEntity::class,
         ChatMessageEntity::class,
         ChatMemberEntity::class,
+        BlockedUserEntity::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = FlipcashDatabase.Migration1To2::class),
@@ -72,8 +75,9 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 21, to = 22),
         AutoMigration(from = 22, to = 23, spec = FlipcashDatabase.Migration22To23::class),
         AutoMigration(from = 23, to = 24),
+        AutoMigration(from = 24, to = 25),
     ],
-    version = 24,
+    version = 25,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -85,6 +89,7 @@ abstract class FlipcashDatabase : RoomDatabase() {
     abstract fun chatMetadataDao(): ChatMetadataDao
     abstract fun chatMessageDao(): ChatMessageDao
     abstract fun chatMemberDao(): ChatMemberDao
+    abstract fun blockedUserDao(): BlockedUserDao
 
     class Migration1To2 : Migration(1, 2), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {

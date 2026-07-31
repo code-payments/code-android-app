@@ -1,0 +1,17 @@
+plugins {
+    alias(libs.plugins.flipcash.android.feature)
+}
+
+android {
+    namespace = "${Gradle.flipcashNamespace}.shared.blocklist"
+}
+
+dependencies {
+    implementation(libs.bundles.room)
+    implementation(libs.androidx.paging.runtime)
+
+    compileOnly(project(":apps:flipcash:shared:persistence:db"))
+    implementation(project(":apps:flipcash:shared:persistence:sources"))
+    implementation(project(":apps:flipcash:shared:chat"))
+    implementation(project(":services:flipcash"))
+}

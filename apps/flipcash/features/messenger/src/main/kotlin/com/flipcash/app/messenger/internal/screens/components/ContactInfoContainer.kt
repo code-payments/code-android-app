@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -31,16 +32,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.core.android.IntentUtils
 import com.flipcash.app.core.contacts.DeviceContact
-import com.flipcash.app.messenger.internal.ChatParticipant
+import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.UserProfile
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.addIf
 
 @Composable
 internal fun ContactInfoContainer(
     participant: ChatParticipant?,
     modifier: Modifier = Modifier,
+    includeBorder: Boolean = true,
+    onOpenProfile: (() -> Unit)? = null,
     onRefreshContact: () -> Unit = {},
 ) {
     // Phone number and the add-to-contacts pill only apply to a device contact; a tip DM's
@@ -48,12 +52,19 @@ internal fun ContactInfoContainer(
     val contact = (participant as? ChatParticipant.Contact)?.contact
     Column(
         modifier = modifier
-            .border(
-                color = CodeTheme.colors.divider,
-                width = CodeTheme.dimens.border,
-                shape = CodeTheme.shapes.medium,
-            )
-            .padding(CodeTheme.dimens.grid.x6),
+            .addIf(includeBorder) {
+                Modifier.border(
+                    color = CodeTheme.colors.divider,
+                    width = CodeTheme.dimens.border,
+                    shape = CodeTheme.shapes.medium,
+                )
+            }
+            .addIf(onOpenProfile != null) {
+                Modifier.clickable { onOpenProfile?.invoke() }
+            }
+            .addIf(includeBorder) {
+                Modifier.padding(CodeTheme.dimens.grid.x6)
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         ParticipantAvatar(
@@ -62,18 +73,33 @@ internal fun ContactInfoContainer(
                 .size(CodeTheme.dimens.staticGrid.x17)
                 .clip(CircleShape),
         )
-        Text(
+
+        Row(
             modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
-            text = participant?.displayName.orEmpty(),
-            autoSize = TextAutoSize.StepBased(
-                minFontSize = CodeTheme.typography.textSmall.fontSize,
-                maxFontSize = CodeTheme.typography.textLarge.fontSize,
-            ),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = CodeTheme.typography.textLarge,
-            color = CodeTheme.colors.textMain,
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+        ) {
+            Text(
+                modifier = if (onOpenProfile != null) Modifier.weight(1f, fill = false) else Modifier,
+                text = participant?.displayName.orEmpty(),
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = CodeTheme.typography.textSmall.fontSize,
+                    maxFontSize = CodeTheme.typography.textLarge.fontSize,
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = CodeTheme.typography.textLarge,
+                color = CodeTheme.colors.textMain,
+            )
+            if (onOpenProfile != null) {
+                Icon(
+                    modifier = Modifier.scale(0.8f),
+                    painter = painterResource(id = R.drawable.ic_chevron_right),
+                    contentDescription = null,
+                    tint = CodeTheme.colors.textSecondary,
+                )
+            }
+        }
 
         if (contact != null && !contact.isUnknown) {
             Text(

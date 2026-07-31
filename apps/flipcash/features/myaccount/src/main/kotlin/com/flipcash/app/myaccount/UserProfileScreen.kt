@@ -11,8 +11,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.myaccount.internal.UserProfileScreenContent
-import com.flipcash.app.myaccount.internal.UserProfileViewModel
+import com.flipcash.app.myaccount.internal.userprofile.UserProfileScreenContent
+import com.flipcash.app.myaccount.internal.userprofile.UserProfileViewModel
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarDefaults
