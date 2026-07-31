@@ -53,10 +53,7 @@ internal fun LoginRouterScreenContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            // Pre-login landing isn't a nav entry, so its screen-root tag is applied here
-            // (see annotatedEntry for the routed screens).
-            .testTag("login_screen"),
+            .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Spacer(Modifier.weight(1f))

@@ -1,16 +1,7 @@
-# Reusable Logout flow
+# Reusable Logout flow. Log Out lives on the My Account screen.
 appId: com.flipcash.app.android
 ---
-- tapOn:
-    id: scanner_view
-- extendedWaitUntil:
-      visible:
-          id: scanner_screen
-- tapOn:
-    id: menu_button
-- extendedWaitUntil:
-      visible:
-          id: menu_screen
+- runFlow: navigate_to_my_account.yaml
 - tapOn: Log Out
 - assertVisible: Log Out
 - assertVisible: Cancel

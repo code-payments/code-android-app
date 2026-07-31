@@ -90,13 +90,15 @@ private fun withdrawalEntryProvider(
     annotatedEntry<WithdrawalStep.SelectToken> {
         WithdrawalSelectTokenScreen()
     }
-    annotatedEntry<WithdrawalStep.Amount> { step ->
+    // Explicit tags: step names (Amount/Destination/Confirmation) are generic and collide
+    // with other flows' steps, so give the E2E-targeted steps stable, unambiguous ids.
+    annotatedEntry<WithdrawalStep.Amount>(testTag = "withdraw_entry_screen") { step ->
         WithdrawalEntryScreen(step.mint)
     }
-    annotatedEntry<WithdrawalStep.Destination> {
+    annotatedEntry<WithdrawalStep.Destination>(testTag = "withdraw_destination_screen") {
         WithdrawalDestinationScreen()
     }
-    annotatedEntry<WithdrawalStep.Confirmation> {
+    annotatedEntry<WithdrawalStep.Confirmation>(testTag = "withdraw_confirmation_screen") {
         WithdrawalConfirmationScreen()
     }
 }
