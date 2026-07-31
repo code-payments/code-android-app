@@ -174,7 +174,12 @@ Wired via the **`flipcash_maestro`** Fastlane lane and the **`.github/workflows/
 workflow:
 
 - The lane installs the debug build and runs `maestro/run.sh --tags <MAESTRO_TAGS>` (default
-  `smoke`, excluding `spends-funds`), emitting a JUnit report.
+  `smoke`, excluding `spends-funds,creates-account`), emitting a JUnit report.
+
+Side-effecting flows are tagged so runs stay clean: `spends-funds` (moves money) and
+`creates-account` (onboards a new account, e.g. `tipping_setup.yaml`) are **excluded by
+default**. `smoke` contains only read-only / fund-safe navigation. To run an account-creating
+flow deliberately, clear the exclude, e.g. `MAESTRO_TAGS=tipping MAESTRO_EXCLUDE_TAGS= maestro/run.sh --tags tipping`.
 - The workflow boots a KVM `x86_64` emulator (`reactivecircus/android-emulator-runner`), sets up
   the same build secrets as the unit-test job, installs the Maestro CLI, runs the lane, and uploads
   the report.

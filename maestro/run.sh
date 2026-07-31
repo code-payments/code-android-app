@@ -70,7 +70,7 @@ if [[ "${1:-}" == "--tags" ]]; then
   shift
   include="${1:-smoke}"
   target=( --include-tags "$include"
-           --exclude-tags "${MAESTRO_EXCLUDE_TAGS:-spends-funds}"
+           --exclude-tags "${MAESTRO_EXCLUDE_TAGS:-spends-funds,creates-account}"
            --format junit --output "${MAESTRO_OUTPUT:-maestro-report.xml}"
            "$SCRIPT_DIR" )
 elif [[ $# -eq 0 ]]; then

@@ -11,8 +11,8 @@ on:
         description: "Maestro include-tags (e.g. smoke, tipping, gate)"
         default: "smoke"
       exclude_tags:
-        description: "Maestro exclude-tags"
-        default: "spends-funds"
+        description: "Maestro exclude-tags (side-effecting flows excluded by default)"
+        default: "spends-funds,creates-account"
   schedule:
     - cron: "37 7 * * *" # nightly, off the top of the hour
 
@@ -84,7 +84,7 @@ jobs:
           script: bundle exec fastlane android flipcash_maestro
         env:
           MAESTRO_TAGS: ${{ github.event.inputs.tags || 'smoke' }}
-          MAESTRO_EXCLUDE_TAGS: ${{ github.event.inputs.exclude_tags || 'spends-funds' }}
+          MAESTRO_EXCLUDE_TAGS: ${{ github.event.inputs.exclude_tags || 'spends-funds,creates-account' }}
           # Test-account credentials (map GitHub secrets -> the env vars run.sh reads).
           SEED_PHRASE: ${{ secrets.MAESTRO_SEED_PHRASE }}
           LOGIN_DEEPLINK: ${{ secrets.MAESTRO_LOGIN_DEEPLINK }}
