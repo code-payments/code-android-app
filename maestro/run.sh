@@ -27,6 +27,7 @@ fi
 # Load creds without word-splitting the space-containing seed phrase.
 SEED_PHRASE="$(grep '^SEED_PHRASE=' "$ENV_FILE" | cut -d= -f2-)"
 LOGIN_DEEPLINK="$(grep '^LOGIN_DEEPLINK=' "$ENV_FILE" | cut -d= -f2-)"
+TIPCARD_DEEPLINK="$(grep '^TIPCARD_DEEPLINK=' "$ENV_FILE" | cut -d= -f2-)"
 
 # App Links verification does not survive a fresh install; approve so
 # https://app.flipcash.com/... deeplinks open the app, not Chrome.
@@ -40,5 +41,6 @@ fi
 maestro --device "$DEVICE" test \
   -e SEED_PHRASE="$SEED_PHRASE" \
   -e LOGIN_DEEPLINK="$LOGIN_DEEPLINK" \
+  -e TIPCARD_DEEPLINK="$TIPCARD_DEEPLINK" \
   -e BETA_FLAGS="${BETA_FLAGS:-}" \
   "$@"

@@ -114,6 +114,8 @@ BETA_FLAGS=tipping_enabled maestro/run.sh maestro/tipping_setup.yaml
 - `tip_chat.yaml` — open the tip conversation from the Tips tab and send a message
 - `blocking.yaml` — block a chat participant from their profile, verify in My Account →
   Blocked, then unblock (leaves the account clean)
+- `tip_deeplink.yaml` — open a tip-card deeplink (`TIPCARD_DEEPLINK`) → presents the tip flow
+  (waits for balances to sync first, else the empty-cache state trips the add-money gate)
 - Give/bill round-trip, token-info deeplink, screenshot suite (existing)
 
 **Account-blocked** (this test account has no phone linked, so it can't reach these; wiring
