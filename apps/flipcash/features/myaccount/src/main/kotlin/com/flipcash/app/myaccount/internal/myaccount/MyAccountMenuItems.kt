@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.menu.FullMenuItem
 import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.core.R as CoreR
@@ -23,7 +24,9 @@ internal data object AccessKey : FullMenuItem<MyAccountScreenViewModel.Event>() 
     override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnAccessKeyClicked
 }
 
-internal data object Blocklist : FullMenuItem<MyAccountScreenViewModel.Event>() {
+internal data object Blocklist : FullMenuItem<MyAccountScreenViewModel.Event>(
+    featureFlag = FeatureFlag.Blocklist,
+) {
     override val icon: Painter
         @Composable get() = rememberVectorPainter(Icons.Outlined.Block)
     override val name: String

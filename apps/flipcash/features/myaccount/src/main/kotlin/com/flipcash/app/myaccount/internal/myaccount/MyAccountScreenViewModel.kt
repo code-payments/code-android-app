@@ -2,6 +2,7 @@ package com.flipcash.app.myaccount.internal.myaccount
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.StaffMenuItem
@@ -44,11 +45,17 @@ internal class MyAccountScreenViewModel @Inject constructor(
 ) {
     internal data class State(
         val isBetaEnabled: Boolean = false,
-        val items: List<MenuItem<Event>> = FullMenuList
+        // Default hides staff-only AND flag-gated items until the real flag state loads, so a
+        // beta-gated item (e.g. Blocklist) never flashes before its flag is resolved.
+        val items: List<MenuItem<Event>> =
+            FullMenuList.filterNot { it is StaffMenuItem || it.featureFlag != null }
     )
 
     internal sealed interface Event {
-        data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
+        data class OnBetaFeaturesUnlocked(
+            val unlocked: Boolean,
+            val flags: List<BetaFeature> = emptyList(),
+        ) : Event
         data object OnAccessKeyClicked : Event
         data object OnBlocklistClicked: Event
         data object OnViewAccessKey : Event
@@ -64,11 +71,10 @@ internal class MyAccountScreenViewModel @Inject constructor(
     init {
         combine(
             featureFlagController.observeOverride(),
-            userManager.state.map { it.flags?.isStaff == true }
-        ) { override, isStaff ->
-            override || isStaff
-        }.map {
-            dispatchEvent(Event.OnBetaFeaturesUnlocked(it))
+            userManager.state.map { it.flags?.isStaff == true },
+            featureFlagController.observe(),
+        ) { override, isStaff, flags ->
+            dispatchEvent(Event.OnBetaFeaturesUnlocked(override || isStaff, flags))
         }.launchIn(viewModelScope)
 
         eventFlow
@@ -156,11 +162,17 @@ internal class MyAccountScreenViewModel @Inject constructor(
     internal companion object {
         private fun buildItemList(
             isBetaEnabled: Boolean,
+            flags: List<BetaFeature> = emptyList(),
         ): List<MenuItem<Event>> {
-            return if (isBetaEnabled) {
+            val base = if (isBetaEnabled) {
                 FullMenuList
             } else {
                 FullMenuList.filterNot { item -> item is StaffMenuItem }
+            }
+            // Flag-gated items (e.g. Blocklist) only show when their feature flag is enabled.
+            return base.filter { item ->
+                val flag = item.featureFlag ?: return@filter true
+                flags.find { it.flag.key == flag.key }?.enabled == true
             }
         }
 
@@ -180,7 +192,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
                 is Event.OnBetaFeaturesUnlocked -> { state ->
                     state.copy(
                         isBetaEnabled = event.unlocked,
-                        items = buildItemList(event.unlocked)
+                        items = buildItemList(event.unlocked, event.flags)
                     )
                 }
             }

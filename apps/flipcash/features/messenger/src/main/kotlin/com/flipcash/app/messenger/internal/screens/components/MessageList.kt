@@ -65,6 +65,7 @@ internal fun MessageList(
     separatorConfig: SeparatorConfig,
     otherReadPointer: MessagePointer? = null,
     onAction: ChatActionHandler,
+    canViewProfile: Boolean,
 ) {
     val keyboard = rememberKeyboardController()
     val listState = rememberLazyListState()
@@ -269,11 +270,15 @@ internal fun MessageList(
                         ContactInfoContainer(
                             participant = state.participant,
                             modifier = Modifier
-                                .padding(horizontal = CodeTheme.dimens.grid.x12),
+                                .fillMaxWidth(0.63f),
                             onRefreshContact = { onAction(ChatAction.RefreshContact) },
-                            onOpenProfile = {
-                                onAction(ChatAction.ViewProfile)
-                            }
+                            // null hides the chevron and makes the card non-tappable when the
+                            // Blocklist beta flag is off.
+                            onOpenProfile = if (canViewProfile) {
+                                { onAction(ChatAction.ViewProfile) }
+                            } else {
+                                null
+                            },
                         )
                     }
                 }

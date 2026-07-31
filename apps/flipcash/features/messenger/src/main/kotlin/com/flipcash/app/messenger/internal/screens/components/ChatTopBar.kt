@@ -20,7 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.flipcash.app.core.chat.ChatParticipant
+import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatActionHandler
 import com.getcode.navigation.core.CodeNavigator
@@ -33,7 +33,7 @@ import com.getcode.ui.core.unboundedClickable
 @Composable
 internal fun ChatTopBar(
     navigator: CodeNavigator,
-    participant: ChatParticipant?,
+    state: ChatViewModel.State,
     chatActionHandler: ChatActionHandler,
 ) {
     var titleHeight by remember { mutableStateOf(0.dp) }
@@ -59,14 +59,23 @@ internal fun ChatTopBar(
             },
             title = {
                 Row(
-                    modifier = Modifier.fillMaxWidth().unboundedClickable {
-                        chatActionHandler(ChatAction.ViewProfile)
-                    },
+                    // Profile open is gated behind the Blocklist beta flag.
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (state.canViewProfile) {
+                                Modifier.unboundedClickable {
+                                    chatActionHandler(ChatAction.ViewProfile)
+                                }
+                            } else {
+                                Modifier
+                            }
+                        ),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 ) {
                     ParticipantAvatar(
-                        participant = participant,
+                        participant = state.participant,
                         modifier = Modifier
                             .requiredSize(CodeTheme.dimens.staticGrid.x8)
                             .clip(CircleShape),
@@ -74,7 +83,7 @@ internal fun ChatTopBar(
 
                     Text(
                         modifier = Modifier.weight(1f),
-                        text = participant?.displayName.orEmpty(),
+                        text = state.participant?.displayName.orEmpty(),
                         style = CodeTheme.typography.textMedium,
                         color = CodeTheme.colors.textMain,
                     )

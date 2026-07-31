@@ -62,6 +62,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
 
             is ChatAction.ViewProfile -> {
+                // The triggers (top-bar tap, contact-card chevron) are only clickable when the
+                // Blocklist beta flag is on, so no gating is needed here.
                 state.participant?.let {
                     keyboard.hideIfVisible {
                         navigator.push(ChatStep.Profile(it))
@@ -74,7 +76,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     }
 
     ChatInputScaffold(
-        topBar = { ChatTopBar(navigator, state.participant, chatActionHandler) },
+        topBar = { ChatTopBar(navigator, state, chatActionHandler) },
         bottomBar = {
             UserControlBottomBar(
                 state = state,
@@ -94,6 +96,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             separatorConfig = state.separatorConfig,
             otherReadPointer = otherReadPointer,
             onAction = chatActionHandler,
+            canViewProfile = state.canViewProfile,
         )
     }
 }
