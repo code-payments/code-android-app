@@ -1,0 +1,23 @@
+appId: com.flipcash.app.android
+name: "Coinbase onramp — method present, enters onramp (sandbox)"
+tags:
+  - deposit
+  - coinbase
+---
+# Sandbox flag on so a follow-up can drive a test purchase without real funds.
+- runFlow:
+    file: subflows/login_with_flags.yaml
+    env:
+      BETA_FLAGS: "coinbase_onramp_sandbox_enabled"
+
+- runFlow: subflows/navigate_to_menu.yaml
+- tapOn: "Add Money"
+- extendedWaitUntil: { visible: { text: "Select Method" }, timeout: 8000 }
+
+# The Coinbase / Google Pay method is icon-only, so it's anchored by testTag.
+- assertVisible: { id: purchase_method_coinbase }
+- tapOn: { id: purchase_method_coinbase }
+
+# Coinbase requires a verified phone, so the onramp begins with phone verification.
+- extendedWaitUntil: { visible: { id: verification_screen }, timeout: 8000 }
+- assertVisible: "Connect Phone Number"

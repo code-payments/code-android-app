@@ -116,18 +116,21 @@ BETA_FLAGS=tipping_enabled maestro/run.sh maestro/tipping_setup.yaml
   Blocked, then unblock (leaves the account clean)
 - `tip_deeplink.yaml` — open a tip-card deeplink (`TIPCARD_DEEPLINK`) → presents the tip flow
   (waits for balances to sync first, else the empty-cache state trips the add-money gate)
+- `buy.yaml` — token info → Buy → payment currency → confirm-purchase screen (fund-safe)
+- `sell.yaml` — token info → Sell → amount entry (fund-safe)
+- `currency_creator.yaml` — Discover → Create Your Own Currency → intro + $20 balance gate
+- `coinbase_onramp.yaml` — Add Money → Coinbase/Google Pay method → onramp (phone verify);
+  `coinbase_onramp_sandbox_enabled` set so a follow-up can drive a sandbox purchase
 - Give/bill round-trip, token-info deeplink, screenshot suite (existing)
 
-**Account-blocked** (this test account has no phone linked, so it can't reach these; wiring
-is ready — the screens are tagged):
-- Direct Send contact list (`send_contact_list`/`send_contact_row`) — gated by phone link.
-- Chat send-message (`chat_screen`, `chat_message_input`, `chat_send_icon`) — needs a
-  conversation, which needs contacts.
-
-**Roadmap** (each = deeplink login + central anchors, plus any missing sub-element `testTag`s):
-- Withdraw/Deposit past the amount step (needs a funded reserves balance; destination /
-  confirmation steps are already tagged).
-- Currency Creator, Swap/Buy, Onboarding / phone verification, Coinbase onramp.
+**Roadmap / not-yet-covered:**
+- **Full Coinbase sandbox purchase** — the flow reaches the onramp; completing a purchase needs
+  phone verification first (which links a phone to the shared account — a side effect that would
+  change the send flows) and driving the Google Pay sandbox sheet. Sandbox flag + method tag are
+  in place.
+- **Send-to-contact** (send cash + message to a Flipcash contact) — needs a phone-linked account
+  with contacts; `send_contact_list`/`send_contact_row` are tagged and ready.
+- Buy/Sell/Withdraw past confirmation on a funded account (screens tagged).
 - Wire a `flipcash_maestro` Fastlane lane (see below).
 
 ## CI

@@ -1,0 +1,26 @@
+appId: com.flipcash.app.android
+name: "Buy — token info → confirm purchase (fund-safe)"
+tags:
+  - smoke
+  - swap
+---
+# Fund-safe: drives the buy flow to the confirmation screen and stops (never confirms).
+- runFlow: subflows/login_with_deeplink.yaml
+- runFlow: subflows/navigate_to_wallet.yaml
+
+- tapOn: "Float"
+- extendedWaitUntil: { visible: { id: token_info_screen }, timeout: 8000 }
+- tapOn: "Buy"
+- extendedWaitUntil: { visible: { id: swap_screen }, timeout: 8000 }
+- assertVisible: "Amount to Buy"
+
+# Minimal amount, then pick a payment currency.
+- tapOn: { id: keypad_1 }
+- tapOn: "Next"
+- extendedWaitUntil: { visible: { id: token_selection_screen }, timeout: 8000 }
+- assertVisible: "Select Payment Currency"
+- tapOn: "USDF"
+
+# Confirmation — assert and stop (do not confirm the purchase).
+- extendedWaitUntil: { visible: { id: buy_receipt_screen }, timeout: 8000 }
+- assertVisible: "Confirm Purchase"
