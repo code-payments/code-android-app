@@ -1,0 +1,29 @@
+appId: com.flipcash.app.android
+name: "Account & Settings Navigation"
+tags:
+  - smoke
+  - account
+---
+# Deterministic clean login → home.
+- runFlow: subflows/login_with_deeplink.yaml
+
+# Menu → My Account
+- runFlow: subflows/navigate_to_menu.yaml
+- tapOn: "My Account"
+- extendedWaitUntil:
+    visible:
+      id: my_account_screen
+    timeout: 10000
+
+# Back to menu, then App Settings
+- tapOn:
+    id: action_back
+- extendedWaitUntil:
+    visible:
+      id: menu_screen
+    timeout: 10000
+- tapOn: "App Settings"
+- extendedWaitUntil:
+    visible:
+      id: app_settings_screen
+    timeout: 10000
