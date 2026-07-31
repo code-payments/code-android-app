@@ -12,6 +12,8 @@ data class BottomBarAction(
     val style: BottomBarManager.BottomBarButtonStyle = BottomBarManager.BottomBarButtonStyle.Filled,
     val isUser: Boolean = true,
     val enabled: Boolean = true,
+    // Optional UI-test anchor; surfaced as a resource-id when testTagsAsResourceId is on.
+    val testTag: String? = null,
     val onClick: () -> Unit = { }
 ) {
     constructor(
@@ -19,6 +21,7 @@ data class BottomBarAction(
         style: BottomBarManager.BottomBarButtonStyle = BottomBarManager.BottomBarButtonStyle.Filled,
         isUser: Boolean = true,
         enabled: Boolean = true,
+        testTag: String? = null,
         onClick: () -> Unit = { }
     ) : this(
         text = AnnotatedString(text),
@@ -26,6 +29,7 @@ data class BottomBarAction(
         style = style,
         isUser = isUser,
         enabled = enabled,
+        testTag = testTag,
         onClick = onClick
     )
 
