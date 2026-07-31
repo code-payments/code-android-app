@@ -1,6 +1,5 @@
 package com.flipcash.shared.chat
 
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
@@ -125,7 +124,6 @@ class ChatCoordinatorEagerBalanceTest {
             messagingDelegate = messagingDelegate,
             stateHolder = stateHolder,
             userManager = userManager,
-            featureFlags = mockk<FeatureFlagController>(relaxed = true),
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = testDispatchers,
         )
