@@ -57,7 +57,7 @@ internal class BlocklistViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.UnblockRequested>()
             .onEach { event ->
-                BottomBarManager.showAlert(
+                BottomBarManager.showMessage(
                     title = resources.getString(
                         R.string.prompt_title_unblockUser,
                         event.user.displayName,
@@ -81,7 +81,13 @@ internal class BlocklistViewModel @Inject constructor(
                 coordinator.unblock(event.user.userId)
                     // On success the row leaves the paged list; on failure the spinner reverts.
                     .onSuccess { dispatchEvent(Event.UnblockProcessing(key, success = true)) }
-                    .onFailure { dispatchEvent(Event.UnblockProcessing(key, error = true)) }
+                    .onFailure {
+                        dispatchEvent(Event.UnblockProcessing(key, error = true))
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_failedToUnblock),
+                            message = resources.getString(R.string.error_description_failedToUnblock),
+                        )
+                    }
             }
             .launchIn(viewModelScope)
     }

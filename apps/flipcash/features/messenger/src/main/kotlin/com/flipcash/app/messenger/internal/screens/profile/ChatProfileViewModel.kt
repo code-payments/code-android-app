@@ -119,6 +119,10 @@ internal class ChatProfileViewModel @Inject constructor(
                     }
                     .onFailure {
                         dispatchEvent(Event.BlockProcessing())
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_failedToBlock),
+                            message = resources.getString(R.string.error_description_failedToBlock),
+                        )
                     }
             }
             .launchIn(viewModelScope)

@@ -916,4 +916,10 @@
     <string name="description_blocklistEmpty">Block people from sending you messages by tapping their profile and selecting block</string>
     <string name="subtitle_joinedDate">Joined %1$s</string>
 
+    <string name="error_title_failedToBlock">Something Went Wrong</string>
+    <string name="error_description_failedToBlock">We were unable to block the user. Please try again</string>
+    <string name="error_title_failedToUnblock">Something Went Wrong</string>
+    <string name="error_description_failedToUnblock">We were unable to unblock the user. Please try again</string>
+
+
 </resources>
