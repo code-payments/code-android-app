@@ -1,4 +1,4 @@
-appId: com.flipcash.app.android.dev
+appId: com.flipcash.app.android
 ---
 - runFlow: ../helpers/close_open_sheet.yaml
 - tapOn: Give

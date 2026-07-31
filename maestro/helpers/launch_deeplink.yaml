@@ -1,4 +1,4 @@
-appId: com.flipcash.app.android.dev
+appId: com.flipcash.app.android
 ---
 # Conditionally clear state (launchApp + stopApp brings app out of
 # Android's "stopped" state so the subsequent openLink can reach it)

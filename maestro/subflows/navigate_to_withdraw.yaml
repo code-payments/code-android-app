@@ -1,4 +1,4 @@
-appId: com.flipcash.app.android.dev
+appId: com.flipcash.app.android
 ---
 - runFlow: navigate_to_menu.yaml
 - tapOn: Withdraw Funds

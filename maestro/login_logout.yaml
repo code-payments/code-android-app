@@ -1,4 +1,4 @@
-appId: com.flipcash.app.android.dev
+appId: com.flipcash.app.android
 ---
 - runFlow: helpers/launch_app.yaml
 - runFlow: subflows/login.yaml

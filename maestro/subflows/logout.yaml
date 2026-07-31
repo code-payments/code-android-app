@@ -1,5 +1,5 @@
 # Reusable Logout flow
-appId: com.flipcash.app.android.dev
+appId: com.flipcash.app.android
 ---
 - tapOn:
     id: scanner_view
