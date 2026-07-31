@@ -123,13 +123,20 @@ BETA_FLAGS=tipping_enabled maestro/run.sh maestro/tipping_setup.yaml
   `coinbase_onramp_sandbox_enabled` set so a follow-up can drive a sandbox purchase
 - Give/bill round-trip, token-info deeplink, screenshot suite (existing)
 
-**Roadmap / not-yet-covered:**
-- **Full Coinbase sandbox purchase** — the flow reaches the onramp; completing a purchase needs
-  phone verification first (which links a phone to the shared account — a side effect that would
-  change the send flows) and driving the Google Pay sandbox sheet. Sandbox flag + method tag are
-  in place.
-- **Send-to-contact** (send cash + message to a Flipcash contact) — needs a phone-linked account
-  with contacts; `send_contact_list`/`send_contact_row` are tagged and ready.
+**Provisioning-blocked** (need a differently-provisioned test account, not more tooling):
+- **Send-to-contact** (send cash + message to a Flipcash contact) — needs a **phone-linked account
+  with contacts**. iOS covers this in `SendSmokeTests` by running against a real funded account that
+  *has* a verified phone/contacts; ours is intentionally phone-less (which is why `direct_send` stops
+  at the phone gate). `send_contact_list`/`send_contact_row` are tagged and ready for such an account.
+- **Full Coinbase purchase** — the flow reaches the onramp; completing it needs phone verification
+  (which links a phone to the shared account and would flip the send flows) plus driving the Google
+  Pay sandbox sheet. Note: **iOS doesn't automate the payment either** — its E2E stops at the same
+  onramp/verification boundary (`BuyApplePayRegressionTests`: unverified → verification sheet) and
+  covers order-building/deposit/verification logic with unit tests (`OnrampOrderRequestTests`,
+  `CoinbaseDepositOperationTests`, `OnrampVerificationViewModelTests`). So our `coinbase_onramp` entry
+  test is at parity; the sandbox flag + method tag are in place if we later want to go further.
+
+**Roadmap (tooling):**
 - Buy/Sell/Withdraw past confirmation on a funded account (screens tagged).
 - Wire a `flipcash_maestro` Fastlane lane (see below).
 
