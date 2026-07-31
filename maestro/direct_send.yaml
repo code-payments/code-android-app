@@ -1,0 +1,29 @@
+appId: com.flipcash.app.android
+name: "Direct Send — entry & phone gate"
+tags:
+  - smoke
+  - payments
+---
+# Deterministic clean login → home.
+- runFlow: subflows/login_with_deeplink.yaml
+
+# Open the send flow from the scanner nav bar.
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible:
+      id: send_screen
+    timeout: 8000
+
+# This test account has no phone linked for send, so the flow opens on the phone
+# gate (SendStep.PhoneGate). phone_gate_screen is auto-tagged from the step name.
+- assertVisible:
+    id: phone_gate_screen
+- assertVisible: "Send Money To Your Friends"
+
+# Close the sheet and return home.
+- tapOn:
+    id: action_close
+- extendedWaitUntil:
+    visible:
+      id: scanner_screen
+    timeout: 8000

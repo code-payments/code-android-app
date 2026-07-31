@@ -1,0 +1,21 @@
+appId: com.flipcash.app.android
+name: "Deposit (Add Money) → USDC"
+tags:
+  - smoke
+  - deposit
+---
+# Fund-safe: opens the Add Money method sheet and enters the USDC deposit flow.
+- runFlow: subflows/login_with_deeplink.yaml
+- runFlow: subflows/navigate_to_menu.yaml
+
+- tapOn: "Add Money"
+- extendedWaitUntil:
+    visible:
+      text: "Select Method"
+    timeout: 8000
+- tapOn: "Other Wallet"
+- extendedWaitUntil:
+    visible:
+      id: deposit_screen
+    timeout: 8000
+- assertVisible: "Deposit USDC"

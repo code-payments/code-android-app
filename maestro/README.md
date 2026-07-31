@@ -77,24 +77,27 @@ e.g. `menu_button`, `market_cap_chart`, `chat_message_list`, `send_contact_list`
 
 ## Coverage
 
-**Verified green** (deeplink-login entry):
-- Login → home (`scanner_screen`)
-- Menu navigation (`menu_screen`), My Account (`my_account_screen`), App Settings
-  (`app_settings_screen`) — `account_navigation.yaml`
-- Wallet (`wallet_screen`) → Token Info (`token_info_screen`) + market-cap chart —
-  `wallet_token_info.yaml`
-- Give / bill round-trip, token-info deeplink (existing flows)
-- Screenshot suite (`screenshots/`, 19 baselines)
+**Verified green** (run any of these with `maestro/run.sh`):
+- `login_logout.yaml` — real seed-login UI + logout (Log Out lives on My Account)
+- `account_navigation.yaml` — menu → My Account → App Settings
+- `wallet_token_info.yaml` — wallet → token info + market-cap chart
+- `discovery_leaderboard.yaml` — Discover → leaderboard → token info
+- `direct_send.yaml` — send entry → phone gate
+- `withdraw.yaml` — menu → Withdraw Money → USDC → amount entry (fund-safe)
+- `deposit.yaml` — menu → Add Money → Other Wallet → USDC deposit (fund-safe)
+- Give/bill round-trip, token-info deeplink, screenshot suite (existing)
 
-**Roadmap** (each new journey = deeplink login + central anchors, plus any missing
-sub-element `testTag`s):
-- Repair the drifted seed-login flows (`login.yaml`, `login_logout.yaml`) — standardise on
-  deeplink login; the logout menu item needs a scroll-into-view.
-- Direct Send (phone-number send) — `send_contact_list` / `send_contact_row` exist.
-- Deposit / Add-money and Withdraw as functional flows (inner FlowHost steps need root tags).
-- Token Discovery / leaderboard (`discovery_leaderboard`, `leaderboard_token_row` exist).
-- Chat: send a message end-to-end (`chat_message_input`, `chat_send_icon` exist).
+**Account-blocked** (this test account has no phone linked, so it can't reach these; wiring
+is ready — the screens are tagged):
+- Direct Send contact list (`send_contact_list`/`send_contact_row`) — gated by phone link.
+- Chat send-message (`chat_screen`, `chat_message_input`, `chat_send_icon`) — needs a
+  conversation, which needs contacts.
+
+**Roadmap** (each = deeplink login + central anchors, plus any missing sub-element `testTag`s):
+- Withdraw/Deposit past the amount step (needs a funded reserves balance; destination /
+  confirmation steps are already tagged).
 - Currency Creator, Swap/Buy, Onboarding / phone verification, Coinbase onramp.
+- Wire a `flipcash_maestro` Fastlane lane (see below).
 
 ## CI
 

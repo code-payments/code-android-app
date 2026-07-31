@@ -1,0 +1,28 @@
+appId: com.flipcash.app.android
+name: "Token Discovery — leaderboard → token info"
+tags:
+  - smoke
+  - tokens
+---
+# Deterministic clean login → home.
+- runFlow: subflows/login_with_deeplink.yaml
+
+# Open Discover and assert the leaderboard rendered.
+- tapOn: "Discover"
+- extendedWaitUntil:
+    visible:
+      id: discovery_screen
+    timeout: 8000
+- assertVisible:
+    id: discovery_leaderboard
+- assertVisible:
+    id: leaderboard_token_row
+
+# Drill into the top token's info screen.
+- tapOn:
+    id: leaderboard_token_row
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: token_info_screen
+    timeout: 8000
