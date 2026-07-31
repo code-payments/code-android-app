@@ -38,6 +38,31 @@ CONTACT_PHONE="$(grep '^CONTACT_PHONE=' "$ENV_FILE" | cut -d= -f2-)"
 # https://app.flipcash.com/... deeplinks open the app, not Chrome.
 adb -s "$DEVICE" shell pm set-app-links --package "$APP_ID" 2 all >/dev/null 2>&1 || true
 
+# Seed the send-to-contact recipient into the emulator's contacts (idempotent). No-op
+# unless CONTACT_NAME + CONTACT_PHONE are set. The device-side single quotes preserve
+# spaces in the name; the new raw contact is the highest auto-increment _id.
+seed_contact() {
+  [[ -z "$CONTACT_NAME" || -z "$CONTACT_PHONE" ]] && return 0
+  local data_uri="content://com.android.contacts/data"
+  local raw_uri="content://com.android.contacts/raw_contacts"
+  if adb -s "$DEVICE" shell content query --uri "$data_uri" --projection mimetype:data1 2>/dev/null \
+       | grep -q "$CONTACT_PHONE"; then
+    return 0   # already seeded
+  fi
+  adb -s "$DEVICE" shell content insert --uri "$raw_uri" \
+    --bind account_name:s: --bind account_type:s: >/dev/null 2>&1
+  local rid
+  rid=$(adb -s "$DEVICE" shell content query --uri "$raw_uri" --projection _id 2>/dev/null \
+        | grep -oE '_id=[0-9]+' | cut -d= -f2 | sort -n | tail -1)
+  [[ -z "$rid" ]] && { echo "warning: could not seed contact" >&2; return 0; }
+  adb -s "$DEVICE" shell "content insert --uri $data_uri --bind raw_contact_id:i:$rid \
+    --bind mimetype:s:vnd.android.cursor.item/name --bind data1:s:'$CONTACT_NAME'" >/dev/null 2>&1
+  adb -s "$DEVICE" shell "content insert --uri $data_uri --bind raw_contact_id:i:$rid \
+    --bind mimetype:s:vnd.android.cursor.item/phone_v2 --bind data1:s:'$CONTACT_PHONE' \
+    --bind data2:i:2" >/dev/null 2>&1
+}
+seed_contact
+
 if [[ $# -eq 0 ]]; then
   echo "usage: $0 <flow.yaml> [more flows...]" >&2
   exit 1

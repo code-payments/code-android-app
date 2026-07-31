@@ -134,9 +134,10 @@ and it runs):
   Currencies Yet"). Mirrors iOS `GiveDiscoverGateRegressionTests`. Needs `USDF_ONLY_DEEPLINK`
   (a dedicated USDF-only account, like iOS's `FLIPCASH_UI_TEST_USDF_ONLY_ACCESS_KEY`).
 - `send_to_contact.yaml` — send to an on-Flipcash contact (mirrors iOS `SendSmokeTests`, which uses a
-  fixed contact "Raul Riera"). Needs a **send-enabled** account (a phone linked — use the backend test
-  number `+15005550000`/`000000`, or a real number with `adb emu sms send`) **and** the `CONTACT_NAME`
-  contact seeded in the emulator as a real Flipcash user. Parameterized by `CONTACT_NAME`/`CONTACT_PHONE`.
+  fixed contact "Raul Riera"). Parameterized by `CONTACT_NAME`/`CONTACT_PHONE`; **the runner seeds this
+  contact into the emulator automatically** (idempotent). The only remaining requirement is a
+  **send-enabled** account (a phone linked — use the backend test number `+15005550000`/`000000`, or a
+  real number with `adb emu sms send`), and that `CONTACT_PHONE` maps to a real Flipcash user.
 - **Full Coinbase purchase** — the flow reaches the onramp; completing it needs phone verification
   (which links a phone to the shared account and would flip the send flows) plus driving the Google
   Pay sandbox sheet. Note: **iOS doesn't automate the payment either** — its E2E stops at the same
