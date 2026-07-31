@@ -28,6 +28,11 @@ fi
 SEED_PHRASE="$(grep '^SEED_PHRASE=' "$ENV_FILE" | cut -d= -f2-)"
 LOGIN_DEEPLINK="$(grep '^LOGIN_DEEPLINK=' "$ENV_FILE" | cut -d= -f2-)"
 TIPCARD_DEEPLINK="$(grep '^TIPCARD_DEEPLINK=' "$ENV_FILE" | cut -d= -f2-)"
+# Dedicated USDF-only (reserves-only) account for gate tests.
+USDF_ONLY_DEEPLINK="$(grep '^USDF_ONLY_DEEPLINK=' "$ENV_FILE" | cut -d= -f2-)"
+# On-Flipcash contact for send-to-contact tests (seeded into the emulator's contacts).
+CONTACT_NAME="$(grep '^CONTACT_NAME=' "$ENV_FILE" | cut -d= -f2-)"
+CONTACT_PHONE="$(grep '^CONTACT_PHONE=' "$ENV_FILE" | cut -d= -f2-)"
 
 # App Links verification does not survive a fresh install; approve so
 # https://app.flipcash.com/... deeplinks open the app, not Chrome.
@@ -42,5 +47,8 @@ maestro --device "$DEVICE" test \
   -e SEED_PHRASE="$SEED_PHRASE" \
   -e LOGIN_DEEPLINK="$LOGIN_DEEPLINK" \
   -e TIPCARD_DEEPLINK="$TIPCARD_DEEPLINK" \
+  -e USDF_ONLY_DEEPLINK="$USDF_ONLY_DEEPLINK" \
+  -e CONTACT_NAME="$CONTACT_NAME" \
+  -e CONTACT_PHONE="$CONTACT_PHONE" \
   -e BETA_FLAGS="${BETA_FLAGS:-}" \
   "$@"

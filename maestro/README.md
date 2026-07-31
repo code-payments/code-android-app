@@ -17,9 +17,14 @@ iOS's `FlipcashUITests`. Flows are plain YAML under `maestro/`; reusable pieces 
 3. The [Maestro CLI](https://maestro.mobile.dev) on your `PATH` (`maestro --version`).
 4. Test-account credentials in `maestro/.env` (git-ignored):
    ```
-   SEED_PHRASE=word1 word2 ... word12
-   LOGIN_DEEPLINK=https://app.flipcash.com/login?data=...
+   SEED_PHRASE=word1 word2 ... word12          # primary account (tip-enabled)
+   LOGIN_DEEPLINK=https://app.flipcash.com/login?data=...   # same account as SEED_PHRASE
+   TIPCARD_DEEPLINK=https://app.flipcash.com/tip/...        # the primary account's tip card
+   USDF_ONLY_DEEPLINK=https://app.flipcash.com/login?data=...  # reserves-only gate account
+   CONTACT_NAME=Brandon McAnsh                  # an on-Flipcash contact for send-to-contact
+   CONTACT_PHONE=+15869802333                   # seed this contact into the emulator
    ```
+   The runner (`run.sh`) forwards all of these to Maestro.
 
 ## Running
 
@@ -123,11 +128,15 @@ BETA_FLAGS=tipping_enabled maestro/run.sh maestro/tipping_setup.yaml
   `coinbase_onramp_sandbox_enabled` set so a follow-up can drive a sandbox purchase
 - Give/bill round-trip, token-info deeplink, screenshot suite (existing)
 
-**Provisioning-blocked** (need a differently-provisioned test account, not more tooling):
-- **Send-to-contact** (send cash + message to a Flipcash contact) — needs a **phone-linked account
-  with contacts**. iOS covers this in `SendSmokeTests` by running against a real funded account that
-  *has* a verified phone/contacts; ours is intentionally phone-less (which is why `direct_send` stops
-  at the phone gate). `send_contact_list`/`send_contact_row` are tagged and ready for such an account.
+**Scaffolded — pending account provisioning** (flow authored + wired; drop in the account/contact
+and it runs):
+- `usdf_only_gate.yaml` — reserves-only account: tapping Cash routes to Discover ("No Community
+  Currencies Yet"). Mirrors iOS `GiveDiscoverGateRegressionTests`. Needs `USDF_ONLY_DEEPLINK`
+  (a dedicated USDF-only account, like iOS's `FLIPCASH_UI_TEST_USDF_ONLY_ACCESS_KEY`).
+- `send_to_contact.yaml` — send to an on-Flipcash contact (mirrors iOS `SendSmokeTests`, which uses a
+  fixed contact "Raul Riera"). Needs a **send-enabled** account (a phone linked — use the backend test
+  number `+15005550000`/`000000`, or a real number with `adb emu sms send`) **and** the `CONTACT_NAME`
+  contact seeded in the emulator as a real Flipcash user. Parameterized by `CONTACT_NAME`/`CONTACT_PHONE`.
 - **Full Coinbase purchase** — the flow reaches the onramp; completing it needs phone verification
   (which links a phone to the shared account and would flip the send flows) plus driving the Google
   Pay sandbox sheet. Note: **iOS doesn't automate the payment either** — its E2E stops at the same
