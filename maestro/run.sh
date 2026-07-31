@@ -40,4 +40,5 @@ fi
 maestro --device "$DEVICE" test \
   -e SEED_PHRASE="$SEED_PHRASE" \
   -e LOGIN_DEEPLINK="$LOGIN_DEEPLINK" \
+  -e BETA_FLAGS="${BETA_FLAGS:-}" \
   "$@"

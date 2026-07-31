@@ -29,6 +29,7 @@ import com.flipcash.app.core.verification.email.EmailCodeChannel
 import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
 import com.flipcash.app.onramp.LocalCoinbaseOnRampController
 import com.flipcash.app.onramp.CoinbaseOnRampController
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.internal.ui.App
@@ -151,6 +152,8 @@ class MainActivity : FragmentActivity() {
         // the UI thread building the country list.
         lifecycleScope.launch(Dispatchers.Default) { phoneUtils.ensureLoaded() }
 
+        applyBetaFlagLaunchOverrides()
+
         setContent {
             CompositionLocalProvider(
                 LocalResources provides resources,
@@ -187,8 +190,33 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    /**
+     * Test-only: enable beta flags passed as a launch argument, so flag-gated features
+     * (tipping, blocklist, …) can be exercised in UI tests without toggling them in the
+     * Labs UI. Mirrors iOS's `--beta-flags`. Debug/UI-test builds only.
+     *
+     *   launchApp:
+     *     arguments:
+     *       betaFlags: "tipping_enabled,blocklist_enabled"
+     *
+     * The value is a comma-separated list of [FeatureFlag.key]s.
+     */
+    private fun applyBetaFlagLaunchOverrides() {
+        if (!BuildConfig.UI_TESTABLE) return
+        intent.getStringExtra(BETA_FLAGS)
+            .orEmpty()
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .forEach { key ->
+                FeatureFlag.entries.firstOrNull { it.key == key }
+                    ?.let { featureFlagController.set(it, true) }
+            }
+    }
+
     companion object {
         private const val UI_TEST = "isUiTest"
+        private const val BETA_FLAGS = "betaFlags"
     }
 }
 

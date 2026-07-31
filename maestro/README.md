@@ -75,6 +75,31 @@ pre-login landing, inner FlowHost steps like the withdrawal wizard) still need a
 Sub-element anchors (buttons, lists, inputs) remain plain `testTag`s in the component code —
 e.g. `menu_button`, `market_cap_chart`, `chat_message_list`, `send_contact_list`, `keypad_<n>`.
 
+## Enabling beta flags from a test
+
+Beta-gated features (Tipping, Blocklist, …) can be turned on **at launch** without toggling
+them in the Labs UI — mirroring iOS's `--beta-flags`. Pass a `betaFlags` launch argument (a
+comma-separated list of `FeatureFlag.key`s); `MainActivity` reads it on debug/UI-test builds
+and force-enables those flags:
+
+```yaml
+- launchApp:
+    arguments:
+      isUiTest: true
+      betaFlags: "tipping_enabled,blocklist_enabled"
+```
+
+The overrides must be applied in the **same process** that renders the feature — deeplink
+login relaunches via `openLink` and would drop the argument. So use one of:
+- `subflows/login_with_flags.yaml` — seed login into the **existing** account with flags set.
+- `subflows/create_account.yaml` — a brand-new account through onboarding (test phone
+  `+1 (500) 555-0000`, all-zero OTP), for one-run-per-account setup like the tip card. Both
+  take a `BETA_FLAGS` env var; the runner forwards `BETA_FLAGS` from your shell.
+
+```bash
+BETA_FLAGS=tipping_enabled maestro/run.sh maestro/tipping_setup.yaml
+```
+
 ## Coverage
 
 **Verified green** (run any of these with `maestro/run.sh`):
@@ -85,6 +110,7 @@ e.g. `menu_button`, `market_cap_chart`, `chat_message_list`, `send_contact_list`
 - `direct_send.yaml` — send entry → phone gate
 - `withdraw.yaml` — menu → Withdraw Money → USDC → amount entry (fund-safe)
 - `deposit.yaml` — menu → Add Money → Other Wallet → USDC deposit (fund-safe)
+- `tipping_setup.yaml` — create account (beta flag) → set up tip card → tip card renders
 - Give/bill round-trip, token-info deeplink, screenshot suite (existing)
 
 **Account-blocked** (this test account has no phone linked, so it can't reach these; wiring
