@@ -1,0 +1,104 @@
+name: Maestro E2E
+
+# Real-backend E2E against the shared test account, so it is not wired to every PR by
+# default: run it on demand (choose tags) and nightly (smoke). To gate PRs, add a
+# `pull_request:` trigger below — note it needs the test-account secrets, so it won't run
+# on fork PRs.
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: "Maestro include-tags (e.g. smoke, tipping, gate)"
+        default: "smoke"
+      exclude_tags:
+        description: "Maestro exclude-tags"
+        default: "spends-funds"
+  schedule:
+    - cron: "37 7 * * *" # nightly, off the top of the hour
+
+concurrency:
+  group: maestro-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  maestro:
+    name: Maestro E2E (${{ github.event.inputs.tags || 'smoke' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Java env
+        uses: actions/setup-java@v3
+        with:
+          java-version: "21"
+          distribution: "corretto"
+          cache: "gradle"
+
+      - name: Setup Ruby env
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7.2
+          bundler-cache: true
+
+      # Build prerequisites (same as the unit-test CI job).
+      - name: Decode Google Services JSON file
+        uses: timheuer/base64-to-file@v1
+        with:
+          fileName: google-services.json
+          fileDir: ./apps/flipcash/app/src
+          encodedString: ${{ secrets.FLIPCASH2_GOOGLE_SERVICES }}
+      - name: Setup local.properties API keys
+        run: |
+          {
+            echo "BUGSNAG_API_KEY=\"${{ secrets.FLIPCASH_BUGSNAG_API_KEY }}\""
+            echo "MIXPANEL_API_KEY=\"${{ secrets.FLIPCASH_MIXPANEL_API_KEY }}\""
+            echo "COINBASE_ONRAMP_API_KEY=${{ secrets.COINBASE_ONRAMP_API_KEY }}"
+            echo "GOOGLE_CLOUD_PROJECT_NUMBER=${{ secrets.GOOGLE_CLOUD_PROJECT_NUMBER }}"
+          } >> ./local.properties
+
+      - name: Install Maestro CLI
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      # KVM is required for a fast x86_64 emulator on GitHub-hosted Linux runners.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Maestro suite on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          script: bundle exec fastlane android flipcash_maestro
+        env:
+          MAESTRO_TAGS: ${{ github.event.inputs.tags || 'smoke' }}
+          MAESTRO_EXCLUDE_TAGS: ${{ github.event.inputs.exclude_tags || 'spends-funds' }}
+          # Test-account credentials (map GitHub secrets -> the env vars run.sh reads).
+          SEED_PHRASE: ${{ secrets.MAESTRO_SEED_PHRASE }}
+          LOGIN_DEEPLINK: ${{ secrets.MAESTRO_LOGIN_DEEPLINK }}
+          TIPCARD_DEEPLINK: ${{ secrets.MAESTRO_TIPCARD_DEEPLINK }}
+          USDF_ONLY_DEEPLINK: ${{ secrets.MAESTRO_USDF_ONLY_DEEPLINK }}
+          CONTACT_NAME: ${{ secrets.MAESTRO_CONTACT_NAME }}
+          CONTACT_PHONE: ${{ secrets.MAESTRO_CONTACT_PHONE }}
+
+      - name: Upload Maestro report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-report
+          path: |
+            maestro-report.xml
+            ~/.maestro/tests/**
+          if-no-files-found: ignore

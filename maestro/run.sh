@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Convenience runner for the Maestro E2E suite.
+# Convenience runner for the Maestro E2E suite (local and CI).
 #
 # Usage:
-#   maestro/run.sh <flow.yaml> [more flows...]
-#   maestro/run.sh maestro/account_navigation.yaml
+#   maestro/run.sh <flow.yaml> [more flows...]     # run specific flows (local dev)
+#   maestro/run.sh --tags smoke                    # run by tag, JUnit output (CI)
 #
-# Handles the fiddly setup that a fresh emulator/install needs:
-#   - loads SEED_PHRASE / LOGIN_DEEPLINK from maestro/.env (values may contain spaces)
+# Handles the fiddly setup a fresh emulator/install needs:
+#   - loads creds from maestro/.env when present; existing env vars win (CI supplies them)
 #   - approves App Links so https deeplinks route to the app instead of the browser
+#   - seeds the send-to-contact recipient into the emulator's contacts (idempotent)
 #   - targets a specific device when several are attached (DEVICE env, default emulator-5554)
 #
 # Prereqs (see maestro/README.md): emulator booted, debug app installed
@@ -19,20 +20,20 @@ APP_ID="com.flipcash.app.android"
 DEVICE="${DEVICE:-emulator-5554}"
 ENV_FILE="$SCRIPT_DIR/.env"
 
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo "error: $ENV_FILE not found (needs SEED_PHRASE and LOGIN_DEEPLINK)." >&2
-  exit 1
-fi
-
-# Load creds without word-splitting the space-containing seed phrase.
-SEED_PHRASE="$(grep '^SEED_PHRASE=' "$ENV_FILE" | cut -d= -f2-)"
-LOGIN_DEEPLINK="$(grep '^LOGIN_DEEPLINK=' "$ENV_FILE" | cut -d= -f2-)"
-TIPCARD_DEEPLINK="$(grep '^TIPCARD_DEEPLINK=' "$ENV_FILE" | cut -d= -f2-)"
+# Value from the current environment (CI secrets) if set, else from maestro/.env.
+cred() {
+  local name="$1" current="${!1:-}"
+  if [[ -n "$current" ]]; then printf '%s' "$current"; return; fi
+  [[ -f "$ENV_FILE" ]] && grep "^${name}=" "$ENV_FILE" | cut -d= -f2- || true
+}
+SEED_PHRASE="$(cred SEED_PHRASE)"
+LOGIN_DEEPLINK="$(cred LOGIN_DEEPLINK)"
+TIPCARD_DEEPLINK="$(cred TIPCARD_DEEPLINK)"
 # Dedicated USDF-only (reserves-only) account for gate tests.
-USDF_ONLY_DEEPLINK="$(grep '^USDF_ONLY_DEEPLINK=' "$ENV_FILE" | cut -d= -f2-)"
+USDF_ONLY_DEEPLINK="$(cred USDF_ONLY_DEEPLINK)"
 # On-Flipcash contact for send-to-contact tests (seeded into the emulator's contacts).
-CONTACT_NAME="$(grep '^CONTACT_NAME=' "$ENV_FILE" | cut -d= -f2-)"
-CONTACT_PHONE="$(grep '^CONTACT_PHONE=' "$ENV_FILE" | cut -d= -f2-)"
+CONTACT_NAME="$(cred CONTACT_NAME)"
+CONTACT_PHONE="$(cred CONTACT_PHONE)"
 
 # App Links verification does not survive a fresh install; approve so
 # https://app.flipcash.com/... deeplinks open the app, not Chrome.
@@ -63,9 +64,20 @@ seed_contact() {
 }
 seed_contact
 
-if [[ $# -eq 0 ]]; then
-  echo "usage: $0 <flow.yaml> [more flows...]" >&2
+# Build the maestro target: `--tags <list>` runs the whole suite filtered by tag with
+# JUnit output (CI); otherwise the args are treated as specific flow files (local dev).
+if [[ "${1:-}" == "--tags" ]]; then
+  shift
+  include="${1:-smoke}"
+  target=( --include-tags "$include"
+           --exclude-tags "${MAESTRO_EXCLUDE_TAGS:-spends-funds}"
+           --format junit --output "${MAESTRO_OUTPUT:-maestro-report.xml}"
+           "$SCRIPT_DIR" )
+elif [[ $# -eq 0 ]]; then
+  echo "usage: $0 <flow.yaml> [more flows...]   |   $0 --tags <tag>" >&2
   exit 1
+else
+  target=( "$@" )
 fi
 
 maestro --device "$DEVICE" test \
@@ -76,4 +88,4 @@ maestro --device "$DEVICE" test \
   -e CONTACT_NAME="$CONTACT_NAME" \
   -e CONTACT_PHONE="$CONTACT_PHONE" \
   -e BETA_FLAGS="${BETA_FLAGS:-}" \
-  "$@"
+  "${target[@]}"

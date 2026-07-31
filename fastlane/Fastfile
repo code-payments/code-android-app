@@ -26,6 +26,17 @@ platform :android do
       )
     end
 
+  desc "Run the Maestro E2E suite on a booted emulator (default tag: smoke)"
+    # Installs the debug build, then runs maestro/run.sh in tag mode. Test-account
+    # creds come from the environment (SEED_PHRASE, LOGIN_DEEPLINK, TIPCARD_DEEPLINK,
+    # USDF_ONLY_DEEPLINK, CONTACT_NAME, CONTACT_PHONE) — supplied by CI secrets or
+    # maestro/.env locally. Filter with MAESTRO_TAGS / MAESTRO_EXCLUDE_TAGS.
+    lane :flipcash_maestro do
+      gradle(task: ":apps:flipcash:app:installDebug")
+      tags = ENV.fetch("MAESTRO_TAGS", "smoke")
+      sh("cd .. && maestro/run.sh --tags #{tags.shellescape}")
+    end
+
 desc "Build a new version of Flipcash"
     lane :build_flipcash do
       gradle(

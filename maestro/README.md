@@ -170,6 +170,25 @@ and it runs):
 
 ## CI
 
-Not yet wired. Intended: a `flipcash_maestro` Fastlane lane running
-`--include-tags smoke --exclude-tags spends-funds` on a KVM emulator per PR, with the fuller
-set nightly. See `docs/superpowers/plans/2026-07-01-maestro-mcp-ui-testing.md`.
+Wired via the **`flipcash_maestro`** Fastlane lane and the **`.github/workflows/maestro.yml`**
+workflow:
+
+- The lane installs the debug build and runs `maestro/run.sh --tags <MAESTRO_TAGS>` (default
+  `smoke`, excluding `spends-funds`), emitting a JUnit report.
+- The workflow boots a KVM `x86_64` emulator (`reactivecircus/android-emulator-runner`), sets up
+  the same build secrets as the unit-test job, installs the Maestro CLI, runs the lane, and uploads
+  the report.
+- Triggers: **`workflow_dispatch`** (choose `tags`/`exclude_tags`) and a **nightly schedule**
+  (smoke). It's real-backend E2E against the shared account, so it's deliberately not on every PR;
+  add a `pull_request:` trigger to gate PRs (won't run on fork PRs, which lack secrets).
+
+Run locally the same way CI does:
+```bash
+MAESTRO_TAGS=smoke maestro/run.sh --tags smoke
+```
+
+**Required GitHub secrets** (test-account creds — the workflow maps them to the env vars
+`run.sh` reads): `MAESTRO_SEED_PHRASE`, `MAESTRO_LOGIN_DEEPLINK`, `MAESTRO_TIPCARD_DEEPLINK`,
+`MAESTRO_USDF_ONLY_DEEPLINK`, `MAESTRO_CONTACT_NAME`, `MAESTRO_CONTACT_PHONE` — plus the existing
+build secrets (`FLIPCASH2_GOOGLE_SERVICES`, `FLIPCASH_BUGSNAG_API_KEY`, `FLIPCASH_MIXPANEL_API_KEY`,
+`COINBASE_ONRAMP_API_KEY`, `GOOGLE_CLOUD_PROJECT_NUMBER`).
