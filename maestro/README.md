@@ -143,16 +143,19 @@ and it runs):
 
 - **Onboarding / account creation** uses the **backend test number** `+15005550000` with OTP `000000`
   (`create_account.yaml`). This is a backend test hook — no real SMS, no linkable identity.
-- **Linking a phone to enable the send flow** must use the **emulator's real number + real SMS**, since
-  the fake test number isn't a linkable identity for send-to-contact. The backend sends the code to the
-  number, and the app has **SMS auto-extraction**, so the code just needs to arrive at the emulator:
-  ```
-  # in the link-phone screen: enter the number, request the code, then deliver it —
-  adb emu sms send <sender> "Your Flipcash code is 123456"
-  ```
-  The app reads the code from the injected SMS and completes the link. This is **one-time per account**
-  (the phone stays linked), so it's a provisioning step, not something a `send_to_contact` run repeats —
-  once a dedicated send account is phone-linked, `send_to_contact.yaml` runs green (contact auto-seeded).
+- **Linking a phone to enable the send flow** — status: **blocked on code delivery.** What's verified:
+  - A valid-format number is required (the emulator's own `555-521-5554` is an invalid NPA and is
+    rejected at phone entry). A number like `+1 415-555-0100` is accepted and the code is requested.
+  - The app uses Android's **SMS User Consent** reader: an SMS delivered via
+    `adb emu sms send <sender> "…code is 123456"` lands in the inbox and the app prompts to read it and
+    auto-fills the code. **This path works.**
+  - **But the backend validates the real code** — an injected placeholder is rejected
+    ("Please enter a valid code"). The real code is sent to the entered number, which does **not** route
+    to the emulator, so it never arrives and can't be read.
+  - **To unblock:** the dev/staging backend must route the verification SMS for the test number **to this
+    emulator** (e.g. a webhook that calls `adb emu sms send`), so the real code lands in the inbox and the
+    app reads it. Once that exists, phone-linking is one-time per account and `send_to_contact.yaml` runs
+    green (contact is auto-seeded by the runner).
 - **Full Coinbase purchase** — the flow reaches the onramp; completing it needs phone verification
   (which links a phone to the shared account and would flip the send flows) plus driving the Google
   Pay sandbox sheet. Note: **iOS doesn't automate the payment either** — its E2E stops at the same
