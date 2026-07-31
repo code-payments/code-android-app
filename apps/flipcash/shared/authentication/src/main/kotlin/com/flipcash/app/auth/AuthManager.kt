@@ -5,7 +5,6 @@ import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.contacts.ContactCoordinator
-import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.push.PushTokenProvider
@@ -258,7 +257,6 @@ class AuthManager @Inject constructor(
                         // If phone verification is required but not yet completed, onboarding
                         // should resume at the phone-verification step (which precedes the
                         // access key) rather than jumping ahead to the access key.
-                        val phoneVerificationEnabled = featureFlags.get(FeatureFlag.OnboardingPhoneVerification)
                         val phoneUnverified = userManager.profile?.verifiedPhoneNumber == null
                         if (flags != null) {
                             userManager.set(flags)
@@ -266,7 +264,7 @@ class AuthManager @Inject constructor(
                                 userManager.set(AuthState.Ready)
                             } else {
                                 val resumePoint = when {
-                                    !seenAccessKey && (phoneVerificationEnabled || flags.enablePhoneNumberSend) && phoneUnverified ->
+                                    !seenAccessKey && phoneUnverified ->
                                         AuthState.ResumePoint.PhoneNumber
                                     !seenAccessKey -> AuthState.ResumePoint.AccessKey
                                     flags.requiresIapForRegistration -> AuthState.ResumePoint.AccessKeyThenPurchase
@@ -282,7 +280,7 @@ class AuthManager @Inject constructor(
                             } else {
                                 val resumePoint = when {
                                     seenAccessKey -> AuthState.ResumePoint.PostAccessKey
-                                    phoneVerificationEnabled && phoneUnverified -> AuthState.ResumePoint.PhoneNumber
+                                    phoneUnverified -> AuthState.ResumePoint.PhoneNumber
                                     else -> AuthState.ResumePoint.AccessKey
                                 }
                                 trace(tag = "Onboarding", message = "Resuming onboarding at $resumePoint (flags unavailable)", type = TraceType.Process)

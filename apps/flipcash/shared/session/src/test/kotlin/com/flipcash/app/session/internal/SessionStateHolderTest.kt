@@ -43,12 +43,11 @@ class SessionStateHolderTest {
     @Test
     fun `reset clears account-scoped state`() {
         val holder = holder()
-        holder.update { it.copy(hasGiveableBalance = true, contactDmUnreadCount = 3, isPhoneNumberSendEnabled = true) }
+        holder.update { it.copy(hasGiveableBalance = true, contactDmUnreadCount = 3) }
         holder.reset()
         val state = holder.state.value
         assertEquals(false, state.hasGiveableBalance)
         assertEquals(0, state.contactDmUnreadCount)
-        assertEquals(false, state.isPhoneNumberSendEnabled)
     }
 
     @Test

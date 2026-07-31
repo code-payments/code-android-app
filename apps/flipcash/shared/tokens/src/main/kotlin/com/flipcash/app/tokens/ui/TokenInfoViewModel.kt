@@ -60,7 +60,6 @@ class TokenInfoViewModel @Inject constructor(
         val mint: Mint? = null,
         val token: Loadable<Token> = Loadable.Loading(),
         val marketCap: Fiat? = null,
-        val marketCapChartEnabled: Boolean = false,
         val balance: LocalFiat = LocalFiat.Zero,
         val showAppreciation: Boolean = false,
         val showTransactionHistory: Boolean = false,
@@ -84,7 +83,6 @@ class TokenInfoViewModel @Inject constructor(
 
     sealed interface Event {
         data class CanGiveUsdf(val enabled: Boolean): Event
-        data class MarketCapChartEnabled(val enabled: Boolean) : Event
         data class OnMintProvided(val mint: Mint, val shortFall: Fiat? = null) : Event
         data class OnTokenChanged(val token: Loadable<Token>, val shortFall: Fiat? = null) : Event
         data class OnMarketCapChanged(val mcap: Fiat?) : Event
@@ -113,11 +111,6 @@ class TokenInfoViewModel @Inject constructor(
         features.observe(FeatureFlag.GiveUsdf)
             .onEach {
                 dispatchEvent(Event.CanGiveUsdf(it))
-            }.launchIn(viewModelScope)
-
-        features.observe(FeatureFlag.MarketCapChart)
-            .onEach {
-                dispatchEvent(Event.MarketCapChartEnabled(it))
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -289,9 +282,8 @@ class TokenInfoViewModel @Inject constructor(
                 val mint = stateFlow.value.mint ?: return@onEach
                 // A buy can be funded by USDF reserves or any other currency the user
                 // holds; only send them to deposit options first when they have nothing
-                // to fund the swap with. This check is only done if AddMoneyUX is enabled.
-                val addMoney = features.get(FeatureFlag.AddMoneyUX)
-                if (!stateFlow.value.hasFundableBalance && addMoney) {
+                // to fund the swap with.
+                if (!stateFlow.value.hasFundableBalance) {
                     BottomBarManager.showInfo(
                         title = resources.getString(R.string.title_noBalanceYet),
                         message = resources.getString(R.string.description_noBalanceYetToBuy),
@@ -316,11 +308,6 @@ class TokenInfoViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .mapNotNull {
-                val depositFirstUx = features.get(FeatureFlag.AddMoneyUX)
-                if (!depositFirstUx) {
-                    return@mapNotNull AppRoute.Transfers.Deposit(showOtherOptions = false)
-                }
-
                 // popToRoot = false so finishing the deposit returns to this token
                 // info screen rather than dismissing the whole sheet.
                 purchaseMethodController.presentDepositOptions(popToRoot = false) }
@@ -338,7 +325,6 @@ class TokenInfoViewModel @Inject constructor(
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.MarketCapChartEnabled -> { state -> state.copy(marketCapChartEnabled = event.enabled) }
                 is Event.OnMintProvided -> { state -> state.copy(mint = event.mint) }
                 is Event.OnTokenChanged -> { state -> state.copy(token = event.token) }
                 is Event.OnMarketCapChanged -> { state -> state.copy(marketCap = event.mcap) }

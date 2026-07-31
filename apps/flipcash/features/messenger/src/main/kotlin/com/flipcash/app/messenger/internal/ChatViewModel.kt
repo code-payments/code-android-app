@@ -628,10 +628,9 @@ internal class ChatViewModel @Inject constructor(
             // backs the chat. The final send branches on that type (see Event.OnSendRequested).
             .filter { stateFlow.value.participant != null }
             .onEach {
-                val addMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
                 if (!tokenCoordinator.hasGiveableBalance()) {
                     if (!tokenCoordinator.hasBalance()) {
-                        presentAddMoney(addMoney)
+                        presentAddMoney()
                     } else {
                         presentDiscoverCurrencies()
                     }
@@ -798,29 +797,15 @@ internal class ChatViewModel @Inject constructor(
         }
     }
 
-    private fun presentAddMoney(addMoneyEnabled: Boolean) {
-        val message = if (addMoneyEnabled) {
-            resources.getString(R.string.description_noBalanceYetToSend)
-        } else {
-            resources.getString(R.string.description_noBalanceYetDiscover)
-        }
-        val cta = if (addMoneyEnabled) {
-            resources.getString(R.string.action_addMoney)
-        } else {
-            resources.getString(R.string.action_discover)
-        }
+    private fun presentAddMoney() {
         BottomBarManager.showInfo(
             title = resources.getString(R.string.title_noBalanceYet),
-            message = message,
+            message = resources.getString(R.string.description_noBalanceYetToSend),
             actions = listOf(
                 BottomBarAction(
-                    text = cta
+                    text = resources.getString(R.string.action_addMoney)
                 ) {
-                    if (addMoneyEnabled) {
-                        dispatchEvent(Event.PresentDepositOptions)
-                    } else {
-                        dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery))
-                    }
+                    dispatchEvent(Event.PresentDepositOptions)
                 },
             ),
             showCancel = true,

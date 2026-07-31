@@ -4,8 +4,6 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.features.login.R
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.user.UserManager
@@ -16,7 +14,6 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
@@ -38,7 +35,6 @@ class LoginViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalyticsService,
     userManager: UserManager,
-    featureFlags: FeatureFlagController,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<LoginViewModel.State, LoginViewModel.Event>(
     initialState = State(),
@@ -72,16 +68,11 @@ class LoginViewModel @Inject constructor(
     private val createInFlight = AtomicBoolean(false)
 
     init {
-        combine(
-            userManager.state,
-            featureFlags.observe(FeatureFlag.OnboardingPhoneVerification),
-        ) { userState, phoneVerificationFlag ->
-            val enabled = phoneVerificationFlag || userState.flags?.enablePhoneNumberSend == true
-            val hasLinkedPhone = userState.userProfile?.verifiedPhoneNumber != null
-            enabled && !hasLinkedPhone
-        }.onEach { needed ->
-            dispatchEvent(Event.PhoneVerificationUpdated(needed))
-        }.launchIn(viewModelScope)
+        userManager.state
+            .map { it.userProfile?.verifiedPhoneNumber == null }
+            .onEach { needed ->
+                dispatchEvent(Event.PhoneVerificationUpdated(needed))
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnLogoTapped>()

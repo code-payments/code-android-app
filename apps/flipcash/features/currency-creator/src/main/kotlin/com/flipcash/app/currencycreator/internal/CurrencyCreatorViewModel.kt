@@ -16,8 +16,6 @@ import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.features.currencycreator.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ModerationController
@@ -92,7 +90,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     private val resources: ResourceHelper,
     val contentReader: ContentReader,
     val purchaseMethodController: PurchaseMethodController,
-    private val featureFlags: FeatureFlagController,
     private val currencyCreatorCoordinator: CurrencyCreatorCoordinator,
     private val exchange: Exchange,
 ) : BaseViewModel<CurrencyCreatorViewModel.State, CurrencyCreatorViewModel.Event>(
@@ -203,45 +200,42 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnIntroContinue>()
             .onEach {
-                val addMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
-                if (addMoney) {
-                    // A currency can now be funded by any held currency, not just USDF reserves.
-                    // No balance at all gates first; having some balance but none large enough to
-                    // cover the cost gates second.
-                    val totalCost = stateFlow.value.totalCost
-                    val balances = tokenCoordinator.tokenBalances.firstOrNull().orEmpty().map { it.balance }
+                // A currency can now be funded by any held currency, not just USDF reserves.
+                // No balance at all gates first; having some balance but none large enough to
+                // cover the cost gates second.
+                val totalCost = stateFlow.value.totalCost
+                val balances = tokenCoordinator.tokenBalances.firstOrNull().orEmpty().map { it.balance }
 
-                    if (balances.none { it.hasDisplayableValue }) {
-                        // No balance in any currency — require a deposit first.
-                        BottomBarManager.showInfo(
-                            title = resources.getString(R.string.title_noBalanceYet),
-                            message = resources.getString(R.string.description_noBalanceYetToCreate),
-                            actions = listOf(
-                                BottomBarAction(
-                                    text = resources.getString(R.string.action_addMoney)
-                                ) {
-                                    dispatchEvent(Event.PresentDepositOptions)
-                                },
-                            ),
-                            showCancel = true,
-                        )
-                        return@onEach
-                    } else if (balances.none { it > totalCost }) {
-                        // Has balance, but no single currency covers the cost — require a top-up.
-                        BottomBarManager.showInfo(
-                            title = resources.getString(R.string.title_insufficientBalance),
-                            message = resources.getString(R.string.description_insufficientBalanceToCreate),
-                            actions = listOf(
-                                BottomBarAction(
-                                    text = resources.getString(R.string.action_addMoreMoney)
-                                ) {
-                                    dispatchEvent(Event.PresentDepositOptions)
-                                },
-                            ),
-                            showCancel = true,
-                        )
-                        return@onEach
-                    }
+                if (balances.none { it.hasDisplayableValue }) {
+                    // No balance in any currency — require a deposit first.
+                    BottomBarManager.showInfo(
+                        title = resources.getString(R.string.title_noBalanceYet),
+                        message = resources.getString(R.string.description_noBalanceYetToCreate),
+                        actions = listOf(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_addMoney)
+                            ) {
+                                dispatchEvent(Event.PresentDepositOptions)
+                            },
+                        ),
+                        showCancel = true,
+                    )
+                    return@onEach
+                } else if (balances.none { it > totalCost }) {
+                    // Has balance, but no single currency covers the cost — require a top-up.
+                    BottomBarManager.showInfo(
+                        title = resources.getString(R.string.title_insufficientBalance),
+                        message = resources.getString(R.string.description_insufficientBalanceToCreate),
+                        actions = listOf(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_addMoreMoney)
+                            ) {
+                                dispatchEvent(Event.PresentDepositOptions)
+                            },
+                        ),
+                        showCancel = true,
+                    )
+                    return@onEach
                 }
 
                 dispatchEvent(Event.AdvanceFromInfo)
@@ -250,9 +244,6 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .mapNotNull {
-                if (!featureFlags.get(FeatureFlag.AddMoneyUX)) {
-                    return@mapNotNull AppRoute.Transfers.Deposit(showOtherOptions = false)
-                }
                 // popToRoot = false so finishing the deposit returns to the currency
                 // creator (which pushed this flow) rather than tearing down the whole
                 // sheet and losing the user's place in the flow.

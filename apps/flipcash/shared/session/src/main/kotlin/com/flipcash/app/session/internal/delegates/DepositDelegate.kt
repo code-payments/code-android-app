@@ -3,8 +3,6 @@ package com.flipcash.app.session.internal.delegates
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.session.DepositOperations
 import com.flipcash.app.session.internal.SessionStateHolder
@@ -17,8 +15,6 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,7 +24,6 @@ import javax.inject.Singleton
  *
  * This delegate owns the "getting money into the wallet" domain:
  * - Presenting deposit/discovery options when the wallet is empty.
- * - Observing the `depositFirstUx` feature flag.
  * - Executing and cancelling USDC deposit sweeps on lifecycle transitions.
  *
  * @see com.flipcash.app.session.internal.RealSessionController
@@ -42,43 +37,29 @@ class DepositDelegate @Inject constructor(
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalyticsService,
     dispatchers: DispatcherProvider,
-    featureFlagController: FeatureFlagController,
 ) : DepositOperations {
 
     private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
 
-    init {
-        featureFlagController.observe(FeatureFlag.AddMoneyUX)
-            .onEach { enabled -> stateHolder.update { it.copy(addMoneyUx = enabled) } }
-            .launchIn(scope)
-    }
-
     override fun presentDepositOptions(onDismiss: (() -> Unit)?, onRoute: ((AppRoute) -> Unit)?) {
-        // Prompt to add money only when the wallet is empty and add-money is available.
-        // Otherwise the user has funds (e.g. reserves) but nothing giveable — or can't
-        // add money at all — so steer them to discover/buy a currency.
-        val addMoneyEnabled = stateHolder.current.addMoneyUx
+        // Prompt to add money only when the wallet is empty. Otherwise the user has funds
+        // (e.g. reserves) but nothing giveable, so steer them to discover/buy a currency.
         val hasBalance = stateHolder.current.hasBalance
 
         if (!hasBalance) {
-            presentAddMoney(addMoneyEnabled, onRoute, onDismiss)
+            presentAddMoney(onRoute, onDismiss)
         } else {
             presentDiscoverCurrencies(onRoute, onDismiss)
         }
     }
 
     private fun presentAddMoney(
-        addMoneyEnabled: Boolean,
         onRoute: ((AppRoute) -> Unit)?,
         onDismiss: (() -> Unit)?
     ) {
         BottomBarManager.showInfo(
             title = resources.getString(R.string.title_noBalanceYet),
-            message = if (addMoneyEnabled) {
-                resources.getString(R.string.description_noBalanceYetToGive)
-            } else {
-                resources.getString(R.string.description_noBalanceYetDiscover)
-            },
+            message = resources.getString(R.string.description_noBalanceYetToGive),
             actions = listOf(
                 BottomBarAction(
                     text = resources.getString(R.string.action_addMoney)

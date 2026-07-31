@@ -96,12 +96,11 @@ import kotlin.time.Duration.Companion.milliseconds
  *    Same as (1) but initialStack resumes at the AccessKey or Purchase step.
  * ```
  *
- * ¹ Contact permission is shown only when [FeatureFlag.PhoneNumberSend] is enabled
- *   **and** [FeatureFlag.ContactPickerMode] is off. When ContactPickerMode is on,
- *   contacts are accessed via the system picker at call site (no READ_CONTACTS needed).
- *   Already-granted permissions are auto-skipped via [PermissionsPhaseFlowHost].
- * ² Phone verification is shown only when [FeatureFlag.OnboardingPhoneVerification] is enabled
- *   and no phone is linked. Skipped entirely when the flag is off.
+ * ¹ Contact permission is shown only when [FeatureFlag.ContactPickerMode] is off. When
+ *   ContactPickerMode is on, contacts are accessed via the system picker at call site
+ *   (no READ_CONTACTS needed). Already-granted permissions are auto-skipped via
+ *   [PermissionsPhaseFlowHost].
+ * ² Phone verification is shown only when no phone is linked.
  *   Uses `target` to replace the nav stack with AccessKey on success.
  */
 @Composable
@@ -146,15 +145,10 @@ private fun PermissionsPhaseFlowHost(
 
     val featureFlags = LocalFeatureFlags.current
     val userManager = LocalUserManager.current
-    val userFlags = userManager?.state?.collectAsStateWithLifecycle()?.value?.flags
-    val phoneNumberSendFlagEnabled by featureFlags.observe(FeatureFlag.PhoneNumberSend).collectAsStateWithLifecycle()
-    val phoneNumberSendEnabled = remember(userFlags?.enablePhoneNumberSend, phoneNumberSendFlagEnabled) {
-        phoneNumberSendFlagEnabled || userFlags?.enablePhoneNumberSend == true
-    }
     val contactPickerMode by featureFlags.observe(FeatureFlag.ContactPickerMode).collectAsStateWithLifecycle()
 
     val permissionsSteps = buildList {
-        if (!route.skipContacts && phoneNumberSendEnabled && !contactPickerMode) add(OnboardingStep.ContactPermission)
+        if (!route.skipContacts && !contactPickerMode) add(OnboardingStep.ContactPermission)
         add(OnboardingStep.NotificationPermission)
     }
 
@@ -166,7 +160,7 @@ private fun PermissionsPhaseFlowHost(
         val notificationsGranted = !notificationConfig.requiresRuntimeRequest ||
             checker.isGranted(notificationConfig.permission)
         when {
-            !route.skipContacts && phoneNumberSendEnabled && !contactsGranted -> 0
+            !route.skipContacts && !contactsGranted -> 0
             !notificationsGranted -> permissionsSteps.indexOfFirst {
                 it is OnboardingStep.NotificationPermission
             }.coerceAtLeast(0)

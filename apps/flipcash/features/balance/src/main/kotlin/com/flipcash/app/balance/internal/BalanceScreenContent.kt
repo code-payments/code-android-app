@@ -48,7 +48,6 @@ internal fun BalanceScreen(
     val balanceState by viewModel.stateFlow.collectAsStateWithLifecycle()
     val tokenState by tokenViewModel.stateFlow.collectAsStateWithLifecycle()
     BalanceScreenContent(
-        addMoneyUx = balanceState.depositFirstUx,
         tokenState = tokenState,
         dispatchEvent = viewModel::dispatchEvent
     )
@@ -56,7 +55,6 @@ internal fun BalanceScreen(
 
 @Composable
 private fun BalanceScreenContent(
-    addMoneyUx: Boolean = false,
     tokenState: SelectTokenViewModel.State,
     dispatchEvent: (BalanceViewModel.Event) -> Unit
 ) {
@@ -109,11 +107,7 @@ private fun BalanceScreenContent(
 
                         Text(
                             modifier = Modifier.fillMaxWidth(0.6f),
-                            text = if (addMoneyUx) {
-                                stringResource(R.string.description_noBalanceYetForBalance)
-                            } else {
-                                stringResource(R.string.description_noBalanceYetDiscover)
-                            },
+                            text = stringResource(R.string.description_noBalanceYetForBalance),
                             style = CodeTheme.typography.textSmall,
                             color = CodeTheme.colors.textSecondary,
                             textAlign = TextAlign.Center,
@@ -127,11 +121,7 @@ private fun BalanceScreenContent(
                                 .padding(top = CodeTheme.dimens.grid.x2)
                                 .align(Alignment.CenterHorizontally),
                             contentPadding = PaddingValues(),
-                            text = if (addMoneyUx) {
-                                stringResource(R.string.action_addMoney)
-                            } else {
-                                stringResource(R.string.action_discoverCurrencies)
-                            },
+                            text = stringResource(R.string.action_addMoney),
                             shape = CircleShape,
                         )
                     }
@@ -146,22 +136,12 @@ private fun BalanceScreenContent(
                             .padding(horizontal = CodeTheme.dimens.inset)
                             .padding(bottom = CodeTheme.dimens.grid.x3)
                             .navigationBarsPadding(),
-                        text = if (addMoneyUx) {
-                            stringResource(R.string.action_addMoney)
-                        } else {
-                            stringResource(R.string.action_discoverCurrencies)
-                        },
+                        text = stringResource(R.string.action_addMoney),
                         buttonState = ButtonState.Filled10,
                         onClick = {
-                            if (addMoneyUx) {
-                                dispatchEvent(
-                                    BalanceViewModel.Event.PresentDepositOptions
-                                )
-                            } else {
-                                dispatchEvent(
-                                    BalanceViewModel.Event.OpenScreen(AppRoute.Token.Discovery)
-                                )
-                            }
+                            dispatchEvent(
+                                BalanceViewModel.Event.PresentDepositOptions
+                            )
                         }
                     )
                 }
@@ -196,7 +176,6 @@ private fun Preview_BalanceScreen_Empty() {
     ) {
         Box(modifier = Modifier.background(CodeTheme.colors.background)) {
             BalanceScreenContent(
-                addMoneyUx = true,
                 tokenState = SelectTokenViewModel.State(
                     purpose = TokenPurpose.Balance,
                     tokens = emptyList()

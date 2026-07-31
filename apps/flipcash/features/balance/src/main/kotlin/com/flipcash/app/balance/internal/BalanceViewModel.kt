@@ -4,8 +4,6 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -29,7 +27,6 @@ internal class BalanceViewModel @Inject constructor(
     userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
     purchaseMethodController: PurchaseMethodController,
-    featureFlags: FeatureFlagController,
     analytics: FlipcashAnalyticsService,
 ) : BaseViewModel<BalanceViewModel.State, BalanceViewModel.Event>(
     initialState = State(),
@@ -37,12 +34,10 @@ internal class BalanceViewModel @Inject constructor(
     defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
-        val depositFirstUx: Boolean = false,
         val preferredOnRampProvider: OnRampProvider.Defined? = null,
     )
 
     sealed interface Event {
-        data class DepositFirstUxEnabled(val enabled: Boolean): Event
         data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider.Defined?) : Event
 
         data object OpenCurrencySelection : Event
@@ -52,10 +47,6 @@ internal class BalanceViewModel @Inject constructor(
     }
 
     init {
-        featureFlags.observe(FeatureFlag.AddMoneyUX)
-            .onEach { dispatchEvent(Event.DepositFirstUxEnabled(it)) }
-            .launchIn(viewModelScope)
-
         userManager.state
             .filter { it.authState is AuthState.Ready }
             .flatMapLatest { userFlags.resolvedFlags }
@@ -65,12 +56,7 @@ internal class BalanceViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
-            .map { stateFlow.value.depositFirstUx }
-            .mapNotNull { depositFirstUx ->
-                if (!depositFirstUx) {
-                    dispatchEvent(Event.OpenScreen(AppRoute.Token.Discovery))
-                    return@mapNotNull null
-                }
+            .mapNotNull {
                 analytics.addMoneyOpened(Analytics.AddMoneySource.Balance)
                 purchaseMethodController.presentDepositOptions(popToRoot = true) }
             .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
@@ -86,7 +72,6 @@ internal class BalanceViewModel @Inject constructor(
                 }
                 Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
-                is Event.DepositFirstUxEnabled -> { state -> state.copy(depositFirstUx = event.enabled) }
             }
         }
     }

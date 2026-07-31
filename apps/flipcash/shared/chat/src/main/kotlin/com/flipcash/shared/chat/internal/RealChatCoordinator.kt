@@ -5,8 +5,6 @@ package com.flipcash.shared.chat.internal
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
@@ -32,14 +30,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -65,8 +61,7 @@ import kotlin.time.Duration.Companion.seconds
  *   All cross-delegate wiring is visible in one place.
  * - **Lifecycle methods** — [onStart]/[onStop] are inherently cross-cutting
  *   (stream connect/disconnect, heartbeat start/stop, active-chat save/restore).
- * - **Flow observers** — network reconnect and feature-flag transitions that
- *   gate whether the chat subsystem should be active.
+ * - **Flow observers** — network reconnect re-syncing the chat feed.
  *
  * Delegates require [initialize] with a shared [CoroutineScope] before use;
  * this happens in [onUserLoggedIn].
@@ -79,7 +74,6 @@ class RealChatCoordinator @Inject constructor(
     private val messagingDelegate: MessagingDelegate,
     private val stateHolder: ChatStateHolder,
     private val userManager: UserManager,
-    private val featureFlags: FeatureFlagController,
     private val networkObserver: NetworkConnectivityListener,
     private val dispatchers: DispatcherProvider,
 ) : ChatCoordinator,
@@ -101,7 +95,6 @@ class RealChatCoordinator @Inject constructor(
     private var supervisorJob = SupervisorJob()
     private var scope = CoroutineScope(dispatchers.IO + supervisorJob)
     private val cluster = MutableStateFlow<AccountCluster?>(null)
-    private var flagObserverJob: Job? = null
     private var networkObserverJob: Job? = null
     private var backgroundedActiveChat: ChatId? = null
 
@@ -127,7 +120,6 @@ class RealChatCoordinator @Inject constructor(
         feedDelegate.syncFeed()
         eventStreamDelegate.open()
         eventStreamDelegate.startHeartbeat { feedDelegate.syncFeed() }
-        observeFeatureFlag()
     }
 
     // endregion
@@ -172,7 +164,6 @@ class RealChatCoordinator @Inject constructor(
             .filter { it.connected }
             .debounce(1.seconds)
             .onEach {
-                if (!isChatEnabled()) return@onEach
                 trace(tag = TAG, message = "Network connected, re-syncing chat feed", type = TraceType.Process)
                 feedDelegate.syncFeed()
                 eventStreamDelegate.open()
@@ -186,7 +177,7 @@ class RealChatCoordinator @Inject constructor(
             backgroundedActiveChat = null
         }
         scope.launch {
-            if (cluster.value != null && isChatEnabled()) {
+            if (cluster.value != null) {
                 trace(tag = TAG, message = "Lifecycle resumed, syncing chat feed", type = TraceType.Process)
                 feedDelegate.syncFeed()
                 eventStreamDelegate.open()
@@ -210,7 +201,6 @@ class RealChatCoordinator @Inject constructor(
         eventStreamDelegate.stopHeartbeat()
         eventStreamDelegate.close()
         feedDelegate.cancelJobs()
-        flagObserverJob?.cancel()
         networkObserverJob?.cancel()
         stateHolder.reset()
         eventStreamDelegate.clearAll()
@@ -222,32 +212,4 @@ class RealChatCoordinator @Inject constructor(
 
     // endregion
 
-    // region Internal
-
-    private suspend fun isChatEnabled(): Boolean {
-        val featureFlag = featureFlags.get(FeatureFlag.PhoneNumberSend)
-        val serverFlag = userManager.state.value.flags?.enablePhoneNumberSend == true
-        return featureFlag || serverFlag
-    }
-
-    private fun observeFeatureFlag() {
-        flagObserverJob?.cancel()
-        flagObserverJob = combine(
-            featureFlags.observe(FeatureFlag.PhoneNumberSend),
-            userManager.state.map { it.flags?.enablePhoneNumberSend == true },
-        ) { featureFlag, serverFlag -> featureFlag || serverFlag }
-            .distinctUntilChanged()
-            .filter { it }
-            .onEach {
-                if (cluster.value != null) {
-                    trace(tag = TAG, message = "Chat feature enabled, syncing feed", type = TraceType.Process)
-                    feedDelegate.syncFeed()
-                    eventStreamDelegate.open()
-                    eventStreamDelegate.startHeartbeat { feedDelegate.syncFeed() }
-                }
-            }
-            .launchIn(scope)
-    }
-
-    // endregion
 }

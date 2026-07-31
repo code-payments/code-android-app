@@ -273,13 +273,6 @@ class RealSessionController @Inject constructor(
                 stateHolder.update { it.copy(tokens = tokens) }
             }.launchIn(scope)
 
-        combine(
-            featureFlagController.observe(FeatureFlag.PhoneNumberSend),
-            userManager.state.map { it.flags?.enablePhoneNumberSend == true }
-        ) { beta, server -> beta || server }
-            .onEach { enabled -> stateHolder.update { it.copy(isPhoneNumberSendEnabled = enabled) } }
-            .launchIn(scope)
-
         featureFlagController.observe(FeatureFlag.Tipping)
             .onEach { enabled -> stateHolder.update { it.copy(isTippingEnabled = enabled) } }
             .launchIn(scope)
