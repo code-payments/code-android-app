@@ -1,0 +1,28 @@
+appId: com.flipcash.app.android
+name: "Tip chat — open conversation & send a message"
+tags:
+  - tipping
+---
+# Seed-login into the test account (which has tips set up + a tip chat) with the
+# tipping beta flag enabled at launch.
+- runFlow:
+    file: subflows/login_with_flags.yaml
+    env:
+      BETA_FLAGS: "tipping_enabled"
+
+# Tips tab lists tip conversations; open the first one.
+- tapOn: "Tips"
+- extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
+- assertVisible: { id: send_contact_row }
+- tapOn: { id: send_contact_row, index: 0 }
+
+# In the tip conversation: the tip event and the message composer are present.
+- extendedWaitUntil: { visible: { id: chat_screen }, timeout: 8000 }
+- assertVisible: { id: chat_message_input }
+- assertVisible: "You tipped"
+
+# Send a message and confirm it lands in the transcript.
+- tapOn: { id: chat_message_input }
+- inputText: "gg"
+- tapOn: { id: chat_send_icon }
+- extendedWaitUntil: { visible: { text: "gg" }, timeout: 8000 }
