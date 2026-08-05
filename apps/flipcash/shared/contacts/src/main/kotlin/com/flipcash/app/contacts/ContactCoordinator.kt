@@ -19,8 +19,6 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.contacts.device.DeviceContactLookup
 import com.flipcash.app.contacts.device.PickedContactData
 import com.flipcash.app.contacts.device.ScopeAwareContactReader
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.phone.PhoneUtils
 import com.flipcash.app.contacts.sync.ContactChecksum
 import com.flipcash.app.core.contacts.DeviceContact
@@ -82,7 +80,6 @@ class ContactCoordinator @Inject constructor(
     private val phoneUtils: PhoneUtils,
     private val contactDataSource: ContactDataSource,
     private val userManager: UserManager,
-    private val featureFlagController: FeatureFlagController,
     private val dispatchers: DispatcherProvider,
     private val analytics: FlipcashAnalyticsService,
 ) : SessionListener, DefaultLifecycleObserver {
@@ -280,11 +277,6 @@ class ContactCoordinator @Inject constructor(
         scope.launch {
             if (!linkMutex.tryLock()) return@launch
             try {
-                val featureFlag = featureFlagController.get(FeatureFlag.PhoneNumberSend)
-                val serverFlag = userManager.state.value.flags?.enablePhoneNumberSend == true
-                val enabled = featureFlag || serverFlag
-                if (!enabled) return@launch
-
                 val alreadyLinked = contactPrefs.data
                     .map { it[KEY_LINKED_FOR_PAYMENT] ?: false }
                     .first()

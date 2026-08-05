@@ -5,8 +5,6 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.funding.PaymentAction
 import com.flipcash.app.funding.PurchaseMethod
 import com.flipcash.app.funding.PurchaseMethodController
@@ -50,7 +48,6 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class InternalPurchaseMethodController @Inject constructor(
-    features: FeatureFlagController,
     private val userFlags: UserFlagsCoordinator,
     reservesBalanceProvider: ReservesBalanceProvider,
     exchange: Exchange,
@@ -70,14 +67,10 @@ class InternalPurchaseMethodController @Inject constructor(
     private val _dismissals = MutableSharedFlow<Unit>()
 
     init {
-        combine(
-            features.observe(FeatureFlag.CoinbaseOnRamp),
-            userFlags.resolvedFlags
-                .map { it.supportedOnRampProviders.effectiveValue }
-                .map { it.contains(OnRampProvider.Coinbase(OnRampType.Virtual)) }
-        ) { enabled, available ->
-            enabled && available
-        }.onEach { coinbaseAvailable ->
+        userFlags.resolvedFlags
+            .map { it.supportedOnRampProviders.effectiveValue }
+            .map { it.contains(OnRampProvider.Coinbase(OnRampType.Virtual)) }
+            .onEach { coinbaseAvailable ->
             _state.update { it.copy(coinbaseOnRampAvailable = coinbaseAvailable) }
         }.launchIn(scope)
 

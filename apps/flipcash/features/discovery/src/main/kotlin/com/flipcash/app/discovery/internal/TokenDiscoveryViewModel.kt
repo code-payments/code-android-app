@@ -3,8 +3,6 @@ package com.flipcash.app.discovery.internal
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.extensions.onResult
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.discovery.R
 import com.getcode.opencode.controllers.CurrencyController
@@ -43,7 +41,6 @@ internal class TokenDiscoveryViewModel @Inject constructor(
     private val currencyController: CurrencyController,
     private val userFlags: UserFlagsCoordinator,
     private val resources: ResourceHelper,
-    featureFlags: FeatureFlagController,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<TokenDiscoveryViewModel.State, TokenDiscoveryViewModel.Event>(
     initialState = State(),
@@ -52,14 +49,12 @@ internal class TokenDiscoveryViewModel @Inject constructor(
 ) {
 
     data class State(
-        val createEnabled: Boolean = false,
         val category: DiscoverCategory? = null,
         val tokens: Loadable<List<LeaderboardEntry>> = Loadable.Loading(),
         val minimumHolderAmount: Fiat = 10.toFiat(),
     )
 
     sealed interface Event {
-        data class OnCreateAllowed(val enabled: Boolean) : Event
         data class OnMinimumHolderAmountChanged(val amount: Fiat): Event
         data object LearnAboutLeaderboard: Event
         data class OnCategorySelected(
@@ -79,10 +74,6 @@ internal class TokenDiscoveryViewModel @Inject constructor(
         userFlags.resolvedFlags
             .map { it.minimumHolderAmountForLeaderboard.effectiveValue }
             .onEach { dispatchEvent(Event.OnMinimumHolderAmountChanged(it)) }
-            .launchIn(viewModelScope)
-
-        featureFlags.observe(FeatureFlag.CurrencyCreator)
-            .onEach { dispatchEvent(Event.OnCreateAllowed(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -150,10 +141,6 @@ internal class TokenDiscoveryViewModel @Inject constructor(
 
                 is Event.OnMinimumHolderAmountChanged -> { state ->
                     state.copy(minimumHolderAmount = event.amount)
-                }
-
-                is Event.OnCreateAllowed -> { state ->
-                    state.copy(createEnabled = event.enabled)
                 }
 
                 is Event.OnTokensUpdated -> { state ->

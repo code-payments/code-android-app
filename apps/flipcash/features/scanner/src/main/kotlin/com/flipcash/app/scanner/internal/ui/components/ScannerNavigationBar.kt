@@ -31,11 +31,10 @@ internal fun ScannerNavigationBar(
         NavBarConfig.deserialize(navBarConfigString)
     }
 
-    val effectiveConfig = remember(config, state.isPhoneNumberSendEnabled, state.isTippingEnabled) {
+    val effectiveConfig = remember(config, state.isTippingEnabled) {
         val buttons = config.order
             .filter { option ->
                 when (option) {
-                    NavBarButton.Send -> state.isPhoneNumberSendEnabled
                     NavBarButton.Tips -> state.isTippingEnabled
                     else -> true
                 }

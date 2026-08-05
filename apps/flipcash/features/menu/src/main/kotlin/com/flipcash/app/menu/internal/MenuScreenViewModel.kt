@@ -8,7 +8,6 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.featureflags.BetaFeature
-import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
@@ -70,7 +69,6 @@ internal class MenuScreenViewModel @Inject constructor(
         val unlockedBetaFeaturesManually: Boolean = false,
         val appVersionInfo: VersionInfo = VersionInfo(),
         val releaseTrack: String = "",
-        val addMoneyUxEnabled: Boolean = false,
     )
 
     sealed interface Event {
@@ -169,11 +167,6 @@ internal class MenuScreenViewModel @Inject constructor(
             .filterIsInstance<Event.PresentDepositOptions>()
             .mapNotNull {
                 analytics.addMoneyOpened(Analytics.AddMoneySource.Menu)
-                val depositFirstUx = featureFlags.get(FeatureFlag.AddMoneyUX)
-                if (!depositFirstUx) {
-                    return@mapNotNull AppRoute.Transfers.Deposit()
-                }
-
                 purchaseMethodController.presentDepositOptions(popToRoot = true)
             }.onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)
@@ -263,7 +256,6 @@ internal class MenuScreenViewModel @Inject constructor(
                             flags = event.flags
                         ),
                         flags = event.flags,
-                        addMoneyUxEnabled = event.flags.find { it.flag == FeatureFlag.AddMoneyUX }?.enabled ?: true,
                     )
                 }
             }

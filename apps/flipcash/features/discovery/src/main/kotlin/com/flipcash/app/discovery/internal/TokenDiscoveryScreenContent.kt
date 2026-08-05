@@ -72,7 +72,6 @@ private fun TokenDiscoveryScreenContent(
                 state = listState,
                 tokens = tokens,
                 padding = padding,
-                showGradientAtEnd = !state.createEnabled,
                 dispatch = dispatch
             )
         }

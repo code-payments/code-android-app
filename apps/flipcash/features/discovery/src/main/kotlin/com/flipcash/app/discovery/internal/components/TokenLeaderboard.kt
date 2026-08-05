@@ -47,12 +47,11 @@ import com.getcode.ui.utils.sheetResignmentBehavior
 internal fun TokenLeaderboard(
     category: DiscoverCategory?,
     tokens: Loadable<List<LeaderboardEntry>>,
-    showGradientAtEnd: Boolean,
     padding: PaddingValues,
     state: LazyListState,
     dispatch: (TokenDiscoveryViewModel.Event) -> Unit
 ) {
-    val reduceBottomPadding = if (showGradientAtEnd) 0.dp else CodeTheme.dimens.grid.x4
+    val reduceBottomPadding = CodeTheme.dimens.grid.x4
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -61,7 +60,7 @@ internal fun TokenLeaderboard(
                 state,
                 color = CodeTheme.colors.background,
                 isLongGradient = true,
-                showAtEnd = showGradientAtEnd,
+                showAtEnd = false,
             )
             .addIf(tokens.isLoaded()) {
                 Modifier.sheetResignmentBehavior(state)

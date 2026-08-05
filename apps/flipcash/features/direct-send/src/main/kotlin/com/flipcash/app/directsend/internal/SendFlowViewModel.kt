@@ -90,17 +90,13 @@ internal class SendFlowViewModel @Inject constructor(
     init {
         combine(
             userManager.state,
-            featureFlags.observe(FeatureFlag.PhoneNumberSend),
             featureFlags.observe(FeatureFlag.ContactPickerMode),
             contactCoordinator.state,
             chatCoordinator.feed(ChatType.CONTACT_DM),
-        ) { userState, phoneNumberSendFlag, contactPickerMode, contactState, chats ->
+        ) { userState, contactPickerMode, contactState, chats ->
             val hasLinkedPhone = userState.userProfile?.verifiedPhoneNumber != null
-            val phoneNumberSendEnabled = phoneNumberSendFlag ||
-                    userState.flags?.enablePhoneNumberSend == true
             val hasContacts = contactState.contacts.isNotEmpty()
-            val needsContacts =
-                phoneNumberSendEnabled && !hasContacts && !contactState.hasEverSynced
+            val needsContacts = !hasContacts && !contactState.hasEverSynced
 
             val steps = buildList {
                 if (!hasLinkedPhone) add(SendStep.PhoneGate)

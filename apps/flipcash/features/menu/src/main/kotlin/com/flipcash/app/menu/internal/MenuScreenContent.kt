@@ -97,11 +97,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 ) {
                     TileButton(
                         modifier = Modifier.weight(1f),
-                        text = if (state.addMoneyUxEnabled) {
-                            stringResource(R.string.action_addMoney)
-                        } else {
-                            stringResource(R.string.action_deposit)
-                        },
+                        text = stringResource(R.string.action_addMoney),
                         icon = painterResource(R.drawable.ic_menu_deposit)
                     ) {
                         viewModel.dispatchEvent(Event.PresentDepositOptions)
@@ -109,11 +105,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
 
                     TileButton(
                         modifier = Modifier.weight(1f),
-                        text = if (state.addMoneyUxEnabled) {
-                            stringResource(R.string.action_withdrawMoney)
-                        } else {
-                            stringResource(R.string.action_withdraw)
-                        },
+                        text = stringResource(R.string.action_withdrawMoney),
                         icon = painterResource(R.drawable.ic_menu_withdraw)
                     ) {
                         navigator.push(AppRoute.Transfers.Withdrawal())

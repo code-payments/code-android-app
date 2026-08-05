@@ -11,8 +11,6 @@ import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.onramp.CoinbaseOnRampState
 import com.flipcash.app.onramp.DeeplinkError
@@ -116,7 +114,6 @@ class SwapViewModel @Inject constructor(
     private val coinbaseOnRampController: CoinbaseOnRampController,
     private val phantomWalletController: PhantomWalletController,
     private val userFlags: UserFlagsCoordinator,
-    private val featureFlags: FeatureFlagController,
     private val usdcDepositSweep: UsdcDepositSweep,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<SwapViewModel.State, SwapViewModel.Event>(
@@ -171,8 +168,7 @@ class SwapViewModel @Inject constructor(
         when (purpose) {
             is SwapPurpose.Buy -> {
                 val limit = maxToAdd?.let { Fiat(it.first, it.second) }
-                val mustAddMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
-                if (mustAddMoney && !stateFlow.value.isAddingMoney) {
+                if (!stateFlow.value.isAddingMoney) {
                     // tokenBalances are USD-denominated; convert to the user's preferred
                     // currency so the "Enter up to X" hint is localized and the over-max
                     // comparison (which relabels the entered amount with max.currencyCode)
@@ -442,12 +438,11 @@ class SwapViewModel @Inject constructor(
     private suspend fun transactionLimit(): Fiat {
         return when (stateFlow.value.purpose) {
             is SwapPurpose.Buy -> {
-                val mustAddMoney = featureFlags.observe(FeatureFlag.AddMoneyUX).value
                 val sendLimit = enteredAmount.currencyCode.let {
                     stateFlow.value.amountEntryState.limits?.sendLimitFor(it)
                 } ?: SendLimit.Zero
                 val maxSendPerDay = sendLimit.maxPerDay.toFiat(enteredAmount.currencyCode)
-                if (mustAddMoney && !stateFlow.value.isAddingMoney) {
+                if (!stateFlow.value.isAddingMoney) {
                     val balances = tokenCoordinator.tokenBalances.firstOrNull().orEmpty().map { it.balance }
                     min((balances.maxOrNull() ?: Fiat.Zero), maxSendPerDay)
                 } else {
@@ -500,11 +495,10 @@ class SwapViewModel @Inject constructor(
     val checkFundingAmount: suspend () -> Boolean = {
         val limit = transactionLimit()
         val isOverLimit = enteredAmount.valueGreaterThan(limit)
-        val mustAddMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
         val isAddingMoney = stateFlow.value.isAddingMoney
 
         if (isOverLimit) {
-            if (mustAddMoney && !isAddingMoney) {
+            if (!isAddingMoney) {
                 BottomBarManager.showInfo(
                     title = resources.getString(R.string.title_insufficientBalance),
                     message = resources.getString(R.string.description_insufficientBalanceToUse),
@@ -652,7 +646,6 @@ class SwapViewModel @Inject constructor(
                 it to purpose
             }
             .onEach { (delegateState, purpose) ->
-                val mustAddMoney = featureFlags.get(FeatureFlag.AddMoneyUX)
                 val isAddingMoney = stateFlow.value.isAddingMoney
                 addMoneyMethod?.let { method ->
                     analytics.addMoneyAmountConfirmed(
@@ -1237,9 +1230,6 @@ class SwapViewModel @Inject constructor(
             .filterIsInstance<Event.PresentDepositOptions>()
             .mapNotNull {
                 analytics.addMoneyOpened(Analytics.AddMoneySource.BuyShortfall)
-                if (!featureFlags.get(FeatureFlag.AddMoneyUX)) {
-                    return@mapNotNull AppRoute.Transfers.Deposit(showOtherOptions = false)
-                }
                 // present the add-money/deposit sheet; navigate to whatever the user picks.
                 // popToRoot = false: the chosen add-money route replaces this buy flow (see the
                 // OpenScreen handler in SwapEntryScreen), so finishing it pops a single level back

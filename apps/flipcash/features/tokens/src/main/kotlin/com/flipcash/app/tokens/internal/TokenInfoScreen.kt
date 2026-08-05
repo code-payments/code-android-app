@@ -210,7 +210,6 @@ private fun TokenInfoScreen(
                                             .fillParentMaxWidth(),
                                         contentPadding = PaddingValues(horizontal = CodeTheme.dimens.inset),
                                         marketCap = mcap,
-                                        chartEnabled = state.marketCapChartEnabled,
                                         selectedPeriod = state.selectedPeriod,
                                         rawHistoricalData = loadable,
                                         onRetry = {

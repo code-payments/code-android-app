@@ -71,7 +71,6 @@ private sealed interface MarketCapLabelState {
 @Composable
 internal fun MarketCapSection(
     marketCap: Fiat,
-    chartEnabled: Boolean,
     rawHistoricalData: Loadable<List<MarketCapPoint>>,
     selectedPeriod: Period,
     modifier: Modifier = Modifier,
@@ -144,69 +143,67 @@ internal fun MarketCapSection(
             color = CodeTheme.colors.textMain,
         )
 
-        if (chartEnabled) {
-            AnimatedContent(
-                modifier = Modifier
-                    .padding(
-                        start = contentPadding.calculateStartPadding(),
-                        top = CodeTheme.dimens.grid.x1,
-                    )
-                    .height(IntrinsicSize.Max),
-                targetState = labelState,
-                label = "MarketCapLabel",
-                transitionSpec = {
-                    fadeIn().togetherWith(fadeOut()).using(SizeTransform(clip = false))
-                },
-                contentKey = { state ->
-                    when (state) {
-                        is MarketCapLabelState.Change -> "change"
-                        is MarketCapLabelState.Highlighted -> "highlighted"
-                        MarketCapLabelState.Hidden -> "hidden"
-                    }
-                }
-            ) { state ->
+        AnimatedContent(
+            modifier = Modifier
+                .padding(
+                    start = contentPadding.calculateStartPadding(),
+                    top = CodeTheme.dimens.grid.x1,
+                )
+                .height(IntrinsicSize.Max),
+            targetState = labelState,
+            label = "MarketCapLabel",
+            transitionSpec = {
+                fadeIn().togetherWith(fadeOut()).using(SizeTransform(clip = false))
+            },
+            contentKey = { state ->
                 when (state) {
-                    is MarketCapLabelState.Change -> MarketCapChangeLabel(
-                        change = state.change,
-                        period = state.period,
-                    )
-
-                    is MarketCapLabelState.Highlighted -> HighlightedPointLabel(
-                        modifier = Modifier.padding(bottom = 4.dp),
-                        point = state.point,
-                        period = state.period,
-                    )
-
-                    MarketCapLabelState.Hidden -> {
-                        MarketCapChangeLabel(
-                            modifier = Modifier.alpha(0f),
-                            change = Fiat.Zero,
-                            period = selectedPeriod,
-                        )
-                    }
+                    is MarketCapLabelState.Change -> "change"
+                    is MarketCapLabelState.Highlighted -> "highlighted"
+                    MarketCapLabelState.Hidden -> "hidden"
                 }
             }
+        ) { state ->
+            when (state) {
+                is MarketCapLabelState.Change -> MarketCapChangeLabel(
+                    change = state.change,
+                    period = state.period,
+                )
 
-            MarketCapChart(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .requiredHeight(240.dp),
-                chartPadding = PaddingValues(end = contentPadding.calculateEndPadding()),
-                periodPadding = PaddingValues(
-                    start = contentPadding.calculateStartPadding(),
-                    end = contentPadding.calculateEndPadding(),
-                ),
-                data = data,
-                currentValue = marketCap.decimalValue,
-                trendType = TrendType.FirstVsLast,
-                selectedPeriod = selectedPeriod,
-                onPointHighlighted = { highlightedCapPoint = it },
-                onPeriodSelected = onPeriodSelected,
-                placeholder = {
-                    MarketCapChartPlaceholder(rawHistoricalData, onRetry)
+                is MarketCapLabelState.Highlighted -> HighlightedPointLabel(
+                    modifier = Modifier.padding(bottom = 4.dp),
+                    point = state.point,
+                    period = state.period,
+                )
+
+                MarketCapLabelState.Hidden -> {
+                    MarketCapChangeLabel(
+                        modifier = Modifier.alpha(0f),
+                        change = Fiat.Zero,
+                        period = selectedPeriod,
+                    )
                 }
-            )
+            }
         }
+
+        MarketCapChart(
+            modifier = Modifier
+                .fillMaxWidth()
+                .requiredHeight(240.dp),
+            chartPadding = PaddingValues(end = contentPadding.calculateEndPadding()),
+            periodPadding = PaddingValues(
+                start = contentPadding.calculateStartPadding(),
+                end = contentPadding.calculateEndPadding(),
+            ),
+            data = data,
+            currentValue = marketCap.decimalValue,
+            trendType = TrendType.FirstVsLast,
+            selectedPeriod = selectedPeriod,
+            onPointHighlighted = { highlightedCapPoint = it },
+            onPeriodSelected = onPeriodSelected,
+            placeholder = {
+                MarketCapChartPlaceholder(rawHistoricalData, onRetry)
+            }
+        )
     }
 }
 
@@ -363,7 +360,6 @@ private fun Preview_MarketCapSection() {
             24.44.toFiat(),
             rawHistoricalData = Loadable.Error(""),
             selectedPeriod = Period.All,
-            chartEnabled = true,
             onRetry = {},
             onPeriodSelected = {}
         )
