@@ -151,13 +151,13 @@ class BuildNavGraphForLaunchTest {
     }
 
     @Test
-    fun `onboarding at PhoneNumber resume point routes to phone verification then access key`() {
-        val result = build(AuthState.Onboarding(AuthState.ResumePoint.PhoneNumber))!!
-        val route = assertIs<AppRoute.Verification>(result.baseRoutes.single())
-        assertTrue(route.includePhone)
-        assertEquals(false, route.includeEmail)
+    fun `onboarding at DisplayName resume point routes to display name entry then permissions`() {
+        val result = build(AuthState.Onboarding(AuthState.ResumePoint.DisplayName))!!
+        val route = assertIs<AppRoute.UpdateUserProfile>(result.baseRoutes.single())
+        assertTrue(route.includeName)
+        assertEquals(false, route.includePhoto)
         val target = assertIs<AppRoute.OnboardingFlow>(route.target)
-        assertEquals(AppRoute.OnboardingFlow.ResumePoint.AccessKey, target.resumeAt)
+        assertEquals(AppRoute.OnboardingFlow.Phase.Permissions, target.phase)
     }
 
     // -- Authenticating --

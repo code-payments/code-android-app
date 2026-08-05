@@ -58,7 +58,7 @@ private fun profileUpdateProvider(
     route: AppRoute.UpdateUserProfile,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<UpdateProfileStep.Name> {
-        NameEntryScreen()
+        NameEntryScreen(allowBack = route.allowBack)
     }
     annotatedEntry<UpdateProfileStep.Photo> {
         PhotoSelectionScreen()

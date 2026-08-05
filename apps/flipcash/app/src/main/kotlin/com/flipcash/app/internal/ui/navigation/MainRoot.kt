@@ -187,16 +187,19 @@ internal fun buildNavGraphForLaunch(
 ): LaunchNavGraph? {
     return when (state) {
         is AuthState.Onboarding -> when (state.resumePoint) {
-            // Resume directly into phone verification; on success it replaces the
-            // stack with the access-key resume (see VerificationFlowScreen target).
-            AuthState.ResumePoint.PhoneNumber -> LaunchNavGraph(
+            // Access key already seen; resume into display-name entry. On success it replaces
+            // the stack with the permissions phase (see UpdateUserProfileFlowScreen target).
+            AuthState.ResumePoint.DisplayName -> LaunchNavGraph(
                 listOf(
-                    AppRoute.Verification(
+                    AppRoute.UpdateUserProfile(
                         origin = AppRoute.OnboardingFlow(),
-                        includePhone = true,
-                        includeEmail = false,
-                        target = AppRoute.OnboardingFlow(resumeAt = AppRoute.OnboardingFlow.ResumePoint.AccessKey),
-                        fullScreen = true,
+                        includeName = true,
+                        includePhoto = false,
+                        target = AppRoute.OnboardingFlow(
+                            phase = AppRoute.OnboardingFlow.Phase.Permissions,
+                            skipContacts = true,
+                        ),
+                        allowBack = false,
                     )
                 )
             )

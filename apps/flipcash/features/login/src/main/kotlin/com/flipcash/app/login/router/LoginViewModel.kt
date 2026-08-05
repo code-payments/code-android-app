@@ -6,7 +6,6 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.features.login.R
 import com.flipcash.services.controllers.AccountController
-import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.encodeBase64
@@ -34,7 +33,6 @@ class LoginViewModel @Inject constructor(
     private val accounts: AccountController,
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalyticsService,
-    userManager: UserManager,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<LoginViewModel.State, LoginViewModel.Event>(
     initialState = State(),
@@ -47,7 +45,6 @@ class LoginViewModel @Inject constructor(
         val creatingAccount: LoadingSuccessState = LoadingSuccessState(),
         val logoTapCount: Int = 0,
         val betaOptionsVisible: Boolean = false,
-        val needsPhoneVerification: Boolean = false,
     )
 
     sealed interface Event {
@@ -62,18 +59,11 @@ class LoginViewModel @Inject constructor(
         data object OnAccountCreated : Event
         data object CreateAccountSettled : Event
         data object CreateFailed : Event
-        data class PhoneVerificationUpdated(val needed: Boolean) : Event
     }
 
     private val createInFlight = AtomicBoolean(false)
 
     init {
-        userManager.state
-            .map { it.userProfile?.verifiedPhoneNumber == null }
-            .onEach { needed ->
-                dispatchEvent(Event.PhoneVerificationUpdated(needed))
-            }.launchIn(viewModelScope)
-
         eventFlow
             .filterIsInstance<Event.OnLogoTapped>()
             .map { stateFlow.value.logoTapCount }
@@ -216,10 +206,6 @@ class LoginViewModel @Inject constructor(
                             loading = false
                         )
                     )
-                }
-
-                is Event.PhoneVerificationUpdated -> { state ->
-                    state.copy(needsPhoneVerification = event.needed)
                 }
             }
         }

@@ -1,6 +1,6 @@
 # Create a fresh account through onboarding, for flows that must run on a brand-new
-# account (e.g. one-run-per-account setup). Uses the test phone +1 (500) 555-0000 and
-# the all-zero OTP. Enables beta flags at launch via BETA_FLAGS (comma-separated
+# account (e.g. one-run-per-account setup). Sets the display name "Test User" during
+# onboarding. Enables beta flags at launch via BETA_FLAGS (comma-separated
 # FeatureFlag.key list; debug builds only).
 appId: com.flipcash.app.android
 ---
@@ -13,17 +13,16 @@ appId: com.flipcash.app.android
 - extendedWaitUntil: { visible: { id: login_screen }, timeout: 15000 }
 - tapOn: { id: create_account_button }
 
-# Phone verification (test number + all-zero OTP).
-- extendedWaitUntil: { visible: { id: phone_entry_screen }, timeout: 15000 }
-- inputText: "5005550000"
-- tapOn: "Next"
-- extendedWaitUntil: { visible: { id: phone_code_screen }, timeout: 15000 }
-- inputText: "000000"
-
 # Access key — take the "wrote it down" path (confirm the dialog).
 - extendedWaitUntil: { visible: { id: access_key_screen }, timeout: 15000 }
 - tapOn: "Wrote the 12 Words Down Instead?"
 - tapOn: "Wrote the 12 Words Down Instead?"
+
+# Display name entry (follows the access key).
+- extendedWaitUntil: { visible: { id: name_screen }, timeout: 15000 }
+- tapOn: { text: "Your Name" }
+- inputText: "Test User"
+- tapOn: "Next"
 
 # A push-notification permission dialog appears only if it isn't already granted.
 - tapOn:

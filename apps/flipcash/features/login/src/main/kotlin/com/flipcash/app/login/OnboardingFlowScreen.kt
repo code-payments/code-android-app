@@ -48,6 +48,7 @@ import com.flipcash.app.purchase.internal.PurchaseAccountScreenContent
 import com.flipcash.app.purchase.internal.PurchaseAccountViewModel
 import com.flipcash.features.login.R
 import com.flipcash.services.user.AuthState
+import com.flipcash.services.user.UserManager
 import com.getcode.libs.analytics.LocalAnalytics
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -56,6 +57,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.core.NavOptions
 import com.getcode.navigation.flow.FlowExitReason
 import com.getcode.navigation.flow.FlowHost
+import com.getcode.navigation.flow.FlowNavigator
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.flow.rememberInitialStack
 import com.getcode.navigation.results.NavResultStateRegistry
@@ -78,30 +80,30 @@ import kotlin.time.Duration.Companion.milliseconds
  * ```
  * 1. New account (ResumePoint.Login → ProceedToVerification)
  *
- *    Start → Verification² → AccessKey ──┬──────────────→ Contacts¹ → Notifications → Scanner
- *                                         └→ Purchase ─┘
+ *    Start → AccessKey ──┬────────────→ Name² → Contacts¹ → Notifications → Scanner
+ *                         └→ Purchase ─┘
  *
  * 2. Seed restore (ResumePoint.Login → LoggedIn via SeedInput)
  *
- *    Start → SeedInput ──┬──────────────→ Contacts¹ → Notifications → Scanner
+ *    Start → SeedInput ──┬────────────→ Name² → Contacts¹ → Notifications → Scanner
  *                         └→ Purchase ─┘
  *
  * 3. App resume (ResumePoint.PostAccessKey)
  *
  *    → Notifications → Scanner
- *    (contacts and verification skipped — existing users encounter these in-app)
+ *    (contacts and name entry skipped — existing users encounter these in-app)
  *
- * 4. Mid-flow resume (ResumePoint.AccessKey / AccessKeyThenPurchase)
+ * 4. Mid-flow resume (ResumePoint.AccessKey / AccessKeyThenPurchase / DisplayName)
  *
- *    Same as (1) but initialStack resumes at the AccessKey or Purchase step.
+ *    Same as (1) but initialStack resumes at the AccessKey, Purchase, or Name step.
  * ```
  *
  * ¹ Contact permission is shown only when [FeatureFlag.ContactPickerMode] is off. When
  *   ContactPickerMode is on, contacts are accessed via the system picker at call site
  *   (no READ_CONTACTS needed). Already-granted permissions are auto-skipped via
  *   [PermissionsPhaseFlowHost].
- * ² Phone verification is shown only when no phone is linked.
- *   Uses `target` to replace the nav stack with AccessKey on success.
+ * ² Display-name entry is shown only when no display name is set. It reuses the
+ *   UpdateUserProfile subflow, whose `target` replaces the stack with the permissions phase.
  */
 @Composable
 fun OnboardingFlowScreen(
@@ -244,6 +246,36 @@ internal fun resolvePostAccountRoute(
     }
 }
 
+/**
+ * Called once the access key (and optional purchase) is done. When the account has no display
+ * name yet, collect one via the reusable [AppRoute.UpdateUserProfile] subflow, then hand off to
+ * the permissions phase (the subflow's `target` replaces the stack on success). Otherwise proceed
+ * straight to permissions. This keeps onboarding ordered as access key → name → permissions.
+ */
+private fun FlowNavigator<OnboardingStep, OnboardingResult>.proceedToNameOrPermissions(
+    userManager: UserManager?,
+) {
+    val needsDisplayName = userManager?.profile?.displayName.isNullOrEmpty()
+    if (needsDisplayName) {
+        trace(tag = "Onboarding", message = "Access key done — collecting display name", type = TraceType.Process)
+        navigate(
+            AppRoute.UpdateUserProfile(
+                origin = AppRoute.OnboardingFlow(),
+                includeName = true,
+                includePhoto = false,
+                target = AppRoute.OnboardingFlow(
+                    phase = AppRoute.OnboardingFlow.Phase.Permissions,
+                    skipContacts = true,
+                ),
+                allowBack = false,
+            )
+        )
+    } else {
+        trace(tag = "Onboarding", message = "Access key done — proceeding to permissions", type = TraceType.Process)
+        exitWithResult(OnboardingResult.ProceedToVerification)
+    }
+}
+
 private fun onboardingEntryProvider(
     route: AppRoute.OnboardingFlow,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
@@ -295,23 +327,8 @@ private fun LoginStepContent(seed: String?) {
         vm.eventFlow
             .filterIsInstance<LoginViewModel.Event.CreateAccountSettled>()
             .onEach {
-                if (state.needsPhoneVerification) {
-                    trace(tag = "Onboarding", message = "Account created — navigating to phone verification", type = TraceType.Process)
-                    flowNavigator.navigate(
-                        AppRoute.Verification(
-                            origin = AppRoute.OnboardingFlow(),
-                            includePhone = true,
-                            includeEmail = false,
-                            target = AppRoute.OnboardingFlow(
-                                resumeAt = AppRoute.OnboardingFlow.ResumePoint.AccessKey,
-                            ),
-                            fullScreen = true,
-                        )
-                    )
-                } else {
-                    trace(tag = "Onboarding", message = "Account created — navigating to access key", type = TraceType.Process)
-                    flowNavigator.navigateTo(OnboardingStep.AccessKey)
-                }
+                trace(tag = "Onboarding", message = "Account created — navigating to access key", type = TraceType.Process)
+                flowNavigator.navigateTo(OnboardingStep.AccessKey)
             }
             .launchIn(this)
     }
@@ -401,6 +418,7 @@ private fun SeedInputStepContent() {
 private fun AccessKeyStepContent() {
     val viewModel = hiltViewModel<LoginAccessKeyViewModel>()
     val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
+    val userManager = LocalUserManager.current
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -417,7 +435,7 @@ private fun AccessKeyStepContent() {
             if (requiresIap) {
                 flowNavigator.navigateTo(OnboardingStep.Purchase)
             } else {
-                flowNavigator.exitWithResult(OnboardingResult.ProceedToVerification)
+                flowNavigator.proceedToNameOrPermissions(userManager)
             }
         }
 
@@ -430,11 +448,12 @@ private fun PurchaseStepContent() {
     val viewModel = hiltViewModel<PurchaseAccountViewModel>()
     val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val userManager = LocalUserManager.current
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<PurchaseAccountViewModel.Event.OnAccountCreated>()
-            .onEach { flowNavigator.exitWithResult(OnboardingResult.ProceedToVerification) }
+            .onEach { flowNavigator.proceedToNameOrPermissions(userManager) }
             .launchIn(this)
     }
 

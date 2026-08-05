@@ -15,14 +15,11 @@ tags:
 - tapOn: "Tips"
 - extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
 
-# Set up the tip card: name is the next step.
-- tapOn: "Start Receiving Tips"
-- extendedWaitUntil: { visible: { id: name_screen }, timeout: 8000 }
-- tapOn: { text: "Your Name" }
-- inputText: "Test Tipper"
-- tapOn: "Next"
+# The display name is captured during onboarding, so tip setup lands directly on the
+# Tips list — no name step here. Open the tip card from the list.
+- tapOn: "Show My Tip Card"
 
-# The tip card renders with the chosen name.
+# The tip card renders with the display name set during onboarding.
 - extendedWaitUntil: { visible: { id: tip_card_screen }, timeout: 8000 }
 - assertVisible: "My Tip Card"
-- assertVisible: "Tip Test Tipper"
+- assertVisible: "Tip Test User"

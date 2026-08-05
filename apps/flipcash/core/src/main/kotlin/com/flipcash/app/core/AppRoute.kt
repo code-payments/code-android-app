@@ -147,6 +147,9 @@ sealed interface AppRoute : NavKey, Parcelable {
         val includeName: Boolean = true,
         val includePhoto: Boolean = true,
         val target: AppRoute? = null,
+        // When false, the first step has no back affordance and system back is swallowed —
+        // used in onboarding where display-name entry is a mandatory, non-dismissable step.
+        val allowBack: Boolean = true,
     ): AppRoute, FlowRouteWithResult<UpdateProfileResult> {
         override val initialStack: List<NavKey>
             get() = buildUpdateUserProfileStack(includeName, includePhoto)

@@ -362,9 +362,9 @@ class RealSessionController @Inject constructor(
 
                                     AuthState.ResumePoint.AccessKey -> currentState.resumePoint
 
-                                    // Phone verification precedes the access key and is
+                                    // Display-name entry follows the access key and is
                                     // unrelated to IAP correction — leave it unchanged.
-                                    AuthState.ResumePoint.PhoneNumber -> currentState.resumePoint
+                                    AuthState.ResumePoint.DisplayName -> currentState.resumePoint
                                 }
                                 if (corrected != currentState.resumePoint) {
                                     userManager.set(authState = AuthState.Onboarding(corrected))
