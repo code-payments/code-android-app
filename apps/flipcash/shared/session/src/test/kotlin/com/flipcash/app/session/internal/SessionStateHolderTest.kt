@@ -54,12 +54,11 @@ class SessionStateHolderTest {
     fun `reset preserves device-scoped feature-flag state`() {
         // These are driven only by observe(flag) StateFlows, which won't re-emit an
         // unchanged value to repopulate them after a blanket reset — so logout must
-        // keep them, or the UI desyncs from the still-persisted flag (e.g. Tips tab).
+        // keep them, or the UI desyncs from the still-persisted flag.
         val holder = holder()
-        holder.update { it.copy(isTippingEnabled = true, vibrateOnScan = true, showNetworkOffline = true) }
+        holder.update { it.copy(vibrateOnScan = true, showNetworkOffline = true) }
         holder.reset()
         val state = holder.state.value
-        assertTrue(state.isTippingEnabled)
         assertTrue(state.vibrateOnScan)
         assertTrue(state.showNetworkOffline)
     }

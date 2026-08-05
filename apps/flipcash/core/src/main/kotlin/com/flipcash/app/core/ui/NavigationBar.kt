@@ -147,15 +147,6 @@ fun NavigationBar(
                     onClick = { onButtonClick(NavBarButton.Discover) }
                 )
 
-                NavBarButton.Send -> BottomBarAction(
-                    modifier = buttonModifier,
-                    label = stringResource(R.string.action_send),
-                    badgeCount = state.contactDmUnreadCount,
-                    painter = painterResource(R.drawable.ic_send_outlined),
-                    imageSize = imageSize,
-                    onClick = { onButtonClick(NavBarButton.Send) }
-                )
-
                 NavBarButton.Tips -> BottomBarAction(
                     modifier = buttonModifier,
                     label = stringResource(R.string.action_tips),
@@ -318,16 +309,5 @@ private fun BottomBarAction(
 private fun NavigationBarPreview() {
     NavigationBar(
         state = NavigationBarState(contactDmUnreadCount = 100),
-    )
-}
-@Preview
-@PreviewWrapper(FlipcashThemeWrapper::class)
-@Composable
-private fun SendActionPreview() {
-    BottomBarAction(
-        painter = painterResource(R.drawable.ic_send_outlined),
-        label = "Send",
-        badgeCount = 100,
-        onClick = null,
     )
 }

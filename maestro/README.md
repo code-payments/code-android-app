@@ -82,7 +82,7 @@ e.g. `menu_button`, `market_cap_chart`, `chat_message_list`, `send_contact_list`
 
 ## Enabling beta flags from a test
 
-Beta-gated features (Tipping, Blocklist, …) can be turned on **at launch** without toggling
+Beta-gated features (Blocklist, …) can be turned on **at launch** without toggling
 them in the Labs UI — mirroring iOS's `--beta-flags`. Pass a `betaFlags` launch argument (a
 comma-separated list of `FeatureFlag.key`s); `MainActivity` reads it on debug/UI-test builds
 and force-enables those flags:
@@ -91,7 +91,7 @@ and force-enables those flags:
 - launchApp:
     arguments:
       isUiTest: true
-      betaFlags: "tipping_enabled,blocklist_enabled"
+      betaFlags: "blocklist_enabled"
 ```
 
 The overrides must be applied in the **same process** that renders the feature — deeplink
@@ -102,7 +102,7 @@ login relaunches via `openLink` and would drop the argument. So use one of:
   take a `BETA_FLAGS` env var; the runner forwards `BETA_FLAGS` from your shell.
 
 ```bash
-BETA_FLAGS=tipping_enabled maestro/run.sh maestro/tipping_setup.yaml
+maestro/run.sh maestro/tipping_setup.yaml
 ```
 
 ## Coverage
@@ -112,10 +112,9 @@ BETA_FLAGS=tipping_enabled maestro/run.sh maestro/tipping_setup.yaml
 - `account_navigation.yaml` — menu → My Account → App Settings
 - `wallet_token_info.yaml` — wallet → token info + market-cap chart
 - `discovery_leaderboard.yaml` — Discover → leaderboard → token info
-- `direct_send.yaml` — send entry → phone gate
 - `withdraw.yaml` — menu → Withdraw Money → USDC → amount entry (fund-safe)
 - `deposit.yaml` — menu → Add Money → Other Wallet → USDC deposit (fund-safe)
-- `tipping_setup.yaml` — create account (beta flag) → set up tip card → tip card renders
+- `tipping_setup.yaml` — create account → set up tip card → tip card renders
 - `tip_chat.yaml` — open the tip conversation from the Tips tab and send a message
 - `blocking.yaml` — block a chat participant from their profile, verify in My Account →
   Blocked, then unblock (leaves the account clean)
@@ -133,17 +132,12 @@ and it runs):
 - `usdf_only_gate.yaml` — reserves-only account: tapping Cash routes to Discover ("No Community
   Currencies Yet"). Mirrors iOS `GiveDiscoverGateRegressionTests`. Needs `USDF_ONLY_DEEPLINK`
   (a dedicated USDF-only account, like iOS's `FLIPCASH_UI_TEST_USDF_ONLY_ACCESS_KEY`).
-- `send_to_contact.yaml` — send to an on-Flipcash contact (mirrors iOS `SendSmokeTests`, which uses a
-  fixed contact "Raul Riera"). Parameterized by `CONTACT_NAME`/`CONTACT_PHONE`; **the runner seeds this
-  contact into the emulator automatically** (idempotent). The only remaining requirement is a
-  **send-enabled account** — i.e. a phone linked to the account (see below), and `CONTACT_PHONE` mapping
-  to a real Flipcash user.
 
 ### Two phone-verification paths
 
 - **Onboarding / account creation** uses the **backend test number** `+15005550000` with OTP `000000`
   (`create_account.yaml`). This is a backend test hook — no real SMS, no linkable identity.
-- **Linking a phone to enable the send flow** — status: **blocked on code delivery.** What's verified:
+- **Linking a phone (e.g. for onramp verification)** — status: **blocked on code delivery.** What's verified:
   - A valid-format number is required (the emulator's own `555-521-5554` is an invalid NPA and is
     rejected at phone entry). A number like `+1 415-555-0100` is accepted and the code is requested.
   - The app uses Android's **SMS User Consent** reader: an SMS delivered via
@@ -154,10 +148,9 @@ and it runs):
     to the emulator, so it never arrives and can't be read.
   - **To unblock:** the dev/staging backend must route the verification SMS for the test number **to this
     emulator** (e.g. a webhook that calls `adb emu sms send`), so the real code lands in the inbox and the
-    app reads it. Once that exists, phone-linking is one-time per account and `send_to_contact.yaml` runs
-    green (contact is auto-seeded by the runner).
+    app reads it. Once that exists, phone-linking is one-time per account.
 - **Full Coinbase purchase** — the flow reaches the onramp; completing it needs phone verification
-  (which links a phone to the shared account and would flip the send flows) plus driving the Google
+  (which links a phone to the shared account) plus driving the Google
   Pay sandbox sheet. Note: **iOS doesn't automate the payment either** — its E2E stops at the same
   onramp/verification boundary (`BuyApplePayRegressionTests`: unverified → verification sheet) and
   covers order-building/deposit/verification logic with unit tests (`OnrampOrderRequestTests`,

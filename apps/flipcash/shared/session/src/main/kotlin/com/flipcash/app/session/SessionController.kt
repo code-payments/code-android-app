@@ -67,7 +67,6 @@ data class SessionState(
     val contactDmUnreadCount: Int = 0,
     val tipsUnreadCount: Int = 0,
     val tokens: List<Token> = emptyList(),
-    val isTippingEnabled: Boolean = false,
 )
 
 val LocalSessionController = staticCompositionLocalOf<SessionController?> { null }

@@ -19,8 +19,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.LocalUserManager
-import com.flipcash.app.core.send.SendResult
-import com.flipcash.app.core.send.SendStep
 import com.flipcash.app.core.tipping.TipResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.theme.FlipcashThemeWrapper

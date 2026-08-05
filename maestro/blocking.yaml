@@ -3,11 +3,11 @@ name: "Blocking — block & unblock a chat participant"
 tags:
   - blocklist
 ---
-# Enable tipping (to reach the tip chat) + blocklist at launch.
+# Tipping is on by default (to reach the tip chat); enable blocklist at launch.
 - runFlow:
     file: subflows/login_with_flags.yaml
     env:
-      BETA_FLAGS: "tipping_enabled,blocklist_enabled"
+      BETA_FLAGS: "blocklist_enabled"
 
 # Open the tip conversation.
 - tapOn: "Tips"

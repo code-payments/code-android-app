@@ -227,7 +227,6 @@ dependencies {
     implementation(project(":apps:flipcash:features:transactions"))
     implementation(project(":apps:flipcash:features:bill-customization"))
     implementation(project(":apps:flipcash:features:currency-creator"))
-    implementation(project(":apps:flipcash:features:direct-send"))
     implementation(project(":apps:flipcash:features:messenger"))
     implementation(project(":apps:flipcash:features:invite"))
     implementation(project(":apps:flipcash:features:discovery"))
