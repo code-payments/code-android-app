@@ -254,20 +254,19 @@ class AuthManager @Inject constructor(
                         // Soft logins (app restart) can trust the persisted flag.
                         val completedOnboarding = if (!isSoftLogin) false
                             else credentialManager.hasCompletedOnboarding()
-                        // If phone verification is required but not yet completed, onboarding
-                        // should resume at the phone-verification step (which precedes the
-                        // access key) rather than jumping ahead to the access key.
-                        val phoneUnverified = userManager.profile?.verifiedPhoneNumber == null
+                        // Display-name entry follows the access key, so it only gates the resume
+                        // point once the access key has been seen — before that, resume at the
+                        // access key regardless of whether a name is set.
+                        val displayNameMissing = userManager.profile?.displayName.isNullOrEmpty()
                         if (flags != null) {
                             userManager.set(flags)
                             if (flags.isRegistered && seenAccessKey && completedOnboarding) {
                                 userManager.set(AuthState.Ready)
                             } else {
                                 val resumePoint = when {
-                                    !seenAccessKey && phoneUnverified ->
-                                        AuthState.ResumePoint.PhoneNumber
                                     !seenAccessKey -> AuthState.ResumePoint.AccessKey
                                     flags.requiresIapForRegistration -> AuthState.ResumePoint.AccessKeyThenPurchase
+                                    displayNameMissing -> AuthState.ResumePoint.DisplayName
                                     else -> AuthState.ResumePoint.PostAccessKey
                                 }
                                 trace(tag = "Onboarding", message = "Resuming onboarding at $resumePoint", type = TraceType.Process)
@@ -279,9 +278,9 @@ class AuthManager @Inject constructor(
                                 userManager.set(authState = AuthState.Ready)
                             } else {
                                 val resumePoint = when {
-                                    seenAccessKey -> AuthState.ResumePoint.PostAccessKey
-                                    phoneUnverified -> AuthState.ResumePoint.PhoneNumber
-                                    else -> AuthState.ResumePoint.AccessKey
+                                    !seenAccessKey -> AuthState.ResumePoint.AccessKey
+                                    displayNameMissing -> AuthState.ResumePoint.DisplayName
+                                    else -> AuthState.ResumePoint.PostAccessKey
                                 }
                                 trace(tag = "Onboarding", message = "Resuming onboarding at $resumePoint (flags unavailable)", type = TraceType.Process)
                                 userManager.set(authState = AuthState.Onboarding(resumePoint))
