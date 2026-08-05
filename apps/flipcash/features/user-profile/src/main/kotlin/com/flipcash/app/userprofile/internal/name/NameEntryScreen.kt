@@ -1,5 +1,6 @@
 package com.flipcash.app.userprofile.internal.name
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -38,7 +39,9 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun NameEntryScreen() {
+internal fun NameEntryScreen(
+    allowBack: Boolean = true,
+) {
     val flowNavigator = rememberFlowNavigator<UpdateProfileStep, UpdateProfileResult>()
 
     val viewModel = hiltViewModel<NameEntryViewModel>()
@@ -46,9 +49,12 @@ internal fun NameEntryScreen() {
 
     val keyboard = rememberKeyboardController()
 
+    // In onboarding this is a mandatory step, so hide the back affordance and swallow system back.
+    BackHandler(enabled = !allowBack) { /* no-op: cannot back out of the name step */ }
+
     Column {
         AppBarWithTitle(
-            backButton = true,
+            backButton = allowBack,
             onBackIconClicked = {
                 keyboard.hideIfVisible {
                     flowNavigator.back()

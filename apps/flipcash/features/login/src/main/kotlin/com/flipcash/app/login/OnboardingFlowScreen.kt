@@ -267,6 +267,7 @@ private fun FlowNavigator<OnboardingStep, OnboardingResult>.proceedToNameOrPermi
                     phase = AppRoute.OnboardingFlow.Phase.Permissions,
                     skipContacts = true,
                 ),
+                allowBack = false,
             )
         )
     } else {
