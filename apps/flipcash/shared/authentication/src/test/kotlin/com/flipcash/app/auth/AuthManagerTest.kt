@@ -16,6 +16,7 @@ import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.UserFlags
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import io.mockk.coEvery
@@ -75,6 +76,11 @@ class AuthManagerTest {
         Dispatchers.setMain(testDispatcher)
 
         every { userManager.state } returns userManagerState
+        // Default to a profile that already has a display name so onboarding resume falls through
+        // to the post-access-key path. Tests exercising the DisplayName step override this.
+        every { userManager.profile } returns mockk<UserProfile>(relaxed = true) {
+            every { displayName } returns "Test User"
+        }
         every { networkConnectivityListener.isConnected } returns true
         coEvery { pushTokenProvider.getToken() } returns "fake-token"
 
@@ -286,6 +292,30 @@ class AuthManagerTest {
         assertTrue(result.isSuccess)
         verify { userManager.set(flags) }
         verify { userManager.set(AuthState.Onboarding(AuthState.ResumePoint.PostAccessKey)) }
+    }
+
+    @Test
+    fun `login resumes at DisplayName when access key seen but no display name set`() = runTest {
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        val accountMetadata: AccountMetadata = mockk(relaxed = true)
+        val testId = listOf<Byte>(1, 2, 3)
+        every { accountMetadata.id } returns testId
+
+        coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
+        coEvery { credentialManager.hasCompletedOnboarding() } returns false
+        // Access key seen, registered, but the display name hasn't been set yet.
+        every { userManager.profile } returns mockk<UserProfile>(relaxed = true) {
+            every { displayName } returns ""
+        }
+
+        val flags = UserFlags.Default.copy(isRegistered = true)
+        coEvery { accountController.getUserFlags() } returns Result.success(flags)
+
+        val result = authManager.login(entropyB64 = entropy)
+
+        assertTrue(result.isSuccess)
+        verify { userManager.set(flags) }
+        verify { userManager.set(AuthState.Onboarding(AuthState.ResumePoint.DisplayName)) }
     }
 
     @Test
