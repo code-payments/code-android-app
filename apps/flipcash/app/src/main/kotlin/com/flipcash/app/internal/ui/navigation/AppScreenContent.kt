@@ -32,7 +32,6 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositFlowScreen
-import com.flipcash.app.directsend.SendFlowScreen
 import com.flipcash.app.invite.InviteContactScreen
 import com.flipcash.app.messenger.ChatFlowScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
@@ -94,7 +93,6 @@ fun appEntryProvider(
     // Sheets (inner content — wrapped in Main.Sheet by navigateTo())
     // Route type is `Give` but the screen is the Cash/Give screen the flows call cash_screen.
     annotatedEntry<AppRoute.Sheets.Give>(testTag = "cash_screen") { key -> CashScreen(key.mint, key.fromTokenInfo) }
-    annotatedEntry<AppRoute.Sheets.Send> { SendFlowScreen(resultStateRegistry = resultStateRegistry) }
     annotatedEntry<AppRoute.Sheets.Tips> { key ->
         TippingFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }

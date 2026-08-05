@@ -19,7 +19,5 @@ object Linkify {
     fun tweet(message: String): String = "https://www.twitter.com/intent/tweet?text=${message.urlEncode()}"
     fun tokenInfo(token: Token): String = tokenInfo(token.address)
     fun tokenInfo(mint: Mint): String = "https://app.flipcash.com/token/${mint.base58()}"
-    fun chatById(chatId: ChatId): String = "https://app.flipcash.com/chat/${chatId.bytes.encodeBase64(urlSafe = true)}"
     fun tipChatById(chatId: ChatId): String = "https://app.flipcash.com/tip/chat/${chatId.bytes.encodeBase64(urlSafe = true)}"
-    fun chatByPhone(phoneNumber: String): String = "https://app.flipcash.com/chat/${phoneNumber.urlEncode()}"
 }

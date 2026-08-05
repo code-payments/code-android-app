@@ -421,16 +421,16 @@ class NotificationService : FirebaseMessagingService(),
                 data = Linkify.tokenInfo(navigation.mint).toUri()
             }
 
-            is NavigationTrigger.Chat.ById -> Intent(Intent.ACTION_VIEW).apply {
-                data = if (metadata?.chatType == ChatType.TIP_DM) {
-                    Linkify.tipChatById(navigation.chatId).toUri()
-                } else {
-                    Linkify.chatById(navigation.chatId).toUri()
+            // Only tip DMs deep-link (via /tip/chat/…). Non-tip chat notifications — and all
+            // contact/phone-addressed chats — no longer have an in-app entry point (the Send
+            // tab / direct-send flow was removed), so fall through to a plain launch that opens
+            // the app on the camera instead of firing a now-unhandled /chat/ deeplink.
+            is NavigationTrigger.Chat.ById -> if (metadata?.chatType == ChatType.TIP_DM) {
+                Intent(Intent.ACTION_VIEW).apply {
+                    data = Linkify.tipChatById(navigation.chatId).toUri()
                 }
-            }
-
-            is NavigationTrigger.Chat.ByContact -> Intent(Intent.ACTION_VIEW).apply {
-                data = Linkify.chatByPhone(navigation.phoneNumber).toUri()
+            } else {
+                packageManager.getLaunchIntentForPackage(packageName)
             }
 
             else -> packageManager.getLaunchIntentForPackage(packageName)

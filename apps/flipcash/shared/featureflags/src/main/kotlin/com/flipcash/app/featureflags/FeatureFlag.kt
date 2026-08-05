@@ -130,16 +130,6 @@ sealed interface FeatureFlag<T: Any> {
     }
 
     @FeatureFlagMarker
-    data object Tipping: FeatureFlag<Boolean> {
-        override val key: String = "tipping_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
-        override val visible: Boolean = true
-        override val persistLogOut: Boolean = false
-        override val minTrack: FeatureTrack = FeatureTrack.Production
-    }
-
-    @FeatureFlagMarker
     data object FrostedTipCard: FeatureFlag<Boolean> {
         override val key: String = "frosted_tip_card_enabled"
         override val default: Boolean = false
@@ -180,7 +170,6 @@ val FeatureFlag<*>.title: String
         FeatureFlag.NavBar -> "Navigation Bar"
         FeatureFlag.GiveUsdf -> "Give/Send USDF"
         FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
-        FeatureFlag.Tipping -> "Tipping"
         FeatureFlag.FrostedTipCard -> "Frosted Tip Card"
         FeatureFlag.Blocklist -> "Blocklist"
     }
@@ -197,7 +186,6 @@ val FeatureFlag<*>.message: String
         FeatureFlag.NavBar -> "Customize the order and labels of navigation bar buttons"
         FeatureFlag.GiveUsdf -> "When enabled, you'll gain the ability to send USDF directly and give it as cash"
         FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
-        FeatureFlag.Tipping -> "When enabled, you'll gain the ability to tip other users and set up your own tip card to receive tips"
         FeatureFlag.FrostedTipCard -> "When enabled, the tip card in the scanner renders as frosted glass over a blurred snapshot of the camera instead of a solid card"
         FeatureFlag.Blocklist -> "When enabled, you'll gain the ability to open a chat participant's profile, block them, and manage your blocklist from My Account"
     }

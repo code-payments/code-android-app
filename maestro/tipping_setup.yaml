@@ -4,14 +4,13 @@ tags:
   - tipping
   - creates-account
 ---
-# Tip setup is one-run-per-account, so start from a brand-new account with the tipping
-# beta flag enabled at launch (no Labs-UI toggling).
+# Tip setup is one-run-per-account, so start from a brand-new account.
 - runFlow:
     file: subflows/create_account.yaml
     env:
-      BETA_FLAGS: "tipping_enabled"
+      BETA_FLAGS: ""
 
-# Tipping is enabled -> the Tips tab is present.
+# Tipping is on by default -> the Tips tab is present.
 - assertVisible: "Tips"
 - tapOn: "Tips"
 - extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }

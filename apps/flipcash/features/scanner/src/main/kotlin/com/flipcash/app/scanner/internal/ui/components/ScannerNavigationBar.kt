@@ -31,23 +31,9 @@ internal fun ScannerNavigationBar(
         NavBarConfig.deserialize(navBarConfigString)
     }
 
-    val effectiveConfig = remember(config, state.isTippingEnabled) {
-        val buttons = config.order
-            .filter { option ->
-                when (option) {
-                    NavBarButton.Tips -> state.isTippingEnabled
-                    else -> true
-                }
-            }
-
-        config.copy(
-            order = buttons,
-        )
-    }
-
     NavigationBar(
         modifier = modifier,
-        config = effectiveConfig,
+        config = config,
         state = NavigationBarState(
             contactDmUnreadCount = state.contactDmUnreadCount,
             tipUnreadCount = state.tipsUnreadCount,
@@ -60,7 +46,6 @@ internal fun ScannerNavigationBar(
                 NavBarButton.Give -> ScannerDecorItem.Give
                 NavBarButton.Wallet -> ScannerDecorItem.Wallet
                 NavBarButton.Discover -> ScannerDecorItem.Discover
-                NavBarButton.Send -> ScannerDecorItem.Send
                 NavBarButton.Tips -> ScannerDecorItem.Tips
             }
             onAction(item)

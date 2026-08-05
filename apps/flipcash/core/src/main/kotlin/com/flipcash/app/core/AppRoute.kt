@@ -160,16 +160,6 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class Give(val mint: Mint? = null, val fromTokenInfo: Boolean = false) : Sheets
 
-        /**
-         * Direct send flow — phone-verified user picks a contact and sends funds.
-         *
-         * @param resumed `true` when the flow is re-entered after an interrupting gate
-         *   (e.g. phone verification). A distinct value produces a new route instance so
-         *   Nav3 treats `replaceAll` as a forward push instead of a pop.
-         */
-        @Serializable
-        data class Send(val resumed: Boolean = false): Sheets
-
         @Serializable
         data class Tips(val resumed: Boolean = false): Sheets {
         }

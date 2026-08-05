@@ -3,12 +3,11 @@ name: "Tip chat — open conversation & send a message"
 tags:
   - tipping
 ---
-# Seed-login into the test account (which has tips set up + a tip chat) with the
-# tipping beta flag enabled at launch.
+# Seed-login into the test account (which has tips set up + a tip chat).
 - runFlow:
     file: subflows/login_with_flags.yaml
     env:
-      BETA_FLAGS: "tipping_enabled"
+      BETA_FLAGS: ""
 
 # Tips tab lists tip conversations; open the first one.
 - tapOn: "Tips"

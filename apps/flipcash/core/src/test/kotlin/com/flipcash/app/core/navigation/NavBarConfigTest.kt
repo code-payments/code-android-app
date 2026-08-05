@@ -14,7 +14,7 @@ class NavBarConfigTest {
     @Test
     fun `round-trips a full, current order`() {
         val config = NavBarConfig(
-            order = listOf(NavBarButton.Wallet, NavBarButton.Give, NavBarButton.Discover, NavBarButton.Send, NavBarButton.Tips),
+            order = listOf(NavBarButton.Wallet, NavBarButton.Give, NavBarButton.Discover, NavBarButton.Tips),
             giveButtonLabel = GiveButtonLabel.Cash,
         )
         assertEquals(config, NavBarConfig.deserialize(config.serialize()))
@@ -23,36 +23,47 @@ class NavBarConfigTest {
     @Test
     fun `back-fills a button added after the order was persisted, at its default position`() {
         // A nav bar order persisted before Tips was added to the enum/defaultOrder.
-        val legacy = "Discover,Give,Send,Wallet|Cash"
+        val legacy = "Discover,Give,Wallet|Cash"
 
         val order = NavBarConfig.deserialize(legacy).order
 
         assertTrue(NavBarButton.Tips in order, "Tips should be back-filled into a legacy order")
-        // Inserted at its defaultOrder position (between Send and Wallet), not appended.
+        // Inserted at its defaultOrder position (between Give and Wallet), not appended.
         assertEquals(
-            listOf(NavBarButton.Discover, NavBarButton.Give, NavBarButton.Send, NavBarButton.Tips, NavBarButton.Wallet),
+            listOf(NavBarButton.Discover, NavBarButton.Give, NavBarButton.Tips, NavBarButton.Wallet),
             order,
         )
     }
 
     @Test
     fun `back-fill preserves a user's custom ordering of existing buttons`() {
-        val legacy = "Wallet,Send,Give,Discover|Cash"
+        val legacy = "Wallet,Give,Discover|Cash"
 
         val order = NavBarConfig.deserialize(legacy).order
 
         assertTrue(NavBarButton.Tips in order)
         // Existing buttons keep the user's reversed order; only the missing one is added.
         assertEquals(
-            listOf(NavBarButton.Wallet, NavBarButton.Send, NavBarButton.Give, NavBarButton.Discover),
+            listOf(NavBarButton.Wallet, NavBarButton.Give, NavBarButton.Discover),
             order.filterNot { it == NavBarButton.Tips },
         )
     }
 
     @Test
     fun `unknown button names are dropped and missing known ones back-filled`() {
-        val order = NavBarConfig.deserialize("Discover,Bogus,Give,Send,Wallet|Cash").order
+        val order = NavBarConfig.deserialize("Discover,Bogus,Give,Wallet|Cash").order
 
+        assertEquals(NavBarButton.defaultOrder, order)
+    }
+
+    @Test
+    fun `a persisted order containing the removed Send button is dropped without crashing`() {
+        // Users who customized their nav bar before Send was removed have "Send" persisted in
+        // their NavBar config. deserialize() must silently drop the now-unknown token (never
+        // throw on NavBarButton.valueOf) and back-fill the current default order.
+        val order = NavBarConfig.deserialize("Discover,Give,Send,Tips,Wallet|Cash").order
+
+        assertTrue("Send" !in order.map { it.name }, "the removed Send token must not survive")
         assertEquals(NavBarButton.defaultOrder, order)
     }
 

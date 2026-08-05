@@ -36,8 +36,8 @@ class SessionStateHolder @Inject constructor() {
      * Those flag observers are hot [StateFlow]s that only re-emit on a *value change*.
      * A blanket `SessionState()` reset would clobber these fields to their defaults, and
      * the observer would not re-push its unchanged current value to repopulate them —
-     * leaving the UI desynced from the still-persisted flag (e.g. Tipping flag on, but the
-     * scanner Tips tab gone). Account/token/settings-derived fields are safe to reset:
+     * leaving the UI desynced from the still-persisted flag (e.g. vibrate-on-scan on, but
+     * the setting reads as off). Account/token/settings-derived fields are safe to reset:
      * their sources re-emit when the account changes, so they self-heal.
      */
     fun reset() {
@@ -45,7 +45,6 @@ class SessionStateHolder @Inject constructor() {
             SessionState(
                 vibrateOnScan = prev.vibrateOnScan,
                 showNetworkOffline = prev.showNetworkOffline,
-                isTippingEnabled = prev.isTippingEnabled,
             )
         }
     }

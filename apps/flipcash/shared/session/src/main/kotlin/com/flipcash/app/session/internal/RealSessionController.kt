@@ -273,10 +273,6 @@ class RealSessionController @Inject constructor(
                 stateHolder.update { it.copy(tokens = tokens) }
             }.launchIn(scope)
 
-        featureFlagController.observe(FeatureFlag.Tipping)
-            .onEach { enabled -> stateHolder.update { it.copy(isTippingEnabled = enabled) } }
-            .launchIn(scope)
-
         // Retry updateUserFlags when network is restored
         networkObserver.state
             .map { it.connected }

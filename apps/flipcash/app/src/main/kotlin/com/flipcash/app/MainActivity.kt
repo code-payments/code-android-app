@@ -192,12 +192,12 @@ class MainActivity : FragmentActivity() {
 
     /**
      * Test-only: enable beta flags passed as a launch argument, so flag-gated features
-     * (tipping, blocklist, …) can be exercised in UI tests without toggling them in the
+     * (blocklist, …) can be exercised in UI tests without toggling them in the
      * Labs UI. Mirrors iOS's `--beta-flags`. Debug/UI-test builds only.
      *
      *   launchApp:
      *     arguments:
-     *       betaFlags: "tipping_enabled,blocklist_enabled"
+     *       betaFlags: "blocklist_enabled"
      *
      * The value is a comma-separated list of [FeatureFlag.key]s.
      */

@@ -3,7 +3,6 @@ package com.flipcash.app.router.internal
 import androidx.core.net.toUri
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
-import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.models.chat.ChatId
@@ -64,9 +63,6 @@ internal class AppRouter(
             )
 
             is DeeplinkType.EmailVerification -> resolveEmailVerification(type)
-            is DeeplinkType.Chat -> DeeplinkAction.Navigate(
-                listOf(AppRoute.Sheets.Send(), AppRoute.Messaging.Chat(type.identifier))
-            )
 
             is DeeplinkType.TipChat -> DeeplinkAction.Navigate(
                 listOf(AppRoute.Sheets.Tips(), AppRoute.Messaging.Chat(type.identifier))
@@ -82,9 +78,12 @@ internal class AppRouter(
             deepLink.isCashLink() -> deepLink.handleCashLink()
             deepLink.isToken() -> deepLink.handleTokenLink()
             deepLink.isEmailVerification() -> deepLink.handleEmailVerification()
-            deepLink.isChat() -> deepLink.handleChat()
             deepLink.isTipChat() -> deepLink.handleTipChat()
             deepLink.isTipCard() -> deepLink.handleTipCard()
+            // `/chat/{id}` links are intentionally NOT handled: the Send tab / direct-send
+            // flow they opened was removed, so they fall through to `null` and the app lands
+            // on the camera. Do not re-add chat routing here without restoring that entry point.
+            // (Tip DMs use `/tip/chat/{id}` — handled above via isTipChat.)
             else -> null
         }
     }
@@ -138,8 +137,6 @@ private fun DeepLink.isToken(): Boolean = token.contains(pathSegments.getOrNull(
 private fun DeepLink.isEmailVerification(): Boolean = verification.contains(pathSegments.getOrNull(0))
         && data.toUri().getQueryParameter("email") != null
 
-private fun DeepLink.isChat(): Boolean = chat.contains(pathSegments.getOrNull(0))
-
 // https://app.flipcash.com/tip/chat/{url encoded chatId}
 private fun DeepLink.isTipChat(): Boolean =
     tip.contains(pathSegments.getOrNull(0)) && chat.contains(pathSegments.getOrNull(1))
@@ -168,24 +165,6 @@ private fun DeepLink.handleTokenLink(): DeeplinkType.TokenInfo? {
     val uri = data.toUri()
     val mint = uri.pathSegments.getOrNull(1) ?: return null
     return DeeplinkType.TokenInfo(Mint(mint))
-}
-
-// https://app.flipcash.com/chat/{url encoded chatId}
-// https://app.flipcash.com/chat/{url encoded e164}
-private fun DeepLink.handleChat(): DeeplinkType.Chat? {
-    val uri = data.toUri()
-    // pathSegments already percent-decodes; do NOT urlDecode() again
-    // because URLDecoder treats '+' as a space, mangling phone numbers.
-    val chatTarget = uri.pathSegments.getOrNull(1) ?: return null
-
-    val identifier = if (chatTarget.startsWith("+")) {
-        ChatIdentifier.ByContact(DeviceContact.unknownContact(e164 = chatTarget))
-    } else {
-        val chatId = ChatId(chatTarget.decodeBase64UrlSafe().toList())
-        ChatIdentifier.ByChatId(chatId)
-    }
-
-    return DeeplinkType.Chat(identifier)
 }
 
 // https://app.flipcash.com/tip/chat/{url encoded chatId}
