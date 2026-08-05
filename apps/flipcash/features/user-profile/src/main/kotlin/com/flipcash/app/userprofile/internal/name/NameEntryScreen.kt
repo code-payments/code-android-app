@@ -2,10 +2,12 @@ package com.flipcash.app.userprofile.internal.name
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.ui.DisplayTextInput
@@ -53,14 +56,18 @@ internal fun NameEntryScreen(
     BackHandler(enabled = !allowBack) { /* no-op: cannot back out of the name step */ }
 
     Column {
-        AppBarWithTitle(
-            backButton = allowBack,
-            onBackIconClicked = {
-                keyboard.hideIfVisible {
-                    flowNavigator.back()
-                }
-            },
-        )
+        if (allowBack) {
+            AppBarWithTitle(
+                backButton = true,
+                onBackIconClicked = {
+                    keyboard.hideIfVisible {
+                        flowNavigator.back()
+                    }
+                },
+            )
+        } else {
+            Spacer(Modifier.statusBarsPadding().padding(2.5.dp))
+        }
         NameEntryScreenContent(state, viewModel::dispatchEvent)
     }
 
