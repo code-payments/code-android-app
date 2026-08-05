@@ -1,5 +1,5 @@
 # Login
-appId: com.flipcash.app.android.dev
+appId: com.flipcash.app.android
 ---
 - tapOn: Log in
 - extendedWaitUntil:

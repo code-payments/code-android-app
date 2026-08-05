@@ -1,0 +1,11 @@
+# Seed login that also enables beta flags via a launch argument (debug builds only).
+# Seed login stays in one process (no relaunch), so flags applied in onCreate persist.
+# Requires env: SEED_PHRASE and BETA_FLAGS (comma-separated FeatureFlag.key list).
+appId: com.flipcash.app.android
+---
+- clearState
+- launchApp:
+    arguments:
+      isUiTest: true
+      betaFlags: ${BETA_FLAGS}
+- runFlow: login.yaml

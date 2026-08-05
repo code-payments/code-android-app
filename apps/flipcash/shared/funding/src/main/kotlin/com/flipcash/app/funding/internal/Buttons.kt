@@ -51,6 +51,7 @@ internal fun purchaseOptions(
                     width = 150.sp,
                     height = 20.sp,
                     tintIcon = false,
+                    testTag = "purchase_method_coinbase",
                     onClick = { onClick(PurchaseMethod.CoinbaseOnRamp) }
                 )
             )
@@ -76,6 +77,7 @@ internal fun purchaseOptions(
                 suffix = resources.getString(R.string.label_phantom),
                 iconPadding = { PaddingValues() },
                 iconRes = R.drawable.ic_phantom_wallet,
+                testTag = "purchase_method_phantom",
                 onClick = { onClick(PurchaseMethod.PhantomWallet) }
             )
         )
@@ -84,6 +86,7 @@ internal fun purchaseOptions(
             add(
                 BottomBarAction(
                     text = resources.getString(R.string.title_onrampProviderOtherWallet),
+                    testTag = "purchase_method_other_wallet",
                     onClick = { onClick(PurchaseMethod.OtherWallet) }
                 )
             )
@@ -111,9 +114,11 @@ private fun buildButtonAction(
         )
     },
     tintIcon: Boolean = true,
+    testTag: String? = null,
     onClick: () -> Unit
 ): BottomBarAction {
     return BottomBarAction(
+        testTag = testTag,
         text = buildAnnotatedString {
             if (prefix != null) {
                 append(prefix)

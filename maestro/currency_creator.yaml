@@ -1,0 +1,19 @@
+appId: com.flipcash.app.android
+name: "Currency Creator — intro & balance gate"
+tags:
+  - smoke
+  - currency-creator
+---
+# Fund-safe: opens the creator and confirms the $20-fee balance gate. Never pays.
+- runFlow: subflows/login_with_deeplink.yaml
+
+- tapOn: "Discover"
+- extendedWaitUntil: { visible: { id: discovery_screen }, timeout: 8000 }
+- tapOn: "Create Your Own Currency"
+- extendedWaitUntil: { visible: { id: currency_creator_screen }, timeout: 8000 }
+- assertVisible: "Create Your Currency"
+
+# The $20 creation fee exceeds the test account's giveable balance, so Get Started
+# surfaces the add-money gate.
+- tapOn: "Get Started"
+- assertVisible: "Add More Money"

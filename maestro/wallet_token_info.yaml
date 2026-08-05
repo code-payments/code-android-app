@@ -1,0 +1,20 @@
+appId: com.flipcash.app.android
+name: "Wallet → Token Info"
+tags:
+  - smoke
+  - tokens
+---
+# Deterministic clean login → home.
+- runFlow: subflows/login_with_deeplink.yaml
+
+# Open the wallet and drill into a held token's info screen.
+- runFlow: subflows/navigate_to_wallet.yaml
+- tapOn: "Float"
+- extendedWaitUntil:
+    visible:
+      id: token_info_screen
+    timeout: 10000
+
+# The market-cap chart is always present on token info.
+- assertVisible:
+    id: market_cap_chart

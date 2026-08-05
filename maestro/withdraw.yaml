@@ -1,0 +1,17 @@
+appId: com.flipcash.app.android
+name: "Withdraw — reach amount entry"
+tags:
+  - smoke
+  - withdraw
+---
+# Fund-safe: drives the withdrawal wizard to the amount-entry screen. Reaching the
+# destination/confirmation steps needs a funded reserves balance, so those steps
+# (withdraw_destination_screen / withdraw_confirmation_screen, tagged in the app) are
+# left for a funded account.
+- runFlow: subflows/login_with_deeplink.yaml
+- runFlow: subflows/navigate_to_withdraw.yaml
+
+- assertVisible:
+    id: withdraw_entry_screen
+- assertVisible:
+    id: keypad_5

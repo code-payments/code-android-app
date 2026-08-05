@@ -1,0 +1,23 @@
+appId: com.flipcash.app.android
+name: "Tip deeplink — opens the tip flow"
+tags:
+  - tipping
+---
+# Seed-login with tipping enabled. A fresh login clears local state, so give balances
+# a moment to sync (opening the Wallet forces the token balances to load) before opening
+# the deeplink — otherwise hasGiveableBalance is transiently false and the app shows the
+# add-money/discover gate instead of the tip flow.
+- runFlow:
+    file: subflows/login_with_flags.yaml
+    env:
+      BETA_FLAGS: "tipping_enabled"
+- runFlow: subflows/navigate_to_wallet.yaml
+- assertVisible: { id: wallet_screen }
+
+# Open the tip card deeplink -> presents the tip flow for that recipient.
+- openLink: ${TIPCARD_DEEPLINK}
+- extendedWaitUntil:
+    visible:
+      text: "Swipe to Tip"
+    timeout: 12000
+- assertVisible: "Tip Brandon McAnsh"

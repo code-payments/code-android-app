@@ -1,0 +1,14 @@
+# Deeplink login into the dedicated USDF-only test account (reserves only, no community
+# currency) used for gate tests. Requires env: USDF_ONLY_DEEPLINK.
+appId: com.flipcash.app.android
+---
+- stopApp
+- runFlow:
+    file: ../helpers/launch_deeplink.yaml
+    env:
+      clearAppState: "true"
+      deeplink: ${USDF_ONLY_DEEPLINK}
+
+- extendedWaitUntil:
+      visible:
+          id: "scanner_screen"

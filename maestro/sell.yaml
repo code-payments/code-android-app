@@ -1,0 +1,17 @@
+appId: com.flipcash.app.android
+name: "Sell — token info → amount entry (fund-safe)"
+tags:
+  - smoke
+  - swap
+---
+# Fund-safe: reaches the sell amount-entry. Reaching the sell confirmation depends on
+# the held balance clearing the minimum + fees, so it's left for a funded account.
+- runFlow: subflows/login_with_deeplink.yaml
+- runFlow: subflows/navigate_to_wallet.yaml
+
+- tapOn: "Float"
+- extendedWaitUntil: { visible: { id: token_info_screen }, timeout: 8000 }
+- tapOn: "Sell"
+- extendedWaitUntil: { visible: { id: swap_screen }, timeout: 8000 }
+- assertVisible: "Amount to Sell"
+- assertVisible: { id: keypad_5 }

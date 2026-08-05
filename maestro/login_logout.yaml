@@ -1,5 +1,13 @@
-appId: com.flipcash.app.android.dev
+appId: com.flipcash.app.android
+name: "Login (seed) + Logout"
+tags:
+  - smoke
+  - onboarding
 ---
-- runFlow: helpers/launch_app.yaml
+# Start logged-out so the seed-login UI is exercised for real.
+- runFlow:
+    file: helpers/launch_app.yaml
+    env:
+      clearAppState: "true"
 - runFlow: subflows/login.yaml
 - runFlow: subflows/logout.yaml

@@ -253,7 +253,9 @@ internal fun resolvePostAccountRoute(
 private fun onboardingEntryProvider(
     route: AppRoute.OnboardingFlow,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
-    annotatedEntry<OnboardingStep.Start> { step ->
+    // The pre-login landing; flows/screenshots anchor on `login_screen` rather than
+    // the step-derived `start_screen`.
+    annotatedEntry<OnboardingStep.Start>(testTag = "login_screen") { step ->
         LoginStepContent(step.seed)
     }
     annotatedEntry<OnboardingStep.SeedInput> {
