@@ -1,7 +1,23 @@
 appId: com.flipcash.app.android
 ---
-- swipe:
-    direction: DOWN
-- extendedWaitUntil:
-      visible:
-          id: scanner_screen
+# Return to the scanner, which is always the root behind the single open sheet. Opening a
+# destination inside a sheet (e.g. wallet -> token info) pushes it onto that sheet's own nav
+# stack, so one dismiss only pops a layer. Press Back until the scanner is revealed: each
+# Back pops the sheet's nav stack and the final one dismisses the sheet itself.
+#
+# Bounded (times) rather than an open while-loop so a stuck sheet can't hang CI, and each
+# Back is guarded on the scanner not already showing — so it's a safe no-op on a clean home
+# screen and never backs out of the app once the scanner is reached.
+- repeat:
+    times: 5
+    commands:
+      - runFlow:
+          when:
+            notVisible:
+              id: scanner_screen
+          commands:
+            - pressKey: Back
+            - waitForAnimationToEnd:
+                timeout: 1500
+- assertVisible:
+    id: scanner_screen

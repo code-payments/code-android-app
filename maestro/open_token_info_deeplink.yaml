@@ -1,16 +1,22 @@
 appId: com.flipcash.app.android
+name: "Token Info deeplink → opens & dismisses to scanner"
+tags:
+  - tokens
 ---
+# A token deeplink opens the token-info screen (pushed into a sheet's nav stack over the
+# scanner) and can be dismissed cleanly back to the scanner. Re-firing the same deeplink is
+# a no-op (the app dedupes it), so this verifies the open + dismiss, which is the meaningful
+# path.
 - runFlow: subflows/login_with_deeplink.yaml
-- runFlow: 
-   file: helpers/launch_deeplink.yaml
-   env:       
+
+- runFlow:
+    file: helpers/launch_deeplink.yaml
+    env:
       deeplink: https://app.flipcash.com/token/5APqK9YUZupKt7rRUrpYy6WV3RPuxA71ZtKJffDUMdPP
 - extendedWaitUntil:
-   visible:
+    visible:
       id: token_info_screen
+    timeout: 8000
+
+# Dismiss the sheet back to the scanner (unwinds the sheet's nav stack, then dismisses it).
 - runFlow: helpers/close_open_sheet.yaml
-- pressKey: home
-- runFlow: 
-   file: helpers/launch_deeplink.yaml
-   env:       
-      deeplink: https://app.flipcash.com/token/5APqK9YUZupKt7rRUrpYy6WV3RPuxA71ZtKJffDUMdPP

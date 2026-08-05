@@ -1,7 +1,9 @@
 appId: com.flipcash.app.android
 ---
 - runFlow: ../helpers/close_open_sheet.yaml
-- tapOn: Give
+# The give/cash nav button's label is config-driven (GiveButtonLabel: "Give" or "Cash");
+# it currently renders "Cash" (action_cash).
+- tapOn: Cash
 - extendedWaitUntil:
       visible: Float
 - extendedWaitUntil:
