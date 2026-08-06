@@ -46,7 +46,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
     internal data class State(
         val isBetaEnabled: Boolean = false,
         // Default hides staff-only AND flag-gated items until the real flag state loads, so a
-        // beta-gated item (e.g. Blocklist) never flashes before its flag is resolved.
+        // beta-gated item never flashes before its flag is resolved.
         val items: List<MenuItem<Event>> =
             FullMenuList.filterNot { it is StaffMenuItem || it.featureFlag != null }
     )
@@ -169,7 +169,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
             } else {
                 FullMenuList.filterNot { item -> item is StaffMenuItem }
             }
-            // Flag-gated items (e.g. Blocklist) only show when their feature flag is enabled.
+            // Flag-gated items only show when their feature flag is enabled.
             return base.filter { item ->
                 val flag = item.featureFlag ?: return@filter true
                 flags.find { it.flag.key == flag.key }?.enabled == true

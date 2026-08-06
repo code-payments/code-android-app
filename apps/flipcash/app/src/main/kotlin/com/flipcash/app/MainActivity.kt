@@ -192,12 +192,12 @@ class MainActivity : FragmentActivity() {
 
     /**
      * Test-only: enable beta flags passed as a launch argument, so flag-gated features
-     * (blocklist, …) can be exercised in UI tests without toggling them in the
-     * Labs UI. Mirrors iOS's `--beta-flags`. Debug/UI-test builds only.
+     * can be exercised in UI tests without toggling them in the Labs UI. Mirrors iOS's
+     * `--beta-flags`. Debug/UI-test builds only.
      *
      *   launchApp:
      *     arguments:
-     *       betaFlags: "blocklist_enabled"
+     *       betaFlags: "coinbase_onramp_sandbox_enabled"
      *
      * The value is a comma-separated list of [FeatureFlag.key]s.
      */

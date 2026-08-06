@@ -62,8 +62,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
 
             is ChatAction.ViewProfile -> {
-                // The triggers (top-bar tap, contact-card chevron) are only clickable when the
-                // Blocklist beta flag is on, so no gating is needed here.
+                // The triggers (top-bar tap, contact-card chevron) are only clickable for tip DMs
+                // (see State.canViewProfile), so no gating is needed here.
                 state.participant?.let {
                     keyboard.hideIfVisible {
                         navigator.push(ChatStep.Profile(it))
