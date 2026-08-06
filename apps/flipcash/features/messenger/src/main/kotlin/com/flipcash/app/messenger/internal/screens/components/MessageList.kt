@@ -278,7 +278,7 @@ internal fun MessageList(
                                 .fillMaxWidth(0.63f),
                             onRefreshContact = { onAction(ChatAction.RefreshContact) },
                             // null hides the chevron and makes the card non-tappable when the
-                            // Blocklist beta flag is off.
+                            // profile isn't viewable (non-tip-DM chats).
                             onOpenProfile = if (canViewProfile) {
                                 { onAction(ChatAction.ViewProfile) }
                             } else {

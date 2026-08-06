@@ -138,15 +138,6 @@ sealed interface FeatureFlag<T: Any> {
         override val persistLogOut: Boolean = false
     }
 
-    @FeatureFlagMarker
-    data object Blocklist: FeatureFlag<Boolean> {
-        override val key: String = "blocklist_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
-        override val visible: Boolean = true
-        override val persistLogOut: Boolean = false
-    }
-
     companion object {
         val entries: List<FeatureFlag<*>>
             get() = FeatureFlagEntries.entries
@@ -171,7 +162,6 @@ val FeatureFlag<*>.title: String
         FeatureFlag.GiveUsdf -> "Give/Send USDF"
         FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
         FeatureFlag.FrostedTipCard -> "Frosted Tip Card"
-        FeatureFlag.Blocklist -> "Blocklist"
     }
 
 val FeatureFlag<*>.message: String
@@ -187,7 +177,6 @@ val FeatureFlag<*>.message: String
         FeatureFlag.GiveUsdf -> "When enabled, you'll gain the ability to send USDF directly and give it as cash"
         FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
         FeatureFlag.FrostedTipCard -> "When enabled, the tip card in the scanner renders as frosted glass over a blurred snapshot of the camera instead of a solid card"
-        FeatureFlag.Blocklist -> "When enabled, you'll gain the ability to open a chat participant's profile, block them, and manage your blocklist from My Account"
     }
 
 

@@ -59,7 +59,7 @@ internal fun ChatTopBar(
             },
             title = {
                 Row(
-                    // Profile open is gated behind the Blocklist beta flag.
+                    // Profile open is only available for tip DMs (see State.canViewProfile).
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
