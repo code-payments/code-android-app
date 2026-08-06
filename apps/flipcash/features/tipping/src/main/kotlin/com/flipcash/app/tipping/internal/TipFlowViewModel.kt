@@ -7,7 +7,9 @@ import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
+import com.flipcash.app.tipping.internal.share.TipCodePreviewCache
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.features.tipping.R
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
@@ -32,6 +34,7 @@ internal class TipFlowViewModel @Inject constructor(
     tippingCoordinator: TippingCoordinator,
     tokenCoordinator: TokenCoordinator,
     shareable: ShareSheetController,
+    tipCodePreviewCache: TipCodePreviewCache,
     private val resources: ResourceHelper,
 ) : BaseViewModel<TipFlowViewModel.State, TipFlowViewModel.Event>(
     initialState = State(),
@@ -84,7 +87,11 @@ internal class TipFlowViewModel @Inject constructor(
             .mapNotNull { it.userProfile }
             .distinctUntilChanged()
             .map { tippingCoordinator.resolveTipCard() }
-            .onResult(onSuccess = { card -> dispatchEvent(Event.OnTipCardPopulated(card)) })
+            .onResult(onSuccess = { card ->
+                dispatchEvent(Event.OnTipCardPopulated(card))
+                // Render the Sharesheet preview eagerly so it's ready by the time the user taps share.
+                tippingCoordinator.currentUserId?.let { tipCodePreviewCache.prepare(it, card) }
+            })
             .launchIn(viewModelScope)
 
         combine(
@@ -99,7 +106,13 @@ internal class TipFlowViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.ShareTipCard>()
             .mapNotNull { tippingCoordinator.currentUserId }
-            .map { shareable.present(Shareable.TipCard(it)) }
+            .map { userId ->
+                // Title shown above the link, e.g. "Tip X" (same label as the card).
+                val title = stateFlow.value.tipCard?.user?.displayName
+                    ?.let { resources.getString(R.string.label_tipUser, it) }
+                // Attach the eagerly-rendered preview if it's ready; null shares the URL alone.
+                shareable.present(Shareable.TipCard(userId, tipCodePreviewCache.get(userId), title))
+            }
             .launchIn(viewModelScope)
     }
 
