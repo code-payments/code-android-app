@@ -30,21 +30,36 @@ fun buildDmPaymentMetadata(
         ).build().toByteArray()
 }
 
+/** Where in the app a tip DM payment was initiated, reported to the backend. */
+enum class TipOrigin { TIPCARD, CHAT }
+
 /**
  * Builds the serialized Flipcash `AppMetadata` proto bytes for a tip DM payment.
  *
  * Unlike a contact DM payment there is no phone source/destination — a tip DM is
- * between two user IDs, which map directly to/from public keys. Returns `null` when
+ * between two user IDs, which map directly to/from public keys. [origin] records
+ * where the tip was sent from (a tip card vs. an in-chat send). Returns `null` when
  * [chatId] is missing so the caller can pass the result through unconditionally.
  */
 fun buildTipDmPaymentMetadata(
     chatId: ChatId?,
+    origin: TipOrigin,
 ): ByteArray? {
     if (chatId == null) return null
     return FlipcashIntentModel.AppMetadata.newBuilder()
         .setChat(
             FlipcashIntentModel.ChatMetadata.newBuilder()
                 .setChatId(Common.ChatId.newBuilder().setValue(chatId.bytes.toByteString()))
-                .setTipDmPayment(FlipcashIntentModel.ChatMetadata.TipDmPayment.newBuilder())
+                .setTipDmPayment(
+                    FlipcashIntentModel.ChatMetadata.TipDmPayment.newBuilder()
+                        .setLocation(
+                            when (origin) {
+                                TipOrigin.TIPCARD ->
+                                    FlipcashIntentModel.ChatMetadata.TipDmPayment.Location.TIPCARD
+                                TipOrigin.CHAT ->
+                                    FlipcashIntentModel.ChatMetadata.TipDmPayment.Location.CHAT
+                            }
+                        )
+                )
         ).build().toByteArray()
 }

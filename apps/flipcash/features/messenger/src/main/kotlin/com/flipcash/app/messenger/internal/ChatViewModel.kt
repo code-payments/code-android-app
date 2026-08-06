@@ -24,6 +24,7 @@ import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
@@ -700,6 +701,7 @@ internal class ChatViewModel @Inject constructor(
                             verifiedFiat = verifiedFiat,
                             token = token,
                             source = source,
+                            origin = TipOrigin.CHAT,
                         )
                         null -> {
                             dispatchEvent(Event.SendStateUpdated())
@@ -743,7 +745,6 @@ internal class ChatViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        super.onCleared()
         chatCoordinator.setActiveChatId(null)
     }
 
