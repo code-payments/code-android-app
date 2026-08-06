@@ -2,6 +2,7 @@ package com.flipcash.app.shareable.internal
 
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
@@ -22,7 +23,6 @@ import com.flipcash.app.shareable.ShareablePendingData.CashLink
 import com.flipcash.shared.shareable.R
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.accounts.entropy
-import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -148,7 +148,7 @@ internal class InternalShareSheetController(
                 shareInviteLink()
             }
 
-            is Shareable.TipCard -> shareTipCard(shareable.userId)
+            is Shareable.TipCard -> shareTipCard(shareable)
         }
     }
 
@@ -288,16 +288,34 @@ internal class InternalShareSheetController(
         context.startActivity(share)
     }
 
-    private fun shareTipCard(userId: ID) {
-        val url = Linkify.tipcard(userId)
-        val intent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, url)
+    private fun shareTipCard(shareable: Shareable.TipCard) {
+        val url = Linkify.tipcard(shareable.userId)
+        val preview = shareable.preview
+
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            // The shared payload is the link; the recipient still resolves its own preview from the
+            // URL's OG tags. type stays text/plain and the bitmap is NOT an EXTRA_STREAM.
             type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, url)
+            shareable.title?.let { putExtra(Intent.EXTRA_TITLE, it) }
+
+            if (preview != null) {
+                // Android draws the Sharesheet thumbnail from the intent's ClipData (a content:// URI),
+                // not from any extra. On API < 29 there's no preview surface — this is simply ignored.
+                // The Sharesheet's preview thumbnail slot is square, so use the 1:1 render (the hero
+                // is for URL-unfurl surfaces the recipient resolves from OG tags, not this slot). The
+                // ClipData description is a non-displayed a11y/clipboard label.
+                clipData = ClipData.newUri(context.contentResolver, "Tip code", preview.squareUri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
         }
 
         val share = Intent.createChooser(intent, null).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            // Use addFlags, not `flags =`. createChooser migrates the target's ClipData *and* its
+            // read-permission grant onto the chooser intent; assigning `flags` here would wipe that
+            // grant, and the Sharesheet's own preview process would be denied access to the image.
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (preview != null) addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
         context.startActivity(share)

@@ -2,6 +2,7 @@ package com.flipcash.app.shareable
 
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.flipcash.app.core.share.TipCodePreview
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.accounts.GiftCardAccount
 import com.getcode.opencode.model.core.ID
@@ -43,7 +44,11 @@ sealed interface Shareable {
     }
 
     data class TipCard(
-        val userId: ID
+        val userId: ID,
+        // Optional pre-rendered Sharesheet preview. Null degrades to sharing the URL alone.
+        val preview: TipCodePreview? = null,
+        // Optional Sharesheet title shown above the link (e.g. "Tip Brandon McAnsh").
+        val title: String? = null,
     ): Shareable {
         override val pendingData: ShareablePendingData? = null
     }

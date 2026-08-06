@@ -13,7 +13,9 @@ import coil3.request.CachePolicy
 import coil3.request.crossfade
 import com.flipcash.app.auth.AuthManager
 import okio.Path.Companion.toOkioPath
+import com.flipcash.app.core.android.ActivityProvider
 import com.flipcash.app.currency.PreferredCurrencyController
+import com.flipcash.app.tipping.internal.share.TipCodePreviewCache
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.trace
 import dev.bmcreations.phantom.connect.PhantomSdk
@@ -35,6 +37,12 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
+    @Inject
+    lateinit var activityProvider: ActivityProvider
+
+    @Inject
+    lateinit var tipCodePreviewCache: TipCodePreviewCache
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -45,6 +53,11 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
         super.onCreate()
         PhantomSdk.init(this)
         authManager.init()
+
+        // Track the foreground Activity so the tip-code share preview can render offscreen.
+        registerActivityLifecycleCallbacks(activityProvider)
+        // Bound the on-disk footprint of cached share previews accumulated across sessions.
+        tipCodePreviewCache.pruneOnStartup()
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         trace("app onCreate end")
