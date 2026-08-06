@@ -12,6 +12,7 @@ import com.flipcash.app.currency.PreferredCurrencyController
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ProfileController
+import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.TipPaymentDelegate
@@ -197,6 +198,7 @@ class TippingCoordinator @Inject constructor(
                 verifiedFiat = verifiedFiat,
                 token = token,
                 source = source,
+                origin = TipOrigin.TIPCARD,
             ).onSuccess { canonicalChatId ->
                 setSendState(LoadingSuccessState(success = true))
                 delay(400.milliseconds)
