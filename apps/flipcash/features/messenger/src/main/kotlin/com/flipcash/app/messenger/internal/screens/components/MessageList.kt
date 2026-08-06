@@ -47,7 +47,6 @@ import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.rememberKeyboardController
-import com.getcode.ui.utils.sheetResignmentBehavior
 import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -122,8 +121,14 @@ internal fun MessageList(
         }
 
         LazyColumn(
+            // NB: no sheetResignmentBehavior here. That guard is built for top-anchored lists,
+            // where index0/offset0 is the scroll edge that abuts the sheet's downward dismiss drag.
+            // This list is reverseLayout=true, so index0/offset0 is the *resting* position (newest),
+            // and a downward drag there scrolls into history rather than overscrolling. Applying the
+            // guard would flip the sheet's allowDismiss to false at rest and never cleanly re-enable
+            // it, so the sheet snaps back instead of dismissing. Dismiss here comes from the
+            // header/handle drag, scrim tap, and back — all gated by that same allowDismiss flag.
             modifier = modifier
-                .sheetResignmentBehavior(listState)
                 .pointerInput(Unit) {
                     detectTapGestures { keyboard.hide() }
                 },
