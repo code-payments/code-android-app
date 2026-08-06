@@ -121,10 +121,10 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                             .setQuarks(amount.quarks)
                             .setMint(Common.PublicKey.newBuilder().setValue(mint.bytes.toByteString()))
                     )
-                    .setAction(
+                    .setVerb(
                         when (action) {
-                            MessageContent.Cash.Action.TIPPED -> MessagingModel.CashContent.Action.TIPPED
-                            MessageContent.Cash.Action.SENT -> MessagingModel.CashContent.Action.SENT
+                            MessageContent.Cash.Action.TIPPED -> MessagingModel.CashContent.Verb.TIPPED
+                            MessageContent.Cash.Action.SENT -> MessagingModel.CashContent.Verb.SENT
                         }
                     )
             )

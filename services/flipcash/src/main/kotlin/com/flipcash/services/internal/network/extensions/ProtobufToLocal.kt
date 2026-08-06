@@ -154,8 +154,8 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
                 currencyCode = CurrencyCode.tryValueOf(cash.amount.currency) ?: CurrencyCode.USD,
             ),
             mint = cash.amount.mint.value.toByteArray().toMint(),
-            action = when (cash.action) {
-                MessagingModel.CashContent.Action.TIPPED -> MessageContent.Cash.Action.TIPPED
+            action = when (cash.verb) {
+                MessagingModel.CashContent.Verb.TIPPED -> MessageContent.Cash.Action.TIPPED
                 else -> MessageContent.Cash.Action.SENT
             },
         )
