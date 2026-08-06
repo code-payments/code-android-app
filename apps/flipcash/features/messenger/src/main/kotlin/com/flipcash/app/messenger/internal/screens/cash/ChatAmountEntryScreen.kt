@@ -4,12 +4,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.TokenSelectionPill
 import com.flipcash.app.messenger.internal.ChatViewModel
@@ -26,30 +22,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-
-/**
- * Standalone amount entry screen — used when navigating directly from the contact list
- * (messenger disabled). Creates its own [ChatViewModel] scoped to this nav entry.
- */
-@Composable
-fun ChatAmountEntryScreen(identifier: ChatIdentifier) {
-    val viewModel = hiltViewModel<ChatViewModel>()
-    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-
-    val navigator = LocalCodeNavigator.current
-    LaunchedEffect(viewModel, identifier) {
-        viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(identifier))
-    }
-
-    ChatAmountEntryContent(
-        amountDelegate = viewModel.amountDelegate,
-        resolveState = state.resolveState,
-        token = state.token,
-        eventFlow = viewModel.eventFlow,
-        onExit = { navigator.pop() },
-        onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnConfirmRequested) },
-    )
-}
 
 @Composable
 internal fun ChatAmountEntryContent(

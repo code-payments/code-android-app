@@ -121,7 +121,7 @@ internal class ChatViewModel @Inject constructor(
     }
 
     data class State(
-        val separatorConfig: SeparatorConfig= SeparatorConfig.Continuous(),
+        val separatorConfig: SeparatorConfig = SeparatorConfig.Continuous(),
         val chatId: ChatId? = null,
         val participant: ChatParticipant? = null,
         // The kind of DM this conversation is, resolved from the fast local contact lookup ahead of
@@ -268,7 +268,7 @@ internal class ChatViewModel @Inject constructor(
     // tip (from the tip payment delegate); a contact DM swipes to *send* with no minimum.
     private fun amountStyle(isTip: Boolean) = AmountEntryStyle(
         actionLabel = AmountEntryLabel.Plain(
-            resources.getString(if (isTip) R.string.action_swipeToTip else R.string.action_swipeToSend)
+            resources.getString(R.string.action_swipeToSend)
         ),
         actionStyle = ConfirmationStyle.Slide,
         infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
