@@ -665,6 +665,17 @@ internal class ChatViewModel @Inject constructor(
                     val source = owner.withTimelockForToken(token)
 
                     val balance = tokenCoordinator.balanceForToken(token)
+
+                    val minimum = minAmountFlow.value
+                    if (minimum != null && amount.valueLessThan(minimum)) {
+                        dispatchEvent(Event.SendStateUpdated())
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_tipMinimum, minimum.formatted()),
+                            message = resources.getString(R.string.error_description_tipMinimum),
+                        )
+                        return@launch
+                    }
+
                     val verifiedFiat = verifiedFiatCalculator.compute(
                         amount = amount,
                         token = token,

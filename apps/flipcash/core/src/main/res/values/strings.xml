@@ -899,8 +899,8 @@
     <string name="action_swipeToTip">Swipe to Tip</string>
     <string name="content_description_customTipAmount">Enter a custom amount</string>
     <string name="subtitle_tipHintMinimum">Minimum tip %1$s</string>
-    <string name="error_title_tipMinimum">Tips Start at %1$s</string>
-    <string name="error_description_tipMinimum">Enter a larger amount to send this tip</string>
+    <string name="error_title_tipMinimum">%1$s Minimum</string>
+    <string name="error_description_tipMinimum">Increase the amount to send</string>
     <string name="label_viaTipCard">via Tip Card</string>
 
     <string name="title_block">Block</string>
