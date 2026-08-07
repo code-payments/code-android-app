@@ -1,5 +1,6 @@
 package com.getcode.crypt
 
+import kotlin.jvm.JvmStatic
 import org.kotlincrypto.hash.sha2.SHA256
 
 /*
@@ -24,7 +25,7 @@ import org.kotlincrypto.hash.sha2.SHA256
  * making it safe to use as a map key. Provides factory methods for computing
  * single and double SHA-256 hashes.
  */
-class Sha256Hash private constructor(internal val bytes: ByteArray) : Comparable<Sha256Hash> {
+class Sha256Hash private constructor(val bytes: ByteArray) : Comparable<Sha256Hash> {
 
     companion object {
         /** The byte length of a SHA-256 hash output. */
@@ -34,6 +35,7 @@ class Sha256Hash private constructor(internal val bytes: ByteArray) : Comparable
         val ZERO_HASH: Sha256Hash = wrap(ByteArray(LENGTH))
 
         /** Creates a new instance that wraps the given raw hash bytes (must be exactly 32 bytes). */
+        @JvmStatic
         fun wrap(rawHashBytes: ByteArray): Sha256Hash {
             require(rawHashBytes.size == LENGTH) {
                 "Expected $LENGTH bytes but got ${rawHashBytes.size}"
@@ -45,31 +47,38 @@ class Sha256Hash private constructor(internal val bytes: ByteArray) : Comparable
          * Creates a new instance that wraps the given hex-encoded hash value
          * (must represent exactly 32 bytes, i.e., 64 hex characters).
          */
+        @JvmStatic
         fun wrap(hexString: String): Sha256Hash = wrap(decodeHex(hexString))
 
         /** Creates a new instance wrapping the given bytes with their order reversed. */
+        @JvmStatic
         fun wrapReversed(rawHashBytes: ByteArray): Sha256Hash = wrap(reverseBytes(rawHashBytes))
 
         /** Computes a single SHA-256 hash of [contents] and wraps the result. */
+        @JvmStatic
         fun of(contents: ByteArray): Sha256Hash = wrap(hash(contents))
 
         /**
          * Computes a double SHA-256 hash (SHA-256(SHA-256(contents))) of [contents]
          * and wraps the result.
          */
+        @JvmStatic
         fun twiceOf(contents: ByteArray): Sha256Hash = wrap(hashTwice(contents))
 
         /**
          * Computes a double SHA-256 hash over the concatenation of [content1] and [content2]
          * and wraps the result.
          */
+        @JvmStatic
         fun twiceOf(content1: ByteArray, content2: ByteArray): Sha256Hash =
             wrap(hashTwice(content1, content2))
 
         /** Calculates the SHA-256 hash of [input]. */
+        @JvmStatic
         fun hash(input: ByteArray): ByteArray = hash(input, 0, input.size)
 
         /** Calculates the SHA-256 hash of [length] bytes from [input] starting at [offset]. */
+        @JvmStatic
         fun hash(input: ByteArray, offset: Int, length: Int): ByteArray {
             val digest = SHA256()
             digest.update(input, offset, length)
@@ -77,12 +86,14 @@ class Sha256Hash private constructor(internal val bytes: ByteArray) : Comparable
         }
 
         /** Calculates SHA-256(SHA-256([input])). */
+        @JvmStatic
         fun hashTwice(input: ByteArray): ByteArray = hashTwice(input, 0, input.size)
 
         /**
          * Calculates SHA-256(SHA-256([input1] || [input2])), equivalent to concatenating
          * the two arrays and calling [hashTwice].
          */
+        @JvmStatic
         fun hashTwice(input1: ByteArray, input2: ByteArray): ByteArray {
             val first = SHA256().run {
                 update(input1)
@@ -93,6 +104,7 @@ class Sha256Hash private constructor(internal val bytes: ByteArray) : Comparable
         }
 
         /** Calculates SHA-256(SHA-256([length] bytes of [input] starting at [offset])). */
+        @JvmStatic
         fun hashTwice(input: ByteArray, offset: Int, length: Int): ByteArray {
             val first = SHA256().also { it.update(input, offset, length) }.digest()
             return SHA256().also { it.update(first) }.digest()
@@ -101,6 +113,7 @@ class Sha256Hash private constructor(internal val bytes: ByteArray) : Comparable
         /**
          * Calculates SHA-256(SHA-256([input1][offset1]..[length1] || [input2][offset2]..[length2])).
          */
+        @JvmStatic
         fun hashTwice(
             input1: ByteArray, offset1: Int, length1: Int,
             input2: ByteArray, offset2: Int, length2: Int,
@@ -132,9 +145,6 @@ class Sha256Hash private constructor(internal val bytes: ByteArray) : Comparable
             return result
         }
     }
-
-    /** Returns the raw hash bytes. Do NOT modify the returned array. */
-    fun getBytes(): ByteArray = bytes
 
     /** Returns a reversed copy of the internal byte array. */
     fun getReversedBytes(): ByteArray {
