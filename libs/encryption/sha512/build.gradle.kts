@@ -1,12 +1,30 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library)
+    kotlin("multiplatform")
+    id("com.android.kotlin.multiplatform.library")
 }
 
-android {
-    namespace = "${Gradle.codeNamespace}.encryption.sha512"
-}
+kotlin {
+    android {
+        namespace = "com.getcode.encryption.sha512"
+        compileSdk = 37
+        minSdk = 29
+        withHostTest {}
+    }
 
-dependencies {
-    implementation(libs.grpc.okhttp)
-    implementation(libs.grpc.kotlin)
+    iosArm64()
+    iosSimulatorArm64()
+    iosX64()
+
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation(libs.kotlincrypto.macs.hmac.sha2)
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
+    }
 }

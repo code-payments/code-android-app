@@ -21,6 +21,9 @@ kotlin {
             baseName = "SharedCore"
             isStatic = true
             export(project(":libs:encryption:base58"))
+            export(project(":libs:encryption:sha256"))
+            export(project(":libs:encryption:sha512"))
+            export(project(":libs:encryption:hmac"))
         }
     }
 
@@ -28,6 +31,9 @@ kotlin {
         commonMain {
             dependencies {
                 api(project(":libs:encryption:base58"))
+                api(project(":libs:encryption:sha256"))
+                api(project(":libs:encryption:sha512"))
+                api(project(":libs:encryption:hmac"))
             }
         }
     }
