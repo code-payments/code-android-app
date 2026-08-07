@@ -107,8 +107,11 @@ kotlin {
         }
         androidMain {
             dependencies {
-                // Delegate to the JNI module for NDK/CMake compilation.
-                implementation(project(":libs:encryption:ed25519-native"))
+                // Delegate to the JNI module for NDK/CMake compilation. `api` (not
+                // `implementation`) so the JNI `com.getcode.ed25519.Ed25519` class is
+                // transitively re-exported to existing consumers of `:libs:encryption:ed25519`
+                // (e.g. :libs:encryption:utils) — keeps the rename consumer-transparent.
+                api(project(":libs:encryption:ed25519-native"))
             }
         }
         commonTest {
