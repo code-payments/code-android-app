@@ -83,7 +83,7 @@ kotlin {
         val cinteropTaskName = "cinteropEd25519${name.replaceFirstChar { it.uppercaseChar() }}"
 
         compilations["main"].cinterops.create("ed25519") {
-            defFile = file("cinterop/ed25519.def")
+            definitionFile = file("cinterop/ed25519.def")
             includeDirs(ed25519SrcDir)
         }
 

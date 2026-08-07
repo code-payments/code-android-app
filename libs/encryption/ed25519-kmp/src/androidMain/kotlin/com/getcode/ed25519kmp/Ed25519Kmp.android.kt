@@ -1,23 +1,27 @@
 package com.getcode.ed25519kmp
 
-import android.util.Base64
 import com.getcode.ed25519.Ed25519 as JniEd25519
+import java.util.Base64
 
 /**
  * Android actual: delegates to the existing JNI [com.getcode.ed25519.Ed25519].
  *
- * The JNI layer encodes/decodes through base64 internally; we handle that
- * translation here so [commonMain] consumers always work with raw [ByteArray].
+ * The JNI layer encodes/decodes through Android's Base64 internally (Base64.DEFAULT
+ * which adds newlines). We replicate that encoding here using [java.util.Base64]
+ * (available Java 8+, works in both Android runtime and JVM host tests) with the
+ * MIME codec which also handles newlines on decode.
  */
 actual object Ed25519Kmp {
 
     actual fun createKeyPair(seed: ByteArray): KeyPair {
-        // Ed25519.createKeyPair expects a base64-encoded seed (Base64.DEFAULT).
-        val seedB64 = Base64.encodeToString(seed, Base64.DEFAULT)
+        // Ed25519.java calls Base64.encodeToString(seed, Base64.DEFAULT) internally
+        // for createKeyPair(byte[]). We must replicate Base64.DEFAULT encoding
+        // (which wraps at 76 chars) so the JNI receives the expected format.
+        val seedB64 = Base64.getMimeEncoder().encodeToString(seed)
         val jniPair = JniEd25519.createKeyPair(seedB64)
-        // JniPair.publicKey / privateKey are base64 strings (Base64.DEFAULT).
-        val publicKey = Base64.decode(jniPair.publicKey, Base64.DEFAULT)
-        val privateKey = Base64.decode(jniPair.privateKey, Base64.DEFAULT)
+        // JniPair.publicKey / privateKey are base64 strings (Base64.DEFAULT = MIME).
+        val publicKey = Base64.getMimeDecoder().decode(jniPair.publicKey)
+        val privateKey = Base64.getMimeDecoder().decode(jniPair.privateKey)
         return KeyPair(publicKey = publicKey, privateKey = privateKey)
     }
 
