@@ -239,17 +239,27 @@ val koverModules = includedProjectPaths.filter { path ->
     koverPaths.any { path == it || path.startsWith("$it:") } && path !in nonKoverModules
 }
 
-// Aggregate unit tests: :apps:flipcash, service modules, and :libs (which holds the host-JVM
-// cross-platform vector gate for base58 + any future pure-JVM lib tests). Android modules expose
-// `testDebugUnitTest`; pure-JVM modules expose `test`; the androidTest `:benchmark` module has
-// no unit-test task.
+// Aggregate unit tests: :apps:flipcash, service modules, :libs (host-JVM cross-platform vector
+// gates + pure-JVM lib tests), and :kmp. Android library modules expose `testDebugUnitTest`;
+// KMP modules (`com.android.kotlin.multiplatform.library` + `withHostTest {}`) expose
+// `testAndroidHostTest`; pure-JVM modules expose `test`; `:benchmark` is androidTest-only and the
+// `:kmp:shared-core` umbrella has no tests of its own.
 val unitTestPaths = listOf(":apps:flipcash", ":services:flipcash", ":services:opencode", ":libs", ":kmp")
 val jvmUnitTestModules = setOf(":apps:flipcash:shared:ksp")
-val noUnitTestModules = setOf(":apps:flipcash:benchmark")
+// KMP modules run their host tests via `testAndroidHostTest`, not `testDebugUnitTest`.
+val kmpUnitTestModules = setOf(
+    ":libs:encryption:base58",
+    ":libs:encryption:sha256",
+    ":libs:encryption:sha512",
+    ":libs:encryption:hmac",
+)
+val noUnitTestModules = setOf(":apps:flipcash:benchmark", ":kmp:shared-core")
 val unitTestCandidates = includedProjectPaths.filter { path ->
     unitTestPaths.any { path == it || path.startsWith("$it:") } && path !in noUnitTestModules
 }
-val androidUnitTestModules = unitTestCandidates.filter { it !in jvmUnitTestModules }
+val androidUnitTestModules = unitTestCandidates.filter {
+    it !in jvmUnitTestModules && it !in kmpUnitTestModules
+}
 
 // Forced dependency versions for the per-project configuration below. The
 // version catalog isn't registered on projects yet at `beforeProject` time, so
@@ -277,6 +287,7 @@ run {
     val koverModulesForRoot = koverModules.toList()
     val androidUnitTestForRoot = androidUnitTestModules.toList()
     val jvmUnitTestForRoot = jvmUnitTestModules.toList()
+    val kmpUnitTestForRoot = kmpUnitTestModules.toList()
     val forcedDependencies = listOf(
         "org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion",
         "org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion",
@@ -287,6 +298,7 @@ run {
             extra["flipcash.koverModules"] = koverModulesForRoot
             extra["flipcash.androidUnitTestModules"] = androidUnitTestForRoot
             extra["flipcash.jvmUnitTestModules"] = jvmUnitTestForRoot
+            extra["flipcash.kmpUnitTestModules"] = kmpUnitTestForRoot
         }
 
         configurations.configureEach {
