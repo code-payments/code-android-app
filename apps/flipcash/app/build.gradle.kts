@@ -175,6 +175,9 @@ androidComponents {
 
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+    // KMP shared core — consumed transitively via :libs:encryption:base58 but declared
+    // explicitly so the app's own code can reference com.flipcash.shared.* directly.
+    implementation(project(":kmp:shared-core"))
     implementation(project(":services:flipcash-compose"))
 
     implementation(project(":apps:flipcash:core"))

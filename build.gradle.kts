@@ -32,6 +32,10 @@ plugins {
     alias(libs.plugins.androidx.room) apply false
     alias(libs.plugins.screenshot) apply false
     alias(libs.plugins.kover)
+    // KMP modules: shared-core umbrella + libs/* pilots
+    alias(libs.plugins.kotlin.multiplatform) apply false
+    alias(libs.plugins.android.kotlin.multiplatform.library) apply false
+    alias(libs.plugins.kmmbridge) apply false
 }
 
 // NOTE: The per-project `allprojects { }` configuration that used to live here

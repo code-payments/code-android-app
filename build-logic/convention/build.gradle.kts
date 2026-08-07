@@ -41,5 +41,9 @@ gradlePlugin {
             id = "flipcash.android.ed25519.shadow"
             implementationClass = "AndroidEd25519ShadowConventionPlugin"
         }
+        register("kmpLibrary") {
+            id = "flipcash.kmp.library"
+            implementationClass = "KmpLibraryConventionPlugin"
+        }
     }
 }
