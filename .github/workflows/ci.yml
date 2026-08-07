@@ -67,3 +67,30 @@ jobs:
         run: bundle exec fastlane android flipcash_tests
         env:
           SKIP_COVERAGE: "true"
+
+  # TODO(cross-platform-vectors): wire instrumented vector tests once this CI has emulator support.
+  #
+  # Three androidTest suites require a device/emulator (JNI or Android-framework deps):
+  #   - :libs:encryption:ed25519  connectedAndroidTest  (JNI + android.util.Base64)
+  #   - :libs:encryption:mnemonic connectedAndroidTest  (wordlist in res/raw + JNI ed25519)
+  #   - :libs:currency-math       connectedAndroidTest  (loads .bin tables from assets)
+  #
+  # To add: create a new job (e.g. `vector-instrumented-tests`) with:
+  #   runs-on: ubuntu-latest          # or macos-latest (faster KVM on Linux)
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-java@v3 (java-version: '21', distribution: 'corretto')
+  #     - uses: reactivecircus/android-emulator-runner@v2
+  #       with:
+  #         api-level: 35             # matches compileSdk in build-logic convention plugins
+  #         arch: x86_64
+  #         script: >
+  #           ./gradlew
+  #             :libs:encryption:ed25519:connectedAndroidTest
+  #             :libs:encryption:mnemonic:connectedAndroidTest
+  #             :libs:currency-math:connectedAndroidTest
+  #           --no-daemon
+  #
+  # The host-JVM vector suites (base58, solana_message, compact_message) are already covered by
+  # the flipcash-tests job above via `flipcashTestDebug` → :libs:encryption:base58 and
+  # :services:opencode are now in unitTestPaths (see settings.gradle.kts).
