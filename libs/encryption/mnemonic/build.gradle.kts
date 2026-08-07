@@ -9,6 +9,7 @@ android {
 
 dependencies {
     implementation(project(":libs:encryption:base58"))
+    api(project(":libs:encryption:derivepath"))
     implementation(project(":libs:encryption:ed25519"))
     implementation(project(":libs:encryption:hmac"))
     implementation(project(":libs:encryption:sha256"))

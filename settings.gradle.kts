@@ -139,6 +139,7 @@ include(
     ":libs:datetime",
     ":libs:emojis",
     ":libs:encryption:base58",
+    ":libs:encryption:derivepath",
     ":libs:encryption:ed25519",
     ":libs:encryption:hmac",
     ":libs:encryption:keys",

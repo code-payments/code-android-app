@@ -21,6 +21,7 @@ kotlin {
             baseName = "SharedCore"
             isStatic = true
             export(project(":libs:encryption:base58"))
+            export(project(":libs:encryption:derivepath"))
         }
     }
 
@@ -28,6 +29,7 @@ kotlin {
         commonMain {
             dependencies {
                 api(project(":libs:encryption:base58"))
+                api(project(":libs:encryption:derivepath"))
             }
         }
     }

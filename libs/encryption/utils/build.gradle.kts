@@ -1,17 +1,44 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library)
+    kotlin("multiplatform")
+    id("com.android.kotlin.multiplatform.library")
 }
 
-android {
-    namespace = "${Gradle.codeNamespace}.encryption.utils"
-}
+kotlin {
+    android {
+        namespace = "com.getcode.encryption.utils"
+        compileSdk = 37
+        minSdk = 29
+        withHostTest {}
+    }
 
-dependencies {
-    implementation(project(":libs:encryption:base58"))
-    implementation(libs.protobuf.kotlin.lite)
-    implementation(project(":libs:encryption:ed25519"))
-    implementation(libs.bundles.kotlinx.serialization)
+    iosArm64()
+    iosSimulatorArm64()
+    iosX64()
 
-    testImplementation(kotlin("test"))
-    testImplementation(libs.robolectric)
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation(project(":libs:encryption:base58"))
+            }
+        }
+        androidMain {
+            dependencies {
+                implementation(project(":libs:encryption:ed25519"))
+                implementation(project(":libs:logging"))
+                implementation(libs.protobuf.kotlin.lite)
+                implementation(libs.bundles.kotlinx.serialization)
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
+        getByName("androidHostTest") {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.robolectric)
+            }
+        }
+    }
 }

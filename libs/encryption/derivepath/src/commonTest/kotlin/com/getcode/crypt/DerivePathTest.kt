@@ -132,5 +132,18 @@ class DerivePathTest {
         assertEquals(a, b)
     }
 
+    @Test
+    fun relationshipUsesHostAsPassword() {
+        val path = DerivePath.relationship("example.com")
+        assertNotNull(path)
+        assertEquals("m/44'/501'/0'/0'/0'/0", path.stringRepresentation())
+        assertEquals("example.com", path.password)
+    }
+
+    @Test
+    fun primaryPathString() {
+        assertEquals("m/44'/501'/0'/0'", DerivePath.primary.stringRepresentation())
+    }
+
     private fun assertFalse(value: Boolean) = kotlin.test.assertFalse(value)
 }
