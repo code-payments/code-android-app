@@ -1,2 +1,0 @@
-headers = ed25519.h
-compilerOpts = -I../../libs/encryption/ed25519/libs/ed25519/src

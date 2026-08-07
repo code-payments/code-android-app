@@ -24,7 +24,7 @@ kotlin {
             export(project(":libs:encryption:sha256"))
             export(project(":libs:encryption:sha512"))
             export(project(":libs:encryption:hmac"))
-            export(project(":libs:encryption:ed25519-kmp"))
+            export(project(":libs:encryption:ed25519"))
         }
     }
 
@@ -35,7 +35,7 @@ kotlin {
                 api(project(":libs:encryption:sha256"))
                 api(project(":libs:encryption:sha512"))
                 api(project(":libs:encryption:hmac"))
-                api(project(":libs:encryption:ed25519-kmp"))
+                api(project(":libs:encryption:ed25519"))
             }
         }
     }
