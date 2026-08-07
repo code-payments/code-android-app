@@ -36,6 +36,17 @@ jobs:
           restore-keys: |
             gradle-build-cache-
 
+      # The build's convention plugins read keys from local.properties and fail if the
+      # file is absent. Compile-only needs no real secrets, so write a dummy file with
+      # sdk.dir + blank keys. (The flipcash-tests job gets this implicitly via its secret steps.)
+      - name: Create dummy local.properties (compile-only, no secrets)
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo 'BUGSNAG_API_KEY=""' >> local.properties
+          echo 'GOOGLE_CLOUD_PROJECT_NUMBER=0' >> local.properties
+          echo 'MIXPANEL_API_KEY=""' >> local.properties
+          echo 'COINBASE_ONRAMP_API_KEY=' >> local.properties
+
       # compileDebugSources runs all Kotlin/Java compilation tasks but stops before
       # processDebugGoogleServices (which needs secrets). This catches KMP interop
       # regressions (missing @JvmStatic, internal visibility leaking across modules)
