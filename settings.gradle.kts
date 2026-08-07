@@ -252,6 +252,7 @@ val kmpUnitTestModules = setOf(
     ":libs:encryption:sha256",
     ":libs:encryption:sha512",
     ":libs:encryption:hmac",
+    ":libs:encryption:utils",
 )
 val noUnitTestModules = setOf(":apps:flipcash:benchmark", ":kmp:shared-core")
 val unitTestCandidates = includedProjectPaths.filter { path ->
