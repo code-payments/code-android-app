@@ -1,5 +1,6 @@
 package com.getcode.crypt
 
+import kotlin.jvm.JvmStatic
 import org.kotlincrypto.macs.hmac.sha2.HmacSHA512
 
 /*
@@ -36,6 +37,7 @@ object PBKDF2SHA512 {
      * Derives a key of [dkLen] bytes from password [P] and salt [S] using [c]
      * PBKDF2 iterations with HMAC-SHA-512 as the pseudorandom function.
      */
+    @JvmStatic
     fun derive(P: String, S: String, c: Int, dkLen: Int): ByteArray {
         require(dkLen > 0) { "dkLen must be positive" }
         require(dkLen.toLong() <= (0xFFFFFFFFL) * H_LEN) { "derived key too long" }

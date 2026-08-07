@@ -92,7 +92,9 @@ public class MnemonicCode {
         if (wordstream == null) return;
         BufferedReader br = new BufferedReader(new InputStreamReader(wordstream, StandardCharsets.UTF_8));
         this.wordList = new ArrayList<>(2048);
-        MessageDigest md = Sha256Hash.newDigest();
+        MessageDigest md;
+        try { md = MessageDigest.getInstance("SHA-256"); }
+        catch (java.security.NoSuchAlgorithmException e) { throw new RuntimeException(e); }
         String word;
         while ((word = br.readLine()) != null) {
             md.update(word.getBytes());
