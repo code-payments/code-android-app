@@ -66,14 +66,18 @@ dependencies {
 // Isolated Projects forbids. The module lists come from `settings.gradle.kts`; the
 // task depends on each module's test task by *path* — a lazy, cross-project-safe
 // dependency that never configures the other project at configuration time.
-// Android modules expose `testDebugUnitTest`; pure-JVM modules expose `test`.
+// Android modules expose `testDebugUnitTest`; KMP modules expose `testAndroidHostTest`;
+// pure-JVM modules expose `test`.
 @Suppress("UNCHECKED_CAST")
 val androidUnitTestModules = rootProject.extra["flipcash.androidUnitTestModules"] as List<String>
 @Suppress("UNCHECKED_CAST")
 val jvmUnitTestModules = rootProject.extra["flipcash.jvmUnitTestModules"] as List<String>
+@Suppress("UNCHECKED_CAST")
+val kmpUnitTestModules = rootProject.extra["flipcash.kmpUnitTestModules"] as List<String>
 
 tasks.register("flipcashTestDebug") {
     description = "Run testDebug for all Flipcash modules"
     dependsOn(androidUnitTestModules.map { "$it:testDebugUnitTest" })
     dependsOn(jvmUnitTestModules.map { "$it:test" })
+    dependsOn(kmpUnitTestModules.map { "$it:testAndroidHostTest" })
 }
