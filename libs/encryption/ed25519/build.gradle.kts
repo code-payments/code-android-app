@@ -23,4 +23,8 @@ android {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(libs.bundles.kotlinx.serialization)
+
+    // Cross-platform test-vector gate (instrumented: JNI + android.util.Base64 need a device).
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }

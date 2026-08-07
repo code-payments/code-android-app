@@ -236,10 +236,11 @@ val koverModules = includedProjectPaths.filter { path ->
     koverPaths.any { path == it || path.startsWith("$it:") } && path !in nonKoverModules
 }
 
-// Aggregate unit tests: :apps:flipcash plus the two service modules. Android
-// modules expose `testDebugUnitTest`, pure-JVM modules expose `test`, and the
-// androidTest `:benchmark` module has no unit-test task.
-val unitTestPaths = listOf(":apps:flipcash", ":services:flipcash", ":services:opencode")
+// Aggregate unit tests: :apps:flipcash, service modules, and :libs (which holds the host-JVM
+// cross-platform vector gate for base58 + any future pure-JVM lib tests). Android modules expose
+// `testDebugUnitTest`; pure-JVM modules expose `test`; the androidTest `:benchmark` module has
+// no unit-test task.
+val unitTestPaths = listOf(":apps:flipcash", ":services:flipcash", ":services:opencode", ":libs")
 val jvmUnitTestModules = setOf(":apps:flipcash:shared:ksp")
 val noUnitTestModules = setOf(":apps:flipcash:benchmark")
 val unitTestCandidates = includedProjectPaths.filter { path ->
