@@ -1,12 +1,32 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library)
+    kotlin("multiplatform")
+    id("com.android.kotlin.multiplatform.library")
 }
 
-android {
-    namespace = "${Gradle.codeNamespace}.encryption.base58"
-}
+kotlin {
+    android {
+        namespace = "com.getcode.encryption.base58"
+        compileSdk = 37
+        minSdk = 29
+        withHostTest {}
+    }
+    
+    iosArm64()
+    iosSimulatorArm64()
+    iosX64()
 
-dependencies {
-    testImplementation(kotlin("test"))
-    testImplementation(libs.kotlinx.serialization.json) // parse cross-platform test-vector fixtures
+    sourceSets {
+        commonMain {
+            // Pure Kotlin -- no external dependencies needed.
+        }
+        androidMain {
+            // MessageDigest + BigInteger -- JDK only; no extra Gradle deps.
+        }
+        commonTest {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.kotlinx.serialization.json)
+            }
+        }
+    }
 }

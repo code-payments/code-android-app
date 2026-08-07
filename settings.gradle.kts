@@ -192,6 +192,9 @@ include(
     ":ui:testing",
     ":ui:theme",
 
+    // cross-platform shared core (Kotlin Multiplatform → Android + iOS XCFramework)
+    ":kmp:shared-core",
+
     // 3rd party imported dependencies
     ":vendor:kik:scanner",
     ":vendor:tipkit:tipkit",
@@ -240,7 +243,7 @@ val koverModules = includedProjectPaths.filter { path ->
 // cross-platform vector gate for base58 + any future pure-JVM lib tests). Android modules expose
 // `testDebugUnitTest`; pure-JVM modules expose `test`; the androidTest `:benchmark` module has
 // no unit-test task.
-val unitTestPaths = listOf(":apps:flipcash", ":services:flipcash", ":services:opencode", ":libs")
+val unitTestPaths = listOf(":apps:flipcash", ":services:flipcash", ":services:opencode", ":libs", ":kmp")
 val jvmUnitTestModules = setOf(":apps:flipcash:shared:ksp")
 val noUnitTestModules = setOf(":apps:flipcash:benchmark")
 val unitTestCandidates = includedProjectPaths.filter { path ->
