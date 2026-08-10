@@ -30,6 +30,7 @@ class ChatMetadataMapper @Inject constructor(
             lastActivity = Instant.fromEpochSeconds(from.lastActivity.seconds, from.lastActivity.nanos),
             latestEventSequence = from.latestEventSequence,
             isHidden = from.isHidden,
+            title = from.title.takeIf { it.isNotEmpty() },
         )
     }
 }

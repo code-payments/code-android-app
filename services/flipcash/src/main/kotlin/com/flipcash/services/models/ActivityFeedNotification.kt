@@ -24,7 +24,8 @@ data class ActivityFeedNotification(
     val amount: LocalFiat?,
     val timestamp: Instant,
     val state: NotificationState,
-    val metadata: NotificationMetadata?
+    val metadata: NotificationMetadata?,
+    val textSubstitutions: List<Substitution> = emptyList(),
 )
 
 /**
@@ -55,6 +56,7 @@ sealed interface NotificationMetadata {
     @Serializable
     data class DirectlySentCrypto(
         val phoneNumber: String? = null,
+        val userId: ID? = null,
     ) : NotificationMetadata
 
     /**
@@ -73,6 +75,7 @@ sealed interface NotificationMetadata {
     @Serializable
     data class ReceivedCrypto(
         val phoneNumber: String? = null,
+        val userId: ID? = null,
     ) : NotificationMetadata
 
     @Serializable

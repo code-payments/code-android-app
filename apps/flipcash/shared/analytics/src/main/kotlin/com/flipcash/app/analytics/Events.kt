@@ -380,6 +380,7 @@ internal val ChatType.propertyValue: String
     get() = when (this) {
         ChatType.CONTACT_DM -> "Contact"
         ChatType.TIP_DM -> "Tip"
+        ChatType.GROUP -> "Group"
         ChatType.UNKNOWN -> "Unknown"
     }
 

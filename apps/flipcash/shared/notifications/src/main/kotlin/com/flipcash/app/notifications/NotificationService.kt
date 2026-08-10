@@ -343,6 +343,11 @@ class NotificationService : FirebaseMessagingService(),
             is Substitution.Phone -> {
                 contactResolver.resolveName(substitution.phoneNumber, substitution.fallback)
             }
+            is Substitution.UserId -> {
+                // Resolving a userId to a display name requires a network lookup not available here;
+                // degrade gracefully by using the server-provided fallback string.
+                substitution.fallback
+            }
         }
     }
 

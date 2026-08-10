@@ -46,6 +46,14 @@ internal class InternalProfileRepository(
             .onFailure { ErrorUtils.handleError(it) }
     }
 
+    override suspend fun updateTipCard(
+        owner: Ed25519.KeyPair,
+        hexColor: String,
+    ): Result<Unit> {
+        return service.updateTipCard(owner, hexColor)
+            .onFailure { ErrorUtils.handleError(it) }
+    }
+
     override suspend fun linkSocialAccount(
         request: SocialAccountLinkRequest,
         owner: Ed25519.KeyPair

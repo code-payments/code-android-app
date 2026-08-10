@@ -12,6 +12,7 @@ import com.flipcash.services.models.SetProfilePictureError
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
 import com.flipcash.services.models.UnlinkSocialAccountError
+import com.flipcash.services.models.UpdateTipCardError
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.internal.network.extensions.toMediaItem
@@ -81,6 +82,26 @@ internal class ProfileService @Inject constructor(
                 }
             },
             onFailure = { Result.failure(it.toValidationOrElse { cause -> SetProfilePictureError.Other(cause) }) }
+        )
+    }
+
+    suspend fun updateTipCard(
+        owner: Ed25519.KeyPair,
+        hexColor: String,
+    ): Result<Unit> {
+        return runCatching {
+            api.updateTipCard(owner, hexColor)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    ProfileService.UpdateTipCardResponse.Result.OK -> Result.success(Unit)
+                    ProfileService.UpdateTipCardResponse.Result.DENIED -> Result.failure(UpdateTipCardError.Denied())
+                    ProfileService.UpdateTipCardResponse.Result.INVALID_COLOR -> Result.failure(UpdateTipCardError.InvalidColor())
+                    ProfileService.UpdateTipCardResponse.Result.UNRECOGNIZED -> Result.failure(UpdateTipCardError.Unrecognized())
+                    null -> Result.failure(UpdateTipCardError.Unrecognized())
+                }
+            },
+            onFailure = { Result.failure(it.toValidationOrElse { cause -> UpdateTipCardError.Other(cause) }) }
         )
     }
 

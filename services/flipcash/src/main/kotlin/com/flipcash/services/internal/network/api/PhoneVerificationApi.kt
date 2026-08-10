@@ -36,7 +36,7 @@ internal class PhoneVerificationApi @Inject constructor(
         owner: Ed25519.KeyPair
     ): PhoneVerificationService.SendVerificationCodeResponse {
         val request = PhoneVerificationService.SendVerificationCodeRequest.newBuilder()
-            .setPhoneNumber(Model.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
+            .setPhoneNumber(Common.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
             .setPlatform(Common.Platform.GOOGLE)
             .apply { setAuth(authenticate(owner)) }
             .build()
@@ -57,7 +57,7 @@ internal class PhoneVerificationApi @Inject constructor(
         owner: Ed25519.KeyPair
     ): PhoneVerificationService.CheckVerificationCodeResponse {
         val request = PhoneVerificationService.CheckVerificationCodeRequest.newBuilder()
-            .setPhoneNumber(Model.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
+            .setPhoneNumber(Common.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
             .setCode(Model.VerificationCode.newBuilder().setValue(code).build())
             .apply { setAuth(authenticate(owner)) }
             .build()
@@ -77,7 +77,7 @@ internal class PhoneVerificationApi @Inject constructor(
         owner: Ed25519.KeyPair
     ): PhoneVerificationService.UnlinkResponse {
         val request = PhoneVerificationService.UnlinkRequest.newBuilder()
-            .setPhoneNumber(Model.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
+            .setPhoneNumber(Common.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
             .apply { setAuth(authenticate(owner)) }
             .build()
 
@@ -93,7 +93,7 @@ internal class PhoneVerificationApi @Inject constructor(
         owner: Ed25519.KeyPair
     ): PhoneVerificationService.LinkForPaymentResponse {
         val request = PhoneVerificationService.LinkForPaymentRequest.newBuilder()
-            .setPhoneNumber(Model.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
+            .setPhoneNumber(Common.PhoneNumber.newBuilder().setValue(request.phoneNumber).build())
             .apply { setAuth(authenticate(owner)) }
             .build()
 

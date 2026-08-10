@@ -1,7 +1,7 @@
 package com.flipcash.services.internal.network.api
 
 import com.codeinc.flipcash.gen.contact.v1.ContactListGrpcKt
-import com.codeinc.flipcash.gen.phone.v1.Model
+import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.contact.v1.validate
 import com.flipcash.services.models.ContactMethod
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
@@ -52,8 +52,8 @@ internal class ContactListApi @Inject constructor(
         newChecksum: Checksum,
     ): RpcContactListService.DeltaUploadResponse {
         val request = RpcContactListService.DeltaUploadRequest.newBuilder()
-            .addAllAdds(adds.map { Model.PhoneNumber.newBuilder().setValue(it.phoneNumber).build() })
-            .addAllRemoves(removes.map { Model.PhoneNumber.newBuilder().setValue(it.phoneNumber).build() })
+            .addAllAdds(adds.map { Common.PhoneNumber.newBuilder().setValue(it.phoneNumber).build() })
+            .addAllRemoves(removes.map { Common.PhoneNumber.newBuilder().setValue(it.phoneNumber).build() })
             .setOldChecksum(oldChecksum.asHash())
             .setNewChecksum(newChecksum.asHash())
             .apply { setAuth(authenticate(owner)) }
@@ -74,7 +74,7 @@ internal class ContactListApi @Inject constructor(
         val requestFlow = kotlinx.coroutines.flow.flow {
             phones.collect { batch ->
                 val request = RpcContactListService.FullUploadRequest.newBuilder()
-                    .addAllPhones(batch.map { Model.PhoneNumber.newBuilder().setValue(it.phoneNumber).build() })
+                    .addAllPhones(batch.map { Common.PhoneNumber.newBuilder().setValue(it.phoneNumber).build() })
                     .setExpectedChecksum(expectedChecksum.asHash())
                     .apply { setAuth(authenticate(owner)) }
                     .build()

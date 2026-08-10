@@ -2,7 +2,6 @@ package com.flipcash.services.models
 
 import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.intent.v1.Model as FlipcashIntentModel
-import com.codeinc.flipcash.gen.phone.v1.Model as PhoneModel
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.utils.toByteString
 
@@ -24,8 +23,8 @@ fun buildDmPaymentMetadata(
                 .setChatId(Common.ChatId.newBuilder().setValue(chatId.bytes.toByteString()))
                 .setContactDmPayment(
                     FlipcashIntentModel.ChatMetadata.ContactDmPayment.newBuilder()
-                        .setSource(PhoneModel.PhoneNumber.newBuilder().setValue(sourcePhone))
-                        .setDestination(PhoneModel.PhoneNumber.newBuilder().setValue(destinationPhone))
+                        .setSource(Common.PhoneNumber.newBuilder().setValue(sourcePhone))
+                        .setDestination(Common.PhoneNumber.newBuilder().setValue(destinationPhone))
                 )
         ).build().toByteArray()
 }

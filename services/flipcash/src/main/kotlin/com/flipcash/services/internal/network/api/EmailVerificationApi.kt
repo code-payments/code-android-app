@@ -3,6 +3,7 @@ package com.flipcash.services.internal.network.api
 import com.codeinc.flipcash.gen.email.v1.EmailVerificationGrpcKt
 import com.codeinc.flipcash.gen.email.v1.EmailVerificationService
 import com.codeinc.flipcash.gen.email.v1.Model
+import com.codeinc.flipcash.gen.common.v1.Common
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.ContactMethod
@@ -35,7 +36,7 @@ internal class EmailVerificationApi @Inject constructor(
         owner: Ed25519.KeyPair
     ): EmailVerificationService.SendVerificationCodeResponse {
         val request = EmailVerificationService.SendVerificationCodeRequest.newBuilder()
-            .setEmailAddress(Model.EmailAddress.newBuilder().setValue(request.emailAddress).build())
+            .setEmailAddress(Common.EmailAddress.newBuilder().setValue(request.emailAddress).build())
             .setClientData(request.clientData)
             .apply { setAuth(authenticate(owner)) }
             .build()
@@ -56,7 +57,7 @@ internal class EmailVerificationApi @Inject constructor(
         owner: Ed25519.KeyPair
     ): EmailVerificationService.CheckVerificationCodeResponse {
         val request = EmailVerificationService.CheckVerificationCodeRequest.newBuilder()
-            .setEmailAddress(Model.EmailAddress.newBuilder().setValue(request.emailAddress).build())
+            .setEmailAddress(Common.EmailAddress.newBuilder().setValue(request.emailAddress).build())
             .setCode(Model.VerificationCode.newBuilder().setValue(code).build())
             .apply { setAuth(authenticate(owner)) }
             .build()
@@ -73,7 +74,7 @@ internal class EmailVerificationApi @Inject constructor(
         owner: Ed25519.KeyPair
     ): EmailVerificationService.UnlinkResponse {
         val request = EmailVerificationService.UnlinkRequest.newBuilder()
-            .setEmailAddress(Model.EmailAddress.newBuilder().setValue(request.emailAddress).build())
+            .setEmailAddress(Common.EmailAddress.newBuilder().setValue(request.emailAddress).build())
             .apply { setAuth(authenticate(owner)) }
             .build()
 

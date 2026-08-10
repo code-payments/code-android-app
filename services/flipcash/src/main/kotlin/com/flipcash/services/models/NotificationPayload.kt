@@ -22,6 +22,11 @@ sealed interface Substitution {
         val fallback: String,
         val phoneNumber: String,
     ): Substitution
+
+    data class UserId(
+        val fallback: String,
+        val userId: ID,
+    ): Substitution
 }
 
 /**

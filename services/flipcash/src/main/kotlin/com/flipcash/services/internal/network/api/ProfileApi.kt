@@ -1,5 +1,6 @@
 package com.flipcash.services.internal.network.api
 
+import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.profile.v1.ProfileGrpcKt
 import com.codeinc.flipcash.gen.profile.v1.ProfileService
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
@@ -101,6 +102,29 @@ internal class ProfileApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.linkSocialAccount(apiRequest)
+        }
+    }
+
+    /**
+     * Updates the caller's tip card customization with the given hex color.
+     */
+    suspend fun updateTipCard(
+        owner: Ed25519.KeyPair,
+        hexColor: String,
+    ): ProfileService.UpdateTipCardResponse {
+        val request = ProfileService.UpdateTipCardRequest.newBuilder()
+            .setColor(
+                Common.Color.newBuilder()
+                    .setHex(hexColor)
+                    .build()
+            )
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.updateTipCard(request)
         }
     }
 

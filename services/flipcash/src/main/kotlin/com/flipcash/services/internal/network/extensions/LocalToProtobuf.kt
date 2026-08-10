@@ -191,6 +191,7 @@ internal fun ChatType.asProtoChatType(): ChatModel.ChatType {
         ChatType.UNKNOWN -> ChatModel.ChatType.UNKNOWN
         ChatType.CONTACT_DM -> ChatModel.ChatType.CONTACT_DM
         ChatType.TIP_DM -> ChatModel.ChatType.TIP_DM
+        ChatType.GROUP -> ChatModel.ChatType.GROUP
     }
 }
 

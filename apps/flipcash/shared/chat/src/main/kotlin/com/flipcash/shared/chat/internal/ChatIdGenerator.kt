@@ -25,6 +25,7 @@ class ChatIdGenerator @Inject constructor() {
     private fun ChatType.dmDomain(): String = when (this) {
         ChatType.CONTACT_DM -> DM_DOMAIN
         ChatType.TIP_DM -> TIP_DM_DOMAIN
+        ChatType.GROUP -> error("cannot derive a DM chat id for chat type $this")
         ChatType.UNKNOWN -> error("cannot derive a DM chat id for chat type $this")
     }
 
