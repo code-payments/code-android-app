@@ -120,6 +120,9 @@ interface MessagingOperations {
     /** Observes all messages in [chatId] as a flat list. */
     fun observeMessages(chatId: ChatId): Flow<List<ChatMessage>>
 
+    /** True once the user has ever sent a tip (a Cash message with verb TIPPED) — onboarding milestone. */
+    fun hasEverTipped(): Flow<Boolean>
+
     /** Observes messages in [chatId] via Paging 3, with remote-mediated page loads. */
     fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>>
 

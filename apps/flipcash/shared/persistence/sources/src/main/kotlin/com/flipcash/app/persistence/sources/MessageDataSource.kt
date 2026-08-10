@@ -11,6 +11,8 @@ import com.flipcash.app.persistence.sources.mapper.notifications.NotificationToE
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.persistence.PagingDataSource
 import com.getcode.opencode.model.core.ID
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -52,6 +54,10 @@ class MessageDataSource @Inject constructor(
         val entities = notificationEntityMapper.map(value)
         db?.messageDao()?.upsert(*entities.toTypedArray())
     }
+
+    /** Reactive "has the user ever added money" — any completed deposit/buy notification. */
+    fun hasEverAddedMoney(): Flow<Boolean> =
+        db?.messageDao()?.hasEverAddedMoney() ?: flowOf(false)
 
     override fun observe(): PagingSource<Int, MessageEntity> {
         return db?.messageDao()?.observeMessages() ?: object : PagingSource<Int, MessageEntity>() {

@@ -90,6 +90,8 @@ class MessagingDelegate @Inject constructor(
         return messageDataSource.observeMessages(chatId)
     }
 
+    override fun hasEverTipped(): Flow<Boolean> = messageDataSource.hasEverTipped()
+
     override fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>> {
         return Pager(
             config = PagingConfig(pageSize = 50),

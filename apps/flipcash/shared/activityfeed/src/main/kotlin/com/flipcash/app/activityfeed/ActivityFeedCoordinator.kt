@@ -67,6 +67,9 @@ class ActivityFeedCoordinator @Inject constructor(
             }
         }
 
+    /** Reactive "has the user ever added money" — any completed deposit/buy in the feed. */
+    fun hasEverAddedMoney(): Flow<Boolean> = dataSource.hasEverAddedMoney()
+
     suspend fun checkPendingMessagesForUpdates(): Result<Int> {
         val pendingMessages = dataSource.query(whereClause = "state = '${NotificationState.PENDING.name}'")
 
