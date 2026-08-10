@@ -23,6 +23,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun RegionSelectionScreen(viewModel: RegionSelectionViewModel) {
@@ -38,7 +39,7 @@ internal fun RegionSelectionScreen(viewModel: RegionSelectionViewModel) {
             .onEach {
                 if (keyboard.visible) {
                     keyboard.hide()
-                    delay(500.scaled(animationScale))
+                    delay(500.scaled(animationScale).milliseconds)
                 }
                 navigator.pop()
             }.launchIn(this)

@@ -121,7 +121,12 @@ class AuthManager @Inject constructor(
                             .onSuccess { onInitialized() }
                     }
 
-                    LookupResult.NoAccountFound -> Unit
+                    // No account on this device: resolve to a terminal LoggedOut state so the
+                    // launch router shows login. Leaving it Unknown makes the transient Unknown
+                    // (emitted on every cold start, before soft-login resolves) ambiguous with
+                    // "no account" — and navigating to login on that transient state tears down
+                    // MainRoot's auth observer before Ready lands.
+                    LookupResult.NoAccountFound -> userManager.set(AuthState.LoggedOut)
                     is LookupResult.TemporaryAccountCreated -> {
                         userManager.establish(entropy = result.entropy)
                         userManager.set(AuthState.Onboarding(result.resumePoint))

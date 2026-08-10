@@ -3,15 +3,20 @@ package com.flipcash.app.balance.internal
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.balance.internal.components.OnboardingItem
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.opencode.utils.combine
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -28,6 +33,8 @@ internal class BalanceViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
     purchaseMethodController: PurchaseMethodController,
     analytics: FlipcashAnalyticsService,
+    chatCoordinator: ChatCoordinator,
+    feedCoordinator: ActivityFeedCoordinator,
 ) : BaseViewModel<BalanceViewModel.State, BalanceViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -35,9 +42,17 @@ internal class BalanceViewModel @Inject constructor(
 ) {
     data class State(
         val preferredOnRampProvider: OnRampProvider.Defined? = null,
-    )
+        val onboardingItems: List<OnboardingItem> = emptyList(),
+    ) {
+        val hasAddedMoney: Boolean
+            get() = onboardingItems.find { it is OnboardingItem.AddMoney }?.isCompleted == true
+
+        val isOnboardingComplete: Boolean
+            get() = onboardingItems.all { it.isCompleted }
+    }
 
     sealed interface Event {
+        data class OnOnboardingItemsUpdated(val items: List<OnboardingItem>): Event
         data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider.Defined?) : Event
 
         data object OpenCurrencySelection : Event
@@ -61,6 +76,21 @@ internal class BalanceViewModel @Inject constructor(
                 purchaseMethodController.presentDepositOptions(popToRoot = true) }
             .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)
+
+        // Onboarding funnel milestones, derived from durable event history (not current balance):
+        // "added money" = a completed deposit/buy in the activity feed; "scanned a tip card" =
+        // a Cash chat message with verb TIPPED.
+        combine(
+            feedCoordinator.hasEverAddedMoney(),
+            chatCoordinator.hasEverTipped(),
+        ) { hasAddedMoney, hasTipped ->
+            listOf(
+                OnboardingItem.AddMoney(isCompleted = hasAddedMoney),
+                OnboardingItem.ScanTipCard(isCompleted = hasTipped),
+            )
+        }
+            .onEach { items -> dispatchEvent(Event.OnOnboardingItemsUpdated(items)) }
+            .launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -69,6 +99,9 @@ internal class BalanceViewModel @Inject constructor(
                 Event.OpenCurrencySelection -> { state -> state }
                 is Event.OnPreferredOnRampProviderChanged -> { state ->
                     state.copy(preferredOnRampProvider = event.provider)
+                }
+                is Event.OnOnboardingItemsUpdated -> { state ->
+                    state.copy(onboardingItems = event.items)
                 }
                 Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }

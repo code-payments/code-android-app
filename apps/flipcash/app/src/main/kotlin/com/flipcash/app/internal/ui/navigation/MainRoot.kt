@@ -27,6 +27,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.resolveRoutes
+import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
 import com.flipcash.services.user.AuthState
@@ -45,6 +46,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @Composable
 internal fun MainRoot(
+    isNewUi: Boolean,
     deepLink: () -> DeepLink?,
     onPendingAction: (DeeplinkAction) -> Unit = {},
 ) {
@@ -102,6 +104,7 @@ internal fun MainRoot(
                 )
                 val launch = buildNavGraphForLaunch(
                     state = state,
+                    isNewUi = isNewUi,
                     router = router,
                     deepLink = deepLink
                 )
@@ -183,6 +186,7 @@ private fun List<NavKey>.startsWith(prefix: List<NavKey>): Boolean {
 internal fun buildNavGraphForLaunch(
     state: AuthState,
     router: Router,
+    isNewUi: Boolean,
     deepLink: () -> DeepLink?,
 ): LaunchNavGraph? {
     return when (state) {
@@ -213,30 +217,31 @@ internal fun buildNavGraphForLaunch(
         }
 
         AuthState.Ready -> {
+            // New UI opens on the Wallet tab; v1 opens on the Scanner.
+            val home = if (isNewUi) AppRoute.Sheets.Wallet else AppRoute.Main.Scanner
             val link = deepLink()
             if (link != null) {
                 when (val action = router.dispatch(link)) {
                     is DeeplinkAction.Navigate -> LaunchNavGraph(
-                        baseRoutes = listOf(AppRoute.Main.Scanner),
+                        baseRoutes = listOf(home),
                         deeplinkRoutes = action.routes,
                     )
 
                     is DeeplinkAction.OpenCashLink,
                     is DeeplinkAction.PresentTipCard,
                     is DeeplinkAction.Login -> LaunchNavGraph(
-                        baseRoutes = listOf(AppRoute.Main.Scanner),
+                        baseRoutes = listOf(home),
                         pendingAction = action,
                     )
 
-                    else -> LaunchNavGraph(listOf(AppRoute.Main.Scanner))
+                    else -> LaunchNavGraph(listOf(home))
                 }
             } else {
-                LaunchNavGraph(listOf(AppRoute.Main.Scanner))
+                LaunchNavGraph(listOf(home))
             }
         }
 
-        AuthState.LoggedOut,
-        AuthState.Unknown -> {
+        AuthState.LoggedOut -> {
             val link = deepLink()
             if (link != null) {
                 when (val action = router.dispatch(link)) {
@@ -248,6 +253,10 @@ internal fun buildNavGraphForLaunch(
             }
         }
 
+        // Transient pre-resolution states — wait on the Loading screen. Navigating to login here
+        // (ClearAll) would tear down MainRoot's auth observer before Ready arrives, stranding an
+        // authenticated user on login. A genuine no-account resolves to LoggedOut (handled above).
+        AuthState.Unknown,
         AuthState.Authenticating -> null
     }
 }

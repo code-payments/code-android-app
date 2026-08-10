@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.navigation.GiveButtonLabel
 import com.flipcash.app.core.navigation.NavBarConfig
 import com.flipcash.app.core.ui.NavigationBar
+import com.flipcash.app.core.ui.NavigationBarState
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.core.R
@@ -56,7 +57,8 @@ internal fun NavBarSettingsContent() {
             contentAlignment = Alignment.Center,
         ) {
             NavigationBar(
-                config = config,
+                // Lab reorder preview is v1-only (the v2 bar is a fixed tab set).
+                state = NavigationBarState(isNewUi = false, config = config),
                 onOrderChanged = { newOrder ->
                     val updated = config.copy(order = newOrder)
                     featureFlags.setOption(FeatureFlag.NavBar, updated.serialize())

@@ -138,6 +138,15 @@ sealed interface FeatureFlag<T: Any> {
         override val persistLogOut: Boolean = false
     }
 
+    @FeatureFlagMarker
+    data object NewUi: FeatureFlag<Boolean> {
+        override val key: String = "new_ui_enabled"
+        override val default: Boolean = true
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = true
+    }
+
     companion object {
         val entries: List<FeatureFlag<*>>
             get() = FeatureFlagEntries.entries
@@ -162,6 +171,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.GiveUsdf -> "Give/Send USDF"
         FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
         FeatureFlag.FrostedTipCard -> "Frosted Tip Card"
+        FeatureFlag.NewUi -> "New UI"
     }
 
 val FeatureFlag<*>.message: String
@@ -177,6 +187,7 @@ val FeatureFlag<*>.message: String
         FeatureFlag.GiveUsdf -> "When enabled, you'll gain the ability to send USDF directly and give it as cash"
         FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
         FeatureFlag.FrostedTipCard -> "When enabled, the tip card in the scanner renders as frosted glass over a blurred snapshot of the camera instead of a solid card"
+        FeatureFlag.NewUi -> "When enabled, the app will use the tipping first UI"
     }
 
 

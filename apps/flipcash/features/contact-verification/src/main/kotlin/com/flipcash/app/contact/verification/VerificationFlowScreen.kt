@@ -6,6 +6,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.contact.verification.email.EmailMagicLinkContent
 import com.flipcash.app.contact.verification.email.EmailVerificationContent
+import com.flipcash.app.contact.verification.internal.VerificationIntroScreen
 import com.flipcash.app.contact.verification.phone.PhoneCodeContent
 import com.flipcash.app.contact.verification.phone.PhoneCountryCodeContent
 import com.flipcash.app.contact.verification.phone.PhoneVerificationContent
@@ -58,6 +59,9 @@ fun VerificationFlowScreen(
 private fun verificationEntryProvider(
     route: AppRoute.Verification,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
+    annotatedEntry<VerificationStep.Intro> { step ->
+        VerificationIntroScreen(step.isForOnRamp)
+    }
     annotatedEntry<VerificationStep.PhoneEntry> {
         PhoneVerificationContent()
     }

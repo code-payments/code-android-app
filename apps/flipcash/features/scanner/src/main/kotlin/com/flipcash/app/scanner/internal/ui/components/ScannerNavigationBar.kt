@@ -10,6 +10,7 @@ import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.navigation.NavBarConfig
 import com.flipcash.app.core.ui.NavigationBar
 import com.flipcash.app.core.ui.NavigationBarState
+import com.flipcash.app.core.ui.rememberNavigationBarState
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.scanner.internal.ScannerDecorItem
@@ -24,6 +25,10 @@ internal fun ScannerNavigationBar(
     onAction: (ScannerDecorItem) -> Unit = { }
 ) {
     val featureFlags = LocalFeatureFlags.current
+    // v2 hoists the nav bar to the app root (AppNavigationBar); v1 keeps it in-screen.
+    val newUi by featureFlags.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
+    if (newUi) return
+
     val navBarConfigString by featureFlags
         .getOption(FeatureFlag.NavBar)
         .collectAsStateWithLifecycle()
@@ -31,24 +36,31 @@ internal fun ScannerNavigationBar(
         NavBarConfig.deserialize(navBarConfigString)
     }
 
+    val navBarState = rememberNavigationBarState(
+        isNewUi = false,
+        config = config,
+        tipUnreadCount = state.tipsUnreadCount,
+        showToast = billState.showToast && billState.toast != null,
+        toastText = billState.toast?.formattedAmount,
+        isPaused = isPaused,
+    )
+
     NavigationBar(
         modifier = modifier,
-        config = config,
-        state = NavigationBarState(
-            contactDmUnreadCount = state.contactDmUnreadCount,
-            tipUnreadCount = state.tipsUnreadCount,
-            showToast = billState.showToast && billState.toast != null,
-            toastText = billState.toast?.formattedAmount,
-            isPaused = isPaused,
-        ),
+        state = navBarState,
         onButtonClick = { button ->
             val item = when (button) {
                 NavBarButton.Give -> ScannerDecorItem.Give
                 NavBarButton.Wallet -> ScannerDecorItem.Wallet
                 NavBarButton.Discover -> ScannerDecorItem.Discover
                 NavBarButton.Tips -> ScannerDecorItem.Tips
+                NavBarButton.Chats -> null
+                NavBarButton.TipCard -> null
+                NavBarButton.Scanner -> null
             }
-            onAction(item)
+            if (item != null) {
+                onAction(item)
+            }
         },
     )
 }
