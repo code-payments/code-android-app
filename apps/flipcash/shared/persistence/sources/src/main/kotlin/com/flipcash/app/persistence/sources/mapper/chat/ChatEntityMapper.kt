@@ -8,9 +8,12 @@ import com.flipcash.app.persistence.converters.ReactionSummarySerialized
 import com.flipcash.app.persistence.converters.SocialAccountSerialized
 import com.flipcash.app.persistence.converters.UserProfileSerialized
 import com.flipcash.app.persistence.entities.ChatMemberEntity
+import com.flipcash.app.persistence.entities.ChatMemberWithProfile
 import com.flipcash.app.persistence.entities.ChatMessageEntity
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.entities.MessageStatus
+import com.flipcash.app.persistence.entities.UserProfileEntity
+import com.flipcash.app.persistence.entities.toSerialized
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
@@ -142,16 +145,34 @@ class ChatEntityMapper @Inject constructor() {
         return ChatMemberEntity(
             chatIdHex = chatIdHex,
             userIdHex = member.userId.hexEncodedString(),
-            userProfileJson = member.userProfile.toSerialized(),
             pointersJson = member.pointers.map { it.toSerialized() },
         )
     }
 
-    fun toMember(entity: ChatMemberEntity): ChatMember {
+    /**
+     * The member's profile, decomposed for the shared `user_profiles` table. Written
+     * alongside [toEntity] so a member row and its normalized profile stay in sync — the
+     * profile is authoritative (full) here, unlike the name+avatar-only blocklist write.
+     */
+    fun toProfileEntity(member: ChatMember): UserProfileEntity {
+        val profile = member.userProfile
+        return UserProfileEntity(
+            userIdHex = member.userId.hexEncodedString(),
+            displayName = profile.displayName,
+            phoneValue = profile.phoneNumber?.value,
+            phoneVerified = profile.phoneNumber?.verified,
+            emailValue = profile.email?.value,
+            emailVerified = profile.email?.verified,
+            socialAccounts = profile.socialAccounts.map { it.toSerialized() },
+            profilePicture = profile.profilePicture,
+        )
+    }
+
+    fun toMember(relation: ChatMemberWithProfile): ChatMember {
         return ChatMember(
-            userId = entity.userIdHex.hexToId(),
-            userProfile = entity.userProfileJson?.toDomain() ?: UserProfile.Empty,
-            pointers = entity.pointersJson?.map { it.toDomain() } ?: emptyList(),
+            userId = relation.member.userIdHex.hexToId(),
+            userProfile = relation.profile?.toSerialized()?.toDomain() ?: UserProfile.Empty,
+            pointers = relation.member.pointersJson?.map { it.toDomain() } ?: emptyList(),
         )
     }
 
@@ -268,14 +289,6 @@ private fun MessagePointerSerialized.toDomain(): MessagePointer = MessagePointer
     userId = userIdHex.hexToIdExt(),
     value = value,
     timestamp = Instant.fromEpochSeconds(timestampEpochSeconds),
-)
-
-private fun UserProfile.toSerialized(): UserProfileSerialized = UserProfileSerialized(
-    displayName = displayName,
-    socialAccounts = socialAccounts.map { it.toSerialized() },
-    phoneNumber = phoneNumber,
-    email = email,
-    profilePicture = profilePicture,
 )
 
 private fun UserProfileSerialized.toDomain(): UserProfile = UserProfile(

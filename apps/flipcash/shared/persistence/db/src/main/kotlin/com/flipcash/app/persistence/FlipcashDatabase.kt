@@ -21,6 +21,7 @@ import com.flipcash.app.persistence.dao.ContactDao
 import com.flipcash.app.persistence.dao.CurrencyCreatorDraftDao
 import com.flipcash.app.persistence.dao.MessageDao
 import com.flipcash.app.persistence.dao.TokenDao
+import com.flipcash.app.persistence.dao.UserProfileDao
 import com.flipcash.app.persistence.entities.BlockedUserEntity
 import com.flipcash.app.persistence.entities.ChatMemberEntity
 import com.flipcash.app.persistence.entities.ChatMessageEntity
@@ -32,6 +33,7 @@ import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.app.persistence.entities.SocialLinkEntity
 import com.flipcash.app.persistence.entities.TokenEntity
 import com.flipcash.app.persistence.entities.TokenValuationEntity
+import com.flipcash.app.persistence.entities.UserProfileEntity
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
@@ -50,6 +52,7 @@ import com.getcode.utils.subByteArray
         ChatMessageEntity::class,
         ChatMemberEntity::class,
         BlockedUserEntity::class,
+        UserProfileEntity::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = FlipcashDatabase.Migration1To2::class),
@@ -76,8 +79,11 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 22, to = 23, spec = FlipcashDatabase.Migration22To23::class),
         AutoMigration(from = 23, to = 24),
         AutoMigration(from = 24, to = 25),
+        // 25 -> 26 is a manual migration (MIGRATION_25_26): it normalizes the
+        // per-row user_profile_json blob into the shared user_profiles table, which
+        // needs data movement an AutoMigration can't express.
     ],
-    version = 25,
+    version = 26,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -90,6 +96,7 @@ abstract class FlipcashDatabase : RoomDatabase() {
     abstract fun chatMessageDao(): ChatMessageDao
     abstract fun chatMemberDao(): ChatMemberDao
     abstract fun blockedUserDao(): BlockedUserDao
+    abstract fun userProfileDao(): UserProfileDao
 
     class Migration1To2 : Migration(1, 2), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
@@ -176,6 +183,86 @@ abstract class FlipcashDatabase : RoomDatabase() {
     }
 
     companion object {
+
+        /**
+         * Normalizes the profile cache. Before v26 the full profile was serialized as
+         * `user_profile_json` and duplicated onto every `chat_members` row (one per
+         * membership) and onto `blocked_users`. v26 collapses it into a single
+         * `user_profiles` table keyed by `user_id_hex`, joined back via `@Relation`.
+         *
+         * The blob can't be decomposed into columns in SQL, so each user's blob is staged
+         * verbatim into `user_profiles.pending_migration_json` (one row per user; the full
+         * chat blob is preferred over the name+avatar-only blocked blob via `INSERT OR
+         * IGNORE`). A one-shot Kotlin backfill ([backfillMigratedProfiles]) decomposes it
+         * afterwards, and reads fall back to the staged blob until it runs.
+         *
+         * Column drops use table-recreate (not `ALTER TABLE ... DROP COLUMN`) for
+         * compatibility with the minSdk-29 SQLite build.
+         */
+        val MIGRATION_25_26 = object : Migration(25, 26) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1. New normalized table. Column set must match UserProfileEntity so
+                //    Room's post-migration schema validation passes.
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `user_profiles` (" +
+                        "`user_id_hex` TEXT NOT NULL, " +
+                        "`display_name` TEXT NOT NULL, " +
+                        "`phone_value` TEXT, " +
+                        "`phone_verified` INTEGER, " +
+                        "`email_value` TEXT, " +
+                        "`email_verified` INTEGER, " +
+                        "`social_accounts_json` TEXT, " +
+                        "`profile_picture_json` TEXT, " +
+                        "`pending_migration_json` TEXT, " +
+                        "PRIMARY KEY(`user_id_hex`))"
+                )
+
+                // 2. Stage each user's legacy blob (one row per user). chat_members holds
+                //    the full profile, so insert it first; blocked_users (name+avatar only)
+                //    fills in users not in any chat. display_name is a placeholder until
+                //    the backfill parses the blob.
+                db.execSQL(
+                    "INSERT OR IGNORE INTO user_profiles (user_id_hex, display_name, pending_migration_json) " +
+                        "SELECT user_id_hex, '', user_profile_json FROM chat_members " +
+                        "WHERE user_profile_json IS NOT NULL"
+                )
+                db.execSQL(
+                    "INSERT OR IGNORE INTO user_profiles (user_id_hex, display_name, pending_migration_json) " +
+                        "SELECT user_id_hex, '', user_profile_json FROM blocked_users " +
+                        "WHERE user_profile_json IS NOT NULL"
+                )
+
+                // 3. Drop the duplicated blob column from chat_members via table-recreate.
+                db.execSQL(
+                    "CREATE TABLE `chat_members_new` (" +
+                        "`chat_id_hex` TEXT NOT NULL, " +
+                        "`user_id_hex` TEXT NOT NULL, " +
+                        "`pointers_json` TEXT, " +
+                        "PRIMARY KEY(`chat_id_hex`, `user_id_hex`))"
+                )
+                db.execSQL(
+                    "INSERT INTO `chat_members_new` (chat_id_hex, user_id_hex, pointers_json) " +
+                        "SELECT chat_id_hex, user_id_hex, pointers_json FROM chat_members"
+                )
+                db.execSQL("DROP TABLE chat_members")
+                db.execSQL("ALTER TABLE chat_members_new RENAME TO chat_members")
+
+                // 4. Same for blocked_users.
+                db.execSQL(
+                    "CREATE TABLE `blocked_users_new` (" +
+                        "`user_id_hex` TEXT NOT NULL, " +
+                        "`blocked_at_epoch_ms` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`user_id_hex`))"
+                )
+                db.execSQL(
+                    "INSERT INTO `blocked_users_new` (user_id_hex, blocked_at_epoch_ms) " +
+                        "SELECT user_id_hex, blocked_at_epoch_ms FROM blocked_users"
+                )
+                db.execSQL("DROP TABLE blocked_users")
+                db.execSQL("ALTER TABLE blocked_users_new RENAME TO blocked_users")
+            }
+        }
+
         private var instance: FlipcashDatabase? = null
         fun requireInstance() = requireNotNull(instance)
         fun getInstance(): FlipcashDatabase? = instance
@@ -206,6 +293,7 @@ abstract class FlipcashDatabase : RoomDatabase() {
 
             instance =
                 Room.databaseBuilder(context, FlipcashDatabase::class.java, dbName)
+                    .addMigrations(MIGRATION_25_26)
                     .fallbackToDestructiveMigration()
                     .build()
 
