@@ -28,6 +28,7 @@ import com.flipcash.app.contacts.ContactResolver
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.UserProfile
@@ -92,6 +93,9 @@ class NotificationService : FirebaseMessagingService(),
 
     @Inject
     lateinit var chatCoordinator: ChatCoordinator
+
+    @Inject
+    lateinit var profileController: ProfileController
 
     // TODO(firebase-messaging): 25.1.0 deprecated onNewToken in favor of FID-based onRegistered().
     //  Migrate once Firebase ships a stable guide and the backend accepts FID registration.
@@ -344,9 +348,12 @@ class NotificationService : FirebaseMessagingService(),
                 contactResolver.resolveName(substitution.phoneNumber, substitution.fallback)
             }
             is Substitution.UserId -> {
-                // Resolving a userId to a display name requires a network lookup not available here;
-                // degrade gracefully by using the server-provided fallback string.
-                substitution.fallback
+                // Resolve the user's display name via the profile lookup (network-backed today;
+                // cache-first off the normalized user_profiles table is a natural follow-up).
+                // Degrade to the server-provided fallback string if it can't be resolved.
+                profileController.getProfileForUser(substitution.userId).getOrNull()
+                    ?.displayName?.takeIf { it.isNotBlank() }
+                    ?: substitution.fallback
             }
         }
     }
