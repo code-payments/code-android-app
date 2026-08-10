@@ -47,10 +47,17 @@ jobs:
           echo 'MIXPANEL_API_KEY=""' >> local.properties
           echo 'COINBASE_ONRAMP_API_KEY=' >> local.properties
 
-      # compileDebugSources runs all Kotlin/Java compilation tasks but stops before
-      # processDebugGoogleServices (which needs secrets). This catches KMP interop
-      # regressions (missing @JvmStatic, internal visibility leaking across modules)
-      # that only surface when consumers try to compile against the shared library.
+      # compileDebugSources transitively runs processDebugGoogleServices (R generation
+      # consumes its generated resources), which needs a google-services.json. Compile-only
+      # needs no real Firebase project, so write a dummy matching the applicationId.
+      - name: Create dummy google-services.json (compile-only, no secrets)
+        run: |
+          mkdir -p apps/flipcash/app/src
+          echo '{"project_info":{"project_number":"000000000000","project_id":"flipcash-ci-dummy","storage_bucket":"flipcash-ci-dummy.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.flipcash.app.android"}},"oauth_client":[],"api_key":[{"current_key":"AIzaSyDUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUM"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}' > apps/flipcash/app/src/google-services.json
+
+      # This catches KMP interop regressions (missing @JvmStatic, internal visibility
+      # leaking across modules) that only surface when consumers compile against the
+      # shared library. processDebugGoogleServices runs but is satisfied by the dummy above.
       - name: Compile app sources
         run: ./gradlew :apps:flipcash:app:compileDebugSources --continue --no-daemon
 
