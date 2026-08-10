@@ -90,6 +90,34 @@ class ChatTypeConverters {
 
     // endregion
 
+    // region SocialAccount list (normalized user_profiles column)
+
+    @TypeConverter
+    fun fromSocialAccountList(value: String?): List<SocialAccountSerialized>? {
+        return value?.let { runCatching { json.decodeFromString<List<SocialAccountSerialized>>(it) }.getOrNull() }
+    }
+
+    @TypeConverter
+    fun toSocialAccountList(accounts: List<SocialAccountSerialized>?): String? {
+        return accounts?.let { json.encodeToString(it) }
+    }
+
+    // endregion
+
+    // region MediaItem (normalized user_profiles avatar column)
+
+    @TypeConverter
+    fun fromMediaItem(value: String?): MediaItem? {
+        return value?.let { runCatching { json.decodeFromString<MediaItem>(it) }.getOrNull() }
+    }
+
+    @TypeConverter
+    fun toMediaItem(item: MediaItem?): String? {
+        return item?.let { json.encodeToString(it) }
+    }
+
+    // endregion
+
     // region ReactionSummary
 
     @TypeConverter

@@ -4,20 +4,25 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.flipcash.app.persistence.entities.ChatMemberEntity
+import com.flipcash.app.persistence.entities.ChatMemberWithProfile
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ChatMemberDao {
 
+    @Transaction
     @Query("SELECT * FROM chat_members WHERE chat_id_hex = :chatIdHex")
-    suspend fun getMembersForChat(chatIdHex: String): List<ChatMemberEntity>
+    suspend fun getMembersForChat(chatIdHex: String): List<ChatMemberWithProfile>
 
+    @Transaction
     @Query("SELECT * FROM chat_members WHERE chat_id_hex = :chatIdHex")
-    fun observeMembersForChat(chatIdHex: String): Flow<List<ChatMemberEntity>>
+    fun observeMembersForChat(chatIdHex: String): Flow<List<ChatMemberWithProfile>>
 
+    @Transaction
     @Query("SELECT * FROM chat_members")
-    fun observeAll(): Flow<List<ChatMemberEntity>>
+    fun observeAll(): Flow<List<ChatMemberWithProfile>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: ChatMemberEntity)

@@ -4,7 +4,7 @@ import androidx.paging.ExperimentalPagingApi
 import androidx.paging.LoadType
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
-import com.flipcash.app.persistence.entities.BlockedUserEntity
+import com.flipcash.app.persistence.entities.BlockedUserWithProfile
 import com.flipcash.app.persistence.sources.BlockedUserDataSource
 import com.flipcash.app.persistence.sources.mapper.blocklist.ResolvedBlockedUser
 import com.flipcash.services.controllers.BlocklistController
@@ -33,13 +33,13 @@ class BlocklistRemoteMediator(
     private val controller: BlocklistController,
     private val profileController: ProfileController,
     private val dataSource: BlockedUserDataSource,
-) : RemoteMediator<Int, BlockedUserEntity>() {
+) : RemoteMediator<Int, BlockedUserWithProfile>() {
 
     private var nextToken: PagingToken? = null
 
     override suspend fun load(
         loadType: LoadType,
-        state: PagingState<Int, BlockedUserEntity>,
+        state: PagingState<Int, BlockedUserWithProfile>,
     ): MediatorResult {
         return try {
             val token = when (loadType) {

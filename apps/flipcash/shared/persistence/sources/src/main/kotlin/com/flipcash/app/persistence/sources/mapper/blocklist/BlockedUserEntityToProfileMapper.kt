@@ -1,21 +1,26 @@
 package com.flipcash.app.persistence.sources.mapper.blocklist
 
 import com.flipcash.app.core.blocklist.BlockedUserProfile
-import com.flipcash.app.persistence.entities.BlockedUserEntity
+import com.flipcash.app.persistence.entities.BlockedUserWithProfile
+import com.flipcash.app.persistence.entities.toSerialized
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.mapper.Mapper
 import javax.inject.Inject
 import kotlin.time.Instant
 
 class BlockedUserEntityToProfileMapper @Inject constructor() :
-    Mapper<BlockedUserEntity, BlockedUserProfile> {
+    Mapper<BlockedUserWithProfile, BlockedUserProfile> {
 
-    override fun map(from: BlockedUserEntity): BlockedUserProfile = BlockedUserProfile(
-        userId = from.userIdHex.hexToId(),
-        displayName = from.userProfileJson?.displayName.orEmpty(),
-        profilePicture = from.userProfileJson?.profilePicture,
-        blockedAt = Instant.fromEpochMilliseconds(from.blockedAtEpochMs),
-    )
+    override fun map(from: BlockedUserWithProfile): BlockedUserProfile {
+        // The joined profile may be absent (not yet synced) — fall back to empty display data.
+        val profile = from.profile?.toSerialized()
+        return BlockedUserProfile(
+            userId = from.blocked.userIdHex.hexToId(),
+            displayName = profile?.displayName.orEmpty(),
+            profilePicture = profile?.profilePicture,
+            blockedAt = Instant.fromEpochMilliseconds(from.blocked.blockedAtEpochMs),
+        )
+    }
 
     private fun String.hexToId(): ID {
         val data = ByteArray(length / 2)
