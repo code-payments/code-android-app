@@ -5,8 +5,10 @@ import com.flipcash.app.analytics.StubFlipcashAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
+import com.flipcash.app.activityfeed.ActivityFeedCoordinator
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.UserManager
 import io.mockk.coEvery
@@ -38,6 +40,8 @@ class BalanceViewModelTest {
     private val userManager: UserManager = mockk(relaxed = true)
     private val userFlags: UserFlagsCoordinator = mockk(relaxed = true)
     private val purchaseMethodController: PurchaseMethodController = mockk(relaxed = true)
+    private val chatCoordinator: ChatCoordinator = mockk(relaxed = true)
+    private val feedCoordinator: ActivityFeedCoordinator = mockk(relaxed = true)
 
     private lateinit var dispatchers: TestDispatchers
 
@@ -47,6 +51,8 @@ class BalanceViewModelTest {
         dispatchers = dispatchers,
         purchaseMethodController = purchaseMethodController,
         analytics = StubFlipcashAnalytics(),
+        chatCoordinator = chatCoordinator,
+        feedCoordinator = feedCoordinator,
     )
 
     @Test
