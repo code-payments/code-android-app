@@ -99,6 +99,7 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Serializable
     @Parcelize
     sealed interface Main : AppRoute {
+
         @Serializable
         data class AppRestricted(val restrictionType: RestrictionType) : Main
         @Serializable
@@ -133,6 +134,7 @@ sealed interface AppRoute : NavKey, Parcelable {
     ) : AppRoute, FlowRouteWithResult<VerificationResult> {
         override val initialStack: List<NavKey>
             get() = buildVerificationInitialStack(
+                forOnRamp = target is Token.Swap,
                 includePhone = includePhone,
                 includeEmail = includeEmail,
                 emailAddress = email,
@@ -306,14 +308,20 @@ sealed interface AppRoute : NavKey, Parcelable {
 }
 
 private fun buildVerificationInitialStack(
+    forOnRamp: Boolean,
     includePhone: Boolean,
     includeEmail: Boolean,
     emailAddress: String?,
     emailVerificationCode: String?,
 ): List<NavKey> {
+    if (includePhone && includeEmail) {
+        return listOf(VerificationStep.Intro(forOnRamp))
+    }
+
     if (includePhone) {
         return listOf(VerificationStep.PhoneEntry)
     }
+
     if (includeEmail) {
         return buildList {
             add(VerificationStep.EmailEntry)

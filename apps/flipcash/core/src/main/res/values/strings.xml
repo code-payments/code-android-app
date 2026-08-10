@@ -527,6 +527,10 @@
     <string name="action_buyMore">Buy More</string>
 
     <string name="title_addMoney">Add Money</string>
+    <string name="subtitle_addMoney">Add money to your account</string>
+
+    <string name="title_scanTipCard">Scan a Tip Card</string>
+    <string name="subtitle_scanTipCard">Give your first tip</string>
 
     <string name="title_amountToBuy">Amount to Buy</string>
     <string name="title_amountToSell">Amount to Sell</string>
@@ -753,6 +757,7 @@
     <string name="displayName_solanaUsdc">Solana USDC</string>
     <string name="displayName_usdc">USDC</string>
     <string name="displayName_usdf">USDF</string>
+    <string name="displayName_dollars">Dollars</string>
     <string name="label_withdrawalAmount">Withdrawal amount</string>
     <string name="label_lessFee">Less fee</string>
     <string name="label_netAmount">Net amount</string>
@@ -920,5 +925,6 @@
     <string name="error_title_failedToUnblock">Something Went Wrong</string>
     <string name="error_description_failedToUnblock">We were unable to unblock the user. Please try again</string>
 
+    <string name="title_tipOnboarding">Send Your First Tip</string>
 
 </resources>

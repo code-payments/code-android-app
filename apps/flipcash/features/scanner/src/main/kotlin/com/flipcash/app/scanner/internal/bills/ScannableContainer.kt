@@ -174,7 +174,6 @@ internal fun ScannableContainer(
                     PermissionResult.NotRequested -> {
                         CameraPermissionsMissingView(
                             modifier = Modifier.fillMaxSize(),
-                            backgroundColor = Color.Black,
                             onClick = { cameraPermission.launch() }
                         )
                     }

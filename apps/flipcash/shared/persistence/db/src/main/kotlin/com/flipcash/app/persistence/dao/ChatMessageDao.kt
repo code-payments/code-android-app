@@ -19,6 +19,13 @@ interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms DESC")
     fun observeMessagesPaged(chatIdHex: String): PagingSource<Int, ChatMessageEntity>
 
+    /**
+     * True once the user has sent a tip — an **outgoing** Cash message (sender = self) with verb
+     * TIPPED. Received tips don't count toward the "scanned a tip card" onboarding milestone.
+     */
+    @Query("SELECT EXISTS(SELECT 1 FROM chat_messages WHERE sender_id_hex = :selfIdHex AND content_json LIKE '%\"action\":\"TIPPED\"%')")
+    fun hasEverTipped(selfIdHex: String): Flow<Boolean>
+
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms DESC LIMIT 1")
     suspend fun getLatest(chatIdHex: String): ChatMessageEntity?
 

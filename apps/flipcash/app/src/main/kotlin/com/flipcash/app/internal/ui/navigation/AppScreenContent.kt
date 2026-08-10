@@ -23,6 +23,7 @@ import com.flipcash.app.appsettings.AppSettingsScreen
 import com.flipcash.app.devicelogs.DeviceLogsScreen
 import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.BalanceScreen
+import com.flipcash.app.balance.WalletScreen
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
@@ -67,6 +68,7 @@ import com.getcode.ui.components.bars.BarManager
 import dev.theolm.rinku.DeepLink
 
 fun appEntryProvider(
+    isNewUi: Boolean,
     resultStateRegistry: NavResultStateRegistry,
     barManager: BarManager,
     deepLink: () -> DeepLink?,
@@ -74,7 +76,7 @@ fun appEntryProvider(
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
 
     // Loading / splash
-    annotatedEntry<AppRoute.Loading> { MainRoot(deepLink, onPendingAction) }
+    annotatedEntry<AppRoute.Loading> { MainRoot(isNewUi, deepLink, onPendingAction) }
 
     // Onboarding flow
     annotatedEntry<AppRoute.OnboardingFlow> { key ->
@@ -83,7 +85,7 @@ fun appEntryProvider(
 
     // Main
     annotatedEntry<AppRoute.Main.Sheet> { key ->
-        SheetContent(key, resultStateRegistry, barManager)
+        SheetContent(key, isNewUi, resultStateRegistry, barManager)
     }
     annotatedEntry<AppRoute.Main.AppRestricted> { key -> AppRestrictedScreen(key.restrictionType) }
     annotatedEntry<AppRoute.Main.Scanner> { ScannerScreen() }
@@ -98,7 +100,13 @@ fun appEntryProvider(
     }
     annotatedEntry<AppRoute.Sheets.TokenSelection> { key -> TokenSelectScreen(key.purpose) }
     annotatedEntry<AppRoute.Sheets.TipAmountEntry> { TipAmountEntryScreen() }
-    annotatedEntry<AppRoute.Sheets.Wallet> { BalanceScreen() }
+    annotatedEntry<AppRoute.Sheets.Wallet> {
+        if (isNewUi) {
+            WalletScreen()
+        } else {
+            BalanceScreen()
+        }
+    }
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
     annotatedEntry<AppRoute.Sheets.Menu> { MenuScreen() }
 
@@ -162,6 +170,7 @@ fun appEntryProvider(
 @Composable
 private fun SheetContent(
     key: AppRoute.Main.Sheet,
+    isNewUi: Boolean,
     resultStateRegistry: NavResultStateRegistry,
     barManager: BarManager,
 ) {
@@ -243,7 +252,7 @@ private fun SheetContent(
                 }
             },
             onBack = { onBack() },
-            entryProvider = appEntryProvider(resultStateRegistry, barManager, deepLink = { null }),
+            entryProvider = appEntryProvider(isNewUi, resultStateRegistry, barManager, deepLink = { null }),
         )
 
         BackHandler { onBack() }

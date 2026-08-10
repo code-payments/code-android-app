@@ -71,7 +71,7 @@ class SelectTokenViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnRateChanged(val rate: Rate): Event
+        data class OnRateChanged(val rate: Rate) : Event
 
         data class OnPurposeChanged(val purpose: TokenPurpose) : Event
         data class OnTokensUpdated(val tokens: List<TokenWithLocalizedBalance>) : Event
@@ -82,7 +82,7 @@ class SelectTokenViewModel @Inject constructor(
 
         data class OpenScreen(val route: AppRoute) : Event
 
-        data class OnCanGiveUsdf(val enabled: Boolean): Event
+        data class OnCanGiveUsdf(val enabled: Boolean) : Event
     }
 
     init {
@@ -133,7 +133,13 @@ class SelectTokenViewModel @Inject constructor(
                                 balance = balance,
                                 appreciation = appreciation,
                                 displayName = when (purpose) {
-                                    TokenPurpose.Balance -> it.token.name
+                                    TokenPurpose.Balance -> {
+                                        if (it.token.address == Mint.usdf && featureFlags.get(FeatureFlag.NewUi)) {
+                                            resources.getString(R.string.displayName_dollars)
+                                        } else {
+                                            it.token.name
+                                        }
+                                    }
 
                                     is TokenPurpose.Swap,
                                     is TokenPurpose.LaunchFunding,
@@ -141,7 +147,11 @@ class SelectTokenViewModel @Inject constructor(
                                     TokenPurpose.Deposit,
                                     TokenPurpose.Withdraw -> {
                                         if (it.token.address == Mint.usdf) {
-                                            resources.getString(R.string.displayName_usdf)
+                                            if (featureFlags.get(FeatureFlag.NewUi)) {
+                                                resources.getString(R.string.displayName_dollars)
+                                            } else {
+                                                resources.getString(R.string.displayName_usdf)
+                                            }
                                         } else {
                                             it.token.name
                                         }

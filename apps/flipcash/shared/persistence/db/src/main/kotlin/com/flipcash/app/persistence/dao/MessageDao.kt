@@ -10,6 +10,7 @@ import androidx.room.Transaction
 import androidx.sqlite.db.SupportSQLiteQuery
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.getcode.utils.base58
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MessageDao {
@@ -34,6 +35,14 @@ interface MessageDao {
 
     @Query("SELECT * FROM messages")
     suspend fun getAllMessages(): List<MessageEntity>
+
+    /** True once any completed deposit/buy notification exists — the "added money" milestone. */
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM messages WHERE state = 'COMPLETED' AND (" +
+            "metadata LIKE '%com.flipcash.app.core.feed.MessageMetadata.DepositedCrypto%' OR " +
+            "metadata LIKE '%com.flipcash.app.core.feed.MessageMetadata.BoughtToken%'))"
+    )
+    fun hasEverAddedMoney(): Flow<Boolean>
 
     @Query("DELETE FROM messages")
     suspend fun deleteAllMessages()

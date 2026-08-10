@@ -17,6 +17,7 @@ import com.getcode.utils.hexEncodedString
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,6 +40,12 @@ class ChatMessageDataSource @Inject constructor(
 
     fun setActiveChatId(chatId: ChatId) {
         activeChatId = chatId
+    }
+
+    /** Reactive "has the user ever sent a tip" — an outgoing Cash message (self) with verb TIPPED. */
+    fun hasEverTipped(): Flow<Boolean> {
+        val selfHex = userManager.accountId?.hexEncodedString() ?: return flowOf(false)
+        return db?.chatMessageDao()?.hasEverTipped(selfHex) ?: flowOf(false)
     }
 
     // region PagingDataSource

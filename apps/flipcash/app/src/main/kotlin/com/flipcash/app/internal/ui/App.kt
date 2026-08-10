@@ -37,10 +37,16 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.navigation.DeeplinkAction
+import com.flipcash.app.core.navigation.NavBarButton
+import com.flipcash.app.core.navigation.NavBarConfig
+import com.flipcash.app.core.ui.NavigationBar
+import com.flipcash.app.core.ui.rememberNavigationBarState
 import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.featureflags.model.BackgroundResetTimeout
+import com.flipcash.app.internal.ui.navigation.AppContent
+import com.flipcash.app.internal.ui.navigation.NewAppContent
 import com.flipcash.app.internal.ui.navigation.appEntryProvider
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
@@ -80,6 +86,7 @@ import kotlinx.coroutines.flow.first
 internal fun App(
     tipsEngine: TipsEngine,
 ) {
+    val features = LocalFeatureFlags.current
     val router = LocalRouter.current!!
     val analytics = rememberAnalytics()
     val viewModel = getActivityScopedViewModel<HomeViewModel>()
@@ -109,6 +116,8 @@ internal fun App(
 
     val session = LocalSessionController.current!!
     val userState by userManager.state.collectAsStateWithLifecycle()
+
+    val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
 
     FlipcashTheme {
         rememberQrBitmapPainter(
@@ -149,82 +158,9 @@ internal fun App(
                                 LocalSharedTransitionScope provides this,
                             ) {
                                     CoinbaseOnRampHandler {
-                                        AppNavHost(
-                                            navigator = codeNavigator,
-                                            resultStateRegistry = resultStateRegistry,
-                                            decorators = listOf(
-                                                rememberNavMessagingEntryDecorator(
-                                                    codeNavigator.backStack,
-                                                    barManager
-                                                ),
-                                                rememberNavBlockingOverlayEntryDecorator(),
-                                            ),
-                                            sceneStrategies = listOf(
-                                                ModalBottomSheetSceneStrategy(
-                                                    codeNavigator.resultStore
-                                                ) {
-                                                    codeNavigator.backStack.getOrNull(
-                                                        codeNavigator.backStack.lastIndex - 1
-                                                    )
-                                                },
-                                                SinglePaneSceneStrategy(),
-                                            ),
-                                            transitionSpec = {
-                                                val shouldCrossfade =
-                                                    initialState.key == AppRoute.Loading.toString() ||
-                                                            targetState.key == AppRoute.Loading.toString() ||
-                                                            targetState.key.toString()
-                                                                .startsWith("Login")
-                                                when {
-                                                    shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
-                                                        tween(300)
-                                                    )
-
-                                                    targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
-                                                        EnterTransition.None togetherWith ExitTransition.None
-
-                                                    else -> slideInHorizontally(initialOffsetX = { it }) togetherWith
-                                                            slideOutHorizontally(targetOffsetX = { -it })
-                                                }
-                                            },
-                                            popTransitionSpec = {
-                                                val shouldCrossfade =
-                                                    initialState.key == AppRoute.Loading.toString() ||
-                                                            targetState.key == AppRoute.Loading.toString() ||
-                                                            targetState.key.toString()
-                                                                .startsWith("Login")
-                                                when {
-                                                    shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
-                                                        tween(300)
-                                                    )
-
-                                                    targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
-                                                        EnterTransition.None togetherWith ExitTransition.None
-
-                                                    else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
-                                                            slideOutHorizontally(targetOffsetX = { it })
-                                                }
-                                            },
-                                            predictivePopTransitionSpec = {
-                                                val shouldCrossfade =
-                                                    initialState.key == AppRoute.Loading.toString() ||
-                                                            targetState.key == AppRoute.Loading.toString() ||
-                                                            targetState.key.toString()
-                                                                .startsWith("Login")
-                                                when {
-                                                    shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
-                                                        tween(300)
-                                                    )
-
-                                                    targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
-                                                        EnterTransition.None togetherWith ExitTransition.None
-
-                                                    else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
-                                                            slideOutHorizontally(targetOffsetX = { it })
-                                                }
-                                            },
-                                            onBack = { codeNavigator.navigateBack() },
-                                            entryProvider = appEntryProvider(
+                                        if (isNewUi) {
+                                            NewAppContent(
+                                                codeNavigator = codeNavigator,
                                                 resultStateRegistry = resultStateRegistry,
                                                 barManager = barManager,
                                                 deepLink = { deepLink },
@@ -251,9 +187,40 @@ internal fun App(
                                                         else -> {}
                                                     }
                                                     deepLink = null
-                                                },
-                                            ),
-                                        )
+                                                }
+                                            )
+                                        } else {
+                                            AppContent(
+                                                codeNavigator = codeNavigator,
+                                                resultStateRegistry = resultStateRegistry,
+                                                barManager = barManager,
+                                                deepLink = { deepLink },
+                                                onPendingAction = { action ->
+                                                    deeplinkHandled = true
+                                                    when (action) {
+                                                        is DeeplinkAction.OpenCashLink ->
+                                                            session.openCashLink(action.entropy)
+                                                        is DeeplinkAction.PresentTipCard ->
+                                                            session.resolveTipCard(action.userId)
+                                                        is DeeplinkAction.Login ->
+                                                            viewModel.handleLoginEntropy(
+                                                                action.entropy,
+                                                                onSwitchAccount = {
+                                                                    codeNavigator.replaceAll(
+                                                                        AppRoute.OnboardingFlow(
+                                                                            seed = action.entropy,
+                                                                            fromDeeplink = true
+                                                                        )
+                                                                    )
+                                                                },
+                                                                onDismissed = { }
+                                                            )
+                                                        else -> {}
+                                                    }
+                                                    deepLink = null
+                                                }
+                                            )
+                                        }
 
                                         ScrimOverlay(scrimController)
                                     }
