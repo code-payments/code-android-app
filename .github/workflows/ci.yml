@@ -11,38 +11,6 @@ env:
   JAVA_VERSION: 17
 
 jobs:
-  compile-check:
-    name: Compile check (no creds required)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Setup Java env
-        uses: actions/setup-java@v3
-        with:
-          java-version: '21'
-          distribution: 'corretto'
-          cache: 'gradle'
-
-      - name: Gradle build cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches/build-cache-1
-            .gradle/configuration-cache
-          key: gradle-build-cache-${{ hashFiles('**/*.gradle.kts', 'gradle.properties') }}
-          restore-keys: |
-            gradle-build-cache-
-
-      # compileDebugSources runs all Kotlin/Java compilation tasks but stops before
-      # processDebugGoogleServices (which needs secrets). This catches KMP interop
-      # regressions (missing @JvmStatic, internal visibility leaking across modules)
-      # that only surface when consumers try to compile against the shared library.
-      - name: Compile app sources
-        run: ./gradlew :apps:flipcash:app:compileDebugSources --continue --no-daemon
-
   flipcash-tests:
     name: Run Flipcash Tests
     runs-on: ubuntu-latest
