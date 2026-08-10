@@ -566,7 +566,7 @@ class FiatTests {
     fun `formatted with extraPrefix and suffix`() {
         val fiat = Fiat(fiat = 10.0)
         val result = fiat.formatted(extraPrefix = "~", suffix = "USD")
-        assertEquals("~ $10.00 USD", result)
+        assertEquals("~$10.00 USD", result)
     }
 
     @Test

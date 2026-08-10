@@ -133,7 +133,7 @@ private fun LineItems(
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
                 label = AnnotatedString(stringResource(R.string.label_lessFee)),
-                amount = fee.formatted(extraPrefix = "-"),
+                amount = fee.formatted(extraPrefix = "- "),
             )
 
             val netAmount = remember(transferAmount) {

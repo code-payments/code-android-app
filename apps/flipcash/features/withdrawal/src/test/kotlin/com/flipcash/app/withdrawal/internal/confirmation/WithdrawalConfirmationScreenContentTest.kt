@@ -224,7 +224,7 @@ class WithdrawalConfirmationScreenContentTest {
     @Test
     fun `receipt shows formatted USD fee with negative prefix`() {
         setScreen(testState(amount = 5.0, fee = Fiat(0.50, CurrencyCode.USD)))
-        // fee.formatted(extraPrefix = "-") → "- $0.50"
+        // fee.formatted(extraPrefix = "- ") → "- $0.50"
         composeTestRule.onNodeWithText("- $0.50", substring = true).assertIsDisplayed()
     }
 
