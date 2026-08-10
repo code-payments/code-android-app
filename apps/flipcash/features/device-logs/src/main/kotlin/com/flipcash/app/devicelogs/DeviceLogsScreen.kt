@@ -45,7 +45,6 @@ fun DeviceLogsScreen() {
         AppBarWithTitle(
             title = stringResource(R.string.title_deviceLogs),
             titleAlignment = Alignment.CenterHorizontally,
-            backButton = true,
             onBackIconClicked = { navigator.pop() },
             endContent = {
                 Box {

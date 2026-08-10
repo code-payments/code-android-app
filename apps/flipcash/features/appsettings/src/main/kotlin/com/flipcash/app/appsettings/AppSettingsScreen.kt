@@ -22,7 +22,6 @@ fun AppSettingsScreen() {
         AppBarWithTitle(
             title = stringResource(R.string.title_appSettings),
             titleAlignment = Alignment.CenterHorizontally,
-            backButton = true,
             onBackIconClicked = navigator::pop
         )
 

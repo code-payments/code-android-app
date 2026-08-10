@@ -14,7 +14,6 @@ fun PurchaseAccountScreen(
     val navigator = LocalCodeNavigator.current
     Column {
         AppBarWithTitle(
-            backButton = true,
             onBackIconClicked = {
                 if (fromLogin) {
                     navigator.popAll()

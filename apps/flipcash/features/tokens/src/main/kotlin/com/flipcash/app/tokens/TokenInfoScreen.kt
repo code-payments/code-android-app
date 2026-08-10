@@ -62,9 +62,6 @@ fun TokenInfoScreen(
                 }
             },
             titleAlignment = Alignment.CenterHorizontally,
-            leftIcon = {
-                AppBarDefaults.UpNavigation { navigator.pop() }
-            },
             rightContents = {
                 state.token.dataOrNull?.let {
                     if (!state.isCashReserve) {
@@ -74,6 +71,7 @@ fun TokenInfoScreen(
                         }
                     }
                 }
+                AppBarDefaults.Close { navigator.pop() }
             },
         )
 

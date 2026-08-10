@@ -81,7 +81,6 @@ internal fun PhantomConnectConfirmationScreen(
                 } else {
                     stringResource(R.string.title_purchase)
                 },
-                backButton = true,
                 onBackIconClicked = { flowNavigator.back() },
                 titleAlignment = Alignment.CenterHorizontally,
             )
@@ -181,7 +180,6 @@ internal fun PhantomTransactionConfirmationScreen() {
         topBar = {
             AppBarWithTitle(
                 title = stringResource(R.string.title_purchase),
-                backButton = true,
                 onBackIconClicked = { flowNavigator.back() },
                 titleAlignment = Alignment.CenterHorizontally,
             )

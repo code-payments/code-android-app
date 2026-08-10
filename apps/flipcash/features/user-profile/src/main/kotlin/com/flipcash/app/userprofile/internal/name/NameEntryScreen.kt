@@ -58,7 +58,6 @@ internal fun NameEntryScreen(
     Column {
         if (allowBack) {
             AppBarWithTitle(
-                backButton = true,
                 onBackIconClicked = {
                     keyboard.hideIfVisible {
                         flowNavigator.back()

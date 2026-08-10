@@ -55,7 +55,6 @@ internal fun SwapEntryScreen(
                 is SwapPurpose.BalanceDecrease -> stringResource(R.string.title_amountToSell)
             },
             titleAlignment = Alignment.CenterHorizontally,
-            backButton = true,
             onBackIconClicked = {
                 if (state.buyProgress.loading) {
                     // swallow

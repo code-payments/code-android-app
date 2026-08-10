@@ -31,7 +31,6 @@ fun PhoneCountryCodeContent() {
         AppBarWithTitle(
             title = stringResource(R.string.title_verifyPhoneNumber),
             titleAlignment = Alignment.CenterHorizontally,
-            backButton = true,
             onBackIconClicked = { flowNavigator.back() },
         )
         PhoneCountryCodeScreen(viewModel = viewModel)

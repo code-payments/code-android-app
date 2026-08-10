@@ -53,7 +53,6 @@ fun EmailMagicLinkContent(
         AppBarWithTitle(
             title = stringResource(R.string.title_connectEmailAddress),
             titleAlignment = Alignment.CenterHorizontally,
-            backButton = true,
             onBackIconClicked = { flowNavigator.back() },
         )
         EmailMagicLinkScreen(viewModel)

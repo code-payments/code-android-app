@@ -1,8 +1,11 @@
 package com.getcode.ui.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -28,11 +31,13 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowDismissStyle
 import com.getcode.navigation.flow.LocalFlowDismissStyle
 import com.getcode.navigation.scenes.LocalSheetNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
+import com.getcode.ui.components.AppBarDefaults.EndActionSlotHolder
 import com.getcode.ui.utils.calculateHorizontalPadding
 import kotlin.math.max
 
@@ -47,7 +52,11 @@ object AppBarDefaults {
 
     @Composable
     fun UpNavigation(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        CircularIconButton(modifier = modifier, onClick = onClick, testTag = "action_back") { size ->
+        CircularIconButton(
+            modifier = modifier,
+            onClick = onClick,
+            testTag = "action_back"
+        ) { size ->
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = "",
@@ -59,7 +68,11 @@ object AppBarDefaults {
 
     @Composable
     fun Close(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        CircularIconButton(modifier = modifier, onClick = onClick, testTag = "action_close") { size ->
+        CircularIconButton(
+            modifier = modifier,
+            onClick = onClick,
+            testTag = "action_close"
+        ) { size ->
             Icon(
                 imageVector = Icons.Outlined.Close,
                 contentDescription = "",
@@ -71,7 +84,11 @@ object AppBarDefaults {
 
     @Composable
     fun Share(modifier: Modifier = Modifier, onClick: () -> Unit) {
-        CircularIconButton(modifier = modifier, onClick = onClick, testTag = "action_share") { size ->
+        CircularIconButton(
+            modifier = modifier,
+            onClick = onClick,
+            testTag = "action_share"
+        ) { size ->
             Icon(
                 painter = painterResource(R.drawable.ic_remote_send),
                 contentDescription = "",
@@ -150,6 +167,18 @@ object AppBarDefaults {
             overflow = TextOverflow.Ellipsis
         )
     }
+
+    @Composable
+    internal fun EndActionSlotHolder(content: @Composable RowScope.() -> Unit) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(
+                CodeTheme.dimens.grid.x2
+            )
+        ) {
+            content()
+        }
+    }
 }
 
 @Composable
@@ -158,18 +187,32 @@ fun AppBarWithTitle(
     title: String = "",
     titleAlignment: Alignment.Horizontal = Alignment.Start,
     contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
-    backButton: Boolean = false,
-    onBackIconClicked: () -> Unit = {},
+    onBackIconClicked: (() -> Unit)? = null,
     endContent: @Composable () -> Unit = { },
 ) {
+    val navigator = LocalCodeNavigator.current
     val flowDismissStyle = LocalFlowDismissStyle.current
-    val showClose = backButton && flowDismissStyle == FlowDismissStyle.Close
+
+    // A non-null [onBackIconClicked] asks for a leading nav control; its icon adapts to context.
+    // It's a Close (✕) when this screen can only leave its scope — the root of a sheet's own back
+    // stack, or a flow that opted into [FlowDismissStyle.Close] — and a back arrow (←) when it can
+    // pop within that scope. This internalizes the back-vs-close branch sheet screens used to
+    // hand-roll. We only treat it as a sheet root for plain bottom-sheet content
+    // ([LocalSheetNavigator] present); full-screen roots keep a back arrow, and a flow drives its
+    // own swap through [flowDismissStyle] — a flow's inner stack is always depth-1 at its first
+    // step, so reading its size here would wrongly show a Close even when the flow was pushed on
+    // top of other content (e.g. Swap opened from Token Info).
+    val isSheetRoot = LocalSheetNavigator.current != null &&
+            !navigator.isFlowNavigator &&
+            navigator.backStack.size <= 1
+    val showBack = onBackIconClicked != null
+    val showClose = showBack && (flowDismissStyle == FlowDismissStyle.Close || isSheetRoot)
 
     TopAppBarBase(
         modifier = modifier,
         contentPadding = contentPadding,
         leftIcon = {
-            if (backButton && !showClose) {
+            if (showBack && !showClose) {
                 AppBarDefaults.UpNavigation { onBackIconClicked() }
             }
         },
@@ -177,32 +220,15 @@ fun AppBarWithTitle(
             AppBarDefaults.Title(text = title)
         },
         titleAlignment = titleAlignment,
-        rightContents = if (showClose) {
-            { AppBarDefaults.Close { onBackIconClicked() } }
-        } else {
-            endContent
+        rightContents = {
+            EndActionSlotHolder {
+                if (showClose) {
+                    AppBarDefaults.Close { onBackIconClicked() }
+                } else {
+                    endContent()
+                }
+            }
         },
-    )
-}
-
-@Composable
-fun AppBarWithTitle(
-    modifier: Modifier = Modifier,
-    title: String = "",
-    contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
-    titleAlignment: Alignment.Horizontal = Alignment.Start,
-    startContent: @Composable () -> Unit = { },
-    endContent: @Composable () -> Unit = { },
-) {
-    TopAppBarBase(
-        modifier = modifier,
-        leftIcon = startContent,
-        contentPadding = contentPadding,
-        titleRegion = {
-            AppBarDefaults.Title(text = title)
-        },
-        titleAlignment = titleAlignment,
-        rightContents = endContent
     )
 }
 
@@ -213,7 +239,7 @@ fun AppBarWithTitle(
     titleAlignment: Alignment.Horizontal = Alignment.Start,
     contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
     leftIcon: @Composable () -> Unit = { },
-    rightContents: @Composable () -> Unit = { }
+    rightContents: @Composable RowScope.() -> Unit = { }
 ) {
     TopAppBarBase(
         modifier = modifier,
@@ -232,7 +258,7 @@ private fun TopAppBarBase(
     contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
     leftIcon: @Composable () -> Unit = { },
     titleRegion: @Composable () -> Unit = { },
-    rightContents: @Composable () -> Unit = { },
+    rightContents: @Composable RowScope.() -> Unit = { },
     titleAlignment: Alignment.Horizontal = Alignment.CenterHorizontally // New parameter
 ) {
     val inset = CodeTheme.dimens.inset
@@ -251,10 +277,11 @@ private fun TopAppBarBase(
 
     val rightSlot = @Composable {
         Box(modifier = Modifier.padding(5.dp)) {
-            rightContents()
+            EndActionSlotHolder {
+                rightContents()
+            }
         }
     }
-
 
     val isInsideSheet = LocalSheetNavigator.current != null
 
@@ -268,9 +295,10 @@ private fun TopAppBarBase(
             .height(56.dp),
     ) { constraints ->
         // Measure left icon, if provided
-        val emptyLeftIconPlaceable = subcompose("empty_leftIcon", emptyLeftSlot).firstOrNull()?.measure(
-            constraints.copy(minWidth = 0, minHeight = 0)
-        )
+        val emptyLeftIconPlaceable =
+            subcompose("empty_leftIcon", emptyLeftSlot).firstOrNull()?.measure(
+                constraints.copy(minWidth = 0, minHeight = 0)
+            )
         val leftIconPlaceable = subcompose("leftIcon", leftSlot).firstOrNull()?.measure(
             constraints.copy(minWidth = 0, minHeight = 0)
         )
@@ -288,7 +316,8 @@ private fun TopAppBarBase(
         val remainingWidth =
             constraints.maxWidth - leftIconWidth - rightContentsWidth - (contentPadding.calculateLeftPadding(
                 layoutDirection
-            ).roundToPx() * 2) - (contentPadding.calculateRightPadding(layoutDirection).roundToPx() * 2)
+            ).roundToPx() * 2) - (contentPadding.calculateRightPadding(layoutDirection)
+                .roundToPx() * 2)
 
         // Measure title region with the remaining space, if provided
         val titleRegionPlaceable = subcompose("titleRegion", titleRegion).firstOrNull()?.measure(
@@ -343,6 +372,6 @@ fun Preview_TitleBar(
 
 ) {
     DesignSystem {
-        AppBarWithTitle(backButton = true, title = "Hey")
+        AppBarWithTitle(onBackIconClicked = {}, title = "Hey")
     }
 }

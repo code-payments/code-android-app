@@ -34,7 +34,6 @@ internal fun BuyReceiptScreen() {
         AppBarWithTitle(
             title = stringResource(R.string.title_confirmPurchase),
             titleAlignment = Alignment.CenterHorizontally,
-            backButton = true,
             onBackIconClicked = { flowNavigator.back() }
         )
 
