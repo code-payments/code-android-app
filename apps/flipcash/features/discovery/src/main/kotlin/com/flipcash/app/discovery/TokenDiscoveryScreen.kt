@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -16,7 +15,6 @@ import com.flipcash.core.R
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.ui.DiscoverCategory
-import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -27,28 +25,17 @@ import kotlinx.coroutines.flow.onEach
 fun TokenDiscoveryScreen() {
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<TokenDiscoveryViewModel>()
-    val isSheetRoot = remember(navigator) { navigator.backStack.size <= 1 }
 
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (isSheetRoot) {
-            AppBarWithTitle(
-                title = stringResource(R.string.title_discoverCurrencies),
-                titleAlignment = Alignment.CenterHorizontally,
-                endContent = {
-                    AppBarDefaults.Close { navigator.hide() }
-                },
-            )
-        } else {
-            AppBarWithTitle(
-                title = stringResource(R.string.title_discoverCurrencies),
-                titleAlignment = Alignment.CenterHorizontally,
-                backButton = true,
-                onBackIconClicked = { navigator.pop() },
-            )
-        }
+        // Sheet-aware app bar: a Close (✕) at the sheet root, a back arrow when pushed deeper.
+        AppBarWithTitle(
+            title = stringResource(R.string.title_discoverCurrencies),
+            titleAlignment = Alignment.CenterHorizontally,
+            onBackIconClicked = { navigator.navigateBack() },
+        )
         TokenDiscoveryScreen(viewModel)
     }
 

@@ -40,7 +40,7 @@ internal fun ChatProfileScreen(viewModel: ChatProfileViewModel) {
 
     CodeScaffold(
         topBar = {
-            AppBarWithTitle(backButton = true, onBackIconClicked = { flowNavigator.back() })
+            AppBarWithTitle(onBackIconClicked = { flowNavigator.back() })
         },
     ) { innerPadding ->
         MenuList(

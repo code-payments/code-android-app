@@ -53,7 +53,6 @@ fun TokenSelectScreen(
                         is TokenPurpose.LaunchFunding -> stringResource(R.string.title_selectPaymentCurrency)
                         else -> stringResource(R.string.title_selectCurrency)
                     },
-                    backButton = true,
                     onBackIconClicked = { navigator.pop() },
                     titleAlignment = Alignment.CenterHorizontally,
                 )

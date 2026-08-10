@@ -25,7 +25,6 @@ fun TransactionHistoryScreen(mint: Mint) {
         AppBarWithTitle(
             title = stringResource(R.string.title_transactionHistory),
             titleAlignment = Alignment.CenterHorizontally,
-            backButton = true,
             onBackIconClicked = { navigator.pop() }
         )
         val viewModel = hiltViewModel<TransactionHistoryViewModel>()

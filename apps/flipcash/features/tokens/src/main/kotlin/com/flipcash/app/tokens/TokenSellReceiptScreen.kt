@@ -34,7 +34,6 @@ internal fun SellReceiptScreen() {
         AppBarWithTitle(
             title = stringResource(R.string.title_confirmSale),
             titleAlignment = Alignment.CenterHorizontally,
-            backButton = true,
             onBackIconClicked = {
                 if (state.sellProgress.loading) {
                     // swallow

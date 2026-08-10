@@ -51,7 +51,6 @@ internal fun TipCardScreen() {
                 AppBarWithTitle(
                     title = stringResource(R.string.title_myTipCard),
                     titleAlignment = Alignment.CenterHorizontally,
-                    backButton = true,
                     onBackIconClicked = { flowNavigator.back() },
                 )
                 Text(

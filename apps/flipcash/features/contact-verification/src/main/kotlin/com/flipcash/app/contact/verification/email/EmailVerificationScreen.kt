@@ -45,7 +45,6 @@ fun EmailVerificationContent(
         AppBarWithTitle(
             title = stringResource(R.string.title_connectEmailAddress),
             titleAlignment = Alignment.CenterHorizontally,
-            backButton = true,
             onBackIconClicked = {
                 keyboard.hideIfVisible {
                     codeNavigator.pop()

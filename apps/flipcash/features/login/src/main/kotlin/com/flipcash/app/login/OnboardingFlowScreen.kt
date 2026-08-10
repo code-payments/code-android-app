@@ -387,7 +387,6 @@ private fun SeedInputStepContent() {
     Column {
         AppBarWithTitle(
             modifier = Modifier.fillMaxWidth(),
-            backButton = true,
             titleAlignment = Alignment.CenterHorizontally,
             onBackIconClicked = { flowNavigator.back() },
             title = stringResource(R.string.title_enterAccessKeyWords),

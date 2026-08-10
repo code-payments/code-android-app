@@ -38,7 +38,6 @@ fun PhoneVerificationContent() {
         AppBarWithTitle(
             title = stringResource(R.string.title_connectPhoneNumber),
             titleAlignment = Alignment.CenterHorizontally,
-            backButton = true,
             onBackIconClicked = {
                 keyboard.hideIfVisible {
                     codeNavigator.pop()

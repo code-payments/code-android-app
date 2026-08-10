@@ -36,7 +36,6 @@ fun PhoneCodeContent(
         AppBarWithTitle(
             title = stringResource(R.string.title_enterTheCode),
             titleAlignment = Alignment.CenterHorizontally,
-            backButton = true,
             onBackIconClicked = { flowNavigator.back() },
         )
         PhoneCodeScreen(viewModel)

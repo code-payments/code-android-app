@@ -67,7 +67,6 @@ internal fun PhotoSelectionScreen() {
 
     Column {
         AppBarWithTitle(
-            backButton = true,
             onBackIconClicked = {
                 keyboard.hideIfVisible {
                     flowNavigator.back()

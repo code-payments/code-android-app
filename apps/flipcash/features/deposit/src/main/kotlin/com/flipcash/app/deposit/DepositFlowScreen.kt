@@ -108,7 +108,6 @@ private fun DepositSelectTokenScreen() {
     ) {
         AppBarWithTitle(
             title = stringResource(R.string.title_selectCurrency),
-            backButton = true,
             onBackIconClicked = { flowNavigator.back() },
             titleAlignment = Alignment.CenterHorizontally,
         )

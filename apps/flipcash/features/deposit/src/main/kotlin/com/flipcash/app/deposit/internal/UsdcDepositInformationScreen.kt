@@ -33,7 +33,6 @@ internal fun UsdcDepositInformationScreen(showOtherOptions: Boolean) {
         topBar = {
             AppBarWithTitle(
                 title = stringResource(R.string.title_deposit),
-                backButton = true,
                 onBackIconClicked = { flowNavigator.back() },
                 titleAlignment = Alignment.CenterHorizontally,
             )

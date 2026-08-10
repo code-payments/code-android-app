@@ -51,7 +51,6 @@ private fun AccessKeyInPhotos(
                 modifier = Modifier.fillMaxWidth(),
                 title = stringResource(R.string.title_cantFindYourAccessKey),
                 titleAlignment = Alignment.CenterHorizontally,
-                backButton = true,
                 onBackIconClicked = goBack,
             )
         },
