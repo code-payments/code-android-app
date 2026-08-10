@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.core.money.formattedAppreciation
 import com.flipcash.core.R
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
@@ -22,7 +23,6 @@ fun CurrencyAppreciationLabel(
     appreciation: Fiat,
     modifier: Modifier = Modifier,
 ) {
-    val isZero = !appreciation.valueNonZero()
     val hasAppreciation = appreciation.toDouble() >= 0
     val changeColor = if (hasAppreciation) {
         CodeTheme.colors.successText
@@ -45,13 +45,7 @@ fun CurrencyAppreciationLabel(
                     vertical = 2.dp,
                     horizontal = CodeTheme.dimens.grid.x1
                 ),
-            value = appreciation.formatted(
-                extraPrefix = when {
-                    isZero -> null
-                    hasAppreciation -> "+"
-                    else -> null
-                },
-            ),
+            value = appreciation.formattedAppreciation(),
             style = CodeTheme.typography.textSmall,
             color = changeColor,
         )

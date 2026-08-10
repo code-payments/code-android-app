@@ -108,7 +108,7 @@ data class Fiat(
                 .orEmpty()
 
             val fullPrefix = if (extraPrefix != null) {
-                "$extraPrefix $prefix"
+                "$extraPrefix$prefix"
             } else {
                 prefix
             }

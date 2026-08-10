@@ -43,3 +43,22 @@ fun Int.withCommas(): String {
 fun LocalFiat.formatted(formatting: Fiat.FormattingRule = Fiat.FormattingRule.None): String {
     return nativeAmount.formatted(rule = formatting)
 }
+
+/**
+ * Formats a fiat appreciation/depreciation with the shared sign convention used across the balance
+ * header ([com.flipcash.app.core.ui.CurrencyAppreciationLabel]) and the per-token cards: a leading
+ * "+" for a gain or a zero change (always "+$0.00"), and the formatter's own "-" for a loss.
+ *
+ * A change that rounds to zero is normalized to a positive zero before formatting — otherwise a
+ * tiny-negative amount would render as "-$0.00" (the formatter uses the raw value while
+ * [Fiat.valueNonZero]/[Fiat.toDouble] round to the currency's precision).
+ */
+fun Fiat.formattedAppreciation(): String {
+    val isZero = !valueNonZero()
+    val hasAppreciation = toDouble() >= 0
+    return when {
+        isZero -> copy(quarks = 0).formatted(extraPrefix = "+")
+        hasAppreciation -> formatted(extraPrefix = "+")
+        else -> formatted()
+    }
+}

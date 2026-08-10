@@ -145,7 +145,7 @@ private fun SellReceipt(
                     modifier = Modifier.fillMaxWidth(),
                     label = stringResource(R.string.label_percentFee, feePercentage.roundToInt()),
                     amount = feeAmount.formatted(
-                        extraPrefix = if (feeAmount.decimalValue < 0.01) "~" else null,
+                        extraPrefix = if (feeAmount.decimalValue < 0.01) "~ " else null,
                     ),
                 )
             }
