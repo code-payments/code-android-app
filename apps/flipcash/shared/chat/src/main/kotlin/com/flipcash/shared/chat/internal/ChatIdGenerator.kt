@@ -25,6 +25,8 @@ class ChatIdGenerator @Inject constructor() {
     private fun ChatType.dmDomain(): String = when (this) {
         ChatType.CONTACT_DM -> DM_DOMAIN
         ChatType.TIP_DM -> TIP_DM_DOMAIN
+        // Group chats use a server-assigned UUID, not a derived DM id; wiring is not in yet.
+        ChatType.GROUP -> TODO("group chat id derivation is not implemented")
         ChatType.UNKNOWN -> error("cannot derive a DM chat id for chat type $this")
     }
 

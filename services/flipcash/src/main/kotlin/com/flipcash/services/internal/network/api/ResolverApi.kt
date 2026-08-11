@@ -1,6 +1,6 @@
 package com.flipcash.services.internal.network.api
 
-import com.codeinc.flipcash.gen.phone.v1.Model
+import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.resolver.v1.ResolverGrpcKt
 import com.codeinc.flipcash.gen.resolver.v1.validate
 import com.flipcash.services.models.ResolveIdentifier
@@ -47,7 +47,7 @@ internal class ResolverApi @Inject constructor(
         val builder = ResolverModel.Identifier.newBuilder()
         return when (this) {
             is ResolveIdentifier.Phone ->
-                builder.setPhone(Model.PhoneNumber.newBuilder().setValue(phone.phoneNumber))
+                builder.setPhone(Common.PhoneNumber.newBuilder().setValue(phone.phoneNumber))
             is ResolveIdentifier.UserId ->
                 builder.setUserId(userId.asUserId())
         }.build()

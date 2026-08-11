@@ -11,10 +11,11 @@ class DomainModelsTest {
 
     @Test
     fun `ChatType has expected values`() {
-        assertEquals(3, ChatType.entries.size)
+        assertEquals(4, ChatType.entries.size)
         assertIs<ChatType>(ChatType.UNKNOWN)
         assertIs<ChatType>(ChatType.CONTACT_DM)
         assertIs<ChatType>(ChatType.TIP_DM)
+        assertIs<ChatType>(ChatType.GROUP)
     }
 
     @Test

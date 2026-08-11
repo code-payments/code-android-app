@@ -6,6 +6,7 @@ import com.codeinc.flipcash.gen.common.v1.mintOrNull
 import com.flipcash.libs.currency.math.units
 import com.flipcash.services.internal.domain.mapper.Mapper
 import com.flipcash.services.internal.extensions.toPublicKey
+import com.flipcash.services.internal.network.extensions.asSubstitution
 import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.internal.network.extensions.toMint
 import com.flipcash.services.internal.network.extensions.toPublicKey
@@ -60,12 +61,28 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                 null -> NotificationState.UNKNOWN
             },
             metadata = when (from.additionalMetadataCase) {
-                Model.Notification.AdditionalMetadataCase.DIRECTLY_SENT_CRYPTO -> NotificationMetadata.DirectlySentCrypto(
-                    phoneNumber = from.directlySentCrypto.takeIf { it.hasPhone() }?.phone?.value
-                )
-                Model.Notification.AdditionalMetadataCase.RECEIVED_CRYPTO -> NotificationMetadata.ReceivedCrypto(
-                    phoneNumber = from.receivedCrypto.takeIf { it.hasPhone() }?.phone?.value
-                )
+                Model.Notification.AdditionalMetadataCase.DIRECTLY_SENT_CRYPTO -> {
+                    val meta = from.directlySentCrypto
+                    NotificationMetadata.DirectlySentCrypto(
+                        phoneNumber = if (meta.destinationIdentifierCase ==
+                            Model.DirectlySentCryptoNotificationMetadata.DestinationIdentifierCase.PHONE
+                        ) meta.phone.value else null,
+                        userId = if (meta.destinationIdentifierCase ==
+                            Model.DirectlySentCryptoNotificationMetadata.DestinationIdentifierCase.USER_ID
+                        ) meta.userId.value.toByteArray().toList() else null,
+                    )
+                }
+                Model.Notification.AdditionalMetadataCase.RECEIVED_CRYPTO -> {
+                    val meta = from.receivedCrypto
+                    NotificationMetadata.ReceivedCrypto(
+                        phoneNumber = if (meta.sourceIdentifierCase ==
+                            Model.ReceivedCryptoNotificationMetadata.SourceIdentifierCase.PHONE
+                        ) meta.phone.value else null,
+                        userId = if (meta.sourceIdentifierCase ==
+                            Model.ReceivedCryptoNotificationMetadata.SourceIdentifierCase.USER_ID
+                        ) meta.userId.value.toByteArray().toList() else null,
+                    )
+                }
                 Model.Notification.AdditionalMetadataCase.WITHDREW_CRYPTO -> NotificationMetadata.WithdrewCrypto
                 Model.Notification.AdditionalMetadataCase.INDIRECTLY_SENT_CRYPTO -> NotificationMetadata.IndirectlySentCrypto(
                     creator = from.indirectlySentCrypto.vault.value.toByteArray().toPublicKey(),
@@ -76,7 +93,8 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                 Model.Notification.AdditionalMetadataCase.SOLD_CRYPTO -> NotificationMetadata.SoldToken
                 Model.Notification.AdditionalMetadataCase.ADDITIONALMETADATA_NOT_SET,
                 null -> NotificationMetadata.Unknown
-            }
+            },
+            textSubstitutions = from.textSubstitutionsList.mapNotNull { it.asSubstitution() },
         )
     }
 }

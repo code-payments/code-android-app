@@ -28,7 +28,10 @@ import com.flipcash.app.contacts.ContactResolver
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.persistence.sources.UserProfileDataSource
+import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
+import com.getcode.opencode.model.core.ID
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
@@ -92,6 +95,12 @@ class NotificationService : FirebaseMessagingService(),
 
     @Inject
     lateinit var chatCoordinator: ChatCoordinator
+
+    @Inject
+    lateinit var profileController: ProfileController
+
+    @Inject
+    lateinit var userProfileDataSource: UserProfileDataSource
 
     // TODO(firebase-messaging): 25.1.0 deprecated onNewToken in favor of FID-based onRegistered().
     //  Migrate once Firebase ships a stable guide and the backend accepts FID registration.
@@ -343,8 +352,21 @@ class NotificationService : FirebaseMessagingService(),
             is Substitution.Phone -> {
                 contactResolver.resolveName(substitution.phoneNumber, substitution.fallback)
             }
+            is Substitution.UserId -> {
+                resolveUserDisplayName(substitution.userId) ?: substitution.fallback
+            }
         }
     }
+
+    /**
+     * Resolves [userId] to a display name, cache-first: the normalized `user_profiles` table is
+     * fast and works offline (ideal for rendering a push), and we only fall back to a network
+     * profile lookup when the user isn't cached. Returns null when neither resolves.
+     */
+    private suspend fun resolveUserDisplayName(userId: ID): String? =
+        userProfileDataSource.getCachedDisplayName(userId)
+            ?: profileController.getProfileForUser(userId).getOrNull()
+                ?.displayName?.takeIf { it.isNotBlank() }
 
     private suspend fun applySubstitutions(text: String, substitutions: List<Substitution>): String {
         var result = text

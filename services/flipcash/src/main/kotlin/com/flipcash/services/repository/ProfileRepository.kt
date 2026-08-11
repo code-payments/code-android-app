@@ -13,6 +13,7 @@ interface ProfileRepository {
     suspend fun getProfile(userId: ID, owner: Ed25519.KeyPair): Result<UserProfile>
     suspend fun setDisplayName(displayName: String, owner: Ed25519.KeyPair): Result<Unit>
     suspend fun setProfilePicture(blobId: BlobId, owner: Ed25519.KeyPair): Result<MediaItem>
+    suspend fun updateTipCard(owner: Ed25519.KeyPair, hexColor: String): Result<Unit>
     suspend fun linkSocialAccount(request: SocialAccountLinkRequest, owner: Ed25519.KeyPair): Result<SocialAccount>
     suspend fun unlinkSocialAccount(request: SocialAccountUnlinkRequest, owner: Ed25519.KeyPair): Result<Unit>
 }

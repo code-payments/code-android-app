@@ -1,8 +1,8 @@
 package com.flipcash.services.internal.domain
 
 import com.codeinc.flipcash.gen.blob.v1.Model as BlobModel
-import com.codeinc.flipcash.gen.email.v1.emailAddress
-import com.codeinc.flipcash.gen.phone.v1.phoneNumber
+import com.codeinc.flipcash.gen.common.v1.emailAddress
+import com.codeinc.flipcash.gen.common.v1.phoneNumber
 import com.codeinc.flipcash.gen.profile.v1.Model
 import com.codeinc.flipcash.gen.profile.v1.socialProfile
 import com.codeinc.flipcash.gen.profile.v1.xProfile

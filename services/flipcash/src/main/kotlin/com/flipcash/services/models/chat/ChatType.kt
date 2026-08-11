@@ -4,4 +4,5 @@ enum class ChatType {
     UNKNOWN,
     CONTACT_DM,
     TIP_DM,
+    GROUP,
 }

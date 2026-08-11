@@ -18,6 +18,8 @@ data class UserProfile(
     val profilePicture: MediaItem? = null,
     // When the user joined Flipcash (server-provided). Null when unknown.
     val joinedAt: Instant? = null,
+    // The hex color for the user's tip card customization. Null when unset.
+    val tipCardColor: String? = null,
 ): Parcelable {
     /** The phone number only when it has been verified — backwards-compatible accessor. */
     val verifiedPhoneNumber: String? get() = phoneNumber?.takeIf { it.verified }?.value
@@ -31,6 +33,7 @@ data class UserProfile(
             socialAccounts = emptyList(),
             phoneNumber = null,
             email = null,
+            tipCardColor = null,
         )
     }
 }

@@ -55,6 +55,7 @@ sealed interface MessageMetadata {
     @Serializable
     data class DirectlySentCrypto(
         val phoneNumber: String? = null,
+        val userId: ID? = null,
     ) : MessageMetadata
 
     @Serializable
@@ -66,6 +67,7 @@ sealed interface MessageMetadata {
     @Serializable
     data class ReceivedCrypto(
         val phoneNumber: String? = null,
+        val userId: ID? = null,
     ) : MessageMetadata
 
     @Serializable

@@ -574,6 +574,16 @@ sealed class GetBlocklistError(
     data class Other(override val cause: Throwable? = null) : GetBlocklistError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class UpdateTipCardError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: UpdateTipCardError("Denied")
+    class InvalidColor: UpdateTipCardError("Invalid color")
+    class Unrecognized : UpdateTipCardError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : UpdateTipCardError(message = cause?.message, cause = cause), NotifiableError
+}
+
 // Thrown when a reserved blob failed server-side finalization (moderation / decode / size).
 // Terminal: the client must reserve a fresh upload to retry.
 class BlobRejectedException(val rejection: BlobRejection) :

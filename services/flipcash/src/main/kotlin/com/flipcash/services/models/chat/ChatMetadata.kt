@@ -10,4 +10,6 @@ data class ChatMetadata(
     val lastActivity: Instant,
     val latestEventSequence: Long = 0,
     val isHidden: Boolean = false,
+    // Title for this chat. Only set for group chats.
+    val title: String? = null,
 )

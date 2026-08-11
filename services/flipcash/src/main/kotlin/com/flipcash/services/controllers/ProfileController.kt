@@ -88,6 +88,16 @@ class ProfileController @Inject constructor(
     }
 
     /**
+     * Updates the caller's tip card customization with the given hex color string.
+     */
+    suspend fun updateTipCard(hexColor: String): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.updateTipCard(owner, hexColor)
+    }
+
+    /**
      * Sets the caller's profile picture to a blob already uploaded via BlobStorage.
      * Returns the full set of renditions the server derived from it.
      */

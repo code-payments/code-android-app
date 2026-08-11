@@ -119,11 +119,16 @@ internal fun PushModels.Payload.asPayload(): NotificationPayload {
     )
 }
 
-internal fun PushModels.Substitution.asSubstitution(): Substitution? {
+internal fun Common.Substitution.asSubstitution(): Substitution? {
     return when (kindCase) {
-        PushModels.Substitution.KindCase.CONTACT -> {
-            val phoneNumber = contact.value
+        Common.Substitution.KindCase.PHONE_NUMBER_TO_CONTACT_NAME -> {
+            val phoneNumber = phoneNumberToContactName.value
             Substitution.Phone(fallback = fallback, phoneNumber = phoneNumber)
+        }
+
+        Common.Substitution.KindCase.USER_ID_TO_DISPLAY_NAME -> {
+            val userId = userIdToDisplayName.value.toByteArray().toList()
+            Substitution.UserId(fallback = fallback, userId = userId)
         }
 
         else -> null
@@ -347,6 +352,7 @@ internal fun ChatModel.ChatType.toChatType(): ChatType {
     return when (this) {
         ChatModel.ChatType.CONTACT_DM -> ChatType.CONTACT_DM
         ChatModel.ChatType.TIP_DM -> ChatType.TIP_DM
+        ChatModel.ChatType.GROUP -> ChatType.GROUP
         else -> ChatType.UNKNOWN
     }
 }
@@ -376,6 +382,7 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
         lastActivity = Instant.fromEpochSeconds(lastActivity.seconds, lastActivity.nanos),
         latestEventSequence = latestEventSequence,
         isHidden = isHidden,
+        title = title.takeIf { it.isNotEmpty() },
     )
 }
 

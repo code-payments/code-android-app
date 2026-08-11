@@ -24,6 +24,7 @@ class UserProfileMapper @Inject constructor(
             joinedAt = if (from.hasJoinTs()) {
                 Instant.fromEpochSeconds(from.joinTs.seconds, from.joinTs.nanos)
             } else null,
+            tipCardColor = if (from.hasTipCardCustomization()) from.tipCardCustomization.color.hex else null,
         )
     }
 }
