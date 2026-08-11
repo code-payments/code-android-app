@@ -13,7 +13,7 @@ dependencies {
     testImplementation(libs.bundles.compose.ui.testing)
 
     implementation(project(":apps:flipcash:shared:amount-entry"))
-    implementation(project(":apps:flipcash:shared:activityfeed"))
+    implementation(project(":apps:flipcash:shared:transaction-history"))
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:userflags"))
