@@ -13,7 +13,7 @@ dependencies {
 
     implementation(libs.compose.paging)
 
-    implementation(project(":apps:flipcash:shared:activityfeed"))
+    implementation(project(":apps:flipcash:shared:transaction-history"))
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:featureflags"))
