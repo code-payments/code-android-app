@@ -5,7 +5,7 @@ import com.flipcash.app.analytics.StubFlipcashAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
-import com.flipcash.app.activityfeed.ActivityFeedCoordinator
+import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.shared.chat.ChatCoordinator

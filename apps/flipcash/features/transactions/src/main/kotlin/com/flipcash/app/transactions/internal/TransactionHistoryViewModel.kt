@@ -1,7 +1,7 @@
 package com.flipcash.app.transactions.internal
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.activityfeed.ActivityFeedCoordinator
+import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.feed.MessageMetadata

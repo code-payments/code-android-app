@@ -1,7 +1,7 @@
 package com.flipcash.app.tokens.ui
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.activityfeed.ActivityFeedCoordinator
+import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalyticsService

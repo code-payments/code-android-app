@@ -1,6 +1,6 @@
 package com.flipcash.app.transactions.internal
 
-import com.flipcash.app.activityfeed.ActivityFeedCoordinator
+import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.user.UserManager

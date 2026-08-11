@@ -1,7 +1,7 @@
 package com.flipcash.app.session.internal
 
-import com.flipcash.app.activityfeed.ActivityFeedCoordinator
-import com.flipcash.app.activityfeed.ActivityFeedUpdater
+import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
+import com.flipcash.shared.transactionhistory.ActivityFeedUpdater
 import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.billing.BillingClient

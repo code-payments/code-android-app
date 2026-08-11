@@ -1,12 +1,12 @@
 package com.flipcash.app.activityfeed
 
-import com.flipcash.app.core.updater.NetworkUpdater
-import javax.inject.Inject
-
-class ActivityFeedUpdater @Inject constructor(
-    private val coordinator: ActivityFeedCoordinator,
-): NetworkUpdater() {
-    override suspend fun doUpdate() {
-        coordinator.fetchSinceLatest(count = 50)
-    }
-}
+@Deprecated(
+    "Moved to :shared:transaction-history as part of the v2 (FeatureFlag.NewUi) phase-out. " +
+        "Import com.flipcash.shared.transactionhistory.ActivityFeedUpdater instead. " +
+        "Plan: docs/superpowers/plans/2026-08-11-activityfeed-phaseout.md",
+    ReplaceWith(
+        "ActivityFeedUpdater",
+        "com.flipcash.shared.transactionhistory.ActivityFeedUpdater",
+    ),
+)
+typealias ActivityFeedUpdater = com.flipcash.shared.transactionhistory.ActivityFeedUpdater
