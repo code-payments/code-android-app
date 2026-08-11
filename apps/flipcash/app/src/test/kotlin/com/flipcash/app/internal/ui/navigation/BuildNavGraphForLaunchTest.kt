@@ -31,6 +31,7 @@ class BuildNavGraphForLaunchTest {
     ): LaunchNavGraph? = buildNavGraphForLaunch(
         state = state,
         router = FakeRouter(action),
+        isNewUi = false,
         deepLink = { deepLink },
     )
 
@@ -122,9 +123,11 @@ class BuildNavGraphForLaunchTest {
     }
 
     @Test
-    fun `unknown auth state without deeplink navigates to OnboardingFlow`() {
-        val result = build(AuthState.Unknown)!!
-        assertIs<AppRoute.OnboardingFlow>(result.baseRoutes.single())
+    fun `unknown auth state waits on Loading`() {
+        // Unknown is a transient pre-resolution state, grouped with Authenticating: it returns
+        // null so the Loading screen stays put until auth resolves. A genuine no-account
+        // resolves to LoggedOut (which routes to OnboardingFlow), covered separately.
+        assertNull(build(AuthState.Unknown))
     }
 
     // -- Onboarding --

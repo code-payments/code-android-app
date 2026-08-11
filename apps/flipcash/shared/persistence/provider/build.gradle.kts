@@ -15,6 +15,9 @@ android {
 
 dependencies {
     implementation(project(":apps:flipcash:shared:persistence:db"))
+    // Needed to reference FlipcashDatabase's RoomDatabase supertype at the call site
+    // for the post-migration profile backfill.
+    implementation(libs.bundles.room)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)

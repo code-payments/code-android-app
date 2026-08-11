@@ -7,16 +7,19 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.flipcash.app.persistence.entities.BlockedUserEntity
+import com.flipcash.app.persistence.entities.BlockedUserWithProfile
 
 @Dao
 interface BlockedUserDao {
 
     /** Blocklist ordered most-recently-blocked first, matching the server's ordering. */
+    @Transaction
     @Query("SELECT * FROM blocked_users ORDER BY blocked_at_epoch_ms DESC")
-    fun observePaged(): PagingSource<Int, BlockedUserEntity>
+    fun observePaged(): PagingSource<Int, BlockedUserWithProfile>
 
+    @Transaction
     @Query("SELECT * FROM blocked_users ORDER BY blocked_at_epoch_ms DESC")
-    suspend fun getAll(): List<BlockedUserEntity>
+    suspend fun getAll(): List<BlockedUserWithProfile>
 
     @Transaction
     @Insert(onConflict = OnConflictStrategy.REPLACE)

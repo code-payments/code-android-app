@@ -1,6 +1,5 @@
 package com.flipcash.app.persistence.sources.mapper.blocklist
 
-import com.flipcash.app.persistence.converters.UserProfileSerialized
 import com.flipcash.app.persistence.entities.BlockedUserEntity
 import com.flipcash.services.models.BlockedUser
 import com.flipcash.services.models.UserProfile
@@ -11,7 +10,9 @@ import javax.inject.Inject
 /**
  * A server blocklist entry paired with its separately-resolved display [profile]. The server only
  * returns [BlockedUser] (id + timestamp); the profile is fetched alongside so the row can be cached
- * fully renderable.
+ * fully renderable. The profile is persisted separately in the shared `user_profiles` table (see
+ * [com.flipcash.app.persistence.sources.BlockedUserDataSource]); this mapper produces only the
+ * blocklist row itself.
  */
 data class ResolvedBlockedUser(
     val blocked: BlockedUser,
@@ -24,16 +25,5 @@ class BlockedUserToEntityMapper @Inject constructor() :
     override fun map(from: ResolvedBlockedUser): BlockedUserEntity = BlockedUserEntity(
         userIdHex = from.blocked.userId.hexEncodedString(),
         blockedAtEpochMs = from.blocked.blockedAt.toEpochMilliseconds(),
-        // Only the fields the blocklist row renders (name + avatar) are persisted; the rest of the
-        // profile is intentionally dropped.
-        userProfileJson = from.profile?.let {
-            UserProfileSerialized(
-                displayName = it.displayName,
-                socialAccounts = emptyList(),
-                phoneNumber = null,
-                email = null,
-                profilePicture = it.profilePicture,
-            )
-        },
     )
 }

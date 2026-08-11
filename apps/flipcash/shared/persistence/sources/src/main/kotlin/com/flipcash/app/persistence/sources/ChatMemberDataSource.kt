@@ -1,5 +1,6 @@
 package com.flipcash.app.persistence.sources
 
+import androidx.room.withTransaction
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
 import com.flipcash.services.models.chat.ChatId
@@ -28,7 +29,7 @@ class ChatMemberDataSource @Inject constructor(
 
     fun observeAll(): Flow<Map<String, List<ChatMember>>> =
         db?.chatMemberDao()?.observeAll()?.map { entities ->
-            entities.groupBy { it.chatIdHex }
+            entities.groupBy { it.member.chatIdHex }
                 .mapValues { (_, members) -> members.map { mapper.toMember(it) } }
         } ?: emptyFlow()
 
@@ -47,8 +48,15 @@ class ChatMemberDataSource @Inject constructor(
         db?.chatMemberDao()?.getMembersForChat(chatIdHex)?.map { mapper.toMember(it) } ?: emptyList()
 
     suspend fun upsert(chatId: ChatId, members: List<ChatMember>) {
+        val database = db ?: return
         val hex = mapper.chatIdHex(chatId)
-        db?.chatMemberDao()?.upsert(members.map { mapper.toEntity(hex, it) })
+        // Member rows and their normalized profiles are written in one transaction so a
+        // member never observes a missing profile mid-write. Profiles go first (the
+        // @Relation reads them), and use the authoritative full-profile upsert.
+        database.withTransaction {
+            database.userProfileDao().upsertFull(members.map { mapper.toProfileEntity(it) })
+            database.chatMemberDao().upsert(members.map { mapper.toEntity(hex, it) })
+        }
     }
 
     suspend fun updatePointers(chatId: ChatId, pointer: MessagePointer) {
