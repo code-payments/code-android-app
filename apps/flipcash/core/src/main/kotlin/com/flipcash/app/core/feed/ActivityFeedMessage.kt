@@ -19,7 +19,11 @@ data class ActivityFeedMessage(
     val amount: LocalFiat?,
     val timestamp: Instant,
     val state: MessageState,
-    val metadata: MessageMetadata?
+    val metadata: MessageMetadata?,
+    // Ordered substitutions for [text]'s indexed placeholders ({0}, {1}, …). Persisted so the
+    // title can be resolved live at display time (see TransactionItemMapper), keeping it consistent
+    // with the live-resolved counterparty avatar.
+    val textSubstitutions: List<MessageSubstitution> = emptyList(),
 ) {
     val isTransaction: Boolean
         get() = amount != null
@@ -31,6 +35,41 @@ data class ActivityFeedMessage(
                 (metadata as? MessageMetadata.IndirectlySentCrypto) ?: return false
             return metadata.canCancel
         }
+}
+
+/**
+ * A substitution for an indexed placeholder in [ActivityFeedMessage.text]. The core-domain,
+ * persisted mirror of `com.flipcash.services.models.Substitution` (mapped at the persistence
+ * boundary, like [MessageMetadata]). [fallback] is the server-provided name; the client prefers
+ * a live-resolved name for [UserId] where available.
+ */
+@Serializable
+sealed interface MessageSubstitution {
+    val fallback: String
+
+    @Serializable
+    data class Phone(
+        override val fallback: String,
+        val phoneNumber: String,
+    ) : MessageSubstitution
+
+    @Serializable
+    data class UserId(
+        override val fallback: String,
+        val userId: ID,
+    ) : MessageSubstitution
+
+    companion object {
+        /** Deserializes the persisted JSON list; empty (never throws) on null/garbage. */
+        fun listFrom(json: String?): List<MessageSubstitution> {
+            json ?: return emptyList()
+            return try {
+                Json.decodeFromString<List<MessageSubstitution>>(json)
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+    }
 }
 
 enum class MessageState {

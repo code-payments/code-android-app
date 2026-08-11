@@ -12,9 +12,13 @@ android {
 dependencies {
     implementation(libs.bundles.room)
     implementation(libs.androidx.paging.runtime)
+    implementation(libs.compose.paging)
 
     compileOnly(project(":apps:flipcash:shared:persistence:db"))
     implementation(project(":apps:flipcash:shared:persistence:sources"))
+    implementation(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":services:flipcash"))
     implementation(project(":libs:datetime"))
+
+    testImplementation(libs.bundles.unit.testing)
 }

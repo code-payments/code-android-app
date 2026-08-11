@@ -14,6 +14,7 @@ import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.entities.MessageStatus
 import com.flipcash.app.persistence.entities.UserProfileEntity
 import com.flipcash.app.persistence.entities.toSerialized
+import com.flipcash.app.persistence.sources.mapper.toDomain
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
@@ -291,14 +292,6 @@ private fun MessagePointerSerialized.toDomain(): MessagePointer = MessagePointer
     timestamp = Instant.fromEpochSeconds(timestampEpochSeconds),
 )
 
-private fun UserProfileSerialized.toDomain(): UserProfile = UserProfile(
-    displayName = displayName.orEmpty(),
-    socialAccounts = socialAccounts.map { it.toDomain() },
-    phoneNumber = phoneNumber,
-    email = email,
-    profilePicture = profilePicture,
-)
-
 private fun SocialAccount.toSerialized(): SocialAccountSerialized = when (this) {
     is SocialAccount.TwitterX -> SocialAccountSerialized.TwitterX(
         id = id,
@@ -307,20 +300,6 @@ private fun SocialAccount.toSerialized(): SocialAccountSerialized = when (this) 
         description = description,
         profilePicUrl = profilePicUrl,
         verifiedType = verifiedType?.name,
-        followerCount = followerCount,
-    )
-}
-
-private fun SocialAccountSerialized.toDomain(): SocialAccount = when (this) {
-    is SocialAccountSerialized.TwitterX -> SocialAccount.TwitterX(
-        id = id,
-        username = username,
-        name = name,
-        description = description,
-        profilePicUrl = profilePicUrl,
-        verifiedType = verifiedType?.let { name ->
-            SocialAccount.TwitterX.VerifiedType.entries.firstOrNull { it.name == name }
-        },
         followerCount = followerCount,
     )
 }

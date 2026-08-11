@@ -119,6 +119,10 @@ class TokenCoordinator @Inject constructor(
 
     val tokens: Flow<List<Token>> = _state.map { it.tokens.values.toList() }
 
+    /** Cache-only, network-free view of the in-memory token map (see [TokenMetadataProvider]). */
+    override fun observeTokenCache(): Flow<Map<Mint, Token>> =
+        _state.map { it.tokens }.distinctUntilChanged()
+
     val tokenBalances: Flow<List<TokenWithBalance>> = _hydrated
         .filter { it }
         .flatMapLatest {

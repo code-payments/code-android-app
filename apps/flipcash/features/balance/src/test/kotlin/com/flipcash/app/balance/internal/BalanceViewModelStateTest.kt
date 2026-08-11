@@ -7,39 +7,39 @@ import kotlin.test.assertNull
 
 class BalanceViewModelStateTest {
 
-    private val reduce = BalanceViewModel.Companion.updateStateForEvent
+    private val reduce = WalletViewModel.Companion.updateStateForEvent
 
     @Test
     fun `default state has null provider`() {
-        assertNull(BalanceViewModel.State().preferredOnRampProvider)
+        assertNull(WalletViewModel.State().preferredOnRampProvider)
     }
 
     @Test
     fun `OnPreferredOnRampProviderChanged updates provider`() {
         val provider = OnRampProvider.ManualDeposit
         val updated = reduce(
-            BalanceViewModel.Event.OnPreferredOnRampProviderChanged(provider)
-        )(BalanceViewModel.State())
+            WalletViewModel.Event.OnPreferredOnRampProviderChanged(provider)
+        )(WalletViewModel.State())
         assertEquals(provider, updated.preferredOnRampProvider)
     }
 
     @Test
     fun `OnPreferredOnRampProviderChanged with null clears provider`() {
-        val state = BalanceViewModel.State(
+        val state = WalletViewModel.State(
             preferredOnRampProvider = OnRampProvider.ManualDeposit
         )
         val updated = reduce(
-            BalanceViewModel.Event.OnPreferredOnRampProviderChanged(null)
+            WalletViewModel.Event.OnPreferredOnRampProviderChanged(null)
         )(state)
         assertNull(updated.preferredOnRampProvider)
     }
 
     @Test
     fun `OpenCurrencySelection is no-op`() {
-        val state = BalanceViewModel.State(
+        val state = WalletViewModel.State(
             preferredOnRampProvider = OnRampProvider.ManualDeposit
         )
-        val updated = reduce(BalanceViewModel.Event.OpenCurrencySelection)(state)
+        val updated = reduce(WalletViewModel.Event.OpenCurrencySelection)(state)
         assertEquals(state, updated)
     }
 }

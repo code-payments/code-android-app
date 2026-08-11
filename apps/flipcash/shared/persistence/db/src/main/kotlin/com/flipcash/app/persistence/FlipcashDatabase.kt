@@ -11,6 +11,9 @@ import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import com.flipcash.app.persistence.converters.ChatTypeConverters
 import com.flipcash.app.persistence.converters.TokenTypeConverters
 import com.flipcash.app.persistence.dao.BlockedUserDao
@@ -82,8 +85,9 @@ import com.getcode.utils.subByteArray
         // 25 -> 26 is a manual migration (MIGRATION_25_26): it normalizes the
         // per-row user_profile_json blob into the shared user_profiles table, which
         // needs data movement an AutoMigration can't express.
+        AutoMigration(from = 26, to = 27), // messages.text_substitutions (nullable)
     ],
-    version = 26,
+    version = 27,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -263,7 +267,17 @@ abstract class FlipcashDatabase : RoomDatabase() {
             }
         }
 
+        // Reactive mirror of [instance] so consumers can observe the DB becoming available/torn down
+        // (the per-user DB is created on login, after singletons build their flow graphs) instead of
+        // polling. Kept in lockstep with [instance] in init()/closeDb().
+        private val instanceState = MutableStateFlow<FlipcashDatabase?>(null)
+        fun observeInstance(): StateFlow<FlipcashDatabase?> = instanceState.asStateFlow()
+
         private var instance: FlipcashDatabase? = null
+            set(value) {
+                field = value
+                instanceState.value = value
+            }
         fun requireInstance() = requireNotNull(instance)
         fun getInstance(): FlipcashDatabase? = instance
         private var dbName: String = ""

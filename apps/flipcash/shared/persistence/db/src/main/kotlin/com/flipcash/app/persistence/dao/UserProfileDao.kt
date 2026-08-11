@@ -7,6 +7,7 @@ import androidx.room.Query
 import androidx.room.Update
 import com.flipcash.app.persistence.entities.UserProfileEntity
 import com.flipcash.services.models.chat.MediaItem
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UserProfileDao {
@@ -53,6 +54,10 @@ interface UserProfileDao {
     /** The cached profile for [userIdHex], or null if none is cached. */
     @Query("SELECT * FROM user_profiles WHERE user_id_hex = :userIdHex LIMIT 1")
     suspend fun getByUserId(userIdHex: String): UserProfileEntity?
+
+    /** Observes every cached profile; re-emits as profiles are added/updated. */
+    @Query("SELECT * FROM user_profiles")
+    fun observeAll(): Flow<List<UserProfileEntity>>
 
     /** A batch of rows still carrying a staged legacy blob; drives [backfillMigratedProfiles]. */
     @Query("SELECT * FROM user_profiles WHERE pending_migration_json IS NOT NULL LIMIT :limit")

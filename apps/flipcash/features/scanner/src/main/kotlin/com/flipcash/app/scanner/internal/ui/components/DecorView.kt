@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.core.bill.BillState
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.scanner.internal.ScannerDecorItem
 import com.flipcash.app.session.SessionState
 import com.flipcash.features.scanner.R
@@ -62,8 +64,11 @@ internal fun DecorView(
     zoomRatio: Float = 1f,
     onAction: (ScannerDecorItem) -> Unit,
 ) {
+    val features = LocalFeatureFlags.current
     val billPlayground = LocalBillPlaygroundController.current
     val playgroundState by billPlayground.state.collectAsStateWithLifecycle()
+
+    val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
 
     val isUsingPlayground by remember(
         playgroundState.isCustomizing,
@@ -74,7 +79,7 @@ internal fun DecorView(
         }
     }
 
-    AnimatedVisibility(!isUsingPlayground) {
+    AnimatedVisibility(!isUsingPlayground && !isNewUi) {
         Box(
             modifier = Modifier
                 .fillMaxSize()

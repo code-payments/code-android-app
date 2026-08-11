@@ -3,7 +3,6 @@ package com.flipcash.app.balance.internal
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
@@ -22,19 +22,10 @@ import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.TokenCardStack
@@ -44,13 +35,14 @@ import com.flipcash.app.balance.internal.components.OnboardingItem
 import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.features.balance.R
+import com.flipcash.shared.transactionhistory.ActivityFeedRow
 import com.getcode.theme.CodeTheme
 
 private const val TokenStackKey = "tokenStack"
 
 @Composable
 internal fun WalletScreen(
-    viewModel: BalanceViewModel,
+    viewModel: WalletViewModel,
     tokenViewModel: SelectTokenViewModel,
 ) {
     val balanceState by viewModel.stateFlow.collectAsStateWithLifecycle()
@@ -64,17 +56,14 @@ internal fun WalletScreen(
 
 @Composable
 internal fun WalletScreenContent(
-    balanceState: BalanceViewModel.State,
+    balanceState: WalletViewModel.State,
     tokenState: SelectTokenViewModel.State,
-    dispatchEvent: (BalanceViewModel.Event) -> Unit
+    dispatchEvent: (WalletViewModel.Event) -> Unit,
 ) {
     val listState = rememberLazyListState()
-    // Sticky per-card collapse: the fan scrolls normally (the stack keeps a fixed fanned height, so
-    // scrolling is stable) and each card pins to the top as it scrolls above the viewport, building a
-    // deck while the cards below stay fanned and readable. `scrolledPast` = px of the stack scrolled
-    // above the viewport top, read live so the stack re-lays-out its cards as the list scrolls.
-    // May be negative when the stack sits below the pin line (i.e. scrolled to the top) so cards
-    // fan flush there instead of staying stuck under the pin inset.
+    // Px the token stack has scrolled above the viewport top, read live so the stack collapses (then
+    // releases and scrolls off) as the list scrolls. A lambda so the stack reads it in its placement
+    // phase without recomposing.
     val scrolledPast = {
         listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == TokenStackKey }
             ?.let { -it.offset.toFloat() } ?: 0f
@@ -100,7 +89,7 @@ internal fun WalletScreenContent(
                 balance = tokenState.totalBalance,
                 appreciation = tokenState.aggregateAppreciation,
             ) {
-                dispatchEvent(BalanceViewModel.Event.OpenCurrencySelection)
+                dispatchEvent(WalletViewModel.Event.OpenCurrencySelection)
             }
         }
 
@@ -118,7 +107,7 @@ internal fun WalletScreenContent(
                 ) { item ->
                     when (item) {
                         is OnboardingItem.AddMoney -> {
-                            dispatchEvent(BalanceViewModel.Event.PresentDepositOptions)
+                            dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
                         }
                         is OnboardingItem.ScanTipCard -> {
 
@@ -137,7 +126,7 @@ internal fun WalletScreenContent(
                     scrolledPast = scrolledPast,
                     onCardClick = { token ->
                         dispatchEvent(
-                            BalanceViewModel.Event.OpenScreen(
+                            WalletViewModel.Event.OpenScreen(
                                 AppRoute.Token.Info(mint = token.token.address)
                             )
                         )
@@ -151,7 +140,7 @@ internal fun WalletScreenContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = { dispatchEvent(BalanceViewModel.Event.PresentDepositOptions) })
+                        .clickable(onClick = { dispatchEvent(WalletViewModel.Event.PresentDepositOptions) })
                         .padding(vertical = CodeTheme.dimens.inset),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -171,6 +160,28 @@ internal fun WalletScreenContent(
                         )
                     }
                 }
+            }
+        }
+
+        if (balanceState.transactions.isNotEmpty()) {
+            item(key = "recentHeader") {
+                Text(
+                    text = stringResource(R.string.title_recentActivity),
+                    style = CodeTheme.typography.screenTitle,
+                    color = CodeTheme.colors.textMain,
+                    modifier = Modifier.padding(
+                        top = CodeTheme.dimens.grid.x4,
+                        bottom = CodeTheme.dimens.grid.x1,
+                    ),
+                )
+            }
+            // Preview of the most recent activity (newest first); the full history lives on its own
+            // screen. The VM/coordinator already bounds this list, so just render it.
+            items(
+                items = balanceState.transactions,
+                key = { it.id },
+            ) { item ->
+                ActivityFeedRow(item = item, modifier = Modifier.fillMaxWidth())
             }
         }
     }
