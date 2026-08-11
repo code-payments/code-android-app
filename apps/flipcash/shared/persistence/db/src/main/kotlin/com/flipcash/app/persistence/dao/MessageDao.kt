@@ -33,6 +33,10 @@ interface MessageDao {
     @Query("SELECT * FROM messages ORDER BY timestamp DESC")
     fun observeMessages(): PagingSource<Int, MessageEntity>
 
+    /** The [limit] most recent messages, newest first — the wallet's recent-activity preview. */
+    @Query("SELECT * FROM messages ORDER BY timestamp DESC LIMIT :limit")
+    fun observeRecent(limit: Int): Flow<List<MessageEntity>>
+
     @Query("SELECT * FROM messages")
     suspend fun getAllMessages(): List<MessageEntity>
 

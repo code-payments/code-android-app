@@ -11,8 +11,11 @@ import com.flipcash.app.persistence.sources.mapper.notifications.NotificationToE
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.persistence.PagingDataSource
 import com.getcode.opencode.model.core.ID
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -58,6 +61,19 @@ class MessageDataSource @Inject constructor(
     /** Reactive "has the user ever added money" — any completed deposit/buy notification. */
     fun hasEverAddedMoney(): Flow<Boolean> =
         db?.messageDao()?.hasEverAddedMoney() ?: flowOf(false)
+
+    /**
+     * Observes the [limit] most recent messages (newest first) as domain models. Reacts to the
+     * per-user DB becoming available (created on login) via [FlipcashDatabase.observeInstance] rather
+     * than capturing a possibly-null instance once, so it emits as soon as the DB is ready.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun observeRecent(limit: Int): Flow<List<ActivityFeedMessage>> =
+        FlipcashDatabase.observeInstance().flatMapLatest { database ->
+            database?.messageDao()?.observeRecent(limit)?.map { entities ->
+                entities.map { messageEntityMapper.map(it) }
+            } ?: flowOf(emptyList())
+        }
 
     override fun observe(): PagingSource<Int, MessageEntity> {
         return db?.messageDao()?.observeMessages() ?: object : PagingSource<Int, MessageEntity>() {

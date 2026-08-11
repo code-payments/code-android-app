@@ -1,9 +1,11 @@
 package com.flipcash.app.persistence.sources.mapper.notifications
 
 import com.flipcash.app.core.feed.MessageMetadata
+import com.flipcash.app.core.feed.MessageSubstitution
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.models.NotificationMetadata
+import com.flipcash.services.models.Substitution
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
@@ -37,10 +39,15 @@ class SingleNotificationToEntityMapper @Inject constructor(
 
         return MessageEntity(
             idBase58 = from.id.base58,
+            // Persist the raw template + the substitutions; the title is resolved live at display.
             text = from.text,
             timestamp = from.timestamp.toEpochMilliseconds(),
             state = from.state.name,
             metadata = metadataMapper.map(from.metadata)?.let { Json.encodeToString(it) },
+            textSubstitutions = from.textSubstitutions
+                .map { it.toMessageSubstitution() }
+                .takeIf { it.isNotEmpty() }
+                ?.let { Json.encodeToString(it) },
             // financials
             amountUsdc = usdc,
             amountNative = native,
@@ -48,6 +55,11 @@ class SingleNotificationToEntityMapper @Inject constructor(
             rate = fx,
             mintBase58 = mint?.base58()
         )
+    }
+
+    private fun Substitution.toMessageSubstitution(): MessageSubstitution = when (this) {
+        is Substitution.Phone -> MessageSubstitution.Phone(fallback, phoneNumber)
+        is Substitution.UserId -> MessageSubstitution.UserId(fallback, userId)
     }
 }
 

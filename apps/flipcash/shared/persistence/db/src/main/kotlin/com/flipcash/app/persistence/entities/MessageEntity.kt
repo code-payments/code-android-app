@@ -22,6 +22,8 @@ data class MessageEntity(
     val metadata: String?,
     @ColumnInfo(defaultValue = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
     val mintBase58: String?,
+    // JSON-serialized List<MessageSubstitution> for text's placeholders; null when none.
+    val textSubstitutions: String? = null,
 ) {
     val id: List<Byte>
         get() = Base58.decode(idBase58).toList()

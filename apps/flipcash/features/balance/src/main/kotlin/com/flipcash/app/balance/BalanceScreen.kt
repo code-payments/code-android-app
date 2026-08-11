@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.flipcash.app.balance.internal.BalanceScreen
-import com.flipcash.app.balance.internal.BalanceViewModel
+import com.flipcash.app.balance.internal.WalletViewModel
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
+@Deprecated("Replaced by WalletScreen in new UI")
 @Composable
 fun BalanceScreen() {
     val navigator = LocalCodeNavigator.current
@@ -37,7 +38,7 @@ fun BalanceScreen() {
             }
         )
 
-        val viewModel = hiltViewModel<BalanceViewModel>()
+        val viewModel = hiltViewModel<WalletViewModel>()
         val tokenViewModel = hiltViewModel<SelectTokenViewModel>()
         BalanceScreen(viewModel, tokenViewModel)
 
@@ -51,7 +52,7 @@ fun BalanceScreen() {
 
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
-                .filterIsInstance<BalanceViewModel.Event.OpenCurrencySelection>()
+                .filterIsInstance<WalletViewModel.Event.OpenCurrencySelection>()
                 .onEach {
                     navigator.push(AppRoute.Main.RegionSelection)
                 }.launchIn(this)
@@ -59,7 +60,7 @@ fun BalanceScreen() {
 
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
-                .filterIsInstance<BalanceViewModel.Event.OpenScreen>()
+                .filterIsInstance<WalletViewModel.Event.OpenScreen>()
                 .map { it.screen }
                 .onEach { navigator.push(it) }
                 .launchIn(this)
