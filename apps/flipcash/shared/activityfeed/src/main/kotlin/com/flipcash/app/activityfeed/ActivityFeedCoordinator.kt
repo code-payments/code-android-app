@@ -29,6 +29,12 @@ import kotlinx.coroutines.flow.mapNotNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Deprecated(
+    "Phasing out with the v2 (FeatureFlag.NewUi) launch: the activity-feed data layer is being " +
+        "consolidated into :shared:transaction-history (com.flipcash.shared.transactionhistory). " +
+        "New code should depend on that module. " +
+        "Plan: docs/superpowers/plans/2026-08-11-activityfeed-phaseout.md",
+)
 @Singleton
 class ActivityFeedCoordinator @Inject constructor(
     private val activityFeedController: ActivityFeedController,
