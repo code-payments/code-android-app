@@ -1,4 +1,4 @@
-package com.flipcash.app.scanner.internal.ui.modals
+package com.flipcash.app.bills.modals
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.money.formatted
 import com.flipcash.app.core.ui.TokenIconWithName
-import com.flipcash.features.scanner.R
+import com.flipcash.shared.bills.R
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
