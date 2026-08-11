@@ -45,7 +45,7 @@ class BalanceViewModelTest {
 
     private lateinit var dispatchers: TestDispatchers
 
-    private fun createViewModel() = BalanceViewModel(
+    private fun createViewModel() = WalletViewModel(
         userManager = userManager,
         userFlags = userFlags,
         dispatchers = dispatchers,
@@ -63,7 +63,7 @@ class BalanceViewModelTest {
             coEvery { purchaseMethodController.presentDepositOptions(popToRoot = true) } returns route
 
             val vm = createViewModel()
-            vm.dispatchEvent(BalanceViewModel.Event.PresentDepositOptions)
+            vm.dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
             advanceUntilIdle()
 
             // The removed AddMoneyUX flag used to short-circuit to a plain Deposit route;
@@ -74,9 +74,9 @@ class BalanceViewModelTest {
     @Test
     fun `OnPreferredOnRampProviderChanged updates state`() {
         val provider = mockk<OnRampProvider.Defined>()
-        val updated = BalanceViewModel.updateStateForEvent(
-            BalanceViewModel.Event.OnPreferredOnRampProviderChanged(provider)
-        )(BalanceViewModel.State())
+        val updated = WalletViewModel.updateStateForEvent(
+            WalletViewModel.Event.OnPreferredOnRampProviderChanged(provider)
+        )(WalletViewModel.State())
         assertEquals(provider, updated.preferredOnRampProvider)
     }
 }

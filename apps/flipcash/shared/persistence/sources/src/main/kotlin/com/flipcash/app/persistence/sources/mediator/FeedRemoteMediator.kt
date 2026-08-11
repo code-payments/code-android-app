@@ -17,6 +17,9 @@ import kotlinx.coroutines.withContext
 class FeedRemoteMediator(
     private val controller: ActivityFeedController,
     private val dataSource: MessageDataSource,
+    // Invoked with each freshly-fetched page after it's persisted, so callers can back-fill related
+    // data (e.g. resolve counterparty profiles) for messages as they arrive from the network.
+    private val onFetched: suspend (List<ActivityFeedNotification>) -> Unit = {},
 ): RemoteMediator<Int, MessageEntity>() {
 
     override suspend fun initialize(): InitializeAction {
@@ -57,6 +60,8 @@ class FeedRemoteMediator(
 
                 dataSource.upsert(notifications)
             }
+
+            onFetched(notifications)
 
             MediatorResult.Success(endOfPaginationReached = notifications.isEmpty())
         } catch (e: Exception) {

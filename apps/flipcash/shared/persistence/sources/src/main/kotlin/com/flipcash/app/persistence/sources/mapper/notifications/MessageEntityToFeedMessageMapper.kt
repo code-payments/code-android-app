@@ -4,6 +4,7 @@ import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageState
+import com.flipcash.app.core.feed.MessageSubstitution
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -42,7 +43,8 @@ class MessageEntityToFeedMessageMapper @Inject constructor() : Mapper<MessageEnt
             amount = amount,
             timestamp = Instant.fromEpochMilliseconds(from.timestamp),
             state = MessageState.from(from.state),
-            metadata = MessageMetadata.from(from.metadata)
+            metadata = MessageMetadata.from(from.metadata),
+            textSubstitutions = MessageSubstitution.listFrom(from.textSubstitutions),
         )
     }
 }

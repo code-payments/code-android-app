@@ -6,6 +6,7 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.balance.internal.components.OnboardingItem
 import com.flipcash.app.core.AppRoute
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
+import com.flipcash.shared.transactionhistory.TransactionListItem
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.shared.chat.ChatCoordinator
@@ -13,7 +14,6 @@ import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.getcode.opencode.utils.combine
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 @HiltViewModel
-internal class BalanceViewModel @Inject constructor(
+internal class WalletViewModel @Inject constructor(
     userManager: UserManager,
     userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
@@ -35,7 +35,7 @@ internal class BalanceViewModel @Inject constructor(
     analytics: FlipcashAnalyticsService,
     chatCoordinator: ChatCoordinator,
     feedCoordinator: ActivityFeedCoordinator,
-) : BaseViewModel<BalanceViewModel.State, BalanceViewModel.Event>(
+) : BaseViewModel<WalletViewModel.State, WalletViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
@@ -43,6 +43,12 @@ internal class BalanceViewModel @Inject constructor(
     data class State(
         val preferredOnRampProvider: OnRampProvider.Defined? = null,
         val onboardingItems: List<OnboardingItem> = emptyList(),
+        /**
+         * Preview of the most recent unified cross-token activity — at most [RECENT_PREVIEW_COUNT]
+         * rows. The coordinator owns the mapping and enforces the limit; the full paged history is a
+         * separate dive-in screen.
+         */
+        val transactions: List<TransactionListItem> = emptyList(),
     ) {
         val hasAddedMoney: Boolean
             get() = onboardingItems.find { it is OnboardingItem.AddMoney }?.isCompleted == true
@@ -53,6 +59,7 @@ internal class BalanceViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnOnboardingItemsUpdated(val items: List<OnboardingItem>): Event
+        data class OnTransactionsUpdated(val transactions: List<TransactionListItem>) : Event
         data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider.Defined?) : Event
 
         data object OpenCurrencySelection : Event
@@ -62,6 +69,11 @@ internal class BalanceViewModel @Inject constructor(
     }
 
     init {
+        // Preview of recent activity (bounded to RECENT_PREVIEW_COUNT by the coordinator).
+        feedCoordinator.recentTransactions(limit = RECENT_PREVIEW_COUNT)
+            .onEach { dispatchEvent(Event.OnTransactionsUpdated(it)) }
+            .launchIn(viewModelScope)
+
         userManager.state
             .filter { it.authState is AuthState.Ready }
             .flatMapLatest { userFlags.resolvedFlags }
@@ -94,6 +106,9 @@ internal class BalanceViewModel @Inject constructor(
     }
 
     internal companion object {
+        /** Rows of recent activity previewed on the wallet screen (the rest lives on the dive-in). */
+        const val RECENT_PREVIEW_COUNT = 3
+
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 Event.OpenCurrencySelection -> { state -> state }
@@ -102,6 +117,9 @@ internal class BalanceViewModel @Inject constructor(
                 }
                 is Event.OnOnboardingItemsUpdated -> { state ->
                     state.copy(onboardingItems = event.items)
+                }
+                is Event.OnTransactionsUpdated -> { state ->
+                    state.copy(transactions = event.transactions)
                 }
                 Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }

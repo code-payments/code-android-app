@@ -26,7 +26,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.balance.internal.components.BalanceHeader
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
-import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
 import com.flipcash.app.theme.FlipcashThemeWrapper
@@ -42,7 +41,7 @@ import com.getcode.ui.theme.CodeButton
 
 @Composable
 internal fun BalanceScreen(
-    viewModel: BalanceViewModel,
+    viewModel: WalletViewModel,
     tokenViewModel: SelectTokenViewModel,
 ) {
     val balanceState by viewModel.stateFlow.collectAsStateWithLifecycle()
@@ -56,7 +55,7 @@ internal fun BalanceScreen(
 @Composable
 internal fun BalanceScreenContent(
     tokenState: SelectTokenViewModel.State,
-    dispatchEvent: (BalanceViewModel.Event) -> Unit
+    dispatchEvent: (WalletViewModel.Event) -> Unit
 ) {
     Column {
         val tokens = remember(tokenState.tokens) { tokenState.tokens }
@@ -69,7 +68,7 @@ internal fun BalanceScreenContent(
                 balance = tokenState.totalBalance,
                 appreciation = tokenState.aggregateAppreciation,
             ) {
-                dispatchEvent(BalanceViewModel.Event.OpenCurrencySelection)
+                dispatchEvent(WalletViewModel.Event.OpenCurrencySelection)
             }
 
             Spacer(modifier = Modifier.padding(CodeTheme.dimens.grid.x2))
@@ -115,7 +114,7 @@ internal fun BalanceScreenContent(
 
                         CodeButton(
                             onClick = {
-                                dispatchEvent(BalanceViewModel.Event.PresentDepositOptions)
+                                dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
                             },
                             modifier = Modifier
                                 .padding(top = CodeTheme.dimens.grid.x2)
@@ -140,7 +139,7 @@ internal fun BalanceScreenContent(
                         buttonState = ButtonState.Filled10,
                         onClick = {
                             dispatchEvent(
-                                BalanceViewModel.Event.PresentDepositOptions
+                                WalletViewModel.Event.PresentDepositOptions
                             )
                         }
                     )
@@ -149,7 +148,7 @@ internal fun BalanceScreenContent(
             tokens = tokens,
             onTokenSelected = {
                 dispatchEvent(
-                    BalanceViewModel.Event.OpenScreen(
+                    WalletViewModel.Event.OpenScreen(
                         AppRoute.Token.Info(it.address)
                     )
                 )

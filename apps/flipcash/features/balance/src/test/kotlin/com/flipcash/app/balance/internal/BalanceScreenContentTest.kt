@@ -31,7 +31,7 @@ class BalanceScreenContentTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private var lastEvent: BalanceViewModel.Event? = null
+    private var lastEvent: WalletViewModel.Event? = null
 
     private fun setEmptyBalanceScreen() {
         lastEvent = null
@@ -71,6 +71,6 @@ class BalanceScreenContentTest {
     fun `tapping add money opens deposit options`() {
         setEmptyBalanceScreen()
         composeTestRule.onNodeWithText("Add Money").performClick()
-        assertTrue(lastEvent is BalanceViewModel.Event.PresentDepositOptions)
+        assertTrue(lastEvent is WalletViewModel.Event.PresentDepositOptions)
     }
 }
