@@ -51,6 +51,7 @@ include(
     ":apps:flipcash:shared:appsettings",
     ":apps:flipcash:shared:authentication",
     ":apps:flipcash:shared:activityfeed",
+    ":apps:flipcash:shared:transaction-history",
     ":apps:flipcash:shared:blocklist",
     ":apps:flipcash:shared:bills",
     ":apps:flipcash:shared:bill-customization",
