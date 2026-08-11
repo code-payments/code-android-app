@@ -50,6 +50,10 @@ interface UserProfileDao {
     )
     suspend fun upsertNameAndAvatar(userIdHex: String, displayName: String, profilePicture: MediaItem?)
 
+    /** The cached profile for [userIdHex], or null if none is cached. */
+    @Query("SELECT * FROM user_profiles WHERE user_id_hex = :userIdHex LIMIT 1")
+    suspend fun getByUserId(userIdHex: String): UserProfileEntity?
+
     /** A batch of rows still carrying a staged legacy blob; drives [backfillMigratedProfiles]. */
     @Query("SELECT * FROM user_profiles WHERE pending_migration_json IS NOT NULL LIMIT :limit")
     suspend fun pendingMigrationBatch(limit: Int): List<UserProfileEntity>
