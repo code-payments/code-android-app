@@ -50,7 +50,7 @@ fun WalletScreen() {
             viewModel.eventFlow
                 .filterIsInstance<WalletViewModel.Event.OpenScreen>()
                 .map { it.screen }
-                .onEach { navigator.openAsSheet(it) }
+                .onEach { navigator.push(it) }
                 .launchIn(this)
         }
     }
