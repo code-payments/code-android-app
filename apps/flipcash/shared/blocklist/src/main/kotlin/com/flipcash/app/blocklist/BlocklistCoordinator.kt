@@ -30,7 +30,7 @@ import javax.inject.Singleton
 /**
  * Owns the offline-first blocklist stream and unblock action for the account's blocklist screen.
  *
- * Mirrors [com.flipcash.app.activityfeed.ActivityFeedCoordinator]: gated on an authenticated
+ * Mirrors [com.flipcash.shared.transactionhistory.ActivityFeedCoordinator]: gated on an authenticated
  * session, it wires a [Pager] + [BlocklistRemoteMediator] over the Room-backed
  * [BlockedUserDataSource] and maps cached entities to display [BlockedUserProfile]s.
  */
