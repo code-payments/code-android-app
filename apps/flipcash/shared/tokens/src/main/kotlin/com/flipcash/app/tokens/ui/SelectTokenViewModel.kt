@@ -163,8 +163,11 @@ class SelectTokenViewModel @Inject constructor(
                             )
                         }
                         .sortedWith(
-                            compareByDescending<TokenWithLocalizedBalance> { it.balance.nativeAmount.rounded() }
-                                .thenBy { it.token.address.base58() }
+                            // Match iOS (Session.balances): descending by exact value, then
+                            // alphabetical by name (not by mint address, which reordered equal-value
+                            // tokens like LaunchIt/Teddies differently than iOS).
+                            compareByDescending<TokenWithLocalizedBalance> { it.balance.nativeAmount }
+                                .thenBy { it.token.name }
                         )
                         .filter {
                             val hasBalance = it.balance.nativeAmount.hasDisplayableValue

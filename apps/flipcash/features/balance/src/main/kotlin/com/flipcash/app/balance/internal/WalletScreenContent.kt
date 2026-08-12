@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.TokenCardStack
@@ -73,13 +74,14 @@ internal fun WalletScreenContent(
         state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
+            top = CodeTheme.dimens.inset,
             start = CodeTheme.dimens.inset,
             end = CodeTheme.dimens.inset,
-            bottom = LocalTabBarPadding.current.calculateBottomPadding(),
+            bottom = LocalTabBarPadding.current.calculateBottomPadding() + CodeTheme.dimens.grid.x12,
         )
     ) {
         item {
-            Spacer(Modifier.height(CodeTheme.dimens.grid.x20))
+            Spacer(Modifier.height(CodeTheme.dimens.grid.x15))
         }
 
         item {
