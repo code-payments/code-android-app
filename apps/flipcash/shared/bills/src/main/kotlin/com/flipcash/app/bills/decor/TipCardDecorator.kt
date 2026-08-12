@@ -1,4 +1,4 @@
-package com.flipcash.app.scanner.internal.bills.decor
+package com.flipcash.app.bills.decor
 
 import androidx.compose.animation.EnterExitState
 import androidx.compose.foundation.layout.Box
@@ -19,7 +19,7 @@ import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.tipping.LocalTipCoordinator
 import com.flipcash.app.core.tipping.TipEvent
-import com.flipcash.app.scanner.internal.ui.modals.TipUserModal
+import com.flipcash.app.bills.modals.TipUserModal
 import com.flipcash.app.session.LocalSessionController
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.core.measured

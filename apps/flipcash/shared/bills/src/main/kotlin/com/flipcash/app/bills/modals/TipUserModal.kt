@@ -1,4 +1,4 @@
-package com.flipcash.app.scanner.internal.ui.modals
+package com.flipcash.app.bills.modals
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -38,7 +38,7 @@ import com.flipcash.app.core.tipping.LocalTipCoordinator
 import com.flipcash.app.core.tipping.TipAmount
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.TokenSelectionPill
-import com.flipcash.features.scanner.R
+import com.flipcash.shared.bills.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token

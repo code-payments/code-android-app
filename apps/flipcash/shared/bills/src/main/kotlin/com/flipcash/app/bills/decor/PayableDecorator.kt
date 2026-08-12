@@ -1,4 +1,4 @@
-package com.flipcash.app.scanner.internal.bills.decor
+package com.flipcash.app.bills.decor
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.EnterExitState
@@ -19,8 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
 import com.flipcash.app.core.bill.Scannable
-import com.flipcash.app.scanner.internal.bills.BillManagementOptions
-import com.flipcash.app.scanner.internal.ui.modals.ReceivedFundsConfirmation
+import com.flipcash.app.bills.BillManagementOptions
+import com.flipcash.app.bills.modals.ReceivedFundsConfirmation
 import com.getcode.ui.core.measured
 import com.getcode.ui.utils.AnimationUtils
 import kotlinx.coroutines.delay

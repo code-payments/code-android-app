@@ -12,12 +12,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.navigation3.runtime.NavKey
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import androidx.navigation3.scene.OverlayScene
+import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
+import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.internal.ui.AppNavigationBar
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOverlayEntryDecorator
@@ -161,27 +164,38 @@ internal fun NewAppContent(
                     },
                     SinglePaneSceneStrategy(),
                 ),
-                // v2 is tab-centric: switching tabs (replaceAll) crossfades. Sheets/overlays keep
-                // their own (no) transition; everything else fades too.
+                // v2 is tab-centric: a forward move that LANDS on a tab home is a tab switch
+                // (replaceAll between tab homes) and crossfades; any other forward move is a push
+                // into a detail screen and slides in. Pops always slide back out (a pop is always
+                // leaving a detail). Sheets/overlays keep their own (no) transition.
                 transitionSpec = {
-                    if (targetState is OverlayScene<*> || initialState is OverlayScene<*>) {
-                        EnterTransition.None togetherWith ExitTransition.None
-                    } else {
-                        fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                    val landsOnTab = (codeNavigator.currentRouteKey as? AppRoute)?.asNavBarTab() != null
+                    when {
+                        targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
+                            EnterTransition.None togetherWith ExitTransition.None
+                        landsOnTab ->
+                            fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                        else ->
+                            slideInHorizontally(initialOffsetX = { it }) togetherWith
+                                    slideOutHorizontally(targetOffsetX = { -it })
                     }
                 },
                 popTransitionSpec = {
-                    if (targetState is OverlayScene<*> || initialState is OverlayScene<*>) {
-                        EnterTransition.None togetherWith ExitTransition.None
-                    } else {
-                        fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                    when {
+                        targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
+                            EnterTransition.None togetherWith ExitTransition.None
+                        else ->
+                            slideInHorizontally(initialOffsetX = { -it }) togetherWith
+                                    slideOutHorizontally(targetOffsetX = { it })
                     }
                 },
                 predictivePopTransitionSpec = {
-                    if (targetState is OverlayScene<*> || initialState is OverlayScene<*>) {
-                        EnterTransition.None togetherWith ExitTransition.None
-                    } else {
-                        fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                    when {
+                        targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
+                            EnterTransition.None togetherWith ExitTransition.None
+                        else ->
+                            slideInHorizontally(initialOffsetX = { -it }) togetherWith
+                                    slideOutHorizontally(targetOffsetX = { it })
                     }
                 },
                 onBack = { codeNavigator.navigateBack() },

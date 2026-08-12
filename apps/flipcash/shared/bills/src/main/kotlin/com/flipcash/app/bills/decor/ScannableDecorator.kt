@@ -1,4 +1,4 @@
-package com.flipcash.app.scanner.internal.bills.decor
+package com.flipcash.app.bills.decor
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -24,7 +24,7 @@ import com.flipcash.app.core.bill.Scannable
  * content (so it survives the exit animation) and gates its `visible` on
  * [ScannableDecoratorContext.liveBill].
  */
-internal sealed interface ScannableDecorator {
+sealed interface ScannableDecorator {
     @Composable
     fun BoxScope.Content(context: ScannableDecoratorContext)
 
@@ -76,7 +76,7 @@ internal sealed interface ScannableDecorator {
  *   container so the card floats above it.
  * @param onDismiss dismisses the current bill (equivalent to `session.dismissBill(PutInWallet)`).
  */
-internal data class ScannableDecoratorContext(
+data class ScannableDecoratorContext(
     val liveBill: Scannable?,
     val billState: BillState,
     val isRemoteSendLoading: Boolean,

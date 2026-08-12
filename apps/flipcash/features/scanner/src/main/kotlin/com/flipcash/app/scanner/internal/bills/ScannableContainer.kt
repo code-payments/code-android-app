@@ -58,8 +58,8 @@ import com.flipcash.app.session.PutInWallet
 import com.flipcash.app.updates.LocalAppUpdater
 import com.getcode.ui.components.OnLifecycleEvent
 import androidx.lifecycle.Lifecycle
-import com.flipcash.app.scanner.internal.bills.decor.ScannableDecoratorContext
-import com.flipcash.app.scanner.internal.bills.decor.ScannableDecorator
+import com.flipcash.app.bills.decor.ScannableDecoratorContext
+import com.flipcash.app.bills.decor.ScannableDecorator
 import com.flipcash.features.scanner.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
