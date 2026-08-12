@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -25,9 +26,12 @@ import com.flipcash.app.core.ui.NavigationBar
 import com.flipcash.app.core.ui.rememberNavigationBarState
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
+import com.flipcash.app.session.LocalSessionController
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 /**
  * The hoisted v2 navigation bar — root chrome, not owned by any screen. It renders over whichever
@@ -55,13 +59,20 @@ internal fun AppNavigationBar(
     // while one is showing so it sits below the modal instead of floating over it.
     val bottomBarMessages by BottomBarManager.messages.collectAsStateWithLifecycle()
 
+    // A bill/tip card renders at the app root above everything; hide the bar so it doesn't show
+    // beneath the presented bill.
+    val session = LocalSessionController.current
+    val billUp by remember(session) {
+        session?.billState?.map { it.bill != null } ?: flowOf(false)
+    }.collectAsStateWithLifecycle(initialValue = false)
+
     Box(
         modifier = Modifier
             .then(modifier),
         contentAlignment = Alignment.BottomCenter,
     ) {
         AnimatedVisibility(
-            visible = topTab != null && bottomBarMessages.isEmpty(),
+            visible = topTab != null && bottomBarMessages.isEmpty() && !billUp,
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut(),
         ) {
