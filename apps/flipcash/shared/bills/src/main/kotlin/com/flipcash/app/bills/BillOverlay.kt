@@ -27,12 +27,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.decor.ScannableDecorator
 import com.flipcash.app.bills.decor.ScannableDecoratorContext
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.core.navigation.NavBarButton
+import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.tipping.LocalTipCoordinator
 import com.flipcash.app.session.BillDeterminationResult
 import com.flipcash.app.session.Grabbed
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.session.PutInWallet
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.scrim.LocalScrimController
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.ModalAnimationSpeed
@@ -62,6 +67,22 @@ fun BillOverlay(modifier: Modifier = Modifier) {
     Box(modifier = Modifier.fillMaxSize().then(modifier)) {
         val updatedState by rememberUpdatedState(state)
         val updatedBillState by rememberUpdatedState(billState)
+
+        // Scrim behind the bill when it's presented over app content — dims and blocks the content
+        // beneath (and tap-to-dismisses) so the bill reads as a focused modal. Driven through the
+        // shared root [ScrimController] (its ScrimOverlay sits just below this overlay), so it uses
+        // the theme scrim colour. Skipped over the scanner tab, where the live camera stays visible.
+        val scrimController = LocalScrimController.current
+        val overCamera =
+            (LocalCodeNavigator.current.currentRouteKey as? AppRoute)?.asNavBarTab() == NavBarButton.Scanner
+        val showScrim = billState.bill != null && !overCamera
+        LaunchedEffect(showScrim) {
+            if (showScrim) {
+                scrimController.show(onDismiss = { session.dismissBill(PutInWallet) })
+            } else {
+                scrimController.hide()
+            }
+        }
 
         // Not keyed on the bill: stays true while the swiped-off card is being removed so the outgoing
         // content stays hidden through its exit instead of snapping back to center. Reset when a fresh
