@@ -9,9 +9,17 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
@@ -30,6 +38,7 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.components.bars.BarManager
+import com.getcode.ui.core.measured
 import com.getcode.ui.theme.CodeScaffold
 import dev.theolm.rinku.DeepLink
 
@@ -135,16 +144,22 @@ internal fun NewAppContent(
     onPendingAction: (DeeplinkAction) -> Unit = {},
 ) {
     val hazeState = rememberHazeState()
-    CodeScaffold(
-        bottomBar = {
-            AppNavigationBar(navigator = codeNavigator, hazeState = hazeState)
-        }
-    ) { padding ->
-        CompositionLocalProvider(LocalTabBarPadding provides padding) {
-            // Mark the nav content as the haze source so the frosted tab bar blurs what scrolls
-            // beneath it.
-            Box(modifier = Modifier.hazeSource(hazeState)) {
-            AppNavHost(
+    // The tab bar is a bottom OVERLAY, not a scaffold bottomBar: the nav content stays full-height, so
+    // hiding the bar for a modal (or bill) never resizes it — which otherwise re-fanned the wallet's
+    // collapsing card stack — and content scrolls edge-to-edge under the frosted bar. Reserve space for
+    // it via LocalTabBarPadding, latched to the tallest measured height and only on tab homes, so a
+    // modal-driven hide doesn't shrink the inset.
+    var tabBarHeight by remember { mutableStateOf(0.dp) }
+    val onTabHome = (codeNavigator.currentRouteKey as? AppRoute)?.asNavBarTab() != null
+    val tabBarPadding = if (onTabHome) PaddingValues(bottom = tabBarHeight) else PaddingValues()
+
+    CodeScaffold { _ ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            CompositionLocalProvider(LocalTabBarPadding provides tabBarPadding) {
+                // Mark the nav content as the haze source so the frosted tab bar blurs what scrolls
+                // beneath it.
+                Box(modifier = Modifier.hazeSource(hazeState)) {
+                AppNavHost(
                 navigator = codeNavigator,
                 resultStateRegistry = resultStateRegistry,
                 decorators = listOf(
@@ -207,7 +222,18 @@ internal fun NewAppContent(
                     onPendingAction = onPendingAction,
                 ),
             )
+                }
             }
+
+            // Bottom overlay over the full-height nav content. Latch the tallest height so the
+            // reserved inset above stays stable when the bar hides for a modal/bill.
+            AppNavigationBar(
+                navigator = codeNavigator,
+                hazeState = hazeState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .measured { if (it.height > tabBarHeight) tabBarHeight = it.height },
+            )
         }
     }
 }
