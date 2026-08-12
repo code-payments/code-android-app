@@ -5,6 +5,8 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.funding.PaymentAction
 import com.flipcash.app.funding.PurchaseMethod
 import com.flipcash.app.funding.PurchaseMethodController
@@ -54,6 +56,7 @@ class InternalPurchaseMethodController @Inject constructor(
     private val resources: ResourceHelper,
     private val userManager: UserManager,
     private val analytics: FlipcashAnalyticsService,
+    private val featureFlags: FeatureFlagController,
 ) : PurchaseMethodController {
 
     private val scope = CoroutineScope(SupervisorJob())
@@ -104,14 +107,17 @@ class InternalPurchaseMethodController @Inject constructor(
 
         var selected = false
 
-        val title = when (metadata.purpose) {
+        val isNewUi = featureFlags.observe(FeatureFlag.NewUi).value
+        val title = if (isNewUi) {
+            resources.getString(R.string.prompt_title_addMoneyWith)
+        } else when (metadata.purpose) {
             PurchasePurpose.Buy -> resources.getString(R.string.prompt_title_selectPurchaseMethod)
             PurchasePurpose.Deposit -> resources.getString(R.string.prompt_title_selectMethod)
         }
 
         BottomBarManager.showMessage(
             title = title,
-            actions = purchaseOptions(_state.value, metadata, resources) { method ->
+            actions = purchaseOptions(_state.value, metadata, resources, isNewUi) { method ->
                 selected = true
                 scope.launch {
                     val selection = PurchaseMethodSelection(method, metadata)

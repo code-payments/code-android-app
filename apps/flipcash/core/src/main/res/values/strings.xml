@@ -412,6 +412,14 @@
     <string name="title_onrampProviderSolflare">Solflare Wallet</string>
     <string name="title_onrampProviderOtherWallet">Other Wallet</string>
 
+    <!-- v2 "Add Money With" method sheet -->
+    <string name="prompt_title_addMoneyWith">Add Money With</string>
+    <string name="label_debitCard">Debit Card</string>
+    <string name="label_cashReserves">Cash Reserves</string>
+    <string name="subtitle_depositDebitCard">Deposit funds from your debit card</string>
+    <string name="subtitle_depositPhantom">Deposit USDC from your Phantom wallet</string>
+    <string name="subtitle_depositOtherWallet">Deposit USDC from a crypto wallet</string>
+
     <string name="action_addCashWithGooglePay">Add Cash with Google Pay</string>
     <string name="action_addCashWithDebitCard">Add Cash with Debit Card</string>
     <string name="action_addCashWithCreditCard">Add Cash with Credit Card</string>

@@ -1,6 +1,8 @@
 package com.getcode.manager
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.AnnotatedString
 import kotlinx.coroutines.flow.*
 import java.util.*
@@ -14,6 +16,10 @@ data class BottomBarAction(
     val enabled: Boolean = true,
     // Optional UI-test anchor; surfaced as a resource-id when testTagsAsResourceId is on.
     val testTag: String? = null,
+    // Optional custom body. When set, the renderer draws this inside a content-slot button (its own
+    // background/ripple/click) instead of the default centered text button — e.g. the v2 add-money
+    // method cards (title + subtitle + trailing icon).
+    val content: (@Composable RowScope.() -> Unit)? = null,
     val onClick: () -> Unit = { }
 ) {
     constructor(
