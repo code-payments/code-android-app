@@ -185,10 +185,11 @@ object AppBarDefaults {
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
     title: String = "",
+    titleContent: (@Composable () -> Unit)? = null,
     titleAlignment: Alignment.Horizontal = Alignment.Start,
     contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
     onBackIconClicked: (() -> Unit)? = null,
-    endContent: @Composable () -> Unit = { },
+    endContent: @Composable RowScope.() -> Unit = { },
 ) {
     val navigator = LocalCodeNavigator.current
     val flowDismissStyle = LocalFlowDismissStyle.current
@@ -217,16 +218,17 @@ fun AppBarWithTitle(
             }
         },
         titleRegion = {
-            AppBarDefaults.Title(text = title)
+            if (titleContent != null) titleContent() else AppBarDefaults.Title(text = title)
         },
         titleAlignment = titleAlignment,
+        // The caller's end actions always render; a Close (when the leading control resolves to
+        // one) is appended after them so it sits furthest toward the screen edge — the
+        // conventional dismiss position. [TopAppBarBase] already lays these out in an
+        // [EndActionSlotHolder], so a back arrow never has to share the leading slot with a close.
         rightContents = {
-            EndActionSlotHolder {
-                if (showClose) {
-                    AppBarDefaults.Close { onBackIconClicked() }
-                } else {
-                    endContent()
-                }
+            endContent()
+            if (showClose) {
+                AppBarDefaults.Close { onBackIconClicked() }
             }
         },
     )

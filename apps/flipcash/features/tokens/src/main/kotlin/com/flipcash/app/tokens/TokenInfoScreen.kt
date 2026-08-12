@@ -52,7 +52,7 @@ fun TokenInfoScreen(
         val viewModel = hiltViewModel<TokenInfoViewModel>()
         val state by viewModel.stateFlow.collectAsStateWithLifecycle()
         AppBarWithTitle(
-            title = {
+            titleContent = {
                 state.token.dataOrNull?.let { token ->
                     TokenIconWithName(
                         token = token,
@@ -62,7 +62,8 @@ fun TokenInfoScreen(
                 }
             },
             titleAlignment = Alignment.CenterHorizontally,
-            rightContents = {
+            onBackIconClicked = { navigator.pop() },
+            endContent = {
                 state.token.dataOrNull?.let {
                     if (!state.isCashReserve) {
                         AppBarDefaults.Share {
@@ -71,7 +72,6 @@ fun TokenInfoScreen(
                         }
                     }
                 }
-                AppBarDefaults.Close { navigator.pop() }
             },
         )
 
