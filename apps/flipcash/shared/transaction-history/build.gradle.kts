@@ -21,4 +21,5 @@ dependencies {
     implementation(project(":libs:datetime"))
 
     testImplementation(libs.bundles.unit.testing)
+    testImplementation(testFixtures(project(":ui:resources")))
 }
