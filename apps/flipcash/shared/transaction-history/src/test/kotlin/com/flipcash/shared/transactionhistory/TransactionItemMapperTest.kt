@@ -8,6 +8,7 @@ import com.flipcash.app.core.feed.MessageSubstitution
 import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.transactionhistory.internal.TransactionItemMapper
 import com.getcode.opencode.model.core.ID
+import com.getcode.util.resources.FakeResourceHelper
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.HolderMetrics
@@ -24,7 +25,9 @@ import org.junit.Test
 
 class TransactionItemMapperTest {
 
-    private val mapper = TransactionItemMapper()
+    private val resources = FakeResourceHelper()
+        .stub(R.string.title_activity_tipFrom, "Tip from %1\$s")
+    private val mapper = TransactionItemMapper(resources)
 
     private val knownUserId: ID = listOf<Byte>(0x0A, 0x0B, 0x0C)
     private val knownProfile = UserProfile.Empty.copy(displayName = "Sally The Streamer")
@@ -112,50 +115,41 @@ class TransactionItemMapperTest {
     }
 
     @Test
-    fun `received tip reads Received Tip From the counterparty`() {
+    fun `received tip reads Tip from the counterparty`() {
         val msg = feedMessage(metadata = MessageMetadata.ReceivedCrypto(userId = knownUserId))
             .copy(text = "Received", textSubstitutions = emptyList())
         val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to cached)
 
-        assertEquals("Received Tip From Sally The Streamer", item.title)
+        assertEquals("Tip from Sally The Streamer", item.title)
     }
 
     @Test
-    fun `bought token appends the token name`() {
+    fun `bought token renders the server text verbatim`() {
         val token = token(address = Mint.usdc, name = "Dad Cash", symbol = "DADCASH")
         val msg = feedMessage(metadata = MessageMetadata.BoughtToken)
             .copy(text = "Purchased", textSubstitutions = emptyList())
         val item = mapper.map(ActivityFeedMessageWithToken(msg, token) to emptyMap())
 
-        assertEquals("Purchased Dad Cash", item.title)
+        assertEquals("Purchased", item.title)
     }
 
     @Test
-    fun `bought dollars reads Added Money instead of Purchased Dollars`() {
+    fun `bought dollars renders the server text verbatim`() {
         val msg = feedMessage(metadata = MessageMetadata.BoughtToken)
-            .copy(text = "Purchased", textSubstitutions = emptyList())
+            .copy(text = "Added", textSubstitutions = emptyList())
         val item = mapper.map(ActivityFeedMessageWithToken(msg, usdfToken()) to emptyMap())
 
-        assertEquals("Added Money", item.title)
+        assertEquals("Added", item.title)
     }
 
     @Test
-    fun `sold token appends the token name`() {
+    fun `sold token renders the server text verbatim`() {
         val token = token(address = Mint.usdc, name = "Dad Cash", symbol = "DADCASH")
         val msg = feedMessage(metadata = MessageMetadata.SoldToken)
             .copy(text = "Sold", textSubstitutions = emptyList())
         val item = mapper.map(ActivityFeedMessageWithToken(msg, token) to emptyMap())
 
-        assertEquals("Sold Dad Cash", item.title)
-    }
-
-    @Test
-    fun `bought token stays bare until token metadata resolves`() {
-        val msg = feedMessage(metadata = MessageMetadata.BoughtToken)
-            .copy(text = "Purchased", textSubstitutions = emptyList())
-        val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to emptyMap())
-
-        assertEquals("Purchased", item.title)
+        assertEquals("Sold", item.title)
     }
 
     @Test

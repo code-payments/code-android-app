@@ -4,12 +4,12 @@ import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageSubstitution
 import com.flipcash.services.models.UserProfile
+import com.flipcash.shared.transactionhistory.R
 import com.flipcash.shared.transactionhistory.TransactionAvatar
 import com.flipcash.shared.transactionhistory.TransactionListItem
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.financial.Token
-import com.getcode.solana.keys.Mint
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.hexEncodedString
 import javax.inject.Inject
 
@@ -19,7 +19,9 @@ import javax.inject.Inject
  * inside the paging transform; profiles arrive reactively as the cache is observed, so a
  * not-yet-cached counterparty simply resolves later when its profile lands.
  */
-internal class TransactionItemMapper @Inject constructor(): Mapper<Pair<ActivityFeedMessageWithToken, Map<String, UserProfile>>, TransactionListItem> {
+internal class TransactionItemMapper @Inject constructor(
+    private val resources: ResourceHelper,
+): Mapper<Pair<ActivityFeedMessageWithToken, Map<String, UserProfile>>, TransactionListItem> {
     override fun map(from: Pair<ActivityFeedMessageWithToken, Map<String, UserProfile>>): TransactionListItem {
         val (source, profiles) = from
         val msg = source.message
@@ -45,7 +47,7 @@ internal class TransactionItemMapper @Inject constructor(): Mapper<Pair<Activity
             // row to the literal key "null". Duplicate keys wedge the LazyColumn under the app's
             // SharedTransitionLayout lookahead (whole-app freeze as a duplicate-keyed row scrolls in).
             id = msg.id.hexEncodedString(),
-            title = resolveTitle(meta, msg.text, msg.textSubstitutions, counterparty, token, profiles),
+            title = resolveTitle(resources, meta, msg.text, msg.textSubstitutions, counterparty, profiles),
             timestamp = msg.timestamp,
             avatar = avatar,
             signedAmountPrefix = prefix,
@@ -62,18 +64,20 @@ internal class TransactionItemMapper @Inject constructor(): Mapper<Pair<Activity
  * preferring the observed display name for `UserId` substitutions (server
  * [MessageSubstitution.fallback] otherwise).
  *
- * Otherwise the server sends a bare verb (e.g. "Tipped", "Purchased", "Received") and the client
- * completes it with the relevant subject, resolved reactively (the bare verb shows until it lands):
- * - buys/sells append the **token** name — "Purchased Dad Cash", "Sold Dad Cash";
- * - received tips read "Received Tip From <name>";
+ * Otherwise the server sends a bare verb (e.g. "Tipped", "Received") and the client completes it
+ * with the relevant subject, resolved reactively (the bare verb shows until it lands):
+ * - received tips read "Tip from <name>";
  * - tips/sends and anything else with a counterparty append the **counterparty** name — "Tipped Sally".
+ *
+ * Buys/sells/deposits carry no counterparty, so they render the server text verbatim
+ * ("Purchased", "Sold", "Added").
  */
 private fun resolveTitle(
+    resources: ResourceHelper,
     meta: MessageMetadata?,
     text: String,
     substitutions: List<MessageSubstitution>,
     counterparty: UserProfile?,
-    token: Token?,
     profiles: Map<String, UserProfile>,
 ): String {
     if (substitutions.isNotEmpty()) {
@@ -91,17 +95,9 @@ private fun resolveTitle(
     }
 
     val counterpartyName = counterparty?.displayName?.takeIf { it.isNotBlank() }
-    val tokenName = token?.name?.takeIf { it.isNotBlank() } ?: token?.symbol?.takeIf { it.isNotBlank() }
     return when (meta) {
         is MessageMetadata.ReceivedCrypto ->
-            if (counterpartyName != null) "$text Tip From $counterpartyName" else text
-        MessageMetadata.BoughtToken ->
-            // Buying dollars (USDF — the only buyable stablecoin) is just adding money — read it as
-            // such, not "Purchased Dollars".
-            if (token?.address == Mint.usdf) "Added Money"
-            else if (tokenName != null) "$text $tokenName" else text
-        MessageMetadata.SoldToken ->
-            if (tokenName != null) "$text $tokenName" else text
+            if (counterpartyName != null) resources.getString(R.string.title_activity_tipFrom, counterpartyName) else text
         else ->
             if (counterpartyName != null) "$text $counterpartyName" else text
     }
