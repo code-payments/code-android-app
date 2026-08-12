@@ -12,9 +12,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tipping.TipResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.tipping.internal.TipFlowViewModel
-import com.flipcash.app.tipping.internal.screens.TipCardScreen
 import com.flipcash.app.tipping.internal.screens.TipInfoScreen
-import com.flipcash.app.tipping.internal.screens.TipsScreen
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.flow.FlowExitReason
 import com.getcode.navigation.flow.FlowHost
@@ -38,8 +36,13 @@ fun TippingFlowScreen(
         viewModel.dispatchEvent(TipFlowViewModel.Event.OnResumed(route.resumed))
     }
 
+    // `resumed` is deterministically the tip card, so seed it synchronously rather than waiting for
+    // the VM's async steps to resolve. Otherwise the tip-card tab renders the default first step
+    // (the chats list) for a frame — briefly visible when a tab switch crossfades into it.
+    val steps = if (route.resumed) listOf(TipStep.TipCard) else state.steps
+
     FlowHost<TipStep, TipResult>(
-        steps = state.steps,
+        steps = steps,
         resumeAt = 0,
         resultStateRegistry = resultStateRegistry,
         // Proceeding off the end (TipCard's Done, or backing out at root) completes the flow.

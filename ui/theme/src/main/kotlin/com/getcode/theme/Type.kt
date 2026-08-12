@@ -38,6 +38,7 @@ data class CodeTypography(
     val displayExtraSmall: TextStyle,
     val keyboard: TextStyle,
     val screenTitle: TextStyle,
+    val screenTitleLarge: TextStyle,
     val textLarge: TextStyle,
     val textMedium: TextStyle,
     val textSmall: TextStyle,
@@ -85,6 +86,13 @@ val codeTypography = CodeTypography(
         fontFamily = Avenir,
         fontSize = 18.sp,
         fontWeight = FontWeight.SemiBold,
+        lineHeight = 24.sp,
+        //letterSpacing = 0.1.sp
+    ),
+    screenTitleLarge = TextStyle(
+        fontFamily = Avenir,
+        fontSize = 33.05.sp,
+        fontWeight = FontWeight.Bold,
         lineHeight = 24.sp,
         //letterSpacing = 0.1.sp
     ),
