@@ -27,6 +27,7 @@ import com.flipcash.app.core.ui.rememberNavigationBarState
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.session.LocalSessionController
+import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
 import kotlinx.coroutines.flow.flowOf
@@ -54,6 +55,11 @@ internal fun AppNavigationBar(
     val selectedTab = navigator.backStack.firstNotNullOfOrNull { (it as? AppRoute)?.asNavBarTab() }
     val topTab = (navigator.currentRouteKey as? AppRoute)?.asNavBarTab()
 
+    // A BottomBar modal (e.g. Add Money) renders in the nav content, above this bar; hide the bar so
+    // it doesn't draw over the modal. Safe because the bar is a bottom overlay (not a scaffold
+    // bottomBar), so hiding it doesn't resize the content beneath (see NewAppContent).
+    val bottomBarMessages by BottomBarManager.messages.collectAsStateWithLifecycle()
+
     // A bill/tip card renders at the app root above everything; hide the bar so it doesn't show
     // beneath the presented bill.
     val session = LocalSessionController.current
@@ -66,11 +72,8 @@ internal fun AppNavigationBar(
             .then(modifier),
         contentAlignment = Alignment.BottomCenter,
     ) {
-        // Keep the bar in place for BottomBar modals (e.g. Add Money): the modal's scrim renders over
-        // it via z-order, and hiding it would collapse the scaffold's bottom slot and re-lay-out the
-        // tab content beneath (visibly re-fanning the wallet's collapsing card stack).
         AnimatedVisibility(
-            visible = topTab != null && !billUp,
+            visible = topTab != null && bottomBarMessages.isEmpty() && !billUp,
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut(),
         ) {
