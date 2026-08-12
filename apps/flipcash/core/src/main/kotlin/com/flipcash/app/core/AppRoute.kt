@@ -178,6 +178,11 @@ sealed interface AppRoute : NavKey, Parcelable {
 
         @Serializable
         data object Wallet : Sheets
+
+        /** Full unified paged activity history — the "dive in" from the wallet's recent-activity preview. */
+        @Serializable
+        data object ActivityHistory : Sheets
+
         @Serializable
         data object Menu : Sheets
 

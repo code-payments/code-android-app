@@ -29,6 +29,7 @@ import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.tipping.TipAmountEntryScreen
 import com.flipcash.app.tipping.TippingFlowScreen
+import com.flipcash.shared.transactionhistory.ActivityHistoryScreen
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.currency.RegionSelectionScreen
@@ -108,6 +109,7 @@ fun appEntryProvider(
         }
     }
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
+    annotatedEntry<AppRoute.Sheets.ActivityHistory> { ActivityHistoryScreen() }
     annotatedEntry<AppRoute.Sheets.Menu> { MenuScreen() }
 
     // Messaging
