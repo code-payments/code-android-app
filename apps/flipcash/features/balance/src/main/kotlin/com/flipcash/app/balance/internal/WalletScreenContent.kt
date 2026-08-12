@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -124,7 +125,7 @@ internal fun WalletScreenContent(
                 TokenCardStack(
                     tokens = tokens,
                     modifier = Modifier.fillMaxWidth(),
-                    pinInset = statusBarInset,
+                    pinInset = statusBarInset + CodeTheme.dimens.grid.x2,
                     scrolledPast = scrolledPast,
                     onCardClick = { token ->
                         dispatchEvent(
@@ -167,15 +168,33 @@ internal fun WalletScreenContent(
 
         if (balanceState.transactions.isNotEmpty()) {
             item(key = "recentHeader") {
-                Text(
-                    text = stringResource(R.string.title_recentActivity),
-                    style = CodeTheme.typography.screenTitle,
-                    color = CodeTheme.colors.textMain,
-                    modifier = Modifier.padding(
-                        top = CodeTheme.dimens.grid.x4,
-                        bottom = CodeTheme.dimens.grid.x1,
-                    ),
-                )
+                // Tap the header to dive into the full paged activity history.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            dispatchEvent(
+                                WalletViewModel.Event.OpenScreen(AppRoute.Sheets.ActivityHistory)
+                            )
+                        }
+                        .padding(
+                            top = CodeTheme.dimens.grid.x4,
+                            bottom = CodeTheme.dimens.grid.x1,
+                        ),
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.title_recentActivity),
+                        style = CodeTheme.typography.screenTitle,
+                        color = CodeTheme.colors.textMain,
+                    )
+                    Icon(
+                        painter = painterResource(R.drawable.ic_chevron_right),
+                        contentDescription = null,
+                        tint = CodeTheme.colors.textSecondary,
+                    )
+                }
             }
             // Preview of the most recent activity (newest first); the full history lives on its own
             // screen. The VM/coordinator already bounds this list, so just render it.

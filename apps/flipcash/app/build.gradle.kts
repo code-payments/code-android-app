@@ -209,6 +209,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:invite"))
     implementation(project(":apps:flipcash:shared:tipping"))
     implementation(project(":apps:flipcash:shared:tokens"))
+    implementation(project(":apps:flipcash:shared:transaction-history"))
     implementation(project(":apps:flipcash:shared:web"))
     implementation(project(":apps:flipcash:shared:workers"))
     implementation(project(":apps:flipcash:features:login"))

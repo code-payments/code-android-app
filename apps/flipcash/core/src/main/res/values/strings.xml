@@ -424,6 +424,7 @@
     <string name="title_advancedFeatures">Advanced</string>
     <string name="title_wallet">Wallet</string>
     <string name="title_recentActivity">Recent</string>
+    <string name="title_activity">Activity</string>
     <string name="action_wallet">Wallet</string>
 
     <string name="action_sendAsLink">Send as a Link</string>
