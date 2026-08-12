@@ -11,6 +11,8 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import com.getcode.theme.White10
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -304,6 +306,31 @@ fun BottomBarView(
                 }
 
                 actions.fastForEachIndexed { index, action ->
+                    val actionContent = action.content
+                    if (actionContent != null) {
+                        // v2 card row: title + subtitle + trailing icon on its own surface, spread
+                        // full-width. (A content-slot CodeButton centres and shrinks its body, so it
+                        // can't lay a left title against a right-edge icon.)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .addIf(action.testTag != null) {
+                                    Modifier.testTag(action.testTag!!)
+                                }
+                                .clip(CodeTheme.shapes.medium)
+                                .background(White10)
+                                .clickable(enabled = action.enabled) {
+                                    action.onClick()
+                                    onClose(SelectedBottomBarAction(index.takeIf { action.isUser } ?: -1))
+                                }
+                                .padding(CodeTheme.dimens.grid.x3),
+                            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            actionContent()
+                        }
+                        return@fastForEachIndexed
+                    }
                     CodeButton(
                         modifier = Modifier
                             .fillMaxWidth()
