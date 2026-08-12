@@ -15,6 +15,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -48,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
@@ -64,6 +67,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.zIndex
 import com.flipcash.app.core.navigation.NavBarButton
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.hazeEffect
 import com.flipcash.app.core.navigation.NavBarConfig
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.core.R
@@ -127,6 +135,7 @@ fun NavigationBar(
     state: NavigationBarState,
     onButtonClick: (NavBarButton) -> Unit = {},
     onOrderChanged: ((List<NavBarButton>) -> Unit)? = null,
+    hazeState: HazeState? = null,
 ) {
     val reorderState = onOrderChanged?.let {
         rememberLongPressDraggableState(
@@ -142,7 +151,7 @@ fun NavigationBar(
     }
 
     if (state.isNewUi) {
-        NavigationBarV2(state, onButtonClick, modifier, reorderState, onOrderChanged)
+        NavigationBarV2(state, onButtonClick, modifier, reorderState, onOrderChanged, hazeState)
         return
     }
 
@@ -237,6 +246,7 @@ private fun NavigationBarV2(
     modifier: Modifier = Modifier,
     reorderState: LongPressDraggableState? = null,
     onOrderChanged: ((List<NavBarButton>) -> Unit)? = null,
+    hazeState: HazeState? = null,
 ) {
     val order = state.config.order
     if (order.isEmpty()) return
@@ -247,11 +257,40 @@ private fun NavigationBarV2(
         .takeIf { it >= 0 && it <= order.lastIndex }
         ?: state.config.order.indexOf(NavBarButton.Wallet)
 
+    // Frost the pill over whatever content scrolls beneath it, iOS "liquid glass" style: a wide blur
+    // plus a strong tint toward the BACKGROUND colour (not black) at high alpha. Over empty/dark
+    // content the pill just reads as the background (a subtle glass, not a black blob); over the
+    // vibrant cards the high alpha mutes their colour toward that same neutral dark. A faint bright
+    // rim gives the glass edge. Haze can only blur Compose-layer pixels, so on the scanner tab (a
+    // camera SurfaceView) fall back to the opaque pill. `clip` must precede `hazeEffect` to bound the
+    // blur to the pill shape, not its bounding box.
+    // Tint toward a grey lifted off the (near-black) background so the pill reads as a light frosted
+    // glass sitting ABOVE the dark content, not the background tone itself.
+    val glassTint = lerp(CodeTheme.colors.background, Color.White, 0.18f)
+    val liquidGlass = HazeBlurStyle(
+        blurRadius = 32.dp,
+        backgroundColor = CodeTheme.colors.background,
+        colorEffect = HazeColorEffect.tint(glassTint.copy(alpha = 0.72f)),
+    )
+    // Same clip + rim on every tab; only the fill differs. Haze frosts the content beneath — including
+    // the scanner's live camera, since its PreviewView runs in COMPATIBLE mode (a TextureView drawn in
+    // the Compose layer, not a SurfaceView hole). Fall back to a near-opaque fill of the same
+    // lifted-grey tint only when no HazeState is supplied.
+    val pillFill = if (hazeState != null) {
+        Modifier.hazeEffect(hazeState) { blurEffect { style = liquidGlass } }
+    } else {
+        Modifier.background(glassTint.copy(alpha = 0.9f), CircleShape)
+    }
+    val pillBackground = Modifier
+        .clip(CircleShape)
+        .then(pillFill)
+        .border(CodeTheme.dimens.border, Color.White.copy(alpha = 0.08f), CircleShape)
+
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .then(modifier)
-            .background(Color.Black.copy(alpha = 0.62f), CircleShape)
+            .then(pillBackground)
             .padding(CodeTheme.dimens.grid.x1),
     ) {
         val itemWidth = maxWidth / order.size
@@ -282,7 +321,12 @@ private fun NavigationBarV2(
                         .weight(1f)
                         .height(itemHeight)
                         .clip(CircleShape)
-                        .clickable { onButtonClick(button) },
+                        // No ripple — the sliding selection pill is the touch feedback; a Material
+                        // ripple here just competes with it.
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) { onButtonClick(button) },
                     contentAlignment = Alignment.Center,
                 ) {
                     Image(

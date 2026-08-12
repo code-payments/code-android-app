@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
+import dev.chrisbanes.haze.HazeState
 import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.navigation.NavBarConfig
 import com.flipcash.app.core.navigation.asNavBarTab
@@ -43,6 +44,7 @@ import com.getcode.theme.CodeTheme
 internal fun AppNavigationBar(
     navigator: CodeNavigator,
     modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
 ) {
     // Selection follows the base of the backstack (the tab "home"), so it stays correct while a
     // sheet/modal sits on top and is right on launch. The top route only gates visibility.
@@ -78,6 +80,7 @@ internal fun AppNavigationBar(
                     // Tab bar semantics: swap the current screen (single backstack).
                     button.destinationRoute()?.let(navigator::replaceAll)
                 },
+                hazeState = hazeState,
             )
         }
     }
