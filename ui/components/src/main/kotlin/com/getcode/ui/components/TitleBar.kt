@@ -185,6 +185,7 @@ object AppBarDefaults {
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
     title: String = "",
+    titleTextStyle: TextStyle = CodeTheme.typography.screenTitle,
     titleContent: (@Composable () -> Unit)? = null,
     titleAlignment: Alignment.Horizontal = Alignment.Start,
     contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
@@ -218,7 +219,7 @@ fun AppBarWithTitle(
             }
         },
         titleRegion = {
-            if (titleContent != null) titleContent() else AppBarDefaults.Title(text = title)
+            if (titleContent != null) titleContent() else AppBarDefaults.Title(text = title, style = titleTextStyle)
         },
         titleAlignment = titleAlignment,
         // The caller's end actions always render; a Close (when the leading control resolves to
@@ -296,14 +297,28 @@ private fun TopAppBarBase(
             )
             .height(56.dp),
     ) { constraints ->
+        // A centered title needs a phantom leading slot (a back button's worth of width) so it
+        // stays optically centered against the end actions even when there's no real leading
+        // control. A start/end-aligned title has no such need — reserving it would only indent the
+        // title past a control that isn't there — so skip it and let the title sit flush.
+        val isCentered = titleAlignment == Alignment.CenterHorizontally
+
         // Measure left icon, if provided
-        val emptyLeftIconPlaceable =
+        val emptyLeftIconPlaceable = if (isCentered) {
             subcompose("empty_leftIcon", emptyLeftSlot).firstOrNull()?.measure(
                 constraints.copy(minWidth = 0, minHeight = 0)
             )
+        } else {
+            null
+        }
         val leftIconPlaceable = subcompose("leftIcon", leftSlot).firstOrNull()?.measure(
             constraints.copy(minWidth = 0, minHeight = 0)
         )
+        // [leftSlot] wraps [leftIcon] in a 5dp-padded Box, so it has width even when the icon
+        // renders nothing. Probe the raw icon to tell an actual leading control from an empty slot.
+        val hasLeadingControl = subcompose("leftIcon_probe", leftIcon).firstOrNull()
+            ?.measure(constraints.copy(minWidth = 0, minHeight = 0))
+            ?.let { it.width > 0 } ?: false
 
         // Measure right contents, if provided
         val rightContentsPlaceable =
@@ -311,9 +326,11 @@ private fun TopAppBarBase(
                 constraints.copy(minWidth = 0, minHeight = 0)
             )
 
-        // Calculate the remaining space for the title region
-        val leftIconWidth = max(leftIconPlaceable?.width ?: 0, emptyLeftIconPlaceable?.width ?: 0)
-        val isEmpty = (leftIconPlaceable?.width ?: 0) == 5.dp.roundToPx()
+        // Calculate the remaining space for the title region. A slot with no real control
+        // contributes no leading width, so a start-aligned title falls through to the flush
+        // `inset` position instead of being indented past a control that isn't there.
+        val realLeftWidth = if (hasLeadingControl) leftIconPlaceable?.width ?: 0 else 0
+        val leftIconWidth = max(realLeftWidth, emptyLeftIconPlaceable?.width ?: 0)
         val rightContentsWidth = rightContentsPlaceable?.width ?: 0
         val remainingWidth =
             constraints.maxWidth - leftIconWidth - rightContentsWidth - (contentPadding.calculateLeftPadding(
@@ -327,13 +344,17 @@ private fun TopAppBarBase(
         )
 
         layout(constraints.maxWidth, constraints.maxHeight) {
-            // Place left icon, if present
-            val left = if (isEmpty) emptyLeftIconPlaceable else leftIconPlaceable
-            left?.placeRelative(
-                x = contentPadding.calculateLeftPadding(layoutDirection).roundToPx(),
-                y = (constraints.maxHeight - (left.height)) / 2 + contentPadding.calculateTopPadding()
-                    .roundToPx()
-            )
+            // Place the leading control only when there is one. The centered phantom slot reserves
+            // width (to keep the title optically centered) but is never drawn.
+            if (hasLeadingControl) {
+                leftIconPlaceable?.let { placeable ->
+                    placeable.placeRelative(
+                        x = contentPadding.calculateLeftPadding(layoutDirection).roundToPx(),
+                        y = (constraints.maxHeight - placeable.height) / 2 +
+                            contentPadding.calculateTopPadding().roundToPx()
+                    )
+                }
+            }
 
             // Place right contents, if present
             rightContentsPlaceable?.placeRelative(
