@@ -11,8 +11,10 @@ import com.flipcash.app.core.AppRoute
 fun NavBarButton.destinationRoute(): AppRoute? = when (this) {
     NavBarButton.Scanner -> AppRoute.Main.Scanner
     NavBarButton.Wallet -> AppRoute.Sheets.Wallet
-    NavBarButton.Chats -> null // TODO(v2): wire the chats destination
-    NavBarButton.TipCard -> null // TODO(v2): wire the tip-card destination
+    // Both tabs route through the tipping flow, seeded at the right step: the chats list vs the tip
+    // card (resumed = true lands the flow on TipCard alone). Deeplinks/decorators use the same route.
+    NavBarButton.Chats -> AppRoute.Sheets.Tips(resumed = false)
+    NavBarButton.TipCard -> AppRoute.Sheets.Tips(resumed = true)
     // v1-only buttons never appear in the v2 bar.
     NavBarButton.Give, NavBarButton.Discover, NavBarButton.Tips -> null
 }
@@ -21,5 +23,7 @@ fun NavBarButton.destinationRoute(): AppRoute? = when (this) {
 fun AppRoute.asNavBarTab(): NavBarButton? = when (this) {
     AppRoute.Main.Scanner -> NavBarButton.Scanner
     AppRoute.Sheets.Wallet -> NavBarButton.Wallet
+    // The tipping flow is home to both tabs; `resumed` distinguishes the tip card from the list.
+    is AppRoute.Sheets.Tips -> if (resumed) NavBarButton.TipCard else NavBarButton.Chats
     else -> null
 }

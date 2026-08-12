@@ -12,9 +12,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tipping.TipResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.tipping.internal.TipFlowViewModel
-import com.flipcash.app.tipping.internal.screens.TipCardScreen
 import com.flipcash.app.tipping.internal.screens.TipInfoScreen
-import com.flipcash.app.tipping.internal.screens.TipsScreen
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.flow.FlowExitReason
 import com.getcode.navigation.flow.FlowHost
