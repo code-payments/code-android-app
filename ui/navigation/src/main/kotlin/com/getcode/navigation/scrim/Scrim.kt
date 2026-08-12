@@ -52,11 +52,11 @@ class ScrimController {
         visible = true
     }
 
-    private fun hide() {
+    /** Conceal the scrim without invoking [onDismiss] (e.g. when its owner state clears itself). */
+    fun hide() {
         visible = false
         onDismiss = null
         overlayContent = null
-
     }
 
     fun dismiss() {

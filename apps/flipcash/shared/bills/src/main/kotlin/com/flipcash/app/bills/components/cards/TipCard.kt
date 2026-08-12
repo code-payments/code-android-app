@@ -41,26 +41,13 @@ private const val TipCardAlpha = 0.82f
  * uniformly by [TipCard] itself (see [TipCardAlpha]) so the card reads identically everywhere —
  * the differing per-usage opacities were a bug.
  */
-val LocalTipCardBaseAlpha = staticCompositionLocalOf { TipCardAlpha }
+val LocalTipCardBaseAlpha = staticCompositionLocalOf { 1f }
 
 /**
- * Optional backdrop rendered as the card's bottom layer, clipped to the card's rounded bounds and
- * sitting under the translucent fill. Used to give the card a "frosted glass" look over rich
- * content behind it (e.g. the live camera in the scanner). Null means no backdrop — the card is
- * just its translucent fill.
+ * Base tint color for the card. Defaults to the opaque [TipCardOpaqueFallback]; callers (e.g. the
+ * tip-card screen) may override it. The tip card is always rendered as a solid card.
  */
-val LocalTipCardBackdrop = staticCompositionLocalOf<(@Composable BoxScope.() -> Unit)?> { null }
-
-
-
-/** Blur radius used for the card's backdrop, tuned to read like the design's 40px background blur. */
-val TipCardBlurRadius: Dp = 16.dp
-
-/**
- * Base tint color for the card. Defaults to the theme's tip-card color; overridden on the opaque
- * fallback path (see [TipCardOpaqueFallback]).
- */
-val LocalTipCardColor = staticCompositionLocalOf { Color.Unspecified }
+val LocalTipCardColor = staticCompositionLocalOf { TipCardOpaqueFallback }
 
 /**
  * Opaque stand-in for the frosted-glass tone, used on devices where the live blurred-camera
@@ -104,7 +91,6 @@ internal fun TipCard(
     val fillColor = LocalTipCardColor.current
         .takeOrElse { CodeTheme.colors.tipCardColor }
         .copy(alpha = LocalTipCardBaseAlpha.current)
-    val backdrop = LocalTipCardBackdrop.current
 
     BoxWithConstraints(
         modifier = modifier
@@ -123,11 +109,6 @@ internal fun TipCard(
                 .clip(RoundedCornerShape(cornerRadius)),
             contentAlignment = Alignment.Center,
         ) {
-            // Backdrop (blurred content behind the card) sits under the translucent fill. Both are
-            // clipped to the rounded card bounds by the parent's clip.
-            if (backdrop != null) {
-                Box(modifier = Modifier.matchParentSize(), content = backdrop)
-            }
             Box(modifier = Modifier.matchParentSize().background(color = fillColor))
 
             Column(

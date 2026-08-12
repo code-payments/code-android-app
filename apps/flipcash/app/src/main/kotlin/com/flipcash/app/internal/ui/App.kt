@@ -69,6 +69,7 @@ import com.getcode.navigation.results.rememberNavResultStateRegistry
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.navigation.scrim.LocalScrimController
 import com.getcode.navigation.scrim.ScrimController
+import com.flipcash.app.bills.BillOverlay
 import com.getcode.navigation.scrim.ScrimOverlay
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.biometrics.LocalBiometricsState
@@ -223,6 +224,11 @@ internal fun App(
                                         }
 
                                         ScrimOverlay(scrimController)
+
+                                        // Bills render at the app root (not inside the scanner) so a
+                                        // presented bill appears over any screen. Reads the app-scoped
+                                        // billState via LocalSessionController.
+                                        BillOverlay()
                                     }
 
                                 val emailCodeChannel = LocalEmailCodeChannel.current
