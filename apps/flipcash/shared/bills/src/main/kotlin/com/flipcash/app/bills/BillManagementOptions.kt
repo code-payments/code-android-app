@@ -1,4 +1,4 @@
-package com.flipcash.app.scanner.internal.bills
+package com.flipcash.app.bills
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
