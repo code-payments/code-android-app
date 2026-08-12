@@ -8,8 +8,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.core.AppRoute
@@ -127,12 +131,16 @@ internal fun NewAppContent(
     deepLink: () -> DeepLink?,
     onPendingAction: (DeeplinkAction) -> Unit = {},
 ) {
+    val hazeState = rememberHazeState()
     CodeScaffold(
         bottomBar = {
-            AppNavigationBar(navigator = codeNavigator)
+            AppNavigationBar(navigator = codeNavigator, hazeState = hazeState)
         }
     ) { padding ->
         CompositionLocalProvider(LocalTabBarPadding provides padding) {
+            // Mark the nav content as the haze source so the frosted tab bar blurs what scrolls
+            // beneath it.
+            Box(modifier = Modifier.hazeSource(hazeState)) {
             AppNavHost(
                 navigator = codeNavigator,
                 resultStateRegistry = resultStateRegistry,
@@ -185,6 +193,7 @@ internal fun NewAppContent(
                     onPendingAction = onPendingAction,
                 ),
             )
+            }
         }
     }
 }

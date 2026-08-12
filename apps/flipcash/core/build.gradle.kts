@@ -7,6 +7,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.bundles.haze)
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.robolectric)
