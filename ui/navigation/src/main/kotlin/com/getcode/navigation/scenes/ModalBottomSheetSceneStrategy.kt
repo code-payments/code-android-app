@@ -200,7 +200,11 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                                 val progress = sheetState
                                     .progress(SheetDetent.Hidden, Expanded)
                                     .coerceIn(0f, 1f)
-                                drawRect(scrimBaseColor.copy(alpha = scrimBaseColor.alpha * progress))
+                                // A bill beneath the sheet already dims the screen with its own
+                                // (constant) scrim, so don't stack a second dim here — otherwise
+                                // opening the sheet would visibly darken the backdrop.
+                                val alpha = if (scrim.visible) 0f else scrimBaseColor.alpha * progress
+                                drawRect(scrimBaseColor.copy(alpha = alpha))
                             }
                             .then(
                                 if (effectiveProperties.dismissOnClickOutside) {
@@ -212,7 +216,10 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                     UnstyledBottomSheet(
                         state = sheetState,
                         modifier = Modifier.fillMaxSize(),
-                        enabled = !navigator.sheetDragDisabled && !scrim.visible,
+                        // Only block dragging for a scrim that puts CONTENT over the sheet; a plain
+                        // bill dim beneath the sheet must not disable the sheet's own gestures.
+                        enabled = !navigator.sheetDragDisabled &&
+                                !(scrim.visible && scrim.overlayContent != null),
                     ) {
                         Sheet(
                             modifier = Modifier
@@ -237,7 +244,11 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                                     ) {
                                         entry.Content()
                                     }
-                                    if (!isWrapContent) {
+                                    // Only surface the shared scrim inside the sheet when it has
+                                    // CONTENT to show over it. A plain bill dim must not be redrawn
+                                    // here — it would double-dim the sheet and its tap-to-dismiss
+                                    // would close the bill from on top of the sheet.
+                                    if (!isWrapContent && scrim.overlayContent != null) {
                                         ScrimOverlay(scrim)
                                     }
                                 }

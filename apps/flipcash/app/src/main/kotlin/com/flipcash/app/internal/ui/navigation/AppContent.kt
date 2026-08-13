@@ -31,6 +31,7 @@ import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.internal.ui.AppNavigationBar
+import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBillOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.getcode.navigation.AppNavHost
@@ -54,6 +55,10 @@ internal fun AppContent(
         navigator = codeNavigator,
         resultStateRegistry = resultStateRegistry,
         decorators = listOf(
+            // First = outermost decorator overlay: the bill draws above the screen content (as it
+            // did at the app root). It's skipped for sheet entries, and NavDisplay paints the sheet
+            // scene above the base entry — so sheets open over the bill. See the decorator's docs.
+            rememberNavBillOverlayEntryDecorator(),
             rememberNavMessagingEntryDecorator(
                 codeNavigator.backStack,
                 barManager
@@ -163,6 +168,10 @@ internal fun NewAppContent(
                 navigator = codeNavigator,
                 resultStateRegistry = resultStateRegistry,
                 decorators = listOf(
+                    // First = outermost: bill draws above screen content but is skipped for sheet
+                    // entries, so NavDisplay paints the sheet scene above the bill-bearing base
+                    // entry — sheets open OVER the bill. See NavBillOverlayEntryDecorator.
+                    rememberNavBillOverlayEntryDecorator(),
                     rememberNavMessagingEntryDecorator(
                         codeNavigator.backStack,
                         barManager
