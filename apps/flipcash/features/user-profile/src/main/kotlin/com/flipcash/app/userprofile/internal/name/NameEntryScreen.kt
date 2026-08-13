@@ -122,27 +122,32 @@ private fun NameEntryScreenContent(
         }
     ) { padding ->
         val focusRequester = remember { FocusRequester() }
-        DisplayTextInput(
-            state = state.nameFieldState,
-            placeholder = stringResource(R.string.hint_profileName),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(padding)
-                .focusRequester(focusRequester),
-            textModifier = Modifier.sharedElementTransition(
-                transition = SharedTransition.CurrencyName,
-            ),
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.Words,
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Done,
-            ),
-            onKeyboardAction = {
-                keyboard.hideIfVisible {
-                    dispatchEvent(NameEntryViewModel.Event.CheckName)
-                }
-            },
-        )
+        // Apply the scaffold's content padding to the wrapper, not the field —
+        // padding on the field itself inflates its box and pushes the sublabel
+        // far below the entered text instead of letting it sit just underneath.
+        Column(modifier = Modifier.padding(padding)) {
+            DisplayTextInput(
+                state = state.nameFieldState,
+                placeholder = stringResource(R.string.hint_profileName),
+                sublabel = stringResource(R.string.subtitle_profileNameSelection),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
+                textModifier = Modifier.sharedElementTransition(
+                    transition = SharedTransition.CurrencyName,
+                ),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words,
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Done,
+                ),
+                onKeyboardAction = {
+                    keyboard.hideIfVisible {
+                        dispatchEvent(NameEntryViewModel.Event.CheckName)
+                    }
+                },
+            )
+        }
 
         LaunchedEffect(Unit) {
             focusRequester.requestFocus()
