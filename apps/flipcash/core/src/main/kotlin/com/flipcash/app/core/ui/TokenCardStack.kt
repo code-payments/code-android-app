@@ -20,6 +20,9 @@ import kotlin.collections.forEach
  * the viewport top (`-itemOffset`); it is read in the **placement** phase so scrolling only re-places
  * the cards and never re-measures/re-composes them. [pinInset] holds the collapsing deck below top
  * chrome (e.g. the status bar). Cards are drawn front-to-back so the last (highest-value) sits on top.
+ *
+ * When [collapsedReveal] is 0 (the default), back cards collapse completely behind the front card —
+ * no slivers are visible at rest — matching the iOS wallet card-stack behaviour.
  */
 @Composable
 fun TokenCardStack(
@@ -27,7 +30,7 @@ fun TokenCardStack(
     modifier: Modifier = Modifier,
     cardHeight: Dp = 224.dp,
     fannedReveal: Dp = 64.dp,
-    collapsedReveal: Dp = 12.dp,
+    collapsedReveal: Dp = 0.dp,
     pinInset: Dp = 0.dp,
     scrolledPast: () -> Float = { 0f },
     onCardClick: (TokenWithLocalizedBalance) -> Unit = {},

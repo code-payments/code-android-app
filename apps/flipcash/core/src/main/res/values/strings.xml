@@ -590,6 +590,8 @@
 
     <string name="label_fromCurrencyAppreciation">from currency appreciation</string>
     <string name="label_fromCurrencyDepreciation">from currency depreciation</string>
+    <string name="label_fromAppreciation">from appreciation</string>
+    <string name="label_fromDepreciation">from depreciation</string>
 
     <string name="title_processingYourTransaction">This Will Take a Minute</string>
     <string name="subtitle_processingYourTransaction">This transaction typically takes about a minute. You may leave the app while it completes</string>
