@@ -43,6 +43,7 @@ include(
 
     // flipcash modules
     ":apps:flipcash:core",
+    ":apps:flipcash:core-ui",
     ":libs:test-utils",
     // shared flipcash coordinators/controllers/viewmodels/services
     ":apps:flipcash:shared:amount-entry",

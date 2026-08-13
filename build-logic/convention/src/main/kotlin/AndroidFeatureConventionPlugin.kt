@@ -43,6 +43,18 @@ class AndroidFeatureConventionPlugin : Plugin<Project> {
                 if (path != ":apps:flipcash:core") {
                     "implementation"(project(":apps:flipcash:core"))
                 }
+
+                // Shared UI composables. core-ui sits above core (core-ui -> core -> featureflags),
+                // so it must not be added to itself or to any module it transitively depends on, or
+                // Gradle reports a dependency cycle.
+                val coreUiCycleModules = setOf(
+                    ":apps:flipcash:core",
+                    ":apps:flipcash:core-ui",
+                    ":apps:flipcash:shared:featureflags",
+                )
+                if (path !in coreUiCycleModules) {
+                    "implementation"(project(":apps:flipcash:core-ui"))
+                }
             }
         }
     }
