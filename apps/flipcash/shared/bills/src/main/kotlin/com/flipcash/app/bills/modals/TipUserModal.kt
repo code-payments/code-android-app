@@ -61,12 +61,31 @@ internal fun TipUserModal(
 
     Modal(
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
+        contentPadding = PaddingValues(
+            start = CodeTheme.dimens.inset,
+            end = CodeTheme.dimens.inset,
+            top = CodeTheme.dimens.inset,
+            bottom = CodeTheme.dimens.grid.x2
+        ),
     ) {
-        Text(
-            text = stringResource(id = R.string.title_sendTip),
-            style = CodeTheme.typography.displaySmall,
-            color = CodeTheme.colors.textMain,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(id = R.string.title_sendTip),
+                style = CodeTheme.typography.displaySmall,
+                color = CodeTheme.colors.textMain,
+            )
+
+            TipTokenRow(
+                token = selection.token,
+                onSelectToken = {
+                    navigator.openAsSheet(AppRoute.Sheets.TokenSelection(TokenPurpose.Tip(selection.minimum)))
+                },
+            )
+        }
 
         PresetOptions(
             // Presets follow the selected region reactively (see TippingCoordinator.selection).
@@ -75,14 +94,6 @@ internal fun TipUserModal(
             modifier = Modifier.fillMaxWidth(),
             onPresetClicked = { tip.selectAmount(TipAmount.Preset(it)) },
             onCustomClicked = { navigator.openAsSheet(AppRoute.Sheets.TipAmountEntry) },
-        )
-
-        TipTokenRow(
-            token = selection.token,
-            modifier = Modifier.fillMaxWidth(),
-            onSelectToken = {
-                navigator.openAsSheet(AppRoute.Sheets.TokenSelection(TokenPurpose.Tip( selection.minimum)))
-            },
         )
 
         SlideToConfirm(
@@ -96,38 +107,24 @@ internal fun TipUserModal(
     }
 }
 
-/** "of [token]" row — the token the tip will be sent in; tapping the pill opens the token picker. */
 @Composable
 private fun TipTokenRow(
     token: Token?,
     onSelectToken: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    TokenSelectionPill(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(
-            CodeTheme.dimens.grid.x2,
-            Alignment.CenterHorizontally
+        token = token,
+        background = White10,
+        textStyle = CodeTheme.typography.textMedium,
+        imageSize = CodeTheme.dimens.staticGrid.x3,
+        contentPadding = PaddingValues(
+            horizontal = CodeTheme.dimens.grid.x1 + 1.dp,
+            vertical = CodeTheme.dimens.grid.x1 - 1.dp,
         ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.label_of),
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textSecondary,
-        )
-        TokenSelectionPill(
-            token = token,
-            background = White10,
-            textStyle = CodeTheme.typography.textMedium,
-            imageSize = CodeTheme.dimens.staticGrid.x3,
-            contentPadding = PaddingValues(
-                horizontal = CodeTheme.dimens.grid.x1 + 1.dp,
-                vertical = CodeTheme.dimens.grid.x1 - 1.dp,
-            ),
-            onClick = onSelectToken,
-        )
-    }
+        onClick = onSelectToken,
+    )
 }
 
 @Composable
