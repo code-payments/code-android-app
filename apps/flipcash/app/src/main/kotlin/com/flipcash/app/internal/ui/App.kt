@@ -69,8 +69,6 @@ import com.getcode.navigation.results.rememberNavResultStateRegistry
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.navigation.scrim.LocalScrimController
 import com.getcode.navigation.scrim.ScrimController
-import com.flipcash.app.bills.BillOverlay
-import com.getcode.navigation.scrim.ScrimOverlay
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.biometrics.LocalBiometricsState
 import com.getcode.ui.biometrics.rememberBiometricsState
@@ -223,12 +221,12 @@ internal fun App(
                                             )
                                         }
 
-                                        ScrimOverlay(scrimController)
-
-                                        // Bills render at the app root (not inside the scanner) so a
-                                        // presented bill appears over any screen. Reads the app-scoped
-                                        // billState via LocalSessionController.
-                                        BillOverlay()
+                                        // The scrim + bill overlay are hosted per-entry by
+                                        // NavBillOverlayEntryDecorator (added to the AppNavHost
+                                        // decorators) rather than as app-root siblings — that keeps
+                                        // the bill above the current screen while letting a bottom
+                                        // sheet (hosted in the same NavDisplay) render ABOVE the
+                                        // bill. See NavBillOverlayEntryDecorator.
                                     }
 
                                 val emailCodeChannel = LocalEmailCodeChannel.current

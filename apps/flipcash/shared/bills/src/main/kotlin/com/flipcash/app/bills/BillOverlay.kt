@@ -73,8 +73,13 @@ fun BillOverlay(modifier: Modifier = Modifier) {
         // shared root [ScrimController] (its ScrimOverlay sits just below this overlay), so it uses
         // the theme scrim colour. Skipped over the scanner tab, where the live camera stays visible.
         val scrimController = LocalScrimController.current
-        val overCamera =
-            (LocalCodeNavigator.current.currentRouteKey as? AppRoute)?.asNavBarTab() == NavBarButton.Scanner
+        // Resolve the tab UNDERNEATH any presented sheet, not the sheet route itself: a sheet opened
+        // over the bill (the tip token / amount pickers) pushes a route whose tab is null, which
+        // would flip this decision and fade the bill's scrim out/in around the sheet. Keying off the
+        // base tab keeps the scrim decision — and thus the scrim — stable across the sheet.
+        val baseRoute = LocalCodeNavigator.current.backStack
+            .lastOrNull { it !is AppRoute.Main.Sheet } as? AppRoute
+        val overCamera = baseRoute?.asNavBarTab() == NavBarButton.Scanner
         val showScrim = billState.bill != null && !overCamera
         LaunchedEffect(showScrim) {
             if (showScrim) {
