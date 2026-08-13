@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.ui.AppreciationStyle
 import com.flipcash.app.core.ui.TokenCardStack
 import com.flipcash.app.balance.internal.components.BalanceHeader
 import com.flipcash.app.balance.internal.components.OnboardingFunnel
@@ -82,15 +83,15 @@ internal fun WalletScreenContent(
         )
     ) {
         item {
-            Spacer(Modifier.height(CodeTheme.dimens.grid.x15))
-        }
-
-        item {
+            // v2 wallet header: 96 dp top / 44 dp bottom per Figma node 8966:1578.
             BalanceHeader(
                 modifier = Modifier
                     .fillMaxWidth(),
                 balance = tokenState.totalBalance,
                 appreciation = tokenState.aggregateAppreciation,
+                topPadding = 96.dp,
+                bottomPadding = 44.dp,
+                appreciationStyle = AppreciationStyle.Pill,
             ) {
                 dispatchEvent(WalletViewModel.Event.OpenCurrencySelection)
             }
