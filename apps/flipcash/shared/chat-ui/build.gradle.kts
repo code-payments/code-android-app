@@ -7,6 +7,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":apps:flipcash:core-ui"))
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":ui:core"))

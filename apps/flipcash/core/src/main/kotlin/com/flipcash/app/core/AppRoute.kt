@@ -14,7 +14,7 @@ import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
 import com.flipcash.app.core.tokens.TokenPurpose
-import com.flipcash.app.core.ui.flow.SteppedFlowRoute
+import com.flipcash.app.core.navigation.SteppedFlowRoute
 import com.flipcash.app.core.userprofile.UpdateProfileResult
 import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.verification.VerificationResult

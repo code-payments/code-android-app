@@ -1,4 +1,4 @@
-package com.flipcash.app.core.ui.flow
+package com.flipcash.app.core.navigation
 
 import android.os.Parcelable
 import com.getcode.navigation.flow.FlowRouteWithResult
