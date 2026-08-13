@@ -1,9 +1,12 @@
 package com.flipcash.app.core.ui
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,11 +33,15 @@ fun DisplayTextInput(
     placeholder: String,
     modifier: Modifier = Modifier,
     textModifier: Modifier = Modifier,
+    sublabel: String? = null,
     style: TextStyle = CodeTheme.typography.displayMedium.copy(
         color = CodeTheme.colors.textMain,
         fontWeight = FontWeight.SemiBold,
     ),
     placeholderStyle: TextStyle = style.copy(color = CodeTheme.colors.textTertiary),
+    sublabelStyle: TextStyle = CodeTheme.typography.textSmall.copy(
+        color = CodeTheme.colors.textSecondary,
+    ),
     minLines: Int = 1,
     maxLines: Int = 1,
     enabled: Boolean = true,
@@ -42,27 +49,36 @@ fun DisplayTextInput(
     onKeyboardAction: KeyboardActionHandler? = null,
     inputTransformation: InputTransformation? = null,
 ) {
-    TextInput(
-        state = state,
-        modifier = modifier,
-        textModifier = textModifier,
-        placeholder = placeholder,
-        style = style,
-        placeholderStyle = placeholderStyle,
-        textFieldAlignment = Alignment.TopStart,
-        maxLines = maxLines,
-        minLines = minLines,
-        minHeight = 0.dp,
-        shape = RectangleShape,
-        enabled = enabled,
-        colors = inputColors(
-            backgroundColor = Color.Transparent,
-            borderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent,
-            placeholderColor = placeholderStyle.color,
-        ),
-        keyboardOptions = keyboardOptions,
-        onKeyboardAction = onKeyboardAction,
-        inputTransformation = inputTransformation,
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
+        TextInput(
+            state = state,
+            modifier = modifier,
+            textModifier = textModifier,
+            placeholder = placeholder,
+            style = style,
+            placeholderStyle = placeholderStyle,
+            textFieldAlignment = Alignment.TopStart,
+            maxLines = maxLines,
+            minLines = minLines,
+            minHeight = 0.dp,
+            shape = RectangleShape,
+            enabled = enabled,
+            colors = inputColors(
+                backgroundColor = Color.Transparent,
+                borderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                placeholderColor = placeholderStyle.color,
+            ),
+            keyboardOptions = keyboardOptions,
+            onKeyboardAction = onKeyboardAction,
+            inputTransformation = inputTransformation,
+        )
+
+        if (sublabel != null) {
+            Text(
+                text = sublabel,
+                style = sublabelStyle,
+            )
+        }
+    }
 }
