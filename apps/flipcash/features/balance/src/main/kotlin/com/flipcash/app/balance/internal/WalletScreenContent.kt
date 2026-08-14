@@ -3,11 +3,13 @@ package com.flipcash.app.balance.internal
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,9 +35,11 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.AppreciationStyle
 import com.flipcash.app.core.ui.TokenCardStack
 import com.flipcash.app.balance.internal.components.BalanceHeader
-import com.flipcash.app.balance.internal.components.OnboardingFunnel
-import com.flipcash.app.balance.internal.components.OnboardingItem
+import com.flipcash.app.balance.internal.components.NewUserTutorial
+import com.flipcash.app.balance.internal.components.TutorialItem
 import com.flipcash.app.core.navigation.LocalTabBarPadding
+import com.flipcash.app.core.ui.TileButton
+import com.flipcash.app.core.ui.TileButtonStyle
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.features.balance.R
 import com.flipcash.shared.transactionhistory.ActivityFeedRow
@@ -80,7 +84,7 @@ internal fun WalletScreenContent(
             start = CodeTheme.dimens.inset,
             end = CodeTheme.dimens.inset,
             bottom = LocalTabBarPadding.current.calculateBottomPadding() + CodeTheme.dimens.grid.x12,
-        )
+        ),
     ) {
         item {
             // v2 wallet header: 96 dp top / 44 dp bottom per Figma node 8966:1578.
@@ -101,20 +105,20 @@ internal fun WalletScreenContent(
             Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
         }
 
-        if (!balanceState.isOnboardingComplete) {
+        if (!balanceState.isNewUserTutorialComplete) {
             item {
-                OnboardingFunnel(
+                NewUserTutorial(
                     modifier = Modifier.fillMaxWidth()
                         .padding(bottom = CodeTheme.dimens.grid.x5),
                     title = stringResource(R.string.title_tipOnboarding),
                     items = balanceState.onboardingItems,
                 ) { item ->
                     when (item) {
-                        is OnboardingItem.AddMoney -> {
+                        is TutorialItem.AddMoney -> {
                             dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
                         }
-                        is OnboardingItem.ScanTipCard -> {
-
+                        is TutorialItem.ScanTipCard -> {
+                            dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Main.Scanner))
                         }
                     }
                 }
@@ -136,34 +140,6 @@ internal fun WalletScreenContent(
                         )
                     },
                 )
-            }
-        }
-
-        if (balanceState.hasAddedMoney) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = { dispatchEvent(WalletViewModel.Event.PresentDepositOptions) })
-                        .padding(vertical = CodeTheme.dimens.inset),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-                    ) {
-                        Icon(
-                            painter = rememberVectorPainter(Icons.Outlined.AddCircleOutline),
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textSecondary,
-                        )
-                        Text(
-                            text = stringResource(R.string.action_addMoney),
-                            style = CodeTheme.typography.textMedium,
-                            color = CodeTheme.colors.textSecondary,
-                        )
-                    }
-                }
             }
         }
 
@@ -204,6 +180,45 @@ internal fun WalletScreenContent(
                 key = { it.id },
             ) { item ->
                 ActivityFeedRow(item = item, modifier = Modifier.fillMaxWidth())
+            }
+        }
+
+        if (balanceState.hasAddedMoney) {
+            item {
+                Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
+            }
+
+            item {
+                // Equal-height tiles: the taller (wrapping) label drives the row height and the
+                // shorter tile stretches to match, so each tile can spread its icon/label vertically.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                ) {
+                    TileButton(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        style = TileButtonStyle.Spread,
+                        text = stringResource(R.string.action_addMoney),
+                        icon = rememberVectorPainter(Icons.Outlined.AddCircleOutline),
+                    ) {
+                        dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
+                    }
+
+                    TileButton(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        style = TileButtonStyle.Spread,
+                        text = stringResource(R.string.action_discoverCurrencies),
+                        icon = painterResource(R.drawable.ic_globe),
+                    ) {
+                        dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Token.Discovery))
+                    }
+                }
             }
         }
     }

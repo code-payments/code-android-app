@@ -30,7 +30,7 @@ import androidx.compose.ui.util.fastForEach
 import com.flipcash.features.balance.R
 import com.getcode.theme.CodeTheme
 
-sealed interface OnboardingItem {
+sealed interface TutorialItem {
     val title: String
         @Composable get
     val description: String
@@ -39,7 +39,7 @@ sealed interface OnboardingItem {
         @Composable get
     val isCompleted: Boolean
 
-    class AddMoney(override val isCompleted: Boolean) : OnboardingItem {
+    class AddMoney(override val isCompleted: Boolean) : TutorialItem {
         override val title: String
             @Composable get() = stringResource(R.string.title_addMoney)
         override val description: String
@@ -49,7 +49,7 @@ sealed interface OnboardingItem {
 
     }
 
-    class ScanTipCard(override val isCompleted: Boolean) : OnboardingItem {
+    class ScanTipCard(override val isCompleted: Boolean) : TutorialItem {
         override val title: String
             @Composable get() = stringResource(R.string.title_scanTipCard)
         override val description: String
@@ -60,11 +60,11 @@ sealed interface OnboardingItem {
 }
 
 @Composable
-fun OnboardingFunnel(
+fun NewUserTutorial(
     title: String,
-    items: List<OnboardingItem>,
+    items: List<TutorialItem>,
     modifier: Modifier = Modifier,
-    onItemClicked: (OnboardingItem) -> Unit,
+    onItemClicked: (TutorialItem) -> Unit,
 ) {
     val completedCount = remember(items) { items.count { it.isCompleted } }
 
@@ -110,7 +110,7 @@ fun OnboardingFunnel(
 
 @Composable
 private fun OnboardingItemRow(
-    item: OnboardingItem,
+    item: TutorialItem,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {

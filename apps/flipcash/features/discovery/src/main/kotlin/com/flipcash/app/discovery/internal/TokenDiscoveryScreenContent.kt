@@ -61,20 +61,17 @@ private fun TokenDiscoveryScreenContent(
     dispatch: (TokenDiscoveryViewModel.Event) -> Unit
 ) {
     val listState = rememberLazyListState()
-    CodeScaffold { padding ->
-        AnimatedContent(
-            targetState = state.tokens,
-            transitionSpec = { fadeIn(tween()) togetherWith fadeOut(tween()) },
-            contentKey = { it::class }, // only crossfade on type change, not data updates
-        ) { tokens ->
-            TokenLeaderboard(
-                category = state.category,
-                state = listState,
-                tokens = tokens,
-                padding = padding,
-                dispatch = dispatch
-            )
-        }
+    AnimatedContent(
+        targetState = state.tokens,
+        transitionSpec = { fadeIn(tween()) togetherWith fadeOut(tween()) },
+        contentKey = { it::class }, // only crossfade on type change, not data updates
+    ) { tokens ->
+        TokenLeaderboard(
+            category = state.category,
+            state = listState,
+            tokens = tokens,
+            dispatch = dispatch
+        )
     }
 }
 

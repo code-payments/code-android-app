@@ -3,7 +3,7 @@ package com.flipcash.app.balance.internal
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
-import com.flipcash.app.balance.internal.components.OnboardingItem
+import com.flipcash.app.balance.internal.components.TutorialItem
 import com.flipcash.app.core.AppRoute
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.shared.transactionhistory.TransactionListItem
@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
@@ -42,7 +41,7 @@ internal class WalletViewModel @Inject constructor(
 ) {
     data class State(
         val preferredOnRampProvider: OnRampProvider.Defined? = null,
-        val onboardingItems: List<OnboardingItem> = emptyList(),
+        val onboardingItems: List<TutorialItem> = emptyList(),
         /**
          * Preview of the most recent unified cross-token activity — at most [RECENT_PREVIEW_COUNT]
          * rows. The coordinator owns the mapping and enforces the limit; the full paged history is a
@@ -51,14 +50,14 @@ internal class WalletViewModel @Inject constructor(
         val transactions: List<TransactionListItem> = emptyList(),
     ) {
         val hasAddedMoney: Boolean
-            get() = onboardingItems.find { it is OnboardingItem.AddMoney }?.isCompleted == true
+            get() = onboardingItems.find { it is TutorialItem.AddMoney }?.isCompleted == true
 
-        val isOnboardingComplete: Boolean
+        val isNewUserTutorialComplete: Boolean
             get() = onboardingItems.all { it.isCompleted }
     }
 
     sealed interface Event {
-        data class OnOnboardingItemsUpdated(val items: List<OnboardingItem>): Event
+        data class OnOnboardingItemsUpdated(val items: List<TutorialItem>): Event
         data class OnTransactionsUpdated(val transactions: List<TransactionListItem>) : Event
         data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider.Defined?) : Event
 
@@ -97,8 +96,8 @@ internal class WalletViewModel @Inject constructor(
             chatCoordinator.hasEverTipped(),
         ) { hasAddedMoney, hasTipped ->
             listOf(
-                OnboardingItem.AddMoney(isCompleted = hasAddedMoney),
-                OnboardingItem.ScanTipCard(isCompleted = hasTipped),
+                TutorialItem.AddMoney(isCompleted = hasAddedMoney),
+                TutorialItem.ScanTipCard(isCompleted = hasTipped),
             )
         }
             .onEach { items -> dispatchEvent(Event.OnOnboardingItemsUpdated(items)) }

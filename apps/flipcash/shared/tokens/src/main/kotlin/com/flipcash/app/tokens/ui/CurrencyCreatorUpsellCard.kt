@@ -1,6 +1,7 @@
 package com.flipcash.app.tokens.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -27,17 +31,45 @@ import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.theme.MultiDevicePreview
 import com.flipcash.shared.tokens.R
 import com.getcode.theme.CodeTheme
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.hazeEffect
 
 @Composable
 fun CurrencyCreatorUpsellCard(
     modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
     onClick: () -> Unit,
 ) {
+    val shape = CodeTheme.shapes.medium
+
+    // When a HazeState is supplied the card frosts whatever list content scrolls beneath it (iOS
+    // "liquid glass"), matching the v2 navigation pill: a wide blur plus a strong tint toward the
+    // BACKGROUND colour at high alpha, finished with a faint bright rim. `clip` must precede
+    // `hazeEffect` so the blur is bounded to the rounded card, not its bounding box. Falls back to the
+    // opaque surface when no HazeState is supplied (e.g. when the card is itself part of the list).
+    val glassTint = lerp(CodeTheme.colors.background, Color.White, 0.18f)
+    val liquidGlass = HazeBlurStyle(
+        blurRadius = 32.dp,
+        backgroundColor = CodeTheme.colors.background,
+        colorEffect = HazeColorEffect.tint(glassTint.copy(alpha = 0.72f)),
+    )
+    val glassBackground = if (hazeState != null) {
+        Modifier
+            .clip(shape)
+            .hazeEffect(hazeState) { blurEffect { style = liquidGlass } }
+            .border(CodeTheme.dimens.border, Color.White.copy(alpha = 0.08f), shape)
+    } else {
+        Modifier
+    }
+
     Surface(
-        modifier = modifier,
-        color = CodeTheme.colors.surfaceVariant,
+        modifier = modifier.then(glassBackground),
+        color = if (hazeState != null) Color.Transparent else CodeTheme.colors.surfaceVariant,
         contentColor = CodeTheme.colors.textMain,
-        shape = CodeTheme.shapes.medium,
+        shape = shape,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
         onClick = onClick
