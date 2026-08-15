@@ -9,14 +9,10 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -29,18 +25,17 @@ import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.asNavBarTab
-import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.internal.ui.AppNavigationBar
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBillOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
+import com.flipcash.app.internal.ui.navigation.decorators.rememberNavTabBarInsetEntryDecorator
 import com.getcode.navigation.AppNavHost
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.components.bars.BarManager
 import com.getcode.ui.core.measured
-import com.getcode.ui.theme.CodeScaffold
 import dev.theolm.rinku.DeepLink
 
 @Composable
@@ -148,23 +143,19 @@ internal fun NewAppContent(
     deepLink: () -> DeepLink?,
     onPendingAction: (DeeplinkAction) -> Unit = {},
 ) {
+    // The v2 nav bar is a single persistent overlay at the app root (below), so tab switches stay
+    // seamless — one instance, sliding selection pill, one haze source. It's a bottom OVERLAY over the
+    // full-height nav content, so hiding it for a modal/bill never resizes the content. Space for it is
+    // reserved PER ENTRY by NavTabBarInsetEntryDecorator (tab homes only), which keeps the inset stable
+    // through a push instead of collapsing a global value mid-transition (which jumped the outgoing
+    // screen).
     val hazeState = rememberHazeState()
-    // The tab bar is a bottom OVERLAY, not a scaffold bottomBar: the nav content stays full-height, so
-    // hiding the bar for a modal (or bill) never resizes it — which otherwise re-fanned the wallet's
-    // collapsing card stack — and content scrolls edge-to-edge under the frosted bar. Reserve space for
-    // it via LocalTabBarPadding, latched to the tallest measured height and only on tab homes, so a
-    // modal-driven hide doesn't shrink the inset.
-    var tabBarHeight by remember { mutableStateOf(0.dp) }
-    val onTabHome = (codeNavigator.currentRouteKey as? AppRoute)?.asNavBarTab() != null
-    val tabBarPadding = if (onTabHome) PaddingValues(bottom = tabBarHeight) else PaddingValues()
+    val tabBarHeight = remember { mutableStateOf(0.dp) }
 
-    CodeScaffold { _ ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            CompositionLocalProvider(LocalTabBarPadding provides tabBarPadding) {
-                // Mark the nav content as the haze source so the frosted tab bar blurs what scrolls
-                // beneath it.
-                Box(modifier = Modifier.hazeSource(hazeState)) {
-                AppNavHost(
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Mark the nav content as the haze source so the frosted bar blurs whatever scrolls beneath it.
+        Box(modifier = Modifier.hazeSource(hazeState)) {
+            AppNavHost(
                 navigator = codeNavigator,
                 resultStateRegistry = resultStateRegistry,
                 decorators = listOf(
@@ -177,6 +168,9 @@ internal fun NewAppContent(
                         barManager
                     ),
                     rememberNavBlockingOverlayEntryDecorator(),
+                    // Inset-only: reserves LocalTabBarPadding per tab-home entry for the hoisted bar,
+                    // so pushed/detail screens are not inset and the inset never collapses mid-push.
+                    rememberNavTabBarInsetEntryDecorator(codeNavigator, tabBarHeight),
                 ),
                 sceneStrategies = listOf(
                     ModalBottomSheetSceneStrategy(
@@ -231,18 +225,16 @@ internal fun NewAppContent(
                     onPendingAction = onPendingAction,
                 ),
             )
-                }
-            }
-
-            // Bottom overlay over the full-height nav content. Latch the tallest height so the
-            // reserved inset above stays stable when the bar hides for a modal/bill.
-            AppNavigationBar(
-                navigator = codeNavigator,
-                hazeState = hazeState,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .measured { if (it.height > tabBarHeight) tabBarHeight = it.height },
-            )
         }
+
+        // Single persistent bottom overlay. Latch the tallest measured height so the reserved inset
+        // stays stable when the bar hides for a modal/bill.
+        AppNavigationBar(
+            navigator = codeNavigator,
+            hazeState = hazeState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .measured { if (it.height > tabBarHeight.value) tabBarHeight.value = it.height },
+        )
     }
 }
