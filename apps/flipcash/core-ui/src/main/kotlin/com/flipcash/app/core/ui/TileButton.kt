@@ -81,6 +81,8 @@ fun TileButton(
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(),
+                    // Icon pinned to the top, label pinned to the bottom — the tile's height (set by the
+                    // caller) becomes the gap, so single- and multi-line labels bottom-align across tiles.
                     verticalArrangement = Arrangement.SpaceBetween,
                     horizontalAlignment = Alignment.Start,
                 ) {
