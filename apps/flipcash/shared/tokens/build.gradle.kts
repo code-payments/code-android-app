@@ -18,6 +18,8 @@ dependencies {
 
     implementation(libs.androidx.lifecycle.process)
 
+    implementation(libs.bundles.haze)
+
     implementation(project(":apps:flipcash:shared:amount-entry"))
     implementation(project(":apps:flipcash:shared:funding"))
     implementation(project(":apps:flipcash:shared:transaction-history"))

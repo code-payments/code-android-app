@@ -36,12 +36,17 @@ import com.getcode.ui.core.addIf
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
 
+sealed interface RankingSystem {
+    object Holders : RankingSystem
+    object MarketCap : RankingSystem
+}
 
 @Composable
 internal fun RankedTokenMetricsRow(
     rank: Int,
     token: Token,
     modifier: Modifier = Modifier,
+    rankingSystem: RankingSystem = RankingSystem.Holders,
     onClick: () -> Unit,
 ) {
     Row(
@@ -52,7 +57,7 @@ internal fun RankedTokenMetricsRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         RankBadge(rank)
-        TokenMetricsRow(token = token, onClick = null)
+        TokenMetricsRow(token = token, rankingSystem = rankingSystem, onClick = null)
     }
 }
 
@@ -61,6 +66,67 @@ internal fun TokenMetricsRow(
     token: Token,
     modifier: Modifier = Modifier,
     window: WindowedRange = WindowedRange.LastWeek,
+    rankingSystem: RankingSystem = RankingSystem.Holders,
+    onClick: (() -> Unit)? = null,
+) {
+    when (rankingSystem) {
+        RankingSystem.Holders -> {
+            val metricsDelta =
+                remember(token.holderMetrics) { token.holderMetrics.deltaForWindow(window) }
+            val change = if (metricsDelta >= 0) LineTrend.Up else LineTrend.Down
+            val deltaForWindow = buildString {
+                when (change) {
+                    LineTrend.Down -> Unit // negative carried over from abbreviated
+                    LineTrend.Up -> append("+")
+                }
+                append(metricsDelta.abbreviated())
+                append(" ")
+                append(
+                    when (window) {
+                        WindowedRange.AllTime -> stringResource(R.string.label_marketCapAllTime)
+                        WindowedRange.LastDay -> stringResource(R.string.label_marketCapDay)
+                        WindowedRange.LastWeek -> stringResource(R.string.label_marketCapWeek)
+                        WindowedRange.LastMonth -> stringResource(R.string.label_marketCapMonth)
+                        WindowedRange.LastYear -> stringResource(R.string.label_marketCapYear)
+                    }
+                )
+            }
+
+            val subtitle = token.marketCap()?.formatted().orEmpty()
+
+            val value = pluralStringResource(
+                R.plurals.subtitle_personCount,
+                token.holderMetrics.currentHolders.toInt(),
+                token.holderMetrics.currentHolders.abbreviated()
+            )
+
+            TokenMetricsRow(
+                modifier = modifier,
+                token = token,
+                subtitle = subtitle,
+                value = value,
+                valueChange = deltaForWindow,
+                valueChangeColor = when (change) {
+                    LineTrend.Down -> CodeTheme.colors.textSecondary
+                    LineTrend.Up -> change.color
+                },
+                onClick = onClick,
+            )
+        }
+        RankingSystem.MarketCap -> {
+            // TODO: once we have market cap metrics cross window
+        }
+    }
+}
+
+@Composable
+private fun TokenMetricsRow(
+    token: Token,
+    subtitle: String,
+    value: String,
+    valueChange: String,
+    valueChangeColor: Color,
+    modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
 ) {
     Row(
@@ -92,11 +158,7 @@ internal fun TokenMetricsRow(
                 )
                 Text(
                     modifier = Modifier.alignByBaseline(),
-                    text = pluralStringResource(
-                        R.plurals.subtitle_personCount,
-                        token.holderMetrics.currentHolders.toInt(),
-                        token.holderMetrics.currentHolders.abbreviated()
-                    ),
+                    text = value,
                     color = CodeTheme.colors.textMain,
                     style = CodeTheme.typography.textMedium,
                 )
@@ -107,38 +169,15 @@ internal fun TokenMetricsRow(
             ) {
                 Text(
                     modifier = Modifier.alignByBaseline(),
-                    text = token.marketCap()?.formatted().orEmpty(),
+                    text = subtitle,
                     color = CodeTheme.colors.textSecondary,
                     style = CodeTheme.typography.caption,
                 )
 
-                val metricsDelta =
-                    remember(token.holderMetrics) { token.holderMetrics.deltaForWindow(window) }
-                val change = if (metricsDelta >= 0) LineTrend.Up else LineTrend.Down
-                val deltaForWindow = buildString {
-                    when (change) {
-                        LineTrend.Down -> Unit // negative carried over from abbreviated
-                        LineTrend.Up -> append("+")
-                    }
-                    append(metricsDelta.abbreviated())
-                    append(" ")
-                    append(
-                        when (window) {
-                            WindowedRange.AllTime -> stringResource(R.string.label_marketCapAllTime)
-                            WindowedRange.LastDay -> stringResource(R.string.label_marketCapDay)
-                            WindowedRange.LastWeek -> stringResource(R.string.label_marketCapWeek)
-                            WindowedRange.LastMonth -> stringResource(R.string.label_marketCapMonth)
-                            WindowedRange.LastYear -> stringResource(R.string.label_marketCapYear)
-                        }
-                    )
-                }
                 Text(
                     modifier = Modifier.alignByBaseline(),
-                    text = deltaForWindow,
-                    color = when (change) {
-                        LineTrend.Down -> CodeTheme.colors.textSecondary
-                        LineTrend.Up -> change.color
-                    },
+                    text = valueChange,
+                    color = valueChangeColor,
                     style = CodeTheme.typography.caption,
                 )
             }

@@ -137,11 +137,7 @@ class SelectTokenViewModel @Inject constructor(
                                 appreciation = appreciation,
                                 displayName = when (purpose) {
                                     TokenPurpose.Balance -> {
-                                        if (it.token.address == Mint.usdf && featureFlags.get(FeatureFlag.NewUi)) {
-                                            resources.getString(R.string.displayName_dollars)
-                                        } else {
-                                            it.token.name
-                                        }
+                                        it.token.name
                                     }
 
                                     is TokenPurpose.Swap,
@@ -151,7 +147,7 @@ class SelectTokenViewModel @Inject constructor(
                                     TokenPurpose.Withdraw -> {
                                         if (it.token.address == Mint.usdf) {
                                             if (featureFlags.get(FeatureFlag.NewUi)) {
-                                                resources.getString(R.string.displayName_dollars)
+                                                it.token.name
                                             } else {
                                                 resources.getString(R.string.displayName_usdf)
                                             }
