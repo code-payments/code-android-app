@@ -3,13 +3,12 @@ package com.flipcash.app.balance.internal
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -149,6 +148,7 @@ internal fun WalletScreenContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(top = CodeTheme.dimens.grid.x2)
                         .clickable {
                             dispatchEvent(
                                 WalletViewModel.Event.OpenScreen(AppRoute.Sheets.ActivityHistory)
@@ -189,18 +189,17 @@ internal fun WalletScreenContent(
             }
 
             item {
-                // Equal-height tiles: the taller (wrapping) label drives the row height and the
-                // shorter tile stretches to match, so each tile can spread its icon/label vertically.
+                // Fixed, width-proportional height (like iOS) so both tiles are equal height and tall
+                // enough for the icon (top) and label (bottom) to sit apart — labels bottom-align even
+                // when one wraps to two lines.
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 ) {
                     TileButton(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxHeight(),
+                            .aspectRatio(1.45f),
                         style = TileButtonStyle.Spread,
                         text = stringResource(R.string.action_addMoney),
                         icon = rememberVectorPainter(Icons.Outlined.AddCircleOutline),
@@ -211,7 +210,7 @@ internal fun WalletScreenContent(
                     TileButton(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxHeight(),
+                            .aspectRatio(1.45f),
                         style = TileButtonStyle.Spread,
                         text = stringResource(R.string.action_discoverCurrencies),
                         icon = painterResource(R.drawable.ic_globe),
