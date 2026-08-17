@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
@@ -140,12 +141,18 @@ fun TokenInfoScreen(
 
         OverlayTopBarScaffold(
             topBar = {
-                var barHeight by remember { mutableStateOf(0.dp) }
+                // Fade the status-bar strip plus HALF the app-bar row (behind the chrome): the hero card
+                // dims as it scrolls up under the bar (matching iOS) while staying vibrant below the bar's
+                // midline. [appBarHeight] is measured on the app bar alone (status bar excluded), so the
+                // scrim = status bar + half the app bar. The scrim never grows the content inset (the
+                // scaffold measures the full bar), so there's no jump.
+                var appBarHeight by remember { mutableStateOf(0.dp) }
+                val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
                 Box {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(barHeight)
+                            .height(statusBarHeight + appBarHeight * 0.5f)
                             .background(
                                 Brush.verticalGradient(
                                     0f to CodeTheme.colors.background,
@@ -153,12 +160,10 @@ fun TokenInfoScreen(
                                 )
                             )
                     )
-                    Box(
-                        modifier = Modifier
-                            .statusBarsPadding()
-                            .measured { barHeight = it.height },
-                    ) {
-                        appBar(hazeState)
+                    Box(modifier = Modifier.statusBarsPadding()) {
+                        Box(modifier = Modifier.measured { appBarHeight = it.height }) {
+                            appBar(hazeState)
+                        }
                     }
                 }
             },
