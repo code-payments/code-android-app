@@ -24,7 +24,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -129,44 +131,48 @@ fun TokenInfoScreen(
     }
 
     if (isNewUi) {
-        // Chat-style overlay: content fills behind the app bar (hazeSource for the frosted chrome),
-        // inset below it by the measured bar height; the bar draws a bg->transparent scrim so content
-        // fades softly as it scrolls under it.
+        // Overlay: content fills behind the app bar (hazeSource for the frosted chrome) and is inset by
+        // the bar height, measured BEFORE the content in the same layout pass (OverlayTopBarScaffold),
+        // so the hero card sits correctly on the very first frame — no settle/jump. The bar draws its
+        // own bg->transparent scrim (chat-style) so content fades as it scrolls under it.
         val hazeState = rememberHazeState()
-        var barHeight by remember { mutableStateOf(0.dp) }
         val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-        Box(modifier = Modifier.fillMaxSize()) {
+        OverlayTopBarScaffold(
+            topBar = {
+                var barHeight by remember { mutableStateOf(0.dp) }
+                Box {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(barHeight)
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to CodeTheme.colors.background,
+                                    1f to Color.Transparent,
+                                )
+                            )
+                    )
+                    Box(
+                        modifier = Modifier
+                            .statusBarsPadding()
+                            .measured { barHeight = it.height },
+                    ) {
+                        appBar(hazeState)
+                    }
+                }
+            },
+        ) { topPadding ->
             TokenInfoScreen(
                 viewModel = viewModel,
                 shortfall = shortFall,
                 listState = listState,
                 contentPadding = PaddingValues(
-                    top = barHeight,
+                    top = topPadding,
                     bottom = bottomInset + CodeTheme.dimens.grid.x8,
                 ),
                 hazeState = hazeState,
             )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(barHeight + CodeTheme.dimens.grid.x5)
-                    .background(
-                        Brush.verticalGradient(
-                            0f to CodeTheme.colors.background,
-                            1f to Color.Transparent,
-                        )
-                    )
-            )
-
-            Box(
-                modifier = Modifier
-                    .statusBarsPadding()
-                    .measured { barHeight = it.height },
-            ) {
-                appBar(hazeState)
-            }
         }
     } else {
         Column(
@@ -215,5 +221,33 @@ fun TokenInfoScreen(
                     else -> navigator.push(screen)
                 }
             }.launchIn(this)
+    }
+}
+
+private enum class OverlaySlot { Bar, Content }
+
+/**
+ * Top-bar overlay scaffold: [content] fills the whole area (drawn behind the bar) and is inset from
+ * the top by the bar's height, which is measured BEFORE the content in the same layout pass — so the
+ * content receives the correct top inset on the very first frame (no settle/jump on open or pop-back).
+ * Mirrors the chat screen's ChatInputScaffold, top-bar only.
+ */
+@Composable
+private fun OverlayTopBarScaffold(
+    topBar: @Composable () -> Unit,
+    content: @Composable (topPadding: Dp) -> Unit,
+) {
+    SubcomposeLayout(modifier = Modifier.fillMaxSize()) { constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val barPlaceables = subcompose(OverlaySlot.Bar, topBar).map { it.measure(loose) }
+        val barHeight = barPlaceables.maxOfOrNull { it.height } ?: 0
+
+        val contentPlaceables = subcompose(OverlaySlot.Content) { content(barHeight.toDp()) }
+            .map { it.measure(constraints) }
+
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            contentPlaceables.forEach { it.place(0, 0) }
+            barPlaceables.forEach { it.place((constraints.maxWidth - it.width) / 2, 0) }
+        }
     }
 }
