@@ -550,6 +550,10 @@
     <string name="subtitle_sellHintLimitExceeded">You can only sell up to %1$s</string>
     <string name="action_buy">Buy</string>
     <string name="action_sell">Sell</string>
+    <string name="action_convert">Convert</string>
+    <string name="action_get">Get</string>
+    <string name="label_createdAt">Created %1$s</string>
+    <string name="subtitle_about">About</string>
     <string name="title_amountToWithdraw">Amount to Withdraw</string>
     <string name="label_solanaUsdc">Solana USDC with</string>
     <string name="title_buyToken">Buy %1$s</string>
