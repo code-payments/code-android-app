@@ -1,0 +1,557 @@
+package com.flipcash.app.tokens.internal.components.info
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.Icon
+import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowDownward
+import androidx.compose.material.icons.outlined.ArrowUpward
+import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.data.Loadable
+import com.flipcash.app.core.money.formattedAppreciation
+import com.flipcash.app.core.ui.TokenCard
+import com.flipcash.app.core.ui.TokenIcon
+import com.getcode.opencode.model.financial.Token
+import com.flipcash.app.tokens.ui.TokenInfoViewModel
+import com.flipcash.features.tokens.R
+import com.flipcash.shared.transactionhistory.ActivityFeedRow
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.SocialLink
+import com.getcode.solana.keys.Mint
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraSmall
+import com.getcode.ui.components.text.ExpandableText
+import com.getcode.ui.core.addIf
+import com.getcode.ui.theme.CodeCircularProgressIndicator
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.blurEffect
+import com.getcode.util.format
+
+/**
+ * V2 currency-info layout: LazyColumn with hero card → action tiles → recent activity
+ * → market cap → about section → created footer. No bottom bar — actions are inline tiles.
+ */
+@Composable
+internal fun CurrencyInfoContentV2(
+    shortfall: Fiat?,
+    state: TokenInfoViewModel.State,
+    listState: LazyListState = rememberLazyListState(),
+    contentPadding: PaddingValues = PaddingValues(),
+    hazeState: HazeState? = null,
+    dispatch: (TokenInfoViewModel.Event) -> Unit,
+) {
+    val inset = CodeTheme.dimens.inset
+    val grid = CodeTheme.dimens.grid
+
+    LazyColumn(
+        // Content fills behind the overlaid app bar and scrolls under it; [hazeState] marks it as the
+        // blur source so the frosted (liquid-glass) bar chrome frosts it. [contentPadding] insets the
+        // first item below the bar (like the chat screen), and the bar draws its own bg->transparent
+        // scrim for the soft top fade.
+        modifier = Modifier
+            .fillMaxSize()
+            .addIf(hazeState != null) { Modifier.hazeSource(hazeState!!) },
+        state = listState,
+        contentPadding = contentPadding,
+    ) {
+        when (state.token) {
+            is Loadable.Loading -> {
+                item {
+                    Box(modifier = Modifier.fillParentMaxSize()) {
+                        Box(
+                            modifier = Modifier
+                                .fillParentMaxSize(0.24f)
+                                .aspectRatio(1f)
+                                .align(Alignment.Center),
+                        ) {
+                            CodeCircularProgressIndicator(
+                                modifier = Modifier.matchParentSize(),
+                                strokeWidth = grid.x1,
+                                color = Color.White,
+                                backgroundColor = Color.White.copy(0.30f),
+                                strokeCap = StrokeCap.Butt,
+                            )
+                        }
+                    }
+                }
+            }
+
+            is Loadable.Error -> {
+                item {
+                    Box(modifier = Modifier.fillParentMaxSize()) {
+                        Box(
+                            modifier = Modifier
+                                .fillParentMaxSize(0.24f)
+                                .aspectRatio(1f)
+                                .align(Alignment.Center),
+                        ) {
+                            Image(
+                                modifier = Modifier.matchParentSize(),
+                                painter = painterResource(R.drawable.ic_circle_exclamation_large),
+                                contentDescription = null,
+                            )
+                        }
+                    }
+                }
+            }
+
+            is Loadable.Loaded -> {
+                val loadedToken = state.token as Loadable.Loaded
+                val token = loadedToken.data
+
+                val isUsdf = state.isCashReserve
+                val isHeld = state.showTransactionHistory || state.balance.nativeAmount.isPositive
+
+                // 1. Hero bill card
+                item {
+                    val appreciationText = state.appreciation
+                        ?.takeIf { isHeld && state.showAppreciation && it != LocalFiat.MIN_VALUE }
+                        ?.nativeAmount
+                        ?.formattedAppreciation()
+
+                    TokenCard(
+                        token = token,
+                        balanceText = if (isHeld) state.balance.nativeAmount.formatted() else "",
+                        displayName = token.name,
+                        appreciationText = appreciationText,
+                        modifier = Modifier
+                            .fillParentMaxWidth()
+                            .padding(horizontal = inset)
+                            .padding(top = grid.x2),
+                    )
+                }
+
+                // 2. Action tiles row
+                item {
+                    CurrencyActionTiles(
+                        modifier = Modifier
+                            .fillParentMaxWidth()
+                            .padding(horizontal = inset)
+                            .padding(top = grid.x3),
+                        isHeld = isHeld,
+                        isUsdf = isUsdf,
+                        tokenMint = token.address,
+                        shortfall = shortfall,
+                        dispatch = dispatch,
+                    )
+                }
+
+                // 3. Recent transactions (only when held and non-empty)
+                if (isHeld && state.transactions.isNotEmpty()) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillParentMaxWidth()
+                                .clickable {
+                                    dispatch(
+                                        TokenInfoViewModel.Event.OpenScreen(
+                                            AppRoute.Token.Transactions(token.address)
+                                        )
+                                    )
+                                }
+                                .padding(horizontal = inset)
+                                .padding(top = grid.x5, bottom = grid.x1),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.title_recentActivity),
+                                style = CodeTheme.typography.textLarge,
+                                color = CodeTheme.colors.textMain,
+                            )
+                            Icon(
+                                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3),
+                                painter = painterResource(R.drawable.ic_chevron_right),
+                                contentDescription = null,
+                                tint = CodeTheme.colors.textSecondary,
+                            )
+                        }
+                    }
+
+                    items(state.transactions, key = { it.id }) { item ->
+                        ActivityFeedRow(
+                            item = item,
+                            modifier = Modifier
+                                .fillParentMaxWidth()
+                                .padding(horizontal = inset),
+                        )
+                    }
+                }
+
+                // 4. Market cap (non-USDF only)
+                if (!isUsdf) {
+                    state.marketCap?.let { mcap ->
+                        val historicalData = state.historicalMarketCapData[state.selectedPeriod]
+                            ?: Loadable.Loaded(emptyList())
+                        item {
+                            MarketCapSection(
+                                modifier = Modifier
+                                    .fillParentMaxWidth()
+                                    .padding(top = grid.x5),
+                                contentPadding = PaddingValues(horizontal = inset),
+                                marketCap = mcap,
+                                selectedPeriod = state.selectedPeriod,
+                                rawHistoricalData = historicalData,
+                                onRetry = {
+                                    dispatch(
+                                        TokenInfoViewModel.Event.LoadHistoricalDataForPeriod(
+                                            state.selectedPeriod
+                                        )
+                                    )
+                                },
+                                onPeriodSelected = {
+                                    dispatch(TokenInfoViewModel.Event.OnMarketCapPeriodSelected(it))
+                                },
+                            )
+                        }
+                    }
+                }
+
+                // 5. About section
+                val description = token.description
+                val socialLinks = token.socialLinks
+                if (description.isNotBlank() || socialLinks.isNotEmpty()) {
+                    item {
+                        CurrencyAboutSection(
+                            modifier = Modifier
+                                .fillParentMaxWidth()
+                                .padding(top = grid.x5),
+                            description = description,
+                            socialLinks = socialLinks,
+                            isExpanded = state.descriptionExpanded,
+                            inset = inset,
+                            onToggleExpand = {
+                                dispatch(
+                                    TokenInfoViewModel.Event.ExpandDescription(!state.descriptionExpanded)
+                                )
+                            },
+                        )
+                    }
+                }
+
+                // 6. Created footer (non-USDF with a known creation date)
+                if (!isUsdf) {
+                    token.createdAt?.let { createdAt ->
+                        item {
+                            val formattedDate = createdAt.format("MMMM dd, yyyy")
+                            Text(
+                                modifier = Modifier
+                                    .fillParentMaxWidth()
+                                    .padding(top = grid.x6, bottom = grid.x6)
+                                    .padding(horizontal = inset),
+                                text = stringResource(R.string.label_createdAt, formattedDate).uppercase(),
+                                style = CodeTheme.typography.caption,
+                                color = CodeTheme.colors.textMain.copy(alpha = 0.3f),
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Private composables
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun CurrencyActionTiles(
+    isHeld: Boolean,
+    isUsdf: Boolean,
+    tokenMint: Mint,
+    shortfall: Fiat?,
+    dispatch: (TokenInfoViewModel.Event) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+    ) {
+        when {
+            !isHeld -> {
+                // Single full-width "Get" tile
+                ActionTile(
+                    modifier = Modifier.weight(1f),
+                    label = stringResource(R.string.action_get),
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.ArrowDownward,
+                            contentDescription = null,
+                            tint = CodeTheme.colors.textMain,
+                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                        )
+                    },
+                    onClick = { dispatch(TokenInfoViewModel.Event.OnBuy(shortfall)) },
+                )
+            }
+
+            isUsdf -> {
+                // Held USDF: Convert + Withdraw (no Give)
+                ActionTile(
+                    modifier = Modifier.weight(1f),
+                    label = stringResource(R.string.action_convert),
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.SwapVert,
+                            contentDescription = null,
+                            tint = CodeTheme.colors.textMain,
+                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                        )
+                    },
+                    onClick = { dispatch(TokenInfoViewModel.Event.OnBuy(shortfall)) },
+                )
+                ActionTile(
+                    modifier = Modifier.weight(1f),
+                    label = stringResource(R.string.action_withdraw),
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.ArrowUpward,
+                            contentDescription = null,
+                            tint = CodeTheme.colors.textMain,
+                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                        )
+                    },
+                    onClick = {
+                        dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(
+                                AppRoute.Transfers.Withdrawal(showOtherOptions = false)
+                            )
+                        )
+                    },
+                )
+            }
+
+            else -> {
+                // Held non-USDF: Give + Convert + Withdraw
+                ActionTile(
+                    modifier = Modifier.weight(1f),
+                    label = stringResource(R.string.action_give),
+                    icon = {
+                        Image(
+                            painter = painterResource(R.drawable.ic_cash_bill),
+                            contentDescription = null,
+                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                        )
+                    },
+                    onClick = {
+                        dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(
+                                AppRoute.Sheets.Give(mint = tokenMint, fromTokenInfo = true)
+                            )
+                        )
+                    },
+                )
+                ActionTile(
+                    modifier = Modifier.weight(1f),
+                    label = stringResource(R.string.action_convert),
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.SwapVert,
+                            contentDescription = null,
+                            tint = CodeTheme.colors.textMain,
+                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                        )
+                    },
+                    onClick = { dispatch(TokenInfoViewModel.Event.OnBuy(shortfall)) },
+                )
+                ActionTile(
+                    modifier = Modifier.weight(1f),
+                    label = stringResource(R.string.action_withdraw),
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.ArrowUpward,
+                            contentDescription = null,
+                            tint = CodeTheme.colors.textMain,
+                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                        )
+                    },
+                    onClick = {
+                        dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(
+                                AppRoute.Transfers.Withdrawal(showOtherOptions = false)
+                            )
+                        )
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionTile(
+    label: String,
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .height(CodeTheme.dimens.staticGrid.x18)
+            .clip(CodeTheme.shapes.extraSmall)
+            .background(Color.White.copy(alpha = 0.1f))
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        icon()
+        Spacer(Modifier.height(CodeTheme.dimens.grid.x1))
+        Text(
+            text = label,
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+        )
+    }
+}
+
+@Composable
+private fun CurrencyAboutSection(
+    description: String,
+    socialLinks: List<SocialLink>,
+    isExpanded: Boolean,
+    inset: Dp,
+    onToggleExpand: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        if (description.isNotBlank()) {
+            Text(
+                modifier = Modifier.padding(horizontal = inset),
+                text = stringResource(R.string.subtitle_about),
+                style = CodeTheme.typography.textLarge,
+                color = CodeTheme.colors.textMain.copy(alpha = 0.6f),
+            )
+            ExpandableText(
+                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
+                text = description,
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textSecondary,
+                isExpanded = isExpanded,
+                contentPadding = PaddingValues(horizontal = inset),
+                onToggle = onToggleExpand,
+            )
+        }
+
+        if (socialLinks.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = CodeTheme.dimens.grid.x4),
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                contentPadding = PaddingValues(horizontal = inset),
+            ) {
+                items(socialLinks, key = { it.uri }) { link ->
+                    SocialChip(link)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Scroll-revealed leading title pill (icon + name + market cap). Fades in — driven by [progress]
+ * (0 hidden → 1 shown) — once the hero card's own title has scrolled under the app bar, matching the
+ * iOS "Liquid Glass" pill. A frosted translucent capsule: a grey lifted off the (near-black)
+ * background so it reads as glass over the dark chrome. Market cap is omitted for tokens without one
+ * (e.g. USDF).
+ */
+@Composable
+internal fun CurrencyInfoTitlePill(
+    token: Token,
+    marketCap: Fiat?,
+    progress: Float,
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
+) {
+    val shape = CircleShape
+    val glassTint = lerp(CodeTheme.colors.background, Color.White, 0.18f)
+    // Real liquid glass over the scrolling content when a HazeState is supplied; falls back to a
+    // translucent capsule otherwise. `clip` precedes `hazeEffect` so the blur is bounded to the pill.
+    val fill = if (hazeState != null) {
+        val liquidGlass = HazeBlurStyle(
+            blurRadius = CodeTheme.dimens.grid.x4,
+            backgroundColor = CodeTheme.colors.background,
+            colorEffect = HazeColorEffect.tint(glassTint.copy(alpha = 0.72f)),
+        )
+        Modifier
+            .clip(shape)
+            .hazeEffect(hazeState) { blurEffect { style = liquidGlass } }
+            .border(CodeTheme.dimens.border, Color.White.copy(alpha = 0.08f), shape)
+    } else {
+        Modifier
+            .clip(shape)
+            .background(glassTint.copy(alpha = 0.9f), shape)
+            .border(CodeTheme.dimens.border, Color.White.copy(alpha = 0.08f), shape)
+    }
+    Row(
+        modifier = modifier
+            .graphicsLayer { alpha = progress }
+            .then(fill)
+            .padding(
+                horizontal = CodeTheme.dimens.grid.x2,
+                vertical = CodeTheme.dimens.grid.x1,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+    ) {
+        TokenIcon(token = token, modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5))
+        Column {
+            Text(
+                text = token.name,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textMain,
+                maxLines = 1,
+            )
+            marketCap?.let {
+                Text(
+                    text = it.formatted(),
+                    style = CodeTheme.typography.caption,
+                    color = CodeTheme.colors.textSecondary,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}

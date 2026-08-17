@@ -37,6 +37,13 @@ interface MessageDao {
     @Query("SELECT * FROM messages ORDER BY timestamp DESC LIMIT :limit")
     fun observeRecent(limit: Int): Flow<List<MessageEntity>>
 
+    /**
+     * The [limit] most recent messages for a single token, newest first — the token info screen's
+     * per-token recent-activity preview.
+     */
+    @Query("SELECT * FROM messages WHERE mintBase58 = :mintBase58 ORDER BY timestamp DESC LIMIT :limit")
+    fun observeRecentForMint(mintBase58: String, limit: Int): Flow<List<MessageEntity>>
+
     @Query("SELECT * FROM messages")
     suspend fun getAllMessages(): List<MessageEntity>
 
