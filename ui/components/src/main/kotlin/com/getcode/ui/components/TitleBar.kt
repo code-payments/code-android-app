@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.navigation.core.LocalCodeNavigator
+import dev.chrisbanes.haze.HazeState
 import com.getcode.navigation.flow.FlowDismissStyle
 import com.getcode.navigation.flow.LocalFlowDismissStyle
 import com.getcode.navigation.scenes.LocalSheetNavigator
@@ -51,9 +52,10 @@ object AppBarDefaults {
     internal val IconSize = 20.dp
 
     @Composable
-    fun UpNavigation(modifier: Modifier = Modifier, onClick: () -> Unit) {
+    fun UpNavigation(modifier: Modifier = Modifier, hazeState: HazeState? = null, onClick: () -> Unit) {
         CircularIconButton(
             modifier = modifier,
+            hazeState = hazeState,
             onClick = onClick,
             testTag = "action_back"
         ) { size ->
@@ -67,9 +69,10 @@ object AppBarDefaults {
     }
 
     @Composable
-    fun Close(modifier: Modifier = Modifier, onClick: () -> Unit) {
+    fun Close(modifier: Modifier = Modifier, hazeState: HazeState? = null, onClick: () -> Unit) {
         CircularIconButton(
             modifier = modifier,
+            hazeState = hazeState,
             onClick = onClick,
             testTag = "action_close"
         ) { size ->
@@ -83,9 +86,10 @@ object AppBarDefaults {
     }
 
     @Composable
-    fun Share(modifier: Modifier = Modifier, onClick: () -> Unit) {
+    fun Share(modifier: Modifier = Modifier, hazeState: HazeState? = null, onClick: () -> Unit) {
         CircularIconButton(
             modifier = modifier,
+            hazeState = hazeState,
             onClick = onClick,
             testTag = "action_share"
         ) { size ->
@@ -190,6 +194,7 @@ fun AppBarWithTitle(
     titleAlignment: Alignment.Horizontal = Alignment.Start,
     contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
     onBackIconClicked: (() -> Unit)? = null,
+    hazeState: HazeState? = null,
     endContent: @Composable RowScope.() -> Unit = { },
 ) {
     val navigator = LocalCodeNavigator.current
@@ -215,7 +220,7 @@ fun AppBarWithTitle(
         contentPadding = contentPadding,
         leftIcon = {
             if (showBack && !showClose) {
-                AppBarDefaults.UpNavigation { onBackIconClicked() }
+                AppBarDefaults.UpNavigation(hazeState = hazeState) { onBackIconClicked() }
             }
         },
         titleRegion = {
@@ -229,7 +234,7 @@ fun AppBarWithTitle(
         rightContents = {
             endContent()
             if (showClose) {
-                AppBarDefaults.Close { onBackIconClicked() }
+                AppBarDefaults.Close(hazeState = hazeState) { onBackIconClicked() }
             }
         },
     )
