@@ -97,6 +97,9 @@ fun TokenCard(
     // known. Font size is expressed in dp (via toSp) so the watermark ignores the user font scale.
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
+    // Same inset the card content uses, so the "$" hangs off the top-right by one grid unit. Read in
+    // composition (it's theme-scoped) and captured for the draw layer; flips to 16dp on the 4pt grid.
+    val watermarkInset = CodeTheme.dimens.inset
     val watermark = remember(isUsdf, height, density) {
         if (!isUsdf) null else textMeasurer.measure(
             text = "$",
@@ -122,8 +125,8 @@ fun TokenCard(
                         drawText(
                             textLayoutResult = glyph,
                             topLeft = Offset(
-                                x = size.width - glyph.size.width - WatermarkRightInset.toPx(),
-                                y = -WatermarkTopBleed.toPx(),
+                                x = size.width - glyph.size.width - watermarkInset.toPx(),
+                                y = -watermarkInset.toPx(),
                             ),
                             alpha = WatermarkAlpha,
                             blendMode = BlendMode.Overlay,
@@ -186,11 +189,10 @@ fun TokenCard(
 private val UsdfBrush = Brush.horizontalGradient(listOf(Color(0xFFC4980B), Color(0xFFB06B00)))
 
 // USDF "$" watermark tuning (Figma 9120:15335: ~213px glyph on a ~214px-tall card, top -17 / right
-// +17, 30% opacity). Sizes are proportional to the card height so it scales with `height`.
+// +17, 30% opacity). The glyph size is proportional to the card height so it scales with `height`;
+// the top/right bleed uses CodeTheme.dimens.inset (read in composition, see above).
 private const val WatermarkFontScale = 0.95f
 private const val WatermarkAlpha = 0.30f
-private val WatermarkTopBleed = 16.dp
-private val WatermarkRightInset = 16.dp
 
 /** Horizontal gradient brush from a token's bill-customization colors (matches the Figma cards). */
 private fun billCardBrush(customizations: TokenBillCustomizations?): Brush {
