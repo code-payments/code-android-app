@@ -6,6 +6,8 @@ import com.flipcash.app.persistence.converters.BillCustomizationsSerialized
 import com.flipcash.app.persistence.converters.BillTextureSerialized
 import com.flipcash.app.persistence.converters.HolderDeltaSerialized
 import com.flipcash.app.persistence.converters.HolderMetricsSerialized
+import com.flipcash.app.persistence.converters.MarketCapDeltaSerialized
+import com.flipcash.app.persistence.converters.MarketCapMetricsSerialized
 import com.flipcash.app.persistence.converters.SocialLinkSerialized
 import com.flipcash.app.persistence.embedded.LaunchpadMetadataEmbedded
 import com.flipcash.app.persistence.embedded.VmMetadataEmbedded
@@ -13,6 +15,7 @@ import com.flipcash.app.persistence.entities.TokenEntity
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.HolderMetrics
 import com.getcode.opencode.model.financial.LaunchpadMetadata
+import com.getcode.opencode.model.financial.MarketCapMetrics
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.SocialLink
 import com.getcode.opencode.model.ui.BillBackground
@@ -46,7 +49,10 @@ class TokenToEntityMapper @Inject constructor() : Mapper<MintMetadata, TokenEnti
                 ?.let { json.encodeToString(it) },
             holderMetricsJson = from.holderMetrics
                 ?.toSerialized()
-                ?.let { json.encodeToString(it) }
+                ?.let { json.encodeToString(it) },
+            marketCapMetricsJson = from.marketCapMetrics
+                .toSerialized()
+                .let { json.encodeToString(it) }
         )
     }
 }
@@ -96,6 +102,16 @@ private fun HolderMetrics.toSerialized() = HolderMetricsSerialized(
     currentHolders = currentHolders,
     deltas = holderDeltas.map { delta ->
         HolderDeltaSerialized(
+            range = delta.range.name,
+            delta = delta.delta,
+        )
+    },
+)
+
+private fun MarketCapMetrics.toSerialized() = MarketCapMetricsSerialized(
+    currentMarketCap = currentMarketCap,
+    deltas = marketCapDeltas.map { delta ->
+        MarketCapDeltaSerialized(
             range = delta.range.name,
             delta = delta.delta,
         )

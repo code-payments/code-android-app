@@ -12,7 +12,7 @@ class MessageDirectionTest {
     fun `sent variants are outgoing`() {
         assertEquals(true, MessageMetadata.DirectlySentCrypto(phoneNumber = null).isOutgoing)
         assertEquals(true, MessageMetadata.IndirectlySentCrypto(PublicKey(ByteArray(32).toList()), canCancel = true).isOutgoing)
-        assertEquals(true, MessageMetadata.WithdrewCrypto.isOutgoing)
+        assertEquals(true, MessageMetadata.WithdrewCrypto().isOutgoing)
         assertEquals(true, MessageMetadata.SoldToken.isOutgoing)
         assertEquals(true, MessageMetadata.PaidCrypto(poolId = listOf()).isOutgoing)
     }

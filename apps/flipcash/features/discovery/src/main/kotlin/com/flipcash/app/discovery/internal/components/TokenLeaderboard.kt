@@ -226,6 +226,11 @@ internal fun TokenLeaderboard(
                                 ),
                                 rank = index + 1,
                                 token = entry.token,
+                                rankingSystem = if (isNewUi) {
+                                    RankingSystem.MarketCap
+                                } else {
+                                    RankingSystem.Holders
+                                },
                             ) {
                                 dispatch(TokenDiscoveryViewModel.Event.OpenTokenInfo(entry.token.address))
                             }

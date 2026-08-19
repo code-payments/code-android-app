@@ -1,6 +1,7 @@
 package com.flipcash.app.core.feed
 
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.PublicKey
@@ -109,17 +110,32 @@ sealed interface MessageMetadata {
         val userId: ID? = null,
     ) : MessageMetadata
 
+    /**
+     * @param swapMetadata When the withdrawal was executed as a swap, the metadata for that swap;
+     * null for a plain withdrawal.
+     */
     @Serializable
-    data object WithdrewCrypto : MessageMetadata
+    data class WithdrewCrypto(
+        val swapMetadata: SwappedCryptoMetadata? = null,
+    ) : MessageMetadata
 
     @Serializable
     data object DepositedCrypto : MessageMetadata
 
+    // Superseded by [SwappedCrypto]; retained so historical bought/sold messages still deserialize.
     @Serializable
     data object BoughtToken: MessageMetadata
 
     @Serializable
     data object SoldToken: MessageMetadata
+
+    /**
+     * A swap between two mints, modeled as a single event. Supersedes [BoughtToken]/[SoldToken].
+     */
+    @Serializable
+    data class SwappedCrypto(
+        val swap: SwappedCryptoMetadata,
+    ): MessageMetadata
 
     @Serializable
     data class PaidCrypto(
@@ -137,3 +153,32 @@ sealed interface MessageMetadata {
         }
     }
 }
+
+/**
+ * The state of a swap as a whole. Persisted mirror of `com.flipcash.services.models.SwapState`.
+ */
+enum class SwapState {
+    UNKNOWN,
+    PENDING,
+    SUCCEEDED,
+    FAILED,
+    NONE,
+}
+
+/**
+ * Persisted mirror of `com.flipcash.services.models.SwappedCryptoMetadata`.
+ *
+ * @param from The amount the user gave up in the source mint.
+ * @param toMint The destination mint. Always known, even while the swap is pending.
+ * @param toAmount The amount received in the destination mint. Null until the swap has executed.
+ * @param fee The fee charged for the swap, known upfront regardless of swap state.
+ * @param swapState The state of the swap as a whole.
+ */
+@Serializable
+data class SwappedCryptoMetadata(
+    val from: LocalFiat,
+    val toMint: PublicKey,
+    val toAmount: LocalFiat?,
+    val fee: Fiat,
+    val swapState: SwapState,
+)

@@ -165,6 +165,7 @@ data class MintMetadata(
     val billCustomizations: TokenBillCustomizations?,
     val socialLinks: List<SocialLink>,
     val holderMetrics: HolderMetrics,
+    val marketCapMetrics: MarketCapMetrics = MarketCapMetrics.None,
 ) : Parcelable {
     fun marketCap(): Fiat? {
         val launchpad = launchpadMetadata ?: return null
@@ -273,5 +274,25 @@ data class HolderMetrics(
     data class HolderDelta(
         val range: WindowedRange,
         val delta: Long,
+    ) : Parcelable
+}
+
+@Parcelize
+data class MarketCapMetrics(
+    val currentMarketCap: Double,
+    val marketCapDeltas: List<MarketCapDelta>,
+) : Parcelable {
+    companion object {
+        val None = MarketCapMetrics(0.0, emptyList())
+    }
+
+    fun deltaForWindow(window: WindowedRange): Double {
+        return marketCapDeltas.firstOrNull { it.range == window }?.delta ?: 0.0
+    }
+
+    @Parcelize
+    data class MarketCapDelta(
+        val range: WindowedRange,
+        val delta: Double,
     ) : Parcelable
 }

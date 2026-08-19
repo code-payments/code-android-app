@@ -120,6 +120,12 @@ sealed interface StatefulSwapResponseServerParameters {
          * The memory index where the destination virtual Timelock account lives
          */
         val memoryIndex: Int,
+        /**
+         * Destination account where the buy fee should be paid. Only set by the server when a
+         * non-zero fee applies to the buy; null otherwise. When present, the buy uses
+         * `VM::TransferForSwapWithFee` instead of `VM::TransferForSwap`.
+         */
+        val feeDestination: PublicKey? = null,
     ): StatefulSwapResponseServerParameters
 
     /**

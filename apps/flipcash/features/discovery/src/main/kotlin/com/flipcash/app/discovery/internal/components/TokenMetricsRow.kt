@@ -28,6 +28,7 @@ import com.flipcash.app.core.ui.rememberShimmerAlpha
 import com.flipcash.app.core.ui.shimmer
 import com.flipcash.app.core.util.abbreviated
 import com.flipcash.features.discovery.R
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.theme.CodeTheme
@@ -35,6 +36,7 @@ import com.getcode.ui.components.charts.LineTrend
 import com.getcode.ui.core.addIf
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
+import kotlin.math.abs
 
 sealed interface RankingSystem {
     object Holders : RankingSystem
@@ -114,7 +116,53 @@ internal fun TokenMetricsRow(
             )
         }
         RankingSystem.MarketCap -> {
-            // TODO: once we have market cap metrics cross window
+            val currencySymbol = CurrencyCode.USD.singleCharacterCurrencySymbol.orEmpty()
+
+            val metricsDelta =
+                remember(token.marketCapMetrics) { token.marketCapMetrics.deltaForWindow(window) }
+            val change = if (metricsDelta >= 0) LineTrend.Up else LineTrend.Down
+            val deltaForWindow = buildString {
+                append(if (change == LineTrend.Up) "+" else "-")
+                append(currencySymbol)
+                append(abs(metricsDelta).abbreviated())
+                append(" ")
+                append(
+                    when (window) {
+                        WindowedRange.AllTime -> stringResource(R.string.label_marketCapAllTime)
+                        WindowedRange.LastDay -> stringResource(R.string.label_marketCapDay)
+                        WindowedRange.LastWeek -> stringResource(R.string.label_marketCapWeek)
+                        WindowedRange.LastMonth -> stringResource(R.string.label_marketCapMonth)
+                        WindowedRange.LastYear -> stringResource(R.string.label_marketCapYear)
+                    }
+                )
+            }
+
+            // Prefer the backend-provided market cap; fall back to the bonding-curve estimate
+            // for tokens that don't yet have market-cap metrics populated.
+            val currentCap = remember(token) {
+                token.marketCapMetrics.currentMarketCap.takeIf { it > 0.0 }
+                    ?: token.marketCap()?.decimalValue
+            }
+            val value = currentCap?.let { "$currencySymbol${it.abbreviated()}" }.orEmpty()
+
+            val subtitle = pluralStringResource(
+                R.plurals.subtitle_personCount,
+                token.holderMetrics.currentHolders.toInt(),
+                token.holderMetrics.currentHolders.abbreviated()
+            )
+
+            TokenMetricsRow(
+                modifier = modifier,
+                token = token,
+                subtitle = subtitle,
+                value = value,
+                valueChange = deltaForWindow,
+                valueChangeColor = when (change) {
+                    LineTrend.Down -> CodeTheme.colors.textSecondary
+                    LineTrend.Up -> change.color
+                },
+                onClick = onClick,
+            )
         }
     }
 }

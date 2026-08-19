@@ -4,9 +4,11 @@ import com.codeinc.opencode.gen.currency.v1.OcpCurrencyService
 import com.codeinc.opencode.gen.currency.v1.billCustomizationOrNull
 import com.codeinc.opencode.gen.currency.v1.holderMetricsOrNull
 import com.codeinc.opencode.gen.currency.v1.launchpadMetadataOrNull
+import com.codeinc.opencode.gen.currency.v1.marketCapMetricsOrNull
 import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.HolderMetrics
+import com.getcode.opencode.model.financial.MarketCapMetrics
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
@@ -22,6 +24,7 @@ internal class MintMapper @Inject constructor(
     private val socialLinkMapper: SocialLinkMapper,
     private val customizationMapper: BillCustomizationMapper,
     private val holderMetricsMapper: HolderMetricsMapper,
+    private val marketCapMetricsMapper: MarketCapMetricsMapper,
 ) : Mapper<OcpCurrencyService.Mint, MintMetadata> {
     override fun map(from: OcpCurrencyService.Mint): MintMetadata {
         val mint = from.address.toMint()
@@ -55,6 +58,7 @@ internal class MintMapper @Inject constructor(
             socialLinks = from.socialLinksList.mapNotNull(socialLinkMapper::map),
             billCustomizations = customizationMapper.map(from.billCustomizationOrNull),
             holderMetrics = from.holderMetricsOrNull?.let { holderMetricsMapper.map(it) } ?: HolderMetrics.None,
+            marketCapMetrics = from.marketCapMetricsOrNull?.let { marketCapMetricsMapper.map(it) } ?: MarketCapMetrics.None,
         )
     }
 }

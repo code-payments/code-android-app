@@ -4,6 +4,7 @@ import android.util.Base64
 import com.flipcash.app.persistence.converters.BillBackgroundSerialized
 import com.flipcash.app.persistence.converters.BillCustomizationsSerialized
 import com.flipcash.app.persistence.converters.HolderMetricsSerialized
+import com.flipcash.app.persistence.converters.MarketCapMetricsSerialized
 import com.flipcash.app.persistence.converters.SocialLinkSerialized
 import com.flipcash.app.persistence.embedded.LaunchpadMetadataEmbedded
 import com.flipcash.app.persistence.embedded.VmMetadataEmbedded
@@ -13,6 +14,7 @@ import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.HolderMetrics
 import com.getcode.opencode.model.financial.LaunchpadMetadata
+import com.getcode.opencode.model.financial.MarketCapMetrics
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.SocialLink
 import com.getcode.opencode.model.financial.VmMetadata
@@ -50,7 +52,10 @@ class EntityToTokenMapper @Inject constructor() : Mapper<TokenEntity, MintMetada
                 ?.toDomain(),
             holderMetrics = from.holderMetricsJson
                 ?.let { json.decodeFromString<HolderMetricsSerialized>(it) }
-                ?.toDomain() ?: HolderMetrics.None
+                ?.toDomain() ?: HolderMetrics.None,
+            marketCapMetrics = from.marketCapMetricsJson
+                ?.let { json.decodeFromString<MarketCapMetricsSerialized>(it) }
+                ?.toDomain() ?: MarketCapMetrics.None
         )
     }
 }
@@ -101,6 +106,16 @@ private fun HolderMetricsSerialized.toDomain() = HolderMetrics(
     currentHolders = currentHolders,
     holderDeltas = deltas.map { delta ->
         HolderMetrics.HolderDelta(
+            range = WindowedRange.valueOf(delta.range),
+            delta = delta.delta,
+        )
+    },
+)
+
+private fun MarketCapMetricsSerialized.toDomain() = MarketCapMetrics(
+    currentMarketCap = currentMarketCap,
+    marketCapDeltas = deltas.map { delta ->
+        MarketCapMetrics.MarketCapDelta(
             range = WindowedRange.valueOf(delta.range),
             delta = delta.delta,
         )

@@ -193,7 +193,7 @@ class TransactionItemMapperTest {
     @Test
     fun `withdraw uses the token icon and a minus prefix`() {
         val token = usdfToken()
-        val msg = feedMessage(metadata = MessageMetadata.WithdrewCrypto)
+        val msg = feedMessage(metadata = MessageMetadata.WithdrewCrypto())
         val item = mapper.map(ActivityFeedMessageWithToken(msg, token) to emptyMap())
 
         assertEquals("-", item.signedAmountPrefix)

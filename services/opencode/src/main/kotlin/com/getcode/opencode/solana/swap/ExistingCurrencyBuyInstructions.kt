@@ -11,6 +11,7 @@ import com.getcode.opencode.internal.solana.programs.SystemProgram_AdvanceNonce
 import com.getcode.opencode.internal.solana.programs.TokenProgram_CloseAccount
 import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram_CloseSwapAccountIfEmpty
 import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram_TransferForSwap
+import com.getcode.opencode.internal.solana.programs.VirtualMachineProgram_TransferForSwapWithFee
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters
 import com.getcode.opencode.solana.Instruction
@@ -37,6 +38,10 @@ import com.getcode.solana.keys.PublicKey
  * @param targetMintMetadata Metadata for the target currency (destination).
  * @param amount The amount of core currency to spend.
  * @param minOutput The minimum amount of target currency to receive.
+ * @param feeAmount The buy fee to collect from the core mint, in quarks. When greater than 0 and the
+ * server provided a [StatefulSwapResponseServerParameters.ExistingCurrency.feeDestination], the swap
+ * transfer uses `VM::TransferForSwapWithFee` (routing the fee to that destination) instead of the
+ * plain `VM::TransferForSwap`. Defaults to 0 (no fee), which preserves the original instruction set.
  * @return A list of [Instruction]s to execute the buy operation.
  */
 internal fun buildExistingCurrencyBuyInstructions(
@@ -48,6 +53,7 @@ internal fun buildExistingCurrencyBuyInstructions(
     targetMintMetadata: MintMetadata,
     amount: Long,
     minOutput: Long,
+    feeAmount: Long = 0,
 ): List<Instruction> {
     val coreVm = coreMintMetadata.vmMetadata
     val targetVm = targetMintMetadata.vmMetadata
@@ -80,19 +86,38 @@ internal fun buildExistingCurrencyBuyInstructions(
         // 5. AssociatedTokenAccount::CreateIdempotent (open Core Mint temporary account)
         add(createTemporaryCoreMintAta.instruction())
 
-        // 6. VM::TransferForSwap (Core Mint VM swap ATA -> Core Mint temporary account)
-        add(
-            VirtualMachineProgram_TransferForSwap(
-                vmAuthority = coreVm.authority,
-                vm = coreVm.vm,
-                swapper = authority,
-                swapPda = coreTimelockAccounts.pda.publicKey,
-                swapAta = coreTimelockAccounts.ata.publicKey,
-                destination = createTemporaryCoreMintAta.address,
-                amount = amount,
-                bump = coreTimelockAccounts.pda.bump,
-            ).instruction()
-        )
+        // 6. VM::TransferForSwap[WithFee] (Core Mint VM swap ATA -> Core Mint temporary account,
+        //    plus the fee to the fee destination when a buy fee applies)
+        val feeDestination = serverParameters.feeDestination
+        if (feeAmount > 0 && feeDestination != null) {
+            add(
+                VirtualMachineProgram_TransferForSwapWithFee(
+                    vmAuthority = coreVm.authority,
+                    vm = coreVm.vm,
+                    swapper = authority,
+                    swapPda = coreTimelockAccounts.pda.publicKey,
+                    swapAta = coreTimelockAccounts.ata.publicKey,
+                    destination = createTemporaryCoreMintAta.address,
+                    feeDestination = feeDestination,
+                    swapAmount = amount,
+                    feeAmount = feeAmount,
+                    bump = coreTimelockAccounts.pda.bump,
+                ).instruction()
+            )
+        } else {
+            add(
+                VirtualMachineProgram_TransferForSwap(
+                    vmAuthority = coreVm.authority,
+                    vm = coreVm.vm,
+                    swapper = authority,
+                    swapPda = coreTimelockAccounts.pda.publicKey,
+                    swapAta = coreTimelockAccounts.ata.publicKey,
+                    destination = createTemporaryCoreMintAta.address,
+                    amount = amount,
+                    bump = coreTimelockAccounts.pda.bump,
+                ).instruction()
+            )
+        }
 
         // 7. CurrencyCreator::BuyAndDepositIntoVm
         add(
