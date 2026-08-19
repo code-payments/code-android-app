@@ -50,6 +50,9 @@ data class TokenEntity(
 
     @ColumnInfo(name = "holder_metrics")
     val holderMetricsJson: String?,
+
+    @ColumnInfo(name = "market_cap_metrics")
+    val marketCapMetricsJson: String? = null,
 ) {
     @get:Ignore
     val mint: Mint

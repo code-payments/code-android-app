@@ -4,6 +4,7 @@ import com.codeinc.opencode.gen.messaging.v1.OcpMessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.domain.mapping.BillCustomizationMapper
 import com.getcode.opencode.internal.domain.mapping.HolderMetricsMapper
+import com.getcode.opencode.internal.domain.mapping.MarketCapMetricsMapper
 import com.getcode.opencode.internal.domain.mapping.LaunchpadMetadataMapper
 import com.getcode.opencode.internal.domain.mapping.MintMapper
 import com.getcode.opencode.internal.domain.mapping.SocialLinkMapper
@@ -51,6 +52,7 @@ class MessagingController @Inject constructor(
         socialLinkMapper = SocialLinkMapper(),
         customizationMapper = BillCustomizationMapper(),
         holderMetricsMapper = HolderMetricsMapper(),
+        marketCapMetricsMapper = MarketCapMetricsMapper(),
     )
 
     suspend fun awaitRequestToGrabBill(

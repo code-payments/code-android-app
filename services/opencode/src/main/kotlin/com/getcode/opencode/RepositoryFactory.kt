@@ -5,6 +5,7 @@ import com.getcode.opencode.inject.OpenCodeModule
 import com.getcode.opencode.internal.domain.mapping.BillCustomizationMapper
 import com.getcode.opencode.internal.domain.mapping.HistoricalMintDataMapper
 import com.getcode.opencode.internal.domain.mapping.HolderMetricsMapper
+import com.getcode.opencode.internal.domain.mapping.MarketCapMetricsMapper
 import com.getcode.opencode.internal.domain.mapping.LaunchpadMetadataMapper
 import com.getcode.opencode.internal.domain.mapping.LiveMintDataMapper
 import com.getcode.opencode.internal.domain.mapping.MintMapper
@@ -147,6 +148,7 @@ object RepositoryFactory {
             socialLinkMapper = SocialLinkMapper(),
             customizationMapper = BillCustomizationMapper(),
             holderMetricsMapper = HolderMetricsMapper(),
+            marketCapMetricsMapper = MarketCapMetricsMapper(),
         )
         val historicalMintDataMapper = HistoricalMintDataMapper()
         val liveMintDataMapper = LiveMintDataMapper()

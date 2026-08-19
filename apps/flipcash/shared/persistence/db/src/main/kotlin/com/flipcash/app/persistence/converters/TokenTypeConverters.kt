@@ -53,6 +53,18 @@ class TokenTypeConverters {
     }
     // endregion
 
+    // region market cap metrics
+    @TypeConverter
+    fun fromMarketCapMetrics(value: String?): MarketCapMetricsSerialized? {
+        return value?.let { json.decodeFromString<MarketCapMetricsSerialized>(it) }
+    }
+
+    @TypeConverter
+    fun toMarketCapMetrics(metrics: MarketCapMetricsSerialized?): String? {
+        return metrics?.let { json.encodeToString(it) }
+    }
+    // endregion
+
     // region ModerationAttestations
     @TypeConverter
     fun fromModerationAttestations(value: String?): ModerationAttestationsSerialized? {
@@ -120,6 +132,18 @@ data class HolderMetricsSerialized(
 data class HolderDeltaSerialized(
     val range: String,  // WindowedRange enum name
     val delta: Long,
+)
+
+@Serializable
+data class MarketCapMetricsSerialized(
+    val currentMarketCap: Double,
+    val deltas: List<MarketCapDeltaSerialized>,
+)
+
+@Serializable
+data class MarketCapDeltaSerialized(
+    val range: String,  // WindowedRange enum name
+    val delta: Double,
 )
 
 @Serializable

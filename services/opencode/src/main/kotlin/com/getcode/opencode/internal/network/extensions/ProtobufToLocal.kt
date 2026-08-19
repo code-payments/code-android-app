@@ -147,6 +147,7 @@ internal fun OcpTransactionService.StatefulSwapResponse.ServerParameters.Reserve
         memoValue = memoValue,
         memoryAccount = memoryAccount.toPublicKey(),
         memoryIndex = memoryIndex,
+        feeDestination = if (hasFeeDestination()) feeDestination.toPublicKey() else null,
     )
 }
 

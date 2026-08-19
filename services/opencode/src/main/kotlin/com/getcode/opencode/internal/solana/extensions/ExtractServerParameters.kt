@@ -19,6 +19,7 @@ sealed interface ExtractedServerParams {
         override val memo: String,
         val memoryAccount: PublicKey,
         val memoryIndex: Int,
+        val feeDestination: PublicKey? = null,
     ): ExtractedServerParams
 
     data class NewCurrency(
@@ -48,6 +49,7 @@ internal fun extractServerParameters(serverParameters: StatefulSwapResponseServe
         memo = serverParameters.memoValue,
         memoryAccount = serverParameters.memoryAccount,
         memoryIndex = serverParameters.memoryIndex,
+        feeDestination = serverParameters.feeDestination,
     )
 }
 

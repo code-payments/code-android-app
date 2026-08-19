@@ -86,8 +86,9 @@ import com.getcode.utils.subByteArray
         // per-row user_profile_json blob into the shared user_profiles table, which
         // needs data movement an AutoMigration can't express.
         AutoMigration(from = 26, to = 27), // messages.text_substitutions (nullable)
+        AutoMigration(from = 27, to = 28), // tokens.market_cap_metrics (nullable)
     ],
-    version = 27,
+    version = 28,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
