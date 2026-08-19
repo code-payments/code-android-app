@@ -20,6 +20,8 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
@@ -39,6 +41,7 @@ import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.flow.rememberInitialStack
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
+import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -108,6 +111,8 @@ private fun WithdrawalSelectTokenScreen() {
     val flowNavigator = rememberFlowNavigator<WithdrawalStep, WithdrawalResult>()
     val viewModel = hiltViewModel<SelectTokenViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val isNewUi by LocalFeatureFlags.current.observe(FeatureFlag.NewUi)
+        .collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -130,13 +135,21 @@ private fun WithdrawalSelectTokenScreen() {
         viewModel.dispatchEvent(SelectTokenViewModel.Event.OnPurposeChanged(TokenPurpose.Withdraw))
     }
 
-    LaunchedEffect(viewModel) {
+    LaunchedEffect(viewModel, isNewUi) {
         viewModel.eventFlow
             .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
             .filter { it.fromUser }
             .map { it.mint }
             .onEach { mint ->
-                flowNavigator.navigateTo(WithdrawalStep.Amount(mint))
+                // v2 makes the picker the flow's entry, so Dollars has to detour through the
+                // "Withdraw as USDC" intro here — v1 reaches that intro first and only lands on the
+                // picker via its escape hatch, so a pick there always goes straight to the amount.
+                val isReserve = mint == Mint.usdf || mint == Mint.usdc
+                if (isNewUi && isReserve) {
+                    flowNavigator.navigateTo(WithdrawalStep.UsdcInformational(showOtherOptions = false))
+                } else {
+                    flowNavigator.navigateTo(WithdrawalStep.Amount(mint))
+                }
             }.launchIn(this)
     }
 }

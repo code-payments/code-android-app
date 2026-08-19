@@ -224,7 +224,13 @@ internal fun WalletScreenContent(
                             text = stringResource(R.string.action_withdrawMoney),
                             icon = painterResource(R.drawable.ic_menu_withdraw),
                         ) {
-                            dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Transfers.Withdrawal()))
+                            // No preselected mint: the flow opens on the currency picker, which lists
+                            // every balance (Dollars included).
+                            dispatchEvent(
+                                WalletViewModel.Event.OpenScreen(
+                                    AppRoute.Transfers.Withdrawal(preselectedMint = null)
+                                )
+                            )
                         }
                     }
 

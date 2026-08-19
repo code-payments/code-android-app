@@ -1,0 +1,13 @@
+<!-- Figma "IconArrowRight" (node 9216:19801) — the separator between the two coins on the
+     "Withdraw as USDC" intro. Drawn at 33% white, matching the Figma group opacity. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="28"
+    android:viewportHeight="28">
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.33"
+        android:fillType="evenOdd"
+        android:pathData="M16.3333 5.22928L25.1041 14L16.3333 22.7708L14.2709 20.7083L19.5209 15.4583H3.5V12.5417H19.5209L14.2709 7.29167L16.3333 5.22928Z" />
+</vector>
