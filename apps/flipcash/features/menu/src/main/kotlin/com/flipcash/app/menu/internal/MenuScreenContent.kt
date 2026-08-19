@@ -35,6 +35,7 @@ import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
 import com.flipcash.app.bills.components.cards.LocalTipCardColor
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.core.ui.TileButton
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
@@ -85,7 +86,15 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
         },
         bottomBar = {
             // v1 pins the version footer above the nav bar; v2 scrolls it with the content (footer slot).
-            if (!isNewUi) VersionFooter(viewModel, state)
+            if (!isNewUi) {
+                VersionFooter(
+                    viewModel = viewModel,
+                    state = state,
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(bottom = CodeTheme.dimens.grid.x3),
+                )
+            }
         }
     ) { padding ->
         MenuList(
@@ -103,8 +112,29 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                     MoneyTiles(viewModel, navigator)
                 }
             },
-            footer = { if (isNewUi) VersionFooter(viewModel, state) },
-            contentPadding = PaddingValues(top = CodeTheme.dimens.grid.x3),
+            footer = {
+                if (isNewUi) {
+                    // Scrolls with the list, so it needs its own breathing room off the last row's
+                    // divider. No navigationBarsPadding here — the reserved tab-bar inset below
+                    // already clears the system bar (the bar measures itself with that padding in).
+                    VersionFooter(
+                        viewModel = viewModel,
+                        state = state,
+                        modifier = Modifier.padding(
+                            top = CodeTheme.dimens.grid.x6,
+                            bottom = CodeTheme.dimens.grid.x3,
+                        ),
+                    )
+                }
+            },
+            // v2's tab bar is a hoisted overlay drawn ABOVE this content, so reserve its height as
+            // bottom content padding — the list then scrolls clear of the bar instead of running
+            // under it (the version footer was landing behind it). Per-entry via LocalTabBarPadding,
+            // which is only non-zero for tab homes. v1 has no such bar.
+            contentPadding = PaddingValues(
+                top = CodeTheme.dimens.grid.x3,
+                bottom = LocalTabBarPadding.current.calculateBottomPadding(),
+            ),
             onItemClick = {
                 viewModel.dispatchEvent(it.action)
             }
@@ -204,17 +234,16 @@ private fun MoneyTiles(
 private fun VersionFooter(
     viewModel: MenuScreenViewModel,
     state: MenuScreenViewModel.State,
+    modifier: Modifier = Modifier,
 ) {
-    Box(modifier = Modifier.fillMaxWidth()) {
+    Box(modifier = modifier.fillMaxWidth()) {
         Text(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.Center)
                 .noRippleClickable {
                     viewModel.dispatchEvent(Event.OnVersionInfoClicked)
-                }
-                .navigationBarsPadding()
-                .padding(bottom = CodeTheme.dimens.grid.x3),
+                },
             text = stringResource(
                 R.string.subtitle_appVersionInfoFooter,
                 state.appVersionInfo.versionName,
