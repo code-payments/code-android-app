@@ -59,9 +59,17 @@ sealed interface ScannableDecorator {
         /** Resolves the decor that own the below-bill content for [scannable]. */
         fun forScannable(scannable: Scannable): ScannableDecorator = when (scannable) {
             is Scannable.Payable -> PayableDecorator(scannable)
-            is Scannable.TipCard -> TipCardDecorator(scannable)
+            // The viewer's own tip card (e.g. the You tab's full-screen present) has no below-bill
+            // content — no Send-a-Tip modal, no add-money prompt. You can't tip yourself.
+            is Scannable.TipCard -> if (scannable.isSelf) NoOpScannableDecorator else TipCardDecorator(scannable)
         }
     }
+}
+
+/** A decorator that renders nothing below the bill. Used for display-only scannables. */
+internal data object NoOpScannableDecorator : ScannableDecorator {
+    @Composable
+    override fun BoxScope.Content(context: ScannableDecoratorContext) = Unit
 }
 
 /**

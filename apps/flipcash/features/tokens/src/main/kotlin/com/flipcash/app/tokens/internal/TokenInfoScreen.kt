@@ -82,7 +82,9 @@ private fun TokenInfoScreen(
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
     val features = LocalFeatureFlags.current
-    val isNewUi = remember(features) { features.observe(FeatureFlag.NewUi).value }
+    // Collect rather than snapshot `.value` — the flow is seeded with the flag's default until
+    // DataStore emits, so a remembered read freezes the default (see MenuScreenContent).
+    val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
 
     if (isNewUi) {
         // v2 hosts its own overlaid app bar (see the outer TokenInfoScreen); content fills behind it,
@@ -323,8 +325,6 @@ private fun BottomBarButtons(
             ) {
                 if (state.isCashReserve) {
                     ReserveButtonOptions(
-                        mint = loadable.data.address,
-
                         state = state,
                         dispatch = dispatch,
                     )
@@ -346,27 +346,14 @@ private fun BottomBarButtons(
 
 @Composable
 private fun RowScope.ReserveButtonOptions(
-    mint: Mint,
     state: TokenInfoViewModel.State,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
     val hasBalance = state.balance.nativeAmount.isPositive
 
     if (hasBalance) {
-        if (mint == Mint.usdf && state.canGiveUsdf || mint != Mint.usdf) {
-            CodeButton(
-                modifier = Modifier.weight(1f),
-                buttonState = ButtonState.Filled,
-                text = stringResource(R.string.action_give),
-            ) {
-                dispatch(
-                    TokenInfoViewModel.Event.OpenScreen(
-                        AppRoute.Sheets.Give(mint = mint, fromTokenInfo = true)
-                    )
-                )
-            }
-        }
-
+        // USDF/Dollars is only giveable in the new UI (v2 currency-info tiles); the legacy reserve
+        // layout offers Withdraw + Deposit only.
         CodeButton(
             modifier = Modifier.weight(1f),
             buttonState = ButtonState.Filled20,

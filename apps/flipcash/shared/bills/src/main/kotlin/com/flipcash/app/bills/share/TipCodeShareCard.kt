@@ -1,4 +1,4 @@
-package com.flipcash.app.tipping.internal.share
+package com.flipcash.app.bills.share
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

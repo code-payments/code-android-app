@@ -1,6 +1,5 @@
 package com.flipcash.app.tipping
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +10,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,7 +18,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -30,9 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.ScannableRenderer
 import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
 import com.flipcash.app.bills.components.cards.LocalTipCardColor
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Scannable
-import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.tipping.TipResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.featureflags.FeatureFlag
@@ -40,46 +34,35 @@ import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.tipping.internal.TipFlowViewModel
 import com.flipcash.app.tipping.internal.TipFlowViewModel.Event
 import com.flipcash.features.tipping.R
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
-import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.theme.CodeScaffold
 
 /**
- * The user's own tip card — always a step in the tipping [TippingFlowScreen] flow, so it shares the
- * flow's [TipFlowViewModel]. Only the chrome differs by [FeatureFlag.NewUi]:
- * - **v2**: a root tab (the flow seeded at TipCard) — the card centered, with the app menu reachable
- *   via the hamburger in the top-right.
+ * The user's own tip card — a step in the tipping [TippingFlowScreen] flow, so it shares the flow's
+ * [TipFlowViewModel]. Only the chrome differs by [FeatureFlag.NewUi]:
+ * - **v2**: the post-profile-setup landing (the flow seeded at TipCard) — the card full-bleed, no
+ *   chrome. The primary home for the card is now the "You" tab (the menu), which also owns settings.
  * - **v1**: a sheet step — title bar with back, and a Share action.
  */
 @Composable
 fun TipCardScreen() {
     val features = LocalFeatureFlags.current
-    val isNewUi = remember(features) { features.observe(FeatureFlag.NewUi).value }
+    // Collect rather than snapshot `.value` — the flow is seeded with the flag's default until
+    // DataStore emits, so a remembered read freezes the default (see MenuScreenContent).
+    val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
 
     val viewModel = flowSharedViewModel<TipFlowViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     if (isNewUi) {
-        val navigator = LocalCodeNavigator.current
+        // Post-profile-setup landing: the user's newly created tip card, full-bleed. Settings now
+        // live in the "You" tab (the menu), so this screen no longer carries a settings hamburger.
         Box(modifier = Modifier.fillMaxSize()) {
             TipCardArt(card = state.tipCard, modifier = Modifier.fillMaxSize())
-
-            Image(
-                painter = painterResource(R.drawable.ic_home_options),
-                contentDescription = null,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .padding(vertical = CodeTheme.dimens.grid.x2)
-                    .padding(horizontal = CodeTheme.dimens.grid.x3)
-                    .clip(CircleShape)
-                    .unboundedClickable { navigator.openAsSheet(AppRoute.Sheets.Menu) },
-            )
         }
     } else {
         val flowNavigator = rememberFlowNavigator<TipStep, TipResult>()

@@ -1,4 +1,4 @@
-package com.flipcash.app.tipping.internal.share
+package com.flipcash.app.bills.share
 
 import com.flipcash.app.core.share.TipCodePreviewRenderer
 import dagger.Binds

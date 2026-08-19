@@ -15,7 +15,7 @@ import com.flipcash.app.auth.AuthManager
 import okio.Path.Companion.toOkioPath
 import com.flipcash.app.core.android.ActivityProvider
 import com.flipcash.app.currency.PreferredCurrencyController
-import com.flipcash.app.tipping.internal.share.TipCodePreviewCache
+import com.flipcash.app.bills.share.TipCodePreviewCache
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.utils.trace
 import dev.bmcreations.phantom.connect.PhantomSdk

@@ -123,6 +123,13 @@ class TokenCoordinator @Inject constructor(
     override fun observeTokenCache(): Flow<Map<Mint, Token>> =
         _state.map { it.tokens }.distinctUntilChanged()
 
+    /**
+     * Synchronous, network-free read of the in-memory token cache — used to seed the currency-info
+     * screen's hero card on the very first frame (so the wallet card-expand shared element has a target
+     * to fly to) instead of waiting on the async [getTokenMetadata].
+     */
+    fun cachedToken(mint: Mint): Token? = _state.value.tokens[mint]
+
     val tokenBalances: Flow<List<TokenWithBalance>> = _hydrated
         .filter { it }
         .flatMapLatest {
@@ -175,8 +182,8 @@ class TokenCoordinator @Inject constructor(
             }
             .launchIn(scope)
 
-        // Re-evaluate selected token when GiveUsdf flag changes
-        featureFlags.observe(FeatureFlag.GiveUsdf)
+        // USDF givability is tied to the new UI; re-evaluate the selected token when it toggles.
+        featureFlags.observe(FeatureFlag.NewUi)
             .filter { _hydrated.value }
             .onEach { ensureValidTokenSelection() }
             .launchIn(scope)
@@ -199,9 +206,8 @@ class TokenCoordinator @Inject constructor(
 
     /** Can I hand money to a person right now? */
     suspend fun hasGiveableBalance(atLeast: Fiat = Fiat.Zero): Boolean {
-        // USDF is only giveable when the GiveUsdf flag is on; otherwise a USDF-only
-        // balance must not count as giveable.
-        val canGiveUsdf = featureFlags.get(FeatureFlag.GiveUsdf)
+        // USDF is only giveable in the new UI; otherwise a USDF-only balance must not count.
+        val canGiveUsdf = featureFlags.get(FeatureFlag.NewUi)
         val state = _state.value
         return state.balances.filterKeys { canGiveUsdf || it != Mint.usdf }
             .values
@@ -559,7 +565,8 @@ class TokenCoordinator @Inject constructor(
             ?.get(mintPreferenceKey)
             ?.let { Mint(it) }
 
-        val canGiveUsdf = featureFlags.get(FeatureFlag.GiveUsdf)
+        // USDF is a valid selection only in the new UI (where it's giveable).
+        val canGiveUsdf = featureFlags.get(FeatureFlag.NewUi)
         val excludedMints = if (!canGiveUsdf) setOf(Mint.usdf) else emptySet()
 
         val resolved = resolveTokenSelection(

@@ -127,6 +127,15 @@ class BillPresentationDelegate @Inject constructor(
         stateHolder.update { it.copy(billResult = Grabbed) }
     }
 
+    /**
+     * Presents the viewer's own tip card for display. Flags it [Scannable.TipCard.isSelf] so the
+     * overlay attaches the no-op decorator (no Send-a-Tip modal / add-money prompt). Reuses
+     * [presentTipCard]'s single-slot guard as the double-present guard.
+     */
+    override fun presentOwnTipCard(card: Scannable.TipCard) {
+        presentTipCard(card.copy(isSelf = true))
+    }
+
     override fun dismissBill(action: BillDeterminationResult) {
         scope.launch {
             stateHolder.update { it.copy(billResult = action) }

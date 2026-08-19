@@ -252,11 +252,11 @@ class RealSessionController @Inject constructor(
             .onEach { enabled -> stateHolder.update { it.copy(vibrateOnScan = enabled) } }
             .launchIn(scope)
 
-        // Re-evaluate on balance changes and on GiveUsdf toggles — hasGiveableBalance()
-        // filters out USDF when that flag is off.
+        // Re-evaluate on balance changes and on NewUi toggles — hasGiveableBalance() only counts
+        // USDF as giveable in the new UI.
         combine(
             tokenCoordinator.tokenBalances,
-            featureFlagController.observe(FeatureFlag.GiveUsdf),
+            featureFlagController.observe(FeatureFlag.NewUi),
         ) { _, _ -> tokenCoordinator.hasGiveableBalance() }
             .distinctUntilChanged()
             .onEach { hasBalance -> stateHolder.update { it.copy(hasGiveableBalance = hasBalance) } }

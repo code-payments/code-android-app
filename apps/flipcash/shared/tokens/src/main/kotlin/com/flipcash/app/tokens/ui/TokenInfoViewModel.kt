@@ -5,8 +5,6 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.tokens.SwapPurpose
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.funding.PurchaseMethodController
 
 import com.flipcash.app.shareable.ShareSheetController
@@ -53,7 +51,6 @@ class TokenInfoViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val purchaseMethodController: PurchaseMethodController,
     private val feedCoordinator: ActivityFeedCoordinator,
-    features: FeatureFlagController,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
     initialState = State(),
@@ -71,7 +68,6 @@ class TokenInfoViewModel @Inject constructor(
         val descriptionExpanded: Boolean = false,
         val historicalMarketCapData: Map<Period, Loadable<List<MarketCapPoint>>> = emptyMap(),
         val selectedPeriod: Period = Period.All,
-        val canGiveUsdf: Boolean = false,
         val fundableBalanceMints: Set<Mint> = emptySet(),
         /** Bounded per-token recent activity preview (newest first) for the v2 currency-info screen. */
         val transactions: List<TransactionListItem> = emptyList(),
@@ -88,7 +84,6 @@ class TokenInfoViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class CanGiveUsdf(val enabled: Boolean): Event
         data class OnMintProvided(val mint: Mint, val shortFall: Fiat? = null) : Event
         data class OnTokenChanged(val token: Loadable<Token>, val shortFall: Fiat? = null) : Event
         data class OnMarketCapChanged(val mcap: Fiat?) : Event
@@ -115,14 +110,20 @@ class TokenInfoViewModel @Inject constructor(
     }
 
     init {
-        features.observe(FeatureFlag.GiveUsdf)
-            .onEach {
-                dispatchEvent(Event.CanGiveUsdf(it))
-            }.launchIn(viewModelScope)
-
         eventFlow
             .filterIsInstance<Event.OnMintProvided>()
-            .onEach { dispatchEvent(Event.OnTokenChanged(Loadable.Loading())) }
+            .onEach { event ->
+                // Seed the hero card synchronously from the token cache so it's present immediately —
+                // the wallet card-expand shared element needs a target to fly to. Fall back to Loading
+                // only when the token isn't cached; the async fetch below refreshes it either way.
+                val cached = tokenCoordinator.cachedToken(event.mint)
+                dispatchEvent(
+                    Event.OnTokenChanged(
+                        if (cached != null) Loadable.Loaded(cached) else Loadable.Loading(),
+                        event.shortFall,
+                    )
+                )
+            }
             .onEach {
                 tokenCoordinator.getTokenMetadata(it.mint)
                     .onSuccess { result ->
@@ -372,7 +373,6 @@ class TokenInfoViewModel @Inject constructor(
                 is Event.LoadHistoricalDataForPeriod -> { state -> state }
                 is Event.Share -> { state -> state }
                 is Event.Exit -> { state -> state }
-                is Event.CanGiveUsdf -> { state -> state.copy(canGiveUsdf = event.enabled) }
             }
         }
     }

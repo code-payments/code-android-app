@@ -1,4 +1,4 @@
-package com.flipcash.app.tipping.internal.share
+package com.flipcash.app.bills.share
 
 import android.content.Context
 import com.flipcash.app.core.bill.Scannable

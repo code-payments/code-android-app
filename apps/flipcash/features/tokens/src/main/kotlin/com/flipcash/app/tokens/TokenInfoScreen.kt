@@ -77,7 +77,9 @@ fun TokenInfoScreen(
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     val features = LocalFeatureFlags.current
-    val isNewUi = remember(features) { features.observe(FeatureFlag.NewUi).value }
+    // Collect rather than snapshot `.value` — the flow is seeded with the flag's default until
+    // DataStore emits, so a remembered read freezes the default (see MenuScreenContent).
+    val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
     // v2: the title is a leading "Liquid Glass" pill that fades in once the hero card's own title has

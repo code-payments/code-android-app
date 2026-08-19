@@ -46,9 +46,9 @@ class ScannableTest {
     private val nonUsdfMint = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v") // USDC — not USDF
 
     @Test
-    fun `forToken returns GoldBar for usdf mint`() {
+    fun `forToken returns CashBill for usdf mint`() {
         val bill = Scannable.Payable.forToken(token = tokenWith(Mint.usdf), amount = localFiat())
-        assertIs<Scannable.GoldBar>(bill)
+        assertIs<Scannable.CashBill>(bill)
     }
 
     @Test
