@@ -93,7 +93,16 @@ data class NavigationBarState(
     val showToast: Boolean = false,
     val toastText: String? = null,
     val isPaused: Boolean = false,
-)
+) {
+    /**
+     * Unread count to badge [button] with, or 0 for none. Tips and Chats are the same tip-DM
+     * inbox under the two UIs — v1 surfaces it on the Tips button, v2 on the Chat tab.
+     */
+    fun badgeCount(button: NavBarButton): Int = when (button) {
+        NavBarButton.Tips, NavBarButton.Chats -> tipUnreadCount
+        else -> 0
+    }
+}
 
 @Composable
 fun rememberNavigationBarState(
@@ -316,27 +325,40 @@ private fun NavigationBarV2(
                     targetValue = if (selected) 1f else 0.5f,
                     label = "navBarIconAlpha",
                 )
+                val badgeCount = state.badgeCount(button)
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .height(itemHeight)
-                        .clip(CircleShape)
-                        // No ripple — the sliding selection pill is the touch feedback; a Material
-                        // ripple here just competes with it.
+                        // Deliberately unclipped: the unread badge overhangs the icon's top-right
+                        // corner and a clip would shave it. Safe because the click indication is
+                        // null, so there is no ripple that needs bounding.
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
                         ) { onButtonClick(button) },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Image(
-                        modifier = Modifier
-                            .size(iconSize)
-                            .graphicsLayer { alpha = iconAlpha },
-                        painter = painterResource(button.icon),
-                        colorFilter = ColorFilter.tint(Color.White),
-                        contentDescription = null,
-                    )
+                    Box {
+                        Image(
+                            modifier = Modifier
+                                .size(iconSize)
+                                .graphicsLayer { alpha = iconAlpha },
+                            painter = painterResource(button.icon),
+                            colorFilter = ColorFilter.tint(Color.White),
+                            contentDescription = null,
+                        )
+                        // Overlaps the glyph's top-right corner (matching the iOS bar) rather than
+                        // floating detached above it. Full opacity regardless of tab selection —
+                        // the count must stay readable on an unselected tab.
+                        Badge(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = CodeTheme.dimens.staticGrid.x1, y = -CodeTheme.dimens.staticGrid.x1),
+                            count = badgeCount,
+                            color = CodeTheme.colors.indicator,
+                        )
+                    }
                 }
             }
         }
