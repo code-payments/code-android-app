@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
@@ -60,6 +61,9 @@ internal fun ChatAmountEntryContent(
         onChangeCurrency = { navigator.push(AppRoute.Main.RegionSelection) },
         appBar = {
             AppBarWithTitle(
+                // Same centred pill as the give screen — declare the centring rather than leaning on
+                // the leading slot's width to position a Start-aligned title.
+                titleAlignment = Alignment.CenterHorizontally,
                 title = {
                     TokenSelectionPill(
                         modifier = Modifier

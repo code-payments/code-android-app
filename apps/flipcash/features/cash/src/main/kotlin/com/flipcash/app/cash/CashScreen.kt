@@ -52,6 +52,11 @@ fun CashScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
+            // The pill is meant to sit centred in the bar. Say so explicitly rather than relying on
+            // the leading slot's width to nudge a Start-aligned title into place — an empty leading
+            // slot no longer reserves a phantom control's width, so a Start title sits flush at the
+            // inset and the pill drifted left of centre whenever there was no back arrow.
+            titleAlignment = Alignment.CenterHorizontally,
             title = {
                 TokenSelectionPill(
                     modifier = Modifier
