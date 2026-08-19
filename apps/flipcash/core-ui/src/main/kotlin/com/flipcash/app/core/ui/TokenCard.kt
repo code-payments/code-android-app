@@ -16,9 +16,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.money.formattedAppreciation
@@ -84,12 +91,47 @@ fun TokenCard(
         if (isUsdf) UsdfBrush else billCardBrush(token.billCustomizations)
     }
 
+    // USDF's oversized "$" watermark (Figma 9120:15335): a bold white glyph bleeding off the
+    // top-right, drawn with mix-blend "overlay" at 30% so it reads as an emboss on the gold, not a
+    // solid mark. Pre-measured here; positioned per-frame in the draw layer once the card size is
+    // known. Font size is expressed in dp (via toSp) so the watermark ignores the user font scale.
+    val density = LocalDensity.current
+    val textMeasurer = rememberTextMeasurer()
+    val watermark = remember(isUsdf, height, density) {
+        if (!isUsdf) null else textMeasurer.measure(
+            text = "$",
+            style = TextStyle(
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = with(density) { (height * WatermarkFontScale).toSp() },
+            ),
+        )
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
             .clip(shape)
             .background(brush)
+            // Sits above the gradient but below the header; clipped to the card's rounded shape
+            // (applied before this in the chain) and ignores the content padding (applied after).
+            .addIf(watermark != null) {
+                Modifier.drawWithContent {
+                    watermark?.let { glyph ->
+                        drawText(
+                            textLayoutResult = glyph,
+                            topLeft = Offset(
+                                x = size.width - glyph.size.width - WatermarkRightInset.toPx(),
+                                y = -WatermarkTopBleed.toPx(),
+                            ),
+                            alpha = WatermarkAlpha,
+                            blendMode = BlendMode.Overlay,
+                        )
+                    }
+                    drawContent()
+                }
+            }
             .border(CodeTheme.dimens.border, CodeTheme.colors.surfaceVariant, shape)
             .addIf(onClick != null) { Modifier.clickable { onClick?.invoke() } }
             .padding(CodeTheme.dimens.inset),
@@ -142,6 +184,13 @@ fun TokenCard(
 
 /** USDF's fixed gold branding (Figma) — used instead of a user-chosen bill color. */
 private val UsdfBrush = Brush.horizontalGradient(listOf(Color(0xFFC4980B), Color(0xFFB06B00)))
+
+// USDF "$" watermark tuning (Figma 9120:15335: ~213px glyph on a ~214px-tall card, top -17 / right
+// +17, 30% opacity). Sizes are proportional to the card height so it scales with `height`.
+private const val WatermarkFontScale = 0.95f
+private const val WatermarkAlpha = 0.30f
+private val WatermarkTopBleed = 16.dp
+private val WatermarkRightInset = 16.dp
 
 /** Horizontal gradient brush from a token's bill-customization colors (matches the Figma cards). */
 private fun billCardBrush(customizations: TokenBillCustomizations?): Brush {
