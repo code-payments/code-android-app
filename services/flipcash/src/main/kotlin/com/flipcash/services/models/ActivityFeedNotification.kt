@@ -1,6 +1,7 @@
 package com.flipcash.services.models
 
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.PublicKey
 import kotlin.time.Instant
@@ -78,12 +79,57 @@ sealed interface NotificationMetadata {
         val userId: ID? = null,
     ) : NotificationMetadata
 
+    /**
+     * @param swapMetadata When the withdrawal was executed as a swap, the metadata for that swap.
+     * Null for a plain withdrawal. (The server's deprecated per-half `swap_state` is superseded by
+     * this.)
+     */
     @Serializable
-    data object WithdrewCrypto : NotificationMetadata
+    data class WithdrewCrypto(
+        val swapMetadata: SwappedCryptoMetadata? = null,
+    ) : NotificationMetadata
 
+    // Superseded by [SwappedCrypto] (which models both halves of a swap as one event). Retained so
+    // historical bought/sold notifications still map.
     @Serializable
     data object BoughtToken: NotificationMetadata
     @Serializable
     data object SoldToken: NotificationMetadata
 
+    /**
+     * A swap between two mints, modeled as a single event. Supersedes [BoughtToken]/[SoldToken].
+     */
+    @Serializable
+    data class SwappedCrypto(
+        val swap: SwappedCryptoMetadata,
+    ) : NotificationMetadata
 }
+
+/**
+ * The state of a swap as a whole.
+ */
+enum class SwapState {
+    UNKNOWN,
+    PENDING,
+    SUCCEEDED,
+    FAILED,
+    NONE,
+}
+
+/**
+ * Details of a crypto swap between two mints.
+ *
+ * @param from The amount the user gave up in the source mint.
+ * @param toMint The destination mint. Always known, even while the swap is pending.
+ * @param toAmount The amount received in the destination mint. Null until the swap has executed.
+ * @param fee The fee charged for the swap, known upfront regardless of swap state.
+ * @param swapState The state of the swap as a whole.
+ */
+@Serializable
+data class SwappedCryptoMetadata(
+    val from: LocalFiat,
+    val toMint: PublicKey,
+    val toAmount: LocalFiat?,
+    val fee: Fiat,
+    val swapState: SwapState,
+)

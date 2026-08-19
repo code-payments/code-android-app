@@ -111,8 +111,9 @@ private fun userIdOf(meta: MessageMetadata?): ID? = when (meta) {
 
 private fun hasNoCounterparty(meta: MessageMetadata?): Boolean = when (meta) {
     MessageMetadata.DepositedCrypto,
-    MessageMetadata.WithdrewCrypto,
+    is MessageMetadata.WithdrewCrypto,
     MessageMetadata.BoughtToken,
+    is MessageMetadata.SwappedCrypto,
     MessageMetadata.SoldToken -> true
     else -> false
 }
@@ -122,8 +123,10 @@ val MessageMetadata.isOutgoing: Boolean
     get() = when (this) {
         is MessageMetadata.DirectlySentCrypto,
         is MessageMetadata.IndirectlySentCrypto,
-        MessageMetadata.WithdrewCrypto,
+        is MessageMetadata.WithdrewCrypto,
         MessageMetadata.SoldToken,
+        // A swap debits the source mint (the `from` side), so treat it as outgoing.
+        is MessageMetadata.SwappedCrypto,
         is MessageMetadata.PaidCrypto -> true
         is MessageMetadata.ReceivedCrypto,
         MessageMetadata.DepositedCrypto,

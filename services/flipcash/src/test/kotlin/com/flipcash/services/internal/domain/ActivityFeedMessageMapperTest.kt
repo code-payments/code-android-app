@@ -10,10 +10,13 @@ import com.codeinc.flipcash.gen.activity.v1.withdrewCryptoNotificationMetadata
 import com.codeinc.flipcash.gen.activity.v1.depositedCryptoNotificationMetadata
 import com.codeinc.flipcash.gen.activity.v1.boughtCryptoNotificationMetadata
 import com.codeinc.flipcash.gen.activity.v1.soldCryptoNotificationMetadata
+import com.codeinc.flipcash.gen.activity.v1.swappedCryptoNotificationMetadata
 import com.codeinc.flipcash.gen.common.v1.cryptoPaymentAmount
+import com.codeinc.flipcash.gen.common.v1.fiatPaymentAmount
 import com.codeinc.flipcash.gen.common.v1.publicKey
 import com.flipcash.services.models.NotificationMetadata
 import com.flipcash.services.models.NotificationState
+import com.flipcash.services.models.SwapState
 import com.google.protobuf.ByteString
 import com.google.protobuf.Timestamp
 import org.junit.Test
@@ -149,7 +152,7 @@ class ActivityFeedMessageMapperTest {
         val proto = baseNotification {
             withdrewCrypto = withdrewCryptoNotificationMetadata {}
         }
-        assertEquals(NotificationMetadata.WithdrewCrypto, mapper.map(proto).metadata)
+        assertEquals(NotificationMetadata.WithdrewCrypto(), mapper.map(proto).metadata)
     }
 
     @Test
@@ -174,6 +177,90 @@ class ActivityFeedMessageMapperTest {
             soldCrypto = soldCryptoNotificationMetadata {}
         }
         assertEquals(NotificationMetadata.SoldToken, mapper.map(proto).metadata)
+    }
+
+    @Test
+    fun `swapped crypto executed carries the received amount`() {
+        val proto = baseNotification {
+            swappedCrypto = swappedCryptoNotificationMetadata {
+                from = cryptoPaymentAmount {
+                    currency = "USD"
+                    nativeAmount = 5.0
+                    quarks = 5_000_000L
+                }
+                toAmount = cryptoPaymentAmount {
+                    currency = "USD"
+                    nativeAmount = 4.9
+                    quarks = 4_900_000L
+                }
+                fee = fiatPaymentAmount {
+                    currency = "USD"
+                    nativeAmount = 0.1
+                }
+                swapState = Model.SwapState.SWAP_STATE_SUCCEEDED
+            }
+        }
+
+        val meta = mapper.map(proto).metadata
+        assertIs<NotificationMetadata.SwappedCrypto>(meta)
+        assertEquals(SwapState.SUCCEEDED, meta.swap.swapState)
+        assertEquals(5_000_000L, meta.swap.from.underlyingTokenAmount.quarks)
+        assertNotNull(meta.swap.toAmount)
+        assertEquals(4_900_000L, meta.swap.toAmount.underlyingTokenAmount.quarks)
+    }
+
+    @Test
+    fun `swapped crypto pending carries only the destination mint`() {
+        val proto = baseNotification {
+            swappedCrypto = swappedCryptoNotificationMetadata {
+                from = cryptoPaymentAmount {
+                    currency = "USD"
+                    nativeAmount = 5.0
+                    quarks = 5_000_000L
+                }
+                toMint = publicKey { value = ByteString.copyFrom(ByteArray(32) { it.toByte() }) }
+                fee = fiatPaymentAmount {
+                    currency = "USD"
+                    nativeAmount = 0.1
+                }
+                swapState = Model.SwapState.SWAP_STATE_PENDING
+            }
+        }
+
+        val meta = mapper.map(proto).metadata
+        assertIs<NotificationMetadata.SwappedCrypto>(meta)
+        assertEquals(SwapState.PENDING, meta.swap.swapState)
+        assertNull(meta.swap.toAmount)
+    }
+
+    @Test
+    fun `withdrew crypto carries swap metadata when present`() {
+        val proto = baseNotification {
+            withdrewCrypto = withdrewCryptoNotificationMetadata {
+                swapMetadata = swappedCryptoNotificationMetadata {
+                    from = cryptoPaymentAmount {
+                        currency = "USD"
+                        nativeAmount = 5.0
+                        quarks = 5_000_000L
+                    }
+                    toAmount = cryptoPaymentAmount {
+                        currency = "USD"
+                        nativeAmount = 4.9
+                        quarks = 4_900_000L
+                    }
+                    fee = fiatPaymentAmount {
+                        currency = "USD"
+                        nativeAmount = 0.1
+                    }
+                    swapState = Model.SwapState.SWAP_STATE_SUCCEEDED
+                }
+            }
+        }
+
+        val meta = mapper.map(proto).metadata
+        assertIs<NotificationMetadata.WithdrewCrypto>(meta)
+        assertNotNull(meta.swapMetadata)
+        assertEquals(SwapState.SUCCEEDED, meta.swapMetadata.swapState)
     }
 
     @Test

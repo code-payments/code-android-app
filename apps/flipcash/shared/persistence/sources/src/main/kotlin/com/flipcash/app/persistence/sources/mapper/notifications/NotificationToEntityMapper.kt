@@ -2,10 +2,14 @@ package com.flipcash.app.persistence.sources.mapper.notifications
 
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageSubstitution
+import com.flipcash.app.core.feed.SwapState as MessageSwapState
+import com.flipcash.app.core.feed.SwappedCryptoMetadata as MessageSwappedCryptoMetadata
 import com.flipcash.app.persistence.entities.MessageEntity
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.models.NotificationMetadata
 import com.flipcash.services.models.Substitution
+import com.flipcash.services.models.SwapState as ServiceSwapState
+import com.flipcash.services.models.SwappedCryptoMetadata as ServiceSwappedCryptoMetadata
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
@@ -71,12 +75,29 @@ class MetadataMapper @Inject constructor(): Mapper<NotificationMetadata?, Messag
             is NotificationMetadata.ReceivedCrypto -> MessageMetadata.ReceivedCrypto(from.phoneNumber, from.userId)
             is NotificationMetadata.IndirectlySentCrypto -> MessageMetadata.IndirectlySentCrypto(from.creator, from.canCancel)
             NotificationMetadata.Unknown -> MessageMetadata.Unknown
-            NotificationMetadata.WithdrewCrypto -> MessageMetadata.WithdrewCrypto
+            is NotificationMetadata.WithdrewCrypto -> MessageMetadata.WithdrewCrypto(from.swapMetadata?.toMessage())
             NotificationMetadata.DepositedCrypto -> MessageMetadata.DepositedCrypto
             NotificationMetadata.BoughtToken -> MessageMetadata.BoughtToken
             NotificationMetadata.SoldToken -> MessageMetadata.SoldToken
+            is NotificationMetadata.SwappedCrypto -> MessageMetadata.SwappedCrypto(from.swap.toMessage())
         }
     }
+
+    /** Translates the service swap model to its persisted app-core mirror (shared payload types copy across). */
+    private fun ServiceSwappedCryptoMetadata.toMessage(): MessageSwappedCryptoMetadata =
+        MessageSwappedCryptoMetadata(
+            from = from,
+            toMint = toMint,
+            toAmount = toAmount,
+            fee = fee,
+            swapState = when (swapState) {
+                ServiceSwapState.UNKNOWN -> MessageSwapState.UNKNOWN
+                ServiceSwapState.PENDING -> MessageSwapState.PENDING
+                ServiceSwapState.SUCCEEDED -> MessageSwapState.SUCCEEDED
+                ServiceSwapState.FAILED -> MessageSwapState.FAILED
+                ServiceSwapState.NONE -> MessageSwapState.NONE
+            },
+        )
 }
 
 private data class AmountHolder(
