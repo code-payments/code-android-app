@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:funding"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:userflags"))
+    implementation(project(":apps:flipcash:card-expand"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:messaging"))
     implementation(project(":libs:permissions:bindings"))

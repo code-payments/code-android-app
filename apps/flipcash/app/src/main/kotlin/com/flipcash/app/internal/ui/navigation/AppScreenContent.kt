@@ -103,7 +103,9 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Sheets.TipAmountEntry> { TipAmountEntryScreen() }
     annotatedEntry<AppRoute.Sheets.Wallet> {
         if (isNewUi) {
-            WalletScreen()
+            // v2 wallet hosts the card-expand overlay in-entry so a pushed action (Give/Convert/Withdraw)
+            // covers the expanded currency-info with correct z-order (iOS WalletScreen structure).
+            CardExpandHost { WalletScreen() }
         } else {
             BalanceScreen()
         }
@@ -119,7 +121,7 @@ fun appEntryProvider(
 
     // Tokens
     annotatedEntry<AppRoute.Token.Info>(testTag = "token_info_screen") { key ->
-        TokenInfoScreen(key.mint, key.shortfall, key.fromDeeplink)
+        TokenInfoScreen(key.mint, key.shortfall, key.fromDeeplink, key.asPush)
     }
     annotatedEntry<AppRoute.Token.Transactions>(testTag = "transaction_history_screen") { key ->
         TransactionHistoryScreen(key.mint)

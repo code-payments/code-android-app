@@ -69,6 +69,7 @@ fun TokenInfoScreen(
     mint: Mint,
     shortFall: Fiat?,
     fromDeeplink: Boolean,
+    asPush: Boolean = false,
 ) {
     val navigator = LocalCodeNavigator.current
     val analytics = rememberAnalytics()
@@ -117,6 +118,10 @@ fun TokenInfoScreen(
             },
             titleAlignment = if (isNewUi) Alignment.Start else Alignment.CenterHorizontally,
             onBackIconClicked = { navigator.pop() },
+            // v2 currency-info is a modal dismiss, not a true back nav — lead with a close (✕). But when
+            // it was PUSHED onto the stack (e.g. drilled into from token discovery) it IS a back nav, so
+            // lead with a back arrow instead.
+            leadingDismiss = isNewUi && !asPush,
             hazeState = haze,
             endContent = {
                 state.token.dataOrNull?.let {

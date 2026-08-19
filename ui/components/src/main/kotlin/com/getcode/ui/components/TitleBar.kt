@@ -194,6 +194,10 @@ fun AppBarWithTitle(
     titleAlignment: Alignment.Horizontal = Alignment.Start,
     contentPadding: PaddingValues = AppBarDefaults.ContentPadding,
     onBackIconClicked: (() -> Unit)? = null,
+    // Force the leading control to be a Close (✕) in the LEADING (left) slot rather than a back arrow —
+    // for screens that are a modal dismiss, not a true back nav (e.g. currency-info). This differs from
+    // the sheet-root Close, which sits on the trailing edge.
+    leadingDismiss: Boolean = false,
     hazeState: HazeState? = null,
     endContent: @Composable RowScope.() -> Unit = { },
 ) {
@@ -213,14 +217,21 @@ fun AppBarWithTitle(
             !navigator.isFlowNavigator &&
             navigator.backStack.size <= 1
     val showBack = onBackIconClicked != null
-    val showClose = showBack && (flowDismissStyle == FlowDismissStyle.Close || isSheetRoot)
+    // A trailing-edge Close for sheet roots / flows that opted in — suppressed when the caller asks for a
+    // leading Close, which owns the dismiss instead.
+    val showClose = showBack && !leadingDismiss &&
+            (flowDismissStyle == FlowDismissStyle.Close || isSheetRoot)
 
     TopAppBarBase(
         modifier = modifier,
         contentPadding = contentPadding,
         leftIcon = {
-            if (showBack && !showClose) {
-                AppBarDefaults.UpNavigation(hazeState = hazeState) { onBackIconClicked() }
+            if (showBack) {
+                if (leadingDismiss) {
+                    AppBarDefaults.Close(hazeState = hazeState) { onBackIconClicked() }
+                } else if (!showClose) {
+                    AppBarDefaults.UpNavigation(hazeState = hazeState) { onBackIconClicked() }
+                }
             }
         },
         titleRegion = {

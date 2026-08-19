@@ -1,5 +1,8 @@
 package com.flipcash.app.tokens.internal.components.info
 
+import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,16 +30,21 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowUpward
-import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -46,10 +54,13 @@ import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.money.formattedAppreciation
 import com.flipcash.app.core.ui.TokenCard
 import com.flipcash.app.core.ui.TokenIcon
+import com.flipcash.app.core.ui.transitions.CardExpandTransition
+import com.flipcash.app.core.ui.transitions.SharedTransition
+import com.flipcash.app.core.ui.transitions.sharedBoundsTransition
 import com.getcode.opencode.model.financial.Token
 import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.features.tokens.R
-import com.flipcash.shared.transactionhistory.ActivityFeedRow
+import com.flipcash.shared.transactionhistory.recentActivitySection
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.SocialLink
@@ -78,6 +89,14 @@ internal fun CurrencyInfoContentV2(
     listState: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(),
     hazeState: HazeState? = null,
+    // Overlay (card-expand) presentation: the hero is drawn by the expansion host (flying from the deck
+    // slot), so here the hero item only RESERVES its slot and reports its window bounds as the fly target.
+    // Its alpha is driven by [heroPlaceholderAlpha]: hidden (0) while the list is pinned at the top (the
+    // flying overlay card stands in there), shown (1) once the list scrolls so THIS real card carries the
+    // scroll natively under the app bar. Default (pushed/deeplink presentation) draws the hero normally.
+    heroAsPlaceholder: Boolean = false,
+    heroPlaceholderAlpha: () -> Float = { 0f },
+    onHeroBounds: (Rect) -> Unit = {},
     dispatch: (TokenInfoViewModel.Event) -> Unit,
 ) {
     val inset = CodeTheme.dimens.inset
@@ -149,16 +168,48 @@ internal fun CurrencyInfoContentV2(
                         ?.nativeAmount
                         ?.formattedAppreciation()
 
-                    TokenCard(
-                        token = token,
-                        balanceText = if (isHeld) state.balance.nativeAmount.formatted() else "",
-                        displayName = token.name,
-                        appreciationText = appreciationText,
-                        modifier = Modifier
-                            .fillParentMaxWidth()
-                            .padding(horizontal = inset)
-                            .padding(top = grid.x2),
-                    )
+                    val heroModifier = Modifier
+                        .fillParentMaxWidth()
+                        .padding(horizontal = inset)
+                        .padding(top = grid.x2)
+
+                    if (heroAsPlaceholder) {
+                        // Reserve the slot, report its window bounds as the fly target, and reveal this
+                        // real card once the list scrolls (the flying overlay hides then — they're
+                        // coincident at the top, so the swap is invisible). Deferred alpha = no recompose.
+                        TokenCard(
+                            token = token,
+                            balanceText = if (isHeld) state.balance.nativeAmount.formatted() else "",
+                            displayName = token.name,
+                            appreciationText = appreciationText,
+                            modifier = heroModifier
+                                .onGloballyPositioned { onHeroBounds(it.boundsInWindow()) }
+                                .graphicsLayer { alpha = heroPlaceholderAlpha() },
+                        )
+                    } else {
+                        // Pushed/deeplink presentation: fly from the tapped wallet deck card (same mint
+                        // key), overlay-hosted while opening and in-layer while closing.
+                        val heroInOverlay = if (LocalInspectionMode.current) {
+                            true
+                        } else {
+                            LocalNavAnimatedContentScope.current.transition.targetState !=
+                                EnterExitState.PostExit
+                        }
+                        TokenCard(
+                            token = token,
+                            balanceText = if (isHeld) state.balance.nativeAmount.formatted() else "",
+                            displayName = token.name,
+                            appreciationText = appreciationText,
+                            modifier = heroModifier
+                                .sharedBoundsTransition(
+                                    key = SharedTransition.TokenCard(token.address).key,
+                                    enter = EnterTransition.None,
+                                    exit = ExitTransition.None,
+                                    boundsTransform = CardExpandTransition.boundsTransform,
+                                    renderInOverlayDuringTransition = heroInOverlay,
+                                ),
+                        )
+                    }
                 }
 
                 // 2. Action tiles row
@@ -169,53 +220,28 @@ internal fun CurrencyInfoContentV2(
                             .padding(horizontal = inset)
                             .padding(top = grid.x3),
                         isHeld = isHeld,
-                        isUsdf = isUsdf,
                         tokenMint = token.address,
                         shortfall = shortfall,
                         dispatch = dispatch,
                     )
                 }
 
-                // 3. Recent transactions (only when held and non-empty)
+                // 3. Recent transactions (only when held and non-empty) — shared with the wallet screen.
                 if (isHeld && state.transactions.isNotEmpty()) {
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillParentMaxWidth()
-                                .clickable {
-                                    dispatch(
-                                        TokenInfoViewModel.Event.OpenScreen(
-                                            AppRoute.Token.Transactions(token.address)
-                                        )
+                    recentActivitySection(
+                        transactions = state.transactions,
+                        modifier = Modifier
+                            .clickable {
+                                dispatch(
+                                    TokenInfoViewModel.Event.OpenScreen(
+                                        AppRoute.Token.Transactions(token.address)
                                     )
-                                }
-                                .padding(horizontal = inset)
-                                .padding(top = grid.x5, bottom = grid.x1),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(
-                                text = stringResource(R.string.title_recentActivity),
-                                style = CodeTheme.typography.textLarge,
-                                color = CodeTheme.colors.textMain,
-                            )
-                            Icon(
-                                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3),
-                                painter = painterResource(R.drawable.ic_chevron_right),
-                                contentDescription = null,
-                                tint = CodeTheme.colors.textSecondary,
-                            )
-                        }
-                    }
-
-                    items(state.transactions, key = { it.id }) { item ->
-                        ActivityFeedRow(
-                            item = item,
-                            modifier = Modifier
-                                .fillParentMaxWidth()
-                                .padding(horizontal = inset),
-                        )
-                    }
+                                )
+                            }
+                            .padding(horizontal = inset)
+                            .padding(top = grid.x5, bottom = grid.x1),
+                        itemPadding = PaddingValues(horizontal = inset),
+                    )
                 }
 
                 // 4. Market cap (non-USDF only)
@@ -232,6 +258,8 @@ internal fun CurrencyInfoContentV2(
                                 marketCap = mcap,
                                 selectedPeriod = state.selectedPeriod,
                                 rawHistoricalData = historicalData,
+                                // New v2 UI: no chart draw-in on open (it appears with the card-expand).
+                                animateChartOpen = false,
                                 onRetry = {
                                     dispatch(
                                         TokenInfoViewModel.Event.LoadHistoricalDataForPeriod(
@@ -299,7 +327,6 @@ internal fun CurrencyInfoContentV2(
 @Composable
 private fun CurrencyActionTiles(
     isHeld: Boolean,
-    isUsdf: Boolean,
     tokenMint: Mint,
     shortfall: Fiat?,
     dispatch: (TokenInfoViewModel.Event) -> Unit,
@@ -327,51 +354,16 @@ private fun CurrencyActionTiles(
                 )
             }
 
-            isUsdf -> {
-                // Held USDF: Convert + Withdraw (no Give)
-                ActionTile(
-                    modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.action_convert),
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.SwapVert,
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textMain,
-                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
-                        )
-                    },
-                    onClick = { dispatch(TokenInfoViewModel.Event.OnBuy(shortfall)) },
-                )
-                ActionTile(
-                    modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.action_withdraw),
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.ArrowUpward,
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textMain,
-                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
-                        )
-                    },
-                    onClick = {
-                        dispatch(
-                            TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.Transfers.Withdrawal(showOtherOptions = false)
-                            )
-                        )
-                    },
-                )
-            }
-
             else -> {
-                // Held non-USDF: Give + Convert + Withdraw
+                // Held (incl. USDF/Dollars in v2): Give + Convert + Withdraw
                 ActionTile(
                     modifier = Modifier.weight(1f),
                     label = stringResource(R.string.action_give),
                     icon = {
-                        Image(
-                            painter = painterResource(R.drawable.ic_cash_bill),
+                        Icon(
+                            painter = painterResource(R.drawable.ic_banknote),
                             contentDescription = null,
+                            tint = CodeTheme.colors.textMain,
                             modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
                         )
                     },
@@ -388,7 +380,7 @@ private fun CurrencyActionTiles(
                     label = stringResource(R.string.action_convert),
                     icon = {
                         Icon(
-                            imageVector = Icons.Outlined.SwapVert,
+                            painter = painterResource(R.drawable.ic_convert),
                             contentDescription = null,
                             tint = CodeTheme.colors.textMain,
                             modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
@@ -530,8 +522,12 @@ internal fun CurrencyInfoTitlePill(
             .graphicsLayer { alpha = progress }
             .then(fill)
             .padding(
-                horizontal = CodeTheme.dimens.grid.x2,
-                vertical = CodeTheme.dimens.grid.x1,
+                // Extra trailing room after the name/market-cap so the capsule breathes on the right
+                // like iOS (the leading side is tighter — the icon sits close to the edge).
+                start = CodeTheme.dimens.grid.x2,
+                end = CodeTheme.dimens.grid.x3,
+                top = CodeTheme.dimens.grid.x1,
+                bottom = CodeTheme.dimens.grid.x1,
             ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),

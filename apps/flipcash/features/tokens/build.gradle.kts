@@ -7,6 +7,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":apps:flipcash:card-expand"))
     implementation(project(":apps:flipcash:shared:amount-entry"))
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:onramp:coinbase"))

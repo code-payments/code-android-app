@@ -23,14 +23,20 @@ import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.cardexpand.CardExpansionController
+import com.flipcash.app.cardexpand.LocalCardExpansion
 import com.flipcash.app.core.AppRoute
+import com.getcode.solana.keys.Mint
+import kotlinx.coroutines.launch
 import com.flipcash.app.core.ui.AppreciationStyle
 import com.flipcash.app.core.ui.TokenCardStack
 import com.flipcash.app.balance.internal.components.BalanceHeader
@@ -41,7 +47,7 @@ import com.flipcash.app.core.ui.TileButton
 import com.flipcash.app.core.ui.TileButtonStyle
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.features.balance.R
-import com.flipcash.shared.transactionhistory.ActivityFeedRow
+import com.flipcash.shared.transactionhistory.recentActivitySection
 import com.getcode.theme.CodeTheme
 
 private const val TokenStackKey = "tokenStack"
@@ -75,6 +81,19 @@ internal fun WalletScreenContent(
             ?.let { -it.offset.toFloat() } ?: 0f
     }
     val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val grid = CodeTheme.dimens.grid
+
+    // Card-expand (iOS #587): tapping a card asks the app-level host (LocalCardExpansion) to expand its
+    // currency-info as an overlay above this screen. The deck stays composed and reorganises in step with
+    // the shared progress scalar — cards part around the tapped one (which is hidden here; the overlay
+    // draws the flying hero) and the header fades.
+    val cardExpansion = LocalCardExpansion.current
+    val expansionScope = rememberCoroutineScope()
+    val expandingMint = cardExpansion?.expandedKey as? Mint
+    val heroProgress = {
+        cardExpansion?.let { CardExpansionController.heroProgress(it.progress.value) } ?: 0f
+    }
+
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
@@ -89,7 +108,9 @@ internal fun WalletScreenContent(
             // v2 wallet header: 96 dp top / 44 dp bottom per Figma node 8966:1578.
             BalanceHeader(
                 modifier = Modifier
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    // Fade the balance out as the deck parts behind the opening card (iOS deckOpacity).
+                    .graphicsLayer { alpha = 1f - heroProgress() },
                 balance = tokenState.totalBalance,
                 appreciation = tokenState.aggregateAppreciation,
                 topPadding = 96.dp,
@@ -131,56 +152,41 @@ internal fun WalletScreenContent(
                     modifier = Modifier.fillMaxWidth(),
                     pinInset = statusBarInset + CodeTheme.dimens.grid.x2,
                     scrolledPast = scrolledPast,
-                    onCardClick = { token ->
-                        dispatchEvent(
-                            WalletViewModel.Event.OpenScreen(
-                                AppRoute.Token.Info(mint = token.token.address)
-                            )
-                        )
+                    expandingMint = expandingMint,
+                    expandProgress = heroProgress,
+                    heroTarget = cardExpansion?.heroBounds,
+                    pullOffset = { cardExpansion?.pullOffset ?: 0f },
+                    onCardClick = { token, bounds ->
+                        // Expand the tapped card's currency-info as an overlay (app-level host draws it);
+                        // the deck reorganises here in step with the shared progress scalar.
+                        cardExpansion?.let { controller ->
+                            controller.begin(token.token.address, bounds)
+                            expansionScope.launch {
+                                // Snap to a fully-collapsed deck first: tapping a card while a prior one is
+                                // still collapsing would otherwise open from that card's mid-progress, so the
+                                // whole deck (including the one just closed) jumps into a half-reorganised
+                                // pose and animates from there ("stacked" enter animations).
+                                controller.snapTo(0f)
+                                controller.animateTo(1f)
+                            }
+                        }
                     },
                 )
             }
         }
 
         if (balanceState.transactions.isNotEmpty()) {
-            item(key = "recentHeader") {
-                // Tap the header to dive into the full paged activity history.
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = CodeTheme.dimens.grid.x2)
-                        .clickable {
-                            dispatchEvent(
-                                WalletViewModel.Event.OpenScreen(AppRoute.Sheets.ActivityHistory)
-                            )
-                        }
-                        .padding(
-                            top = CodeTheme.dimens.grid.x4,
-                            bottom = CodeTheme.dimens.grid.x1,
-                        ),
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(R.string.title_recentActivity),
-                        style = CodeTheme.typography.screenTitle,
-                        color = CodeTheme.colors.textMain,
-                    )
-                    Icon(
-                        painter = painterResource(R.drawable.ic_chevron_right),
-                        contentDescription = null,
-                        tint = CodeTheme.colors.textSecondary,
-                    )
-                }
-            }
-            // Preview of the most recent activity (newest first); the full history lives on its own
-            // screen. The VM/coordinator already bounds this list, so just render it.
-            items(
-                items = balanceState.transactions,
-                key = { it.id },
-            ) { item ->
-                ActivityFeedRow(item = item, modifier = Modifier.fillMaxWidth())
-            }
+            // Preview of the most recent activity (newest first); the full paged history lives on its own
+            // screen. Tap the header to dive in. Shared with the token-info screen for consistency.
+            recentActivitySection(
+                transactions = balanceState.transactions,
+                modifier = Modifier
+                    .padding(top = grid.x2)
+                    .clickable {
+                        dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Sheets.ActivityHistory))
+                    }
+                    .padding(top = grid.x4, bottom = grid.x1),
+            )
         }
 
         if (balanceState.hasAddedMoney) {

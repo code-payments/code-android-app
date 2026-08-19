@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import com.getcode.animation.LocalSharedTransitionScope
+import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 
 sealed class SharedTransition(
     val key: String,
@@ -45,6 +47,14 @@ sealed class SharedTransition(
     }
 
     data object CurrencyBill: SharedTransition("currency-bill")
+
+    /**
+     * A wallet bill card flying between the fanned deck and the currency-info hero card. Keyed by mint
+     * so only the tapped card matches its hero on the destination. Rendered in the transition overlay
+     * (the default) so the card lifts out of the deck and flies independently to the hero — in-layer
+     * rendering would keep it pinned in the deck and it would just slide off with the wallet screen.
+     */
+    data class TokenCard(val mint: Mint) : SharedTransition("token-card-${mint.base58()}")
 }
 
 private val DefaultTransform = BoundsTransform { _, _ ->

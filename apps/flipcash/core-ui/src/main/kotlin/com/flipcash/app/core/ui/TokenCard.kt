@@ -185,8 +185,11 @@ fun TokenCard(
     }
 }
 
-/** USDF's fixed gold branding (Figma) — used instead of a user-chosen bill color. */
-private val UsdfBrush = Brush.horizontalGradient(listOf(Color(0xFFC4980B), Color(0xFFB06B00)))
+/**
+ * USDF's fixed gold branding (Figma) — used instead of a user-chosen bill color. Derived from the
+ * shared [BillBackground.Usdf] gradient so the card matches the full-screen bill exactly.
+ */
+private val UsdfBrush = Brush.horizontalGradient(BillBackground.Usdf.colors.map { hexToColor(it) })
 
 // USDF "$" watermark tuning (Figma 9120:15335: ~213px glyph on a ~214px-tall card, top -17 / right
 // +17, 30% opacity). The glyph size is proportional to the card height so it scales with `height`;

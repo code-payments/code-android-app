@@ -198,7 +198,11 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class Info(
             val mint: Mint,
             val shortfall: Fiat? = null,
-            val fromDeeplink: Boolean = false
+            val fromDeeplink: Boolean = false,
+            // A normal stack PUSH (slide in, back arrow) rather than the wallet card-expand presentation
+            // (fade-in-place, ✕ dismiss). Set when the screen is reached by drilling in from a list — e.g.
+            // token discovery — where a back arrow that slides back is the expected navigation.
+            val asPush: Boolean = false,
         ) : Token
 
         @Serializable
