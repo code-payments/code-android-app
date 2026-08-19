@@ -57,6 +57,13 @@ private fun isTokenInfoKey(key: Any?): Boolean {
     return s.startsWith("Info(") && s.contains("mint=") && !s.contains("asPush=true")
 }
 
+/**
+ * True when a scene key belongs to [AppRoute.Sheets.Give] (the v2 give/cash screen, which is pushed
+ * rather than presented as a sheet). Same stringified-key match as [isTokenInfoKey].
+ */
+private fun isGiveKey(key: Any?): Boolean =
+    key?.toString()?.startsWith("Give(") == true
+
 @Composable
 internal fun AppContent(
     codeNavigator: CodeNavigator,
@@ -247,6 +254,13 @@ internal fun NewAppContent(
                             EnterTransition.None togetherWith ExitTransition.None
                         isTokenInfoKey(initialState.key) ->
                             CardExpandTransition.closeEnter togetherWith CardExpandTransition.closeExit
+                        // Leaving the give screen is untransitioned. It pops once a bill has been
+                        // presented, and the bill overlay + its scrim are drawn PER nav entry — so an
+                        // animated pop would slide the outgoing entry's copy away while the incoming
+                        // currency-info entry composes its own, reading as a flash behind the bill.
+                        // Swapping in a single frame keeps the scrim continuously up.
+                        isGiveKey(initialState.key) ->
+                            EnterTransition.None togetherWith ExitTransition.None
                         else ->
                             slideInHorizontally(initialOffsetX = { -it }) togetherWith
                                     slideOutHorizontally(targetOffsetX = { it })
