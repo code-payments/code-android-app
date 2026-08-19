@@ -7,7 +7,7 @@ import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
-import com.flipcash.app.tipping.internal.share.TipCodePreviewCache
+import com.flipcash.app.bills.share.TipCodePreviewCache
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.tipping.R
 import com.flipcash.services.models.chat.ChatType

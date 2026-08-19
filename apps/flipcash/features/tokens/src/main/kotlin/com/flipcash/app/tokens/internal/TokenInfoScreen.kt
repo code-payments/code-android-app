@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
@@ -36,6 +37,9 @@ import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.LocalFeatureFlags
+import com.flipcash.app.tokens.internal.components.info.CurrencyInfoContentV2
 import com.flipcash.app.tokens.internal.components.info.MarketCapSection
 import com.flipcash.app.tokens.internal.components.info.TokenBalance
 import com.flipcash.app.tokens.internal.components.info.TokenDetailsSection
@@ -54,20 +58,47 @@ import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.calculateEndPadding
 import com.getcode.ui.utils.calculateStartPadding
 import com.getcode.ui.utils.sheetResignmentBehavior
+import dev.chrisbanes.haze.HazeState
 
 @Composable
-internal fun TokenInfoScreen(viewModel: TokenInfoViewModel, shortfall: Fiat?) {
+internal fun TokenInfoScreen(
+    viewModel: TokenInfoViewModel,
+    shortfall: Fiat?,
+    listState: LazyListState = rememberLazyListState(),
+    contentPadding: PaddingValues = PaddingValues(),
+    hazeState: HazeState? = null,
+) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    TokenInfoScreen(shortfall, state, viewModel::dispatchEvent)
+    TokenInfoScreen(shortfall, state, listState, contentPadding, hazeState, viewModel::dispatchEvent)
 }
 
 @Composable
 private fun TokenInfoScreen(
     shortfall: Fiat?,
     state: TokenInfoViewModel.State,
+    listState: LazyListState,
+    contentPadding: PaddingValues,
+    hazeState: HazeState?,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
-    val listState = rememberLazyListState()
+    val features = LocalFeatureFlags.current
+    // Collect rather than snapshot `.value` — the flow is seeded with the flag's default until
+    // DataStore emits, so a remembered read freezes the default (see MenuScreenContent).
+    val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
+
+    if (isNewUi) {
+        // v2 hosts its own overlaid app bar (see the outer TokenInfoScreen); content fills behind it,
+        // marked as the haze source so the frosted bar chrome frosts it, and inset by [contentPadding].
+        CurrencyInfoContentV2(
+            shortfall = shortfall,
+            state = state,
+            listState = listState,
+            contentPadding = contentPadding,
+            hazeState = hazeState,
+            dispatch = dispatch,
+        )
+        return
+    }
 
     CodeScaffold(
         bottomBar = { BottomBar(shortfall, state, dispatch) }
@@ -294,8 +325,6 @@ private fun BottomBarButtons(
             ) {
                 if (state.isCashReserve) {
                     ReserveButtonOptions(
-                        mint = loadable.data.address,
-
                         state = state,
                         dispatch = dispatch,
                     )
@@ -317,27 +346,14 @@ private fun BottomBarButtons(
 
 @Composable
 private fun RowScope.ReserveButtonOptions(
-    mint: Mint,
     state: TokenInfoViewModel.State,
     dispatch: (TokenInfoViewModel.Event) -> Unit
 ) {
     val hasBalance = state.balance.nativeAmount.isPositive
 
     if (hasBalance) {
-        if (mint == Mint.usdf && state.canGiveUsdf || mint != Mint.usdf) {
-            CodeButton(
-                modifier = Modifier.weight(1f),
-                buttonState = ButtonState.Filled,
-                text = stringResource(R.string.action_give),
-            ) {
-                dispatch(
-                    TokenInfoViewModel.Event.OpenScreen(
-                        AppRoute.Sheets.Give(mint = mint, fromTokenInfo = true)
-                    )
-                )
-            }
-        }
-
+        // USDF/Dollars is only giveable in the new UI (v2 currency-info tiles); the legacy reserve
+        // layout offers Withdraw + Deposit only.
         CodeButton(
             modifier = Modifier.weight(1f),
             buttonState = ButtonState.Filled20,

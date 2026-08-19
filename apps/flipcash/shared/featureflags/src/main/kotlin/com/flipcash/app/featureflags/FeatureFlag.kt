@@ -101,16 +101,6 @@ sealed interface FeatureFlag<T: Any> {
     }
 
     @FeatureFlagMarker
-    data object GiveUsdf: FeatureFlag<Boolean> {
-        override val key: String = "give_usdf_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
-        override val visible: Boolean = true
-        override val persistLogOut: Boolean = false
-        override val minTrack: FeatureTrack = FeatureTrack.Production
-    }
-
-    @FeatureFlagMarker
     data object NavBar : FeatureFlag<NavBarConfig> {
         override val key: String = "nav_bar_config"
         override val default: NavBarConfig = NavBarConfig.Default
@@ -168,7 +158,6 @@ val FeatureFlag<*>.title: String
         FeatureFlag.BackgroundReset -> "Background Reset"
         FeatureFlag.ContactPickerMode -> "Contact Picker Mode"
         FeatureFlag.NavBar -> "Navigation Bar"
-        FeatureFlag.GiveUsdf -> "Give/Send USDF"
         FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
         FeatureFlag.FrostedTipCard -> "Frosted Tip Card"
         FeatureFlag.NewUi -> "New UI"
@@ -184,7 +173,6 @@ val FeatureFlag<*>.message: String
         FeatureFlag.BackgroundReset -> "Automatically returns the app to the camera screen after a period of inactivity with the app in the background"
         FeatureFlag.ContactPickerMode -> "When enabled, contacts will be accessed via the system contact picker instead of requesting full READ_CONTACTS permission"
         FeatureFlag.NavBar -> "Customize the order and labels of navigation bar buttons"
-        FeatureFlag.GiveUsdf -> "When enabled, you'll gain the ability to send USDF directly and give it as cash"
         FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
         FeatureFlag.FrostedTipCard -> "When enabled, the tip card in the scanner renders as frosted glass over a blurred snapshot of the camera instead of a solid card"
         FeatureFlag.NewUi -> "When enabled, the app will use the tipping first UI"

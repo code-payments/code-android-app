@@ -16,6 +16,7 @@ dependencies {
     implementation(libs.kotlin.stdlib)
     implementation(project(":apps:flipcash:shared:amount-entry"))
     implementation(project(":apps:flipcash:shared:analytics"))
+    implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:session"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":libs:datetime"))

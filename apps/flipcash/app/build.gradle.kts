@@ -175,6 +175,7 @@ androidComponents {
 
 dependencies {
     implementation(project(":apps:flipcash:core-ui"))
+    implementation(project(":apps:flipcash:card-expand"))
     implementation(libs.bundles.haze)
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     // KMP shared core — consumed transitively via :libs:encryption:base58 but declared

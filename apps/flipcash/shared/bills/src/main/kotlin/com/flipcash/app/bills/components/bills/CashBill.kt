@@ -82,6 +82,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.ui.BillBackground
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.opencode.model.ui.BlendMode as PlaygroundBlendMode
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.patternBlend
@@ -293,10 +294,20 @@ internal fun CashBill(
         payloadData = payloadData,
         amount = amount,
         mint = token.address.base58(),
-        billCustomizations = token.billCustomizations,
+        // USDF/"Dollars" carries no user-chosen bill colors; paint it with its fixed gold gradient
+        // (the same one the wallet card uses) instead of the dark-green fallback.
+        billCustomizations = if (token.address == Mint.usdf) UsdfBillCustomizations
+            else token.billCustomizations,
         modifier = modifier,
     )
 }
+
+/** USDF/"Dollars" bill background — the shared gold gradient, matching the wallet card. */
+private val UsdfBillCustomizations = TokenBillCustomizations(
+    background = BillBackground.Usdf,
+    texture = null,
+    icon = null,
+)
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalLayoutApi::class)

@@ -11,6 +11,8 @@ import com.flipcash.app.persistence.sources.mapper.notifications.NotificationToE
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.persistence.PagingDataSource
 import com.getcode.opencode.model.core.ID
+import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -71,6 +73,18 @@ class MessageDataSource @Inject constructor(
     fun observeRecent(limit: Int): Flow<List<ActivityFeedMessage>> =
         FlipcashDatabase.observeInstance().flatMapLatest { database ->
             database?.messageDao()?.observeRecent(limit)?.map { entities ->
+                entities.map { messageEntityMapper.map(it) }
+            } ?: flowOf(emptyList())
+        }
+
+    /**
+     * Observes the [limit] most recent messages for a single token (newest first) as domain models —
+     * the token info screen's per-token activity preview. Same DB-readiness handling as [observeRecent].
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun observeRecent(mint: Mint, limit: Int): Flow<List<ActivityFeedMessage>> =
+        FlipcashDatabase.observeInstance().flatMapLatest { database ->
+            database?.messageDao()?.observeRecentForMint(mint.base58(), limit)?.map { entities ->
                 entities.map { messageEntityMapper.map(it) }
             } ?: flowOf(emptyList())
         }

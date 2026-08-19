@@ -5,8 +5,6 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.tokens.SwapPurpose
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.funding.PurchaseMethodController
 
 import com.flipcash.app.shareable.ShareSheetController
@@ -27,6 +25,8 @@ import com.getcode.opencode.model.ui.WindowedRange
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
+import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
+import com.flipcash.shared.transactionhistory.TransactionListItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -49,7 +50,7 @@ class TokenInfoViewModel @Inject constructor(
     private val shareController: ShareSheetController,
     private val resources: ResourceHelper,
     private val purchaseMethodController: PurchaseMethodController,
-    features: FeatureFlagController,
+    private val feedCoordinator: ActivityFeedCoordinator,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
     initialState = State(),
@@ -67,8 +68,9 @@ class TokenInfoViewModel @Inject constructor(
         val descriptionExpanded: Boolean = false,
         val historicalMarketCapData: Map<Period, Loadable<List<MarketCapPoint>>> = emptyMap(),
         val selectedPeriod: Period = Period.All,
-        val canGiveUsdf: Boolean = false,
         val fundableBalanceMints: Set<Mint> = emptySet(),
+        /** Bounded per-token recent activity preview (newest first) for the v2 currency-info screen. */
+        val transactions: List<TransactionListItem> = emptyList(),
     ) {
         val canSell: Boolean
             get() = balance.underlyingTokenAmount.valueNonZero()
@@ -82,7 +84,6 @@ class TokenInfoViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class CanGiveUsdf(val enabled: Boolean): Event
         data class OnMintProvided(val mint: Mint, val shortFall: Fiat? = null) : Event
         data class OnTokenChanged(val token: Loadable<Token>, val shortFall: Fiat? = null) : Event
         data class OnMarketCapChanged(val mcap: Fiat?) : Event
@@ -99,6 +100,7 @@ class TokenInfoViewModel @Inject constructor(
         data class OnAppreciatedEnabled(val enabled: Boolean) : Event
         data class OnTransactionHistoryEnabled(val enabled: Boolean): Event
         data class OnAppreciationUpdated(val amount: LocalFiat?) : Event
+        data class OnTransactionsUpdated(val transactions: List<TransactionListItem>) : Event
         data class ExpandDescription(val expand: Boolean) : Event
         data object Share : Event
         data class OnBuy(val shortFall: Fiat? = null) : Event
@@ -108,14 +110,20 @@ class TokenInfoViewModel @Inject constructor(
     }
 
     init {
-        features.observe(FeatureFlag.GiveUsdf)
-            .onEach {
-                dispatchEvent(Event.CanGiveUsdf(it))
-            }.launchIn(viewModelScope)
-
         eventFlow
             .filterIsInstance<Event.OnMintProvided>()
-            .onEach { dispatchEvent(Event.OnTokenChanged(Loadable.Loading())) }
+            .onEach { event ->
+                // Seed the hero card synchronously from the token cache so it's present immediately —
+                // the wallet card-expand shared element needs a target to fly to. Fall back to Loading
+                // only when the token isn't cached; the async fetch below refreshes it either way.
+                val cached = tokenCoordinator.cachedToken(event.mint)
+                dispatchEvent(
+                    Event.OnTokenChanged(
+                        if (cached != null) Loadable.Loaded(cached) else Loadable.Loading(),
+                        event.shortFall,
+                    )
+                )
+            }
             .onEach {
                 tokenCoordinator.getTokenMetadata(it.mint)
                     .onSuccess { result ->
@@ -193,6 +201,19 @@ class TokenInfoViewModel @Inject constructor(
             .onEach {
                  dispatchEvent(Event.OnBuy(it))
             }.launchIn(viewModelScope)
+
+        // Per-token recent activity preview. Read off the IO dispatcher so the section is populated in
+        // one pass and never gates the page's layout height on a load.
+        eventFlow
+            .filterIsInstance<Event.OnMintProvided>()
+            .map { it.mint }
+            .distinctUntilChanged()
+            .flatMapLatest { mint ->
+                feedCoordinator.recentTransactions(mint, RECENT_PREVIEW_COUNT)
+            }
+            .flowOn(dispatchers.IO)
+            .onEach { dispatchEvent(Event.OnTransactionsUpdated(it)) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnMarketCapPeriodSelected>()
@@ -323,6 +344,9 @@ class TokenInfoViewModel @Inject constructor(
     }
 
     companion object {
+        /** Rows shown in the token info screen's per-token recent-activity preview. */
+        private const val RECENT_PREVIEW_COUNT = 3
+
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnMintProvided -> { state -> state.copy(mint = event.mint) }
@@ -331,6 +355,7 @@ class TokenInfoViewModel @Inject constructor(
                 is Event.OnBalanceUpdated -> { state -> state.copy(balance = event.balance) }
                 is Event.OnFundableBalancesUpdated -> { state -> state.copy(fundableBalanceMints = event.mints) }
                 is Event.OnAppreciationUpdated -> { state -> state.copy(appreciation = event.amount) }
+                is Event.OnTransactionsUpdated -> { state -> state.copy(transactions = event.transactions) }
                 is Event.ExpandDescription -> { state -> state.copy(descriptionExpanded = event.expand) }
                 is Event.PresentDepositOptions -> { state -> state }
                 is Event.OnHistoricalMarketCapDataUpdated -> { state ->
@@ -348,7 +373,6 @@ class TokenInfoViewModel @Inject constructor(
                 is Event.LoadHistoricalDataForPeriod -> { state -> state }
                 is Event.Share -> { state -> state }
                 is Event.Exit -> { state -> state }
-                is Event.CanGiveUsdf -> { state -> state.copy(canGiveUsdf = event.enabled) }
             }
         }
     }

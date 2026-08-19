@@ -54,7 +54,7 @@ private fun TokenDiscoveryEventHandler(viewModel: TokenDiscoveryViewModel, navig
         viewModel.eventFlow
             .filterIsInstance<TokenDiscoveryViewModel.Event.OpenTokenInfo>()
             .map { it.mint }
-            .onEach { navigator.navigate(AppRoute.Token.Info(it)) }
+            .onEach { navigator.navigate(AppRoute.Token.Info(it, asPush = true)) }
             .launchIn(this)
     }
 

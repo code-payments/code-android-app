@@ -75,6 +75,7 @@ internal fun MarketCapChart(
     placeholder: @Composable BoxScope.() -> Unit = {},
     chartPadding: PaddingValues = PaddingValues(),
     periodPadding: PaddingValues = PaddingValues(),
+    animateOpen: Boolean = true,
     onPointHighlighted: (MarketCapPoint?) -> Unit,
     onPeriodSelected: (Period) -> Unit,
 ) {
@@ -102,14 +103,18 @@ internal fun MarketCapChart(
         }
     }
 
-    // Update the model when the window changes
-    LaunchedEffect(windowedData) {
-        if (windowedData.isNotEmpty()) {
+    // Update the model only when the DATASET or period changes — deliberately NOT on every [currentValue]
+    // tick. `windowedData` folds the live current value into its last point, so keying on it re-ran the
+    // transaction as the market cap settled async, snapping the line's end point repeatedly (the "jitter"
+    // at the end of the open). Keying on the stable inputs renders the line once, settled.
+    LaunchedEffect(historicalData, dataPeriod) {
+        val window = windowedData
+        if (window.isNotEmpty()) {
             modelProducer.runTransaction {
                 lineModel {
                     series(
-                        x = windowedData.indices.map { it.toDouble() },
-                        y = windowedData.map { it.y },
+                        x = window.indices.map { it.toDouble() },
+                        y = window.map { it.y },
                     )
                 }
             }
@@ -129,6 +134,7 @@ internal fun MarketCapChart(
         modifier = modifier,
         chartPadding = chartPadding,
         periodPadding = periodPadding,
+        animateOpen = animateOpen,
         onPeriodSelected = onPeriodSelected,
         onPointHighlighted = { target ->
             val datum = windowedData.getOrNull(target?.x?.toInt() ?: -1)
@@ -147,6 +153,7 @@ private fun MarketCapChart(
     placeholder: @Composable BoxScope.() -> Unit = {},
     chartPadding: PaddingValues = PaddingValues(),
     periodPadding: PaddingValues = PaddingValues(),
+    animateOpen: Boolean = true,
     onPointHighlighted: (CartesianMarker.Target?) -> Unit,
     onPeriodSelected: (Period) -> Unit,
 ) {
@@ -162,6 +169,7 @@ private fun MarketCapChart(
                 .weight(1f)
                 .testTag("market_cap_chart"),
             trend = trend,
+            animateOpen = animateOpen,
             onPointHighlighted = onPointHighlighted,
             placeholder = placeholder,
         )
@@ -220,6 +228,7 @@ private fun MarketCapChartContent(
     trend: LineTrend,
     modifier: Modifier = Modifier,
     placeholder: @Composable BoxScope.() -> Unit,
+    animateOpen: Boolean = true,
     onPointHighlighted: (CartesianMarker.Target?) -> Unit
 ) {
     val trendColor = trend.color
@@ -323,7 +332,9 @@ private fun MarketCapChartContent(
         modifier = modifier,
         chart = chart,
         modelProducer = producer,
-        animationSpec = tween(durationMillis = 300),
+        // New UI (card-expand overlay) opens with its own transition, so the chart's draw-in animation
+        // is suppressed there — it just appears with the rest of the detail instead of sweeping up.
+        animationSpec = if (animateOpen) tween(durationMillis = 300) else null,
         scrollState = rememberVicoScrollState(scrollEnabled = false),
         placeholder = placeholder
     )

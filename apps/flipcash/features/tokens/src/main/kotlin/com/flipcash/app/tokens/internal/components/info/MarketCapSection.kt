@@ -75,6 +75,7 @@ internal fun MarketCapSection(
     selectedPeriod: Period,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
+    animateChartOpen: Boolean = true,
     onRetry: () -> Unit,
     onPeriodSelected: (Period) -> Unit
 ) {
@@ -189,6 +190,7 @@ internal fun MarketCapSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .requiredHeight(240.dp),
+            animateOpen = animateChartOpen,
             chartPadding = PaddingValues(end = contentPadding.calculateEndPadding()),
             periodPadding = PaddingValues(
                 start = contentPadding.calculateStartPadding(),

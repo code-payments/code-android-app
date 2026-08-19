@@ -94,7 +94,8 @@ class SelectTokenViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnRateChanged(it)) }
             .launchIn(viewModelScope)
 
-        featureFlags.observe(FeatureFlag.GiveUsdf)
+        // USDF givability is tied to the new UI.
+        featureFlags.observe(FeatureFlag.NewUi)
             .onEach { dispatchEvent(Event.OnCanGiveUsdf(it)) }
             .launchIn(viewModelScope)
 

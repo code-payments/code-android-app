@@ -59,6 +59,15 @@ sealed interface BillBackground : Parcelable {
             }
         }
     }
+
+    companion object {
+        /**
+         * USDF / "Dollars" fixed gold branding (Figma) — the single source of truth shared by the
+         * wallet card and the full-screen cash bill, so the two always match. USDF carries no
+         * user-chosen bill colors, so both surfaces fall back to this gradient.
+         */
+        val Usdf: Gradient = Gradient(listOf("#C4980B", "#B06B00"))
+    }
 }
 
 @Serializable

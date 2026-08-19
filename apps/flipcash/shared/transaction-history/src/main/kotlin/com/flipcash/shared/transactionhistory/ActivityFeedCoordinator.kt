@@ -194,6 +194,23 @@ class ActivityFeedCoordinator @Inject internal constructor(
         }
 
     /**
+     * A **preview** of the [limit] most recent transactions for a single [mint] (newest first),
+     * presentation-ready — the token info screen's per-token activity glimpse. Bounded and non-paged
+     * like [recentTransactions]; the full paged per-token history uses [transactions]. Same live
+     * token/profile resolution.
+     */
+    fun recentTransactions(mint: Mint, limit: Int): Flow<List<TransactionListItem>> =
+        combine(dataSource.observeRecent(mint, limit), resolvers) { messages, (profiles, tokens) ->
+            messages.map { msg ->
+                counterpartyOf(msg.metadata)
+                    ?.takeUnless { profiles.containsKey(it.hexEncodedString()) }
+                    ?.let(::ensureProfile)
+                val token = msg.amount?.mint?.let { tokens[it] }
+                transactionItemMapper.map(ActivityFeedMessageWithToken(msg, token) to profiles)
+            }
+        }
+
+    /**
      * Observed profile + token caches, paired for a single [combine] against the cached pages. Both
      * are network-free reads that re-emit as their caches hydrate, so rows resolve reactively from
      * memory. Started eagerly-cold: it only collects while [recentTransactions] is subscribed.

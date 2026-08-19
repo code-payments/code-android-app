@@ -4,14 +4,18 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.bills.share.TipCodePreviewCache
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
+import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.app.shareable.ShareSheetController
+import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.updates.ReleaseStage
 import com.flipcash.app.updates.ReleaseStageProvider
 import com.flipcash.app.userflags.UserFlagsCoordinator
@@ -19,12 +23,15 @@ import com.flipcash.features.menu.BuildConfig
 import com.flipcash.features.menu.R
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.tipping.TippingCoordinator
 import com.getcode.opencode.managers.MnemonicManager
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -55,6 +62,10 @@ internal class MenuScreenViewModel @Inject constructor(
     releaseStageProvider: ReleaseStageProvider,
     purchaseMethodController: PurchaseMethodController,
     analytics: FlipcashAnalyticsService,
+    private val tippingCoordinator: TippingCoordinator,
+    private val tipCodePreviewCache: TipCodePreviewCache,
+    private val shareable: ShareSheetController,
+    private val resources: ResourceHelper,
 ) :
     BaseViewModel<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
         initialState = State(),
@@ -69,6 +80,9 @@ internal class MenuScreenViewModel @Inject constructor(
         val unlockedBetaFeaturesManually: Boolean = false,
         val appVersionInfo: VersionInfo = VersionInfo(),
         val releaseTrack: String = "",
+        // The viewer's own tip card, shown at the top of the v2 "You" tab. Null until resolved
+        // (or when the profile has no display name).
+        val tipCard: Scannable.TipCard? = null,
     )
 
     sealed interface Event {
@@ -83,6 +97,8 @@ internal class MenuScreenViewModel @Inject constructor(
         data class OpenScreen(val screen: AppRoute) : Event
         data object OnSwitchAccountsClicked : Event
         data class OnSwitchAccountTo(val entropy: String): Event
+        data class OnTipCardPopulated(val card: Scannable.TipCard) : Event
+        data object ShareTipCard : Event
     }
 
     init {
@@ -170,6 +186,31 @@ internal class MenuScreenViewModel @Inject constructor(
                 purchaseMethodController.presentDepositOptions(popToRoot = true)
             }.onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)
+
+        // Rebuild the viewer's own tip card whenever their profile becomes available/changes, so the
+        // v2 "You" tab can show it at the top. Warm the Sharesheet preview eagerly so it's ready by
+        // the time the user taps "Share as a Link".
+        userManager.state
+            .mapNotNull { it.userProfile }
+            .distinctUntilChanged()
+            .map { tippingCoordinator.resolveTipCard() }
+            .onResult(onSuccess = { card ->
+                dispatchEvent(Event.OnTipCardPopulated(card))
+                tippingCoordinator.currentUserId?.let { tipCodePreviewCache.prepare(it, card) }
+            })
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ShareTipCard>()
+            .mapNotNull { tippingCoordinator.currentUserId }
+            .map { userId ->
+                // Title shown above the link, e.g. "Tip Ada" (same label as the card).
+                val title = stateFlow.value.tipCard?.user?.displayName
+                    ?.let { resources.getString(R.string.label_tipUser, it) }
+                // Attach the eagerly-rendered preview if it's ready; null shares the URL alone.
+                shareable.present(Shareable.TipCard(userId, tipCodePreviewCache.get(userId), title))
+            }
+            .launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -242,9 +283,14 @@ internal class MenuScreenViewModel @Inject constructor(
                     )
                 }
 
+                is Event.OnTipCardPopulated -> { state ->
+                    state.copy(tipCard = event.card)
+                }
+
                 Event.PresentDepositOptions,
                 Event.CheckForUpdate,
                 Event.OnSwitchAccountsClicked,
+                Event.ShareTipCard,
                 is Event.OpenScreen,
                 is Event.OnSwitchAccountTo -> { state -> state }
 

@@ -4,7 +4,6 @@ import com.flipcash.services.models.UserProfile
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.solana.keys.Mint
 import kotlin.time.Duration
 
 /**
@@ -38,7 +37,11 @@ sealed interface Scannable {
         fun stamped(code: List<Byte>, nonce: List<Byte>): Payable
 
         companion object {
-            /** Applies the USDF->[GoldBar] rule; every other token -> [CashBill]. */
+            /**
+             * Every payable token renders as a [CashBill]. USDF used to map to [GoldBar]; it now
+             * renders as a regular cash bill (painted with its fixed gold gradient — see
+             * `BillBackground.Usdf`) like every other token.
+             */
             fun forToken(
                 token: Token,
                 amount: LocalFiat,
@@ -49,19 +52,11 @@ sealed interface Scannable {
                 kind: Kind = Kind.cash,
                 verifiedState: VerifiedState? = null,
                 nonce: List<Byte> = emptyList(),
-            ): Payable = if (token.address == Mint.usdf) {
-                GoldBar(
-                    token = token, amount = amount, didReceive = didReceive,
-                    disableGestures = disableGestures, confirmationDelay = confirmationDelay,
-                    data = data, kind = kind, verifiedState = verifiedState, nonce = nonce,
-                )
-            } else {
-                CashBill(
-                    token = token, amount = amount, didReceive = didReceive,
-                    disableGestures = disableGestures, confirmationDelay = confirmationDelay,
-                    data = data, kind = kind, verifiedState = verifiedState, nonce = nonce,
-                )
-            }
+            ): Payable = CashBill(
+                token = token, amount = amount, didReceive = didReceive,
+                disableGestures = disableGestures, confirmationDelay = confirmationDelay,
+                data = data, kind = kind, verifiedState = verifiedState, nonce = nonce,
+            )
         }
     }
 
@@ -96,5 +91,11 @@ sealed interface Scannable {
     data class TipCard(
         override val data: List<Byte>,
         val user: UserProfile,
+        /**
+         * True when this is the viewer's *own* tip card, presented for display (e.g. the You tab's
+         * full-screen card) rather than scanned from someone else. Suppresses the Send-a-Tip modal
+         * and its add-money prompt — you can't tip yourself.
+         */
+        val isSelf: Boolean = false,
     ) : Scannable
 }
