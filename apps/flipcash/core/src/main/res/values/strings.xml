@@ -628,6 +628,7 @@
     <string name="subtitle_discoverEmptyNew">No currencies have been created in the last week</string>
     <string name="subtitle_discoverEmptyPopular">No popular currencies right now</string>
     <string name="action_createYourOwnCurrency">Create Your Own Currency</string>
+    <string name="action_createCurrency">Create a Currency</string>
     <string name="subtitle_createYourOwnCurrency">Create a currency in minutes and immediately use it as cash</string>
     <string name="prompt_title_notYetAvailable">Not Yet Available</string>
     <string name="prompt_message_currencyCreateNotYetAvailable">Check back soon</string>

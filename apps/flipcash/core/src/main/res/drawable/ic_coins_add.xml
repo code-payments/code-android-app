@@ -1,0 +1,15 @@
+<!-- "Create a Currency" glyph: two overlapping coins with a plus. Vendored from the design
+     (matches the iOS `coinsAdd` asset). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <path
+      android:pathData="M15.5148,11.7071V14.3432M15.5148,14.3432V16.9793M15.5148,14.3432H12.8787M15.5148,14.3432H18.151M15.1359,6.5886C13.9753,4.077 11.4338,2.3342 8.4852,2.3342C4.441,2.3342 1.1626,5.6126 1.1626,9.6568C1.1626,13.6357 4.3362,16.8734 8.2902,16.9768M22.8374,14.3432C22.8374,18.3874 19.559,21.6658 15.5148,21.6658C12.3991,21.6658 9.7377,19.7197 8.6801,16.9768C8.365,16.1596 8.1923,15.2716 8.1923,14.3432C8.1923,10.3643 11.3658,7.1265 15.3199,7.0232C15.3847,7.0215 15.4497,7.0207 15.5148,7.0207C19.559,7.0207 22.8374,10.2991 22.8374,14.3432Z"
+      android:strokeWidth="1.5"
+      android:fillColor="#00000000"
+      android:strokeColor="#ffffff"
+      android:strokeLineCap="round"
+      android:strokeLineJoin="round"/>
+</vector>
