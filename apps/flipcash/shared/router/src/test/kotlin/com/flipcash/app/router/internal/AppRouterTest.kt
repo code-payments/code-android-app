@@ -211,6 +211,39 @@ class AppRouterTest {
 
     // endregion
 
+    // region dispatch — Logged in: EmailVerification
+
+    private fun verifyUrl(originPlain: String): String {
+        val origin = Base64.encodeToString(originPlain.toByteArray(), Base64.NO_WRAP)
+        val clientData = """{"origin":"$origin"}"""
+        return "https://app.flipcash.com/verify" +
+                "?email=test%40example.com" +
+                "&code=123456" +
+                "&client_data=${URLEncoder.encode(clientData, "UTF-8")}"
+    }
+
+    @Test
+    fun `dispatch returns Navigate to menu tab for a myaccount verify deeplink`() {
+        loggedIn()
+        val action = router.dispatch(DeepLink(verifyUrl("myaccount")))
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertEquals(AppRoute.Sheets.Menu, action.routes[0])
+        assertIs<AppRoute.Menu.MyAccount>(action.routes[1])
+        assertIs<AppRoute.Verification>(action.routes[2])
+    }
+
+    @Test
+    fun `dispatch returns Navigate to the swap flow for an onramp verify deeplink`() {
+        loggedIn()
+        val action = router.dispatch(DeepLink(verifyUrl("onramp|amountentry|$MINT")))
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertIs<AppRoute.Token.Info>(action.routes[0])
+        assertIs<AppRoute.Token.Swap>(action.routes[1])
+        assertIs<AppRoute.Verification>(action.routes[2])
+    }
+
+    // endregion
+
     // region dispatch — Not logged in
 
     @Test
