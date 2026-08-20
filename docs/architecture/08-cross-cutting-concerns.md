@@ -96,7 +96,7 @@ Flow-exposure pattern, and lifecycle-aware streaming — are in
 `compileSdk 36`, `minSdk 29`, **Java/Kotlin 21**, all set by the convention plugins
 (see [01](01-modules-and-boundaries.md)). API keys (Bugsnag, Mixpanel, Coinbase
 on-ramp, Google Cloud project number) are read from `local.properties` and surfaced
-through `BuildConfig`; `google-services.json` lives under `apps/flipcash/app/src/`.
+through `BuildConfig`; `google-services.json` lives at `apps/flipcash/app/` (or `apps/flipcash/app/src/`).
 See [10 — Build & run](10-build-and-run.md) for the full list.
 
 ## Why this matters

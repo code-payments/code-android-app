@@ -28,7 +28,7 @@ Code/Flipcash is a mobile wallet app for instant, global, private payments using
 bundle exec fastlane android flipcash_tests
 ```
 
-**Requirements**: Java 21 (Corretto), `google-services.json` in `apps/flipcash/app/src/`, API keys in `local.properties` (BUGSNAG_API_KEY, MIXPANEL_API_KEY, COINBASE_ONRAMP_API_KEY, GOOGLE_CLOUD_PROJECT_NUMBER). Keys resolve via `tryReadProperty` (local.properties → env var → empty), so a missing key won't fail the build but disables the dependent feature. See `docs/architecture/10-build-and-run.md`.
+**Requirements**: Java 21 (Corretto), `google-services.json` in `apps/flipcash/app/` (CI provisions it at `apps/flipcash/app/src/`; the Google Services plugin accepts either), API keys in `local.properties` (BUGSNAG_API_KEY, MIXPANEL_API_KEY, COINBASE_ONRAMP_API_KEY, GOOGLE_CLOUD_PROJECT_NUMBER). Keys resolve via `tryReadProperty` (local.properties → env var → empty), so a missing key won't fail the build but disables the dependent feature. See `docs/architecture/10-build-and-run.md`.
 
 ## Module Structure
 
@@ -91,7 +91,7 @@ The feature plugin automatically includes `:libs:logging`, `:ui:core`, `:ui:comp
 
 ## Namespaces
 
-- App: `com.flipcash.app.android` (debug: `com.flipcash.app.android.dev`)
+- App: `com.flipcash.app.android` (no `applicationIdSuffix` — debug and release share the ID, so installing one replaces the other)
 - Legacy/shared: `com.getcode`
 - Features: `com.flipcash.features.*`
 - Shared modules: `com.flipcash.shared.*`
