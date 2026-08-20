@@ -46,7 +46,7 @@ compose-coil = "3.5.0"
 
 hilt = "2.59.2"
 hilt-jetpack = "1.4.0"
-okhttp = "5.4.0"
+okhttp = "5.5.0"
 retrofit = "3.0.0"
 kin-sdk = "2.1.2"
 grpc-android = "1.83.0"
