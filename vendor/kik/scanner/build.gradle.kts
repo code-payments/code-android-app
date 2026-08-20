@@ -33,6 +33,7 @@ dependencies {
     implementation(libs.javax.inject)
     implementation(libs.hilt.android)
     implementation(project(":libs:code-detection"))
+    api(project(":libs:codes:kikcode"))
     implementation(project(":libs:encryption:ed25519"))
     implementation(project(":vendor:opencv:sdk"))
 }

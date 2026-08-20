@@ -135,6 +135,7 @@ include(
     ":libs:analytics",
     ":libs:biometrics",
     ":libs:code-detection",
+    ":libs:codes:kikcode",
     ":libs:coroutines",
     ":libs:crypto:kin",
     ":libs:crypto:solana",
@@ -253,6 +254,7 @@ val unitTestPaths = listOf(":apps:flipcash", ":services:flipcash", ":services:op
 val jvmUnitTestModules = setOf(":apps:flipcash:shared:ksp")
 // KMP modules run their host tests via `testAndroidHostTest`, not `testDebugUnitTest`.
 val kmpUnitTestModules = setOf(
+    ":libs:codes:kikcode",
     ":libs:encryption:base58",
     ":libs:encryption:sha256",
     ":libs:encryption:sha512",

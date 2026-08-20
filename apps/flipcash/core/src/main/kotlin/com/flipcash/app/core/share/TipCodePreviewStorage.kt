@@ -45,20 +45,27 @@ object TipCodePreviewStorage {
         maxAge: Long = DEFAULT_MAX_AGE_MILLIS,
         now: Long = System.currentTimeMillis(),
     ) {
-        runCatching {
-            val files = dir(context).listFiles()?.sortedByDescending { it.lastModified() }
-                ?: return
-            var kept = 0L
-            for (file in files) {
-                val expired = now - file.lastModified() > maxAge
-                kept += file.length()
-                if (expired || kept > maxTotalBytes) {
-                    file.delete()
-                }
-            }
-        }
+        pruneDirectory(dir(context), maxTotalBytes, maxAge, now)
     }
 
     private const val DEFAULT_MAX_TOTAL_BYTES = 8L * 1024 * 1024 // 8 MiB
     private const val DEFAULT_MAX_AGE_MILLIS = 24L * 60 * 60 * 1000 // 1 day
+}
+
+/**
+ * Deletes anything in [dir] older than [maxAge], then -- newest first -- keeps files until
+ * [maxTotalBytes] is reached and deletes the rest. Never throws; cleanup is best-effort.
+ */
+internal fun pruneDirectory(dir: File, maxTotalBytes: Long, maxAge: Long, now: Long) {
+    runCatching {
+        val files = dir.listFiles()?.sortedByDescending { it.lastModified() } ?: return
+        var kept = 0L
+        for (file in files) {
+            val expired = now - file.lastModified() > maxAge
+            kept += file.length()
+            if (expired || kept > maxTotalBytes) {
+                file.delete()
+            }
+        }
+    }
 }
