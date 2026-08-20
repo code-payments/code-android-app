@@ -164,10 +164,6 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel, onboarding: Boole
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "\uD83D\uDE2D",
-                            style = CodeTheme.typography.displayMedium
-                        )
-                        Text(
                             text = stringResource(R.string.title_labsAreEmpty),
                             style = CodeTheme.typography.textLarge,
                             color = CodeTheme.colors.textMain
@@ -175,7 +171,7 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel, onboarding: Boole
 
                         Text(
                             text = stringResource(R.string.subtitle_labsAreEmpty),
-                            style = CodeTheme.typography.textSmall,
+                            style = CodeTheme.typography.textMedium,
                             color = CodeTheme.colors.textSecondary,
                         )
                     }

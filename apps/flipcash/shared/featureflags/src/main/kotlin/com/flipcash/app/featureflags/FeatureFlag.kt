@@ -132,7 +132,12 @@ sealed interface FeatureFlag<T: Any> {
     data object NewUi: FeatureFlag<Boolean> {
         override val key: String = "new_ui_enabled"
         override val default: Boolean = true
-        override val launched: Boolean = false
+        // Launched: the new UI is now the only shell. `launched` makes the controller short-circuit
+        // to `default` — so a user who had toggled this OFF during the beta is moved onto it (their
+        // stored `false` is ignored and cleared on next launch) — and drops it from
+        // `availableEntries`, removing the toggle from Labs. The v1 code it gated is torn out
+        // separately.
+        override val launched: Boolean = true
         override val visible: Boolean = true
         override val persistLogOut: Boolean = true
     }
