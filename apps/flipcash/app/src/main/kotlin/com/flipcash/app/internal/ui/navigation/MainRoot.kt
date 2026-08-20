@@ -25,6 +25,7 @@ import com.flipcash.app.android.R
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
+import com.flipcash.app.core.navigation.homeRoute
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.resolveBackStack
 import com.flipcash.app.featureflags.LocalFeatureFlags
@@ -219,7 +220,7 @@ internal fun buildNavGraphForLaunch(
 
         AuthState.Ready -> {
             // New UI opens on the Wallet tab; v1 opens on the Scanner.
-            val home = if (isNewUi) AppRoute.Sheets.Wallet else AppRoute.Main.Scanner
+            val home = homeRoute(isNewUi)
             val link = deepLink()
             if (link != null) {
                 when (val action = router.dispatch(link)) {
