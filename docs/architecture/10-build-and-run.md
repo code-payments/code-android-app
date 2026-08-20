@@ -9,7 +9,7 @@ build actually needs from you. This is the day-one setup doc.
 |-------------|-------|
 | **JDK 21** | Amazon Corretto 21 is what CI uses. The convention plugins pin the Java/Kotlin toolchain to 21 ([01](01-modules-and-boundaries.md)). |
 | **Android SDK** | `compileSdk 36`, `minSdk 29`, `targetSdk` per the version catalog. |
-| **`google-services.json`** | Required at `apps/flipcash/app/src/google-services.json` (Firebase). The build fails without it. |
+| **`google-services.json`** | Required (Firebase). Goes at `apps/flipcash/app/google-services.json`; the Google Services plugin also accepts `apps/flipcash/app/src/`, which is where CI provisions it. The build fails without it. |
 | **`local.properties`** | API keys (below) plus the standard `sdk.dir`. |
 
 ## API keys in `local.properties`
@@ -71,7 +71,7 @@ See [12 — Testing](12-testing.md) for the testing approach.
 | | Application ID |
 |---|----------------|
 | Release | `com.flipcash.app.android` |
-| Debug | `com.flipcash.app.android.dev` (suffix lets debug + release coexist on one device) |
+| Debug | `com.flipcash.app.android` — there is no `applicationIdSuffix`, so debug and release share the ID and installing one replaces the other |
 
 The app forces **dark mode** (`MODE_NIGHT_YES`, see [07](07-design-system.md)).
 `versionCode` comes from `Packaging.Flipcash.versionCode` or `gitVersionCode()`.
@@ -93,7 +93,7 @@ and the upload pipeline.
 
 ## Troubleshooting
 
-- **`google-services.json` missing** → place it at `apps/flipcash/app/src/`.
+- **`google-services.json` missing** → place it at `apps/flipcash/app/` (or `apps/flipcash/app/src/`).
 - **A feature behaves as if unconfigured** (no analytics, on-ramp fails) → the
   corresponding key is absent from `local.properties` (the build won't warn loudly,
   because the fallback is an empty string).
