@@ -127,6 +127,56 @@ class AppRouterTest {
         assertEquals("myaccount", type.origin)
     }
 
+    /**
+     * `Uri.getQueryParameter` already percent-decodes. Decoding its result a second time
+     * corrupts any address whose local part carries an encoded `+` -- a plus-tagged address
+     * would arrive as `user tag@`, and the verification code would then be checked against an
+     * email the user never entered.
+     */
+    @Test
+    fun `classify does not decode the email query parameter twice`() {
+        val type = router.classify(
+            DeepLink("https://app.flipcash.com/verify?email=user%2Btag%40example.com&code=123456")
+        )
+        assertIs<DeeplinkType.EmailVerification>(type)
+        assertEquals("user+tag@example.com", type.email)
+    }
+
+    /**
+     * A second decode is not just lossy, it throws: once `getQueryParameter` has turned `%25`
+     * into a bare `%`, `URLDecoder` sees an incomplete escape and fails, which drops the whole
+     * link. A literal `%` is legal in an address local part.
+     */
+    @Test
+    fun `classify keeps a literal percent in the email instead of dropping the link`() {
+        val type = router.classify(
+            DeepLink("https://app.flipcash.com/verify?email=100%25off%40example.com&code=123456")
+        )
+        assertIs<DeeplinkType.EmailVerification>(type)
+        assertEquals("100%off@example.com", type.email)
+    }
+
+    /**
+     * Same double-decode applied to `client_data`. The origin is standard base64, whose alphabet
+     * includes `+`, so a second (form-semantics) decode turns that `+` into a space and the
+     * origin silently fails to decode -- taking the routing destination with it.
+     */
+    @Test
+    fun `classify does not decode client data twice`() {
+        val origin = Base64.encodeToString("aa>".toByteArray(), Base64.NO_WRAP)
+        assertTrue(origin.contains('+'), "fixture must exercise a '+' in the base64 payload")
+
+        val clientData = """{"origin":"$origin"}"""
+        val url = "https://app.flipcash.com/verify" +
+                "?email=test%40example.com" +
+                "&code=123456" +
+                "&client_data=${URLEncoder.encode(clientData, "UTF-8")}"
+
+        val type = router.classify(DeepLink(url))
+        assertIs<DeeplinkType.EmailVerification>(type)
+        assertEquals("aa>", type.origin)
+    }
+
     // endregion
 
     // region classify — Unknown

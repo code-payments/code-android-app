@@ -25,7 +25,6 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.decodeBase64
 import com.getcode.utils.decodeBase64UrlSafe
 import com.getcode.utils.trace
-import com.getcode.utils.urlDecode
 import dev.theolm.rinku.DeepLink
 import org.json.JSONObject
 import java.util.UUID
@@ -247,11 +246,15 @@ private fun DeepLink.handleTipCard(): DeeplinkType.Tipcard? {
 //  https://app.flipcash.com/verify?email={email}&code={code}&client_data={data}
 private fun DeepLink.handleEmailVerification(): DeeplinkType.EmailVerification? {
     val uri = data.toUri()
-    val email = uri.getQueryParameter("email")?.urlDecode()
+    // No urlDecode here: getQueryParameter already percent-decodes. Decoding twice mangles a
+    // plus-tagged address (`user%2Btag@` -> `user tag@`) and a base64 client_data payload (`+`
+    // is in the standard alphabet), and URLDecoder throws outright once a `%25` has become a
+    // bare `%` -- which would drop the whole link.
+    val email = uri.getQueryParameter("email")
     val code = uri.getQueryParameter("code")
     // client_data is optional and untrusted: a malformed or absent payload just means "no origin",
     // which resolveEmailVerification already handles. Never let it fail the whole link.
-    val clientData = uri.getQueryParameter("client_data")?.urlDecode()
+    val clientData = uri.getQueryParameter("client_data")
         ?.let { runCatching { JSONObject(it) }.getOrNull() }
 
     val origin = clientData?.optString("origin")
