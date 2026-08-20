@@ -29,6 +29,14 @@ sealed interface SwapStep : FlowStep, Parcelable {
 
     @Parcelize
     @Serializable
+    data object ConvertDestinationSelection : SwapStep
+
+    @Parcelize
+    @Serializable
+    data object ConvertReceipt : SwapStep
+
+    @Parcelize
+    @Serializable
     data object PhantomConnect: SwapStep
 
     @Parcelize

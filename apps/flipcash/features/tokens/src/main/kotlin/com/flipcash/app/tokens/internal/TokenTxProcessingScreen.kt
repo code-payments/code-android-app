@@ -58,6 +58,8 @@ private fun TokenTxProcessingScreen(
                     is SwapPurpose.Buy if purpose.fundingSource != FundingSource.Flexible ->
                         stringResource(R.string.title_addingMoney)
 
+                    is SwapPurpose.Convert -> stringResource(R.string.title_converting)
+
                     is SwapPurpose.BalanceIncrease -> stringResource(
                         R.string.title_purchasingToken,
                         state.tokenName
@@ -126,6 +128,7 @@ private fun TokenTxProcessingScreen(
                     LoadingSuccessState.State.Loading -> stringResource(R.string.title_processingYourTransaction)
                     LoadingSuccessState.State.Success -> {
                         val name = when (state.purpose) {
+                            is SwapPurpose.Convert -> state.destinationTokenName
                             is SwapPurpose.BalanceIncrease -> state.tokenName
                             else -> stringResource(R.string.title_cashReserves)
                         }

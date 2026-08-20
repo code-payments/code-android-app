@@ -181,6 +181,8 @@ class SwapViewModel @Inject constructor(
                 limit
             }
             is SwapPurpose.Sell -> tokenBalance
+            // Convert spends the *source* currency, so the ceiling is that balance — same as Sell.
+            is SwapPurpose.Convert -> tokenBalance
             null -> null
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -222,6 +224,8 @@ class SwapViewModel @Inject constructor(
         val minimumBuyAmount: Fiat? = null,
         val pendingInitialAmount: Fiat? = null,
         val fundingTokenWithBalance: TokenWithBalance? = null,
+        // Convert only: the currency the conversion lands in. `tokenWithBalance` is the source.
+        val destinationTokenWithBalance: TokenWithBalance? = null,
     ) {
         val sellFee: Double?
             get() {
@@ -232,6 +236,16 @@ class SwapViewModel @Inject constructor(
 
         val tokenName: String
             get() = tokenWithBalance?.displayName.orEmpty()
+
+        val destinationTokenName: String
+            get() = destinationTokenWithBalance?.displayName.orEmpty()
+
+        /**
+         * Converting *out of* Dollars is the one direction with no launchpad sale to skim the fee
+         * from, so the fee is charged on top of the entered amount instead of out of it.
+         */
+        val isConvertingFromDollars: Boolean
+            get() = (purpose as? SwapPurpose.Convert)?.mint == Mint.usdf
 
         val canTransact: Boolean
             get() = buyProgress.isIdle && sellProgress.isIdle && processingProgress.isIdle
@@ -317,6 +331,16 @@ class SwapViewModel @Inject constructor(
 
         data object ShowSellReceipt : Event
 
+        // region convert
+        data object SelectConvertDestination : Event
+        data class OnDestinationSelected(val mint: Mint) : Event
+        data class OnDestinationTokenResolved(val token: TokenWithBalance) : Event
+        data object ShowConvertReceipt : Event
+        data object OnConvertConfirmed : Event
+        data class ProceedWithConversion(val amount: VerifiedFiat) : Event
+        data class OnConvertSubmitted(val token: Token, val swapId: SwapId) : Event
+        // endregion
+
         data class OnPurchaseSubmitted(val token: Token, val swapId: SwapId) : Event
         data class OnSellSubmitted(val token: Token, val swapId: SwapId) : Event
 
@@ -363,20 +387,49 @@ class SwapViewModel @Inject constructor(
             )
         }
 
+    /**
+     * Basis points skimmed by a conversion. Converting *from* Dollars has no launchpad sale to take
+     * a fee from, so it pays the flat house rate; every other direction pays the source pool's own
+     * sell fee (falling back to the house rate when the pool doesn't declare one).
+     */
+    private val convertFeeBps: Int
+        get() {
+            val purpose = stateFlow.value.purpose as? SwapPurpose.Convert ?: return 0
+            if (purpose.mint == Mint.usdf) return DEFAULT_CONVERT_FEE_BPS
+            return stateFlow.value.tokenWithBalance?.token?.launchpadMetadata?.sellFeeBps
+                ?: DEFAULT_CONVERT_FEE_BPS
+        }
+
     private val feeAmount: Fiat
         get() {
+            if (stateFlow.value.purpose is SwapPurpose.Convert) {
+                return enteredAmount.launchpadSellFee(convertFeeBps)
+            }
             val bps = stateFlow.value.tokenWithBalance?.token
                 ?.launchpadMetadata?.sellFeeBps ?: return Fiat.Zero
             return enteredAmount.launchpadSellFee(bps)
         }
 
+    /** What the user actually receives: entered minus the fee, unless the fee rides on top. */
     private val netTransferAmount: Fiat
-        get() = stateFlow.value.confirmedNetTransferAmount ?: when (stateFlow.value.purpose) {
-            is SwapPurpose.BalanceIncrease -> enteredAmount
+        get() = stateFlow.value.confirmedNetTransferAmount ?: when {
+            stateFlow.value.purpose is SwapPurpose.BalanceIncrease -> enteredAmount
+            stateFlow.value.isConvertingFromDollars -> enteredAmount
             else -> Fiat(
                 fiat = enteredAmount.decimalValue - feeAmount.decimalValue,
                 currencyCode = enteredAmount.currencyCode,
             )
+        }
+
+    /** What leaves the source balance: entered, plus the fee when it rides on top. */
+    private val totalDebitAmount: Fiat
+        get() = if (stateFlow.value.isConvertingFromDollars) {
+            Fiat(
+                fiat = enteredAmount.decimalValue + feeAmount.decimalValue,
+                currencyCode = enteredAmount.currencyCode,
+            )
+        } else {
+            enteredAmount
         }
 
     /**
@@ -450,6 +503,7 @@ class SwapViewModel @Inject constructor(
                 }
             }
             is SwapPurpose.Sell -> stateFlow.value.tokenBalance
+            is SwapPurpose.Convert -> stateFlow.value.tokenBalance
             null -> Fiat.Zero
         }
     }
@@ -570,6 +624,7 @@ class SwapViewModel @Inject constructor(
                 val tokenAddress = when (purpose) {
                     is SwapPurpose.Buy -> Mint.usdf
                     is SwapPurpose.Sell -> purpose.mint
+                    is SwapPurpose.Convert -> purpose.mint
                 }
 
                 combine(
@@ -611,6 +666,45 @@ class SwapViewModel @Inject constructor(
         }.onEach {
             dispatchEvent(Event.OnReservesUpdated(TokenWithBalance(Token.usdf, it.nativeAmount)))
         }.launchIn(viewModelScope)
+
+        // Convert: keep the destination token resolved as the user swaps it in the picker. The
+        // route can hand us a destination that isn't usable (converting Dollars→Dollars), so pick a
+        // sensible default in that case rather than dead-ending the flow.
+        stateFlow.map { it.purpose }
+            .filterIsInstance<SwapPurpose.Convert>()
+            .map { it.mint to it.destinationMint }
+            .distinctUntilChanged()
+            .flatMapLatest { (source, destination) ->
+                combine(
+                    tokenCoordinator.tokenBalances,
+                    exchange.observePreferredRate(),
+                ) { balances, rate ->
+                    if (destination == source) {
+                        val fallback = if (source == Mint.usdf) {
+                            balances.filter { it.token.address != source }
+                                .maxByOrNull { it.balance }?.token?.address
+                        } else {
+                            Mint.usdf
+                        }
+                        fallback?.let { dispatchEvent(Event.OnDestinationSelected(it)) }
+                        return@combine null
+                    }
+
+                    val held = balances.find { it.token.address == destination }
+                    val token = held?.token
+                        ?: tokenCoordinator.getTokenMetadata(destination).getOrNull()?.token
+                        ?: return@combine null
+
+                    TokenWithBalance(
+                        token = token,
+                        balance = (held?.balance ?: Fiat.Zero).convertingTo(rate),
+                    )
+                }
+            }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnDestinationTokenResolved(it)) }
+            .launchIn(viewModelScope)
 
         transactionController.limits
             .onEach { dispatchEvent(Event.OnLimitsChanged(it)) }
@@ -705,6 +799,35 @@ class SwapViewModel @Inject constructor(
                                 }
                             }
                         }
+                    }
+
+                    is SwapPurpose.Convert -> {
+                        val rate = exchange.preferredRate
+                        val sourceWithBalance = stateFlow.value.tokenWithBalance ?: return@onEach
+                        // The pin is taken against the total debited, which is the entered amount
+                        // plus the fee when converting out of Dollars (see [totalDebitAmount]).
+                        val amountFiat = verifiedFiatCalculator.compute(
+                            amount = totalDebitAmount,
+                            token = sourceWithBalance.token,
+                            balance = sourceWithBalance.balance,
+                            rate = rate,
+                        ).getOrElse {
+                            BottomBarManager.showAlert(
+                                title = resources.getString(R.string.error_title_staleRates),
+                                message = resources.getString(R.string.error_description_staleRates),
+                            )
+                            return@onEach
+                        }
+
+                        dispatchEvent(
+                            Event.OnAmountAccepted(
+                                amountFiat,
+                                netTransferAmount = netTransferAmount,
+                                enteredAmount = enteredAmount,
+                                feeAmount = feeAmount,
+                            )
+                        )
+                        dispatchEvent(Event.ShowConvertReceipt)
                     }
 
                     is SwapPurpose.Sell -> {
@@ -851,6 +974,95 @@ class SwapViewModel @Inject constructor(
             .onEach {
                 dispatchEvent(Event.UpdateSellState(loading = true))
                 dispatchEvent(Event.ProceedWithSale(it))
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnConvertConfirmed>()
+            .map { stateFlow.value.amountEntryState.selectedAmount }
+            .onEach {
+                dispatchEvent(Event.UpdateSellState(loading = true))
+                dispatchEvent(Event.ProceedWithConversion(it))
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ProceedWithConversion>()
+            .onEach { dispatchEvent(Event.UpdateSellState(loading = true)) }
+            .mapNotNull { event ->
+                val owner = userManager.accountCluster ?: return@mapNotNull null
+                stateFlow.value.purpose as? SwapPurpose.Convert ?: return@mapNotNull null
+                val source = stateFlow.value.tokenWithBalance?.token ?: return@mapNotNull null
+                val destination = stateFlow.value.destinationTokenWithBalance?.token
+                    ?: return@mapNotNull null
+                Triple(owner, source to destination, event.amount)
+            }
+            .onEach { (owner, tokens, amount) ->
+                val (source, destination) = tokens
+                val rate = exchange.preferredRate
+
+                // Refresh the source balance from the network so the debit we're about to submit is
+                // checked against what's actually on-chain (mirrors ProceedWithSale).
+                tokenCoordinator.updateTokenAccount(source.address)
+                val amountInUsd =
+                    Fiat.tokenBalance(amount.localFiat.underlyingTokenAmount.quarks, source)
+                val refreshedBalance = tokenCoordinator.balanceForToken(source)
+                if (amountInUsd > refreshedBalance) {
+                    dispatchEvent(Event.UpdateSellState(loading = false))
+                    BottomBarManager.showAlert(
+                        title = resources.getString(R.string.error_title_insufficientFunds),
+                        message = resources.getString(R.string.error_description_insufficientFunds),
+                    )
+                    return@onEach
+                }
+
+                // Three legs, one screen: into Dollars is a plain sale, out of Dollars is a buy
+                // that carries an explicit fee, and currency→currency is a cross-currency swap
+                // whose pool fee is applied on-chain (so it's sent as null, server-enforced).
+                val result = when {
+                    destination.address == Mint.usdf -> transactionController.sell(
+                        owner = owner,
+                        amount = amount,
+                        of = source,
+                    )
+
+                    source.address == Mint.usdf -> transactionController.buy(
+                        owner = owner,
+                        amount = amount,
+                        feeAmount = LocalFiat.fromUsd(
+                            usdf = stateFlow.value.feeAmount.convertingToUsdIfNeeded(rate),
+                            rate = rate,
+                        ),
+                        of = destination,
+                    )
+
+                    else -> transactionController.swap(
+                        owner = owner,
+                        amount = amount,
+                        from = source,
+                        to = destination,
+                    )
+                }
+
+                result.onSuccess { swapId ->
+                    trackTransaction(source)
+                    dispatchEvent(Event.OnSwapIdChanged(swapId))
+                    dispatchEvent(Event.OnConvertSubmitted(destination, swapId))
+                    dispatchEvent(Event.UpdateSellState(loading = false, success = true))
+                    tokenCoordinator.subtract(source, amount.localFiat)
+                }.onFailure { cause ->
+                    trackTransaction(source, error = cause)
+                    dispatchEvent(Event.UpdateSellState(loading = false, success = false))
+                    if (cause is SwapError.Denied && cause.amountTooLowForFee) {
+                        BottomBarManager.showAlert(
+                            title = resources.getString(R.string.error_title_sellFailedDueToBeingTooLow),
+                            message = resources.getString(R.string.error_description_sellFailedDueToBeingTooLow),
+                        )
+                        return@onFailure
+                    }
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_buySellFailed),
+                        message = resources.getString(R.string.error_description_buySellFailed),
+                    )
+                }
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -1102,6 +1314,12 @@ class SwapViewModel @Inject constructor(
                     viewModelScope.launch { tokenCoordinator.updateTokenAccount(token) }
                     if (isUsingReserves) {
                         viewModelScope.launch { tokenCoordinator.updateTokenAccount(Mint.usdf) }
+                    }
+                    // A conversion moves value between two accounts; refresh the one it landed in.
+                    (stateFlow.value.purpose as? SwapPurpose.Convert)?.let { convert ->
+                        viewModelScope.launch {
+                            tokenCoordinator.updateTokenAccount(convert.destinationMint)
+                        }
                     }
                     viewModelScope.launch {
                         // update activity feed to grab the tx as a result of this buy/sell
@@ -1491,9 +1709,32 @@ class SwapViewModel @Inject constructor(
     private val minimumCoinbasePurchaseAmount = 5.toFiat()
 
     internal companion object {
+        /**
+         * House rate for a conversion when the source pool doesn't charge its own sell fee — 1%,
+         * matching the launchpad default.
+         */
+        private const val DEFAULT_CONVERT_FEE_BPS = 100
+
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnPurposeChanged -> { state -> state.copy(purpose = event.purpose) }
+                is Event.OnPurposeChanged -> { state ->
+                    val incoming = event.purpose
+                    val existing = state.purpose
+                    // The entry step re-dispatches its *route* purpose every time it re-enters
+                    // composition (e.g. popping back from the destination picker). For a Convert
+                    // that would clobber the destination the user just picked, so keep the
+                    // in-flight one whenever the source currency still matches.
+                    val resolved = if (
+                        incoming is SwapPurpose.Convert &&
+                        existing is SwapPurpose.Convert &&
+                        existing.mint == incoming.mint
+                    ) {
+                        existing
+                    } else {
+                        incoming
+                    }
+                    state.copy(purpose = resolved)
+                }
                 is Event.OnSelectedTokenChanged -> { state -> state.copy(tokenWithBalance = event.token) }
                 is Event.OnReservesUpdated -> { state -> state.copy(reservesWithBalance = event.reserves) }
 
@@ -1554,6 +1795,26 @@ class SwapViewModel @Inject constructor(
                 is Event.DepositSubmitted,
                 Event.OnBuyConfirmed,
                 Event.OnAmountConfirmed -> { state -> state }
+
+                is Event.OnDestinationSelected -> { state ->
+                    val purpose = state.purpose
+                    if (purpose is SwapPurpose.Convert) {
+                        state.copy(purpose = purpose.copy(destinationMint = event.mint))
+                    } else {
+                        state
+                    }
+                }
+
+                is Event.OnDestinationTokenResolved -> { state ->
+                    state.copy(destinationTokenWithBalance = event.token)
+                }
+
+                Event.SelectConvertDestination,
+                Event.ShowConvertReceipt,
+                Event.OnConvertConfirmed -> { state -> state }
+
+                is Event.ProceedWithConversion -> { state -> state }
+                is Event.OnConvertSubmitted -> { state -> state }
 
                 is Event.SelectFundingToken -> { state -> state }
                 is Event.OnFundingTokenSelected -> { state -> state }

@@ -46,7 +46,10 @@ private fun SelectTokenScreenContent(
     TokenList(
         modifier = Modifier.fillMaxSize(),
         tokens = tokens,
-        selectedToken = state.selectedToken,
+        // A Convert destination check-marks the currency already chosen for *this* flow, not the
+        // globally selected token.
+        selectedToken = (state.purpose as? TokenPurpose.ConvertDestination)?.current
+            ?: state.selectedToken,
         styling = rememberTokenBalanceRowStyling(
             balanceDisplayStyle = TokenBalanceStyle.Pill(),
             selectionStyle = when (state.purpose) {
@@ -56,15 +59,18 @@ private fun SelectTokenScreenContent(
                 is TokenPurpose.LaunchFunding -> TokenSelectionStyle.Chevron
                 is TokenPurpose.Select -> TokenSelectionStyle.Checkbox
                 is TokenPurpose.Tip -> TokenSelectionStyle.Checkbox
+                is TokenPurpose.ConvertDestination -> TokenSelectionStyle.Checkbox
                 TokenPurpose.Withdraw -> TokenSelectionStyle.Chevron
             }
         ),
-        showSelections = state.purpose is TokenPurpose.Select,
+        showSelections = state.purpose is TokenPurpose.Select ||
+                state.purpose is TokenPurpose.ConvertDestination,
         showFlags = when (state.purpose) {
             is TokenPurpose.Select -> false
             is TokenPurpose.Swap -> false
             is TokenPurpose.LaunchFunding -> false
             is TokenPurpose.Tip -> false
+            is TokenPurpose.ConvertDestination -> false
             else -> true
         },
         enableGreaterThanAmount = atLeast@{ _, amount ->

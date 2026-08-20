@@ -2,6 +2,7 @@ package com.flipcash.app.tokens
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -97,6 +98,10 @@ private fun swapEntryProvider(
         BuyReceiptScreen()
     }
     annotatedEntry<SwapStep.SellReceipt> { SellReceiptScreen() }
+    annotatedEntry<SwapStep.ConvertDestinationSelection> {
+        ConvertDestinationSelectScreen()
+    }
+    annotatedEntry<SwapStep.ConvertReceipt> { ConvertReceiptScreen() }
     annotatedEntry<SwapStep.PhantomConnect> {
         PhantomConnectConfirmationScreen(depositFirstPurpose = depositFirstPurpose)
     }
@@ -105,6 +110,34 @@ private fun swapEntryProvider(
     }
     annotatedEntry<SwapStep.Processing> {
         SwapProcessingScreen()
+    }
+}
+
+/**
+ * Destination picker for a conversion. Selecting a currency updates the in-flight purpose and pops
+ * straight back to amount entry — nothing else in the flow changes, so there's no resolve to await.
+ */
+@Composable
+private fun ConvertDestinationSelectScreen() {
+    val selectionViewModel = hiltViewModel<SelectTokenViewModel>()
+    val viewModel = flowSharedViewModel<SwapViewModel>()
+    val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
+    val purpose = viewModel.stateFlow.collectAsStateWithLifecycle().value.purpose
+
+    val convert = purpose as? SwapPurpose.Convert ?: return
+
+    TokenSelectScreen(TokenPurpose.ConvertDestination(convert.mint, convert.destinationMint))
+
+    LaunchedEffect(selectionViewModel) {
+        selectionViewModel.eventFlow
+            .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
+            .filter { it.fromUser }
+            .map { it.mint }
+            .onEach {
+                viewModel.dispatchEvent(SwapViewModel.Event.OnDestinationSelected(it))
+                flowNavigator.back()
+            }
+            .launchIn(this)
     }
 }
 

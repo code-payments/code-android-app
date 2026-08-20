@@ -26,6 +26,8 @@ fun AmountWithKeypad(
     hint: String = "",
     isError: Boolean = false,
     isClickable: Boolean = false,
+    /** Optional row rendered between the amount and the keypad (e.g. a Convert destination picker). */
+    accessory: (@Composable () -> Unit)? = null,
     onNumberPressed: (Int) -> Unit,
     onAmountClicked: () -> Unit = { },
     onBackspace: () -> Unit,
@@ -62,6 +64,15 @@ fun AmountWithKeypad(
                 textStyle = CodeTheme.typography.displayLarge,
                 decimalPlaces = decimalPlaces
             )
+        }
+
+        accessory?.let {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .padding(bottom = CodeTheme.dimens.grid.x3),
+            ) { it() }
         }
 
         CodeKeyPad(

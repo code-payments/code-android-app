@@ -17,6 +17,7 @@ import com.flipcash.app.core.tokens.SwapStep
 import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.onramp.CoinbaseOnRampCompletion
 import com.flipcash.app.onramp.LocalCoinbaseOnRampController
+import com.flipcash.app.tokens.internal.ConvertDestinationSelector
 import com.flipcash.app.tokens.internal.SwapEntryScreenContent
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
@@ -51,6 +52,7 @@ internal fun SwapEntryScreen(
             title = when (purpose) {
                 is SwapPurpose.Buy if purpose.fundingSource != FundingSource.Flexible ->
                     stringResource(R.string.title_amountToAdd)
+                is SwapPurpose.Convert -> stringResource(R.string.title_amountToConvert)
                 is SwapPurpose.BalanceIncrease -> stringResource(R.string.title_amountToBuy)
                 is SwapPurpose.BalanceDecrease -> stringResource(R.string.title_amountToSell)
             },
@@ -64,7 +66,21 @@ internal fun SwapEntryScreen(
             }
         )
 
-        SwapEntryScreenContent(viewModel)
+        SwapEntryScreenContent(
+            viewModel = viewModel,
+            accessory = if (purpose is SwapPurpose.Convert) {
+                {
+                    ConvertDestinationSelector(
+                        destination = state.destinationTokenWithBalance,
+                        onClick = {
+                            viewModel.dispatchEvent(SwapViewModel.Event.SelectConvertDestination)
+                        },
+                    )
+                }
+            } else {
+                null
+            },
+        )
     }
 
     LaunchedEffect(viewModel) {
@@ -87,6 +103,22 @@ internal fun SwapEntryScreen(
             .filterIsInstance<SwapViewModel.Event.ShowSellReceipt>()
             .onEach {
                 flowNavigator.navigateTo(SwapStep.SellReceipt)
+            }.launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.SelectConvertDestination>()
+            .onEach {
+                flowNavigator.navigateTo(SwapStep.ConvertDestinationSelection)
+            }.launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.ShowConvertReceipt>()
+            .onEach {
+                flowNavigator.navigateTo(SwapStep.ConvertReceipt)
             }.launchIn(this)
     }
 

@@ -142,6 +142,7 @@ class SelectTokenViewModel @Inject constructor(
                                     }
 
                                     is TokenPurpose.Swap,
+                                    is TokenPurpose.ConvertDestination,
                                     is TokenPurpose.LaunchFunding,
                                     is TokenPurpose.Tip,
                                     TokenPurpose.Deposit,
@@ -197,6 +198,12 @@ class SelectTokenViewModel @Inject constructor(
                                     } else {
                                         false
                                     }
+                                }
+
+                                // Every currency except the one being spent is a valid landing
+                                // spot — including ones the user doesn't hold yet.
+                                is TokenPurpose.ConvertDestination -> {
+                                    it.token.address != purpose.source
                                 }
                                 // show all tokens with non-zero balance
                                 else -> hasBalance

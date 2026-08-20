@@ -23,6 +23,8 @@ fun AmountEntryScreen(
     onConfirm: () -> Unit,
     onChangeCurrency: () -> Unit = {},
     appBar: (@Composable () -> Unit)? = null,
+    /** Optional row rendered between the amount and the keypad. */
+    accessory: (@Composable () -> Unit)? = null,
 ) {
     val delegateState by controller.state.collectAsStateWithLifecycle()
     val config by controller.config.collectAsStateWithLifecycle()
@@ -86,6 +88,7 @@ fun AmountEntryScreen(
             isClickable = config.canChangeCurrency,
             onAmountClicked = onChangeCurrency,
             isError = config.hint is AmountEntryHint.Error,
+            accessory = accessory,
             onNumberPressed = { controller.onNumber(it) },
             onBackspace = { controller.onBackspace() },
             onDecimal = { controller.onDecimal() },

@@ -104,6 +104,7 @@ class TokenInfoViewModel @Inject constructor(
         data class ExpandDescription(val expand: Boolean) : Event
         data object Share : Event
         data class OnBuy(val shortFall: Fiat? = null) : Event
+        data object OnConvert : Event
         data object PresentDepositOptions: Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object Exit : Event
@@ -327,6 +328,43 @@ class TokenInfoViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnConvert>()
+            .onEach {
+                val mint = stateFlow.value.mint ?: return@onEach
+                // Converting spends this currency and lands in another, so it needs both a
+                // balance here and somewhere for it to go.
+                if (!stateFlow.value.canSell || !stateFlow.value.hasFundableBalance) {
+                    BottomBarManager.showInfo(
+                        title = resources.getString(R.string.title_noBalanceYet),
+                        message = resources.getString(R.string.description_noBalanceYetToBuy),
+                        actions = listOf(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_addMoney)
+                            ) {
+                                dispatchEvent(Event.PresentDepositOptions)
+                            },
+                        ),
+                        showCancel = true,
+                    )
+                    return@onEach
+                }
+
+                // Dollars is the default landing spot; when Dollars *is* the source the swap
+                // view model substitutes the user's largest other holding.
+                dispatchEvent(
+                    Event.OpenScreen(
+                        AppRoute.Token.Swap(
+                            purpose = SwapPurpose.Convert(
+                                mint = mint,
+                                destinationMint = Mint.usdf,
+                            ),
+                        )
+                    )
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .mapNotNull {
                 // popToRoot = false so finishing the deposit returns to this token
@@ -370,6 +408,7 @@ class TokenInfoViewModel @Inject constructor(
                 is Event.OnMarketCapPeriodSelected -> { state -> state.copy(selectedPeriod = event.period) }
                 is Event.OpenScreen -> { state -> state }
                 is Event.OnBuy -> { state -> state }
+                Event.OnConvert -> { state -> state }
                 is Event.LoadHistoricalDataForPeriod -> { state -> state }
                 is Event.Share -> { state -> state }
                 is Event.Exit -> { state -> state }
