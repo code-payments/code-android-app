@@ -10,7 +10,9 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
+import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.execSQL
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -87,8 +89,9 @@ import com.getcode.utils.subByteArray
         // needs data movement an AutoMigration can't express.
         AutoMigration(from = 26, to = 27), // messages.text_substitutions (nullable)
         AutoMigration(from = 27, to = 28), // tokens.market_cap_metrics (nullable)
+        AutoMigration(from = 28, to = 29, spec = FlipcashDatabase.Migration28To29::class),
     ],
-    version = 28,
+    version = 29,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -184,6 +187,30 @@ abstract class FlipcashDatabase : RoomDatabase() {
     class Migration22To23 : AutoMigrationSpec {
         override fun onPostMigrate(db: SupportSQLiteDatabase) {
             db.execSQL("UPDATE chat_metadata SET chat_type = 'CONTACT_DM' WHERE chat_type = 'DM'")
+        }
+    }
+
+    /**
+     * Drops the cached transaction history on upgrade.
+     *
+     * The `messages` table is a cache of the server's activity feed, not a source of truth:
+     * `FeedRemoteMediator` clears and re-fetches it on every REFRESH, so an emptied table
+     * repopulates on the next feed load. Clearing it on upgrade sheds rows persisted by older
+     * mappers — stale metadata, amounts, and substitutions that would otherwise render forever
+     * because nothing rewrites a row that the server never sends again.
+     *
+     * No schema change, so this rides the auto migration and does its work in `onPostMigrate`
+     * (see [Migration22To23]). Takes the [SQLiteConnection] overload rather than the
+     * [SupportSQLiteDatabase] one: the latter only fires when Room is built without a driver, so a
+     * future `setDriver` would turn the delete into a silent no-op.
+     *
+     * The wallet already distinguishes "no activity" from "haven't looked yet" via
+     * `ActivityFeedCoordinator.syncState`, so the empty window before the first fetch does not
+     * flash new-user onboarding at an established user.
+     */
+    class Migration28To29 : AutoMigrationSpec {
+        override fun onPostMigrate(connection: SQLiteConnection) {
+            connection.execSQL("DELETE FROM messages")
         }
     }
 
