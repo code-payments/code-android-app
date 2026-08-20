@@ -31,7 +31,7 @@ impl must reproduce the fixtures before the native duplicates are deleted.
 | Fixture | Android | iOS |
 |---|---|---|
 | `ed25519.json` | `:libs:encryption:ed25519` androidTest → `connectedAndroidTest` (device/emulator, JNI) — **green** | `CrossPlatformVectors` → `swift test` (host) — **green** |
-| `base58.json` | `:libs:encryption:base58` → `test` (host JVM) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
+| `base58.json` | `:libs:encryption:base58` → `testAndroidHostTest` (host JVM) **and** `iosSimulatorArm64Test` (Kotlin/Native) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
 | `slip10.json` | `:libs:encryption:mnemonic` androidTest → `connectedAndroidTest` (device, wordlist + JNI) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
 | `curve.json` | `:libs:currency-math` androidTest → `connectedAndroidTest` (device, loads .bin tables) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
 | `solana_message.json` | `:services:opencode` → `testDebugUnitTest` (host JVM) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
@@ -60,6 +60,13 @@ into a red/green fact.
 Bitcoin/Solana Base58 (`gen_base58.py`). Each: `bytes` (hex) → `base58`. Both apps must
 `encode(bytes)==base58` and `decode(base58)==bytes`. Anchored to the Solana all-ones address
 (32 zero bytes → `111…1`) and cross-linked to the ed25519 public keys (real 32-byte Solana addresses).
+
+Base58 is a KMP module, so its vector test is the one fixture asserted by **two toolchains inside this
+repo**: the JVM host test and a Kotlin/Native `iosSimulatorArm64` run. Kotlin/Native test binaries ship
+no resource bundle (`NSBundle.pathForResource` finds nothing), so the fixture is compiled into
+`commonTest` as Kotlin constants by the `generateTestFixtures` task in the module's `build.gradle.kts` —
+that is why there is no resource loader here. Keep dropping the canonical JSON into
+`src/commonTest/resources/`; the task picks it up. (The same pattern is used by `:libs:codes:kikcode`.)
 
 ## slip10 (`slip10.json`) — the C1 gate
 
@@ -150,7 +157,7 @@ python3 gen_compact_message.py  > compact_message.json  # intent-signing compact
 
 # Sync to Android per-module copies (from the repo root):
 cp test-vectors/ed25519.json        libs/encryption/ed25519/src/androidTest/assets/
-cp test-vectors/base58.json         libs/encryption/base58/src/test/resources/
+cp test-vectors/base58.json         libs/encryption/base58/src/commonTest/resources/
 cp test-vectors/slip10.json         libs/encryption/mnemonic/src/androidTest/assets/
 cp test-vectors/curve.json          libs/currency-math/src/androidTest/assets/
 cp test-vectors/curve_fractional.json libs/currency-math/src/androidTest/assets/
