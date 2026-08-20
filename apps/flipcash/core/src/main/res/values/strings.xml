@@ -185,6 +185,8 @@
     <string name="message_invite_contact">You should download Flipcash, a new way to send cash\n\n%1$s</string>
 
     <string name="title_enterAddress">Enter Solana address</string>
+    <!-- v2 app-bar title for the withdrawal destination step; title_enterAddress stays the field placeholder. -->
+    <string name="title_addressEntry">Enter Address</string>
     <string name="subtitle_whereWithdrawTo">Where would you like to withdraw your %1$s to?</string>
     <string name="subtitle_withdrawHint">Enter up to %1$s</string>
     <string name="subtitle_withdrawHintLimitExceeded">You can only give up to %1$s</string>
@@ -773,6 +775,8 @@
 
     <string name="title_withdrawUsdfAsUsdc">Withdraw as USDC</string>
     <string name="description_withdrawUsdfAsUsdc">Your USDF will be converted 1:1 to Solana USDC on withdrawal</string>
+    <!-- v2 wording of the same screen: the reserve is branded "Dollars" and the chain is named last. -->
+    <string name="description_withdrawDollarsAsUsdc">Your Dollars will be converted 1:1 to USDC on Solana</string>
     <string name="displayName_solanaUsdc">Solana USDC</string>
     <string name="displayName_usdc">USDC</string>
     <string name="displayName_usdf">USDF</string>
