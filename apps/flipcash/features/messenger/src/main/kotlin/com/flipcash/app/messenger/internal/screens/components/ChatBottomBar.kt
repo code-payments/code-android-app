@@ -44,10 +44,10 @@ import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.measured
 import com.getcode.ui.utils.rememberKeyboardController
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.hazeEffect
 
 @Composable
 internal fun UserControlBottomBar(
@@ -96,9 +96,7 @@ internal fun UserControlBottomBar(
             if (show) {
                 TypingIndicator(
                     modifier = Modifier
-                        .hazeEffect(hazeState) {
-                            blurEffect { style = material }
-                        },
+                        .hazeBlur(HazeInput.Sources(hazeState), material),
                 )
             }
         }
@@ -177,11 +175,7 @@ internal fun UserControlBottomBar(
                                     CodeTheme.colors.divider,
                                     CodeTheme.shapes.medium,
                                 )
-                                .hazeEffect(hazeState) {
-                                    blurEffect {
-                                        style = material
-                                    }
-                                },
+                                .hazeBlur(HazeInput.Sources(hazeState), material),
                             focusRequester = focusRequester,
                             hint = "Message",
                             state = state.chatInputState,

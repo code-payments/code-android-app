@@ -31,11 +31,11 @@ import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.theme.MultiDevicePreview
 import com.flipcash.shared.tokens.R
 import com.getcode.theme.CodeTheme
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 
 @Composable
 fun CurrencyCreatorUpsellCard(
@@ -48,18 +48,20 @@ fun CurrencyCreatorUpsellCard(
     // When a HazeState is supplied the card frosts whatever list content scrolls beneath it (iOS
     // "liquid glass"), matching the v2 navigation pill: a wide blur plus a strong tint toward the
     // BACKGROUND colour at high alpha, finished with a faint bright rim. `clip` must precede
-    // `hazeEffect` so the blur is bounded to the rounded card, not its bounding box. Falls back to the
+    // `hazeBlur` so the blur is bounded to the rounded card, not its bounding box. Falls back to the
     // opaque surface when no HazeState is supplied (e.g. when the card is itself part of the list).
-    val glassTint = lerp(CodeTheme.colors.background, Color.White, 0.18f)
-    val liquidGlass = HazeBlurStyle(
-        blurRadius = 32.dp,
-        backgroundColor = CodeTheme.colors.background,
-        colorEffect = HazeColorEffect.tint(glassTint.copy(alpha = 0.72f)),
-    )
+    val backdrop = CodeTheme.colors.background
+    val glassTint = lerp(backdrop, Color.White, 0.18f)
+    // The HazeBlurStyle builder is not a @Composable scope, so theme reads are hoisted above it.
+    val liquidGlass = HazeBlurStyle {
+        blurRadius(32.dp)
+        backgroundColor(backdrop)
+        colorEffects(listOf(HazeColorEffect.tint(glassTint.copy(alpha = 0.72f))))
+    }
     val glassBackground = if (hazeState != null) {
         Modifier
             .clip(shape)
-            .hazeEffect(hazeState) { blurEffect { style = liquidGlass } }
+            .hazeBlur(HazeInput.Sources(hazeState), liquidGlass)
             .border(CodeTheme.dimens.border, Color.White.copy(alpha = 0.08f), shape)
     } else {
         Modifier

@@ -10,9 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
-import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.blur.materials.HazeMaterials
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
@@ -40,12 +40,10 @@ fun BlurredContent(
             Box(
                 Modifier
                     .matchParentSize()
-                    .hazeEffect(hazeState) {
-                        blurEffect {
-                            this.blurRadius = blurRadius
-                            style = material
-                        }
-                    }
+                    .hazeBlur(
+                        input = HazeInput.Sources(hazeState),
+                        style = material.then { blurRadius(blurRadius) },
+                    )
             )
         }
     }
