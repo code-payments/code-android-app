@@ -5,7 +5,6 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.ExperimentalAnimatableApi
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -46,7 +45,7 @@ import com.flipcash.features.bill.playground.R
 import com.getcode.theme.CodeTheme
 
 
-@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalAnimatableApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun ColorSlots(
     selectedSlot: Int,
