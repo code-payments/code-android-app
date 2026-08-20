@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -64,8 +63,9 @@ internal fun TokenLeaderboard(
     val features = LocalFeatureFlags.current
     val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
 
-    // The v2 upsell card sits over the list as the bottom bar; frost it against the leaderboard
-    // scrolling beneath. The inline (non-v2) card is part of the list itself, so it gets no hazeState.
+    // v2 surfaces currency creation as a Wallet action tile, so Discover drops its promo entirely;
+    // v1 keeps it as the first row above the leaderboard. The haze source stays wired for the
+    // scroll gradient's benefit.
     val hazeState = rememberHazeState()
 
     val currencyCreatorCard = @Composable { modifier: Modifier, haze: HazeState? ->
@@ -73,20 +73,7 @@ internal fun TokenLeaderboard(
             dispatch(TokenDiscoveryViewModel.Event.CreateCurrency)
         }
     }
-    CodeScaffold(
-        bottomBar = {
-            if (isNewUi) {
-                currencyCreatorCard(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = CodeTheme.dimens.inset)
-                        .navigationBarsPadding()
-                        .padding(bottom = CodeTheme.dimens.grid.x3),
-                    hazeState,
-                )
-            }
-        },
-    ) { padding ->
+    CodeScaffold { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()

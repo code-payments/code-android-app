@@ -3,6 +3,7 @@ package com.flipcash.app.balance.internal
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,8 +19,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Icon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,7 +26,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -195,33 +193,67 @@ internal fun WalletScreenContent(
             }
 
             item {
-                // Fixed, width-proportional height (like iOS) so both tiles are equal height and tall
-                // enough for the icon (top) and label (bottom) to sit apart — labels bottom-align even
-                // when one wraps to two lines.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                // 2x2 action grid. Fixed, width-proportional tile height (like iOS) so tiles are
+                // equal height and tall enough for the icon (top) and label (bottom) to sit apart —
+                // labels bottom-align even when one wraps to two lines.
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 ) {
-                    TileButton(
-                        modifier = Modifier
-                            .weight(1f)
-                            .aspectRatio(1.45f),
-                        style = TileButtonStyle.Spread,
-                        text = stringResource(R.string.action_addMoney),
-                        icon = rememberVectorPainter(Icons.Outlined.AddCircleOutline),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                     ) {
-                        dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
+                        // ic_menu_deposit/ic_menu_withdraw are the app's canonical glyphs for this
+                        // pair (the Settings-sheet money tiles) — matched arrows, not ad-hoc icons.
+                        TileButton(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1.45f),
+                            style = TileButtonStyle.Spread,
+                            text = stringResource(R.string.action_addMoney),
+                            icon = painterResource(R.drawable.ic_menu_deposit),
+                        ) {
+                            dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
+                        }
+
+                        TileButton(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1.45f),
+                            style = TileButtonStyle.Spread,
+                            text = stringResource(R.string.action_withdrawMoney),
+                            icon = painterResource(R.drawable.ic_menu_withdraw),
+                        ) {
+                            dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Transfers.Withdrawal()))
+                        }
                     }
 
-                    TileButton(
-                        modifier = Modifier
-                            .weight(1f)
-                            .aspectRatio(1.45f),
-                        style = TileButtonStyle.Spread,
-                        text = stringResource(R.string.action_discoverCurrencies),
-                        icon = painterResource(R.drawable.ic_globe),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                     ) {
-                        dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Token.Discovery))
+                        TileButton(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1.45f),
+                            style = TileButtonStyle.Spread,
+                            text = stringResource(R.string.action_discoverCurrencies),
+                            icon = painterResource(R.drawable.ic_globe),
+                        ) {
+                            dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Token.Discovery))
+                        }
+
+                        // Currency creation now lives here rather than as a Discover promo.
+                        TileButton(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1.45f),
+                            style = TileButtonStyle.Spread,
+                            text = stringResource(R.string.action_createCurrency),
+                            icon = painterResource(R.drawable.ic_coins_add),
+                        ) {
+                            dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Token.CurrencyCreator))
+                        }
                     }
                 }
             }
