@@ -47,13 +47,21 @@ interface MessageDao {
     @Query("SELECT * FROM messages")
     suspend fun getAllMessages(): List<MessageEntity>
 
-    /** True once any completed deposit/buy notification exists — the "added money" milestone. */
+    /**
+     * True once any completed *incoming* notification exists — the "added money" milestone.
+     *
+     * Money arriving is money arriving, regardless of how: an on-ramp buy, a deposit, or a tip
+     * received from someone else. All three are the credit side of the feed (see
+     * `MessageMetadata.isOutgoing`), so all three satisfy the milestone. Swaps are excluded — they
+     * debit the source mint rather than bringing new money in.
+     */
     @Query(
         "SELECT EXISTS(SELECT 1 FROM messages WHERE state = 'COMPLETED' AND (" +
             "metadata LIKE '%com.flipcash.app.core.feed.MessageMetadata.DepositedCrypto%' OR " +
-            "metadata LIKE '%com.flipcash.app.core.feed.MessageMetadata.BoughtToken%'))"
+            "metadata LIKE '%com.flipcash.app.core.feed.MessageMetadata.BoughtToken%' OR " +
+            "metadata LIKE '%com.flipcash.app.core.feed.MessageMetadata.ReceivedCrypto%'))"
     )
-    fun hasEverAddedMoney(): Flow<Boolean>
+    fun hasEverReceivedMoney(): Flow<Boolean>
 
     @Query("DELETE FROM messages")
     suspend fun deleteAllMessages()

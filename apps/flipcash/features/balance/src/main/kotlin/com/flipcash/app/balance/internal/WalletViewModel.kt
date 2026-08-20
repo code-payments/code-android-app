@@ -56,7 +56,7 @@ internal class WalletViewModel @Inject constructor(
         val transactions: List<TransactionListItem> = emptyList(),
         val feedSyncState: FeedSyncState = FeedSyncState.Unknown,
     ) {
-        val hasAddedMoney: Boolean
+        val hasReceivedMoney: Boolean
             get() = onboardingItems?.find { it is TutorialItem.AddMoney }?.isCompleted == true
 
         /** Treated as complete while unknown, so the tutorial is never the thing we guess at. */
@@ -118,14 +118,14 @@ internal class WalletViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         // Onboarding funnel milestones, derived from durable event history (not current balance):
-        // "added money" = a completed deposit/buy in the activity feed; "scanned a tip card" =
-        // a Cash chat message with verb TIPPED.
+        // "added money" = any completed *incoming* entry in the activity feed — a buy, a deposit, or
+        // a tip received; "scanned a tip card" = an outgoing Cash chat message with verb TIPPED.
         combine(
-            feedCoordinator.hasEverAddedMoney(),
+            feedCoordinator.hasEverReceivedMoney(),
             chatCoordinator.hasEverTipped(),
-        ) { hasAddedMoney, hasTipped ->
+        ) { hasReceivedMoney, hasTipped ->
             listOf(
-                TutorialItem.AddMoney(isCompleted = hasAddedMoney),
+                TutorialItem.AddMoney(isCompleted = hasReceivedMoney),
                 TutorialItem.ScanTipCard(isCompleted = hasTipped),
             )
         }
