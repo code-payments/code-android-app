@@ -97,7 +97,7 @@ class WalletLoadingStateTest {
     }
 
     @Test
-    fun `hasAddedMoney is false while unknown, gating the action tiles`() {
-        assertFalse(WalletViewModel.State().hasAddedMoney)
+    fun `hasReceivedMoney is false while unknown, gating the action tiles`() {
+        assertFalse(WalletViewModel.State().hasReceivedMoney)
     }
 }

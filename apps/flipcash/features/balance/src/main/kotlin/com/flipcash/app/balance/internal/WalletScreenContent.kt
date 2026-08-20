@@ -206,7 +206,7 @@ internal fun WalletScreenContent(
             )
         }
 
-        if (balanceState.hasAddedMoney) {
+        if (balanceState.hasReceivedMoney) {
             item {
                 Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
             }

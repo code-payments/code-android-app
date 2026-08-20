@@ -263,8 +263,11 @@ class ActivityFeedCoordinator @Inject internal constructor(
             profiles to tokens
         }
 
-    /** Reactive "has the user ever added money" — any completed deposit/buy in the feed. */
-    fun hasEverAddedMoney(): Flow<Boolean> = dataSource.hasEverAddedMoney()
+    /**
+     * Reactive "has money ever come in" — any completed incoming entry in the feed: an on-ramp buy,
+     * a deposit, or a tip received.
+     */
+    fun hasEverReceivedMoney(): Flow<Boolean> = dataSource.hasEverReceivedMoney()
 
     suspend fun checkPendingMessagesForUpdates(): Result<Int> {
         val pendingMessages = dataSource.query(whereClause = "state = '${NotificationState.PENDING.name}'")
