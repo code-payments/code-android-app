@@ -19,6 +19,11 @@ jobs:
         with:
           fetch-depth: 1
 
+      # Cheap supply-chain guard: fails the run if gradle/wrapper/gradle-wrapper.jar
+      # is not a byte-for-byte match for a jar published by Gradle.
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
       - name: Setup Java env
         uses: actions/setup-java@v3
         with:
@@ -42,26 +47,70 @@ jobs:
           ruby-version: 2.7.2
           bundler-cache: true
 
-      - name: Decode Google Services JSON file
-        uses: timheuer/base64-to-file@v1
-        id: google_services_json_file
-        with:
-          fileName: google-services.json
-          fileDir: ./apps/flipcash/app/src
-          encodedString: ${{ secrets.FLIPCASH2_GOOGLE_SERVICES }}
+      # GitHub does not expose regular Actions secrets to `pull_request` runs opened by
+      # Dependabot (it reads from a separate Dependabot secret store) or by forks, so every
+      # `secrets.*` below resolves to an empty string on those runs. This lane only builds and
+      # runs unit tests + lint — it never talks to Firebase, Bugsnag, Mixpanel or Coinbase — so
+      # it falls back to a committed placeholder config instead of failing. That keeps dependency
+      # PRs honestly red or green on the bump itself rather than uniformly red on missing config.
+      #
+      # If a future job in this workflow ever needs the *real* values on Dependabot PRs, add them
+      # under Settings -> Secrets and variables -> Dependabot (repo admin required); the names are
+      # the same ones referenced here.
+      - name: Provision google-services.json
+        env:
+          FLIPCASH2_GOOGLE_SERVICES: ${{ secrets.FLIPCASH2_GOOGLE_SERVICES }}
+        run: |
+          set -euo pipefail
+          dest=apps/flipcash/app/src/google-services.json
+          mkdir -p "$(dirname "$dest")"
+          if [ -n "${FLIPCASH2_GOOGLE_SERVICES:-}" ]; then
+            printf '%s' "$FLIPCASH2_GOOGLE_SERVICES" | base64 --decode > "$dest"
+            echo "Wrote google-services.json from the FLIPCASH2_GOOGLE_SERVICES secret."
+          else
+            cp .github/ci/google-services.placeholder.json "$dest"
+            echo "::notice title=Using placeholder Firebase config::Repository secrets are not available on this run (Dependabot or fork PR). Copied .github/ci/google-services.placeholder.json instead; unit tests and lint do not need real Firebase credentials."
+          fi
 
-
-      - name: Setup BugSnag API Key
-        run: echo BUGSNAG_API_KEY=\"${{ secrets.FLIPCASH_BUGSNAG_API_KEY }}\" > ./local.properties
-        
-      - name: Setup Google Cloud Project Number
-        run: echo GOOGLE_CLOUD_PROJECT_NUMBER=${{ secrets.GOOGLE_CLOUD_PROJECT_NUMBER }} >> ./local.properties
-
-      - name: Setup Mixpanel API Key
-        run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCASH_MIXPANEL_API_KEY }}\" >> ./local.properties
-
-      - name: Setup Coinbase OnRamp API Key
-        run: echo COINBASE_ONRAMP_API_KEY=${{ secrets.COINBASE_ONRAMP_API_KEY }} >> ./local.properties
+      # The secrets Gradle plugin copies every entry in local.properties into BuildConfig
+      # verbatim, so an *empty* value emits `public static final String X = ;` and the app fails
+      # to compile — writing empty strings is not a safe fallback. Each key therefore gets a
+      # zero-filled placeholder when its secret is unavailable (Dependabot / fork PRs); nothing
+      # in this lane calls out to Bugsnag, Mixpanel or Coinbase.
+      #
+      # Values are passed through the environment rather than interpolated into the script so a
+      # secret containing a quote or backtick cannot break (or escape) the shell. The quoting of
+      # each line is kept exactly as it was, since BUGSNAG_API_KEY is also read verbatim into a
+      # manifest placeholder.
+      - name: Write local.properties
+        env:
+          BUGSNAG_API_KEY: ${{ secrets.FLIPCASH_BUGSNAG_API_KEY }}
+          GOOGLE_CLOUD_PROJECT_NUMBER: ${{ secrets.GOOGLE_CLOUD_PROJECT_NUMBER }}
+          MIXPANEL_API_KEY: ${{ secrets.FLIPCASH_MIXPANEL_API_KEY }}
+          COINBASE_ONRAMP_API_KEY: ${{ secrets.COINBASE_ONRAMP_API_KEY }}
+        run: |
+          set -euo pipefail
+          # Substitute an obviously-fake value for any key whose secret came through empty.
+          placeheld=""
+          for spec in \
+            "BUGSNAG_API_KEY=00000000000000000000000000000000" \
+            "GOOGLE_CLOUD_PROJECT_NUMBER=000000000000" \
+            "MIXPANEL_API_KEY=00000000000000000000000000000000" \
+            "COINBASE_ONRAMP_API_KEY=00000000-0000-0000-0000-000000000000"
+          do
+            name=${spec%%=*}
+            if [ -z "${!name:-}" ]; then
+              printf -v "$name" '%s' "${spec#*=}"
+              placeheld="$placeheld $name"
+            fi
+          done
+          {
+            echo "BUGSNAG_API_KEY=\"$BUGSNAG_API_KEY\""
+            echo "GOOGLE_CLOUD_PROJECT_NUMBER=$GOOGLE_CLOUD_PROJECT_NUMBER"
+            echo "MIXPANEL_API_KEY=\"$MIXPANEL_API_KEY\""
+            echo "COINBASE_ONRAMP_API_KEY=$COINBASE_ONRAMP_API_KEY"
+          } > ./local.properties
+          [ -z "$placeheld" ] || echo "::notice title=Using placeholder API keys::Secrets are not available on this run (Dependabot or fork PR); zero-filled placeholders used for:$placeheld"
 
       - name: Run Flipcash tests
         run: bundle exec fastlane android flipcash_tests
