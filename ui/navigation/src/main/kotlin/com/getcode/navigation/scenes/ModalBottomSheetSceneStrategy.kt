@@ -62,6 +62,11 @@ private val Expanded = SheetDetent("expanded") { containerHeight, _ ->
     containerHeight * 0.925f
 }
 
+/** Resting detent for a [com.getcode.navigation.HalfSheet]; still draggable up to [Expanded]. */
+private val Half = SheetDetent("half") { containerHeight, _ ->
+    containerHeight * 0.5f
+}
+
 /** An [OverlayScene] that renders an [entry] within an [UnstyledBottomSheet]. */
 internal class ModalBottomSheetScene<T : Any> constructor(
     override val key: T,
@@ -119,9 +124,18 @@ internal class ModalBottomSheetScene<T : Any> constructor(
             val isWrapContent =
                 metadata[NavMetadataKeys.IsWrapContentSheet.key] as? Boolean ?: false
 
+            // A half sheet gains an extra resting detent and opens there; every other sheet keeps
+            // the two-detent (hidden/expanded) behaviour.
+            val isHalfSheet = metadata[NavMetadataKeys.IsHalfSheet.key] as? Boolean ?: false
+            val restingDetent = if (isHalfSheet) Half else Expanded
+
             val sheetState = rememberBottomSheetState(
                 initialDetent = SheetDetent.Hidden,
-                detents = listOf(SheetDetent.Hidden, Expanded),
+                detents = if (isHalfSheet) {
+                    listOf(SheetDetent.Hidden, Half, Expanded)
+                } else {
+                    listOf(SheetDetent.Hidden, Expanded)
+                },
                 confirmDetentChange = { detent ->
                     detent != SheetDetent.Hidden || allowDismiss
                 },
@@ -130,7 +144,7 @@ internal class ModalBottomSheetScene<T : Any> constructor(
             // Animate the sheet in on first composition and after
             // same-route dismiss-replace (sheetGeneration increments).
             LaunchedEffect(navigator.sheetGeneration) {
-                sheetState.animateTo(Expanded)
+                sheetState.animateTo(restingDetent)
             }
 
             val composeScope = rememberCoroutineScope()
@@ -197,8 +211,10 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                         modifier = Modifier
                             .fillMaxSize()
                             .drawBehind {
+                                // Saturate the scrim at the sheet's resting detent, not at fully
+                                // expanded — a half sheet would otherwise open under-dimmed.
                                 val progress = sheetState
-                                    .progress(SheetDetent.Hidden, Expanded)
+                                    .progress(SheetDetent.Hidden, restingDetent)
                                     .coerceIn(0f, 1f)
                                 // A bill beneath the sheet already dims the screen with its own
                                 // (constant) scrim, so don't stack a second dim here — otherwise

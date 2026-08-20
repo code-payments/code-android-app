@@ -1,7 +1,11 @@
 package com.flipcash.app.tokens
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -129,6 +133,12 @@ private fun swapEntryProvider(
     }
 }
 
+/** Mirrors the modal sheet's expanded detent so wrap-content sheets never overrun it. */
+private const val SheetExpandedFraction = 0.925f
+
+/** Floor for the currency sheet: a short list still opens to a half-height sheet, not a stub. */
+private const val SheetMinimumFraction = 0.5f
+
 /**
  * Destination picker for a conversion. Selecting a currency updates the in-flight purpose and pops
  * straight back to amount entry — nothing else in the flow changes, so there's no resolve to await.
@@ -142,23 +152,38 @@ private fun ConvertDestinationSelectScreen() {
 
     val convert = purpose as? SwapPurpose.Convert ?: return
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // A sheet has no app bar: the title sits flush-left above the list, and the sheet's own
-        // scrim/drag handles dismissal.
-        Text(
-            modifier = Modifier.padding(
-                horizontal = CodeTheme.dimens.inset,
-                vertical = CodeTheme.dimens.grid.x3,
-            ),
-            text = stringResource(R.string.title_selectCurrency),
-            style = CodeTheme.typography.textLarge,
-            color = CodeTheme.colors.textMain,
-        )
+    // The sheet hugs its content, so the list is measured at its natural height — bounded to
+    // max(half screen, content) so a short list isn't a stub and a long one can't run past the
+    // sheet's expanded detent.
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(
+                    min = maxHeight * SheetMinimumFraction,
+                    max = maxHeight * SheetExpandedFraction,
+                )
+                // Wrap-content sheets stop short of the system bars, so pad for them here.
+                .navigationBarsPadding(),
+        ) {
+            // A sheet has no app bar: the title sits flush-left above the list, and the sheet's own
+            // scrim/drag handles dismissal.
+            Text(
+                modifier = Modifier.padding(
+                    horizontal = CodeTheme.dimens.inset,
+                    vertical = CodeTheme.dimens.grid.x3,
+                ),
+                text = stringResource(R.string.title_selectCurrency),
+                style = CodeTheme.typography.textLarge,
+                color = CodeTheme.colors.textMain,
+            )
 
-        TokenSelectScreen(
-            purpose = TokenPurpose.ConvertDestination(convert.mint, convert.destinationMint),
-            showTopBar = false,
-        )
+            TokenSelectScreen(
+                purpose = TokenPurpose.ConvertDestination(convert.mint, convert.destinationMint),
+                showTopBar = false,
+                wrapHeight = true,
+            )
+        }
     }
 
     LaunchedEffect(selectionViewModel) {

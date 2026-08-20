@@ -2,6 +2,7 @@ package com.flipcash.app.tokens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +30,8 @@ import kotlinx.coroutines.flow.onEach
 fun TokenSelectScreen(
     purpose: TokenPurpose,
     showTopBar: Boolean = purpose !is TokenPurpose.LaunchFunding,
+    /** Size the list to its content rather than the full height — for wrap-content sheets. */
+    wrapHeight: Boolean = false,
 ) {
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<SelectTokenViewModel>()
@@ -43,7 +46,7 @@ fun TokenSelectScreen(
 
     CompositionLocalProvider(LocalFlowDismissStyle provides dismissStyle) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = if (wrapHeight) Modifier.fillMaxWidth() else Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (showTopBar) {
@@ -58,7 +61,7 @@ fun TokenSelectScreen(
                 )
             }
 
-            SelectTokenScreen(viewModel)
+            SelectTokenScreen(viewModel, wrapHeight = wrapHeight)
         }
     }
 

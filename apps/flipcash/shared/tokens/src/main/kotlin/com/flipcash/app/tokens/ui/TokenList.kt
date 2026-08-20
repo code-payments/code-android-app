@@ -2,8 +2,10 @@ package com.flipcash.app.tokens.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -51,6 +53,8 @@ fun TokenList(
     showSelections: Boolean = false,
     includeReserves: Boolean = true,
     pinFooter: Boolean = false,
+    /** Size the list to its content instead of the full height — for wrap-content sheets. */
+    wrapHeight: Boolean = false,
     enableGreaterThanAmount: (mint: Mint, LocalFiat) -> Boolean = { _, _ -> true },
     emptyState: (@Composable LazyItemScope.() -> Unit)? = null,
     reserves: (@Composable LazyItemScope.(mint: Mint, cashReserves: LocalFiat) -> Unit)? = null,
@@ -76,7 +80,8 @@ fun TokenList(
     Box(modifier = modifier) {
         LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .then(if (wrapHeight) Modifier.wrapContentHeight() else Modifier.fillMaxHeight())
                 .verticalScrollStateGradient(
                     scrollState = listState,
                     color = CodeTheme.colors.background,

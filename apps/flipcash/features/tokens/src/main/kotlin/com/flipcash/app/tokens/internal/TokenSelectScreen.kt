@@ -30,21 +30,24 @@ import com.getcode.theme.CodeTheme
 @Composable
 internal fun SelectTokenScreen(
     tokenViewModel: SelectTokenViewModel,
+    wrapHeight: Boolean = false,
 ) {
     val state by tokenViewModel.stateFlow.collectAsStateWithLifecycle()
 
-    SelectTokenScreenContent(state, tokenViewModel::dispatchEvent)
+    SelectTokenScreenContent(state, wrapHeight, tokenViewModel::dispatchEvent)
 }
 
 @Composable
 private fun SelectTokenScreenContent(
     state: SelectTokenViewModel.State,
+    wrapHeight: Boolean = false,
     dispatch: (SelectTokenViewModel.Event) -> Unit,
 ) {
     val tokens = remember(state.tokens) { state.tokens }
 
     TokenList(
-        modifier = Modifier.fillMaxSize(),
+        modifier = if (wrapHeight) Modifier.fillMaxWidth() else Modifier.fillMaxSize(),
+        wrapHeight = wrapHeight,
         tokens = tokens,
         // A Convert destination / Get payment source check-marks the currency already chosen for
         // *this* flow, not the globally selected token.
@@ -92,7 +95,12 @@ private fun SelectTokenScreenContent(
         emptyState = {
             Box(
                 modifier = Modifier
-                    .fillParentMaxSize()
+                    .then(
+                        if (wrapHeight) Modifier
+                            .fillParentMaxWidth()
+                            .padding(vertical = CodeTheme.dimens.grid.x10)
+                        else Modifier.fillParentMaxSize()
+                    )
                     .padding(bottom = CodeTheme.dimens.inset),
                 contentAlignment = Alignment.Center
             ) {
