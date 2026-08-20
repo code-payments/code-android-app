@@ -49,6 +49,10 @@ internal class IntentStatefulSwap(
                 swapAuthority = request.swapAuthority.toPublicKey(),
                 route = request.route,
                 amount = request.swapAmount.underlyingTokenAmount.quarks,
+                // The fee we quoted the server in the initiate request. Omitting it built the
+                // no-fee VM::TransferForSwap while the server built VM::TransferForSwapWithFee,
+                // so the signatures never matched and every fee-bearing buy failed.
+                feeAmount = request.feeAmount?.underlyingTokenAmount?.quarks ?: 0,
             )
             is StatefulSwapResponseServerParameters.NewCurrency -> TransactionBuilder.buyNewCurrency(
                 response = parameters,
