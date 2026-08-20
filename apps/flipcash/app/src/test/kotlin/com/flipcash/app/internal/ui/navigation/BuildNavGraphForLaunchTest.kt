@@ -27,6 +27,10 @@ class BuildNavGraphForLaunchTest {
 
     private val dummyLink = DeepLink("https://send.flipcash.com/c/e=testEntropy")
 
+    private companion object {
+        const val MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+    }
+
     private fun build(
         state: AuthState,
         action: DeeplinkAction = DeeplinkAction.None,
@@ -84,6 +88,41 @@ class BuildNavGraphForLaunchTest {
         assertEquals(listOf(AppRoute.Main.Scanner), result.baseRoutes)
         assertTrue(result.deeplinkRoutes.isEmpty())
         assertEquals(action, result.pendingAction)
+    }
+
+    @Test
+    fun `v2 opens a token deeplink as a pending action on the wallet home`() {
+        // The expanded card is applied on top of the wallet, which is already the v2 launch base --
+        // no pushed screen, so nothing lands in deeplinkRoutes. See DeeplinkAction.OpenToken.
+        val action = DeeplinkAction.OpenToken(
+            mint = Mint(MINT),
+            routes = listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(Mint(MINT))),
+        )
+        val result = build(
+            state = AuthState.Ready,
+            action = action,
+            deepLink = dummyLink,
+            isNewUi = true,
+        )!!
+        assertEquals(listOf(AppRoute.Sheets.Wallet), result.baseRoutes)
+        assertTrue(result.deeplinkRoutes.isEmpty())
+        assertEquals(action, result.pendingAction)
+    }
+
+    @Test
+    fun `v1 opens a token deeplink through the carried route form`() {
+        // v1 has no card expansion, so the same action is taken as routes: the wallet sheet with
+        // token info inside it.
+        val routes = listOf<AppRoute>(AppRoute.Sheets.Wallet, AppRoute.Token.Info(Mint(MINT)))
+        val result = build(
+            state = AuthState.Ready,
+            action = DeeplinkAction.OpenToken(mint = Mint(MINT), routes = routes),
+            deepLink = dummyLink,
+            isNewUi = false,
+        )!!
+        assertEquals(listOf(AppRoute.Main.Scanner), result.baseRoutes)
+        assertEquals(routes, result.deeplinkRoutes)
+        assertNull(result.pendingAction)
     }
 
     @Test

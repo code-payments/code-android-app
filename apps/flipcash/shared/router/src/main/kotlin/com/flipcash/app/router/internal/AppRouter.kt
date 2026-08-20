@@ -66,8 +66,15 @@ internal class AppRouter(
 
             is DeeplinkType.CashLink -> DeeplinkAction.OpenCashLink(type.entropy)
 
-            is DeeplinkType.TokenInfo -> DeeplinkAction.Navigate(
-                listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(type.mint, fromDeeplink = true))
+            // Not a plain Navigate: under v2 a token link lands as the wallet's expanded card, not
+            // as a pushed screen. The route form is carried along for v1, which has no expansion.
+            // See DeeplinkAction.OpenToken.
+            is DeeplinkType.TokenInfo -> DeeplinkAction.OpenToken(
+                mint = type.mint,
+                routes = listOf(
+                    AppRoute.Sheets.Wallet,
+                    AppRoute.Token.Info(type.mint, fromDeeplink = true),
+                ),
             )
 
             is DeeplinkType.EmailVerification -> resolveEmailVerification(type)

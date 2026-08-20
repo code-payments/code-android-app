@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -166,6 +165,7 @@ internal fun NewAppContent(
     codeNavigator: CodeNavigator,
     resultStateRegistry: NavResultStateRegistry,
     barManager: BarManager,
+    cardExpansion: CardExpansionController,
     deepLink: () -> DeepLink?,
     onPendingAction: (DeeplinkAction) -> Unit = {},
 ) {
@@ -179,23 +179,10 @@ internal fun NewAppContent(
     val tabBarHeight = remember { mutableStateOf(0.dp) }
 
     // Card-expand (iOS #587): the wallet requests an expansion (via LocalCardExpansion); the detail is
-    // drawn HERE as an overlay above the nav content, driven by one progress scalar, so the deck stays
+    // drawn by CardExpandHost inside the wallet entry, driven by one progress scalar, so the deck stays
     // composed and reorganises behind it. See CardExpansionController / CurrencyInfoExpansion.
-    val context = LocalContext.current
-    val cardExpansion = remember(context) {
-        CardExpansionController().apply {
-            // Feed the controller the user's real animation-scale so the expand honours "animations
-            // off" (accessibility/battery) yet isn't fooled by a stale ambient MotionDurationScale.
-            val resolver = context.contentResolver
-            animationScale = {
-                android.provider.Settings.Global.getFloat(
-                    resolver,
-                    android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
-                    1f,
-                )
-            }
-        }
-    }
+    // [cardExpansion] is owned by App so a `/token` deeplink — which is handled there, outside this
+    // shell — can open a token as its expanded card instead of pushing a screen.
     CompositionLocalProvider(LocalCardExpansion provides cardExpansion) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Mark the nav content as the haze source so the frosted bar blurs whatever scrolls beneath it.

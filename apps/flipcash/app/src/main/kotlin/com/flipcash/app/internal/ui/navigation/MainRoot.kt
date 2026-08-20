@@ -229,6 +229,23 @@ internal fun buildNavGraphForLaunch(
                         isNewUi = isNewUi,
                     )
 
+                    // v2 opens a token link as the wallet's expanded card (a pending action applied
+                    // on top of the wallet home, which is already the launch base); v1 has no card
+                    // expansion, so it takes the route form — the wallet sheet with token info inside.
+                    is DeeplinkAction.OpenToken -> if (isNewUi) {
+                        LaunchNavGraph(
+                            baseRoutes = listOf(home),
+                            pendingAction = action,
+                            isNewUi = true,
+                        )
+                    } else {
+                        LaunchNavGraph(
+                            baseRoutes = listOf(home),
+                            deeplinkRoutes = action.routes,
+                            isNewUi = false,
+                        )
+                    }
+
                     is DeeplinkAction.OpenCashLink,
                     is DeeplinkAction.PresentTipCard,
                     is DeeplinkAction.Login -> LaunchNavGraph(

@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -33,6 +34,7 @@ import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.android.BuildConfig
 import com.flipcash.app.bill.customization.BillPlaygroundScaffold
+import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.navigateAll
@@ -118,6 +120,26 @@ internal fun App(
 
     val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
 
+    // Card-expand (iOS #587) is owned HERE rather than inside NewAppContent because the deeplink
+    // handling below sits outside the v1/v2 shells: a `/token` link opens the wallet's expanded card
+    // (see DeeplinkAction.OpenToken), which needs the controller. NewAppContent provides it to the
+    // tree; v1 has no expansion and never touches it.
+    val context = LocalContext.current
+    val cardExpansion = remember(context) {
+        CardExpansionController().apply {
+            // Feed the controller the user's real animation-scale so the expand honours "animations
+            // off" (accessibility/battery) yet isn't fooled by a stale ambient MotionDurationScale.
+            val resolver = context.contentResolver
+            animationScale = {
+                android.provider.Settings.Global.getFloat(
+                    resolver,
+                    android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+                    1f,
+                )
+            }
+        }
+    }
+
     FlipcashTheme {
         rememberQrBitmapPainter(
             content = stringResource(
@@ -162,10 +184,16 @@ internal fun App(
                                                 codeNavigator = codeNavigator,
                                                 resultStateRegistry = resultStateRegistry,
                                                 barManager = barManager,
+                                                cardExpansion = cardExpansion,
                                                 deepLink = { deepLink },
                                                 onPendingAction = { action ->
                                                     deeplinkHandled = true
                                                     when (action) {
+                                                        // v2 cold start: the wallet is already the
+                                                        // launch home, so the token just opens as its
+                                                        // expanded card on top of it.
+                                                        is DeeplinkAction.OpenToken ->
+                                                            cardExpansion.beginExpanded(action.mint)
                                                         is DeeplinkAction.OpenCashLink ->
                                                             session.openCashLink(action.entropy)
                                                         is DeeplinkAction.PresentTipCard ->
@@ -261,6 +289,25 @@ internal fun App(
                                                     action.routes,
                                                     isNewUi = isNewUi,
                                                 )
+                                            }
+                                        }
+
+                                        is DeeplinkAction.OpenToken -> {
+                                            if (isNewUi) {
+                                                // Land on the wallet tab (clearing anything pushed on
+                                                // it) and open the token as its EXPANDED CARD — the
+                                                // same overlay, chrome and dismissal a tap on the card
+                                                // gives. Pushing it instead reads as a modal on a stack
+                                                // the user never navigated. Mirrors iOS
+                                                // DeepLinkController's requestedCardMint.
+                                                codeNavigator.navigateAll(
+                                                    listOf(AppRoute.Sheets.Wallet),
+                                                    isNewUi = true,
+                                                )
+                                                cardExpansion.beginExpanded(action.mint)
+                                            } else {
+                                                // v1 has no card expansion — open the wallet sheet.
+                                                codeNavigator.navigateAll(action.routes)
                                             }
                                         }
 

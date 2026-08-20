@@ -91,6 +91,25 @@ class CardExpansionController {
         pullOffset = 0f
     }
 
+    /**
+     * Begin expanding [key] with **no source card** — there is nothing on screen to fly from, so the
+     * expansion has no travel and simply lands already open. Used by deeplinks, which arrive with the
+     * wallet not yet on screen (and for a token the user may not even hold, so no deck card exists).
+     * Mirrors iOS `WalletScreen.openCardImmediately`.
+     *
+     * The host snaps [progress] to 1 once the expanded hero frame has been measured — see
+     * `CardExpandHost`.
+     */
+    fun beginExpanded(key: Any) {
+        expandedKey = key
+        sourceBounds = null
+        // [heroBounds] is deliberately NOT cleared here (unlike [begin]): with no flight it is not a
+        // per-card fly target but the overlay's fixed hero slot, identical for every card. Keeping a
+        // previous measurement lets the host snap open on the very first frame instead of waiting for
+        // a re-measure — and when there is none (cold start) it is null anyway.
+        pullOffset = 0f
+    }
+
     /** Animate [progress] to [target] (0 collapse / 1 expand) with the shared card-expand spring. */
     suspend fun animateTo(target: Float, spec: AnimationSpec<Float> = ExpandSpring) {
         // Drive the animation under the user's real duration scale (read once per run) rather than the

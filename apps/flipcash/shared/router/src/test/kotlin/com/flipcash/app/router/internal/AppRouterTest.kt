@@ -310,14 +310,23 @@ class AppRouterTest {
 
     // endregion
 
-    // region dispatch — Logged in: TokenInfo (sheet navigation)
+    // region dispatch — Logged in: TokenInfo
 
     @Test
-    fun `dispatch returns Navigate with wallet sheet and token info for token deeplink`() {
+    fun `dispatch returns OpenToken carrying the mint for a token deeplink`() {
         loggedIn()
         val mint = "So11111111111111111111111111111111111111112"
         val action = router.dispatch(DeepLink("https://app.flipcash.com/token/$mint"))
-        assertIs<DeeplinkAction.Navigate>(action)
+        assertIs<DeeplinkAction.OpenToken>(action)
+        assertEquals(Mint(mint), action.mint)
+    }
+
+    @Test
+    fun `OpenToken carries the wallet sheet route form for v1`() {
+        loggedIn()
+        val mint = "So11111111111111111111111111111111111111112"
+        val action = router.dispatch(DeepLink("https://app.flipcash.com/token/$mint"))
+        assertIs<DeeplinkAction.OpenToken>(action)
         assertEquals(2, action.routes.size)
         assertIs<AppRoute.Sheets.Wallet>(action.routes[0])
         val tokenInfo = action.routes[1]
@@ -548,10 +557,8 @@ class AppRouterTest {
         assertIs<DeeplinkType.TokenInfo>(classified)
 
         val dispatched = router.dispatch(deepLink)
-        assertIs<DeeplinkAction.Navigate>(dispatched)
-        val tokenInfo = dispatched.routes[1]
-        assertIs<AppRoute.Token.Info>(tokenInfo)
-        assertEquals(classified.mint, tokenInfo.mint)
+        assertIs<DeeplinkAction.OpenToken>(dispatched)
+        assertEquals(classified.mint, dispatched.mint)
     }
 
     // endregion
@@ -609,9 +616,8 @@ class AppRouterTest {
     fun `jump link dispatches like the wrapped link`() {
         loggedIn()
         val action = router.dispatch(jump("https://app.flipcash.com/token/$MINT"))
-        assertIs<DeeplinkAction.Navigate>(action)
-        assertEquals(AppRoute.Sheets.Wallet, action.routes[0])
-        assertIs<AppRoute.Token.Info>(action.routes[1])
+        assertIs<DeeplinkAction.OpenToken>(action)
+        assertEquals(Mint(MINT), action.mint)
     }
 
     @Test
