@@ -5,22 +5,36 @@ import androidx.compose.material.icons.filled.ContactMail
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.menu.FullMenuItem
-import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.core.R as CoreR
 import com.flipcash.features.myaccount.R
-import com.getcode.util.resources.icons.Delete
 
-internal data object AccessKey : FullMenuItem<MyAccountScreenViewModel.Event>() {
+/**
+ * Node 9277:121893. Account-shaped settings only — the destructive/diagnostic rows (Access Key,
+ * Log Out, Delete Account) moved to Advanced, and the standalone App Settings screen folded its one
+ * surviving toggle (Require Biometrics) in here.
+ */
+internal data object DisplayName : FullMenuItem<MyAccountScreenViewModel.Event>() {
     override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_hardware_security_key)
+        @Composable get() = rememberVectorPainter(Icons.Default.ContactMail)
     override val name: String
-        @Composable get() = stringResource(R.string.title_accessKey)
-    override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnAccessKeyClicked
+        @Composable get() = stringResource(CoreR.string.title_changeDisplayName)
+    override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnContactMethodsClicked
+}
+
+/**
+ * Toggle, not a destination — the screen renders a switch in its trailing slot and routes the tap
+ * through a biometric prompt. Its [action] is what a row tap dispatches, same as the switch.
+ */
+internal data object RequireBiometrics : FullMenuItem<MyAccountScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = painterResource(R.drawable.ic_biometrics)
+    override val name: String
+        @Composable get() = stringResource(CoreR.string.title_requireBiometrics)
+    override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnBiometricsToggled
 }
 
 internal data object Blocklist : FullMenuItem<MyAccountScreenViewModel.Event>() {
@@ -29,28 +43,4 @@ internal data object Blocklist : FullMenuItem<MyAccountScreenViewModel.Event>() 
     override val name: String
         @Composable get() = stringResource(R.string.title_blocklist)
     override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnBlocklistClicked
-}
-
-internal data object UserProfile : StaffMenuItem<MyAccountScreenViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = rememberVectorPainter(Icons.Default.ContactMail)
-    override val name: String
-        @Composable get() = stringResource(CoreR.string.title_userProfile)
-    override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnContactMethodsClicked
-}
-
-internal data object LogOut : FullMenuItem<MyAccountScreenViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_menu_logout)
-    override val name: String
-        @Composable get() = stringResource(R.string.action_logout)
-    override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnLogOutClicked
-}
-
-internal data object DeleteAccount: FullMenuItem<MyAccountScreenViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = rememberVectorPainter(ImageVector.Delete)
-    override val name: String
-        @Composable get() = stringResource(R.string.action_deleteAccount)
-    override val action: MyAccountScreenViewModel.Event = MyAccountScreenViewModel.Event.OnDeleteAccountClicked
 }

@@ -2,6 +2,7 @@ package com.flipcash.app.shareable
 
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.flipcash.app.core.share.TipCodeExport
 import com.flipcash.app.core.share.TipCodePreview
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.accounts.GiftCardAccount
@@ -48,6 +49,21 @@ sealed interface Shareable {
         // Optional pre-rendered Sharesheet preview. Null degrades to sharing the URL alone.
         val preview: TipCodePreview? = null,
         // Optional Sharesheet title shown above the link (e.g. "Tip Brandon McAnsh").
+        val title: String? = null,
+    ): Shareable {
+        override val pendingData: ShareablePendingData? = null
+    }
+
+    /**
+     * The tip code itself, as a file (see [TipCodeExport]) — what the "Download" action produces.
+     *
+     * Distinct from [TipCard]: that shares the tip *link* and only uses an image as the Sharesheet's
+     * thumbnail. Here the file IS the payload, so it goes out as an `EXTRA_STREAM` of the export's
+     * own MIME type and a "save to Files" target receives something real.
+     */
+    data class TipCodeImage(
+        val export: TipCodeExport,
+        // Optional Sharesheet title shown above the file.
         val title: String? = null,
     ): Shareable {
         override val pendingData: ShareablePendingData? = null

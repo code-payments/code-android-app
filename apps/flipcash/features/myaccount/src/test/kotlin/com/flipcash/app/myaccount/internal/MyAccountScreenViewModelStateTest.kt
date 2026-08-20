@@ -1,10 +1,9 @@
 package com.flipcash.app.myaccount.internal
 
-import com.flipcash.app.myaccount.internal.myaccount.AccessKey
-import com.flipcash.app.myaccount.internal.myaccount.DeleteAccount
-import com.flipcash.app.myaccount.internal.myaccount.LogOut
+import com.flipcash.app.myaccount.internal.myaccount.Blocklist
+import com.flipcash.app.myaccount.internal.myaccount.DisplayName
 import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreenViewModel
-import com.flipcash.app.myaccount.internal.myaccount.UserProfile
+import com.flipcash.app.myaccount.internal.myaccount.RequireBiometrics
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -15,59 +14,51 @@ class MyAccountScreenViewModelStateTest {
     private val reduce = MyAccountScreenViewModel.Companion.updateStateForEvent
 
     @Test
-    fun `default state has beta disabled`() {
+    fun `default state lists display name, biometrics and blocklist`() {
         val state = MyAccountScreenViewModel.State()
-        assertFalse(state.isBetaEnabled)
+        assertEquals(listOf(DisplayName, RequireBiometrics, Blocklist), state.items)
+        assertFalse(state.biometricsRequired)
     }
 
     @Test
-    fun `OnBetaFeaturesUnlocked true enables beta and shows ContactMethods item`() {
+    fun `unsupported biometrics hides the row`() {
         val updated = reduce(
-            MyAccountScreenViewModel.Event.OnBetaFeaturesUnlocked(true)
+            MyAccountScreenViewModel.Event.OnBiometricsSettingChanged(
+                required = false,
+                supported = false,
+                available = false,
+            )
         )(MyAccountScreenViewModel.State())
-        assertTrue(updated.isBetaEnabled)
-        assertTrue(updated.items.any { it is UserProfile })
+
+        assertFalse(updated.items.any { it is RequireBiometrics })
+        assertTrue(updated.items.any { it is DisplayName })
+        assertTrue(updated.items.any { it is Blocklist })
     }
 
     @Test
-    fun `OnBetaFeaturesUnlocked false disables beta and hides ContactMethods item`() {
-        val state = MyAccountScreenViewModel.State(isBetaEnabled = true)
+    fun `enrolled biometrics keeps the row and mirrors the setting`() {
         val updated = reduce(
-            MyAccountScreenViewModel.Event.OnBetaFeaturesUnlocked(false)
-        )(state)
-        assertFalse(updated.isBetaEnabled)
-        assertFalse(updated.items.any { it is UserProfile })
-    }
-
-    @Test
-    fun `menu always contains AccessKey LogOut and DeleteAccount`() {
-        val withBeta = reduce(
-            MyAccountScreenViewModel.Event.OnBetaFeaturesUnlocked(true)
+            MyAccountScreenViewModel.Event.OnBiometricsSettingChanged(
+                required = true,
+                supported = true,
+                available = true,
+            )
         )(MyAccountScreenViewModel.State())
-        assertTrue(withBeta.items.any { it is AccessKey })
-        assertTrue(withBeta.items.any { it is LogOut })
-        assertTrue(withBeta.items.any { it is DeleteAccount })
 
-        val withoutBeta = reduce(
-            MyAccountScreenViewModel.Event.OnBetaFeaturesUnlocked(false)
-        )(MyAccountScreenViewModel.State())
-        assertTrue(withoutBeta.items.any { it is AccessKey })
-        assertTrue(withoutBeta.items.any { it is LogOut })
-        assertTrue(withoutBeta.items.any { it is DeleteAccount })
+        assertTrue(updated.items.any { it is RequireBiometrics })
+        assertTrue(updated.biometricsRequired)
+        assertTrue(updated.biometricsAvailable)
     }
 
     @Test
     fun `no-op events return state unchanged`() {
-        val state = MyAccountScreenViewModel.State(isBetaEnabled = true)
+        val state = MyAccountScreenViewModel.State(biometricsRequired = true)
         val noOpEvents = listOf(
-            MyAccountScreenViewModel.Event.OnLogOutClicked,
-            MyAccountScreenViewModel.Event.OnLoggedOutCompletely,
+            MyAccountScreenViewModel.Event.OnBiometricsToggled,
             MyAccountScreenViewModel.Event.OnContactMethodsClicked,
             MyAccountScreenViewModel.Event.OnViewUserProfile,
-            MyAccountScreenViewModel.Event.OnViewAccessKey,
-            MyAccountScreenViewModel.Event.OnDeleteAccountClicked,
-            MyAccountScreenViewModel.Event.OnAccountDeleted,
-            MyAccountScreenViewModel.Event.OnAccessKeyClicked,
+            MyAccountScreenViewModel.Event.OnBlocklistClicked,
+            MyAccountScreenViewModel.Event.OnViewBlocklist,
         )
         noOpEvents.forEach { event ->
             assertEquals(state, reduce(event)(state), "Event $event should be no-op")

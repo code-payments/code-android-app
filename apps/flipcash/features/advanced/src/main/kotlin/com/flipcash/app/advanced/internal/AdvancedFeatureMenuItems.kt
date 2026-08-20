@@ -6,11 +6,27 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.menu.FullMenuItem
 import com.flipcash.core.R
+import com.getcode.util.resources.icons.Delete
+
+/**
+ * Node 9279:121978. Access Key, Log Out and Delete Account moved here from My Account — they're
+ * recovery/destructive actions, not account details.
+ */
+internal data object AccessKey : FullMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = painterResource(R.drawable.ic_hardware_security_key)
+    override val name: String
+        @Composable get() = stringResource(R.string.title_accessKey)
+    override val action: AdvancedFeaturesScreenViewModel.Event =
+        AdvancedFeaturesScreenViewModel.Event.OnAccessKeyClicked
+}
 
 internal data object BillCustomizer : FullMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
     override val icon: Painter
@@ -37,4 +53,22 @@ internal data object BetaFlags : FullMenuItem<AdvancedFeaturesScreenViewModel.Ev
         @Composable get() = stringResource(R.string.title_betaFlags)
     override val action: AdvancedFeaturesScreenViewModel.Event =
         AdvancedFeaturesScreenViewModel.Event.OpenScreen(AppRoute.Menu.Lab())
+}
+
+internal data object LogOut : FullMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = painterResource(R.drawable.ic_menu_logout)
+    override val name: String
+        @Composable get() = stringResource(R.string.action_logout)
+    override val action: AdvancedFeaturesScreenViewModel.Event =
+        AdvancedFeaturesScreenViewModel.Event.OnLogOutClicked
+}
+
+internal data object DeleteAccount : FullMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = rememberVectorPainter(ImageVector.Delete)
+    override val name: String
+        @Composable get() = stringResource(R.string.action_deleteAccount)
+    override val action: AdvancedFeaturesScreenViewModel.Event =
+        AdvancedFeaturesScreenViewModel.Event.OnDeleteAccountClicked
 }

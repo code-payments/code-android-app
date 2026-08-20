@@ -35,13 +35,6 @@ class AppSettingMapper @Inject constructor(
 
                 )
             }
-            AppSettingValue.CameraStartByDefault -> {
-                AppSettingsItem(
-                    setting = from,
-                    name = R.string.title_autoStartCamera,
-                    icon = R.drawable.ic_camera_outline,
-                )
-            }
         }
     }
 }

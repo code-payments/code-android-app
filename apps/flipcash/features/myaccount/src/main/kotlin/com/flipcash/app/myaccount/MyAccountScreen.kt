@@ -44,32 +44,6 @@ fun MyAccountScreen() {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<MyAccountScreenViewModel.Event.OnLoggedOutCompletely>()
-            .onEach {
-                navigator.hide()
-                navigator.replaceAll(AppRoute.OnboardingFlow()) }
-            .launchIn(this)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<MyAccountScreenViewModel.Event.OnAccountDeleted>()
-            .onEach {
-                navigator.hide()
-                navigator.replaceAll(AppRoute.OnboardingFlow()) }
-            .launchIn(this)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<MyAccountScreenViewModel.Event.OnViewAccessKey>()
-            .onEach {
-                navigator.push(AppRoute.Menu.BackupKey) }
-            .launchIn(this)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
             .filterIsInstance<MyAccountScreenViewModel.Event.OnViewUserProfile>()
             .onEach { navigator.push(AppRoute.Menu.UserProfile) }
             .launchIn(this)

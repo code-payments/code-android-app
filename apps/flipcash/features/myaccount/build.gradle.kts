@@ -13,6 +13,7 @@ dependencies {
 
     implementation(libs.compose.paging)
 
+    implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:authentication"))
     implementation(project(":apps:flipcash:shared:blocklist"))
     implementation(project(":apps:flipcash:shared:common-ui"))
@@ -24,4 +25,5 @@ dependencies {
     implementation(project(":libs:encryption:utils"))
     implementation(project(":libs:messaging"))
     implementation(project(":libs:permissions:bindings"))
+    implementation(project(":ui:biometrics"))
 }

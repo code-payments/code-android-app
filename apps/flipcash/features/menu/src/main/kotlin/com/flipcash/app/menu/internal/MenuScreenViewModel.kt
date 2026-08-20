@@ -1,5 +1,6 @@
 package com.flipcash.app.menu.internal
 
+import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
@@ -9,6 +10,10 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.core.extensions.setText
+import com.flipcash.app.core.share.TipCodeExportFormat
+import com.flipcash.app.core.share.TipCodeExporter
+import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.app.featureflags.FeatureFlagController
@@ -26,6 +31,7 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.tipping.TippingCoordinator
 import com.getcode.opencode.managers.MnemonicManager
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,7 +50,6 @@ import javax.inject.Inject
 
 private val FullMenuList = buildList {
     add(MyAccount)
-    add(AppSettings)
     add(AdvancedFeatures)
     add(SwitchAccount)
 }
@@ -65,6 +70,8 @@ internal class MenuScreenViewModel @Inject constructor(
     private val tippingCoordinator: TippingCoordinator,
     private val tipCodePreviewCache: TipCodePreviewCache,
     private val shareable: ShareSheetController,
+    private val clipboardManager: ClipboardManager,
+    private val tipCodeExporter: TipCodeExporter,
     private val resources: ResourceHelper,
 ) :
     BaseViewModel<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
@@ -83,6 +90,8 @@ internal class MenuScreenViewModel @Inject constructor(
         // The viewer's own tip card, shown at the top of the v2 "You" tab. Null until resolved
         // (or when the profile has no display name).
         val tipCard: Scannable.TipCard? = null,
+        // The shareable URL for [tipCard]. Displayed abbreviated; copied in full.
+        val tipLink: String? = null,
     )
 
     sealed interface Event {
@@ -97,8 +106,11 @@ internal class MenuScreenViewModel @Inject constructor(
         data class OpenScreen(val screen: AppRoute) : Event
         data object OnSwitchAccountsClicked : Event
         data class OnSwitchAccountTo(val entropy: String): Event
-        data class OnTipCardPopulated(val card: Scannable.TipCard) : Event
+        data class OnTipCardPopulated(val card: Scannable.TipCard, val link: String?) : Event
         data object ShareTipCard : Event
+        data object CopyTipLink : Event
+        data object DownloadTipCard : Event
+        data class ExportTipCard(val format: TipCodeExportFormat) : Event
     }
 
     init {
@@ -195,9 +207,60 @@ internal class MenuScreenViewModel @Inject constructor(
             .distinctUntilChanged()
             .map { tippingCoordinator.resolveTipCard() }
             .onResult(onSuccess = { card ->
-                dispatchEvent(Event.OnTipCardPopulated(card))
-                tippingCoordinator.currentUserId?.let { tipCodePreviewCache.prepare(it, card) }
+                val userId = tippingCoordinator.currentUserId
+                dispatchEvent(Event.OnTipCardPopulated(card, userId?.let { Linkify.tipcard(it) }))
+                userId?.let { tipCodePreviewCache.prepare(it, card) }
             })
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.CopyTipLink>()
+            .mapNotNull { stateFlow.value.tipLink }
+            .onEach { link ->
+                // The row shows an abbreviated link; the clipboard gets the whole thing.
+                clipboardManager.setText(
+                    text = link,
+                    label = resources.getString(R.string.title_clipboardLabelTipCardLink),
+                )
+                toastController.showToast(R.string.action_copied, replacePrevious = true)
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.DownloadTipCard>()
+            .onEach {
+                BottomBarManager.showMessage(
+                    title = resources.getString(R.string.title_downloadTipCardAs),
+                    actions = downloadOptions(resources) { format ->
+                        dispatchEvent(Event.ExportTipCard(format))
+                    },
+                    showCancel = false,
+                    showScrim = true,
+                )
+            }
+            .launchIn(viewModelScope)
+
+        // Render the chosen format, then hand the file to the Sharesheet — Android has no
+        // permissionless "save to Photos", and the chooser already offers Files/Drive/Photos.
+        eventFlow
+            .filterIsInstance<Event.ExportTipCard>()
+            .mapNotNull { event -> stateFlow.value.tipCard?.let { it to event.format } }
+            .onEach { (card, format) ->
+                val export = tipCodeExporter.export(card, format)
+                if (export == null) {
+                    BottomBarManager.showMessage(
+                        title = resources.getString(R.string.error_title_tipCardExportFailed),
+                        message = resources.getString(R.string.error_description_tipCardExportFailed),
+                    )
+                    return@onEach
+                }
+                shareable.present(
+                    Shareable.TipCodeImage(
+                        export = export,
+                        title = resources.getString(R.string.title_shareTipCode),
+                    )
+                )
+            }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -284,13 +347,16 @@ internal class MenuScreenViewModel @Inject constructor(
                 }
 
                 is Event.OnTipCardPopulated -> { state ->
-                    state.copy(tipCard = event.card)
+                    state.copy(tipCard = event.card, tipLink = event.link)
                 }
 
                 Event.PresentDepositOptions,
                 Event.CheckForUpdate,
                 Event.OnSwitchAccountsClicked,
                 Event.ShareTipCard,
+                Event.CopyTipLink,
+                Event.DownloadTipCard,
+                is Event.ExportTipCard,
                 is Event.OpenScreen,
                 is Event.OnSwitchAccountTo -> { state -> state }
 

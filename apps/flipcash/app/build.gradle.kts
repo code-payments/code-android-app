@@ -223,7 +223,6 @@ dependencies {
     implementation(project(":apps:flipcash:features:lab"))
     implementation(project(":apps:flipcash:features:advanced"))
     implementation(project(":apps:flipcash:features:device-logs"))
-    implementation(project(":apps:flipcash:features:appsettings"))
     implementation(project(":apps:flipcash:features:appupdates"))
     implementation(project(":apps:flipcash:features:deposit"))
     implementation(project(":apps:flipcash:features:myaccount"))

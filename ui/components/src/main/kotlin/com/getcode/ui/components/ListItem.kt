@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.HorizontalDivider
@@ -18,10 +18,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White20
 import androidx.compose.foundation.clickable
+
+private val ListItemIconSize = 24.dp
+
+/** 17sp Demi, per the settings rows in node 9276:4634 — not the 20sp of a section headline. */
+private val ListItemHeadlineStyle
+    @Composable get() = CodeTheme.typography.textMedium.copy(fontSize = 17.sp, lineHeight = 22.sp)
 
 /**
  * Slot-based list row: icon + headline, with the caller driving the trailing [endSlot] — chevron,
@@ -47,9 +54,8 @@ fun ListItem(
         if (icon != null) {
             Image(
                 modifier = Modifier
-                    .padding(end = CodeTheme.dimens.inset)
-                    .height(CodeTheme.dimens.staticGrid.x5)
-                    .width(CodeTheme.dimens.staticGrid.x5),
+                    .padding(end = CodeTheme.dimens.grid.x4)
+                    .size(ListItemIconSize),
                 painter = icon,
                 colorFilter = ColorFilter.tint(CodeTheme.colors.onBackground),
                 contentDescription = ""
@@ -59,9 +65,7 @@ fun ListItem(
         Text(
             modifier = Modifier.align(CenterVertically),
             text = headline,
-            style = CodeTheme.typography.textLarge.copy(
-                fontWeight = FontWeight.Bold
-            ),
+            style = ListItemHeadlineStyle,
             color = CodeTheme.colors.textMain,
         )
 
@@ -104,11 +108,19 @@ fun ListItem(
         }
 
         if (showChevron) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_chevron_right),
-                contentDescription = null,
-                tint = CodeTheme.colors.textSecondary,
-            )
+            ListItemDefaults.Chevron()
         }
+    }
+}
+
+object ListItemDefaults {
+    /** The standard trailing disclosure chevron; also for callers driving their own [endSlot]. */
+    @Composable
+    fun Chevron() {
+        Icon(
+            painter = painterResource(id = R.drawable.ic_chevron_right),
+            contentDescription = null,
+            tint = White20,
+        )
     }
 }

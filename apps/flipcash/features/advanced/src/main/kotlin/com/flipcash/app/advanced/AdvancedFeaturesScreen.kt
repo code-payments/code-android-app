@@ -12,6 +12,7 @@ import com.flipcash.app.advanced.internal.AdvancedFeaturesScreen
 import com.flipcash.app.advanced.internal.AdvancedFeaturesScreenViewModel
 import com.flipcash.app.bill.customization.Event
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
+import com.flipcash.app.core.AppRoute
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.financial.Token
@@ -53,6 +54,33 @@ fun AdvancedFeaturesScreen() {
             .onEach {
                 navigator.hide()
                 billPlayground.dispatchEvent(Event.Load())
+            }
+            .launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<AdvancedFeaturesScreenViewModel.Event.OnViewAccessKey>()
+            .onEach { navigator.push(AppRoute.Menu.BackupKey) }
+            .launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<AdvancedFeaturesScreenViewModel.Event.OnLoggedOutCompletely>()
+            .onEach {
+                navigator.hide()
+                navigator.replaceAll(AppRoute.OnboardingFlow())
+            }
+            .launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<AdvancedFeaturesScreenViewModel.Event.OnAccountDeleted>()
+            .onEach {
+                navigator.hide()
+                navigator.replaceAll(AppRoute.OnboardingFlow())
             }
             .launchIn(this)
     }

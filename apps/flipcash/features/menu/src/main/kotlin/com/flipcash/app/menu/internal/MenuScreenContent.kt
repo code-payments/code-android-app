@@ -7,19 +7,28 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,7 +37,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.ScannableRenderer
 import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
@@ -47,6 +58,9 @@ import com.flipcash.features.menu.R
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White
+import com.getcode.theme.White05
+import com.getcode.theme.White50
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.core.noRippleClickable
@@ -76,13 +90,16 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
 
     CodeScaffold(
         topBar = {
-            AppBarWithTitle(
-                modifier = Modifier.fillMaxWidth(),
-                title = stringResource(if (isNewUi) R.string.title_you else R.string.title_settings),
-                titleAlignment = Alignment.CenterHorizontally,
-                // The You tab is entered by tab selection, so it has no Close; the v1 sheet keeps it.
-                endContent = { if (!isNewUi) AppBarDefaults.Close { navigator.hide() } },
-            )
+            // v2 has no app bar — the card is the first thing on the page (node 9276:4634). v1
+            // keeps the Settings sheet's title + Close.
+            if (!isNewUi) {
+                AppBarWithTitle(
+                    modifier = Modifier.fillMaxWidth(),
+                    title = stringResource(R.string.title_settings),
+                    titleAlignment = Alignment.CenterHorizontally,
+                    endContent = { AppBarDefaults.Close { navigator.hide() } },
+                )
+            }
         },
         bottomBar = {
             // v1 pins the version footer above the nav bar; v2 scrolls it with the content (footer slot).
@@ -102,11 +119,15 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 .fillMaxSize()
                 .padding(padding),
             items = state.items,
+            showChevrons = isNewUi,
             header = {
                 if (isNewUi) {
                     YouHeader(
                         card = state.tipCard,
+                        link = state.tipLink,
+                        onCopyLink = { viewModel.dispatchEvent(Event.CopyTipLink) },
                         onShare = { viewModel.dispatchEvent(Event.ShareTipCard) },
+                        onDownload = { viewModel.dispatchEvent(Event.DownloadTipCard) },
                     )
                 } else {
                     MoneyTiles(viewModel, navigator)
@@ -132,7 +153,13 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             // under it (the version footer was landing behind it). Per-entry via LocalTabBarPadding,
             // which is only non-zero for tab homes. v1 has no such bar.
             contentPadding = PaddingValues(
-                top = CodeTheme.dimens.grid.x3,
+                // No app bar in v2, so the page owns its own status-bar clearance; the design puts
+                // the card 74dp below it (node 9278:7301).
+                top = if (isNewUi) {
+                    WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + CardTopSpacing
+                } else {
+                    CodeTheme.dimens.grid.x3
+                },
                 bottom = LocalTabBarPadding.current.calculateBottomPadding(),
             ),
             onItemClick = {
@@ -142,13 +169,27 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
     }
 }
 
+/** Distance from the status bar to the top of the tip card (node 9278:7301). */
+private val CardTopSpacing = 74.dp
+
+/** The at-rest card width on the You tab (node 9278:7301: 241.636). */
+private val YouCardWidth = 242.dp
+
 /**
- * The "You" tab header: the viewer's own tip card, tappable to present full screen via the app-root
- * bill overlay, plus a "Share as a Link" button. The in-page card fades out while its expanded copy
- * is presented in the overlay (opacity, not removal, so nothing reflows on dismiss).
+ * The "You" tab header (node 9276:4634): the viewer's own tip card with a "Full Screen" affordance,
+ * the copyable tip link, and the Share / Download tiles. The in-page card fades out while its
+ * expanded copy is presented in the root bill overlay (opacity, not removal, so nothing reflows on
+ * dismiss).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun YouHeader(card: Scannable.TipCard?, onShare: () -> Unit) {
+private fun YouHeader(
+    card: Scannable.TipCard?,
+    link: String?,
+    onCopyLink: () -> Unit,
+    onShare: () -> Unit,
+    onDownload: () -> Unit,
+) {
     if (card == null) return
     val session = LocalSessionController.current ?: return
     val billState by session.billState.collectAsStateWithLifecycle()
@@ -160,11 +201,8 @@ private fun YouHeader(card: Scannable.TipCard?, onShare: () -> Unit) {
     )
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = CodeTheme.dimens.grid.x6),
+        modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x5),
     ) {
         // Static display (no camera behind the card): render it opaque at the design's flattened
         // colour rather than the translucent frosted fill. Figma flattens the card to rgb(16,16,17).
@@ -174,29 +212,167 @@ private fun YouHeader(card: Scannable.TipCard?, onShare: () -> Unit) {
         ) {
             Box(
                 modifier = Modifier
+                    // The card pads itself off the status bar for the full-screen overlay; here the
+                    // list's content padding already owns that clearance, so consume the inset
+                    // rather than paying it twice.
+                    .consumeWindowInsets(WindowInsets.statusBarsIgnoringVisibility)
                     .graphicsLayer { alpha = cardAlpha }
                     .noRippleClickable { session.presentOwnTipCard(card) },
                 contentAlignment = Alignment.Center,
             ) {
-                ScannableRenderer(scannable = card, tipCardWidth = 230.dp)
+                ScannableRenderer(scannable = card, tipCardWidth = YouCardWidth)
             }
         }
 
-        Text(
+        Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
+
+        Row(
             modifier = Modifier
-                .clip(CircleShape)
-                .background(CodeTheme.colors.surfaceVariant)
-                .clickable { onShare() }
-                .padding(
-                    horizontal = CodeTheme.dimens.grid.x4,
-                    vertical = CodeTheme.dimens.grid.x3,
-                ),
-            text = stringResource(R.string.action_shareAsLink),
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textMain,
+                .graphicsLayer { alpha = cardAlpha }
+                .noRippleClickable { session.presentOwnTipCard(card) },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.action_viewFullScreen),
+                style = CodeTheme.typography.textSmall,
+                color = White50,
+            )
+            Icon(
+                modifier = Modifier.size(16.dp),
+                painter = painterResource(R.drawable.ic_chevron_down_medium),
+                contentDescription = null,
+                tint = White50,
+            )
+        }
+
+        Spacer(Modifier.height(64.dp))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = CodeTheme.dimens.grid.x5),
+            verticalArrangement = Arrangement.spacedBy(11.dp),
+        ) {
+            if (link != null) {
+                TipLinkRow(link = link, onCopy = onCopyLink)
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(88.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                ShareTile(
+                    modifier = Modifier.weight(1f),
+                    icon = R.drawable.ic_share_os,
+                    label = stringResource(R.string.action_share),
+                    onClick = onShare,
+                )
+                ShareTile(
+                    modifier = Modifier.weight(1f),
+                    icon = R.drawable.ic_file_download,
+                    label = stringResource(R.string.action_download),
+                    onClick = onDownload,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(19.dp))
+    }
+}
+
+/** The tip link, tap-to-copy (node 9276:4748). Shown short — the full URL goes to the clipboard. */
+@Composable
+private fun TipLinkRow(link: String, onCopy: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .clip(TileShape)
+            .background(White05)
+            .clickable { onCopy() }
+            .padding(horizontal = CodeTheme.dimens.grid.x3),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            modifier = Modifier.weight(1f, fill = false),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                modifier = Modifier.size(20.dp),
+                painter = painterResource(R.drawable.ic_chain_link),
+                contentDescription = null,
+                tint = White,
+            )
+            Text(
+                text = link.abbreviatedLink(),
+                style = CodeTheme.typography.textSmall.copy(fontSize = 15.sp),
+                color = White.copy(alpha = 0.7f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Icon(
+            modifier = Modifier.size(20.dp),
+            painter = painterResource(R.drawable.ic_copy),
+            contentDescription = null,
+            tint = White,
         )
     }
 }
+
+/** One of the two square-ish actions under the link (node 9276:4756). */
+@Composable
+private fun ShareTile(
+    modifier: Modifier = Modifier,
+    icon: Int,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .clip(TileShape)
+            .background(White05)
+            .clickable { onClick() }
+            .padding(vertical = CodeTheme.dimens.grid.x4),
+        verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            modifier = Modifier.size(28.dp),
+            painter = painterResource(icon),
+            contentDescription = null,
+            tint = White,
+        )
+        Text(
+            text = label,
+            style = CodeTheme.typography.textSmall,
+            color = White50,
+        )
+    }
+}
+
+private val TileShape = RoundedCornerShape(6.dp)
+
+/**
+ * `https://app.flipcash.com/tip/<uuid>` -> `app.flipcash.com/tip/b0ced...` (node 9276:4753). The
+ * user never types this — it's a recognisable stand-in for the link the copy button puts on the
+ * clipboard, so it's cut short rather than ellipsized at whatever width the device happens to give.
+ */
+private fun String.abbreviatedLink(): String {
+    val withoutScheme = substringAfter("://")
+    val lastSegment = withoutScheme.substringAfterLast('/')
+    if (lastSegment.length <= ABBREVIATED_ID_LENGTH) return withoutScheme
+    val prefix = withoutScheme.removeSuffix(lastSegment)
+    return "$prefix${lastSegment.take(ABBREVIATED_ID_LENGTH)}..."
+}
+
+private const val ABBREVIATED_ID_LENGTH = 5
 
 /** v1 Settings-sheet header: the Add Money / Withdraw tiles (removed from the v2 You tab). */
 @Composable

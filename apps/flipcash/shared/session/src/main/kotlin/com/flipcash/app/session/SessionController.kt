@@ -66,7 +66,6 @@ data class SessionState(
     val hasBalance: Boolean = false,
     val logScanTimes: Boolean = false,
     val showNetworkOffline: Boolean = false,
-    val autoStartCamera: Boolean? = true,
     val isCameraUp: Boolean? = null,
     val billResult: BillDeterminationResult = BillDeterminationResult.None,
     val restrictionType: RestrictionType? = null,

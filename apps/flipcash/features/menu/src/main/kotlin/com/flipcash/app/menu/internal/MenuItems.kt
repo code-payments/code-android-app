@@ -13,7 +13,7 @@ import com.flipcash.features.menu.R
 
 internal data object MyAccount : FullMenuItem<MenuScreenViewModel.Event>() {
     override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_menu_account)
+        @Composable get() = painterResource(R.drawable.ic_people_id_card)
     override val name: String
         @Composable get() = stringResource(R.string.title_myAccount)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
@@ -23,21 +23,11 @@ internal data object MyAccount : FullMenuItem<MenuScreenViewModel.Event>() {
 
 internal data object AdvancedFeatures : FullMenuItem<MenuScreenViewModel.Event>() {
     override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_advanced_features)
+        @Composable get() = painterResource(R.drawable.ic_maintenance)
     override val name: String
         @Composable get() = stringResource(R.string.title_advancedFeatures)
     override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
         AppRoute.Menu.AdvancedFeatures
-    )
-}
-
-internal data object AppSettings : FullMenuItem<MenuScreenViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_settings_outline)
-    override val name: String
-        @Composable get() = stringResource(R.string.title_appSettings)
-    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OpenScreen(
-        AppRoute.Menu.AppSettings
     )
 }
 
