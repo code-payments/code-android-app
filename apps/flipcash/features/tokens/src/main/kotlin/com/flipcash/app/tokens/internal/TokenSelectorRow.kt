@@ -1,5 +1,11 @@
 package com.flipcash.app.tokens.internal
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -52,13 +58,28 @@ private fun TokenSelectorRow(
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TokenIconWithName(
-                token = selected.token,
-                imageSize = CodeTheme.dimens.staticGrid.x6,
-                textStyle = CodeTheme.typography.textMedium,
-                spacing = CodeTheme.dimens.grid.x2,
-                displayName = { selected.displayName },
-            )
+            // Cross-fade the chip when the picker returns a different currency, so the swap reads
+            // as the same control changing rather than a hard cut. Keyed on the mint, not the whole
+            // TokenWithBalance — a balance tick would otherwise re-run the transition. The size
+            // transform carries the width change, since currency names differ in length.
+            AnimatedContent(
+                targetState = selected,
+                contentKey = { it.token.address },
+                transitionSpec = {
+                    fadeIn(tween(durationMillis = 180, delayMillis = 60))
+                        .togetherWith(fadeOut(tween(durationMillis = 120)))
+                        .using(SizeTransform(clip = false) { _, _ -> tween(durationMillis = 220) })
+                },
+                label = "selectedToken",
+            ) { token ->
+                TokenIconWithName(
+                    token = token.token,
+                    imageSize = CodeTheme.dimens.staticGrid.x6,
+                    textStyle = CodeTheme.typography.textMedium,
+                    spacing = CodeTheme.dimens.grid.x2,
+                    displayName = { token.displayName },
+                )
+            }
 
             Icon(
                 modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
