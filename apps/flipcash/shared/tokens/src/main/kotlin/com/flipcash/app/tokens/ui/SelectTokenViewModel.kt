@@ -6,6 +6,7 @@ import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.TokenSyncState
 import com.flipcash.shared.tokens.R
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Fiat
@@ -50,7 +51,25 @@ class SelectTokenViewModel @Inject constructor(
         val discoveryEnabled: Boolean = false,
         val tokens: List<TokenWithLocalizedBalance>? = null,
         val selectedToken: Mint? = null,
+        val syncState: TokenSyncState = TokenSyncState.Unknown,
     ) {
+        /**
+         * Whether the token set is still settling.
+         *
+         * Null tokens means persistence hasn't reported yet. An *empty* set is the ambiguous case:
+         * the token cache starts empty on a fresh login, so until a fetch has actually completed
+         * (see [TokenSyncState]) "no tokens" is indistinguishable from "not looked yet". Callers that
+         * render token metadata for data sourced elsewhere — the wallet's recent-activity preview,
+         * whose convert rows read "USDF -> Dad Cash" only once both mints resolve — must wait it out
+         * rather than draw the unresolved fallback ("Converted"). A non-empty set short-circuits the
+         * wait: there is already token metadata to resolve against.
+         */
+        val isAwaitingTokens: Boolean
+            get() {
+                val set = tokens ?: return true
+                return set.isEmpty() && syncState == TokenSyncState.Unknown
+            }
+
         val totalBalance: LocalFiat?
             get() {
                 val set = tokens ?: return null
@@ -86,6 +105,8 @@ class SelectTokenViewModel @Inject constructor(
         data class OpenScreen(val route: AppRoute) : Event
 
         data class OnCanGiveUsdf(val enabled: Boolean) : Event
+
+        data class OnSyncStateChanged(val syncState: TokenSyncState) : Event
     }
 
     init {
@@ -219,6 +240,12 @@ class SelectTokenViewModel @Inject constructor(
             }.onEach { dispatchEvent(Event.OnTokensUpdated(it)) }
             .launchIn(viewModelScope)
 
+        // Whether an empty token set means "holds nothing" or "we haven't looked yet"
+        // (see State.isAwaitingTokens).
+        tokenCoordinator.syncState
+            .onEach { dispatchEvent(Event.OnSyncStateChanged(it)) }
+            .launchIn(viewModelScope)
+
         tokenCoordinator.observeSelectedTokenMint()
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnTokenSelected(it, fromUser = false)) }
@@ -247,6 +274,7 @@ class SelectTokenViewModel @Inject constructor(
                 is Event.OnTokenChanged -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
                 is Event.OnCanGiveUsdf -> { state -> state.copy(canGiveUsdf = event.enabled) }
+                is Event.OnSyncStateChanged -> { state -> state.copy(syncState = event.syncState) }
             }
         }
     }
