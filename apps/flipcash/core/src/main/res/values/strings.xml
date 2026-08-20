@@ -142,8 +142,8 @@
 
     <string name="subtitle_appVersionInfoFooter">Version %1$s • Build %2$s%3$s</string>
 
-    <string name="title_labsAreEmpty">Nothing Cooking in the Lab Right Now</string>
-    <string name="subtitle_labsAreEmpty">Check back in the next app update.</string>
+    <string name="title_labsAreEmpty">No Beta Features</string>
+    <string name="subtitle_labsAreEmpty">There are no beta features available right now.</string>
 
     <string name="title_betaOverride">Beta Overrides</string>
     <string name="subtitle_betaOverride">All flags are visible. Toggle off to reset flags to defaults.</string>
