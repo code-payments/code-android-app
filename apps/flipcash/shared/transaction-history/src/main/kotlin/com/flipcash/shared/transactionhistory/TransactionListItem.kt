@@ -9,11 +9,18 @@ import kotlin.time.Instant
  * Leading avatar for a transaction row.
  * - [Profile] — a resolved counterparty (tip / user-to-user send-receive), keyed by user id.
  * - [TokenIcon] — no counterparty (deposit / buy / sell / withdraw): the token's icon.
+ * - [SwapTokens] — a convert: both sides' icons, source behind destination.
  * - [Generic] — unresolved / unknown counterparty.
  */
 sealed interface TransactionAvatar {
     data class Profile(val profile: UserProfile) : TransactionAvatar
     data class TokenIcon(val token: Token) : TransactionAvatar
+
+    /**
+     * Either side may still be unresolved (its metadata hasn't landed in the token cache yet); the
+     * row draws a placeholder for a missing one rather than switching avatar shape mid-hydration.
+     */
+    data class SwapTokens(val from: Token?, val to: Token?) : TransactionAvatar
     data object Generic : TransactionAvatar
 }
 
@@ -24,5 +31,6 @@ data class TransactionListItem(
     val avatar: TransactionAvatar,
     val signedAmountPrefix: String?,     // "-", "+", or null (for metadata == null)
     val amount: Fiat?,                   // message.amount.nativeAmount, or null if non-financial
+    val fee: Fiat?,                      // converts only: what the swap cost, shown under the amount
     val canCancel: Boolean,
 )

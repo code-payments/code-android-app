@@ -7,6 +7,7 @@ import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.transactionhistory.R
 import com.flipcash.shared.transactionhistory.TransactionAvatar
 import com.flipcash.shared.transactionhistory.TransactionListItem
+import com.flipcash.shared.transactionhistory.convertOf
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.core.ID
 import com.getcode.util.resources.ResourceHelper
@@ -29,8 +30,11 @@ internal class TransactionItemMapper @Inject constructor(
         val token = source.token
 
         val counterparty = userIdOf(meta)?.let { profiles[it.hexEncodedString()] }
+        val convert = convertOf(meta)
         val avatar: TransactionAvatar = when {
             counterparty != null -> TransactionAvatar.Profile(counterparty)
+            // A convert always draws both sides, even before both tokens have resolved.
+            convert != null -> TransactionAvatar.SwapTokens(from = token, to = source.toToken)
             hasNoCounterparty(meta) && token != null -> TransactionAvatar.TokenIcon(token)
             else -> TransactionAvatar.Generic
         }
@@ -47,14 +51,33 @@ internal class TransactionItemMapper @Inject constructor(
             // row to the literal key "null". Duplicate keys wedge the LazyColumn under the app's
             // SharedTransitionLayout lookahead (whole-app freeze as a duplicate-keyed row scrolls in).
             id = msg.id.hexEncodedString(),
-            title = resolveTitle(resources, meta, msg.text, msg.textSubstitutions, counterparty, profiles),
+            title = convertTitle(resources, source)
+                ?: resolveTitle(resources, meta, msg.text, msg.textSubstitutions, counterparty, profiles),
             timestamp = msg.timestamp,
             avatar = avatar,
             signedAmountPrefix = prefix,
             amount = msg.amount?.nativeAmount,
+            fee = convert?.fee,
             canCancel = (meta as? MessageMetadata.IndirectlySentCrypto)?.canCancel == true,
         )
     }
+}
+
+/**
+ * A convert spans two mints, so its row reads as the exchange itself — "USDF → Dad Cash" — rather
+ * than the server's bare verb ("Converted"), which says nothing about either side.
+ *
+ * Returns null for anything that isn't a convert, and for a convert whose tokens haven't both
+ * resolved yet: token metadata arrives reactively, so the server text shows until it lands.
+ */
+private fun convertTitle(
+    resources: ResourceHelper,
+    source: ActivityFeedMessageWithToken,
+): String? {
+    convertOf(source.message.metadata) ?: return null
+    val from = source.token?.name?.takeIf { it.isNotBlank() } ?: return null
+    val to = source.toToken?.name?.takeIf { it.isNotBlank() } ?: return null
+    return resources.getString(R.string.title_activity_convert, from, to)
 }
 
 /**

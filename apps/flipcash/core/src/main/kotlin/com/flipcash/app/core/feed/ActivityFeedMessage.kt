@@ -9,9 +9,16 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.time.Instant
 
+/**
+ * A feed entry paired with the token metadata its row needs.
+ *
+ * [token] is the entry's own token (for a convert, the source side). [toToken] is only set for a
+ * convert, which spans two mints and draws both logos; everything else leaves it null.
+ */
 data class ActivityFeedMessageWithToken(
     val message: ActivityFeedMessage,
-    val token: Token?
+    val token: Token?,
+    val toToken: Token? = null,
 )
 
 data class ActivityFeedMessage(

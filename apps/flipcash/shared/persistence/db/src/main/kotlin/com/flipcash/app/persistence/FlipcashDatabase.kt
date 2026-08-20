@@ -87,8 +87,9 @@ import com.getcode.utils.subByteArray
         // needs data movement an AutoMigration can't express.
         AutoMigration(from = 26, to = 27), // messages.text_substitutions (nullable)
         AutoMigration(from = 27, to = 28), // tokens.market_cap_metrics (nullable)
+        AutoMigration(from = 28, to = 29, spec = FlipcashDatabase.Migration28To29::class),
     ],
-    version = 28,
+    version = 29,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -184,6 +185,24 @@ abstract class FlipcashDatabase : RoomDatabase() {
     class Migration22To23 : AutoMigrationSpec {
         override fun onPostMigrate(db: SupportSQLiteDatabase) {
             db.execSQL("UPDATE chat_metadata SET chat_type = 'CONTACT_DM' WHERE chat_type = 'DM'")
+        }
+    }
+
+    /**
+     * Data-only migration: swap ("Converted") notifications cached before multi-mint amounts were
+     * mapped carry NULL financials — no amount, rate, or mint — because a swap leaves
+     * `payment_amount` unset and puts its amounts in `additional_metadata`. Those rows can't be
+     * repaired in place (the data was never persisted) and they can't be re-fetched either:
+     * `ActivityFeedCoordinator.fetchSinceLatest` only ever walks *forward* from the newest cached
+     * id, so anything already cached is never requested again.
+     *
+     * Clearing the cache is the repair. The next sync sees an empty table, falls into its
+     * descending re-seed, and re-fetches the recent feed from scratch; paging refills older
+     * history on demand.
+     */
+    class Migration28To29 : AutoMigrationSpec {
+        override fun onPostMigrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DELETE FROM messages")
         }
     }
 
