@@ -67,6 +67,12 @@ internal fun AppNavigationBar(
         session?.billState?.map { it.bill != null } ?: flowOf(false)
     }.collectAsStateWithLifecycle(initialValue = false)
 
+    // Unread tip-DM count, badged onto the Chat tab — the same source the v1 scanner bar badges its
+    // Tips button with, so the badge appears, updates and clears as conversations are read.
+    val tipUnreadCount by remember(session) {
+        session?.state?.map { it.tipsUnreadCount } ?: flowOf(0)
+    }.collectAsStateWithLifecycle(initialValue = 0)
+
     Box(
         modifier = Modifier
             .then(modifier),
@@ -81,6 +87,7 @@ internal fun AppNavigationBar(
                 isNewUi = true,
                 config = NavBarConfig(order = NavBarButton.v2Order),
                 selectedTab = selectedTab ?: NavBarButton.Wallet,
+                tipUnreadCount = tipUnreadCount,
             )
             NavigationBar(
                 modifier = Modifier
