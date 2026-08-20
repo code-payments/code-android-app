@@ -68,6 +68,12 @@ val generateTestFixtures = tasks.register<GenerateTestFixtures>("generateTestFix
     outputDirectory.set(layout.buildDirectory.dir("generated/testFixtures"))
 }
 
+// `srcDir(taskProvider)` below carries the task dependency to the Kotlin compile tasks only; AGP's
+// lint tasks read the same source directories straight off disk, so Gradle fails the build over an
+// undeclared dependency on the generated fixtures. Wire it up by hand.
+tasks.matching { it.name.startsWith("lint") || it.name.endsWith("LintModel") }
+    .configureEach { dependsOn(generateTestFixtures) }
+
 kotlin {
     android {
         namespace = "com.getcode.codes.kikcode"
