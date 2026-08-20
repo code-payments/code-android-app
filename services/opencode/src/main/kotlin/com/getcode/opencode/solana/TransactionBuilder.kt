@@ -37,7 +37,10 @@ object TransactionBuilder {
      * @param amount The amount of tokens to swap (in the source currency's smallest unit).
      * @param feeAmount The buy fee to collect from the core mint, in quarks (Buy route only). When
      *                  greater than 0 and the server provided a fee destination, the buy routes the
-     *                  fee via `VM::TransferForSwapWithFee`. Defaults to 0 (no fee).
+     *                  fee via `VM::TransferForSwapWithFee`. Deliberately has no default: the server
+     *                  builds its half of the transaction from the fee quoted in the initiate
+     *                  request, so a caller that forgets to forward it produces a transaction whose
+     *                  signatures cannot match. Pass 0 explicitly for a genuinely fee-less swap.
      * @param minOutput The minimum acceptable amount of output tokens to receive (slippage protection).
      *                  Defaults to 0.
      * @return A constructed [SolanaTransaction] (V0) ready to be signed and submitted to the network.
@@ -48,7 +51,7 @@ object TransactionBuilder {
         swapAuthority: PublicKey,
         route: SwapRoute,
         amount: Long,
-        feeAmount: Long = 0,
+        feeAmount: Long,
         minOutput: Long = 0,
     ): SolanaTransaction {
         val coreMint = Token.usdf
