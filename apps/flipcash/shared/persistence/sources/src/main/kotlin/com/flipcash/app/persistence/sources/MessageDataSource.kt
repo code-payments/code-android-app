@@ -60,9 +60,21 @@ class MessageDataSource @Inject constructor(
         db?.messageDao()?.upsert(*entities.toTypedArray())
     }
 
-    /** Reactive "has the user ever added money" — any completed deposit/buy notification. */
+    /**
+     * Reactive "has the user ever added money" — any completed deposit/buy notification.
+     *
+     * Resolved through [FlipcashDatabase.observeInstance] for the same reason as [observeRecent]:
+     * the per-user DB is created at login, *after* singletons have built their flow graphs. Reading
+     * `db` once at subscription time latched any subscriber that started before the DB existed onto
+     * a constant `false` for the rest of the session — which pinned the wallet's onboarding
+     * checklist to "incomplete" (and so kept the new-user tutorial on screen) no matter how much
+     * activity later landed in the feed.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun hasEverAddedMoney(): Flow<Boolean> =
-        db?.messageDao()?.hasEverAddedMoney() ?: flowOf(false)
+        FlipcashDatabase.observeInstance().flatMapLatest { database ->
+            database?.messageDao()?.hasEverAddedMoney() ?: flowOf(false)
+        }
 
     /**
      * Observes the [limit] most recent messages (newest first) as domain models. Reacts to the

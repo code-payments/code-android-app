@@ -36,16 +36,40 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/**
+ * How far the activity feed has got in reconciling itself with the server for the signed-in user.
+ *
+ * Surfaces exist that must distinguish "this account has no activity" from "we haven't looked yet":
+ * the local feed is a cache that starts empty on every fresh install and login, so treating an empty
+ * cache as an empty account greets an established user with new-user onboarding.
+ */
+enum class FeedSyncState {
+    /** No fetch has completed yet this session — whatever is on screen is cache-only. */
+    Unknown,
+
+    /** A fetch succeeded: the local feed reflects the server, and an empty feed really is empty. */
+    Synced,
+
+    /** A fetch completed without success. Callers should stop waiting; the poller will retry. */
+    Unavailable,
+}
 
 @Singleton
 class ActivityFeedCoordinator @Inject internal constructor(
@@ -66,6 +90,25 @@ class ActivityFeedCoordinator @Inject internal constructor(
     // Counterparty user-ids (hex) currently being resolved over the network, so concurrent misses
     // for the same user collapse to a single fetch.
     private val resolvingProfiles = ConcurrentHashMap.newKeySet<String>()
+
+    private val _syncState = MutableStateFlow(FeedSyncState.Unknown)
+
+    /**
+     * Whether the feed has been reconciled with the server this session. See [FeedSyncState].
+     * Maintained by [fetchSinceLatest], which every refresh path funnels through.
+     */
+    val syncState: StateFlow<FeedSyncState> = _syncState.asStateFlow()
+
+    init {
+        // Losing API access ends the sync's validity: the next account starts from Unknown so its
+        // wallet waits for a real fetch instead of rendering the previous session's verdict.
+        userManager.state
+            .map { it.authState.canAccessAuthenticatedApis }
+            .distinctUntilChanged()
+            .filter { !it }
+            .onEach { _syncState.value = FeedSyncState.Unknown }
+            .launchIn(scope)
+    }
 
     @OptIn(ExperimentalPagingApi::class, ExperimentalCoroutinesApi::class)
     val messages: Flow<PagingData<ActivityFeedMessage>> = userManager.state
@@ -259,6 +302,20 @@ class ActivityFeedCoordinator @Inject internal constructor(
                 token = latest?.id,
                 descending = latest == null,
             )
-        ).onSuccess { dataSource.upsert(it) }.map { Unit }
+        )
+            .onSuccess {
+                dataSource.upsert(it)
+                // The per-user DB is opened before the auth gate that lets this call run at all, so
+                // a successful fetch here really has landed in the cache.
+                _syncState.value = FeedSyncState.Synced
+            }
+            // Don't downgrade a sync that already succeeded — a later failure just means this
+            // refresh missed, not that the cache is unknown again.
+            .onFailure {
+                _syncState.update { current ->
+                    if (current == FeedSyncState.Unknown) FeedSyncState.Unavailable else current
+                }
+            }
+            .map { Unit }
     }
 }
