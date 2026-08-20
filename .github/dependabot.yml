@@ -5,23 +5,6 @@ updates:
   schedule:
     interval: weekly
   open-pull-requests-limit: 10
-  groups:
-    # Both libphonenumber artifacts must move together — see the note in gradle/libs.versions.toml.
-    # Grouping them into one PR makes any version skew visible in a single diff rather than in two
-    # PRs that can land independently.
-    libphonenumber:
-      patterns:
-        - "*libphonenumber*"
-  ignore:
-    # Google's libphonenumber can only move when the Android port (io.michaelrocks) has a matching
-    # release — the two ship separate copies of the metadata and must stay on the same version, or
-    # they can disagree on whether a number is valid. See the note in gradle/libs.versions.toml.
-    # The port has no 9.0.37, so this specific version is held. Grouping alone does not prevent it:
-    # a group PR still gets opened with just the one artifact when only that artifact has an update,
-    # and closing such a PR does NOT suppress the version (Dependabot says so explicitly on close).
-    # Remove this entry once the port publishes 9.0.37 or later.
-    - dependency-name: "com.googlecode.libphonenumber:libphonenumber"
-      versions: ["9.0.37"]
   labels:
     - "dependencies"
     - "type: build"
