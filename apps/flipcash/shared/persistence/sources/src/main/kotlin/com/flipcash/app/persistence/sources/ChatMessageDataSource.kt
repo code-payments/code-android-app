@@ -14,9 +14,13 @@ import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.RandomId
 import com.getcode.utils.hexEncodedString
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -42,11 +46,25 @@ class ChatMessageDataSource @Inject constructor(
         activeChatId = chatId
     }
 
-    /** Reactive "has the user ever sent a tip" — an outgoing Cash message (self) with verb TIPPED. */
-    fun hasEverTipped(): Flow<Boolean> {
-        val selfHex = userManager.accountId?.hexEncodedString() ?: return flowOf(false)
-        return db?.chatMessageDao()?.hasEverTipped(selfHex) ?: flowOf(false)
-    }
+    /**
+     * Reactive "has the user ever sent a tip" — an outgoing Cash message (self) with verb TIPPED.
+     *
+     * Both inputs are resolved reactively rather than read once at subscription time. The per-user
+     * DB is created at login and the account id is set during it, so a subscriber that starts before
+     * either is ready (the wallet tab composing while a soft login is still in flight) used to latch
+     * onto a constant `false` for the whole session — pinning the onboarding checklist to
+     * "incomplete" and leaving the new-user tutorial on screen for an established account.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun hasEverTipped(): Flow<Boolean> =
+        combine(
+            FlipcashDatabase.observeInstance(),
+            userManager.state.map { it.accountId }.distinctUntilChanged(),
+        ) { database, accountId -> database to accountId }
+            .flatMapLatest { (database, accountId) ->
+                val selfHex = accountId?.hexEncodedString() ?: return@flatMapLatest flowOf(false)
+                database?.chatMessageDao()?.hasEverTipped(selfHex) ?: flowOf(false)
+            }
 
     // region PagingDataSource
 

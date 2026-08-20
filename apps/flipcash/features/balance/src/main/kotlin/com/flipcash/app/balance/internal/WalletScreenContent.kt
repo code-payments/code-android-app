@@ -47,6 +47,7 @@ import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.features.balance.R
 import com.flipcash.shared.transactionhistory.recentActivitySection
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 
 private const val TokenStackKey = "tokenStack"
 
@@ -70,6 +71,24 @@ internal fun WalletScreenContent(
     tokenState: SelectTokenViewModel.State,
     dispatchEvent: (WalletViewModel.Event) -> Unit,
 ) {
+    // One loading state for the whole tab. The balance, the card deck, and the activity preview
+    // arrive from three independent sources; letting each stage itself meant the tab assembled in
+    // pieces -- a spinner inside the header while the body below it had already decided, from a
+    // still-empty cache, that this was a brand-new account and drawn the tutorial. Nothing renders
+    // until all three can be drawn together, and BalanceHeader's own spinner is consequently dead
+    // code on this screen (v1's BalanceScreen still uses it).
+    if (tokenState.tokens == null || balanceState.isAwaitingActivity) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = LocalTabBarPadding.current.calculateBottomPadding()),
+            contentAlignment = Alignment.Center,
+        ) {
+            CodeCircularProgressIndicator()
+        }
+        return
+    }
+
     val listState = rememberLazyListState()
     // Px the token stack has scrolled above the viewport top, read live so the stack collapses (then
     // releases and scrolls off) as the list scrolls. A lambda so the stack reads it in its placement
@@ -123,13 +142,13 @@ internal fun WalletScreenContent(
             Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
         }
 
-        if (!balanceState.isNewUserTutorialComplete) {
+        balanceState.onboardingItems?.takeIf { !balanceState.isNewUserTutorialComplete }?.let { items ->
             item {
                 NewUserTutorial(
                     modifier = Modifier.fillMaxWidth()
                         .padding(bottom = CodeTheme.dimens.grid.x5),
                     title = stringResource(R.string.title_tipOnboarding),
-                    items = balanceState.onboardingItems,
+                    items = items,
                 ) { item ->
                     when (item) {
                         is TutorialItem.AddMoney -> {

@@ -6,6 +6,7 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.balance.internal.components.TutorialItem
 import com.flipcash.app.core.AppRoute
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
+import com.flipcash.shared.transactionhistory.FeedSyncState
 import com.flipcash.shared.transactionhistory.TransactionListItem
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.userflags.UserFlagsCoordinator
@@ -41,25 +42,47 @@ internal class WalletViewModel @Inject constructor(
 ) {
     data class State(
         val preferredOnRampProvider: OnRampProvider.Defined? = null,
-        val onboardingItems: List<TutorialItem> = emptyList(),
+        /**
+         * Onboarding milestones, or `null` while they are still unknown. The distinction matters:
+         * an empty/incomplete checklist is what draws the new-user tutorial, and every milestone
+         * reads as incomplete before its source has reported.
+         */
+        val onboardingItems: List<TutorialItem>? = null,
         /**
          * Preview of the most recent unified cross-token activity — at most [RECENT_PREVIEW_COUNT]
          * rows. The coordinator owns the mapping and enforces the limit; the full paged history is a
          * separate dive-in screen.
          */
         val transactions: List<TransactionListItem> = emptyList(),
+        val feedSyncState: FeedSyncState = FeedSyncState.Unknown,
     ) {
         val hasAddedMoney: Boolean
-            get() = onboardingItems.find { it is TutorialItem.AddMoney }?.isCompleted == true
+            get() = onboardingItems?.find { it is TutorialItem.AddMoney }?.isCompleted == true
 
+        /** Treated as complete while unknown, so the tutorial is never the thing we guess at. */
         val isNewUserTutorialComplete: Boolean
-            get() = onboardingItems.all { it.isCompleted }
+            get() = onboardingItems?.all { it.isCompleted } != false
+
+        /**
+         * Whether the activity half of the tab is still settling.
+         *
+         * Both the milestones and the recent-activity preview are reads of a *local cache* that
+         * starts empty on a fresh login, so neither can be trusted until the feed has been
+         * reconciled with the server at least once. Without this an established account signing in
+         * was shown the new-user tutorial for as long as its history took to arrive. Local rows
+         * short-circuit the wait: if there is already activity to draw, there is nothing to
+         * mistake for a new account.
+         */
+        val isAwaitingActivity: Boolean
+            get() = onboardingItems == null ||
+                    (feedSyncState == FeedSyncState.Unknown && transactions.isEmpty())
     }
 
     sealed interface Event {
         data class OnOnboardingItemsUpdated(val items: List<TutorialItem>): Event
         data class OnTransactionsUpdated(val transactions: List<TransactionListItem>) : Event
         data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider.Defined?) : Event
+        data class OnFeedSyncStateChanged(val syncState: FeedSyncState) : Event
 
         data object OpenCurrencySelection : Event
 
@@ -71,6 +94,12 @@ internal class WalletViewModel @Inject constructor(
         // Preview of recent activity (bounded to RECENT_PREVIEW_COUNT by the coordinator).
         feedCoordinator.recentTransactions(limit = RECENT_PREVIEW_COUNT)
             .onEach { dispatchEvent(Event.OnTransactionsUpdated(it)) }
+            .launchIn(viewModelScope)
+
+        // Whether an empty feed means "nothing happened" or "we haven't looked yet" (see
+        // State.isAwaitingActivity).
+        feedCoordinator.syncState
+            .onEach { dispatchEvent(Event.OnFeedSyncStateChanged(it)) }
             .launchIn(viewModelScope)
 
         userManager.state
@@ -113,6 +142,9 @@ internal class WalletViewModel @Inject constructor(
                 Event.OpenCurrencySelection -> { state -> state }
                 is Event.OnPreferredOnRampProviderChanged -> { state ->
                     state.copy(preferredOnRampProvider = event.provider)
+                }
+                is Event.OnFeedSyncStateChanged -> { state ->
+                    state.copy(feedSyncState = event.syncState)
                 }
                 is Event.OnOnboardingItemsUpdated -> { state ->
                     state.copy(onboardingItems = event.items)
