@@ -27,6 +27,7 @@ import com.flipcash.app.analytics.Button
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.openAsSheet
+import com.flipcash.app.core.navigation.homeRoute
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.core.onboarding.OnboardingResult
@@ -80,17 +81,17 @@ import kotlin.time.Duration.Companion.milliseconds
  * ```
  * 1. New account (ResumePoint.Login → ProceedToVerification)
  *
- *    Start → AccessKey ──┬────────────→ Name² → Contacts¹ → Notifications → Scanner
+ *    Start → AccessKey ──┬────────────→ Name² → Contacts¹ → Notifications → Home³
  *                         └→ Purchase ─┘
  *
  * 2. Seed restore (ResumePoint.Login → LoggedIn via SeedInput)
  *
- *    Start → SeedInput ──┬────────────→ Name² → Contacts¹ → Notifications → Scanner
+ *    Start → SeedInput ──┬────────────→ Name² → Contacts¹ → Notifications → Home³
  *                         └→ Purchase ─┘
  *
  * 3. App resume (ResumePoint.PostAccessKey)
  *
- *    → Notifications → Scanner
+ *    → Notifications → Home³
  *    (contacts and name entry skipped — existing users encounter these in-app)
  *
  * 4. Mid-flow resume (ResumePoint.AccessKey / AccessKeyThenPurchase / DisplayName)
@@ -104,6 +105,8 @@ import kotlin.time.Duration.Companion.milliseconds
  *   [PermissionsPhaseFlowHost].
  * ² Display-name entry is shown only when no display name is set. It reuses the
  *   UpdateUserProfile subflow, whose `target` replaces the stack with the permissions phase.
+ * ³ Home is the same route the app launches on — the Wallet tab under [FeatureFlag.NewUi], the
+ *   Scanner under v1. See [homeRoute].
  */
 @Composable
 fun OnboardingFlowScreen(
@@ -149,6 +152,11 @@ private fun PermissionsPhaseFlowHost(
     val userManager = LocalUserManager.current
     val contactPickerMode by featureFlags.observe(FeatureFlag.ContactPickerMode).collectAsStateWithLifecycle()
 
+    // Onboarding releases to the same home the app launches on: the Wallet tab under v2, the
+    // Scanner under v1.
+    val isNewUi by featureFlags.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
+    val home = homeRoute(isNewUi)
+
     val permissionsSteps = buildList {
         if (!route.skipContacts && !contactPickerMode) add(OnboardingStep.ContactPermission)
         add(OnboardingStep.NotificationPermission)
@@ -179,20 +187,20 @@ private fun PermissionsPhaseFlowHost(
             when (reason) {
                 is FlowExitReason.Completed -> {
                     analytics.action(Action.CompletedOnboarding)
-                    trace(tag = "Onboarding", message = "Onboarding complete — releasing to scanner", type = TraceType.Process)
+                    trace(tag = "Onboarding", message = "Onboarding complete — releasing to $home", type = TraceType.Process)
                     userManager?.set(AuthState.Ready)
                     outerNavigator.navigate(
-                        route = AppRoute.Main.Scanner,
+                        route = home,
                         options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll),
                     )
                 }
 
                 FlowExitReason.BackedOutOfRoot -> {
                     // All permissions already granted
-                    trace(tag = "Onboarding", message = "Onboarding complete (permissions already granted) — releasing to scanner", type = TraceType.Process)
+                    trace(tag = "Onboarding", message = "Onboarding complete (permissions already granted) — releasing to $home", type = TraceType.Process)
                     userManager?.set(AuthState.Ready)
                     outerNavigator.navigate(
-                        route = AppRoute.Main.Scanner,
+                        route = home,
                         options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll),
                     )
                 }
