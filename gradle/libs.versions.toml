@@ -64,13 +64,13 @@ protobuf = "4.35.1"
 protobuf-plugin = "0.10.0"
 protovalidate-kt = "0.1.1"
 
-# These two must stay on the SAME version. `:shared:phone` parses and formats with the Android port
-# while the services modules validate with Google's artifact, and each ships its own copy of the
-# libphonenumber metadata — so a version skew means the two can disagree on whether a number is
-# valid. The port lags upstream, so it sets the ceiling: only bump `-google` once the port has
-# published a matching release.
+# The Android port is the ONLY libphonenumber this app depends on, deliberately. Google's
+# `com.googlecode` artifact used to sit alongside it; the two ship separate copies of the metadata,
+# so any version skew between them meant they could disagree on whether a number is valid — and the
+# port lags upstream, so it always set the ceiling and blocked routine bumps.
+# Don't reintroduce the Google artifact. The port exposes the same API; it just needs a Context,
+# because it loads its metadata from the AAR's assets rather than from a static instance.
 lib-phone-number-port = "9.0.36"
-lib-phone-number-google = "9.0.36"
 zxing = "3.5.4"
 
 androidx-benchmark-macro = "1.5.0-rc01"
@@ -251,7 +251,6 @@ vico-compose = { module = "com.patrykandpatrick.vico:compose", version.ref = "vi
 
 # Phone number
 lib-phone-number-port = { module = "io.michaelrocks:libphonenumber-android", version.ref = "lib-phone-number-port" }
-lib-phone-number-google = { module = "com.googlecode.libphonenumber:libphonenumber", version.ref = "lib-phone-number-google" }
 
 # QR / Scanning
 zxing = { module = "com.google.zxing:core", version.ref = "zxing" }

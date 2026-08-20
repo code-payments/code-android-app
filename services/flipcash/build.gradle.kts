@@ -57,8 +57,6 @@ dependencies {
 
     implementation(libs.fingerprint.pro)
 
-    implementation(libs.lib.phone.number.google)
-
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)

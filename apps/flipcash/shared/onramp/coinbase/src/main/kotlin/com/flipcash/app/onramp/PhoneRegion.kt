@@ -1,7 +1,11 @@
 package com.flipcash.app.onramp
 
-import com.google.i18n.phonenumbers.PhoneNumberUtil
-import com.google.i18n.phonenumbers.NumberParseException
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import io.michaelrocks.libphonenumber.android.NumberParseException
+import io.michaelrocks.libphonenumber.android.PhoneNumberUtil
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Region derived from a phone number for Coinbase buy-options lookups.
@@ -22,33 +26,48 @@ data class PhoneRegion(
  */
 private val NYC_AREA_CODES = setOf("212", "718", "917", "646", "347", "929", "586")
 
-private val phoneUtil: PhoneNumberUtil = PhoneNumberUtil.getInstance()
-
 /**
- * Extracts the [PhoneRegion] from an E.164 phone number using libphonenumber
- * for country detection and area code heuristics for US subdivision.
+ * Resolves the [PhoneRegion] for a phone number.
  *
- * @return the detected region, or null if the number can't be parsed.
+ * Injectable rather than a top-level function because the Android libphonenumber port loads its
+ * metadata from the AAR's assets, so it needs a [Context] — unlike Google's desktop artifact, which
+ * exposes a static instance. See the note in `gradle/libs.versions.toml` for why the port is the
+ * only libphonenumber this app depends on.
  */
-fun regionFromPhone(phone: String): PhoneRegion? {
-    val parsed = try {
-        phoneUtil.parse(phone, null)
-    } catch (_: NumberParseException) {
-        return null
+@Singleton
+class PhoneRegionResolver @Inject constructor(
+    @ApplicationContext private val context: Context,
+) {
+    // Lazy so libphonenumber's metadata blob is parsed on first *use* (a background caller), never
+    // during construction on the main thread. Same reasoning as PhoneUtils in :shared:phone.
+    private val phoneUtil by lazy { PhoneNumberUtil.createInstance(context) }
+
+    /**
+     * Extracts the [PhoneRegion] from an E.164 phone number using libphonenumber
+     * for country detection and area code heuristics for US subdivision.
+     *
+     * @return the detected region, or null if the number can't be parsed.
+     */
+    fun regionFromPhone(phone: String): PhoneRegion? {
+        val parsed = try {
+            phoneUtil.parse(phone, null)
+        } catch (_: NumberParseException) {
+            return null
+        }
+
+        val country = phoneUtil.getRegionCodeForNumber(parsed) ?: return null
+        val subdivision = if (country == "US") {
+            subdivisionFromUsNumber(parsed.nationalNumber.toString())
+        } else {
+            null
+        }
+
+        return PhoneRegion(country = country, subdivision = subdivision)
     }
 
-    val country = phoneUtil.getRegionCodeForNumber(parsed) ?: return null
-    val subdivision = if (country == "US") {
-        subdivisionFromUsNumber(parsed.nationalNumber.toString())
-    } else {
-        null
+    private fun subdivisionFromUsNumber(nationalNumber: String): String? {
+        if (nationalNumber.length < 3) return null
+        val areaCode = nationalNumber.take(3)
+        return if (areaCode in NYC_AREA_CODES) "NY" else null
     }
-
-    return PhoneRegion(country = country, subdivision = subdivision)
-}
-
-private fun subdivisionFromUsNumber(nationalNumber: String): String? {
-    if (nationalNumber.length < 3) return null
-    val areaCode = nationalNumber.take(3)
-    return if (areaCode in NYC_AREA_CODES) "NY" else null
 }

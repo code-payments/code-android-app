@@ -18,7 +18,7 @@ dependencies {
     implementation(libs.androidx.localbroadcastmanager)
     implementation(libs.bundles.kotlinx.serialization)
 
-    implementation(libs.lib.phone.number.google)
+    implementation(libs.lib.phone.number.port)
     implementation(libs.play.services.wallet)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(project(":libs:messaging"))
