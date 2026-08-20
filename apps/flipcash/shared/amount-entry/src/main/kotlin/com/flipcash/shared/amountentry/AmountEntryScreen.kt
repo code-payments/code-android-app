@@ -9,7 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.ui.AmountEntryField
 import com.flipcash.app.core.ui.AmountWithKeypad
+import com.flipcash.app.core.ui.LargeAmountField
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SlideToConfirm
@@ -73,28 +75,45 @@ fun AmountEntryScreen(
             }
         },
     ) { padding ->
+        val hintText = when (val hint = config.hint) {
+            is AmountEntryHint.None -> ""
+            is AmountEntryHint.Info -> hint.text
+            is AmountEntryHint.Error -> hint.text
+        }
+        val isError = config.hint is AmountEntryHint.Error
+
         AmountWithKeypad(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            amountAnimatedModel = delegateState.amountAnimatedModel,
-            currencyFlag = delegateState.currency.selected?.resId,
-            prefix = delegateState.currency.selected?.symbol.orEmpty(),
-            placeholder = "0",
-            hint = when (val hint = config.hint) {
-                is AmountEntryHint.None -> ""
-                is AmountEntryHint.Info -> hint.text
-                is AmountEntryHint.Error -> hint.text
-            },
             decimalPlaces = delegateState.currency.fractionUnits,
-            isClickable = config.canChangeCurrency,
-            onAmountClicked = onChangeCurrency,
-            isError = config.hint is AmountEntryHint.Error,
-            largeHeader = largeHeader,
             accessory = accessory,
             onNumberPressed = { controller.onNumber(it) },
             onBackspace = { controller.onBackspace() },
             onDecimal = { controller.onDecimal() },
-        )
+        ) {
+            if (largeHeader) {
+                LargeAmountField(
+                    amountAnimatedModel = delegateState.amountAnimatedModel,
+                    prefix = delegateState.currency.selected?.symbol.orEmpty(),
+                    placeholder = "0",
+                    hint = hintText,
+                    isError = isError,
+                    decimalPlaces = delegateState.currency.fractionUnits,
+                )
+            } else {
+                AmountEntryField(
+                    amountAnimatedModel = delegateState.amountAnimatedModel,
+                    currencyFlag = delegateState.currency.selected?.resId,
+                    prefix = delegateState.currency.selected?.symbol.orEmpty(),
+                    placeholder = "0",
+                    hint = hintText,
+                    isError = isError,
+                    decimalPlaces = delegateState.currency.fractionUnits,
+                    isClickable = config.canChangeCurrency,
+                    onClick = onChangeCurrency,
+                )
+            }
+        }
     }
 }

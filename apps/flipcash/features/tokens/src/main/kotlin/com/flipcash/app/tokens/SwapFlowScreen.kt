@@ -120,6 +120,9 @@ private fun swapEntryProvider(
     annotatedEntry<SwapStep.ConvertDestinationSelection> {
         ConvertDestinationSelectScreen()
     }
+    annotatedEntry<SwapStep.FundingSelection> {
+        BuyFundingSelectScreen()
+    }
     annotatedEntry<SwapStep.ConvertReceipt> { ConvertReceiptScreen() }
     annotatedEntry<SwapStep.PhantomConnect> {
         PhantomConnectConfirmationScreen(depositFirstPurpose = depositFirstPurpose)
@@ -183,6 +186,57 @@ private fun ConvertDestinationSelectScreen() {
             .map { it.mint }
             .onEach {
                 viewModel.dispatchEvent(SwapViewModel.Event.OnDestinationSelected(it))
+                flowNavigator.back()
+            }
+            .launchIn(this)
+    }
+}
+
+/**
+ * Payment-source picker for a v2 Get. Selecting a currency re-points the entry cap and pops back to
+ * amount entry — unlike [SwapPurchaseTokenSelectScreen], which prices the buy and pushes a receipt.
+ */
+@Composable
+private fun BuyFundingSelectScreen() {
+    val selectionViewModel = hiltViewModel<SelectTokenViewModel>()
+    val viewModel = flowSharedViewModel<SwapViewModel>()
+    val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
+    val state = viewModel.stateFlow.collectAsStateWithLifecycle().value
+
+    val buy = state.purpose as? SwapPurpose.Buy ?: return
+    val current = state.fundingMint ?: return
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
+    ) {
+        Text(
+            modifier = Modifier
+                .padding(horizontal = CodeTheme.dimens.inset)
+                .padding(
+                    top = CodeTheme.dimens.staticGrid.x7,
+                    bottom = CodeTheme.dimens.staticGrid.x5,
+                ),
+            text = stringResource(R.string.title_selectCurrency),
+            style = CodeTheme.typography.textLarge,
+            color = CodeTheme.colors.textMain,
+        )
+
+        TokenSelectScreen(
+            purpose = TokenPurpose.BuyFunding(target = buy.mint, current = current),
+            showTopBar = false,
+            presentation = TokenListPresentation.Sheet,
+        )
+    }
+
+    LaunchedEffect(selectionViewModel) {
+        selectionViewModel.eventFlow
+            .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
+            .filter { it.fromUser }
+            .map { it.mint }
+            .onEach {
+                viewModel.dispatchEvent(SwapViewModel.Event.OnFundingSourceSelected(it))
                 flowNavigator.back()
             }
             .launchIn(this)

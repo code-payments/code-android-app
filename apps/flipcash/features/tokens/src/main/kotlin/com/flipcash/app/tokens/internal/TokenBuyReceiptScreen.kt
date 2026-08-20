@@ -81,7 +81,9 @@ private fun TokenBuyReceiptScreen(
                         .navigationBarsPadding()
                         .imePadding()
                         .padding(bottom = CodeTheme.dimens.grid.x3),
-                    text = stringResource(R.string.action_buy),
+                    text = stringResource(
+                        if (state.isGet) R.string.action_confirm else R.string.action_buy
+                    ),
                     buttonState = ButtonState.Filled,
                     isLoading = state.buyProgress.loading,
                     isSuccess = state.buyProgress.success,
@@ -108,6 +110,7 @@ private fun TokenBuyReceiptScreen(
                 desiredToken = state.tokenWithBalance?.token,
                 purchaseAmount = state.confirmedEnteredAmount,
                 feeAmount = state.feeAmount,
+                isGet = state.isGet,
             )
         }
     }
@@ -119,6 +122,10 @@ private fun BuyReceipt(
     desiredToken: Token?,
     purchaseAmount: Fiat?,
     feeAmount: Fiat,
+    // v2 reframes the buy as a conversion between two currencies the user holds, so the receipt
+    // reads "You Get / Amount to convert / Conversion fee" — the same wording Convert uses. The
+    // math is identical either way: "You Pay" is always purchase + fee.
+    isGet: Boolean,
     modifier: Modifier = Modifier,
 ) {
     // The funding token and confirmed amount resolve asynchronously after landing here, so
@@ -155,7 +162,9 @@ private fun BuyReceipt(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = stringResource(R.string.subtitle_youReceive),
+                text = stringResource(
+                    if (isGet) R.string.subtitle_youGet else R.string.subtitle_youReceive
+                ),
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
             )
@@ -189,12 +198,16 @@ private fun BuyReceipt(
             ) {
                 ReceiptLineItem(
                     modifier = Modifier.fillMaxWidth(),
-                    label = stringResource(R.string.label_amountToBuy),
+                    label = stringResource(
+                        if (isGet) R.string.label_amountToConvert else R.string.label_amountToBuy
+                    ),
                     amount = purchaseAmount.formatted()
                 )
                 ReceiptLineItem(
                     modifier = Modifier.fillMaxWidth(),
-                    label = stringResource(R.string.label_exchangeFee),
+                    label = stringResource(
+                        if (isGet) R.string.label_conversionFee else R.string.label_exchangeFee
+                    ),
                     amount = feeAmount.formatted(
                         extraPrefix = if (feeAmount.decimalValue < 0.01) "~ " else null,
                     )

@@ -17,6 +17,7 @@ import com.flipcash.app.core.tokens.SwapStep
 import com.flipcash.app.core.verification.VerificationResult
 import com.flipcash.app.onramp.CoinbaseOnRampCompletion
 import com.flipcash.app.onramp.LocalCoinbaseOnRampController
+import com.flipcash.app.tokens.internal.BuyFundingSelector
 import com.flipcash.app.tokens.internal.ConvertDestinationSelector
 import com.flipcash.app.tokens.internal.SwapEntryScreenContent
 import com.flipcash.app.tokens.ui.SwapViewModel
@@ -28,6 +29,7 @@ import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.navigateForResult
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.ui.components.AppBarWithTitle
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -53,6 +55,9 @@ internal fun SwapEntryScreen(
                 is SwapPurpose.Buy if purpose.fundingSource != FundingSource.Flexible ->
                     stringResource(R.string.title_amountToAdd)
                 is SwapPurpose.Convert -> stringResource(R.string.title_amountToConvert)
+                // v2 renames the direct buy to "Get" and states the amount in the header instead
+                // of the title, matching Convert.
+                is SwapPurpose.BalanceIncrease if state.isGet -> stringResource(R.string.title_get)
                 is SwapPurpose.BalanceIncrease -> stringResource(R.string.title_amountToBuy)
                 is SwapPurpose.BalanceDecrease -> stringResource(R.string.title_amountToSell)
             },
@@ -68,18 +73,31 @@ internal fun SwapEntryScreen(
 
         SwapEntryScreenContent(
             viewModel = viewModel,
-            largeHeader = purpose is SwapPurpose.Convert,
-            accessory = if (purpose is SwapPurpose.Convert) {
-                {
-                    ConvertDestinationSelector(
-                        destination = state.destinationTokenWithBalance,
-                        onClick = {
-                            viewModel.dispatchEvent(SwapViewModel.Event.SelectConvertDestination)
-                        },
-                    )
+            largeHeader = purpose is SwapPurpose.Convert || state.isGet,
+            accessory = when {
+                purpose is SwapPurpose.Convert -> {
+                    {
+                        ConvertDestinationSelector(
+                            destination = state.destinationTokenWithBalance,
+                            onClick = {
+                                viewModel.dispatchEvent(SwapViewModel.Event.SelectConvertDestination)
+                            },
+                        )
+                    }
                 }
-            } else {
-                null
+                // v2 Get picks what pays for the buy here, so the amount can be capped and the
+                // fee priced before confirming. v1 asks on a pushed step afterwards instead.
+                state.isGet -> {
+                    {
+                        BuyFundingSelector(
+                            funding = state.fundingTokenWithBalance,
+                            onClick = {
+                                viewModel.dispatchEvent(SwapViewModel.Event.SelectBuyFundingSource)
+                            },
+                        )
+                    }
+                }
+                else -> null
             },
         )
     }
@@ -96,6 +114,25 @@ internal fun SwapEntryScreen(
             .filterIsInstance<SwapViewModel.Event.SelectFundingToken>()
             .map { it.amount }
             .onEach { flowNavigator.navigateTo(SwapStep.TokenSelection(it)) }
+            .launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.SelectBuyFundingSource>()
+            .onEach { flowNavigator.navigateTo(SwapStep.FundingSelection) }
+            .launchIn(this)
+    }
+
+    // v2 Get confirms straight from here, so the receipt push lives here too. Resolving the
+    // funding token is async and can fail (stale rates), in which case OnFundingTokenResolved
+    // never fires and its alert surfaces on this screen. Gated on isGet so v1 — where the token
+    // select screen owns this push and this screen is still in the stack — doesn't double-navigate.
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<SwapViewModel.Event.OnFundingTokenResolved>()
+            .filter { viewModel.stateFlow.value.isGet }
+            .onEach { flowNavigator.navigateTo(SwapStep.BuyReceipt) }
             .launchIn(this)
     }
 
