@@ -24,6 +24,10 @@ import kotlin.test.assertTrue
 @Config(manifest = Config.NONE)
 class AppRouterTest {
 
+    private companion object {
+        const val MINT = "So11111111111111111111111111111111111111112"
+    }
+
     private var authState: AuthState = AuthState.Ready
 
     private val router = AppRouter(authStateProvider = { authState })
@@ -123,6 +127,72 @@ class AppRouterTest {
         assertEquals("myaccount", type.origin)
     }
 
+    /**
+     * `Uri.getQueryParameter` already percent-decodes. Decoding its result a second time
+     * corrupts any address whose local part carries an encoded `+` -- a plus-tagged address
+     * would arrive as `user tag@`, and the verification code would then be checked against an
+     * email the user never entered.
+     */
+    @Test
+    fun `classify does not decode the email query parameter twice`() {
+        val type = router.classify(
+            DeepLink("https://app.flipcash.com/verify?email=user%2Btag%40example.com&code=123456")
+        )
+        assertIs<DeeplinkType.EmailVerification>(type)
+        assertEquals("user+tag@example.com", type.email)
+    }
+
+    /**
+     * A second decode is not just lossy, it throws: once `getQueryParameter` has turned `%25`
+     * into a bare `%`, `URLDecoder` sees an incomplete escape and fails, which drops the whole
+     * link. A literal `%` is legal in an address local part.
+     */
+    @Test
+    fun `classify keeps a literal percent in the email instead of dropping the link`() {
+        val type = router.classify(
+            DeepLink("https://app.flipcash.com/verify?email=100%25off%40example.com&code=123456")
+        )
+        assertIs<DeeplinkType.EmailVerification>(type)
+        assertEquals("100%off@example.com", type.email)
+    }
+
+    /**
+     * Characterises the decode `handleEmailVerification` relies on. `Uri.getQueryParameter` is a
+     * form decoder -- `%2B` comes back as `+`, a literal `+` comes back as a space -- which is the
+     * exact inverse of the percent-plus-`+`-for-space encoder the client uses to build these
+     * links (PhantomDeeplinkProtocol.urlEncode, and URLEncoder elsewhere). One decode round-trips
+     * the producer; a second one does not.
+     */
+    @Test
+    fun `query parameters are form-decoded exactly once`() {
+        val type = router.classify(
+            DeepLink("https://app.flipcash.com/verify?email=a%40b.com&code=enc%2Blit+sp")
+        )
+        assertIs<DeeplinkType.EmailVerification>(type)
+        assertEquals("enc+lit sp", type.code)
+    }
+
+    /**
+     * Same double-decode applied to `client_data`. The origin is standard base64, whose alphabet
+     * includes `+`, so a second (form-semantics) decode turns that `+` into a space and the
+     * origin silently fails to decode -- taking the routing destination with it.
+     */
+    @Test
+    fun `classify does not decode client data twice`() {
+        val origin = Base64.encodeToString("aa>".toByteArray(), Base64.NO_WRAP)
+        assertTrue(origin.contains('+'), "fixture must exercise a '+' in the base64 payload")
+
+        val clientData = """{"origin":"$origin"}"""
+        val url = "https://app.flipcash.com/verify" +
+                "?email=test%40example.com" +
+                "&code=123456" +
+                "&client_data=${URLEncoder.encode(clientData, "UTF-8")}"
+
+        val type = router.classify(DeepLink(url))
+        assertIs<DeeplinkType.EmailVerification>(type)
+        assertEquals("aa>", type.origin)
+    }
+
     // endregion
 
     // region classify — Unknown
@@ -137,6 +207,39 @@ class AppRouterTest {
     fun `classify returns null for old external wallet paths`() {
         val type = router.classify(DeepLink("https://app.flipcash.com/external/phantom/connected?origin=menu"))
         assertNull(type)
+    }
+
+    // endregion
+
+    // region dispatch — Logged in: EmailVerification
+
+    private fun verifyUrl(originPlain: String): String {
+        val origin = Base64.encodeToString(originPlain.toByteArray(), Base64.NO_WRAP)
+        val clientData = """{"origin":"$origin"}"""
+        return "https://app.flipcash.com/verify" +
+                "?email=test%40example.com" +
+                "&code=123456" +
+                "&client_data=${URLEncoder.encode(clientData, "UTF-8")}"
+    }
+
+    @Test
+    fun `dispatch returns Navigate to menu tab for a myaccount verify deeplink`() {
+        loggedIn()
+        val action = router.dispatch(DeepLink(verifyUrl("myaccount")))
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertEquals(AppRoute.Sheets.Menu, action.routes[0])
+        assertIs<AppRoute.Menu.MyAccount>(action.routes[1])
+        assertIs<AppRoute.Verification>(action.routes[2])
+    }
+
+    @Test
+    fun `dispatch returns Navigate to the swap flow for an onramp verify deeplink`() {
+        loggedIn()
+        val action = router.dispatch(DeepLink(verifyUrl("onramp|amountentry|$MINT")))
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertIs<AppRoute.Token.Info>(action.routes[0])
+        assertIs<AppRoute.Token.Swap>(action.routes[1])
+        assertIs<AppRoute.Verification>(action.routes[2])
     }
 
     // endregion
@@ -207,14 +310,23 @@ class AppRouterTest {
 
     // endregion
 
-    // region dispatch — Logged in: TokenInfo (sheet navigation)
+    // region dispatch — Logged in: TokenInfo
 
     @Test
-    fun `dispatch returns Navigate with wallet sheet and token info for token deeplink`() {
+    fun `dispatch returns OpenToken carrying the mint for a token deeplink`() {
         loggedIn()
         val mint = "So11111111111111111111111111111111111111112"
         val action = router.dispatch(DeepLink("https://app.flipcash.com/token/$mint"))
-        assertIs<DeeplinkAction.Navigate>(action)
+        assertIs<DeeplinkAction.OpenToken>(action)
+        assertEquals(Mint(mint), action.mint)
+    }
+
+    @Test
+    fun `OpenToken carries the wallet sheet route form for v1`() {
+        loggedIn()
+        val mint = "So11111111111111111111111111111111111111112"
+        val action = router.dispatch(DeepLink("https://app.flipcash.com/token/$mint"))
+        assertIs<DeeplinkAction.OpenToken>(action)
         assertEquals(2, action.routes.size)
         assertIs<AppRoute.Sheets.Wallet>(action.routes[0])
         val tokenInfo = action.routes[1]
@@ -319,6 +431,75 @@ class AppRouterTest {
         assertIs<DeeplinkAction.None>(action)
     }
 
+    // region classify — malformed client_data (must never throw)
+
+    /**
+     * `app.flipcash.com/verify` is an autoVerify App Link, so any web page can hand the app an
+     * arbitrary `client_data`. Both dispatch call sites are fatal on throw (composition in
+     * MainRoot, a LaunchedEffect in App), so every one of these must degrade to None.
+     */
+    private fun verifyUrlWithRawClientData(raw: String): String =
+        "https://app.flipcash.com/verify" +
+                "?email=test%40example.com" +
+                "&code=123456" +
+                "&client_data=${URLEncoder.encode(raw, "UTF-8")}"
+
+    private fun verifyUrlWithOrigin(origin: String): String =
+        verifyUrlWithRawClientData(
+            """{"origin":"${Base64.encodeToString(origin.toByteArray(), Base64.NO_WRAP)}"}"""
+        )
+
+    @Test
+    fun `dispatch returns None for onramp origin missing its source segment`() {
+        loggedIn()
+        // "onramp" alone used to index splits[1] unchecked.
+        assertIs<DeeplinkAction.None>(router.dispatch(DeepLink(verifyUrlWithOrigin("onramp"))))
+    }
+
+    @Test
+    fun `dispatch returns None for onramp origin with unparseable amount`() {
+        loggedIn()
+        val url = verifyUrlWithOrigin("onramp|amountentry|$MINT|garbage")
+        val action = router.dispatch(DeepLink(url))
+        // The mint still resolves, so this is a real Navigate — the point is that the junk
+        // amount is dropped instead of throwing out of Json.decodeFromString.
+        assertIs<DeeplinkAction.Navigate>(action)
+    }
+
+    @Test
+    fun `dispatch returns None for onramp origin with blank mint`() {
+        loggedIn()
+        assertIs<DeeplinkAction.None>(
+            router.dispatch(DeepLink(verifyUrlWithOrigin("onramp|amountentry|")))
+        )
+    }
+
+    @Test
+    fun `dispatch returns None for client data json without an origin key`() {
+        loggedIn()
+        assertIs<DeeplinkAction.None>(
+            router.dispatch(DeepLink(verifyUrlWithRawClientData("""{"foo":1}""")))
+        )
+    }
+
+    @Test
+    fun `dispatch returns None for client data that is not json`() {
+        loggedIn()
+        assertIs<DeeplinkAction.None>(
+            router.dispatch(DeepLink(verifyUrlWithRawClientData("notjson")))
+        )
+    }
+
+    @Test
+    fun `dispatch returns None for client data origin that is not base64`() {
+        loggedIn()
+        assertIs<DeeplinkAction.None>(
+            router.dispatch(DeepLink(verifyUrlWithRawClientData("""{"origin":"!!!not base64!!!"}""")))
+        )
+    }
+
+    // endregion
+
     @Test
     fun `dispatch returns None for email verification without client data`() {
         loggedIn()
@@ -376,10 +557,95 @@ class AppRouterTest {
         assertIs<DeeplinkType.TokenInfo>(classified)
 
         val dispatched = router.dispatch(deepLink)
-        assertIs<DeeplinkAction.Navigate>(dispatched)
-        val tokenInfo = dispatched.routes[1]
-        assertIs<AppRoute.Token.Info>(tokenInfo)
-        assertEquals(classified.mint, tokenInfo.mint)
+        assertIs<DeeplinkAction.OpenToken>(dispatched)
+        assertEquals(classified.mint, dispatched.mint)
+    }
+
+    // endregion
+
+    // region jump.flipcash.com — redirector unwrapping
+
+    private fun jump(target: String) =
+        DeepLink("https://jump.flipcash.com/#source=" + URLEncoder.encode(target, "UTF-8"))
+
+    @Test
+    fun `jump link unwraps to the wrapped token link`() {
+        val type = router.classify(jump("https://app.flipcash.com/token/$MINT"))
+        assertIs<DeeplinkType.TokenInfo>(type)
+        assertEquals(Mint(MINT), type.mint)
+    }
+
+    @Test
+    fun `jump link unwraps to the wrapped cash link`() {
+        val type = router.classify(jump("https://send.flipcash.com/c/e=someEntropy"))
+        assertIs<DeeplinkType.CashLink>(type)
+        assertEquals("someEntropy", type.entropy)
+    }
+
+    @Test
+    fun `jump link unwraps to the wrapped login link`() {
+        val type = router.classify(jump("https://app.flipcash.com/login/e=abc123"))
+        assertIs<DeeplinkType.Login>(type)
+        assertEquals("abc123", type.entropy)
+    }
+
+    @Test
+    fun `jump link preserves an unencoded query string in the wrapped url`() {
+        // The producer may leave `&` raw in the fragment; everything after `source=` is the target.
+        val type = router.classify(
+            DeepLink("https://jump.flipcash.com/#source=https%3A%2F%2Fapp.flipcash.com%2Fverify%3Femail%3Da%40b.com%26code%3D123456")
+        )
+        assertIs<DeeplinkType.EmailVerification>(type)
+        assertEquals("a@b.com", type.email)
+        assertEquals("123456", type.code)
+    }
+
+    @Test
+    fun `jump unwrapping decodes percent escapes only, not plus-as-space`() {
+        // A raw `+` in the fragment is a literal plus in the wrapped URL's path. Decoding with
+        // URLDecoder (form semantics) would turn it into a space and corrupt the payload;
+        // Uri.decode, like iOS's removingPercentEncoding, leaves it alone.
+        val type = router.classify(
+            DeepLink("https://jump.flipcash.com/#source=https%3A%2F%2Fapp.flipcash.com%2Flogin%2Fe%3Dabc+def")
+        )
+        assertIs<DeeplinkType.Login>(type)
+        assertEquals("abc+def", type.entropy)
+    }
+
+    @Test
+    fun `jump link dispatches like the wrapped link`() {
+        loggedIn()
+        val action = router.dispatch(jump("https://app.flipcash.com/token/$MINT"))
+        assertIs<DeeplinkAction.OpenToken>(action)
+        assertEquals(Mint(MINT), action.mint)
+    }
+
+    @Test
+    fun `jump link with no source fragment classifies to null`() {
+        assertNull(router.classify(DeepLink("https://jump.flipcash.com/")))
+        assertNull(router.classify(DeepLink("https://jump.flipcash.com/#other=1")))
+        assertNull(router.classify(DeepLink("https://jump.flipcash.com/#source=")))
+    }
+
+    @Test
+    fun `jump link wrapping an unroutable url classifies to null`() {
+        assertNull(router.classify(jump("https://app.flipcash.com/chat/abc")))
+        assertNull(router.classify(jump("not a url at all")))
+    }
+
+    @Test
+    fun `nested jump links are not followed`() {
+        val inner = "https://jump.flipcash.com/#source=" +
+            URLEncoder.encode("https://app.flipcash.com/token/$MINT", "UTF-8")
+        assertNull(router.classify(jump(inner)))
+    }
+
+    @Test
+    fun `jump host is matched case insensitively`() {
+        val type = router.classify(
+            DeepLink("https://JUMP.Flipcash.com/#source=" + URLEncoder.encode("https://app.flipcash.com/token/$MINT", "UTF-8"))
+        )
+        assertIs<DeeplinkType.TokenInfo>(type)
     }
 
     // endregion

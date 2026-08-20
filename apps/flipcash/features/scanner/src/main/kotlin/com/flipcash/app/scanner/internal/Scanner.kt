@@ -19,6 +19,8 @@ import com.flipcash.app.core.AppRoute.Token.*
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.scanner.internal.bills.ScannableContainer
 import com.flipcash.app.session.LocalSessionController
@@ -43,6 +45,8 @@ internal fun Scanner() {
     val state by session.state.collectAsStateWithLifecycle()
     val billState by session.billState.collectAsStateWithLifecycle()
     val analytics = rememberAnalytics()
+    val isNewUi by LocalFeatureFlags.current.observe(FeatureFlag.NewUi)
+        .collectAsStateWithLifecycle()
 
     var isPaused by remember { mutableStateOf(false) }
 
@@ -127,15 +131,21 @@ internal fun Scanner() {
                                         session.openCashLink(deeplink.entropy)
                                     }
                                     is DeeplinkType.Navigatable -> {
-                                        val routes = when (deeplink) {
+                                        val routes: List<AppRoute> = when (deeplink) {
                                             is DeeplinkType.TokenInfo -> listOf(
                                                 AppRoute.Sheets.Wallet,
                                                 Info(deeplink.mint, fromDeeplink = true)
                                             )
+                                            // Scanned tip-DM code — same destination as the
+                                            // /tip/chat/{id} deeplink.
+                                            is DeeplinkType.TipChat -> listOf(
+                                                AppRoute.Sheets.Tips(),
+                                                AppRoute.Messaging.Chat(deeplink.identifier),
+                                            )
                                             else -> emptyList()
                                         }
                                         if (routes.isNotEmpty()) {
-                                            navigator.navigateAll(routes)
+                                            navigator.navigateAll(routes, isNewUi = isNewUi)
                                         }
                                     }
                                     is DeeplinkType.Login -> Unit

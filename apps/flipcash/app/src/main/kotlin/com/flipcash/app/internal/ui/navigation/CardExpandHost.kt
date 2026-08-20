@@ -3,12 +3,16 @@ package com.flipcash.app.internal.ui.navigation
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.cardexpand.LocalCardExpansion
 import com.flipcash.app.tokens.CurrencyInfoExpansion
 import com.getcode.solana.keys.Mint
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -35,6 +39,19 @@ internal fun CardExpandHost(content: @Composable () -> Unit) {
         scope.launch {
             controller.animateTo(0f, CardExpansionController.CollapseSpring)
             controller.clear()
+        }
+    }
+
+    // A source-less expansion (a deeplink — CardExpansionController.beginExpanded) has no deck card to
+    // fly from, so there is nothing to animate: it lands already open, like iOS's
+    // `WalletScreen.openCardImmediately`. Wait for the overlay's hero slot to report its frame before
+    // snapping, so the first fully-visible frame already has its card in place rather than an empty slot.
+    LaunchedEffect(controller.expandedKey) {
+        val key = controller.expandedKey ?: return@LaunchedEffect
+        if (controller.sourceBounds != null) return@LaunchedEffect
+        snapshotFlow { controller.heroBounds }.filterNotNull().first()
+        if (controller.expandedKey === key) {
+            controller.snapTo(1f)
         }
     }
 

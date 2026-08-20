@@ -1,6 +1,9 @@
 package com.flipcash.app.internal.ui.navigation
 
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.services.models.chat.ChatId
+import com.getcode.solana.keys.Mint
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.Router
@@ -24,14 +27,19 @@ class BuildNavGraphForLaunchTest {
 
     private val dummyLink = DeepLink("https://send.flipcash.com/c/e=testEntropy")
 
+    private companion object {
+        const val MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+    }
+
     private fun build(
         state: AuthState,
         action: DeeplinkAction = DeeplinkAction.None,
         deepLink: DeepLink? = null,
+        isNewUi: Boolean = false,
     ): LaunchNavGraph? = buildNavGraphForLaunch(
         state = state,
         router = FakeRouter(action),
-        isNewUi = false,
+        isNewUi = isNewUi,
         deepLink = { deepLink },
     )
 
@@ -80,6 +88,41 @@ class BuildNavGraphForLaunchTest {
         assertEquals(listOf(AppRoute.Main.Scanner), result.baseRoutes)
         assertTrue(result.deeplinkRoutes.isEmpty())
         assertEquals(action, result.pendingAction)
+    }
+
+    @Test
+    fun `v2 opens a token deeplink as a pending action on the wallet home`() {
+        // The expanded card is applied on top of the wallet, which is already the v2 launch base --
+        // no pushed screen, so nothing lands in deeplinkRoutes. See DeeplinkAction.OpenToken.
+        val action = DeeplinkAction.OpenToken(
+            mint = Mint(MINT),
+            routes = listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(Mint(MINT))),
+        )
+        val result = build(
+            state = AuthState.Ready,
+            action = action,
+            deepLink = dummyLink,
+            isNewUi = true,
+        )!!
+        assertEquals(listOf(AppRoute.Sheets.Wallet), result.baseRoutes)
+        assertTrue(result.deeplinkRoutes.isEmpty())
+        assertEquals(action, result.pendingAction)
+    }
+
+    @Test
+    fun `v1 opens a token deeplink through the carried route form`() {
+        // v1 has no card expansion, so the same action is taken as routes: the wallet sheet with
+        // token info inside it.
+        val routes = listOf<AppRoute>(AppRoute.Sheets.Wallet, AppRoute.Token.Info(Mint(MINT)))
+        val result = build(
+            state = AuthState.Ready,
+            action = DeeplinkAction.OpenToken(mint = Mint(MINT), routes = routes),
+            deepLink = dummyLink,
+            isNewUi = false,
+        )!!
+        assertEquals(listOf(AppRoute.Main.Scanner), result.baseRoutes)
+        assertEquals(routes, result.deeplinkRoutes)
+        assertNull(result.pendingAction)
     }
 
     @Test
@@ -168,5 +211,105 @@ class BuildNavGraphForLaunchTest {
     @Test
     fun `authenticating returns null`() {
         assertNull(build(AuthState.Authenticating))
+    }
+
+    // -- Ready (v2 / NewUi) --
+
+    private val mint = Mint("So11111111111111111111111111111111111111112")
+
+    private fun buildV2(
+        action: DeeplinkAction = DeeplinkAction.None,
+        deepLink: DeepLink? = dummyLink,
+    ) = build(AuthState.Ready, action, deepLink, isNewUi = true)!!
+
+    @Test
+    fun `v2 logged in without deeplink opens on the Wallet tab`() {
+        val result = build(AuthState.Ready, isNewUi = true)!!
+        assertEquals(listOf(AppRoute.Sheets.Wallet), result.baseRoutes)
+        assertTrue(result.deeplinkRoutes.isEmpty())
+        assertEquals(listOf(AppRoute.Sheets.Wallet), result.resolvedBackStack())
+    }
+
+    @Test
+    fun `v2 token deeplink pushes token info onto the Wallet tab without a sheet`() {
+        val result = buildV2(
+            DeeplinkAction.Navigate(
+                listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(mint, fromDeeplink = true))
+            )
+        )
+
+        val stack = result.resolvedBackStack()
+        assertEquals(2, stack.size)
+        assertEquals(AppRoute.Sheets.Wallet, stack[0])
+        assertIs<AppRoute.Token.Info>(stack[1])
+        assertTrue(stack.none { it is AppRoute.Main.Sheet }, "v2 must not wrap a tab home in a sheet")
+    }
+
+    @Test
+    fun `v2 tip chat deeplink switches to the Chats tab instead of a sheet over Wallet`() {
+        val result = buildV2(
+            DeeplinkAction.Navigate(
+                listOf(
+                    AppRoute.Sheets.Tips(),
+                    AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(ChatId(listOf(1, 2, 3, 4)))),
+                )
+            )
+        )
+
+        val stack = result.resolvedBackStack()
+        assertEquals(2, stack.size)
+        assertIs<AppRoute.Sheets.Tips>(stack[0])
+        assertIs<AppRoute.Messaging.Chat>(stack[1])
+        // The launch home must be replaced by the target tab, not left underneath it.
+        assertTrue(stack.none { it == AppRoute.Sheets.Wallet })
+        assertTrue(stack.none { it is AppRoute.Main.Sheet })
+    }
+
+    @Test
+    fun `v2 email verification deeplink lands on the You tab without a sheet`() {
+        val result = buildV2(
+            DeeplinkAction.Navigate(
+                listOf(
+                    AppRoute.Sheets.Menu,
+                    AppRoute.Menu.MyAccount,
+                    AppRoute.Verification(
+                        origin = AppRoute.Menu.MyAccount,
+                        includePhone = false,
+                        email = "test@example.com",
+                        emailVerificationCode = "123456",
+                    ),
+                )
+            )
+        )
+
+        val stack = result.resolvedBackStack()
+        assertEquals(3, stack.size)
+        assertEquals(AppRoute.Sheets.Menu, stack[0])
+        assertTrue(stack.none { it is AppRoute.Main.Sheet })
+    }
+
+    @Test
+    fun `v1 token deeplink still opens the wallet sheet`() {
+        val result = build(
+            state = AuthState.Ready,
+            action = DeeplinkAction.Navigate(
+                listOf(AppRoute.Sheets.Wallet, AppRoute.Token.Info(mint, fromDeeplink = true))
+            ),
+            deepLink = dummyLink,
+            isNewUi = false,
+        )!!
+
+        val stack = result.resolvedBackStack()
+        assertEquals(2, stack.size)
+        assertEquals(AppRoute.Main.Scanner, stack[0])
+        assertIs<AppRoute.Main.Sheet>(stack[1])
+    }
+
+    @Test
+    fun `v2 pending actions still launch on the Wallet tab`() {
+        val action = DeeplinkAction.OpenCashLink("testEntropy")
+        val result = buildV2(action)
+        assertEquals(listOf(AppRoute.Sheets.Wallet), result.baseRoutes)
+        assertEquals(action, result.pendingAction)
     }
 }

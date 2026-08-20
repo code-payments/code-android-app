@@ -165,17 +165,12 @@
                     android:scheme="https" />
             </intent-filter>
 
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="app.flipcash.com"
-                    android:pathPattern="/chat/.*"
-                    android:scheme="https" />
-            </intent-filter>
+            <!--
+                 No `/chat/.*` App Link. AppRouter deliberately does not classify chat links
+                 (the direct-send entry point they opened was removed), so claiming the URL
+                 here would capture it from the browser and dead-end the user on the home
+                 screen. Restore this filter only alongside routing in AppRouter.
+            -->
 
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />

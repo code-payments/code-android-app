@@ -334,10 +334,14 @@ fun CurrencyInfoExpansion(
         // at progress ≈ 0, where the deck's own (coincident) card stands in, so skipping the overlay
         // hero here is invisible — the correct-mint hero simply appears a frame or two into the flight.
         val token = (state.token as? Loadable.Loaded)?.data?.takeIf { it.address == mint }
-        val source = controller.sourceBounds
         // Prefer the surviving controller bounds so a torn-down/re-inflated overlay (returning from a
         // pushed action) can draw the hero before its own placeholder re-measures.
         val target = heroTarget ?: controller.heroBounds
+        // A source-less expansion (deeplink — see CardExpansionController.beginExpanded) has no deck
+        // card to fly from, so the hero starts where it ends: source == target makes the flight a
+        // no-op (scale 1, zero translation) while keeping everything else — the pull-to-close ride and
+        // the fade hand-off back to the deck on collapse — working exactly as it does for a tap.
+        val source = controller.sourceBounds ?: target
         if (token != null && source != null && target != null && target.width > 0f) {
             val density = LocalDensity.current
             val isHeld = state.showTransactionHistory || state.balance.nativeAmount.isPositive
