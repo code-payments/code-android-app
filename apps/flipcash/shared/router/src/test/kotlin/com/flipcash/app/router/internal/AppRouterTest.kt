@@ -157,6 +157,22 @@ class AppRouterTest {
     }
 
     /**
+     * Characterises the decode `handleEmailVerification` relies on. `Uri.getQueryParameter` is a
+     * form decoder -- `%2B` comes back as `+`, a literal `+` comes back as a space -- which is the
+     * exact inverse of the percent-plus-`+`-for-space encoder the client uses to build these
+     * links (PhantomDeeplinkProtocol.urlEncode, and URLEncoder elsewhere). One decode round-trips
+     * the producer; a second one does not.
+     */
+    @Test
+    fun `query parameters are form-decoded exactly once`() {
+        val type = router.classify(
+            DeepLink("https://app.flipcash.com/verify?email=a%40b.com&code=enc%2Blit+sp")
+        )
+        assertIs<DeeplinkType.EmailVerification>(type)
+        assertEquals("enc+lit sp", type.code)
+    }
+
+    /**
      * Same double-decode applied to `client_data`. The origin is standard base64, whose alphabet
      * includes `+`, so a second (form-semantics) decode turns that `+` into a space and the
      * origin silently fails to decode -- taking the routing destination with it.
