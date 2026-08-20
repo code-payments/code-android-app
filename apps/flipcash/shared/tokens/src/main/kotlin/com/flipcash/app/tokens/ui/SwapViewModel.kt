@@ -493,9 +493,19 @@ class SwapViewModel @Inject constructor(
             return enteredAmount.launchpadSellFee(bps)
         }
 
-    /** What the user actually receives: entered minus the fee, unless the fee rides on top. */
+    /**
+     * What the user actually receives: entered minus the fee, unless the fee rides on top.
+     *
+     * Always recomputed from the live entry rather than read back from
+     * [State.confirmedNetTransferAmount], because this getter is what *produces* that snapshot --
+     * [enteredAmount] and [feeAmount] feed the same event and recompute the same way. Deferring to
+     * the previous confirmation made a second trip through the entry screen re-confirm the first
+     * trip's total: enter $1, go back, enter $0.50, and the receipt paired a $0.50 debit and a
+     * $0.005 fee with a $0.99 "You Receive". Readers that need the snapshot after the entry screen
+     * is gone use [State.netTransferAmount], which is where the caching belongs.
+     */
     private val netTransferAmount: Fiat
-        get() = stateFlow.value.confirmedNetTransferAmount ?: when {
+        get() = when {
             stateFlow.value.purpose is SwapPurpose.BalanceIncrease -> enteredAmount
             stateFlow.value.isConvertingFromDollars -> enteredAmount
             else -> Fiat(
