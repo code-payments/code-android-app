@@ -10,7 +10,9 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
+import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.execSQL
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -199,10 +201,14 @@ abstract class FlipcashDatabase : RoomDatabase() {
      * Clearing the cache is the repair. The next sync sees an empty table, falls into its
      * descending re-seed, and re-fetches the recent feed from scratch; paging refills older
      * history on demand.
+     *
+     * Takes the [SQLiteConnection] overload rather than the [SupportSQLiteDatabase] one used by
+     * [Migration22To23]: the latter only fires when Room is built without a driver, so a future
+     * `setDriver` would turn the delete into a silent no-op.
      */
     class Migration28To29 : AutoMigrationSpec {
-        override fun onPostMigrate(db: SupportSQLiteDatabase) {
-            db.execSQL("DELETE FROM messages")
+        override fun onPostMigrate(connection: SQLiteConnection) {
+            connection.execSQL("DELETE FROM messages")
         }
     }
 
