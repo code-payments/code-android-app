@@ -39,6 +39,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
@@ -244,7 +245,10 @@ fun CurrencyInfoExpansion(
         }.collect { controller.pullOffset = it }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    // Same screen-root anchor the PUSHED currency-info screen gets from `annotatedEntry`. In v2 a
+    // wallet card opens this overlay instead of pushing that screen, so UI tests would otherwise
+    // lose their "currency info is showing" anchor on the most common path into it.
+    Box(modifier = modifier.fillMaxSize().testTag("token_info_screen")) {
         // Only the card rides the overscroll down; the detail + chrome stay put and just fade — faster
         // than the pull travels, so the screen is mostly gone by the time the card is barely moved (iOS).
         // Fade off the SAME effective offset the card rides — pullPx while dragging, then releasedOffset*p

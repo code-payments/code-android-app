@@ -76,7 +76,7 @@ internal fun WalletScreenContent(
     // pieces -- a spinner inside the header while the body below it had already decided, from a
     // still-empty cache, that this was a brand-new account and drawn the tutorial. Nothing renders
     // until all three can be drawn together, and BalanceHeader's own spinner is consequently dead
-    // code on this screen (v1's BalanceScreen still uses it).
+    // code -- the header is only ever drawn once the balance has resolved.
     //
     // The two waits are independent races, and the activity preview *reads* the token cache: a
     // convert row titles itself "USDF -> Dad Cash" from both mints' metadata and falls back to the

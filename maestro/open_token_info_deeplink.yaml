@@ -1,12 +1,13 @@
 appId: com.flipcash.app.android
-name: "Token Info deeplink → opens & dismisses to scanner"
+name: "Token Info deeplink → expands the card & collapses back to the wallet"
 tags:
   - tokens
 ---
-# A token deeplink opens the token-info screen (pushed into a sheet's nav stack over the
-# scanner) and can be dismissed cleanly back to the scanner. Re-firing the same deeplink is
-# a no-op (the app dedupes it), so this verifies the open + dismiss, which is the meaningful
-# path.
+# A /token deeplink lands on the Wallet tab and opens that currency as its EXPANDED CARD — the
+# same overlay a tap on the card in the deck gives (v2's card-expand model) — rather than pushing
+# a screen onto a sheet's nav stack. So it dismisses with Back, which collapses the card back into
+# the deck and leaves the wallet showing. Re-firing the same deeplink is a no-op (the app dedupes
+# it), so this verifies the open + dismiss, which is the meaningful path.
 - runFlow: subflows/login_with_deeplink.yaml
 
 - runFlow:
@@ -17,6 +18,18 @@ tags:
     visible:
       id: token_info_screen
     timeout: 8000
+# It opened over the wallet tab, not on a stack of its own.
+- assertVisible:
+    id: wallet_screen
 
-# Dismiss the sheet back to the scanner (unwinds the sheet's nav stack, then dismisses it).
+# Collapse the card; the wallet deck is what's left behind.
+- pressKey: Back
+- extendedWaitUntil:
+    notVisible:
+      id: token_info_screen
+    timeout: 8000
+- assertVisible:
+    id: wallet_screen
+
+# And back to the scanner home.
 - runFlow: helpers/close_open_sheet.yaml

@@ -107,7 +107,9 @@ private fun swapEntryProvider(
 
     // SwapEntryScreen reads only the inner LocalCodeNavigator; its cross-boundary result nav
     // resolves to the app navigator via the dispatcher, so a plain annotatedEntry is correct.
-    annotatedEntry<SwapStep.Entry> { step ->
+    // Explicitly tagged: the derived id would be `entry_screen`, which says nothing about which
+    // flow it belongs to. `maestro/buy.yaml` / `maestro/sell.yaml` anchor on `swap_screen`.
+    annotatedEntry<SwapStep.Entry>(testTag = "swap_screen") { step ->
         SwapEntryScreen(step.purpose, step.initialAmount)
     }
     annotatedEntry<SwapStep.TokenSelection> { key ->

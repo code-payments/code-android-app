@@ -11,8 +11,6 @@ import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.onramp.CoinbaseOnRampState
 import com.flipcash.app.onramp.DeeplinkError
@@ -118,7 +116,6 @@ class SwapViewModel @Inject constructor(
     private val phantomWalletController: PhantomWalletController,
     private val userFlags: UserFlagsCoordinator,
     private val usdcDepositSweep: UsdcDepositSweep,
-    private val featureFlags: FeatureFlagController,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<SwapViewModel.State, SwapViewModel.Event>(
     initialState = State(),
@@ -269,7 +266,6 @@ class SwapViewModel @Inject constructor(
         val fundingTokenWithBalance: TokenWithBalance? = null,
         // Convert only: the currency the conversion lands in. `tokenWithBalance` is the source.
         val destinationTokenWithBalance: TokenWithBalance? = null,
-        val newUiEnabled: Boolean = false,
     ) {
         val sellFee: Double?
             get() {
@@ -315,12 +311,12 @@ class SwapViewModel @Inject constructor(
             get() = (purpose as? SwapPurpose.Buy)?.fundingSource
 
         /**
-         * The v2 "Get" flow: a direct buy with the payment source picked inline on the amount
-         * screen rather than on a pushed step afterwards. Adding money from an external source
-         * (Coinbase/Phantom) keeps its own flow either way.
+         * The "Get" flow: a direct buy with the payment source picked inline on the amount screen
+         * rather than on a pushed step afterwards. Adding money from an external source
+         * (Coinbase/Phantom) keeps its own flow.
          */
         val isGet: Boolean
-            get() = newUiEnabled && purpose is SwapPurpose.Buy && !isAddingMoney
+            get() = purpose is SwapPurpose.Buy && !isAddingMoney
 
         /** The currency a Get is paid from. Null until the default is seeded or one is picked. */
         val fundingMint: Mint?
@@ -411,7 +407,6 @@ class SwapViewModel @Inject constructor(
          * which prices the buy and advances to the receipt — this only re-points the entry cap.
          */
         data class OnFundingSourceResolved(val token: TokenWithBalance) : Event
-        data class OnNewUiChanged(val enabled: Boolean) : Event
         // endregion
 
         // region convert
@@ -688,18 +683,13 @@ class SwapViewModel @Inject constructor(
     }
 
     init {
-        featureFlags.observe(FeatureFlag.NewUi)
-            .onEach { dispatchEvent(Event.OnNewUiChanged(it)) }
-            .launchIn(viewModelScope)
-
-        // v2 Get seeds a payment source up front so the amount screen can cap entry and price the
-        // fee before anything is confirmed. Dollars is the house default; failing that, whichever
-        // held currency goes furthest. v1 leaves this null and asks after the amount instead.
+        // Get seeds a payment source up front so the amount screen can cap entry and price the fee
+        // before anything is confirmed. Dollars is the house default; failing that, whichever held
+        // currency goes furthest.
         eventFlow.filterIsInstance<Event.OnPurposeChanged>()
             .map { it.purpose }
             .filterIsInstance<SwapPurpose.Buy>()
             .filter { it.fundingSource == FundingSource.Flexible }
-            .filter { featureFlags.get(FeatureFlag.NewUi) }
             .onEach { purpose ->
                 val spendable = tokenCoordinator.tokenBalances
                     .first { it.isNotEmpty() }
@@ -2012,7 +2002,6 @@ class SwapViewModel @Inject constructor(
                 is Event.OnFundingTokenSelected -> { state -> state }
                 is Event.OnFundingTokenResolved -> { state -> state.copy(fundingTokenWithBalance = event.token) }
 
-                is Event.OnNewUiChanged -> { state -> state.copy(newUiEnabled = event.enabled) }
                 is Event.OnFundingSourceResolved -> { state ->
                     state.copy(fundingTokenWithBalance = event.token)
                 }

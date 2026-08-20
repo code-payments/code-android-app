@@ -28,7 +28,6 @@ import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.homeRoute
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.resolveBackStack
-import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
 import com.flipcash.services.user.AuthState
@@ -47,7 +46,6 @@ import kotlin.time.Duration.Companion.seconds
 
 @Composable
 internal fun MainRoot(
-    isNewUi: Boolean,
     deepLink: () -> DeepLink?,
     onPendingAction: (DeeplinkAction) -> Unit = {},
 ) {
@@ -105,7 +103,6 @@ internal fun MainRoot(
                 )
                 val launch = buildNavGraphForLaunch(
                     state = state,
-                    isNewUi = isNewUi,
                     router = router,
                     deepLink = deepLink
                 )
@@ -133,7 +130,7 @@ internal fun MainRoot(
                     if (!current.startsWith(target)) {
                         navigator.replaceAll(launch.baseRoutes)
                         if (launch.deeplinkRoutes.isNotEmpty()) {
-                            navigator.navigateAll(launch.deeplinkRoutes, isNewUi = isNewUi)
+                            navigator.navigateAll(launch.deeplinkRoutes)
                         }
                     }
 
@@ -159,17 +156,15 @@ internal data class LaunchNavGraph(
     val baseRoutes: List<NavKey>,
     val deeplinkRoutes: List<AppRoute> = emptyList(),
     val pendingAction: DeeplinkAction? = null,
-    /** v2 (tab-centric) shell. Changes how [deeplinkRoutes] resolve — see [resolveBackStack]. */
-    val isNewUi: Boolean = false,
 ) {
     /**
      * Predict the final backstack that [baseRoutes] + `navigateAll(deeplinkRoutes)` will produce.
-     * Uses the shared [resolveBackStack] so it applies the same sheet-wrapping (v1) or tab-switch
-     * (v2) as `navigateAll`, letting us compare against the current backstack and skip redundant
+     * Uses the shared [resolveBackStack] so it applies the same tab-switch resolution as
+     * `navigateAll`, letting us compare against the current backstack and skip redundant
      * navigation.
      */
     fun resolvedBackStack(): List<NavKey> =
-        resolveBackStack(baseRoutes, deeplinkRoutes, isNewUi)
+        resolveBackStack(baseRoutes, deeplinkRoutes)
 }
 
 /**
@@ -188,7 +183,6 @@ private fun List<NavKey>.startsWith(prefix: List<NavKey>): Boolean {
 internal fun buildNavGraphForLaunch(
     state: AuthState,
     router: Router,
-    isNewUi: Boolean,
     deepLink: () -> DeepLink?,
 ): LaunchNavGraph? {
     return when (state) {
@@ -219,46 +213,29 @@ internal fun buildNavGraphForLaunch(
         }
 
         AuthState.Ready -> {
-            // New UI opens on the Wallet tab; v1 opens on the Scanner.
-            val home = homeRoute(isNewUi)
+            val home = homeRoute
             val link = deepLink()
             if (link != null) {
                 when (val action = router.dispatch(link)) {
                     is DeeplinkAction.Navigate -> LaunchNavGraph(
                         baseRoutes = listOf(home),
                         deeplinkRoutes = action.routes,
-                        isNewUi = isNewUi,
                     )
 
-                    // v2 opens a token link as the wallet's expanded card (a pending action applied
-                    // on top of the wallet home, which is already the launch base); v1 has no card
-                    // expansion, so it takes the route form — the wallet sheet with token info inside.
-                    is DeeplinkAction.OpenToken -> if (isNewUi) {
-                        LaunchNavGraph(
-                            baseRoutes = listOf(home),
-                            pendingAction = action,
-                            isNewUi = true,
-                        )
-                    } else {
-                        LaunchNavGraph(
-                            baseRoutes = listOf(home),
-                            deeplinkRoutes = action.routes,
-                            isNewUi = false,
-                        )
-                    }
-
+                    // A token link opens as the wallet's expanded card — a pending action applied on
+                    // top of the wallet home, which is already the launch base.
+                    is DeeplinkAction.OpenToken,
                     is DeeplinkAction.OpenCashLink,
                     is DeeplinkAction.PresentTipCard,
                     is DeeplinkAction.Login -> LaunchNavGraph(
                         baseRoutes = listOf(home),
                         pendingAction = action,
-                        isNewUi = isNewUi,
                     )
 
-                    else -> LaunchNavGraph(listOf(home), isNewUi = isNewUi)
+                    else -> LaunchNavGraph(listOf(home))
                 }
             } else {
-                LaunchNavGraph(listOf(home), isNewUi = isNewUi)
+                LaunchNavGraph(listOf(home))
             }
         }
 

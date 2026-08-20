@@ -1,8 +1,9 @@
 appId: com.flipcash.app.android
 ---
+# The menu is the "You" tab (tip card + settings), not a button on the scanner.
 - runFlow: ../helpers/close_open_sheet.yaml
 - tapOn:
-    id: menu_button
+    id: nav_tipcard
 - extendedWaitUntil:
     visible:
       id: menu_screen

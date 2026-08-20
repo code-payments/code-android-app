@@ -19,13 +19,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import dev.chrisbanes.haze.HazeState
 import com.flipcash.app.core.navigation.NavBarButton
-import com.flipcash.app.core.navigation.NavBarConfig
 import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.navigation.destinationRoute
 import com.flipcash.app.core.ui.NavigationBar
 import com.flipcash.app.core.ui.rememberNavigationBarState
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.session.LocalSessionController
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
@@ -34,12 +31,11 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 /**
- * The hoisted v2 navigation bar — root chrome, not owned by any screen. It renders over whichever
+ * The hoisted navigation bar — root chrome, not owned by any screen. It renders over whichever
  * top-level route is a tab home and switches tabs by **swapping the current screen** (single
  * backstack, like a tab bar — hence [CodeNavigator.replaceAll], not a sheet).
  *
- * Only visible when [FeatureFlag.NewUi] is on and the current route maps to a tab; v1 keeps its
- * in-screen bar (see ScannerNavigationBar). When v1 is dropped, this becomes the only nav bar.
+ * Only visible when the current route maps to a tab.
  *
  * Self-positions as a full-size, touch-transparent overlay pinned to the bottom, so it can be
  * dropped into any container (it does not require a BoxScope from its caller).
@@ -57,7 +53,7 @@ internal fun AppNavigationBar(
 
     // A BottomBar modal (e.g. Add Money) renders in the nav content, above this bar; hide the bar so
     // it doesn't draw over the modal. Safe because the bar is a bottom overlay (not a scaffold
-    // bottomBar), so hiding it doesn't resize the content beneath (see NewAppContent).
+    // bottomBar), so hiding it doesn't resize the content beneath (see AppContent).
     val bottomBarMessages by BottomBarManager.messages.collectAsStateWithLifecycle()
 
     // A bill/tip card renders at the app root above everything; hide the bar so it doesn't show
@@ -67,8 +63,8 @@ internal fun AppNavigationBar(
         session?.billState?.map { it.bill != null } ?: flowOf(false)
     }.collectAsStateWithLifecycle(initialValue = false)
 
-    // Unread tip-DM count, badged onto the Chat tab — the same source the v1 scanner bar badges its
-    // Tips button with, so the badge appears, updates and clears as conversations are read.
+    // Unread tip-DM count, badged onto the Chat tab, so the badge appears, updates and clears as
+    // conversations are read.
     val tipUnreadCount by remember(session) {
         session?.state?.map { it.tipsUnreadCount } ?: flowOf(0)
     }.collectAsStateWithLifecycle(initialValue = 0)
@@ -84,8 +80,6 @@ internal fun AppNavigationBar(
             exit = slideOutVertically { it } + fadeOut(),
         ) {
             val state = rememberNavigationBarState(
-                isNewUi = true,
-                config = NavBarConfig(order = NavBarButton.v2Order),
                 selectedTab = selectedTab ?: NavBarButton.Wallet,
                 tipUnreadCount = tipUnreadCount,
             )
@@ -97,7 +91,7 @@ internal fun AppNavigationBar(
                 state = state,
                 onButtonClick = { button ->
                     // Tab bar semantics: swap the current screen (single backstack).
-                    button.destinationRoute()?.let(navigator::replaceAll)
+                    navigator.replaceAll(button.destinationRoute())
                 },
                 hazeState = hazeState,
             )

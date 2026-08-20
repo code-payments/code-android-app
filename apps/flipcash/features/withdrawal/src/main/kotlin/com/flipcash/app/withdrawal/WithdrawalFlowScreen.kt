@@ -20,8 +20,6 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
@@ -80,15 +78,13 @@ fun WithdrawalFlowScreen(
                 }
             }
         },
-        entryProvider = withdrawalEntryProvider(route.showOtherOptions),
+        entryProvider = withdrawalEntryProvider(),
     )
 }
 
-private fun withdrawalEntryProvider(
-    showOtherOptions: Boolean,
-): (NavKey) -> NavEntry<NavKey> = entryProvider {
+private fun withdrawalEntryProvider(): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<WithdrawalStep.UsdcInformational> {
-        UsdcWithdrawalInformationScreen(showOtherOptions)
+        UsdcWithdrawalInformationScreen()
     }
     annotatedEntry<WithdrawalStep.SelectToken> {
         WithdrawalSelectTokenScreen()
@@ -111,8 +107,6 @@ private fun WithdrawalSelectTokenScreen() {
     val flowNavigator = rememberFlowNavigator<WithdrawalStep, WithdrawalResult>()
     val viewModel = hiltViewModel<SelectTokenViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val isNewUi by LocalFeatureFlags.current.observe(FeatureFlag.NewUi)
-        .collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -135,18 +129,17 @@ private fun WithdrawalSelectTokenScreen() {
         viewModel.dispatchEvent(SelectTokenViewModel.Event.OnPurposeChanged(TokenPurpose.Withdraw))
     }
 
-    LaunchedEffect(viewModel, isNewUi) {
+    LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
             .filter { it.fromUser }
             .map { it.mint }
             .onEach { mint ->
-                // v2 makes the picker the flow's entry, so Dollars has to detour through the
-                // "Withdraw as USDC" intro here — v1 reaches that intro first and only lands on the
-                // picker via its escape hatch, so a pick there always goes straight to the amount.
+                // The picker is the flow's entry, so Dollars has to detour through the "Withdraw as
+                // USDC" intro here; every other currency goes straight to the amount.
                 val isReserve = mint == Mint.usdf || mint == Mint.usdc
-                if (isNewUi && isReserve) {
-                    flowNavigator.navigateTo(WithdrawalStep.UsdcInformational(showOtherOptions = false))
+                if (isReserve) {
+                    flowNavigator.navigateTo(WithdrawalStep.UsdcInformational)
                 } else {
                     flowNavigator.navigateTo(WithdrawalStep.Amount(mint))
                 }
@@ -170,6 +163,6 @@ private fun WithdrawalFlowPreview(
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 private fun Preview_UsdcInformational() {
-    WithdrawalFlowPreview { UsdcWithdrawalInformationScreen(showOtherOptions = true) }
+    WithdrawalFlowPreview { UsdcWithdrawalInformationScreen() }
 }
 

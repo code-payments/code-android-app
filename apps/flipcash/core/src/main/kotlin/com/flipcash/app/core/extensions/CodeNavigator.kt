@@ -35,12 +35,12 @@ fun CodeNavigator.openAsSheet(route: AppRoute, innerRoutes: List<AppRoute> = emp
 }
 
 /**
- * True when [routes] leads with a route that is a v2 tab home under the NewUi flag.
+ * True when [routes] leads with a route that is a tab home.
  * Such a list is applied as a *tab switch* (the leading route replaces the stack) rather than
  * stacked on top of whatever tab the user was on.
  */
-private fun leadsWithTab(routes: List<NavKey>, isNewUi: Boolean): Boolean =
-    isNewUi && (routes.firstOrNull() as? AppRoute)?.asNavBarTab() != null
+private fun leadsWithTab(routes: List<NavKey>): Boolean =
+    (routes.firstOrNull() as? AppRoute)?.asNavBarTab() != null
 
 /**
  * Navigate to multiple routes, wrapping [AppRoute.Sheets] in [AppRoute.Main.Sheet].
@@ -50,23 +50,22 @@ private fun leadsWithTab(routes: List<NavKey>, isNewUi: Boolean): Boolean =
  * If a sheet is already open and the new routes include a sheet, the current sheet
  * is animated closed before the new one opens.
  *
- * Under [isNewUi] (v2) the tab homes — `Sheets.Wallet`, `Sheets.Tips`, `Sheets.Menu` — are
- * *not* sheets, so a route list leading with one switches to that tab (replacing the stack)
- * and pushes the rest on top of it. See [resolveRoutes].
+ * The tab homes — `Sheets.Wallet`, `Sheets.Tips`, `Sheets.Menu` — are *not* sheets, so a route
+ * list leading with one switches to that tab (replacing the stack) and pushes the rest on top
+ * of it. See [resolveRoutes].
  */
 fun CodeNavigator.navigateAll(
     routes: List<NavKey>,
     options: NavOptions = NavOptions(),
-    isNewUi: Boolean = false,
 ) {
     if (routes.isEmpty()) return
 
-    val resolved = resolveRoutes(routes, isNewUi)
+    val resolved = resolveRoutes(routes)
     val needsSheet = resolved.any { it is AppRoute.Main.Sheet }
     val hasSheet = backStack.any { it is AppRoute.Main.Sheet }
 
-    // A v2 tab home lands as a tab switch, not another entry stacked on the current tab.
-    val firstOptions = if (leadsWithTab(resolved, isNewUi)) {
+    // A tab home lands as a tab switch, not another entry stacked on the current tab.
+    val firstOptions = if (leadsWithTab(resolved)) {
         options.copy(popUpTo = NavOptions.PopUpTo.ClearAll)
     } else {
         options
@@ -80,7 +79,7 @@ fun CodeNavigator.navigateAll(
     }
 
     // Defer when a sheet is on screen and the new stack would take it away — either because the
-    // target is itself a sheet (v1) or because a v2 tab switch clears the stack out from under it.
+    // target is itself a sheet or because a tab switch clears the stack out from under it.
     // pendingSheetDismiss animates the current sheet out first, then applies the navigation.
     if (hasSheet && (needsSheet || firstOptions.popUpTo is NavOptions.PopUpTo.ClearAll)) {
         pendingSheetDismiss = {
@@ -101,12 +100,12 @@ fun CodeNavigator.navigateAll(
  * [AppRoute.Main.Sheet] with inner routes, mirroring what [navigateAll] pushes
  * onto the backstack. Useful for predicting the resulting stack without navigating.
  *
- * Under [isNewUi] (v2) the tab homes — `Sheets.Wallet`, `Sheets.Tips`, `Sheets.Menu` — are
- * top-level tab destinations rather than modals, so they stay flat on the root backstack (which
- * keeps the hoisted nav bar visible and lets back/pop behave like a tab stack). Anything after
- * the tab route is resolved independently, so a genuine sheet later in the list still wraps.
+ * The tab homes — `Sheets.Wallet`, `Sheets.Tips`, `Sheets.Menu` — are top-level tab destinations
+ * rather than modals, so they stay flat on the root backstack (which keeps the hoisted nav bar
+ * visible and lets back/pop behave like a tab stack). Anything after the tab route is resolved
+ * independently, so a genuine sheet later in the list still wraps.
  */
-fun resolveRoutes(routes: List<NavKey>, isNewUi: Boolean = false): List<NavKey> {
+fun resolveRoutes(routes: List<NavKey>): List<NavKey> {
     if (routes.isEmpty()) return emptyList()
 
     val sheetIndex = routes.indexOfFirst { it is AppRoute.Sheets }
@@ -114,8 +113,8 @@ fun resolveRoutes(routes: List<NavKey>, isNewUi: Boolean = false): List<NavKey> 
 
     val sheetRoute = routes[sheetIndex] as AppRoute.Sheets
 
-    if (isNewUi && sheetRoute.asNavBarTab() != null) {
-        return routes.take(sheetIndex + 1) + resolveRoutes(routes.drop(sheetIndex + 1), isNewUi = true)
+    if (sheetRoute.asNavBarTab() != null) {
+        return routes.take(sheetIndex + 1) + resolveRoutes(routes.drop(sheetIndex + 1))
     }
 
     val before = routes.take(sheetIndex)
@@ -126,16 +125,15 @@ fun resolveRoutes(routes: List<NavKey>, isNewUi: Boolean = false): List<NavKey> 
 /**
  * The backstack that [navigateAll] would produce for [routes] when applied on top of [base].
  *
- * Mirrors [navigateAll]'s tab-switch handling: a v2 route list leading with a tab home replaces
+ * Mirrors [navigateAll]'s tab-switch handling: a route list leading with a tab home replaces
  * [base] rather than stacking on it. Used to compare against the live stack and skip redundant
  * navigation.
  */
 fun resolveBackStack(
     base: List<NavKey>,
     routes: List<NavKey>,
-    isNewUi: Boolean = false,
 ): List<NavKey> {
     if (routes.isEmpty()) return base
-    val resolved = resolveRoutes(routes, isNewUi)
-    return if (leadsWithTab(resolved, isNewUi)) resolved else base + resolved
+    val resolved = resolveRoutes(routes)
+    return if (leadsWithTab(resolved)) resolved else base + resolved
 }

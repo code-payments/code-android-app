@@ -46,7 +46,6 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
@@ -252,12 +251,8 @@ class RealSessionController @Inject constructor(
             .onEach { enabled -> stateHolder.update { it.copy(vibrateOnScan = enabled) } }
             .launchIn(scope)
 
-        // Re-evaluate on balance changes and on NewUi toggles — hasGiveableBalance() only counts
-        // USDF as giveable in the new UI.
-        combine(
-            tokenCoordinator.tokenBalances,
-            featureFlagController.observe(FeatureFlag.NewUi),
-        ) { _, _ -> tokenCoordinator.hasGiveableBalance() }
+        tokenCoordinator.tokenBalances
+            .map { tokenCoordinator.hasGiveableBalance() }
             .distinctUntilChanged()
             .onEach { hasBalance -> stateHolder.update { it.copy(hasGiveableBalance = hasBalance) } }
             .launchIn(scope)

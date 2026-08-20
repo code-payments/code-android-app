@@ -3,6 +3,8 @@ appId: com.flipcash.app.android
 - runFlow: subflows/login_with_deeplink.yaml
 - runFlow: subflows/pull_out_bill.yaml
 - tapOn: Cancel
+# Giving is reached from a currency's info screen and the give screen pops itself once the bill is
+# presented, so putting the bill back reveals currency-info -- not the scanner.
 - extendedWaitUntil:
       visible:
-          id: "scanner_screen"
+          id: "token_info_screen"

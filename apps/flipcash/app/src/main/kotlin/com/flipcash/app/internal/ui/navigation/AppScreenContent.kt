@@ -22,7 +22,6 @@ import com.flipcash.app.advanced.AdvancedFeaturesScreen
 import com.flipcash.app.appsettings.AppSettingsScreen
 import com.flipcash.app.devicelogs.DeviceLogsScreen
 import com.flipcash.app.backupkey.BackupKeyScreen
-import com.flipcash.app.balance.BalanceScreen
 import com.flipcash.app.balance.WalletScreen
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
@@ -39,7 +38,6 @@ import com.flipcash.app.messenger.ChatFlowScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.lab.LabsScreen
-import com.flipcash.app.lab.NavBarSettingsScreen
 import com.flipcash.app.login.OnboardingFlowScreen
 import com.flipcash.app.menu.MenuScreen
 import com.flipcash.app.myaccount.BlocklistScreen
@@ -69,7 +67,6 @@ import com.getcode.ui.components.bars.BarManager
 import dev.theolm.rinku.DeepLink
 
 fun appEntryProvider(
-    isNewUi: Boolean,
     resultStateRegistry: NavResultStateRegistry,
     barManager: BarManager,
     deepLink: () -> DeepLink?,
@@ -77,7 +74,7 @@ fun appEntryProvider(
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
 
     // Loading / splash
-    annotatedEntry<AppRoute.Loading> { MainRoot(isNewUi, deepLink, onPendingAction) }
+    annotatedEntry<AppRoute.Loading> { MainRoot(deepLink, onPendingAction) }
 
     // Onboarding flow
     annotatedEntry<AppRoute.OnboardingFlow> { key ->
@@ -86,7 +83,7 @@ fun appEntryProvider(
 
     // Main
     annotatedEntry<AppRoute.Main.Sheet> { key ->
-        SheetContent(key, isNewUi, resultStateRegistry, barManager)
+        SheetContent(key, resultStateRegistry, barManager)
     }
     annotatedEntry<AppRoute.Main.AppRestricted> { key -> AppRestrictedScreen(key.restrictionType) }
     annotatedEntry<AppRoute.Main.Scanner> { ScannerScreen() }
@@ -102,13 +99,9 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Sheets.TokenSelection> { key -> TokenSelectScreen(key.purpose) }
     annotatedEntry<AppRoute.Sheets.TipAmountEntry> { TipAmountEntryScreen() }
     annotatedEntry<AppRoute.Sheets.Wallet> {
-        if (isNewUi) {
-            // v2 wallet hosts the card-expand overlay in-entry so a pushed action (Give/Convert/Withdraw)
-            // covers the expanded currency-info with correct z-order (iOS WalletScreen structure).
-            CardExpandHost { WalletScreen() }
-        } else {
-            BalanceScreen()
-        }
+        // The wallet hosts the card-expand overlay in-entry so a pushed action (Give/Convert/Withdraw)
+        // covers the expanded currency-info with correct z-order (iOS WalletScreen structure).
+        CardExpandHost { WalletScreen() }
     }
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
     annotatedEntry<AppRoute.Sheets.ActivityHistory> { ActivityHistoryScreen() }
@@ -148,7 +141,6 @@ fun appEntryProvider(
     // Menu
     annotatedEntry<AppRoute.Menu.AppSettings> { AppSettingsScreen() }
     annotatedEntry<AppRoute.Menu.Lab> { key -> LabsScreen(onboarding = key.onboarding) }
-    annotatedEntry<AppRoute.Menu.NavBarSettings> { NavBarSettingsScreen() }
     annotatedEntry<AppRoute.Menu.UserProfile> { UserProfileScreen() }
     annotatedEntry<AppRoute.Menu.MyAccount> { MyAccountScreen() }
     annotatedEntry<AppRoute.Menu.Blocklist> { BlocklistScreen() }
@@ -174,7 +166,6 @@ fun appEntryProvider(
 @Composable
 private fun SheetContent(
     key: AppRoute.Main.Sheet,
-    isNewUi: Boolean,
     resultStateRegistry: NavResultStateRegistry,
     barManager: BarManager,
 ) {
@@ -256,7 +247,7 @@ private fun SheetContent(
                 }
             },
             onBack = { onBack() },
-            entryProvider = appEntryProvider(isNewUi, resultStateRegistry, barManager, deepLink = { null }),
+            entryProvider = appEntryProvider(resultStateRegistry, barManager, deepLink = { null }),
         )
 
         BackHandler { onBack() }

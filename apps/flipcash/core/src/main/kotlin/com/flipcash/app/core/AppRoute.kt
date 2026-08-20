@@ -269,23 +269,19 @@ sealed interface AppRoute : NavKey, Parcelable {
         /**
          * The withdraw flow.
          *
-         * [preselectedMint] picks the entry step: `null` opens the currency picker (the v2
-         * "Withdraw Money" tile and the v2 settings entry), Dollars/USDF detours through the
+         * [preselectedMint] picks the entry step: `null` opens the currency picker (the
+         * "Withdraw Money" tile and the settings entry), Dollars/USDF detours through the
          * "Withdraw as USDC" intro, and any other currency lands straight on the amount screen.
-         *
-         * [showOtherOptions] is the intro's legacy "Withdraw Other Flipcash Currencies" escape
-         * hatch — v1 only, since v2 reaches every currency through the picker.
          */
         @Serializable
         data class Withdrawal(
-            val showOtherOptions: Boolean = true,
             val preselectedMint: Mint? = Mint.usdf,
         ) : Transfers, FlowRouteWithResult<WithdrawalResult> {
             override val initialStack: List<NavKey>
                 get() = when (preselectedMint) {
                     null -> listOf(WithdrawalStep.SelectToken)
                     // The flow models USDF→USDC as a USDC withdrawal, so both mints mean the reserve.
-                    Mint.usdf, Mint.usdc -> listOf(WithdrawalStep.UsdcInformational(showOtherOptions))
+                    Mint.usdf, Mint.usdc -> listOf(WithdrawalStep.UsdcInformational)
                     else -> listOf(WithdrawalStep.Amount(preselectedMint))
                 }
         }
@@ -311,8 +307,6 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object UserProfile : Menu
         @Serializable
         data class Lab(val onboarding: Boolean = false) : Menu
-        @Serializable
-        data object NavBarSettings : Menu, com.getcode.navigation.Sheet, com.getcode.navigation.WrapContentSheet
     }
 
     @Serializable

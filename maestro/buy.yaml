@@ -1,26 +1,32 @@
 appId: com.flipcash.app.android
-name: "Buy — token info → confirm purchase (fund-safe)"
+name: "Get — discovery → token info → confirm (fund-safe)"
 tags:
   - smoke
   - swap
 ---
 # Fund-safe: drives the buy flow to the confirmation screen and stops (never confirms).
+#
+# v2 renames the direct buy to "Get" and only offers it on a currency the account does NOT
+# hold — a held currency's info screen shows Give/Convert/Withdraw instead. So this enters
+# through Discover (whose top row is a currency the test account doesn't hold) rather than
+# through the wallet's own deck.
+#
+# The payment currency is also picked inline on the amount screen now (seeded with a default),
+# so there is no pushed "Select Payment Currency" step between the amount and the receipt.
 - runFlow: subflows/login_with_deeplink.yaml
-- runFlow: subflows/navigate_to_wallet.yaml
+- runFlow: subflows/navigate_to_discovery.yaml
 
-- tapOn: "Float"
+- tapOn:
+    id: leaderboard_token_row
+    index: 0
 - extendedWaitUntil: { visible: { id: token_info_screen }, timeout: 8000 }
-- tapOn: "Buy"
+- tapOn: "Get"
 - extendedWaitUntil: { visible: { id: swap_screen }, timeout: 8000 }
-- assertVisible: "Amount to Buy"
 
-# Minimal amount, then pick a payment currency.
+# Minimal amount, then straight to the receipt (funding source is already seeded).
 - tapOn: { id: keypad_1 }
 - tapOn: "Next"
-- extendedWaitUntil: { visible: { id: token_selection_screen }, timeout: 8000 }
-- assertVisible: "Select Payment Currency"
-- tapOn: "USDF"
 
 # Confirmation — assert and stop (do not confirm the purchase).
 - extendedWaitUntil: { visible: { id: buy_receipt_screen }, timeout: 8000 }
-- assertVisible: "Confirm Purchase"
+- assertVisible: "You Get"

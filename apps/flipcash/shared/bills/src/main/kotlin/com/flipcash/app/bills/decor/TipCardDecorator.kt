@@ -20,8 +20,6 @@ import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.tipping.LocalTipCoordinator
 import com.flipcash.app.core.tipping.TipEvent
 import com.flipcash.app.bills.modals.TipUserModal
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.session.LocalSessionController
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.core.measured
@@ -52,7 +50,6 @@ internal data class TipCardDecorator(private val tipCard: Scannable.TipCard) : S
         val navigator = LocalCodeNavigator.current
         val tipCoordinator = LocalTipCoordinator.current
         val selection by tipCoordinator.selection.collectAsState()
-        val isNewUi by LocalFeatureFlags.current.observe(FeatureFlag.NewUi).collectAsState()
 
         val tipPresented = context.liveBill is Scannable.TipCard
         // Can't afford the minimum tip → the modal stays hidden (gated by
@@ -80,15 +77,13 @@ internal data class TipCardDecorator(private val tipCard: Scannable.TipCard) : S
                         navigator.openAsSheet(event.route)
                     }
                     // Open the completed tip's chat with the tips list beneath it, so back returns
-                    // to the list. In v1 navigateAll packs the chat into the tips sheet's back
-                    // stack; in v2 it switches to the Chats tab and pushes the chat onto it.
+                    // to the list: navigateAll switches to the Chats tab and pushes the chat onto it.
                     is TipEvent.LaunchChat -> {
                         navigator.navigateAll(
                             listOf(
                                 AppRoute.Sheets.Tips(),
                                 AppRoute.Messaging.Chat(event.identifier, openKeyboard = true),
                             ),
-                            isNewUi = isNewUi,
                         )
                         context.onDismiss()
                     }

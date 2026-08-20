@@ -1,7 +1,9 @@
 appId: com.flipcash.app.android
 ---
-- runFlow: ../helpers/close_open_sheet.yaml
-- tapOn: Cash
+# There is no give/cash tab: giving is an action on a currency you hold, reached from that
+# currency's info screen (Wallet tab -> Float -> Give).
+- runFlow: open_token_info.yaml
+- tapOn: Give
 - extendedWaitUntil:
     visible:
       id: cash_screen

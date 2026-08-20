@@ -3,7 +3,6 @@ package com.flipcash.app.tokens.ui
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.tokens.SwapPurpose
-import com.flipcash.app.featureflags.NoOpFeatureFlagController
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
@@ -90,6 +89,13 @@ class SwapViewModelErrorTest {
 
         // Stub limits StateFlow so init block doesn't NPE on null flow
         whenever(transactionController.limits).thenReturn(MutableStateFlow(null))
+
+        // A Get seeds its funding source from the first non-empty balance snapshot. Serve one
+        // right away so that chain finishes: it awaits the snapshot inside the shared event
+        // bus's collector, and a collector parked there would stall every later dispatch. The
+        // relaxed balance isn't displayable, so nothing is actually seeded.
+        every { tokenCoordinator.tokenBalances } returns
+            MutableStateFlow(listOf(mockk<TokenWithBalance>(relaxed = true)))
     }
 
     @After
@@ -114,9 +120,6 @@ class SwapViewModelErrorTest {
             dispatchers = dispatchers,
             userFlags = userFlagsCoordinator,
             usdcDepositSweep = usdcDepositSweep,
-            // These cases exercise the v1 buy/sell paths; the no-op controller reports every
-            // flag off, so NewUi stays false without stubbing a StateFlow per test.
-            featureFlags = NoOpFeatureFlagController,
         )
     }
 

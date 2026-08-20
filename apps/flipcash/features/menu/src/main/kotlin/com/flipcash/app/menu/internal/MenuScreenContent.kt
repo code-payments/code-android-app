@@ -8,10 +8,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -25,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,21 +30,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.ScannableRenderer
 import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
 import com.flipcash.app.bills.components.cards.LocalTipCardColor
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.navigation.LocalTabBarPadding
-import com.flipcash.app.core.ui.TileButton
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.features.menu.R
-import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.theme.CodeScaffold
@@ -58,14 +48,7 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val navigator = LocalCodeNavigator.current
     val appUpdater = LocalAppUpdater.current
-    val features = LocalFeatureFlags.current
-    // v2: this screen is the "You" tab (card + share + settings). v1: it's the Settings sheet.
-    // Collect, don't snapshot: observe() is a StateFlow seeded with the flag's DEFAULT (NewUi
-    // defaults to true) until DataStore emits the stored value. Reading `.value` inside a remember
-    // froze that default, so a v1 build rendered the v2 "You" screen.
-    val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.eventFlow
@@ -78,24 +61,11 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
         topBar = {
             AppBarWithTitle(
                 modifier = Modifier.fillMaxWidth(),
-                title = stringResource(if (isNewUi) R.string.title_you else R.string.title_settings),
+                title = stringResource(R.string.title_you),
                 titleAlignment = Alignment.CenterHorizontally,
-                // The You tab is entered by tab selection, so it has no Close; the v1 sheet keeps it.
-                endContent = { if (!isNewUi) AppBarDefaults.Close { navigator.hide() } },
+                // The You tab is entered by tab selection, so it has no Close.
             )
         },
-        bottomBar = {
-            // v1 pins the version footer above the nav bar; v2 scrolls it with the content (footer slot).
-            if (!isNewUi) {
-                VersionFooter(
-                    viewModel = viewModel,
-                    state = state,
-                    modifier = Modifier
-                        .navigationBarsPadding()
-                        .padding(bottom = CodeTheme.dimens.grid.x3),
-                )
-            }
-        }
     ) { padding ->
         MenuList(
             modifier = Modifier
@@ -103,34 +73,28 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 .padding(padding),
             items = state.items,
             header = {
-                if (isNewUi) {
-                    YouHeader(
-                        card = state.tipCard,
-                        onShare = { viewModel.dispatchEvent(Event.ShareTipCard) },
-                    )
-                } else {
-                    MoneyTiles(viewModel, navigator)
-                }
+                YouHeader(
+                    card = state.tipCard,
+                    onShare = { viewModel.dispatchEvent(Event.ShareTipCard) },
+                )
             },
             footer = {
-                if (isNewUi) {
-                    // Scrolls with the list, so it needs its own breathing room off the last row's
-                    // divider. No navigationBarsPadding here — the reserved tab-bar inset below
-                    // already clears the system bar (the bar measures itself with that padding in).
-                    VersionFooter(
-                        viewModel = viewModel,
-                        state = state,
-                        modifier = Modifier.padding(
-                            top = CodeTheme.dimens.grid.x6,
-                            bottom = CodeTheme.dimens.grid.x3,
-                        ),
-                    )
-                }
+                // Scrolls with the list, so it needs its own breathing room off the last row's
+                // divider. No navigationBarsPadding here — the reserved tab-bar inset below
+                // already clears the system bar (the bar measures itself with that padding in).
+                VersionFooter(
+                    viewModel = viewModel,
+                    state = state,
+                    modifier = Modifier.padding(
+                        top = CodeTheme.dimens.grid.x6,
+                        bottom = CodeTheme.dimens.grid.x3,
+                    ),
+                )
             },
-            // v2's tab bar is a hoisted overlay drawn ABOVE this content, so reserve its height as
+            // The tab bar is a hoisted overlay drawn ABOVE this content, so reserve its height as
             // bottom content padding — the list then scrolls clear of the bar instead of running
             // under it (the version footer was landing behind it). Per-entry via LocalTabBarPadding,
-            // which is only non-zero for tab homes. v1 has no such bar.
+            // which is only non-zero for tab homes.
             contentPadding = PaddingValues(
                 top = CodeTheme.dimens.grid.x3,
                 bottom = LocalTabBarPadding.current.calculateBottomPadding(),
@@ -195,37 +159,6 @@ private fun YouHeader(card: Scannable.TipCard?, onShare: () -> Unit) {
             style = CodeTheme.typography.textMedium,
             color = CodeTheme.colors.textMain,
         )
-    }
-}
-
-/** v1 Settings-sheet header: the Add Money / Withdraw tiles (removed from the v2 You tab). */
-@Composable
-private fun MoneyTiles(
-    viewModel: MenuScreenViewModel,
-    navigator: CodeNavigator,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = CodeTheme.dimens.grid.x3),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-    ) {
-        TileButton(
-            modifier = Modifier.weight(1f),
-            text = stringResource(R.string.action_addMoney),
-            icon = painterResource(R.drawable.ic_menu_deposit)
-        ) {
-            viewModel.dispatchEvent(Event.PresentDepositOptions)
-        }
-
-        TileButton(
-            modifier = Modifier.weight(1f),
-            text = stringResource(R.string.action_withdrawMoney),
-            icon = painterResource(R.drawable.ic_menu_withdraw)
-        ) {
-            navigator.push(AppRoute.Transfers.Withdrawal())
-        }
     }
 }
 

@@ -3,11 +3,8 @@ package com.flipcash.app.tokens.ui
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.TokenSyncState
-import com.flipcash.shared.tokens.R
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -17,7 +14,6 @@ import com.getcode.opencode.model.financial.sum
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
-import com.getcode.util.resources.ResourceHelper
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,9 +31,7 @@ import javax.inject.Inject
 class SelectTokenViewModel @Inject constructor(
     tokenCoordinator: TokenCoordinator,
     exchange: Exchange,
-    resources: ResourceHelper,
     dispatchers: DispatcherProvider,
-    featureFlags: FeatureFlagController,
 ) : BaseViewModel<SelectTokenViewModel.State, SelectTokenViewModel.Event>(
     initialState = State(purpose = TokenPurpose.Balance),
     updateStateForEvent = updateStateForEvent,
@@ -47,7 +41,6 @@ class SelectTokenViewModel @Inject constructor(
     data class State(
         val purpose: TokenPurpose,
         val rate: Rate = Rate.oneToOne,
-        val canGiveUsdf: Boolean = false,
         val discoveryEnabled: Boolean = false,
         val tokens: List<TokenWithLocalizedBalance>? = null,
         val selectedToken: Mint? = null,
@@ -104,7 +97,6 @@ class SelectTokenViewModel @Inject constructor(
 
         data class OpenScreen(val route: AppRoute) : Event
 
-        data class OnCanGiveUsdf(val enabled: Boolean) : Event
 
         data class OnSyncStateChanged(val syncState: TokenSyncState) : Event
     }
@@ -113,11 +105,6 @@ class SelectTokenViewModel @Inject constructor(
         exchange.observePreferredRate()
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnRateChanged(it)) }
-            .launchIn(viewModelScope)
-
-        // USDF givability is tied to the new UI.
-        featureFlags.observe(FeatureFlag.NewUi)
-            .onEach { dispatchEvent(Event.OnCanGiveUsdf(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -169,15 +156,7 @@ class SelectTokenViewModel @Inject constructor(
                                     is TokenPurpose.Tip,
                                     TokenPurpose.Deposit,
                                     TokenPurpose.Withdraw -> {
-                                        if (it.token.address == Mint.usdf) {
-                                            if (featureFlags.get(FeatureFlag.NewUi)) {
-                                                it.token.name
-                                            } else {
-                                                resources.getString(R.string.displayName_usdf)
-                                            }
-                                        } else {
-                                            it.token.name
-                                        }
+                                        it.token.name
                                     }
 
                                     is TokenPurpose.Select -> it.token.name
@@ -198,13 +177,7 @@ class SelectTokenViewModel @Inject constructor(
                                 // show all tokens we have accounts for as deposit targets
                                 TokenPurpose.Deposit -> true
 
-                                is TokenPurpose.Select -> {
-                                    if (it.token.address == Mint.usdf) {
-                                        stateFlow.value.canGiveUsdf && hasBalance
-                                    } else {
-                                        hasBalance
-                                    }
-                                }
+                                is TokenPurpose.Select -> hasBalance
 
                                 is TokenPurpose.LaunchFunding -> {
                                     hasBalance
@@ -273,7 +246,6 @@ class SelectTokenViewModel @Inject constructor(
                 is Event.OnTokenSelected -> { state -> state.copy(selectedToken = event.mint) }
                 is Event.OnTokenChanged -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
-                is Event.OnCanGiveUsdf -> { state -> state.copy(canGiveUsdf = event.enabled) }
                 is Event.OnSyncStateChanged -> { state -> state.copy(syncState = event.syncState) }
             }
         }

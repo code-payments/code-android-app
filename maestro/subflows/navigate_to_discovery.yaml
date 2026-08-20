@@ -1,0 +1,9 @@
+appId: com.flipcash.app.android
+---
+# There is no Discover tab: currency discovery is one of the wallet's action tiles.
+- runFlow: navigate_to_wallet.yaml
+- tapOn: "Discover Currencies"
+- extendedWaitUntil:
+    visible:
+      id: discovery_screen
+    timeout: 8000

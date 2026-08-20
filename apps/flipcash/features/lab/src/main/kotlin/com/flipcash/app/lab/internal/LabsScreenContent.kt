@@ -24,12 +24,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureTrack
 import com.flipcash.app.featureflags.FlagOption
 import com.flipcash.app.featureflags.LocalFeatureFlags
@@ -37,7 +35,6 @@ import com.flipcash.app.featureflags.message
 import com.flipcash.app.featureflags.title
 import com.flipcash.features.lab.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.scenes.LocalSheetNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ListItem
 import com.getcode.ui.components.SettingsSwitchRow
@@ -52,11 +49,6 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel, onboarding: Boole
     val allFlags by betaFlagsController.observe().collectAsStateWithLifecycle()
     val betaOverride by viewModel.betaOverride.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
-    // When this screen is inside a sheet, LocalCodeNavigator is the sheet's OWN navigator — and it's
-    // created without a parent, so `rootNavigator` would resolve back to itself and any reset would
-    // only clear the sheet's inner stack. The sheet scene publishes its host (the app-level
-    // navigator that owns the sheet entry) as LocalSheetNavigator, so prefer that.
-    val appRootNavigator = LocalSheetNavigator.current ?: navigator.rootNavigator
     val isStaff by viewModel.isStaff.collectAsStateWithLifecycle()
 
     // Keep showing all flags even after toggling off override, until leaving the screen
@@ -130,21 +122,7 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel, onboarding: Boole
                         subtitle = feature.flag.message.takeIf { showAllFlags },
                         checked = feature.enabled
                     ) {
-                        val enabling = !feature.enabled
-                        // Switching UI shells swaps the whole nav host out from under the current
-                        // stack, and that stack is this settings sheet — meaningless in the other
-                        // shell (v2 would render the menu as a floating sheet instead of its "You"
-                        // tab). Re-home onto the target shell's landing screen first, THEN flip the
-                        // flag: resetting after the flag would race the shell swap, and an animated
-                        // sheet dismiss can't survive it at all (the host that drives the dismiss is
-                        // disposed mid-animation, stranding the sheet). Resetting first means the
-                        // new shell composes against a stack that already makes sense in it.
-                        if (feature.flag == FeatureFlag.NewUi) {
-                            appRootNavigator.replaceAll(
-                                if (enabling) AppRoute.Sheets.Menu else AppRoute.Main.Scanner
-                            )
-                        }
-                        betaFlagsController.set(feature.flag, enabling)
+                        betaFlagsController.set(feature.flag, !feature.enabled)
                     }
                 }
 
@@ -175,23 +153,6 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel, onboarding: Boole
                             color = CodeTheme.colors.textSecondary,
                         )
                     }
-                }
-            }
-        }
-
-        if (showAllFlags) {
-            item(contentType = "section_header") {
-                SectionHeader(
-                    modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-                    title = stringResource(R.string.title_settingsSectionHomeScreen)
-                )
-            }
-            item(contentType = "list_item") {
-                ListItem(
-                    headline = stringResource(R.string.title_settingsButtonOrder),
-                    icon = painterResource(R.drawable.ic_bottom_navigation),
-                ) {
-                    navigator.navigate(AppRoute.Menu.NavBarSettings)
                 }
             }
         }

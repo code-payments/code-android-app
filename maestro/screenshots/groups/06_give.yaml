@@ -12,21 +12,27 @@ tags:
     env:
       SCREENSHOT_NAME: cash_screen
 
-# Return to scanner first, then use pull_out_bill for bill screenshot
-- runFlow: ../../helpers/close_open_sheet.yaml
+# Screenshot: Cash bill. Already on the give screen, so drive the keypad in place rather than
+# re-entering through pull_out_bill (which would navigate here all over again).
+- tapOn:
+    id: "keypad_dot"
+- tapOn:
+    id: "keypad_0"
+- tapOn:
+    id: "keypad_1"
+- tapOn: Next
 - extendedWaitUntil:
     visible:
-      id: scanner_screen
-
-# Screenshot: Cash bill (reuses pull_out_bill subflow)
-- runFlow: ../../subflows/pull_out_bill.yaml
+      id: cash_bill
 - runFlow:
     file: ../../helpers/screenshot.yaml
     env:
       SCREENSHOT_NAME: cash_bill
 
-# Cancel and return
+# Put the bill back. The give screen pops itself once the bill is presented, so cancelling
+# reveals the currency-info screen it was opened from.
 - tapOn: Cancel
 - extendedWaitUntil:
     visible:
-      id: scanner_screen
+      id: token_info_screen
+- runFlow: ../../helpers/close_open_sheet.yaml

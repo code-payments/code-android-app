@@ -1,8 +1,5 @@
 package com.flipcash.app.scanner.internal.bills
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -18,8 +15,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.android.extensions.launchAppSettings
-import com.flipcash.app.scanner.internal.ScannerDecorItem
-import com.flipcash.app.scanner.internal.ui.components.DecorView
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.features.scanner.R
@@ -33,19 +28,15 @@ import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.rememberCameraPermission
 
 /**
- * The scanner surface: the camera preview (via [scannerView]) plus the HUD ([DecorView]). Bills are
- * no longer drawn here — a presented bill renders at the app root
- * ([com.flipcash.app.bills.BillOverlay]) so it can appear over any screen. This container only reads
- * [com.flipcash.app.session.SessionController.billState] to hide its HUD while a bill is up.
+ * The scanner surface: the camera preview (via [scannerView]) and its permission states. Bills are
+ * not drawn here — a presented bill renders at the app root
+ * ([com.flipcash.app.bills.BillOverlay]) so it can appear over any screen. Scanner chrome is the
+ * hoisted app nav bar, not an in-screen HUD.
  */
 @Composable
 internal fun ScannableContainer(
     modifier: Modifier = Modifier,
-    isPaused: Boolean,
-    isPinching: Boolean = false,
-    zoomRatio: Float = 1f,
     scannerView: @Composable () -> Unit,
-    onAction: (ScannerDecorItem) -> Unit
 ) {
     val session = LocalSessionController.current!!
     val context = LocalContext.current
@@ -74,7 +65,6 @@ internal fun ScannableContainer(
     }
 
     val state by session.state.collectAsStateWithLifecycle()
-    val billState by session.billState.collectAsStateWithLifecycle()
 
     val autoStart = state.autoStartCamera == true
     var cameraStarted by remember { mutableStateOf(autoStart) }
@@ -131,23 +121,6 @@ internal fun ScannableContainer(
                     }
                 }
             }
-        }
-
-        // Hide the HUD while a bill is presented — the bill now renders at the app root, above this.
-        AnimatedVisibility(
-            visible = billState.bill == null,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            DecorView(
-                state = state,
-                billState = billState,
-                isPaused = isPaused,
-                isPinching = isPinching,
-                zoomRatio = zoomRatio,
-                onAction = onAction
-            )
         }
     }
 }
