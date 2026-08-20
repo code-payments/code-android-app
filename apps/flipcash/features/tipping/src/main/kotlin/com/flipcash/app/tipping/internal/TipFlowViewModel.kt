@@ -3,6 +3,7 @@ package com.flipcash.app.tipping.internal
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.shareable.ShareSheetController
@@ -46,14 +47,16 @@ internal class TipFlowViewModel @Inject constructor(
         // true when re-entering right after the user-profile setup handoff (Tips(resumed = true)).
         val resumed: Boolean = false,
         val currentStep: TipStep? = null,
-        val tipChats: List<ConversationReference> = emptyList(),
+        // Loading until the chat feed emits — distinguishes "still loading" from "loaded, none", so
+        // the empty state doesn't flash on top of a list that's about to arrive.
+        val tipChats: Loadable<List<ConversationReference>> = Loadable.Loading(),
         val tipCard: Scannable.TipCard? = null,
     )
 
     sealed interface Event {
         data class StepsUpdated(val steps: List<TipStep>) : Event
         data class OnStepChanged(val step: TipStep) : Event
-        data class ChatsUpdated(val tips: List<ConversationReference>) : Event
+        data class ChatsUpdated(val tips: Loadable<List<ConversationReference>>) : Event
 
         /** How the flow was entered — [resumed] is true for the post-setup handoff re-entry. */
         data class OnResumed(val resumed: Boolean) : Event
@@ -101,7 +104,7 @@ internal class TipFlowViewModel @Inject constructor(
             val selfId = userManager.accountId
             val tokensByMint = tokens.associateBy { it.address }
             summaries.map { it.toConversationReference(selfId, tokensByMint, resources) }
-        }.onEach { dispatchEvent(Event.ChatsUpdated(it)) }.launchIn(viewModelScope)
+        }.onEach { dispatchEvent(Event.ChatsUpdated(Loadable.Loaded(it))) }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.ShareTipCard>()
