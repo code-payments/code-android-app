@@ -70,12 +70,12 @@ import com.getcode.theme.extraSmall
 import com.getcode.ui.components.text.ExpandableText
 import com.getcode.ui.core.addIf
 import com.getcode.ui.theme.CodeCircularProgressIndicator
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.hazeSource
 import com.getcode.util.format
 
 /**
@@ -503,18 +503,21 @@ internal fun CurrencyInfoTitlePill(
     hazeState: HazeState? = null,
 ) {
     val shape = CircleShape
-    val glassTint = lerp(CodeTheme.colors.background, Color.White, 0.18f)
+    val backdrop = CodeTheme.colors.background
+    val glassBlurRadius = CodeTheme.dimens.grid.x4
+    val glassTint = lerp(backdrop, Color.White, 0.18f)
     // Real liquid glass over the scrolling content when a HazeState is supplied; falls back to a
-    // translucent capsule otherwise. `clip` precedes `hazeEffect` so the blur is bounded to the pill.
+    // translucent capsule otherwise. `clip` precedes `hazeBlur` so the blur is bounded to the pill.
     val fill = if (hazeState != null) {
-        val liquidGlass = HazeBlurStyle(
-            blurRadius = CodeTheme.dimens.grid.x4,
-            backgroundColor = CodeTheme.colors.background,
-            colorEffect = HazeColorEffect.tint(glassTint.copy(alpha = 0.72f)),
-        )
+        // The HazeBlurStyle builder is not a @Composable scope, so theme reads are hoisted above it.
+        val liquidGlass = HazeBlurStyle {
+            blurRadius(glassBlurRadius)
+            backgroundColor(backdrop)
+            colorEffects(listOf(HazeColorEffect.tint(glassTint.copy(alpha = 0.72f))))
+        }
         Modifier
             .clip(shape)
-            .hazeEffect(hazeState) { blurEffect { style = liquidGlass } }
+            .hazeBlur(HazeInput.Sources(hazeState), liquidGlass)
             .border(CodeTheme.dimens.border, Color.White.copy(alpha = 0.08f), shape)
     } else {
         Modifier

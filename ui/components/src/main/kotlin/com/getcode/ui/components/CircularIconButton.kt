@@ -17,11 +17,11 @@ import androidx.compose.ui.unit.dp
 import com.getcode.ui.components.AppBarDefaults.IconSize
 import androidx.compose.foundation.clickable
 import com.getcode.theme.CodeTheme
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 
 private val ButtonSize: Dp
     @Composable get() = CodeTheme.dimens.staticGrid.x8
@@ -39,18 +39,21 @@ fun CircularIconButton(
     content: @Composable (Dp) -> Unit,
 ) {
     // When a HazeState is supplied the button frosts whatever content scrolls beneath the app bar
-    // (iOS "liquid glass"), matching the v2 nav pill; `clip` precedes `hazeEffect` so the blur is
+    // (iOS "liquid glass"), matching the v2 nav pill; `clip` precedes `hazeBlur` so the blur is
     // bounded to the circle. Falls back to the flat translucent fill when no HazeState is supplied.
     val fill = if (hazeState != null) {
-        val glassTint = lerp(CodeTheme.colors.background, Color.White, 0.18f)
-        val liquidGlass = HazeBlurStyle(
-            blurRadius = CodeTheme.dimens.grid.x4,
-            backgroundColor = CodeTheme.colors.background,
-            colorEffect = HazeColorEffect.tint(glassTint.copy(alpha = 0.72f)),
-        )
+        val backdrop = CodeTheme.colors.background
+        val glassBlurRadius = CodeTheme.dimens.grid.x4
+        val glassTint = lerp(backdrop, Color.White, 0.18f)
+        // The HazeBlurStyle builder is not a @Composable scope, so theme reads are hoisted above it.
+        val liquidGlass = HazeBlurStyle {
+            blurRadius(glassBlurRadius)
+            backgroundColor(backdrop)
+            colorEffects(listOf(HazeColorEffect.tint(glassTint.copy(alpha = 0.72f))))
+        }
         Modifier
             .clip(CircleShape)
-            .hazeEffect(hazeState) { blurEffect { style = liquidGlass } }
+            .hazeBlur(HazeInput.Sources(hazeState), liquidGlass)
             .border(CodeTheme.dimens.border, Color.White.copy(alpha = 0.08f), CircleShape)
     } else {
         Modifier

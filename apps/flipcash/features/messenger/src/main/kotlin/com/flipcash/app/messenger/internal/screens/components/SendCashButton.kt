@@ -40,10 +40,10 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
+import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.blurEffect
-import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 
 @Composable
 internal fun RowScope.SendCashButton(
@@ -122,7 +122,7 @@ internal fun RowScope.SendCashButton(
             .clip(shape)
             // Haze sits under the fill — hidden while the background is opaque white, revealed
             // naturally as the background eases to transparent when typing begins.
-            .hazeEffect(hazeState) { blurEffect { style = hazeMaterial } }
+            .hazeBlur(HazeInput.Sources(hazeState), hazeMaterial)
             .background(backgroundColor, shape)
             .border(CodeTheme.dimens.border, borderColor, shape)
             .clickable(onClick = onClick)
