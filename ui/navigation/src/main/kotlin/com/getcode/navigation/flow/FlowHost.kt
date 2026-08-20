@@ -110,6 +110,8 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
         DefaultFlowTransitionSpec,
     popTransitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform =
         DefaultFlowPopTransitionSpec,
+    predictivePopTransitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.(Int) -> ContentTransform =
+        { popTransitionSpec() },
 ) {
     val clampedResumeAt = resumeAt.coerceIn(0, steps.size)
     val initialStack = if (clampedResumeAt < steps.size) listOf(steps[clampedResumeAt]) else emptyList()
@@ -125,6 +127,7 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
         sceneStrategies = sceneStrategies,
         transitionSpec = transitionSpec,
         popTransitionSpec = popTransitionSpec,
+        predictivePopTransitionSpec = predictivePopTransitionSpec,
     )
 }
 
@@ -146,6 +149,8 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
         DefaultFlowTransitionSpec,
     popTransitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform =
         DefaultFlowPopTransitionSpec,
+    predictivePopTransitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.(Int) -> ContentTransform =
+        { popTransitionSpec() },
 ) {
     FlowHostImpl(
         initialStack = initialStack,
@@ -159,6 +164,7 @@ fun <S : FlowStep, R : Parcelable> FlowHost(
         sceneStrategies = sceneStrategies,
         transitionSpec = transitionSpec,
         popTransitionSpec = popTransitionSpec,
+        predictivePopTransitionSpec = predictivePopTransitionSpec,
     )
 }
 
@@ -177,6 +183,8 @@ private fun <S : FlowStep, R : Parcelable> FlowHostImpl(
         DefaultFlowTransitionSpec,
     popTransitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform =
         DefaultFlowPopTransitionSpec,
+    predictivePopTransitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.(Int) -> ContentTransform =
+        { popTransitionSpec() },
 ) {
     // Capture the outer flow entry's VM store owner before any override below.
     val flowOwner = checkNotNull(LocalViewModelStoreOwner.current) {
@@ -337,6 +345,11 @@ private fun <S : FlowStep, R : Parcelable> FlowHostImpl(
             sceneStrategies = sceneStrategies,
             transitionSpec = if (suppressTransition.value) noTransition else transitionSpec,
             popTransitionSpec = if (suppressTransition.value) noTransition else popTransitionSpec,
+            predictivePopTransitionSpec = if (suppressTransition.value) {
+                { noTransition() }
+            } else {
+                predictivePopTransitionSpec
+            },
             onBack = { innerNavigator.navigateBack() },
             decorators = decorators,
             entryProvider = entryProvider,
