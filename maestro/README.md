@@ -79,7 +79,18 @@ pre-login landing, inner FlowHost steps like the withdrawal wizard) still need a
 `testTag` on their root — e.g. `login_screen` in `LoginScreenContent.kt`.
 
 Sub-element anchors (buttons, lists, inputs) remain plain `testTag`s in the component code —
-e.g. `menu_button`, `market_cap_chart`, `chat_message_list`, `send_contact_list`, `keypad_<n>`.
+e.g. `market_cap_chart`, `chat_message_list`, `send_contact_list`, `keypad_<n>`.
+
+Two anchors exist purely for the tests and are worth knowing about:
+
+- **The tab bar** is icon-only (no labels, no content descriptions), so its four tabs would
+  otherwise be unaddressable. They carry `nav_scanner`, `nav_wallet`, `nav_chats` and
+  `nav_tipcard` (`NavigationBar.kt`). Tabs are *replaced* on a single root back stack, so Back
+  never unwinds between them — `helpers/close_open_sheet.yaml` is how flows get home.
+- **`token_info_screen`** is on both the pushed currency-info screen *and* the expanded-card
+  overlay (`CurrencyInfoExpansion.kt`). Tapping a card in the wallet expands it in place rather
+  than pushing a screen, so the overlay carries the same anchor and flows don't care which
+  presentation they got.
 
 ## Enabling beta flags from a test
 
@@ -112,11 +123,11 @@ maestro/run.sh maestro/tipping_setup.yaml
 - `login_logout.yaml` — real seed-login UI + logout (Log Out lives on My Account)
 - `account_navigation.yaml` — menu → My Account → App Settings
 - `wallet_token_info.yaml` — wallet → token info + market-cap chart
-- `discovery_leaderboard.yaml` — Discover → leaderboard → token info
+- `discovery_leaderboard.yaml` — wallet → Discover Currencies → leaderboard → token info
 - `withdraw.yaml` — menu → Withdraw Money → USDC → amount entry (fund-safe)
 - `deposit.yaml` — menu → Add Money → Other Wallet → USDC deposit (fund-safe)
 - `tipping_setup.yaml` — create account → set up tip card → tip card renders
-- `tip_chat.yaml` — open the tip conversation from the Tips tab and send a message
+- `tip_chat.yaml` — open the tip conversation from the Chats tab and send a message
 - `blocking.yaml` — block a chat participant from their profile, verify in My Account →
   Blocked, then unblock (leaves the account clean)
 - `tip_deeplink.yaml` — open a tip-card deeplink (`TIPCARD_DEEPLINK`) → presents the tip flow
@@ -128,18 +139,19 @@ maestro/run.sh maestro/tipping_setup.yaml
 - `vanity_deeplink_tip.yaml` — the same link followed by a brand-new account → that handle
   owner's tip card, asserted on the `@handle` the card draws under the name (`creates-account`,
   so it is excluded from the default CI tag set)
-- `buy.yaml` — token info → Buy → payment currency → confirm-purchase screen (fund-safe)
-- `sell.yaml` — token info → Sell → amount entry (fund-safe)
-- `currency_creator.yaml` — Discover → Create Your Own Currency → intro + $20 balance gate
+- `buy.yaml` — Discover → an unheld currency → Get → amount → receipt (fund-safe)
+- `sell.yaml` — wallet → Float → Convert → amount entry (fund-safe)
+- `currency_creator.yaml` — wallet → Create a Currency → intro + $20 balance gate
 - `coinbase_onramp.yaml` — Add Money → Coinbase/Google Pay method → onramp (phone verify);
   `coinbase_onramp_sandbox_enabled` set so a follow-up can drive a sandbox purchase
 - Give/bill round-trip, token-info deeplink, screenshot suite (existing)
 
 **Scaffolded — pending account provisioning** (flow authored + wired; drop in the account/contact
 and it runs):
-- `usdf_only_gate.yaml` — reserves-only account: tapping Cash routes to Discover ("No Community
-  Currencies Yet"). Mirrors iOS `GiveDiscoverGateRegressionTests`. Needs `USDF_ONLY_DEEPLINK`
-  (a dedicated USDF-only account, like iOS's `FLIPCASH_UI_TEST_USDF_ONLY_ACCESS_KEY`).
+- `usdf_only_gate.yaml` — reserves-only account: the wallet deck holds nothing giveable and the
+  "Discover Currencies" tile is the way out. Mirrors iOS `GiveDiscoverGateRegressionTests`. Needs
+  `USDF_ONLY_DEEPLINK` (a dedicated USDF-only account, like iOS's
+  `FLIPCASH_UI_TEST_USDF_ONLY_ACCESS_KEY`).
 
 ### Two phone-verification paths
 
@@ -166,7 +178,7 @@ and it runs):
   test is at parity; the sandbox flag + method tag are in place if we later want to go further.
 
 **Roadmap (tooling):**
-- Buy/Sell/Withdraw past confirmation on a funded account (screens tagged).
+- Get/Convert/Withdraw past confirmation on a funded account (screens tagged).
 - Wire a `flipcash_maestro` Fastlane lane (see below).
 
 ## CI

@@ -9,8 +9,8 @@ tags:
     env:
       BETA_FLAGS: ""
 
-# Tips tab lists tip conversations; open the first one.
-- tapOn: "Tips"
+# The chats tab lists tip conversations; open the first one.
+- tapOn: { id: nav_chats }
 - extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
 - assertVisible: { id: send_contact_row }
 - tapOn: { id: send_contact_row, index: 0 }

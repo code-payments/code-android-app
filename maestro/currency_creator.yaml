@@ -7,9 +7,9 @@ tags:
 # Fund-safe: opens the creator and confirms the $20-fee balance gate. Never pays.
 - runFlow: subflows/login_with_deeplink.yaml
 
-- tapOn: "Discover"
-- extendedWaitUntil: { visible: { id: discovery_screen }, timeout: 8000 }
-- tapOn: "Create Your Own Currency"
+# Currency creation is a wallet action tile now -- Discover no longer carries the promo.
+- runFlow: subflows/navigate_to_wallet.yaml
+- tapOn: "Create a Currency"
 - extendedWaitUntil: { visible: { id: currency_creator_screen }, timeout: 8000 }
 - assertVisible: "Create Your Currency"
 

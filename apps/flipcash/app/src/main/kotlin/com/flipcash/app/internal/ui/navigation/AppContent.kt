@@ -59,7 +59,7 @@ private fun isTokenInfoKey(key: Any?): Boolean {
 }
 
 /**
- * True when a scene key belongs to [AppRoute.Sheets.Give] (the v2 give/cash screen, which is pushed
+ * True when a scene key belongs to [AppRoute.Sheets.Give] (the give/cash screen, which is pushed
  * rather than presented as a sheet). Same stringified-key match as [isTokenInfoKey].
  */
 private fun isGiveKey(key: Any?): Boolean =
@@ -70,108 +70,11 @@ internal fun AppContent(
     codeNavigator: CodeNavigator,
     resultStateRegistry: NavResultStateRegistry,
     barManager: BarManager,
-    deepLink: () -> DeepLink?,
-    onPendingAction: (DeeplinkAction) -> Unit = {},
-) {
-    AppNavHost(
-        navigator = codeNavigator,
-        resultStateRegistry = resultStateRegistry,
-        decorators = listOf(
-            // First = outermost decorator overlay: the bill draws above the screen content (as it
-            // did at the app root). It's skipped for sheet entries, and NavDisplay paints the sheet
-            // scene above the base entry — so sheets open over the bill. See the decorator's docs.
-            rememberNavBillOverlayEntryDecorator(),
-            rememberNavMessagingEntryDecorator(
-                codeNavigator.backStack,
-                barManager
-            ),
-            rememberNavBlockingOverlayEntryDecorator(),
-        ),
-        sceneStrategies = listOf(
-            ModalBottomSheetSceneStrategy(
-                codeNavigator.resultStore
-            ) {
-                codeNavigator.backStack.getOrNull(
-                    codeNavigator.backStack.lastIndex - 1
-                )
-            },
-            SinglePaneSceneStrategy(),
-        ),
-        transitionSpec = {
-            val shouldCrossfade =
-                initialState.key == AppRoute.Loading.toString() ||
-                        targetState.key == AppRoute.Loading.toString() ||
-                        targetState.key.toString()
-                            .startsWith("Login")
-            when {
-                shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
-                    tween(300)
-                )
-
-                targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
-                    EnterTransition.None togetherWith ExitTransition.None
-
-                else -> slideInHorizontally(initialOffsetX = { it }) togetherWith
-                        slideOutHorizontally(targetOffsetX = { -it })
-            }
-        },
-        popTransitionSpec = {
-            val shouldCrossfade =
-                initialState.key == AppRoute.Loading.toString() ||
-                        targetState.key == AppRoute.Loading.toString() ||
-                        targetState.key.toString()
-                            .startsWith("Login")
-            when {
-                shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
-                    tween(300)
-                )
-
-                targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
-                    EnterTransition.None togetherWith ExitTransition.None
-
-                else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
-                        slideOutHorizontally(targetOffsetX = { it })
-            }
-        },
-        predictivePopTransitionSpec = {
-            val shouldCrossfade =
-                initialState.key == AppRoute.Loading.toString() ||
-                        targetState.key == AppRoute.Loading.toString() ||
-                        targetState.key.toString()
-                            .startsWith("Login")
-            when {
-                shouldCrossfade -> fadeIn(tween(300)) togetherWith fadeOut(
-                    tween(300)
-                )
-
-                targetState is OverlayScene<*> || initialState is OverlayScene<*> ->
-                    EnterTransition.None togetherWith ExitTransition.None
-
-                else -> slideInHorizontally(initialOffsetX = { -it }) togetherWith
-                        slideOutHorizontally(targetOffsetX = { it })
-            }
-        },
-        onBack = { codeNavigator.navigateBack() },
-        entryProvider = appEntryProvider(
-            isNewUi = false,
-            resultStateRegistry = resultStateRegistry,
-            barManager = barManager,
-            deepLink = deepLink,
-            onPendingAction = onPendingAction,
-        ),
-    )
-}
-
-@Composable
-internal fun NewAppContent(
-    codeNavigator: CodeNavigator,
-    resultStateRegistry: NavResultStateRegistry,
-    barManager: BarManager,
     cardExpansion: CardExpansionController,
     deepLink: () -> DeepLink?,
     onPendingAction: (DeeplinkAction) -> Unit = {},
 ) {
-    // The v2 nav bar is a single persistent overlay at the app root (below), so tab switches stay
+    // The nav bar is a single persistent overlay at the app root (below), so tab switches stay
     // seamless — one instance, sliding selection pill, one haze source. It's a bottom OVERLAY over the
     // full-height nav content, so hiding it for a modal/bill never resizes the content. Space for it is
     // reserved PER ENTRY by NavTabBarInsetEntryDecorator (tab homes only), which keeps the inset stable
@@ -223,7 +126,7 @@ internal fun NewAppContent(
                     },
                     SinglePaneSceneStrategy(),
                 ),
-                // v2 is tab-centric: a forward move that LANDS on a tab home is a tab switch
+                // Navigation is tab-centric: a forward move that LANDS on a tab home is a tab switch
                 // (replaceAll between tab homes) and crossfades; any other forward move is a push
                 // into a detail screen and slides in. Pops always slide back out (a pop is always
                 // leaving a detail). Sheets/overlays keep their own (no) transition.
@@ -277,7 +180,6 @@ internal fun NewAppContent(
                 },
                 onBack = { codeNavigator.navigateBack() },
                 entryProvider = appEntryProvider(
-                    isNewUi = true,
                     resultStateRegistry = resultStateRegistry,
                     barManager = barManager,
                     deepLink = deepLink,

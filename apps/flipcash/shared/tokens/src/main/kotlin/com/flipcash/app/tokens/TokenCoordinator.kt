@@ -10,8 +10,6 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.sources.TokenDataSource
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.app.tokens.core.ReservesBalanceProvider
@@ -112,7 +110,6 @@ class TokenCoordinator @Inject constructor(
     private val exchange: Exchange,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val dataSource: TokenDataSource,
-    private val featureFlags: FeatureFlagController,
     private val dispatchers: DispatcherProvider,
 ) : TokenMetadataProvider, SessionListener, DefaultLifecycleObserver, ReservesBalanceProvider,
     TotalBalanceProvider {
@@ -217,12 +214,6 @@ class TokenCoordinator @Inject constructor(
                 exchange.updateUserMints(mints)
             }
             .launchIn(scope)
-
-        // USDF givability is tied to the new UI; re-evaluate the selected token when it toggles.
-        featureFlags.observe(FeatureFlag.NewUi)
-            .filter { _hydrated.value }
-            .onEach { ensureValidTokenSelection() }
-            .launchIn(scope)
     }
 
     override fun onStart(owner: LifecycleOwner) {
@@ -242,10 +233,8 @@ class TokenCoordinator @Inject constructor(
 
     /** Can I hand money to a person right now? */
     suspend fun hasGiveableBalance(atLeast: Fiat = Fiat.Zero): Boolean {
-        // USDF is only giveable in the new UI; otherwise a USDF-only balance must not count.
-        val canGiveUsdf = featureFlags.get(FeatureFlag.NewUi)
         val state = _state.value
-        return state.balances.filterKeys { canGiveUsdf || it != Mint.usdf }
+        return state.balances
             .values
             .any { balance ->
                 if (atLeast > Fiat.Zero) balance.valueGreaterThanOrEqualTo(atLeast)
@@ -632,15 +621,10 @@ class TokenCoordinator @Inject constructor(
             ?.get(mintPreferenceKey)
             ?.let { Mint(it) }
 
-        // USDF is a valid selection only in the new UI (where it's giveable).
-        val canGiveUsdf = featureFlags.get(FeatureFlag.NewUi)
-        val excludedMints = if (!canGiveUsdf) setOf(Mint.usdf) else emptySet()
-
         val resolved = resolveTokenSelection(
             balances = _state.value.balances,
             currentSelection = currentSelection,
             rate = exchange.preferredRate,
-            excludedMints = excludedMints,
         )
 
         if (resolved != null && resolved != currentSelection) {

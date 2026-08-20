@@ -106,8 +106,7 @@ import kotlin.time.Duration.Companion.milliseconds
  *   [PermissionsPhaseFlowHost].
  * ² Display-name entry is shown only when no display name is set. It reuses the
  *   UpdateUserProfile subflow, whose `target` replaces the stack with the permissions phase.
- * ³ Home is the same route the app launches on — the Wallet tab under [FeatureFlag.NewUi], the
- *   Scanner under v1. See [homeRoute].
+ * ³ Home is the same route the app launches on — the Wallet tab. See [homeRoute].
  */
 @Composable
 fun OnboardingFlowScreen(
@@ -153,10 +152,8 @@ private fun PermissionsPhaseFlowHost(
     val userManager = LocalUserManager.current
     val contactPickerMode by featureFlags.observe(FeatureFlag.ContactPickerMode).collectAsStateWithLifecycle()
 
-    // Onboarding releases to the same home the app launches on: the Wallet tab under v2, the
-    // Scanner under v1.
-    val isNewUi by featureFlags.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
-    val home = homeRoute(isNewUi)
+    // Onboarding releases to the same home the app launches on: the Wallet tab.
+    val home = homeRoute
 
     val permissionsSteps = buildList {
         if (!route.skipContacts && !contactPickerMode) add(OnboardingStep.ContactPermission)

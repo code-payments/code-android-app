@@ -71,13 +71,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.ScannableRenderer
 import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
 import com.flipcash.app.bills.components.cards.LocalTipCardColor
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.navigation.HideTabBar
 import com.flipcash.app.core.navigation.LocalTabBarPadding
-import com.flipcash.app.core.ui.TileButton
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.menu.internal.MenuScreenViewModel.TipCardState
@@ -88,16 +84,12 @@ import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.services.models.UserProfile
 import com.flipcash.core.R as CoreR
 import com.flipcash.features.menu.R
-import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.White08
 import com.getcode.theme.White50
 import com.getcode.theme.extraSmall
-import com.getcode.ui.components.AppBarDefaults
-import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.theme.CodeScaffold
 import dev.chrisbanes.haze.HazeInput
@@ -115,14 +107,7 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val navigator = LocalCodeNavigator.current
     val appUpdater = LocalAppUpdater.current
-    val features = LocalFeatureFlags.current
-    // v2: this screen is the "You" tab (card + share + settings). v1: it's the Settings sheet.
-    // Collect, don't snapshot: observe() is a StateFlow seeded with the flag's DEFAULT (NewUi
-    // defaults to true) until DataStore emits the stored value. Reading `.value` inside a remember
-    // froze that default, so a v1 build rendered the v2 "You" screen.
-    val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
 
     val listState = rememberLazyListState()
     // Full screen is a state of *this* screen, not a destination: the card grows into the middle of
@@ -131,10 +116,10 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
     val expansion = rememberTipCardExpansion()
     val cardExpanded = expansion.isExpanded
     // Only a claimed card expands — the unclaimed stand-in is decoration behind the prompt.
-    val canExpand = isNewUi && state.tipCard != null
+    val canExpand = state.tipCard != null
 
     LaunchedEffect(canExpand) {
-        // Losing the card (a v1 build, or sign-out) must not strand the page expanded.
+        // Losing the card (sign-out) must not strand the page expanded.
         if (!canExpand) expansion.collapse()
     }
     HideTabBar(hidden = cardExpanded)
@@ -147,32 +132,9 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             .launchIn(this)
     }
 
-    CodeScaffold(
-        topBar = {
-            // v2 has no app bar — the card is the first thing on the page (node 9276:4634). v1
-            // keeps the Settings sheet's title + Close.
-            if (!isNewUi) {
-                AppBarWithTitle(
-                    modifier = Modifier.fillMaxWidth(),
-                    title = stringResource(R.string.title_settings),
-                    titleAlignment = Alignment.CenterHorizontally,
-                    endContent = { AppBarDefaults.Close { navigator.hide() } },
-                )
-            }
-        },
-        bottomBar = {
-            // v1 pins the version footer above the nav bar; v2 scrolls it with the content (footer slot).
-            if (!isNewUi) {
-                VersionFooter(
-                    viewModel = viewModel,
-                    state = state,
-                    modifier = Modifier
-                        .navigationBarsPadding()
-                        .padding(bottom = CodeTheme.dimens.grid.x3),
-                )
-            }
-        }
-    ) { padding ->
+    // No app bar — the card is the first thing on the page (node 9276:4634). The version footer
+    // scrolls with the content (footer slot) rather than being pinned in a bottom bar.
+    CodeScaffold { padding ->
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -298,51 +260,45 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                     .then(cardDrag),
                 state = listState,
                 items = state.items,
-                showChevrons = isNewUi,
+                showChevrons = true,
                 userScrollEnabled = !cardExpanded,
-                itemModifier = if (isNewUi) slideAway else Modifier,
+                itemModifier = slideAway,
                 header = {
-                    if (isNewUi) {
-                        YouHeader(
-                            tipCardState = state.tipCardState,
-                            enabled = !cardExpanded,
-                            expansion = progress,
-                            slideAway = slideAway,
-                            cardScale = cardScale,
-                            cardShift = cardShift,
-                            onCardSlotPositioned = { cardSlotCenterY = it },
-                            onToggleFullScreen = { expansion.toggle() },
-                            onCopyLink = { viewModel.dispatchEvent(Event.CopyTipLink) },
-                            onShare = { viewModel.dispatchEvent(Event.ShareTipCard) },
-                            onDownload = { viewModel.dispatchEvent(Event.DownloadTipCard) },
-                            onClaim = { viewModel.dispatchEvent(Event.ClaimTipCard) },
-                            usernameProgress = state.usernameProgress,
-                            usernameMinimumBalance = state.usernameMinimumBalance,
-                            onClaimUsername = { viewModel.dispatchEvent(Event.ClaimUsername) },
-                        )
-                    } else {
-                        MoneyTiles(viewModel, navigator)
-                    }
+                    YouHeader(
+                        tipCardState = state.tipCardState,
+                        enabled = !cardExpanded,
+                        expansion = progress,
+                        slideAway = slideAway,
+                        cardScale = cardScale,
+                        cardShift = cardShift,
+                        onCardSlotPositioned = { cardSlotCenterY = it },
+                        onToggleFullScreen = { expansion.toggle() },
+                        onCopyLink = { viewModel.dispatchEvent(Event.CopyTipLink) },
+                        onShare = { viewModel.dispatchEvent(Event.ShareTipCard) },
+                        onDownload = { viewModel.dispatchEvent(Event.DownloadTipCard) },
+                        onClaim = { viewModel.dispatchEvent(Event.ClaimTipCard) },
+                        usernameProgress = state.usernameProgress,
+                        usernameMinimumBalance = state.usernameMinimumBalance,
+                        onClaimUsername = { viewModel.dispatchEvent(Event.ClaimUsername) },
+                    )
                 },
                 footer = {
-                    if (isNewUi) {
-                        // Scrolls with the list, so it needs its own breathing room off the last
-                        // row's divider. No navigationBarsPadding here — the reserved tab-bar inset
-                        // below already clears the system bar (the bar measures itself with that
-                        // padding in).
-                        VersionFooter(
-                            viewModel = viewModel,
-                            state = state,
-                            enabled = !cardExpanded,
-                            modifier = slideAway.padding(
-                                top = VersionFooterTopSpacing,
-                                bottom = CodeTheme.dimens.grid.x3,
-                            ),
-                        )
-                    }
+                    // Scrolls with the list, so it needs its own breathing room off the last
+                    // row's divider. No navigationBarsPadding here — the reserved tab-bar inset
+                    // below already clears the system bar (the bar measures itself with that
+                    // padding in).
+                    VersionFooter(
+                        viewModel = viewModel,
+                        state = state,
+                        enabled = !cardExpanded,
+                        modifier = slideAway.padding(
+                            top = VersionFooterTopSpacing,
+                            bottom = CodeTheme.dimens.grid.x3,
+                        ),
+                    )
                 },
                 contentPadding = PaddingValues(
-                    top = if (isNewUi) restingTop else CodeTheme.dimens.grid.x3,
+                    top = restingTop,
                     bottom = bottomInset,
                 ),
                 onItemClick = {
@@ -925,37 +881,6 @@ private fun ShareTile(
             style = CodeTheme.typography.textSmall,
             color = White50,
         )
-    }
-}
-
-/** v1 Settings-sheet header: the Add Money / Withdraw tiles (removed from the v2 You tab). */
-@Composable
-private fun MoneyTiles(
-    viewModel: MenuScreenViewModel,
-    navigator: CodeNavigator,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = CodeTheme.dimens.grid.x3),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-    ) {
-        TileButton(
-            modifier = Modifier.weight(1f),
-            text = stringResource(R.string.action_addMoney),
-            icon = painterResource(R.drawable.ic_menu_deposit)
-        ) {
-            viewModel.dispatchEvent(Event.PresentDepositOptions())
-        }
-
-        TileButton(
-            modifier = Modifier.weight(1f),
-            text = stringResource(R.string.action_withdrawMoney),
-            icon = painterResource(R.drawable.ic_menu_withdraw)
-        ) {
-            navigator.push(AppRoute.Transfers.Withdrawal())
-        }
     }
 }
 

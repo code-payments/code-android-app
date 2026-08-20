@@ -97,7 +97,7 @@ class BaselineProfileGenerator {
     private fun MacrobenchmarkScope.authenticatedJourneys() {
         scannerJourney()
         discoveryJourney()
-        sendChatJourney()
+        chatJourney()
         walletJourney()
         giveJourney()
         menuJourney()
@@ -109,37 +109,16 @@ class BaselineProfileGenerator {
         device.waitForIdle()
     }
 
-    private fun MacrobenchmarkScope.sendChatJourney() {
-        // Open the Send tab -> contact list
-        device.wait(Until.findObject(By.text("Send")), TIMEOUT)?.click()
-        // Dismiss the "N Contacts Already On Flipcash" info dialog if it appears
-        device.waitForIdle()
-        device.findObject(By.text("OK"))?.click()
-        device.wait(Until.findObject(By.res("send_contact_list")), LOGIN_TIMEOUT)
-        device.waitForIdle()
+    private fun MacrobenchmarkScope.chatJourney() {
+        // The chats tab lists conversations; open the first one and send a text message. A
+        // message is fund-free (money-safety: never tap Send Cash / confirm a spend). The
+        // conversation is not hardcoded — send_contact_row resolves to the first row.
+        openTab("nav_chats", "tips_screen")
 
-        // Pull down to reveal the search bar, type random chars (exercises the empty
-        // search state), then clear it.
-        device.findObject(By.res("send_contact_list"))?.let { list ->
-            val b = list.visibleBounds
-            device.swipe(b.centerX(), b.top + 40, b.centerX(), b.centerY() + 200, 20)
-        }
-        device.wait(Until.findObject(By.res("send_search_field")), TIMEOUT)?.click()
-        device.waitForIdle()
-        device.executeShellCommand("input text zzqxwv")
-        device.waitForIdle()
-        device.findObject(By.res("send_search_clear"))?.click()
-        device.waitForIdle()
-        device.pressBack() // dismiss the keyboard
-
-        // Open the FIRST contact's chat and send a text message. A message is fund-free
-        // (money-safety: never tap Send Cash / confirm a spend). Contact is not
-        // hardcoded — send_contact_row resolves to the first row.
         device.wait(Until.findObject(By.res("send_contact_row")), TIMEOUT)?.click()
         device.wait(Until.findObject(By.res("chat_screen")), LOGIN_TIMEOUT)
         device.waitForIdle()
-        device.findObject(By.res("chat_send_message_button"))?.click()
-        device.wait(Until.findObject(By.res("chat_message_input")), TIMEOUT)
+        device.wait(Until.findObject(By.res("chat_message_input")), TIMEOUT)?.click()
         device.waitForIdle()
         device.executeShellCommand("input text BaselineProfileTest")
         device.waitForIdle()
@@ -150,20 +129,19 @@ class BaselineProfileGenerator {
         flingScroll("chat_message_list", Direction.DOWN, 2)
         flingScroll("chat_message_list", Direction.UP, 2)
 
-        // Back to the contact list, fling it for coverage, then back to the scanner.
+        // Back to the conversation list, fling it for coverage, then back to the scanner.
         device.pressBack()
-        device.wait(Until.findObject(By.res("send_contact_list")), TIMEOUT)
+        device.wait(Until.findObject(By.res("tips_screen")), TIMEOUT)
         device.waitForIdle()
-        flingScroll("send_contact_list", Direction.UP, 2)
-        flingScroll("send_contact_list", Direction.DOWN, 1)
-        device.pressBack()
-        device.wait(Until.findObject(By.res("scanner_view")), TIMEOUT)
-        device.waitForIdle()
+        flingScroll("chat_list", Direction.UP, 2)
+        flingScroll("chat_list", Direction.DOWN, 1)
+        returnToScanner()
     }
 
     private fun MacrobenchmarkScope.discoveryJourney() {
-        // Open the Discover tab from the scanner bottom nav
-        device.wait(Until.findObject(By.text("Discover")), TIMEOUT)?.click()
+        // Discovery is a wallet action tile now, not a tab of its own.
+        openTab("nav_wallet", "wallet_screen")
+        device.wait(Until.findObject(By.text("Discover Currencies")), TIMEOUT)?.click()
 
         device.wait(Until.findObject(By.res("discovery_leaderboard")), LOGIN_TIMEOUT)
         device.waitForIdle()
@@ -194,16 +172,13 @@ class BaselineProfileGenerator {
 
         // Back to the leaderboard, then fling-scroll it so TokenLeaderboard /
         // TokenMetricsRow / RankBadge composition + layout get compiled.
-        device.wait(Until.findObject(By.res("action_back")), TIMEOUT)?.click()
+        device.pressBack()
         device.wait(Until.findObject(By.res("discovery_leaderboard")), TIMEOUT)
         device.waitForIdle()
         flingScroll("discovery_leaderboard", Direction.UP, 3)   // scroll down through the list
         flingScroll("discovery_leaderboard", Direction.DOWN, 2) // and back up
 
-        // Close discovery to the scanner
-        device.wait(Until.findObject(By.res("action_close")), TIMEOUT)?.click()
-        device.wait(Until.findObject(By.res("scanner_view")), TIMEOUT)
-        device.waitForIdle()
+        returnToScanner()
     }
 
     /**
@@ -244,27 +219,29 @@ class BaselineProfileGenerator {
     }
 
     private fun MacrobenchmarkScope.walletJourney() {
-        // Open wallet sheet
-        device.wait(Until.findObject(By.text("Wallet")), TIMEOUT)?.click()
-        device.wait(Until.findObject(By.res("wallet_screen")), TIMEOUT)
-        device.waitForIdle()
+        openTab("nav_wallet", "wallet_screen")
 
-        // Open token info
+        // Tapping a card EXPANDS it in place (card-expand) rather than pushing a screen; the
+        // overlay carries the same token_info_screen anchor as the pushed currency-info screen.
         device.wait(Until.findObject(By.text("Float")), TIMEOUT)?.click()
         device.wait(Until.findObject(By.res("token_info_screen")), TIMEOUT)
         device.waitForIdle()
 
-        // Back to wallet
+        // Collapse the card back into the deck.
         device.pressBack()
         device.waitForIdle()
 
-        // Close sheet — swipe down to return to scanner
-        dismissSheet()
+        returnToScanner()
     }
 
     private fun MacrobenchmarkScope.giveJourney() {
-        // Open the Cash tab (the give/cash screen with the amount keypad)
-        device.wait(Until.findObject(By.text("Cash")), TIMEOUT)?.click()
+        // There is no cash tab: giving is an action on a currency you hold, reached from that
+        // currency's own info surface.
+        openTab("nav_wallet", "wallet_screen")
+        device.wait(Until.findObject(By.text("Float")), TIMEOUT)?.click()
+        device.wait(Until.findObject(By.res("token_info_screen")), TIMEOUT)
+        device.waitForIdle()
+        device.findObject(By.text("Give"))?.click()
         device.wait(Until.findObject(By.res("keypad_dot")), TIMEOUT)
         device.waitForIdle()
 
@@ -279,31 +256,49 @@ class BaselineProfileGenerator {
         device.findObject(By.text("Next"))?.click()
         device.wait(Until.findObject(By.res("cash_bill")), LOGIN_TIMEOUT)
         device.waitForIdle()
+        // Cancelling puts the bill back and pops to the currency it was given from.
         device.findObject(By.text("Cancel"))?.click()
-        device.wait(Until.findObject(By.res("scanner_view")), TIMEOUT)
+        device.wait(Until.findObject(By.res("token_info_screen")), TIMEOUT)
         device.waitForIdle()
+
+        returnToScanner()
     }
 
     private fun MacrobenchmarkScope.menuJourney() {
-        // Open menu
-        device.wait(Until.findObject(By.res("menu_button")), TIMEOUT)?.click()
-        device.wait(Until.findObject(By.res("menu_screen")), TIMEOUT)
-        device.waitForIdle()
-
-        // Close sheet
-        dismissSheet()
+        // The "You" tab is the menu surface: tip card on top, settings list below.
+        openTab("nav_tipcard", "menu_screen")
+        flingScroll("menu_screen", Direction.UP, 2)
+        flingScroll("menu_screen", Direction.DOWN, 1)
+        returnToScanner()
     }
 
-    private fun MacrobenchmarkScope.dismissSheet() {
-        // Swipe from mid-screen downward to dismiss bottom sheet.
-        // Avoid starting near the top to prevent pulling the notification panel.
-        device.swipe(
-            device.displayWidth / 2,
-            device.displayHeight / 3,
-            device.displayWidth / 2,
-            device.displayHeight * 3 / 4,
-            10,
-        )
+    /** Switch to a tab by its nav-bar anchor and wait for that tab's home to render. */
+    private fun MacrobenchmarkScope.openTab(navResId: String, homeResId: String) {
+        device.wait(Until.findObject(By.res(navResId)), TIMEOUT)?.click()
+        device.wait(Until.findObject(By.res(homeResId)), LOGIN_TIMEOUT)
+        device.waitForIdle()
+    }
+
+    /**
+     * Return to the scanner tab.
+     *
+     * Tabs are REPLACED on a single root back stack, so Back never unwinds between them — the
+     * only way home is the tab itself. Pop anything pushed over the current tab first (bounded,
+     * so a stuck screen can't spin), then switch. An EXPANDED wallet card is not a nav entry and
+     * leaves the nav bar in the hierarchy behind it (merely faded), so it's probed separately.
+     */
+    private fun MacrobenchmarkScope.returnToScanner() {
+        var guard = 0
+        while (
+            guard++ < 4 &&
+            (!device.hasObject(By.res("nav_scanner")) || device.hasObject(By.res("token_info_screen")))
+        ) {
+            device.pressBack()
+            device.waitForIdle()
+        }
+        if (!device.hasObject(By.res("scanner_view"))) {
+            device.wait(Until.findObject(By.res("nav_scanner")), TIMEOUT)?.click()
+        }
         device.wait(Until.findObject(By.res("scanner_view")), TIMEOUT)
         device.waitForIdle()
     }

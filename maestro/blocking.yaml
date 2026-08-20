@@ -9,8 +9,8 @@ tags:
     env:
       BETA_FLAGS: ""
 
-# Open the tip conversation.
-- tapOn: "Tips"
+# Open the tip conversation (the chats tab).
+- tapOn: { id: nav_chats }
 - extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
 - tapOn: { id: send_contact_row, index: 0 }
 - extendedWaitUntil: { visible: { id: chat_screen }, timeout: 8000 }
@@ -27,7 +27,7 @@ tags:
 # Verify they appear in My Account -> Blocked.
 - tapOn: { id: action_close, optional: true }
 - extendedWaitUntil: { visible: { id: scanner_screen }, timeout: 8000 }
-- tapOn: { id: menu_button }
+- tapOn: { id: nav_tipcard }
 - extendedWaitUntil: { visible: { id: menu_screen }, timeout: 8000 }
 - tapOn: "My Account"
 - extendedWaitUntil: { visible: { id: my_account_screen }, timeout: 8000 }

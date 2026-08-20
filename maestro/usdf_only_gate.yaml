@@ -1,19 +1,25 @@
 appId: com.flipcash.app.android
-name: "Gate — USDF-only account: give routes to Discover"
+name: "Gate — USDF-only account: nothing giveable, steered to Discover"
 tags:
   - gate
 ---
 # Deterministic gate coverage on a reserves-only account (holds USDF, no community
 # currency). Mirrors iOS GiveDiscoverGateRegressionTests: with a balance but nothing
-# giveable, tapping Cash surfaces "No Community Currencies Yet" and routes to Discover.
+# giveable, the account has no currency card to give from and the wallet's own
+# "Discover Currencies" tile is the way out.
+#
+# Giving is per-currency now (Wallet -> currency -> Give), so there is no give tab left to
+# tap and no "No Community Currencies Yet" interstitial in front of it — the gate is that
+# the deck holds no giveable currency at all.
 #
 # Requires env: USDF_ONLY_DEEPLINK (a provisioned USDF-only test account). Until that
 # account exists this flow is a scaffold — the assertions encode the expected behaviour.
 - runFlow: subflows/login_usdf_only.yaml
 
-- tapOn: "Cash"
-- extendedWaitUntil:
-    visible:
-      text: "No Community Currencies Yet"
-    timeout: 8000
+- runFlow: subflows/navigate_to_wallet.yaml
+- assertNotVisible: "Float"
 - assertVisible: "Discover Currencies"
+
+- runFlow: subflows/navigate_to_discovery.yaml
+- assertVisible:
+    id: discovery_leaderboard

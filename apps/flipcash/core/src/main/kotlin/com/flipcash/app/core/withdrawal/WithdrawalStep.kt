@@ -14,7 +14,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface WithdrawalStep : FlowStep, Parcelable {
     @Parcelize
-    data class UsdcInformational(val showOtherOptions: Boolean): WithdrawalStep
+    @Serializable
+    data object UsdcInformational : WithdrawalStep
 
     @Parcelize
     @Serializable

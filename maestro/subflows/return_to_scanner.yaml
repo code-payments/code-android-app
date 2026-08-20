@@ -1,7 +1,6 @@
 appId: com.flipcash.app.android
 ---
-- back
+# Thin alias kept for readability at call sites; the helper already unwinds any open detail/sheet
+# before switching to the scanner tab, so no bare `back` is needed (and one would risk leaving the
+# app when already at a tab home).
 - runFlow: ../helpers/close_open_sheet.yaml
-- extendedWaitUntil:
-    visible:
-      id: scanner_screen

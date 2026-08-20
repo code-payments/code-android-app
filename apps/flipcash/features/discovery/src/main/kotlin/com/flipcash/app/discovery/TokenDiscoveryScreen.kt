@@ -58,10 +58,4 @@ private fun TokenDiscoveryEventHandler(viewModel: TokenDiscoveryViewModel, navig
             .launchIn(this)
     }
 
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<TokenDiscoveryViewModel.Event.CreateCurrency>()
-            .onEach { navigator.navigate(AppRoute.Token.CurrencyCreator) }
-            .launchIn(this)
-    }
 }

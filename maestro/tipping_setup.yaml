@@ -10,9 +10,9 @@ tags:
     env:
       BETA_FLAGS: ""
 
-# Tipping is on by default -> the Tips tab is present.
-- assertVisible: "Tips"
-- tapOn: "Tips"
+# Tipping is on by default -> the chats tab is present.
+- assertVisible: { id: nav_chats }
+- tapOn: { id: nav_chats }
 - extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
 
 # The display name is captured during onboarding, so tip setup lands directly on the
