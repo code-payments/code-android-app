@@ -913,6 +913,8 @@
     <string name="action_tips">Tips</string>
     <string name="title_tips">Tips</string>
     <string name="title_chats">Chats</string>
+    <string name="title_noChatsYet">No Chats Yet</string>
+    <string name="description_noChatsYet">Send a tip or share your Tip Card to start chatting</string>
     <string name="title_tipIntro">Receive Tips From Everyone</string>
     <string name="subtitle_tipIntro">Add your name to receive tips</string>
     <string name="action_startReceivingTips">Start Receiving Tips</string>

@@ -1,25 +1,38 @@
 package com.flipcash.app.tipping
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.data.isLoaded
+import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.core.tipping.TipStep
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
+import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.tipping.internal.TipFlowViewModel
 import com.flipcash.app.tipping.internal.components.TipChatRow
 import com.flipcash.features.tipping.R
@@ -70,10 +83,14 @@ fun TipsScreen() {
             }
         }
     ) { padding ->
+        val chats = state.tipChats
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
+            // Clears the hoisted v2 tab bar (empty for v1, which has no tab bar): keeps the last row
+            // reachable and centers the empty state in the space the bar leaves visible.
+            contentPadding = LocalTabBarPadding.current,
         ) {
             // v1 surfaces the tip card via a button here; v2 has a dedicated tip-card tab instead.
             if (!isNewUi) {
@@ -98,9 +115,57 @@ fun TipsScreen() {
                 }
             }
 
-            tipChatItems(state.tipChats) { chat ->
-                navigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chat.chatId)))
+            // v2 only: once the feed has loaded and there's nothing to show, the list is replaced by
+            // a centered prompt. v1's sheet keeps its bare list under the Tip Card button.
+            if (isNewUi && chats.isLoaded() && chats.data.isEmpty()) {
+                item { NoChatsYet(Modifier.fillParentMaxSize()) }
+            } else {
+                tipChatItems(chats.dataOrNull.orEmpty()) { chat ->
+                    navigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chat.chatId)))
+                }
             }
+        }
+    }
+}
+
+/**
+ * The "Chats" tab empty state (node 9340:2746) — bubble mark, title and prompt, centered in the
+ * space the caller gives it (the list viewport).
+ */
+@Composable
+private fun NoChatsYet(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = CodeTheme.dimens.inset),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Image(
+                modifier = Modifier.size(CodeTheme.dimens.grid.x16),
+                painter = painterResource(R.drawable.ic_bubble_outline),
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(CodeTheme.colors.textMain),
+            )
+
+            Text(
+                text = stringResource(R.string.title_noChatsYet),
+                style = CodeTheme.typography.textLarge,
+                color = CodeTheme.colors.textMain,
+                textAlign = TextAlign.Center,
+            )
+
+            Text(
+                modifier = Modifier.fillMaxWidth(0.6f),
+                text = stringResource(R.string.description_noChatsYet),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
@@ -117,4 +182,11 @@ private fun LazyListScope.tipChatItems(
             onClick(chat)
         }
     }
+}
+
+@Composable
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+private fun PreviewNoChatsYet() {
+    NoChatsYet(Modifier.fillMaxSize())
 }
