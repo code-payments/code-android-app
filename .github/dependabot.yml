@@ -5,6 +5,13 @@ updates:
   schedule:
     interval: weekly
   open-pull-requests-limit: 10
+  groups:
+    # Both libphonenumber artifacts must move together — see the note in gradle/libs.versions.toml.
+    # Grouping them into one PR makes any version skew visible in a single diff rather than in two
+    # PRs that can land independently.
+    libphonenumber:
+      patterns:
+        - "*libphonenumber*"
   labels:
     - "dependencies"
     - "type: build"
