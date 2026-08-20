@@ -64,8 +64,13 @@ protobuf = "4.35.1"
 protobuf-plugin = "0.10.0"
 protovalidate-kt = "0.1.1"
 
+# These two must stay on the SAME version. `:shared:phone` parses and formats with the Android port
+# while the services modules validate with Google's artifact, and each ships its own copy of the
+# libphonenumber metadata — so a version skew means the two can disagree on whether a number is
+# valid. The port lags upstream, so it sets the ceiling: only bump `-google` once the port has
+# published a matching release.
 lib-phone-number-port = "9.0.36"
-lib-phone-number-google = "9.0.37"
+lib-phone-number-google = "9.0.36"
 zxing = "3.5.4"
 
 androidx-benchmark-macro = "1.5.0-beta01"
