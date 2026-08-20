@@ -577,6 +577,7 @@
     <string name="label_amountToConvert">Amount to convert</string>
     <string name="label_conversionFee">Conversion fee</string>
     <string name="subtitle_youConvert">You Convert</string>
+    <string name="subtitle_amountAvailable">%1$s available</string>
     <string name="action_confirmConversion">Confirm</string>
     <string name="label_buyWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
 

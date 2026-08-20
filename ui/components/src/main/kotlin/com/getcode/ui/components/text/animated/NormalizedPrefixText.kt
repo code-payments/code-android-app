@@ -18,6 +18,7 @@ internal fun NormalizedPrefixText(
     textStyle: TextStyle,
     textSize: TextUnit,
     modifier: Modifier = Modifier,
+    color: Color = Color.White,
     content: @Composable () -> Unit
 ) {
     val measurer = rememberTextMeasurer()
@@ -47,7 +48,7 @@ internal fun NormalizedPrefixText(
             // Actual amountPrefix with constrained height
             Text(
                 text = amountPrefix,
-                style = textStyle.copy(fontSize = textSize, fontWeight = FontWeight.Bold, color = Color.White),
+                style = textStyle.copy(fontSize = textSize, fontWeight = FontWeight.Bold, color = color),
                 modifier = Modifier.height(with (LocalDensity.current) { targetHeight.toDp() })
             )
             // Rest of the content (digits, etc.)

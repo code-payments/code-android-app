@@ -68,6 +68,7 @@ internal fun SwapEntryScreen(
 
         SwapEntryScreenContent(
             viewModel = viewModel,
+            largeHeader = purpose is SwapPurpose.Convert,
             accessory = if (purpose is SwapPurpose.Convert) {
                 {
                     ConvertDestinationSelector(

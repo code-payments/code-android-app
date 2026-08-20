@@ -23,6 +23,8 @@ fun AmountEntryScreen(
     onConfirm: () -> Unit,
     onChangeCurrency: () -> Unit = {},
     appBar: (@Composable () -> Unit)? = null,
+    /** v2 layout: top-anchored, left-aligned display-extra-large amount over an "$X available" line. */
+    largeHeader: Boolean = false,
     /** Optional row rendered between the amount and the keypad. */
     accessory: (@Composable () -> Unit)? = null,
 ) {
@@ -88,6 +90,7 @@ fun AmountEntryScreen(
             isClickable = config.canChangeCurrency,
             onAmountClicked = onChangeCurrency,
             isError = config.hint is AmountEntryHint.Error,
+            largeHeader = largeHeader,
             accessory = accessory,
             onNumberPressed = { controller.onNumber(it) },
             onBackspace = { controller.onBackspace() },

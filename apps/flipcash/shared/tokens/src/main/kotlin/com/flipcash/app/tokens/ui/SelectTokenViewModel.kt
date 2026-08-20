@@ -143,6 +143,7 @@ class SelectTokenViewModel @Inject constructor(
 
                                     is TokenPurpose.Swap,
                                     is TokenPurpose.ConvertDestination,
+                                    is TokenPurpose.BuyFunding,
                                     is TokenPurpose.LaunchFunding,
                                     is TokenPurpose.Tip,
                                     TokenPurpose.Deposit,
@@ -200,10 +201,15 @@ class SelectTokenViewModel @Inject constructor(
                                     }
                                 }
 
-                                // Every currency except the one being spent is a valid landing
-                                // spot — including ones the user doesn't hold yet.
+                                // A conversion moves between currencies the user already holds;
+                                // acquiring something new is a Get, not a Convert.
                                 is TokenPurpose.ConvertDestination -> {
-                                    it.token.address != purpose.source
+                                    it.token.address != purpose.source && hasBalance
+                                }
+
+                                // Anything held except the currency being bought can fund a Get.
+                                is TokenPurpose.BuyFunding -> {
+                                    it.token.address != purpose.target && hasBalance
                                 }
                                 // show all tokens with non-zero balance
                                 else -> hasBalance

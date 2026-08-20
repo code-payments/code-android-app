@@ -23,6 +23,13 @@ sealed interface TokenPurpose: Parcelable {
      * the list); [current] is the destination already chosen, shown with a checkmark.
      */
     @Serializable data class ConvertDestination(val source: Mint, val current: Mint) : TokenPurpose
+
+    /**
+     * Picks the currency a Get is funded from. [target] is the currency being bought (excluded from
+     * the list, since the server rejects same-mint swaps); [current] is the source already chosen,
+     * shown with a checkmark.
+     */
+    @Serializable data class BuyFunding(val target: Mint, val current: Mint) : TokenPurpose
     @Serializable data class LaunchFunding(val amount: Fiat): TokenPurpose
     @Serializable data class Tip(val amount: Fiat?): TriggersChange
     @Serializable data object Withdraw: TokenPurpose

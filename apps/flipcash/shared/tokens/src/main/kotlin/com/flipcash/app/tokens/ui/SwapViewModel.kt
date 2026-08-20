@@ -125,6 +125,7 @@ class SwapViewModel @Inject constructor(
         val isBuy = vmState.purpose is SwapPurpose.Buy
         val isAddingMoney = vmState.isAddingMoney
         val isAddingMoneyViaPhantom = isAddingMoney && vmState.addingMoneyFrom == FundingSource.Phantom
+        val isConverting = vmState.purpose is SwapPurpose.Convert
         AmountEntryStyle(
             actionLabel = when {
                 isAddingMoneyViaPhantom -> {
@@ -148,11 +149,19 @@ class SwapViewModel @Inject constructor(
                 }
             },
             canChangeCurrency = (vmState.purpose as? SwapPurpose.Buy)?.fundingSource != FundingSource.Phantom,
-            infoHint = { resources.getString(R.string.subtitle_buySellCashHint, it) },
+            // Convert's v2 header states the ceiling as a plain "$X available" line that simply
+            // turns red once exceeded, rather than swapping in a separate over-limit sentence.
+            infoHint = {
+                if (isConverting) resources.getString(R.string.subtitle_amountAvailable, it)
+                else resources.getString(R.string.subtitle_buySellCashHint, it)
+            },
             overMaxHint = {
-                if (vmState.purpose is SwapPurpose.BalanceIncrease)
-                    resources.getString(R.string.subtitle_buyHintLimitExceeded, it)
-                else resources.getString(R.string.subtitle_sellHintLimitExceeded, it)
+                when {
+                    isConverting -> resources.getString(R.string.subtitle_amountAvailable, it)
+                    vmState.purpose is SwapPurpose.BalanceIncrease ->
+                        resources.getString(R.string.subtitle_buyHintLimitExceeded, it)
+                    else -> resources.getString(R.string.subtitle_sellHintLimitExceeded, it)
+                }
             },
             belowMinHint = { resources.getString(R.string.subtitle_buyHintBelowMinimum, it) },
         )

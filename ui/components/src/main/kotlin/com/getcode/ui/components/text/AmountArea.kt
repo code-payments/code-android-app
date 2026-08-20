@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -53,12 +54,15 @@ fun AmountArea(
     textStyle: TextStyle = CodeTheme.typography.displayMedium.bolded(),
     uiModel: AmountAnimatedInputUiModel? = null,
     networkState: NetworkState = LocalNetworkObserver.current.state.value,
+    horizontalAlignment: Alignment.Horizontal = CenterHorizontally,
+    /** Colour for the currency prefix and un-entered placeholder digits. */
+    contentColor: Color = White,
     onClick: () -> Unit = {}
 ) {
     Column(
         modifier
             .let { if (isClickable) it.clickable { onClick() } else it },
-        horizontalAlignment = CenterHorizontally
+        horizontalAlignment = horizontalAlignment
     ) {
         if (!isLoading) {
             Row(
@@ -100,12 +104,18 @@ fun AmountArea(
                         textStyle = textStyle,
                         isClickable = isClickable,
                         totalDecimals = decimalPlaces,
+                        contentColor = contentColor,
+                        horizontalArrangement = if (horizontalAlignment == Alignment.Start) {
+                            Arrangement.Start
+                        } else {
+                            Arrangement.Center
+                        },
                     )
                 }
             }
         }
         ValueHint(
-            modifier = Modifier.align(CenterHorizontally),
+            modifier = Modifier.align(horizontalAlignment),
             showIcon = isAltCaption && isAltCaptionKinIcon,
             iconColor = altCaptionColor ?: CodeTheme.colors.brandLight,
             captionColor = if (isAltCaption) (altCaptionColor ?: CodeTheme.colors.errorText) else CodeTheme.colors.textSecondary,

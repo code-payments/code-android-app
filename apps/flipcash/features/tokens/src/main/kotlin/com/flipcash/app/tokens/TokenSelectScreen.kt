@@ -96,6 +96,7 @@ fun TokenSelectScreen(
                     is TokenPurpose.LaunchFunding -> Unit
                     is TokenPurpose.Swap -> Unit
                     is TokenPurpose.ConvertDestination -> Unit
+                    is TokenPurpose.BuyFunding -> Unit
                 }
             }.launchIn(this)
     }

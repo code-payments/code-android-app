@@ -1,12 +1,19 @@
 package com.flipcash.app.tokens
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.toast.LocalToastController
 import com.flipcash.app.core.tokens.FundingSource
@@ -27,7 +34,10 @@ import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
+import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.solana.keys.Mint
+import com.getcode.theme.CodeTheme
+import com.flipcash.features.tokens.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -73,6 +83,12 @@ fun SwapFlowScreen(
             }
         },
         entryProvider = swapEntryProvider(route),
+        // The currency pickers are overlay scenes, so amount entry stays composed beneath them —
+        // picking a currency never re-runs the entry screen's effects.
+        sceneStrategies = listOf(
+            ModalBottomSheetSceneStrategy(outerNavigator.resultStore) { null },
+            SinglePaneSceneStrategy(),
+        ),
     )
 }
 
@@ -126,7 +142,24 @@ private fun ConvertDestinationSelectScreen() {
 
     val convert = purpose as? SwapPurpose.Convert ?: return
 
-    TokenSelectScreen(TokenPurpose.ConvertDestination(convert.mint, convert.destinationMint))
+    Column(modifier = Modifier.fillMaxSize()) {
+        // A sheet has no app bar: the title sits flush-left above the list, and the sheet's own
+        // scrim/drag handles dismissal.
+        Text(
+            modifier = Modifier.padding(
+                horizontal = CodeTheme.dimens.inset,
+                vertical = CodeTheme.dimens.grid.x3,
+            ),
+            text = stringResource(R.string.title_selectCurrency),
+            style = CodeTheme.typography.textLarge,
+            color = CodeTheme.colors.textMain,
+        )
+
+        TokenSelectScreen(
+            purpose = TokenPurpose.ConvertDestination(convert.mint, convert.destinationMint),
+            showTopBar = false,
+        )
+    }
 
     LaunchedEffect(selectionViewModel) {
         selectionViewModel.eventFlow

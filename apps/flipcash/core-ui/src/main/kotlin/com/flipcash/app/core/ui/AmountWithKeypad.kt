@@ -26,6 +26,11 @@ fun AmountWithKeypad(
     hint: String = "",
     isError: Boolean = false,
     isClickable: Boolean = false,
+    /**
+     * v2 layout: instead of the centred amount with an "Enter up to" caption, the amount is
+     * top-anchored and left-aligned at display-extra-large, over an "$X available" line.
+     */
+    largeHeader: Boolean = false,
     /** Optional row rendered between the amount and the keypad (e.g. a Convert destination picker). */
     accessory: (@Composable () -> Unit)? = null,
     onNumberPressed: (Int) -> Unit,
@@ -44,26 +49,57 @@ fun AmountWithKeypad(
                 .fillMaxWidth()
                 .weight(0.65f)
         ) {
-            AmountArea(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.Center)
-                    .padding(horizontal = CodeTheme.dimens.inset),
-                amountPrefix = prefix,
-                amountText = "",
-                placeholder = placeholder,
-                captionText = hint,
-                currencyResId = currencyFlag,
-                isAltCaptionKinIcon = false,
-                isAltCaption = isError,
-                uiModel = amountAnimatedModel,
-                isAnimated = true,
-                isClickable = isClickable,
-                onClick = { onAmountClicked.invoke() },
-                networkState = networkState,
-                textStyle = CodeTheme.typography.displayLarge,
-                decimalPlaces = decimalPlaces
-            )
+            if (largeHeader) {
+                // The header carries no currency flag or chevron — currency is fixed for the flow.
+                AmountArea(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopStart)
+                        // 24dp above the amount, per spec — AmountArea's own row contributes 8dp.
+                        .padding(top = CodeTheme.dimens.grid.x4)
+                        .padding(horizontal = CodeTheme.dimens.inset),
+                    amountPrefix = prefix,
+                    amountText = "",
+                    placeholder = placeholder,
+                    captionText = hint,
+                    currencyResId = null,
+                    isAltCaptionKinIcon = false,
+                    isAltCaption = isError,
+                    uiModel = amountAnimatedModel,
+                    isAnimated = true,
+                    isClickable = false,
+                    networkState = networkState,
+                    textStyle = CodeTheme.typography.displayExtraLarge,
+                    horizontalAlignment = Alignment.Start,
+                    contentColor = if (amountAnimatedModel.amountData.amount == 0.0) {
+                        CodeTheme.colors.textTertiary
+                    } else {
+                        CodeTheme.colors.textMain
+                    },
+                    decimalPlaces = decimalPlaces,
+                )
+            } else {
+                AmountArea(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.Center)
+                        .padding(horizontal = CodeTheme.dimens.inset),
+                    amountPrefix = prefix,
+                    amountText = "",
+                    placeholder = placeholder,
+                    captionText = hint,
+                    currencyResId = currencyFlag,
+                    isAltCaptionKinIcon = false,
+                    isAltCaption = isError,
+                    uiModel = amountAnimatedModel,
+                    isAnimated = true,
+                    isClickable = isClickable,
+                    onClick = { onAmountClicked.invoke() },
+                    networkState = networkState,
+                    textStyle = CodeTheme.typography.displayLarge,
+                    decimalPlaces = decimalPlaces
+                )
+            }
         }
 
         accessory?.let {
