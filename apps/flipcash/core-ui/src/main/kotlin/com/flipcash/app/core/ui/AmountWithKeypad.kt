@@ -72,7 +72,7 @@ fun AmountWithKeypad(
                     textStyle = CodeTheme.typography.displayExtraLarge,
                     horizontalAlignment = Alignment.Start,
                     contentColor = if (amountAnimatedModel.amountData.amount == 0.0) {
-                        CodeTheme.colors.textTertiary
+                        CodeTheme.colors.textPlaceholder
                     } else {
                         CodeTheme.colors.textMain
                     },

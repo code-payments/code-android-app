@@ -202,74 +202,61 @@ fun Modifier.withTopBorder(color: Color = CodeTheme.colors.brandLight) = drawBeh
     )
 }
 
+// The height fed to [startY]/[endY] is the live draw size rather than a placement-captured one:
+// a stale height and a live `size` disagree by a frame while the content is resizing (a sheet being
+// dragged between detents), which lands the gradient short of the real edge.
 fun Modifier.drawWithGradient(
     color: Color,
     startY: ContentDrawScope.(Float) -> Float,
     endY: ContentDrawScope.(Float) -> Float = { Float.POSITIVE_INFINITY },
     blendMode: BlendMode = BlendMode.SrcOver
-) = this.composed {
-    var height by remember {
-        mutableStateOf(0.dp)
+) = this
+    .graphicsLayer {
+        compositingStrategy = CompositingStrategy.Offscreen
     }
-
-    val density = LocalDensity.current
-
-    Modifier
-        .onPlaced {
-            height = with(density) { it.size.height.toDp() }
-        }
-        .graphicsLayer {
-            compositingStrategy = CompositingStrategy.Offscreen
-        }
-        .drawWithContent {
-            val colors = listOf(Color.Transparent, color)
-            drawContent()
-            drawRect(
-                brush = Brush.verticalGradient(
-                    startY = startY(height.toPx()),
-                    endY = endY(height.toPx()).takeIf { it != Float.POSITIVE_INFINITY }
-                        ?: height.toPx(),
-                    colors = colors,
-                ),
-                blendMode = blendMode
-            )
-        }
-}
+    .drawWithContent {
+        val colors = listOf(Color.Transparent, color)
+        drawContent()
+        drawRect(
+            brush = Brush.verticalGradient(
+                startY = startY(size.height),
+                endY = endY(size.height).takeIf { it != Float.POSITIVE_INFINITY } ?: size.height,
+                colors = colors,
+            ),
+            blendMode = blendMode
+        )
+    }
 
 fun Modifier.drawWithGradient(
     brush: (Float, Float) -> Brush,
     startY: ContentDrawScope.(Float) -> Float,
     endY: ContentDrawScope.(Float) -> Float = { Float.POSITIVE_INFINITY },
     blendMode: BlendMode = BlendMode.SrcOver
-) = this.composed {
-    var height by remember {
-        mutableStateOf(0.dp)
+) = this
+    .graphicsLayer {
+        compositingStrategy = CompositingStrategy.Offscreen
     }
-
-    val density = LocalDensity.current
-
-    Modifier
-        .onPlaced {
-            height = with(density) { it.size.height.toDp() }
-        }
-        .graphicsLayer {
-            compositingStrategy = CompositingStrategy.Offscreen
-        }
-        .drawWithContent {
-            drawContent()
-            drawRect(
-                brush = brush(
-                    startY(height.toPx()),
-                    endY(height.toPx()).takeIf { it != Float.POSITIVE_INFINITY } ?: height.toPx()
-                ),
-                blendMode = blendMode
-            )
-        }
-}
+    .drawWithContent {
+        drawContent()
+        drawRect(
+            brush = brush(
+                startY(size.height),
+                endY(size.height).takeIf { it != Float.POSITIVE_INFINITY } ?: size.height
+            ),
+            blendMode = blendMode
+        )
+    }
 
 private val gradientSize
     @Composable get() = CodeTheme.dimens.staticGrid.x12
 
+/**
+ * Fades the list against [color] at whichever edge can still be scrolled toward.
+ *
+ * Pass [showAtStartAlways]/[showAtEndAlways] for content whose height changes underneath the list
+ * — a fade that's added and removed by scroll position blinks out whenever the viewport resizes.
+ * [fadeSize] overrides the default fade depth.
+ */
 fun Modifier.verticalScrollStateGradient(
     scrollState: LazyListState,
     color: Color = Color.Unspecified,
@@ -278,10 +265,11 @@ fun Modifier.verticalScrollStateGradient(
     showAtEnd: Boolean = true,
     showAtEndAlways: Boolean = false,
     isLongGradient: Boolean = false,
+    fadeSize: Dp? = null,
 ): Modifier = composed {
     val backgroundColor = color.takeOrElse { CodeTheme.colors.background }
-    val gradientSizePx =
-        with(LocalDensity.current) { gradientSize.toPx() } * if (isLongGradient) 1.5f else 1f
+    val gradientSizePx = with(LocalDensity.current) { (fadeSize ?: gradientSize).toPx() } *
+            if (fadeSize == null && isLongGradient) 1.5f else 1f
     this
         .addIf((showAtStart && !scrollState.isScrolledToStart()) || showAtStartAlways) {
             Modifier.drawWithGradient(

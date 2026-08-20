@@ -32,6 +32,7 @@ object Flipcash2ColorSpec {
     val primaryLight = Color(0xFF303031)
     val secondary = Color(115, 129, 121)
     val secondaryText = Color.White.copy(alpha = 0.5f)
+    val placeholderText = Color(0xFF4E4E4E)
     val cashBill = Color(0xFF06450F)
     val notification = Color(0xFF058AFF)
     val trackColor = Color.White.copy(alpha = 0.07f)
@@ -111,6 +112,7 @@ private val colors = with(Flipcash2ColorSpec) {
         textMain = Color.White,
         textSecondary = secondaryText,
         textTertiary = White10,
+        textPlaceholder = placeholderText,
         border = White08,
         divider = White10,
         dividerVariant = White05,

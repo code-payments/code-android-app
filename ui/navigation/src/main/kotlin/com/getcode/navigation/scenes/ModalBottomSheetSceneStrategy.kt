@@ -18,6 +18,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -50,6 +51,7 @@ import com.getcode.navigation.scrim.LocalScrimController
 import com.getcode.navigation.scrim.ScrimOverlay
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.noRippleClickable
+import com.getcode.ui.utils.LocalSheetExpansionState
 import com.getcode.ui.utils.LocalSheetGesturesState
 import kotlinx.coroutines.launch
 
@@ -62,7 +64,14 @@ private val Expanded = SheetDetent("expanded") { containerHeight, _ ->
     containerHeight * 0.925f
 }
 
-/** Resting detent for a [com.getcode.navigation.HalfSheet]; still draggable up to [Expanded]. */
+/**
+ * Resting — and, for short content, only — detent for a [com.getcode.navigation.HalfSheet].
+ *
+ * The sheet always fills this detent, so its content is measured against it and does not need to
+ * restate the fraction. [Expanded] joins the detent list only once the content reports that it
+ * overruns this one, so a sheet with nothing below the fold can't be dragged up into dead space —
+ * see [com.getcode.ui.utils.LocalSheetExpansionState].
+ */
 private val Half = SheetDetent("half") { containerHeight, _ ->
     containerHeight * 0.5f
 }
@@ -129,10 +138,19 @@ internal class ModalBottomSheetScene<T : Any> constructor(
             val isHalfSheet = metadata[NavMetadataKeys.IsHalfSheet.key] as? Boolean ?: false
             val restingDetent = if (isHalfSheet) Half else Expanded
 
+            // Whether the sheet's content overruns [restingDetent]. Half sheets start out
+            // unexpandable and are handed [Expanded] only once their content says it needs it.
+            var contentOverflows by remember { mutableStateOf(false) }
+            // Kept stable: this backs a static local, so a fresh lambda each pass would
+            // needlessly invalidate the whole sheet subtree.
+            val setContentOverflows = remember { { overflows: Boolean ->
+                contentOverflows = overflows
+            } }
+
             val sheetState = rememberBottomSheetState(
                 initialDetent = SheetDetent.Hidden,
                 detents = if (isHalfSheet) {
-                    listOf(SheetDetent.Hidden, Half, Expanded)
+                    listOf(SheetDetent.Hidden, Half)
                 } else {
                     listOf(SheetDetent.Hidden, Expanded)
                 },
@@ -140,6 +158,20 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                     detent != SheetDetent.Hidden || allowDismiss
                 },
             )
+
+            // Offer the expanded detent only while there is something below the fold to expand into,
+            // so a sheet that already fits can't be dragged up into empty space. Never withdraw it
+            // while the sheet is sitting at (or heading toward) it.
+            LaunchedEffect(isHalfSheet, contentOverflows) {
+                if (!isHalfSheet) return@LaunchedEffect
+                val atExpanded = sheetState.currentDetent == Expanded ||
+                        sheetState.targetDetent == Expanded
+                sheetState.detents = if (contentOverflows || atExpanded) {
+                    listOf(SheetDetent.Hidden, Half, Expanded)
+                } else {
+                    listOf(SheetDetent.Hidden, Half)
+                }
+            }
 
             // Animate the sheet in on first composition and after
             // same-route dismiss-replace (sheetGeneration increments).
@@ -186,6 +218,7 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                 LocalSheetGesturesState provides { enabled ->
                     allowDismiss = enabled && !navigator.sheetDragDisabled
                 },
+                LocalSheetExpansionState provides setContentOverflows,
                 LocalScrimController provides scrim,
             ) {
                 BackHandler(enabled = effectiveProperties.dismissOnBackPress) {

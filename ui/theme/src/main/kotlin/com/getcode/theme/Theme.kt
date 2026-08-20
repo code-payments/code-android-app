@@ -45,6 +45,7 @@ internal val CodeDefaultColorScheme = ColorScheme(
     textMain = TextMain,
     textSecondary = TextSecondary,
     textTertiary = TextTertiary,
+    textPlaceholder = TextTertiary,
     border = BrandLight,
     divider = White10,
     dividerVariant = White05,
@@ -150,6 +151,8 @@ class ColorScheme(
     textMain: Color,
     textSecondary: Color,
     textTertiary: Color,
+    /** Dimmed stand-in text — e.g. the untouched "$0" in amount entry. */
+    textPlaceholder: Color,
     trackColor: Color,
     toggleUncheckedTrackColor: Color,
     cashBill: Color,
@@ -206,6 +209,8 @@ class ColorScheme(
     var textSecondary by mutableStateOf(textSecondary)
         private set
     var textTertiary by mutableStateOf(textTertiary)
+        private set
+    var textPlaceholder by mutableStateOf(textPlaceholder)
         private set
     var secondary by mutableStateOf(secondary)
         private set
@@ -277,6 +282,7 @@ class ColorScheme(
         textMain = other.textMain
         textSecondary = other.textSecondary
         textTertiary = other.textTertiary
+        textPlaceholder = other.textPlaceholder
         secondary = other.secondary
         tertiary = other.tertiary
         indicator = other.indicator
@@ -323,6 +329,7 @@ class ColorScheme(
         textMain = textMain,
         textSecondary = textSecondary,
         textTertiary = textTertiary,
+        textPlaceholder = textPlaceholder,
         secondary = secondary,
         tertiary = tertiary,
         indicator = indicator,

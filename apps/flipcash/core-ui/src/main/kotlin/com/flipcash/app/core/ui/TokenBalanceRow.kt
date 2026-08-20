@@ -19,7 +19,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +44,12 @@ sealed interface TokenBalanceStyle {
 
     data class Large(override val textStyle: TextStyle = TextStyle.Default) : TokenBalanceStyle
     data class Pill(override val textStyle: TextStyle = TextStyle.Default) : TokenBalanceStyle
+
+    /** Bare trailing text with no pill chrome — the compact picker sheet's balance treatment. */
+    data class Plain(
+        override val textStyle: TextStyle = TextStyle.Default,
+        val color: Color = Color.Unspecified,
+    ) : TokenBalanceStyle
 }
 
 enum class TokenSelectionStyle {
@@ -58,6 +66,7 @@ data class TokenBalanceRowStyling(
     val flagSize: Dp,
     val selectionStyle: TokenSelectionStyle,
     val disabledAlpha: Float,
+    val contentPadding: PaddingValues,
 )
 
 @Composable
@@ -68,6 +77,7 @@ fun rememberTokenBalanceRowStyling(
     flagSize: Dp = CodeTheme.dimens.staticGrid.x3,
     selectionStyle: TokenSelectionStyle = TokenSelectionStyle.None,
     disabledAlpha: Float = 0.8f,
+    contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
 ): TokenBalanceRowStyling =
     TokenBalanceRowStyling(
         nameTextStyle = nameTextStyle,
@@ -75,7 +85,8 @@ fun rememberTokenBalanceRowStyling(
         iconSize = iconSize,
         flagSize = flagSize,
         selectionStyle = selectionStyle,
-        disabledAlpha = disabledAlpha
+        disabledAlpha = disabledAlpha,
+        contentPadding = contentPadding,
     )
 
 @Composable
@@ -91,7 +102,7 @@ fun TokenBalanceRow(
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
     styling: TokenBalanceRowStyling = rememberTokenBalanceRowStyling(),
-    contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
+    contentPadding: PaddingValues = styling.contentPadding,
     onClick: (() -> Unit)? = null,
 ) {
     val (token, balance, _, displayName) = tokenWithBalance
@@ -127,7 +138,7 @@ fun TokenBalanceRow(
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
     styling: TokenBalanceRowStyling = rememberTokenBalanceRowStyling(),
-    contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
+    contentPadding: PaddingValues = styling.contentPadding,
     onClick: (() -> Unit)? = null,
 ) {
     val (token, balance, _, displayName) = tokenWithBalance
@@ -166,7 +177,7 @@ fun TokenBalanceRow(
     formattedBalance: (Fiat) -> String = { it.formatted() },
     horizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween,
     styling: TokenBalanceRowStyling = rememberTokenBalanceRowStyling(),
-    contentPadding: PaddingValues = PaddingValues(vertical = CodeTheme.dimens.inset),
+    contentPadding: PaddingValues = styling.contentPadding,
     onClick: (() -> Unit)? = null,
 ) {
     val exchange = LocalExchange.current
@@ -255,6 +266,18 @@ fun TokenBalanceRow(
                         value = formattedBalance(balance),
                         style = resolvedTextStyle,
                         color = CodeTheme.colors.textMain,
+                    )
+                }
+
+                is TokenBalanceStyle.Plain -> {
+                    val resolvedTextStyle = displayStyle.textStyle
+                        .takeUnless { it == TextStyle.Default }
+                        ?: CodeTheme.typography.textMedium
+
+                    Text(
+                        text = formattedBalance(balance),
+                        color = displayStyle.color.takeOrElse { CodeTheme.colors.textSecondary },
+                        style = resolvedTextStyle,
                     )
                 }
 

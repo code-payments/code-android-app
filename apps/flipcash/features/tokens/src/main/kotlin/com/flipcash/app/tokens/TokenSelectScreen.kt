@@ -15,6 +15,7 @@ import com.flipcash.app.core.AppRoute.Transfers.Withdrawal
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.tokens.internal.SelectTokenScreen
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.flipcash.features.tokens.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowDismissStyle
@@ -30,8 +31,7 @@ import kotlinx.coroutines.flow.onEach
 fun TokenSelectScreen(
     purpose: TokenPurpose,
     showTopBar: Boolean = purpose !is TokenPurpose.LaunchFunding,
-    /** Size the list to its content rather than the full height — for wrap-content sheets. */
-    wrapHeight: Boolean = false,
+    presentation: TokenListPresentation = TokenListPresentation.Default,
 ) {
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<SelectTokenViewModel>()
@@ -46,7 +46,8 @@ fun TokenSelectScreen(
 
     CompositionLocalProvider(LocalFlowDismissStyle provides dismissStyle) {
         Column(
-            modifier = if (wrapHeight) Modifier.fillMaxWidth() else Modifier.fillMaxSize(),
+            modifier = if (presentation.wrapHeight) Modifier.fillMaxWidth()
+            else Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (showTopBar) {
@@ -61,7 +62,7 @@ fun TokenSelectScreen(
                 )
             }
 
-            SelectTokenScreen(viewModel, wrapHeight = wrapHeight)
+            SelectTokenScreen(viewModel, presentation = presentation)
         }
     }
 
