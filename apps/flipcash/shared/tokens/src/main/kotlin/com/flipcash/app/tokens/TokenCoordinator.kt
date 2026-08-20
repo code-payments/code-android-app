@@ -48,6 +48,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -63,6 +65,27 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/**
+ * How far the token set has got in reconciling itself with the server for the signed-in user.
+ *
+ * Mirrors the activity feed's `FeedSyncState`, and for the same reason: the token cache is a *cache*
+ * that starts empty on every fresh install and login, so an empty token map means "we haven't looked
+ * yet" just as often as it means "this account holds nothing". Surfaces that render token *metadata*
+ * (names, icons) for data arriving from elsewhere — the activity feed's convert rows, which read
+ * "USDF -> Dad Cash" only once both mints resolve — must wait for a real fetch rather than draw their
+ * server-text fallback ("Converted") against a not-yet-populated cache.
+ */
+enum class TokenSyncState {
+    /** No token fetch has completed yet this session — whatever is cached is cache-only. */
+    Unknown,
+
+    /** A fetch succeeded: the in-memory token map reflects the server. */
+    Synced,
+
+    /** A fetch completed without success. Callers should stop waiting; the next trigger retries. */
+    Unavailable,
+}
 
 /**
  * App-layer coordinator that wraps [TokenController] with persistence,
@@ -117,6 +140,14 @@ class TokenCoordinator @Inject constructor(
     private val _state = MutableStateFlow(TokenState())
     private val _hydrated = MutableStateFlow(false)
 
+    private val _syncState = MutableStateFlow(TokenSyncState.Unknown)
+
+    /**
+     * Whether the token set has been reconciled with the server this session. See [TokenSyncState].
+     * Maintained by [updateTokens], which every full refresh funnels through.
+     */
+    val syncState: StateFlow<TokenSyncState> = _syncState.asStateFlow()
+
     val tokens: Flow<List<Token>> = _state.map { it.tokens.values.toList() }
 
     /** Cache-only, network-free view of the in-memory token map (see [TokenMetadataProvider]). */
@@ -147,6 +178,8 @@ class TokenCoordinator @Inject constructor(
     override suspend fun onUserLoggedIn(cluster: AccountCluster) {
         trace(tag = TAG, message = "User logged in, hydrating from persistence", type = TraceType.User)
         this.cluster.value = cluster
+        // A new session hasn't looked at the server yet, whatever the previous one concluded.
+        _syncState.value = TokenSyncState.Unknown
         hydrateFromPersistence()
     }
 
@@ -342,6 +375,7 @@ class TokenCoordinator @Inject constructor(
         val previousTokenCount = _state.value.tokens.size
         _state.value = TokenState()
         _hydrated.value = false
+        _syncState.value = TokenSyncState.Unknown
         cluster.value = null
         selectedToken.edit { it.clear() }
         dataSource.clear()
@@ -401,9 +435,15 @@ class TokenCoordinator @Inject constructor(
                 applyTokenUpdates(updates)
                 persistTokenState(updates)
                 ensureValidTokenSelection()
+                _syncState.value = TokenSyncState.Synced
             }
             .onFailure { error ->
                 trace(tag = TAG, message = "Failed to update tokens: ${error.message}", type = TraceType.Error)
+                // Don't downgrade a sync that already succeeded — a later failure means this refresh
+                // missed, not that the cache is unknown again.
+                _syncState.update { current ->
+                    if (current == TokenSyncState.Unknown) TokenSyncState.Unavailable else current
+                }
             }
     }
 

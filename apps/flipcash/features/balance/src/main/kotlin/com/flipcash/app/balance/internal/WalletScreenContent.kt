@@ -77,7 +77,13 @@ internal fun WalletScreenContent(
     // still-empty cache, that this was a brand-new account and drawn the tutorial. Nothing renders
     // until all three can be drawn together, and BalanceHeader's own spinner is consequently dead
     // code on this screen (v1's BalanceScreen still uses it).
-    if (tokenState.tokens == null || balanceState.isAwaitingActivity) {
+    //
+    // The two waits are independent races, and the activity preview *reads* the token cache: a
+    // convert row titles itself "USDF -> Dad Cash" from both mints' metadata and falls back to the
+    // server's bare "Converted" until they resolve. Post-login the feed regularly won that race, so
+    // the tab drew converts as "Converted" and then re-titled them once tokens landed. Waiting on
+    // both (see State.isAwaitingTokens / isAwaitingActivity) means the section is drawn once, resolved.
+    if (tokenState.isAwaitingTokens || balanceState.isAwaitingActivity) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
