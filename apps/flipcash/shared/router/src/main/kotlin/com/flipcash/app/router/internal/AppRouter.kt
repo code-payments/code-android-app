@@ -1,5 +1,6 @@
 package com.flipcash.app.router.internal
 
+import android.net.Uri
 import androidx.core.net.toUri
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
@@ -20,8 +21,10 @@ import com.flipcash.app.router.internal.AppRouter.Companion.verification
 import com.flipcash.services.user.AuthState
 import com.getcode.opencode.model.core.bytes
 import com.getcode.solana.keys.Mint
+import com.getcode.utils.TraceType
 import com.getcode.utils.decodeBase64
 import com.getcode.utils.decodeBase64UrlSafe
+import com.getcode.utils.trace
 import com.getcode.utils.urlDecode
 import dev.theolm.rinku.DeepLink
 import org.json.JSONObject
@@ -37,6 +40,12 @@ internal class AppRouter(
         val token = listOf("token")
         val chat = listOf("chat")
         val tip = listOf("tip")
+
+        /**
+         * Redirector host. It carries no route of its own — the real link is percent-encoded in
+         * the fragment as `#source=<url>`. See [DeepLink.unwrapJumpTarget].
+         */
+        const val JUMP_HOST = "jump.flipcash.com"
     }
 
     override fun dispatch(deepLink: DeepLink): DeeplinkAction {
@@ -73,7 +82,30 @@ internal class AppRouter(
     }
 
     override fun classify(deepLink: DeepLink): DeeplinkType? {
+        // Deeplink payloads are attacker-controllable (every handled host is `autoVerify`) and both
+        // callers of dispatch/classify run where a throw is fatal — inside composition (MainRoot)
+        // and inside a LaunchedEffect (App). A parse failure must degrade to "no deeplink", loudly
+        // in logs, never to a crash.
+        return runCatching { classifyOrThrow(deepLink) }
+            .onFailure {
+                trace(
+                    tag = "AppRouter",
+                    message = "Failed to classify deeplink; ignoring it",
+                    error = it,
+                    type = TraceType.Error,
+                )
+            }
+            .getOrNull()
+    }
+
+    private fun classifyOrThrow(deepLink: DeepLink): DeeplinkType? {
         return when {
+            // A jump link is a wrapper, never a destination. Unwrap once and classify the inner
+            // URL; a jump pointing at another jump is malformed and drops to null rather than
+            // recursing. Mirrors iOS DeepLinkController.
+            deepLink.isJump() -> deepLink.unwrapJumpTarget()
+                ?.takeUnless { it.isJump() }
+                ?.let { classifyOrThrow(it) }
             deepLink.isLogin() -> deepLink.handleLoginLink()
             deepLink.isCashLink() -> deepLink.handleCashLink()
             deepLink.isToken() -> deepLink.handleTokenLink()
@@ -81,8 +113,9 @@ internal class AppRouter(
             deepLink.isTipChat() -> deepLink.handleTipChat()
             deepLink.isTipCard() -> deepLink.handleTipCard()
             // `/chat/{id}` links are intentionally NOT handled: the Send tab / direct-send
-            // flow they opened was removed, so they fall through to `null` and the app lands
-            // on the camera. Do not re-add chat routing here without restoring that entry point.
+            // flow they opened was removed. The manifest no longer claims that path either, so
+            // such a link opens in the browser rather than dead-ending here. Re-add routing and
+            // the App Link filter together, or not at all.
             // (Tip DMs use `/tip/chat/{id}` — handled above via isTipChat.)
             else -> null
         }
@@ -129,6 +162,30 @@ internal class AppRouter(
         }
     }
 }
+
+private fun DeepLink.isJump(): Boolean = host.equals(AppRouter.JUMP_HOST, ignoreCase = true)
+
+/**
+ * `jump.flipcash.com/#source=<percent-encoded url>` is a redirector used by the web app to hand a
+ * link off to the native app. Pull the wrapped URL back out so it can be classified as if it had
+ * arrived directly. Returns null when the fragment is absent, empty, or not a parseable URL.
+ */
+private fun DeepLink.unwrapJumpTarget(): DeepLink? {
+    val fragment = data.substringAfter('#', missingDelimiterValue = "")
+    if (!fragment.startsWith(JUMP_SOURCE_PARAM)) return null
+
+    // Everything after `source=`, not up to the next `&` — the wrapped URL may carry its own
+    // query string with `&` separators that the producer left unencoded. iOS does the same.
+    val encoded = fragment.removePrefix(JUMP_SOURCE_PARAM).takeIf { it.isNotBlank() } ?: return null
+
+    // Uri.decode, not URLDecoder: the payload is a URL, and `+` in it (a `user+tag@` email in a
+    // /verify query, say) is a literal plus, not a space.
+    val target = Uri.decode(encoded)?.takeIf { it.isNotBlank() } ?: return null
+
+    return runCatching { DeepLink(target) }.getOrNull()
+}
+
+private const val JUMP_SOURCE_PARAM = "source="
 
 private fun DeepLink.isLogin(): Boolean = login.contains(pathSegments.getOrNull(0))
 private fun DeepLink.isCashLink(): Boolean = cashLink.contains(pathSegments.getOrNull(0))
@@ -192,12 +249,16 @@ private fun DeepLink.handleEmailVerification(): DeeplinkType.EmailVerification? 
     val uri = data.toUri()
     val email = uri.getQueryParameter("email")?.urlDecode()
     val code = uri.getQueryParameter("code")
+    // client_data is optional and untrusted: a malformed or absent payload just means "no origin",
+    // which resolveEmailVerification already handles. Never let it fail the whole link.
     val clientData = uri.getQueryParameter("client_data")?.urlDecode()
-        ?.let { JSONObject(it) }
+        ?.let { runCatching { JSONObject(it) }.getOrNull() }
 
-    val origin = clientData?.getString("origin")?.decodeBase64()?.let {
-        String(it, Charsets.UTF_8)
-    }
+    val origin = clientData?.optString("origin")
+        ?.takeIf { it.isNotEmpty() }
+        ?.let { encoded ->
+            runCatching { String(encoded.decodeBase64(), Charsets.UTF_8) }.getOrNull()
+        }
     if (code != null && email != null) {
         return DeeplinkType.EmailVerification(
             email = email,

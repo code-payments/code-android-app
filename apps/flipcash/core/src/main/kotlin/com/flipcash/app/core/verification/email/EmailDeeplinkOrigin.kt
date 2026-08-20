@@ -43,23 +43,35 @@ sealed class EmailDeeplinkOrigin {
             }
         }
 
+        /**
+         * Parse a value produced by [serialize]. Returns null for anything unrecognised or
+         * malformed rather than throwing — this runs on `client_data` from an `autoVerify`
+         * deeplink, so the input is attacker-controllable and must never crash the caller.
+         */
         fun deserialize(value: String): EmailDeeplinkOrigin? {
             val splits = value.split("|")
-            return when (splits[0]) {
+            return when (splits.getOrNull(0)) {
                 "onramp" -> {
-                    val source = when (splits[1]) {
-                        "menu" -> AppRoute.Sheets.Menu
+                    val source = when (splits.getOrNull(1)) {
                         "amountentry" -> {
-                            val mint = splits.getOrNull(2)?.let { Mint(it) }
+                            val mint = splits.getOrNull(2)
+                                ?.takeIf { it.isNotBlank() && it != "null" }
+                                ?.let { Mint(it) }
                                 ?: return null
 
                             AppRoute.Token.Swap(SwapPurpose.Buy(mint))
                         }
+                        // "null" — an on-ramp with no swap source, carrying only an amount.
                         else -> null
                     }
 
-                    val amount =
-                        splits.getOrNull(3)?.let { Json.decodeFromString(Fiat.Companion.serializer(), it) }
+                    val amount = splits.getOrNull(3)
+                        ?.takeIf { it.isNotBlank() && it != "null" }
+                        ?.let {
+                            runCatching {
+                                Json.decodeFromString(Fiat.Companion.serializer(), it)
+                            }.getOrNull()
+                        }
 
                     OnRamp(source, amount)
                 }
