@@ -257,7 +257,10 @@ internal fun App(
                                             } else false
 
                                             if (!delivered) {
-                                                codeNavigator.navigateAll(action.routes)
+                                                codeNavigator.navigateAll(
+                                                    action.routes,
+                                                    isNewUi = isNewUi,
+                                                )
                                             }
                                         }
 
