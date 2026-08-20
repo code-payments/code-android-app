@@ -36,6 +36,7 @@ impl must reproduce the fixtures before the native duplicates are deleted.
 | `curve.json` | `:libs:currency-math` androidTest → `connectedAndroidTest` (device, loads .bin tables) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
 | `solana_message.json` | `:services:opencode` → `testDebugUnitTest` (host JVM) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
 | `compact_message.json` | `:services:opencode` → `testDebugUnitTest` (host JVM) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
+| `kikcode.json` + `kikcode_golden.svg` | `:libs:codes:kikcode` → `testAndroidHostTest` (host JVM) — **green** | *same Kotlin source* → `iosSimulatorArm64Test` (Kotlin/Native) — **green** |
 
 Why the iOS split: **ed25519** lives in the standalone `CodeCurves` C package → host `swift test`.
 Everything else (**base58**, and later derivation/bonding curve) lives in **FlipcashCore**, whose
@@ -43,6 +44,11 @@ transitive deps (BigDecimal 13.3, grpc/nio) don't resolve for a macOS *host* tes
 FlipcashCore declares only iOS — so `FlipcashCoreVectors` runs on an **iOS simulator** via `xcodebuild
 test -scheme FlipcashCoreVectors-Package`. (If FlipcashCore ever declares macOS support, these could
 run on the host too.)
+
+`kikcode.json` is the first fixture where "both platforms" means **one** implementation: the module is
+KMP, so the same `commonTest` sources are compiled and run twice — once on the JVM, once on
+Kotlin/Native. The gate there isn't "do two hand-written impls agree" but "does the *shared* impl emit
+byte-identical output on both toolchains" (`Double` formatting and libm trig are the hazards).
 
 ## ed25519 (`ed25519.json`)
 
@@ -135,6 +141,28 @@ little-endian on both (iOS `withUnsafeBytes(of: littleEndian)`, Android `Long.to
 Remaining C3 increments: versioned (V0) messages + address-lookup-tables; specific program-instruction
 data (`BuyTokens` etc.); and the second SubmitIntent path (the proto `SubmitActions` signature).
 
+## kikcode (`kikcode.json` + `kikcode_golden.svg`)
+
+Scannable-code geometry and SVG serialization for the shared `:libs:codes:kikcode` module
+(`gen_kikcode.py`), which backs tip-card PNG/SVG export on both apps. Each vector: `payload` (hex) +
+`dimension` → expected `center` / `badgeRadius` / `dotDiameter` and the full ordered list of **marks**,
+encoded as `"D <x> <y>"` (dot), `"A <radius> <start> <sweep>"` (stroked arc, radians), `"R <radius>"`
+(full ring). The golden file is the complete SVG document for the `tip-card-20` payload at 512px,
+compared **byte-for-byte** — that comparison is what actually proves both toolchains agree, since it
+folds every coordinate through the same formatter.
+
+The Python reference is written from the spec ratios (ring count, `0.32`/`0.425`/`0.95`/`0.75`, the
+`B2 CB 25 C6` finder prefix, LSB-first bit order), not transcribed from the Kotlin, so a match is
+independent corroboration rather than a tautology. Two determinism notes baked into both sides:
+`Double.toString()` is unspecified across Kotlin targets and libm `cos`/`sin` can differ in the last
+place, so every emitted number is fixed to 3 decimals via `roundToLong()` — ties toward positive
+infinity, the only tie-break Kotlin actually specifies (`kotlin.math.round` is ties-to-even and was
+avoided). Python mirrors it with `math.floor(v * 1000.0 + 0.5)`.
+
+Coverage: all-zero / all-one / alternating bit patterns (so `Dot`, `Arc`, and `Ring` marks are all
+exercised — `ones-20` alone yields 4 dots, 6 arcs, 3 rings), a realistic tip-card payload at three
+dimensions (to pin exact linear scaling), a single-byte payload, and the 35-byte maximum.
+
 ## Regenerate
 
 Run from `code-android-app/test-vectors/`:
@@ -147,6 +175,7 @@ python3 gen_curve.py            > curve.json            # whole-token buy-side (
 python3 gen_curve_fractional.py > curve_fractional.json # fractional sell-path + rounding-tie (exact rational)
 python3 gen_solana_message.py   > solana_message.json   # Solana legacy-message serialization
 python3 gen_compact_message.py  > compact_message.json  # intent-signing compact message + SHA256
+python3 gen_kikcode.py                                 # writes kikcode.json AND kikcode_golden.svg
 
 # Sync to Android per-module copies (from the repo root):
 cp test-vectors/ed25519.json        libs/encryption/ed25519/src/androidTest/assets/
@@ -156,6 +185,8 @@ cp test-vectors/curve.json          libs/currency-math/src/androidTest/assets/
 cp test-vectors/curve_fractional.json libs/currency-math/src/androidTest/assets/
 cp test-vectors/solana_message.json services/opencode/src/test/resources/
 cp test-vectors/compact_message.json services/opencode/src/test/resources/
+cp test-vectors/kikcode.json test-vectors/kikcode_golden.svg \
+     libs/codes/kikcode/src/commonTest/resources/   # KMP: one copy serves both platforms
 
 # Sync to iOS repo (from the orchestrator root, adjust paths as needed):
 cp test-vectors/ed25519.json        ../code-ios-app/CrossPlatformVectors/Tests/CrossPlatformVectorsTests/Fixtures/
@@ -170,7 +201,7 @@ cp test-vectors/compact_message.json ../code-ios-app/FlipcashCoreVectors/Tests/F
 After copying, verify SHA-256 parity:
 
 ```bash
-for f in ed25519.json base58.json slip10.json curve.json curve_fractional.json solana_message.json compact_message.json; do
+for f in ed25519.json base58.json slip10.json curve.json curve_fractional.json solana_message.json compact_message.json kikcode.json kikcode_golden.svg; do
   canonical=$(shasum -a 256 "test-vectors/$f" | awk '{print $1}')
   echo "$f: $canonical (canonical)"
 done

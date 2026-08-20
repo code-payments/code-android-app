@@ -20,6 +20,7 @@ kotlin {
         it.binaries.framework {
             baseName = "SharedCore"
             isStatic = true
+            export(project(":libs:codes:kikcode"))
             export(project(":libs:encryption:base58"))
             export(project(":libs:encryption:sha256"))
             export(project(":libs:encryption:sha512"))
@@ -31,6 +32,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
+                api(project(":libs:codes:kikcode"))
                 api(project(":libs:encryption:base58"))
                 api(project(":libs:encryption:sha256"))
                 api(project(":libs:encryption:sha512"))

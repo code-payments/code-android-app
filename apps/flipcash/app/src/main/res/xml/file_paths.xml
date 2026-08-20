@@ -3,4 +3,6 @@
     <files-path name="traces" path="traces/" />
     <!-- Rendered tip-code Sharesheet previews (cacheDir/share_previews/). -->
     <cache-path name="share_previews" path="share_previews/" />
+    <!-- Exported tip codes, PNG + SVG (cacheDir/share_exports/). -->
+    <cache-path name="share_exports" path="share_exports/" />
 </paths>
