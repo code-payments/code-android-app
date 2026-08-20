@@ -86,7 +86,7 @@ timber = "5.0.1"
 
 sodium-bindings = "0.9.5"
 desugaring = "2.1.5"
-kotlincrypto-hash = "0.7.0"
+kotlincrypto-hash = "0.8.0"
 kotlincrypto-macs = "0.7.0"
 event-bus = "0.1.0"
 
