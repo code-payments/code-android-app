@@ -3,6 +3,7 @@ package com.flipcash.app.tokens.internal
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
@@ -24,30 +26,44 @@ import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
+import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.flipcash.features.tokens.R
 import com.getcode.theme.CodeTheme
 
 @Composable
 internal fun SelectTokenScreen(
     tokenViewModel: SelectTokenViewModel,
+    presentation: TokenListPresentation = TokenListPresentation.Default,
 ) {
     val state by tokenViewModel.stateFlow.collectAsStateWithLifecycle()
 
-    SelectTokenScreenContent(state, tokenViewModel::dispatchEvent)
+    SelectTokenScreenContent(state, presentation, tokenViewModel::dispatchEvent)
 }
 
 @Composable
 private fun SelectTokenScreenContent(
     state: SelectTokenViewModel.State,
+    presentation: TokenListPresentation = TokenListPresentation.Default,
     dispatch: (SelectTokenViewModel.Event) -> Unit,
 ) {
     val tokens = remember(state.tokens) { state.tokens }
 
-    TokenList(
-        modifier = Modifier.fillMaxSize(),
-        tokens = tokens,
-        selectedToken = state.selectedToken,
-        styling = rememberTokenBalanceRowStyling(
+    // The sheet picker (Figma 9120:15219) is a plain name/balance list: no pill around the balance,
+    // no trailing selection control, tighter rows. Everything else keeps the full-screen treatment.
+    val styling = if (presentation.compactRows) {
+        rememberTokenBalanceRowStyling(
+            nameTextStyle = CodeTheme.typography.textMedium,
+            balanceDisplayStyle = TokenBalanceStyle.Plain(
+                textStyle = CodeTheme.typography.textMedium
+                    .copy(fontWeight = FontWeight.Medium),
+                color = CodeTheme.colors.textSecondary,
+            ),
+            iconSize = CodeTheme.dimens.staticGrid.x8,
+            selectionStyle = TokenSelectionStyle.None,
+            contentPadding = PaddingValues(vertical = CodeTheme.dimens.staticGrid.x2),
+        )
+    } else {
+        rememberTokenBalanceRowStyling(
             balanceDisplayStyle = TokenBalanceStyle.Pill(),
             selectionStyle = when (state.purpose) {
                 TokenPurpose.Balance -> TokenSelectionStyle.Chevron
@@ -56,15 +72,34 @@ private fun SelectTokenScreenContent(
                 is TokenPurpose.LaunchFunding -> TokenSelectionStyle.Chevron
                 is TokenPurpose.Select -> TokenSelectionStyle.Checkbox
                 is TokenPurpose.Tip -> TokenSelectionStyle.Checkbox
+                is TokenPurpose.ConvertDestination -> TokenSelectionStyle.Checkbox
+                is TokenPurpose.BuyFunding -> TokenSelectionStyle.Checkbox
                 TokenPurpose.Withdraw -> TokenSelectionStyle.Chevron
             }
-        ),
-        showSelections = state.purpose is TokenPurpose.Select,
+        )
+    }
+
+    TokenList(
+        modifier = if (presentation.wrapHeight) Modifier.fillMaxWidth() else Modifier.fillMaxSize(),
+        presentation = presentation,
+        tokens = tokens,
+        // A Convert destination / Get payment source check-marks the currency already chosen for
+        // *this* flow, not the globally selected token.
+        selectedToken = (state.purpose as? TokenPurpose.ConvertDestination)?.current
+            ?: (state.purpose as? TokenPurpose.BuyFunding)?.current
+            ?: state.selectedToken,
+        styling = styling,
+        showSelections = !presentation.compactRows &&
+                (state.purpose is TokenPurpose.Select ||
+                        state.purpose is TokenPurpose.ConvertDestination ||
+                        state.purpose is TokenPurpose.BuyFunding),
         showFlags = when (state.purpose) {
             is TokenPurpose.Select -> false
             is TokenPurpose.Swap -> false
             is TokenPurpose.LaunchFunding -> false
             is TokenPurpose.Tip -> false
+            is TokenPurpose.ConvertDestination -> false
+            is TokenPurpose.BuyFunding -> false
             else -> true
         },
         enableGreaterThanAmount = atLeast@{ _, amount ->
@@ -82,7 +117,12 @@ private fun SelectTokenScreenContent(
         emptyState = {
             Box(
                 modifier = Modifier
-                    .fillParentMaxSize()
+                    .then(
+                        if (presentation.wrapHeight) Modifier
+                            .fillParentMaxWidth()
+                            .padding(vertical = CodeTheme.dimens.grid.x10)
+                        else Modifier.fillParentMaxSize()
+                    )
                     .padding(bottom = CodeTheme.dimens.inset),
                 contentAlignment = Alignment.Center
             ) {

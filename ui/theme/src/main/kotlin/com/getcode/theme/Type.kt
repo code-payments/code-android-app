@@ -32,6 +32,7 @@ private val RobotoMono = FontFamily(
 )
 
 data class CodeTypography(
+    val displayExtraLarge: TextStyle,
     val displayLarge: TextStyle,
     val displayMedium: TextStyle,
     val displaySmall: TextStyle,
@@ -60,6 +61,11 @@ fun ProvideTypography(
 }
 
 val codeTypography = CodeTypography(
+    displayExtraLarge = TextStyle(
+        fontFamily = Avenir,
+        fontSize = 74.sp,
+        fontWeight = FontWeight.Bold,
+    ),
     displayLarge = TextStyle(
         fontFamily = Avenir,
         fontSize = 55.sp,

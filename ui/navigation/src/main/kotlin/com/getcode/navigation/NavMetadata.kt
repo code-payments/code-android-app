@@ -17,6 +17,7 @@ enum class NavMetadataKeys(val key: String, ) {
     IsNonDraggable("non_draggable"),
     IsSheet("sheet"),
     IsWrapContentSheet("sheet_wrap_content"),
+    IsHalfSheet("sheet_half"),
     IsSolitarySheet("sheet_solitary"),
     NavResultKey("navresult_key"),
 }
@@ -68,6 +69,7 @@ fun KClass<*>.metadata(): Map<String, Any> {
     return mapOf(
         NavMetadataKeys.IsSheet.key to Sheet::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.IsWrapContentSheet.key to WrapContentSheet::class.java.isAssignableFrom(this.java),
+        NavMetadataKeys.IsHalfSheet.key to HalfSheet::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.IsSolitarySheet.key to SolitarySheet::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.IsNonDismissable.key to NonDismissableRoute::class.java.isAssignableFrom(this.java),
         NavMetadataKeys.IsNonDraggable.key to NonDraggableRoute::class.java.isAssignableFrom(this.java),

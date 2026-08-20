@@ -2,8 +2,10 @@ package com.flipcash.app.tokens.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -20,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.ui.TokenBalanceRow
 import com.flipcash.app.core.ui.TokenBalanceRowStyling
 import com.flipcash.app.core.ui.TokenBalanceStyle
@@ -35,7 +39,45 @@ import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.isScrolledToEnd
 import com.getcode.ui.core.verticalScrollStateGradient
+import com.getcode.ui.utils.AllowSheetExpansionWhenScrollable
 import com.getcode.ui.utils.sheetResignmentBehavior
+
+/**
+ * How a [TokenList] is laid out and framed. The full-screen list fills its parent and rules off rows
+ * with dividers; the compact picker sheet hugs its content, drops the dividers, and pins its bottom
+ * edge fade on. Pinning matters because a fade that is added and removed by scroll position blinks
+ * out whenever the viewport resizes — which is exactly what a sheet does while it is dragged between
+ * detents.
+ *
+ * [compactRows] additionally restyles the rows themselves — see the callers that build a
+ * [com.flipcash.app.core.ui.TokenBalanceRowStyling] from it.
+ */
+data class TokenListPresentation(
+    val wrapHeight: Boolean,
+    val showDividers: Boolean,
+    val alwaysFadeEnd: Boolean,
+    val edgeFadeSize: Dp?,
+    val compactRows: Boolean,
+) {
+    companion object {
+        val Default = TokenListPresentation(
+            wrapHeight = false,
+            showDividers = true,
+            alwaysFadeEnd = false,
+            edgeFadeSize = null,
+            compactRows = false,
+        )
+
+        /** Compact currency picker rendered inside a bottom sheet (Figma 9120:15219). */
+        val Sheet = TokenListPresentation(
+            wrapHeight = true,
+            showDividers = false,
+            alwaysFadeEnd = true,
+            edgeFadeSize = 24.dp,
+            compactRows = true,
+        )
+    }
+}
 
 @Composable
 fun TokenList(
@@ -51,6 +93,7 @@ fun TokenList(
     showSelections: Boolean = false,
     includeReserves: Boolean = true,
     pinFooter: Boolean = false,
+    presentation: TokenListPresentation = TokenListPresentation.Default,
     enableGreaterThanAmount: (mint: Mint, LocalFiat) -> Boolean = { _, _ -> true },
     emptyState: (@Composable LazyItemScope.() -> Unit)? = null,
     reserves: (@Composable LazyItemScope.(mint: Mint, cashReserves: LocalFiat) -> Unit)? = null,
@@ -59,6 +102,12 @@ fun TokenList(
     onTokenSelected: (Token) -> Unit = { },
 ) {
     val listState = rememberLazyListState()
+
+    // A wrap-height list is a sheet picker: let the host sheet know whether the list has anything
+    // below the fold, so it only becomes draggable-to-expanded when expanding would show more.
+    if (presentation.wrapHeight) {
+        AllowSheetExpansionWhenScrollable(listState)
+    }
 
     val cashReserves = remember(tokens) {
         tokens?.find { it.token.address == Mint.usdf }?.balance ?: LocalFiat.Zero
@@ -76,11 +125,17 @@ fun TokenList(
     Box(modifier = modifier) {
         LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .then(
+                    if (presentation.wrapHeight) Modifier.wrapContentHeight()
+                    else Modifier.fillMaxHeight()
+                )
                 .verticalScrollStateGradient(
                     scrollState = listState,
                     color = CodeTheme.colors.background,
                     isLongGradient = true,
+                    showAtEndAlways = presentation.alwaysFadeEnd,
+                    fadeSize = presentation.edgeFadeSize,
                 )
                 .sheetResignmentBehavior(listState),
             state = listState
@@ -112,7 +167,9 @@ fun TokenList(
                         isEnabled = updatedIsEnabled,
                     ) { onTokenSelected(item.token) }
 
-                    HorizontalDivider(color = CodeTheme.colors.dividerVariant)
+                    if (presentation.showDividers) {
+                        HorizontalDivider(color = CodeTheme.colors.dividerVariant)
+                    }
                 }
 
                 reserves?.let {

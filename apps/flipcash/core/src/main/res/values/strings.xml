@@ -567,6 +567,24 @@
     <string name="title_addingMoney">Adding Money</string>
     <string name="title_sellingToken">Selling %1$s</string>
     <string name="label_sellWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
+
+    <!-- Currency conversion (Convert flow) -->
+    <string name="title_amountToConvert">Convert</string>
+    <string name="title_confirmConversion">Convert</string>
+    <string name="title_converting">Converting</string>
+    <string name="title_convertTo">Convert To</string>
+    <string name="label_convertTo">Convert to</string>
+    <string name="label_amountToConvert">Amount to convert</string>
+    <string name="label_conversionFee">Conversion fee</string>
+    <string name="subtitle_youConvert">You Convert</string>
+    <string name="subtitle_amountAvailable">%1$s available</string>
+    <string name="action_confirmConversion">Confirm</string>
+
+    <!-- Currency purchase (v2 Get flow) -->
+    <string name="title_get">Get</string>
+    <string name="label_getWith">Get with</string>
+    <string name="subtitle_youGet">You Get</string>
+    <string name="action_confirm">Confirm</string>
     <string name="label_buyWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
 
     <string name="label_yes">Yes</string>

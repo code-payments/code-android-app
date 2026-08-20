@@ -32,4 +32,14 @@ sealed interface SwapPurpose : Parcelable {
         val fundingSource: FundingSource = FundingSource.Flexible,
     ) : SwapPurpose, BalanceIncrease
     @Serializable data class Sell(override val  mint: Mint) : SwapPurpose, BalanceDecrease
+
+    /**
+     * Converts one held currency directly into another. [mint] is the *source* currency the amount
+     * is entered in (so balance/limit semantics match [Sell]); [destinationMint] is what the user
+     * receives.
+     */
+    @Serializable data class Convert(
+        override val mint: Mint,
+        val destinationMint: Mint,
+    ) : SwapPurpose, BalanceDecrease
 }

@@ -83,6 +83,10 @@ internal fun AmountTextAnimated(
     totalDecimals: Int = 2,
     textStyle: TextStyle,
     isClickable: Boolean,
+    /** Colour for the currency prefix and the un-entered placeholder digits. */
+    contentColor: Color = Color.White,
+    /** Where the amount sits within the full width — centred by default, start for the v2 header. */
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Center,
 ) {
     uiModel ?: return
 
@@ -286,11 +290,17 @@ internal fun AmountTextAnimated(
             .fillMaxWidth()
             .padding(top = CodeTheme.dimens.grid.x2)
             .height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.Center,
+        horizontalArrangement = horizontalArrangement,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // The leading gap only balances a centred amount; a start-aligned one sits flush with the
+        // caption beneath it.
         val prefixPadding by animateDpAsState(
-            if (amountSuffix.isEmpty()) CodeTheme.dimens.staticGrid.x2 else CodeTheme.dimens.staticGrid.x1
+            when {
+                horizontalArrangement == Arrangement.Start -> 0.dp
+                amountSuffix.isEmpty() -> CodeTheme.dimens.staticGrid.x2
+                else -> CodeTheme.dimens.staticGrid.x1
+            }
         )
 
         Spacer(modifier = Modifier.width(prefixPadding))
@@ -326,6 +336,7 @@ internal fun AmountTextAnimated(
             amountPrefix = amountPrefix,
             textStyle = textStyle,
             textSize = textSize,
+            color = contentColor,
         ) {
             AnimatedPlaceholderDigit(
                 modifier = Modifier.fillMaxHeight(),
@@ -337,7 +348,7 @@ internal fun AmountTextAnimated(
                 density = density,
                 placeholderEnter = zeroEnter,
                 placeholderExit = zeroExit,
-                placeholderColor = Color.White
+                placeholderColor = contentColor
             )
 
             for (i in 1 until maxDigits) {

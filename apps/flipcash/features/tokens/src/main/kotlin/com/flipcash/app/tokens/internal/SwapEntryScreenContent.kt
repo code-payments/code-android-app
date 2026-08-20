@@ -9,6 +9,8 @@ import com.getcode.navigation.core.LocalCodeNavigator
 @Composable
 internal fun SwapEntryScreenContent(
     viewModel: SwapViewModel,
+    largeHeader: Boolean = false,
+    accessory: (@Composable () -> Unit)? = null,
 ) {
     val navigator = LocalCodeNavigator.current
 
@@ -16,5 +18,7 @@ internal fun SwapEntryScreenContent(
         controller = viewModel.amountDelegate,
         onConfirm = { viewModel.dispatchEvent(SwapViewModel.Event.OnAmountConfirmed) },
         onChangeCurrency = { navigator.push(AppRoute.Main.RegionSelection) },
+        largeHeader = largeHeader,
+        accessory = accessory,
     )
 }

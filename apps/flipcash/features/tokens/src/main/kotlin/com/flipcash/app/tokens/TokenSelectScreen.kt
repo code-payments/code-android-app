@@ -2,6 +2,7 @@ package com.flipcash.app.tokens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -14,6 +15,7 @@ import com.flipcash.app.core.AppRoute.Transfers.Withdrawal
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.tokens.internal.SelectTokenScreen
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.flipcash.features.tokens.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowDismissStyle
@@ -29,6 +31,7 @@ import kotlinx.coroutines.flow.onEach
 fun TokenSelectScreen(
     purpose: TokenPurpose,
     showTopBar: Boolean = purpose !is TokenPurpose.LaunchFunding,
+    presentation: TokenListPresentation = TokenListPresentation.Default,
 ) {
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<SelectTokenViewModel>()
@@ -43,7 +46,8 @@ fun TokenSelectScreen(
 
     CompositionLocalProvider(LocalFlowDismissStyle provides dismissStyle) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = if (presentation.wrapHeight) Modifier.fillMaxWidth()
+            else Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (showTopBar) {
@@ -58,7 +62,7 @@ fun TokenSelectScreen(
                 )
             }
 
-            SelectTokenScreen(viewModel)
+            SelectTokenScreen(viewModel, presentation = presentation)
         }
     }
 
@@ -95,6 +99,8 @@ fun TokenSelectScreen(
                     is TokenPurpose.Tip -> Unit
                     is TokenPurpose.LaunchFunding -> Unit
                     is TokenPurpose.Swap -> Unit
+                    is TokenPurpose.ConvertDestination -> Unit
+                    is TokenPurpose.BuyFunding -> Unit
                 }
             }.launchIn(this)
     }

@@ -11,7 +11,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
-import com.flipcash.app.tokens.internal.TokenBuyReceiptScreen
+import com.flipcash.app.tokens.internal.TokenConvertReceiptScreen
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.flipcash.features.tokens.R
 import com.getcode.navigation.flow.flowSharedViewModel
@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-internal fun BuyReceiptScreen() {
+internal fun ConvertReceiptScreen() {
     val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
@@ -32,19 +32,23 @@ internal fun BuyReceiptScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            title = stringResource(
-                if (state.isGet) R.string.title_get else R.string.title_confirmPurchase
-            ),
+            title = stringResource(R.string.title_confirmConversion),
             titleAlignment = Alignment.CenterHorizontally,
-            onBackIconClicked = { flowNavigator.back() }
+            onBackIconClicked = {
+                if (state.sellProgress.loading) {
+                    // swallow
+                } else {
+                    flowNavigator.back()
+                }
+            }
         )
 
-        TokenBuyReceiptScreen(viewModel)
+        TokenConvertReceiptScreen(viewModel)
     }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<SwapViewModel.Event.OnPurchaseSubmitted>()
+            .filterIsInstance<SwapViewModel.Event.OnConvertSubmitted>()
             .onEach {
                 flowNavigator.navigateTo(SwapStep.Processing)
             }.launchIn(this)

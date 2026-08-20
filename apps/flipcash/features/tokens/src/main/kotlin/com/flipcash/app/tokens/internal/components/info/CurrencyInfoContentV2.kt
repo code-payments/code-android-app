@@ -386,7 +386,7 @@ private fun CurrencyActionTiles(
                             modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
                         )
                     },
-                    onClick = { dispatch(TokenInfoViewModel.Event.OnBuy(shortfall)) },
+                    onClick = { dispatch(TokenInfoViewModel.Event.OnConvert) },
                 )
                 ActionTile(
                     modifier = Modifier.weight(1f),

@@ -1,11 +1,21 @@
 package com.flipcash.app.tokens
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.toast.LocalToastController
 import com.flipcash.app.core.tokens.FundingSource
@@ -14,6 +24,7 @@ import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.navigation.annotatedEntry
@@ -26,7 +37,10 @@ import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
+import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.solana.keys.Mint
+import com.getcode.theme.CodeTheme
+import com.flipcash.features.tokens.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -72,6 +86,12 @@ fun SwapFlowScreen(
             }
         },
         entryProvider = swapEntryProvider(route),
+        // The currency pickers are overlay scenes, so amount entry stays composed beneath them —
+        // picking a currency never re-runs the entry screen's effects.
+        sceneStrategies = listOf(
+            ModalBottomSheetSceneStrategy(outerNavigator.resultStore) { null },
+            SinglePaneSceneStrategy(),
+        ),
     )
 }
 
@@ -97,6 +117,13 @@ private fun swapEntryProvider(
         BuyReceiptScreen()
     }
     annotatedEntry<SwapStep.SellReceipt> { SellReceiptScreen() }
+    annotatedEntry<SwapStep.ConvertDestinationSelection> {
+        ConvertDestinationSelectScreen()
+    }
+    annotatedEntry<SwapStep.FundingSelection> {
+        BuyFundingSelectScreen()
+    }
+    annotatedEntry<SwapStep.ConvertReceipt> { ConvertReceiptScreen() }
     annotatedEntry<SwapStep.PhantomConnect> {
         PhantomConnectConfirmationScreen(depositFirstPurpose = depositFirstPurpose)
     }
@@ -105,6 +132,114 @@ private fun swapEntryProvider(
     }
     annotatedEntry<SwapStep.Processing> {
         SwapProcessingScreen()
+    }
+}
+
+/**
+ * Destination picker for a conversion. Selecting a currency updates the in-flight purpose and pops
+ * straight back to amount entry — nothing else in the flow changes, so there's no resolve to await.
+ */
+@Composable
+private fun ConvertDestinationSelectScreen() {
+    val selectionViewModel = hiltViewModel<SelectTokenViewModel>()
+    val viewModel = flowSharedViewModel<SwapViewModel>()
+    val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
+    val purpose = viewModel.stateFlow.collectAsStateWithLifecycle().value.purpose
+
+    val convert = purpose as? SwapPurpose.Convert ?: return
+
+    // Height is the sheet's business, not the content's: the sheet hands down its current detent
+    // height and the list simply fills it. Re-stating a fraction of the screen here would fight
+    // that — it capped the list short of the sheet's own bottom edge, stranding the list's edge
+    // fade above it.
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            // Sheets stop short of the system bars, so pad for them here.
+            .navigationBarsPadding(),
+    ) {
+        // A sheet has no app bar: the title sits flush-left above the list, and the sheet's own
+        // scrim/drag handles dismissal.
+        Text(
+            modifier = Modifier
+                .padding(horizontal = CodeTheme.dimens.inset)
+                .padding(
+                    top = CodeTheme.dimens.staticGrid.x7,
+                    bottom = CodeTheme.dimens.staticGrid.x5,
+                ),
+            text = stringResource(R.string.title_selectCurrency),
+            style = CodeTheme.typography.textLarge,
+            color = CodeTheme.colors.textMain,
+        )
+
+        TokenSelectScreen(
+            purpose = TokenPurpose.ConvertDestination(convert.mint, convert.destinationMint),
+            showTopBar = false,
+            presentation = TokenListPresentation.Sheet,
+        )
+    }
+
+    LaunchedEffect(selectionViewModel) {
+        selectionViewModel.eventFlow
+            .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
+            .filter { it.fromUser }
+            .map { it.mint }
+            .onEach {
+                viewModel.dispatchEvent(SwapViewModel.Event.OnDestinationSelected(it))
+                flowNavigator.back()
+            }
+            .launchIn(this)
+    }
+}
+
+/**
+ * Payment-source picker for a v2 Get. Selecting a currency re-points the entry cap and pops back to
+ * amount entry — unlike [SwapPurchaseTokenSelectScreen], which prices the buy and pushes a receipt.
+ */
+@Composable
+private fun BuyFundingSelectScreen() {
+    val selectionViewModel = hiltViewModel<SelectTokenViewModel>()
+    val viewModel = flowSharedViewModel<SwapViewModel>()
+    val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
+    val state = viewModel.stateFlow.collectAsStateWithLifecycle().value
+
+    val buy = state.purpose as? SwapPurpose.Buy ?: return
+    val current = state.fundingMint ?: return
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
+    ) {
+        Text(
+            modifier = Modifier
+                .padding(horizontal = CodeTheme.dimens.inset)
+                .padding(
+                    top = CodeTheme.dimens.staticGrid.x7,
+                    bottom = CodeTheme.dimens.staticGrid.x5,
+                ),
+            text = stringResource(R.string.title_selectCurrency),
+            style = CodeTheme.typography.textLarge,
+            color = CodeTheme.colors.textMain,
+        )
+
+        TokenSelectScreen(
+            purpose = TokenPurpose.BuyFunding(target = buy.mint, current = current),
+            showTopBar = false,
+            presentation = TokenListPresentation.Sheet,
+        )
+    }
+
+    LaunchedEffect(selectionViewModel) {
+        selectionViewModel.eventFlow
+            .filterIsInstance<SelectTokenViewModel.Event.OnTokenSelected>()
+            .filter { it.fromUser }
+            .map { it.mint }
+            .onEach {
+                viewModel.dispatchEvent(SwapViewModel.Event.OnFundingSourceSelected(it))
+                flowNavigator.back()
+            }
+            .launchIn(this)
     }
 }
 

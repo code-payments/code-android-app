@@ -224,6 +224,7 @@ sealed interface AppRoute : NavKey, Parcelable {
                         }
                     }
                     is SwapPurpose.Sell -> listOf(SwapStep.Entry(purpose, initialAmount = shortfall))
+                    is SwapPurpose.Convert -> listOf(SwapStep.Entry(purpose, initialAmount = shortfall))
                 }
 
 

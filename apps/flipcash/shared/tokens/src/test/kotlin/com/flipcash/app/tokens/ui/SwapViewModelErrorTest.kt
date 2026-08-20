@@ -3,6 +3,7 @@ package com.flipcash.app.tokens.ui
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.featureflags.NoOpFeatureFlagController
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
@@ -113,6 +114,9 @@ class SwapViewModelErrorTest {
             dispatchers = dispatchers,
             userFlags = userFlagsCoordinator,
             usdcDepositSweep = usdcDepositSweep,
+            // These cases exercise the v1 buy/sell paths; the no-op controller reports every
+            // flag off, so NewUi stays false without stubbing a StateFlow per test.
+            featureFlags = NoOpFeatureFlagController,
         )
     }
 

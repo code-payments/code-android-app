@@ -18,6 +18,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -50,6 +51,7 @@ import com.getcode.navigation.scrim.LocalScrimController
 import com.getcode.navigation.scrim.ScrimOverlay
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.noRippleClickable
+import com.getcode.ui.utils.LocalSheetExpansionState
 import com.getcode.ui.utils.LocalSheetGesturesState
 import kotlinx.coroutines.launch
 
@@ -60,6 +62,18 @@ data class BottomSheetProperties(
 
 private val Expanded = SheetDetent("expanded") { containerHeight, _ ->
     containerHeight * 0.925f
+}
+
+/**
+ * Resting — and, for short content, only — detent for a [com.getcode.navigation.HalfSheet].
+ *
+ * The sheet always fills this detent, so its content is measured against it and does not need to
+ * restate the fraction. [Expanded] joins the detent list only once the content reports that it
+ * overruns this one, so a sheet with nothing below the fold can't be dragged up into dead space —
+ * see [com.getcode.ui.utils.LocalSheetExpansionState].
+ */
+private val Half = SheetDetent("half") { containerHeight, _ ->
+    containerHeight * 0.5f
 }
 
 /** An [OverlayScene] that renders an [entry] within an [UnstyledBottomSheet]. */
@@ -119,18 +133,50 @@ internal class ModalBottomSheetScene<T : Any> constructor(
             val isWrapContent =
                 metadata[NavMetadataKeys.IsWrapContentSheet.key] as? Boolean ?: false
 
+            // A half sheet gains an extra resting detent and opens there; every other sheet keeps
+            // the two-detent (hidden/expanded) behaviour.
+            val isHalfSheet = metadata[NavMetadataKeys.IsHalfSheet.key] as? Boolean ?: false
+            val restingDetent = if (isHalfSheet) Half else Expanded
+
+            // Whether the sheet's content overruns [restingDetent]. Half sheets start out
+            // unexpandable and are handed [Expanded] only once their content says it needs it.
+            var contentOverflows by remember { mutableStateOf(false) }
+            // Kept stable: this backs a static local, so a fresh lambda each pass would
+            // needlessly invalidate the whole sheet subtree.
+            val setContentOverflows = remember { { overflows: Boolean ->
+                contentOverflows = overflows
+            } }
+
             val sheetState = rememberBottomSheetState(
                 initialDetent = SheetDetent.Hidden,
-                detents = listOf(SheetDetent.Hidden, Expanded),
+                detents = if (isHalfSheet) {
+                    listOf(SheetDetent.Hidden, Half)
+                } else {
+                    listOf(SheetDetent.Hidden, Expanded)
+                },
                 confirmDetentChange = { detent ->
                     detent != SheetDetent.Hidden || allowDismiss
                 },
             )
 
+            // Offer the expanded detent only while there is something below the fold to expand into,
+            // so a sheet that already fits can't be dragged up into empty space. Never withdraw it
+            // while the sheet is sitting at (or heading toward) it.
+            LaunchedEffect(isHalfSheet, contentOverflows) {
+                if (!isHalfSheet) return@LaunchedEffect
+                val atExpanded = sheetState.currentDetent == Expanded ||
+                        sheetState.targetDetent == Expanded
+                sheetState.detents = if (contentOverflows || atExpanded) {
+                    listOf(SheetDetent.Hidden, Half, Expanded)
+                } else {
+                    listOf(SheetDetent.Hidden, Half)
+                }
+            }
+
             // Animate the sheet in on first composition and after
             // same-route dismiss-replace (sheetGeneration increments).
             LaunchedEffect(navigator.sheetGeneration) {
-                sheetState.animateTo(Expanded)
+                sheetState.animateTo(restingDetent)
             }
 
             val composeScope = rememberCoroutineScope()
@@ -172,6 +218,7 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                 LocalSheetGesturesState provides { enabled ->
                     allowDismiss = enabled && !navigator.sheetDragDisabled
                 },
+                LocalSheetExpansionState provides setContentOverflows,
                 LocalScrimController provides scrim,
             ) {
                 BackHandler(enabled = effectiveProperties.dismissOnBackPress) {
@@ -197,8 +244,10 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                         modifier = Modifier
                             .fillMaxSize()
                             .drawBehind {
+                                // Saturate the scrim at the sheet's resting detent, not at fully
+                                // expanded — a half sheet would otherwise open under-dimmed.
                                 val progress = sheetState
-                                    .progress(SheetDetent.Hidden, Expanded)
+                                    .progress(SheetDetent.Hidden, restingDetent)
                                     .coerceIn(0f, 1f)
                                 // A bill beneath the sheet already dims the screen with its own
                                 // (constant) scrim, so don't stack a second dim here — otherwise

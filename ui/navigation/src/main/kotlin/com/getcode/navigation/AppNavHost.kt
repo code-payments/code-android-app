@@ -54,8 +54,12 @@ fun AppNavHost(
         }
     },
     popTransitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = transitionSpec,
+    // Predictive back is a pop, so it must default to the pop spec. Defaulting to [transitionSpec]
+    // ran the *forward* animation backwards-in-time: the screen being returned to slid in from the
+    // right instead of the left. Hosts that don't distinguish the two are unaffected, since their
+    // [popTransitionSpec] is [transitionSpec].
     predictivePopTransitionSpec: AnimatedContentTransitionScope<Scene<NavKey>>.(Int) -> ContentTransform = {
-        transitionSpec()
+        popTransitionSpec()
     },
     onBack: (() -> Unit)? = null,
     entryProvider: (key: NavKey) -> NavEntry<NavKey>,
