@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
@@ -53,6 +54,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.utils.LocalSheetExpansionState
 import com.getcode.ui.utils.LocalSheetGesturesState
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 data class BottomSheetProperties(
@@ -173,10 +175,41 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                 }
             }
 
+            // One presentation of the sheet must pop its entry exactly once. Every dismissal ends
+            // with the sheet settled at Hidden, and the settle observer below fires for all of
+            // them — including the explicit paths here and in [pendingSheetDismiss] — so the pop is
+            // funnelled through this guard. Reset when the sheet is (re-)opened.
+            var dismissHandled by remember { mutableStateOf(false) }
+            val finishDismiss = {
+                if (!dismissHandled) {
+                    dismissHandled = true
+                    handleBackResult()
+                    onBack()
+                }
+            }
+
             // Animate the sheet in on first composition and after
             // same-route dismiss-replace (sheetGeneration increments).
             LaunchedEffect(navigator.sheetGeneration) {
                 sheetState.animateTo(restingDetent)
+            }
+
+            // [UnstyledBottomSheet] is a plain sheet with no dismissal callback of its own, so
+            // dragging it closed hides it without telling anyone: the entry stays on the backstack
+            // as an invisible sheet that still swallows every touch through its full-size scrim,
+            // and chrome that hides while a sheet is up (the v2 tab bar) stays hidden until the
+            // next tap lands on that scrim and pops it. Watch the sheet's state rather than the
+            // gesture, so a drag-dismiss pops the entry the same way a scrim tap does.
+            LaunchedEffect(navigator.sheetGeneration) {
+                dismissHandled = false
+                // The sheet starts out Hidden, so a return to Hidden only means "dismissed" once
+                // it has actually been presented.
+                snapshotFlow { sheetState.targetDetent }.first { it != SheetDetent.Hidden }
+                // Settled, not merely targeted: mid-drag the target flips to Hidden and back as the
+                // finger crosses the dismiss threshold.
+                snapshotFlow { sheetState.isIdle && sheetState.currentDetent == SheetDetent.Hidden }
+                    .first { it }
+                finishDismiss()
             }
 
             val composeScope = rememberCoroutineScope()
@@ -186,12 +219,10 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                     composeScope.launch {
                         sheetState.animateTo(SheetDetent.Hidden)
                     }.invokeOnCompletion {
-                        handleBackResult()
-                        onBack()
+                        finishDismiss()
                     }
                 } else {
-                    handleBackResult()
-                    onBack()
+                    finishDismiss()
                 }
             }
 
@@ -203,8 +234,7 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                         sheetState.animateTo(SheetDetent.Hidden)
                     } finally {
                         Snapshot.withMutableSnapshot {
-                            handleBackResult()
-                            onBack()
+                            finishDismiss()
                             navigator.pendingSheetDismiss = null
                             pendingDismiss()
                         }

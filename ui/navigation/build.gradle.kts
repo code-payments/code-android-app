@@ -35,4 +35,5 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.bundles.compose.ui.testing)
 }
