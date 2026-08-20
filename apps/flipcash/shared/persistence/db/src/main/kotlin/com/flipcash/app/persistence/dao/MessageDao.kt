@@ -40,8 +40,25 @@ interface MessageDao {
     /**
      * The [limit] most recent messages for a single token, newest first — the token info screen's
      * per-token recent-activity preview.
+     *
+     * A convert spans two mints and belongs to both token histories, but a row carries only one
+     * [MessageEntity.mintBase58] — the source mint, taken from the amount the user gave up. The
+     * destination mint is only ever written into the serialized metadata (`SwappedCryptoMetadata`
+     * persists it as a base58 string under `toMint`), so matching it there is what puts the convert
+     * on the *receiving* token's screen too. Matching on the JSON rather than adding a column also
+     * fixes rows that are already in the cache. Same LIKE-on-metadata approach as
+     * [hasEverReceivedMoney]; base58 contains no LIKE wildcards, so the bound value is literal.
+     *
+     * The destination match is restricted to converts on purpose: a withdrawal can also carry swap
+     * metadata, but there the destination leaves the app entirely, so it does not belong on the
+     * destination token's history. `ActivityFeedCoordinator.involves` applies the same rule in memory.
      */
-    @Query("SELECT * FROM messages WHERE mintBase58 = :mintBase58 ORDER BY timestamp DESC LIMIT :limit")
+    @Query(
+        "SELECT * FROM messages WHERE mintBase58 = :mintBase58 " +
+            "OR (metadata LIKE '%com.flipcash.app.core.feed.MessageMetadata.SwappedCrypto%' " +
+            "AND metadata LIKE '%\"toMint\":\"' || :mintBase58 || '\"%') " +
+            "ORDER BY timestamp DESC LIMIT :limit"
+    )
     fun observeRecentForMint(mintBase58: String, limit: Int): Flow<List<MessageEntity>>
 
     @Query("SELECT * FROM messages")

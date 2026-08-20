@@ -28,6 +28,7 @@ class WalletLoadingStateTest {
         avatar = TransactionAvatar.Generic,
         signedAmountPrefix = "+",
         amount = null,
+        fee = null,
         canCancel = false,
     )
 

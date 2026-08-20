@@ -55,9 +55,20 @@ class MessageDataSource @Inject constructor(
         db?.messageDao()?.deleteAllMessages()
     }
 
+    /**
+     * Persists a fetched page, failing loudly when the per-user DB isn't open.
+     *
+     * A page that can't be written is a *failed* fetch, not an empty one: every sync path pages
+     * forward from the newest cached id and never re-requests notifications it believes are already
+     * cached, so a silently-dropped page is lost for the life of the cache. Throwing lets
+     * `FeedRemoteMediator` return a retryable `MediatorResult.Error` and keeps
+     * `ActivityFeedCoordinator` from reporting a sync that never landed — matching [observe], which
+     * already treats a missing DB as an error rather than as no results.
+     */
     override suspend fun upsert(value: List<ActivityFeedNotification>) {
+        val dao = checkNotNull(db?.messageDao()) { "Database not initialized" }
         val entities = notificationEntityMapper.map(value)
-        db?.messageDao()?.upsert(*entities.toTypedArray())
+        dao.upsert(*entities.toTypedArray())
     }
 
     /**

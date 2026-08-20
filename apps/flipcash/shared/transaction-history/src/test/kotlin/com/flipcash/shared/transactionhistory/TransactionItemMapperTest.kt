@@ -5,6 +5,8 @@ import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageState
 import com.flipcash.app.core.feed.MessageSubstitution
+import com.flipcash.app.core.feed.SwapState
+import com.flipcash.app.core.feed.SwappedCryptoMetadata
 import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.transactionhistory.internal.TransactionItemMapper
 import com.getcode.opencode.model.core.ID
@@ -27,6 +29,7 @@ class TransactionItemMapperTest {
 
     private val resources = FakeResourceHelper()
         .stub(R.string.title_activity_tipFrom, "Tip from %1\$s")
+        .stub(R.string.title_activity_convert, "%1\$s → %2\$s")
     private val mapper = TransactionItemMapper(resources)
 
     private val knownUserId: ID = listOf<Byte>(0x0A, 0x0B, 0x0C)
@@ -217,5 +220,72 @@ class TransactionItemMapperTest {
 
         assertEquals(true, item.canCancel)
         assertEquals("-", item.signedAmountPrefix)
+    }
+
+    // -- converts (two mints, one row) --
+
+    private fun convert(fee: Double = 0.25) = MessageMetadata.SwappedCrypto(
+        swap = SwappedCryptoMetadata(
+            from = LocalFiat(
+                usdf = Fiat(20.0, CurrencyCode.USD),
+                nativeAmount = Fiat(20.0, CurrencyCode.USD),
+            ),
+            toMint = Mint.usdc,
+            toAmount = LocalFiat(
+                usdf = Fiat(19.75, CurrencyCode.USD),
+                nativeAmount = Fiat(19.75, CurrencyCode.USD),
+                mint = Mint.usdc,
+            ),
+            fee = Fiat(fee, CurrencyCode.USD),
+            swapState = SwapState.SUCCEEDED,
+        ),
+    )
+
+    @Test
+    fun `a convert shows both token logos and carries the fee`() {
+        val from = usdfToken()
+        val to = token(address = Mint.usdc, name = "Dad Cash", symbol = "DADCASH")
+        val msg = feedMessage(metadata = convert()).copy(text = "Converted", textSubstitutions = emptyList())
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, from, to) to emptyMap())
+
+        assertEquals(TransactionAvatar.SwapTokens(from, to), item.avatar)
+        assertEquals(Fiat(0.25, CurrencyCode.USD), item.fee)
+        assertEquals("-", item.signedAmountPrefix)
+    }
+
+    @Test
+    fun `a convert titles itself with both token names instead of the server verb`() {
+        val from = usdfToken()
+        val to = token(address = Mint.usdc, name = "Dad Cash", symbol = "DADCASH")
+        val msg = feedMessage(metadata = convert()).copy(text = "Converted", textSubstitutions = emptyList())
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, from, to) to emptyMap())
+
+        assertEquals("USDF → Dad Cash", item.title)
+    }
+
+    @Test
+    fun `a convert keeps the server title until both tokens resolve`() {
+        val from = usdfToken()
+        val msg = feedMessage(metadata = convert()).copy(text = "Converted", textSubstitutions = emptyList())
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, from, toToken = null) to emptyMap())
+
+        assertEquals("Converted", item.title)
+    }
+
+    @Test
+    fun `a convert keeps the dual avatar while a token is still unresolved`() {
+        val from = usdfToken()
+        val msg = feedMessage(metadata = convert())
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, from, toToken = null) to emptyMap())
+
+        assertEquals(TransactionAvatar.SwapTokens(from, null), item.avatar)
+    }
+
+    @Test
+    fun `a non-convert carries no fee`() {
+        val msg = feedMessage(metadata = MessageMetadata.DepositedCrypto)
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, usdfToken()) to emptyMap())
+
+        assertEquals(null, item.fee)
     }
 }

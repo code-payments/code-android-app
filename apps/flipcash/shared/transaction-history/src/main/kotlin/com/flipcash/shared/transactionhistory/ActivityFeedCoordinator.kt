@@ -139,10 +139,13 @@ class ActivityFeedCoordinator @Inject internal constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     fun transactions(mint: Mint): Flow<PagingData<ActivityFeedMessageWithToken>> = messages.map { page ->
             page.filter { message ->
-                message.amount?.mint == mint
+                // Converts span two mints and belong on both token histories (see [involves]).
+                message.involves(mint)
             }.map { msg ->
                 val result = msg.amount?.mint?.let { tokenProvider.getTokenMetadata(it) }?.getOrNull()
-                ActivityFeedMessageWithToken(msg, result?.token)
+                val destination = convertOf(msg.metadata)?.toMint
+                    ?.let { tokenProvider.getTokenMetadata(Mint(it.bytes)) }?.getOrNull()
+                ActivityFeedMessageWithToken(msg, result?.token, destination?.token)
             }
         }
 
@@ -181,7 +184,10 @@ class ActivityFeedCoordinator @Inject internal constructor(
                         ?.takeUnless { profiles.containsKey(it.hexEncodedString()) }
                         ?.let(::ensureProfile)
                     val token = msg.amount?.mint?.let { tokens[it] }
-                    transactionItemMapper.map(ActivityFeedMessageWithToken(msg, token) to profiles)
+                    val toToken = destinationTokenOf(msg.metadata, tokens)
+                    transactionItemMapper.map(
+                        ActivityFeedMessageWithToken(msg, token, toToken) to profiles
+                    )
                 }
             }
 
@@ -212,6 +218,14 @@ class ActivityFeedCoordinator @Inject internal constructor(
         else -> null
     }
 
+    /**
+     * The destination token of a convert, cache-only (null for everything else, and for a mint whose
+     * metadata hasn't landed yet — the row re-maps when it does). Re-keyed as a [Mint] because the
+     * persisted destination is a plain `PublicKey` and `KeyType.equals` is javaClass-sensitive.
+     */
+    private fun destinationTokenOf(meta: MessageMetadata?, tokens: Map<Mint, Token>): Token? =
+        convertOf(meta)?.toMint?.let { tokens[Mint(it.bytes)] }
+
     private fun counterpartyOf(meta: NotificationMetadata?): ID? = when (meta) {
         is NotificationMetadata.DirectlySentCrypto -> meta.userId
         is NotificationMetadata.ReceivedCrypto -> meta.userId
@@ -232,7 +246,10 @@ class ActivityFeedCoordinator @Inject internal constructor(
                     ?.takeUnless { profiles.containsKey(it.hexEncodedString()) }
                     ?.let(::ensureProfile)
                 val token = msg.amount?.mint?.let { tokens[it] }
-                transactionItemMapper.map(ActivityFeedMessageWithToken(msg, token) to profiles)
+                val toToken = destinationTokenOf(msg.metadata, tokens)
+                transactionItemMapper.map(
+                    ActivityFeedMessageWithToken(msg, token, toToken) to profiles
+                )
             }
         }
 
@@ -249,7 +266,10 @@ class ActivityFeedCoordinator @Inject internal constructor(
                     ?.takeUnless { profiles.containsKey(it.hexEncodedString()) }
                     ?.let(::ensureProfile)
                 val token = msg.amount?.mint?.let { tokens[it] }
-                transactionItemMapper.map(ActivityFeedMessageWithToken(msg, token) to profiles)
+                val toToken = destinationTokenOf(msg.metadata, tokens)
+                transactionItemMapper.map(
+                    ActivityFeedMessageWithToken(msg, token, toToken) to profiles
+                )
             }
         }
 
@@ -282,7 +302,7 @@ class ActivityFeedCoordinator @Inject internal constructor(
         }
 
         return activityFeedController.getNotificationsById(pendingMessages.map { it.id })
-            .map { notifications ->
+            .mapCatching { notifications ->
                 val completedCount = notifications.count { it.state == NotificationState.COMPLETED }
 
                 trace(
@@ -306,10 +326,11 @@ class ActivityFeedCoordinator @Inject internal constructor(
                 descending = latest == null,
             )
         )
+            // Caching is part of the fetch, so a write that fails fails the whole refresh: this
+            // only ever pages *forward* from the newest cached id, so a page that doesn't land is
+            // never asked for again.
+            .mapCatching { dataSource.upsert(it) }
             .onSuccess {
-                dataSource.upsert(it)
-                // The per-user DB is opened before the auth gate that lets this call run at all, so
-                // a successful fetch here really has landed in the cache.
                 _syncState.value = FeedSyncState.Synced
             }
             // Don't downgrade a sync that already succeeded — a later failure just means this
@@ -319,6 +340,5 @@ class ActivityFeedCoordinator @Inject internal constructor(
                     if (current == FeedSyncState.Unknown) FeedSyncState.Unavailable else current
                 }
             }
-            .map { Unit }
     }
 }

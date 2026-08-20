@@ -17,6 +17,8 @@ import com.codeinc.flipcash.gen.common.v1.publicKey
 import com.flipcash.services.models.NotificationMetadata
 import com.flipcash.services.models.NotificationState
 import com.flipcash.services.models.SwapState
+import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import com.google.protobuf.ByteString
 import com.google.protobuf.Timestamp
 import org.junit.Test
@@ -299,5 +301,96 @@ class ActivityFeedMessageMapperTest {
 
         val result = mapper.map(proto)
         assertNotNull(result.amount)
+    }
+
+    // --- Swap amounts (see model.proto: multi-mint operations carry amounts in additional_metadata) ---
+
+    @Test
+    fun `an executed swap reports the source side as its amount`() {
+        val sourceMintBytes = ByteArray(32) { 7 }
+        val proto = baseNotification {
+            swappedCrypto = swappedCryptoNotificationMetadata {
+                from = cryptoPaymentAmount {
+                    currency = "USD"
+                    nativeAmount = 5.0
+                    quarks = 5_000_000L
+                    mint = publicKey { value = ByteString.copyFrom(sourceMintBytes) }
+                }
+                toAmount = cryptoPaymentAmount {
+                    currency = "USD"
+                    nativeAmount = 4.9
+                    quarks = 4_900_000L
+                    mint = publicKey { value = ByteString.copyFrom(ByteArray(32) { 9 }) }
+                }
+                fee = fiatPaymentAmount {
+                    currency = "USD"
+                    nativeAmount = 0.1
+                }
+                swapState = Model.SwapState.SWAP_STATE_SUCCEEDED
+            }
+        }
+
+        val amount = mapper.map(proto).amount
+
+        assertNotNull(amount)
+        assertEquals(5_000_000L, amount.underlyingTokenAmount.quarks)
+        assertEquals(5.0, amount.nativeAmount.decimalValue, 0.01)
+        assertEquals(Mint(sourceMintBytes.toList()).base58(), amount.mint.base58())
+    }
+
+    @Test
+    fun `a pending swap reports the source side as its amount`() {
+        val sourceMintBytes = ByteArray(32) { 7 }
+        val proto = baseNotification {
+            swappedCrypto = swappedCryptoNotificationMetadata {
+                from = cryptoPaymentAmount {
+                    currency = "USD"
+                    nativeAmount = 5.0
+                    quarks = 5_000_000L
+                    mint = publicKey { value = ByteString.copyFrom(sourceMintBytes) }
+                }
+                toMint = publicKey { value = ByteString.copyFrom(ByteArray(32) { 9 }) }
+                fee = fiatPaymentAmount {
+                    currency = "USD"
+                    nativeAmount = 0.1
+                }
+                swapState = Model.SwapState.SWAP_STATE_PENDING
+            }
+        }
+
+        val amount = mapper.map(proto).amount
+
+        assertNotNull(amount)
+        assertEquals(5_000_000L, amount.underlyingTokenAmount.quarks)
+        assertEquals(Mint(sourceMintBytes.toList()).base58(), amount.mint.base58())
+    }
+
+    @Test
+    fun `an explicit payment amount still wins over the swap metadata`() {
+        val proto = baseNotification {
+            paymentAmount = cryptoPaymentAmount {
+                currency = "USD"
+                nativeAmount = 12.0
+                quarks = 12_000_000L
+            }
+            swappedCrypto = swappedCryptoNotificationMetadata {
+                from = cryptoPaymentAmount {
+                    currency = "USD"
+                    nativeAmount = 5.0
+                    quarks = 5_000_000L
+                }
+                toMint = publicKey { value = ByteString.copyFrom(ByteArray(32) { 9 }) }
+                fee = fiatPaymentAmount {
+                    currency = "USD"
+                    nativeAmount = 0.1
+                }
+                swapState = Model.SwapState.SWAP_STATE_PENDING
+            }
+        }
+
+        val amount = mapper.map(proto).amount
+
+        assertNotNull(amount)
+        assertEquals(12_000_000L, amount.underlyingTokenAmount.quarks)
     }
 }

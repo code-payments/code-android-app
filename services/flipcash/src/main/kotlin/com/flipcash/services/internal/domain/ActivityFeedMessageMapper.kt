@@ -32,7 +32,7 @@ internal class ActivityFeedMessageMapper @Inject constructor(
         return ActivityFeedNotification(
             id = from.id.toId(),
             text = from.localizedText,
-            amount = from.paymentAmountOrNull?.let { localFiatOf(it) },
+            amount = from.paymentAmountOrNull?.let { localFiatOf(it) } ?: from.multiMintAmount(),
             timestamp = Instant.fromEpochSeconds(from.ts.seconds),
             state = when (from.state) {
                 Model.NotificationState.NOTIFICATION_STATE_PENDING -> NotificationState.PENDING
@@ -84,6 +84,20 @@ internal class ActivityFeedMessageMapper @Inject constructor(
         )
     }
 }
+
+/**
+ * The feed amount for a multi-mint operation.
+ *
+ * Swaps span two mints, so the server leaves the single-mint `payment_amount` unset and carries the
+ * amounts in `additional_metadata` instead (see `activity/v1/model.proto`). The feed shows what the
+ * user gave up, so the source (`from`) side is the row's amount — and, just as importantly, its mint,
+ * which is what per-token surfaces filter on.
+ */
+private fun Model.Notification.multiMintAmount(): LocalFiat? =
+    when (additionalMetadataCase) {
+        Model.Notification.AdditionalMetadataCase.SWAPPED_CRYPTO -> localFiatOf(swappedCrypto.from)
+        else -> null
+    }
 
 /**
  * Builds a [LocalFiat] from a proto [Common.CryptoPaymentAmount]: usdf (or no mint) collapses to a

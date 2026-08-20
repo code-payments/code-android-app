@@ -1,7 +1,9 @@
 package com.flipcash.shared.transactionhistory
 
 import android.text.format.DateFormat
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.ui.TokenIcon
+import com.getcode.opencode.model.financial.Token
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.services.models.UserProfile
 import com.getcode.theme.CodeTheme
@@ -54,6 +57,8 @@ fun ActivityFeedRow(
                  ContactAvatar(userProfile = a.profile, modifier = avatarModifier)
              is TransactionAvatar.TokenIcon ->
                  TokenIcon(token = a.token, modifier = avatarModifier)
+             is TransactionAvatar.SwapTokens ->
+                 SwapAvatar(a, modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x8))
              TransactionAvatar.Generic ->
                  ContactAvatar(userProfile = UserProfile.Empty, modifier = avatarModifier)
          }
@@ -76,13 +81,75 @@ fun ActivityFeedRow(
             )
         }
 
-        item.amount?.let { fiat ->
-            Text(
-                text = fiat.formatted(extraPrefix = item.signedAmountPrefix?.ifEmpty { null }),
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textMain,
-            )
+        val fee = item.fee
+        val amount = item.amount
+        if (fee != null && amount != null) {
+            // A convert is two amounts in one row: what left the source token, and what the swap
+            // cost. It carries no sign — the pairing, not a prefix, is what reads as an exchange.
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+            ) {
+                Text(
+                    text = amount.formatted(),
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textMain,
+                    maxLines = 1,
+                )
+                Text(
+                    text = stringResource(R.string.label_activity_convertFee, fee.formatted()),
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                    maxLines = 1,
+                )
+            }
+        } else {
+            amount?.let { fiat ->
+                Text(
+                    text = fiat.formatted(extraPrefix = item.signedAmountPrefix?.ifEmpty { null }),
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textMain,
+                )
+            }
         }
+    }
+}
+
+/**
+ * A convert's two tokens as overlapping coins — the destination sits over the source, ringed in the
+ * page background so the overlap reads as depth. Mirrors iOS's `swapAvatar` in `ActivityRow.swift`.
+ */
+@Composable
+private fun SwapAvatar(
+    avatar: TransactionAvatar.SwapTokens,
+    modifier: Modifier = Modifier,
+) {
+    val coin = CodeTheme.dimens.staticGrid.x5
+    Box(modifier = modifier) {
+        TokenCoin(
+            token = avatar.from,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .requiredSize(coin),
+        )
+        TokenCoin(
+            token = avatar.to,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .requiredSize(coin)
+                .border(CodeTheme.dimens.thickBorder, CodeTheme.colors.background, CircleShape),
+        )
+    }
+}
+
+/** One coin of a [SwapAvatar]; an unresolved side draws the shared placeholder. */
+@Composable
+private fun TokenCoin(token: Token?, modifier: Modifier) {
+    val shaped = modifier.clip(CircleShape)
+    if (token != null) {
+        TokenIcon(token = token, modifier = shaped)
+    } else {
+        TokenIcon(image = null, modifier = shaped)
     }
 }
 
