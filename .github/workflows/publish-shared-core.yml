@@ -67,6 +67,16 @@ jobs:
             echo 'COINBASE_ONRAMP_API_KEY=00000000-0000-0000-0000-000000000000'
           } > ./local.properties
 
+      # The Swift half of the package lives here, next to the Kotlin it wraps, so the
+      # two move in one commit; the Swift Package repo is a publish target, not a place
+      # to edit. `Package.swift` has to be in place before Gradle runs, since KMMBridge
+      # only rewrites the variables block inside it.
+      - name: Stage the Swift package sources
+        run: |
+          set -euo pipefail
+          rm -rf spm-repo/Sources spm-repo/Tests
+          cp -R kmp/shared-core/spm/Package.swift kmp/shared-core/spm/Sources kmp/shared-core/spm/Tests spm-repo/
+
       - name: Build the XCFramework, upload it, and update Package.swift
         env:
           # Gradle reads ORG_GRADLE_PROJECT_-prefixed vars as project properties,
@@ -78,6 +88,21 @@ jobs:
             -PsharedCoreVersion=${{ inputs.version }} \
             -PspmRepoDir=$GITHUB_WORKSPACE/spm-repo
 
+      # The release asset is up by now but the tag still points at the old
+      # Package.swift, so nothing consumes this build until the next step. Compiling
+      # the Swift glue against the framework we just uploaded is the last moment a
+      # mismatch between the two is cheap to fix — after the tag moves, it's a
+      # published-and-broken version.
+      - name: Verify the package builds against the uploaded framework
+        working-directory: spm-repo
+        run: |
+          set -euo pipefail
+          xcodebuild -scheme SharedCore \
+            -destination 'generic/platform=iOS Simulator' \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm-verify" \
+            -quiet \
+            build
+
       - name: Commit and tag the Swift Package
         working-directory: spm-repo
         run: |
@@ -85,9 +110,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add Package.swift
+          git add -A Package.swift Sources Tests
           if git diff --cached --quiet; then
-            echo "Package.swift is unchanged — the upload produced the same URL and checksum."
+            echo "Nothing to commit — the upload produced the same URL and checksum, and the Swift sources are unchanged."
             exit 1
           fi
           git commit -m "SharedCore ${{ inputs.version }}"
