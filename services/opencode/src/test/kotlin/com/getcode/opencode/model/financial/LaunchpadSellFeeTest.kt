@@ -74,4 +74,40 @@ class LaunchpadSellFeeTest {
         assertEquals(Fiat.Zero.quarks, net.launchpadSellFee(bps = 0).quarks)
         assertEquals(net, net.grossingUpLaunchpadSellFee(bps = 0))
     }
+
+    @Test
+    fun `spendable under a grossed-up fee grosses back up to the balance`() {
+        val balance = Fiat(20.0)
+
+        val spendable = balance.spendableUnderGrossedUpSellFee(bps = 100)
+
+        assertEquals("$19.80", spendable.formatted())
+        assertEquals(balance.quarks, spendable.grossingUpLaunchpadSellFee(bps = 100).quarks)
+    }
+
+    @Test
+    fun `spendable under a fee charged on top leaves exactly enough for the fee`() {
+        val balance = Fiat(10.10)
+
+        val spendable = balance.spendableUnderSellFeeOnTop(bps = 100)
+
+        assertEquals("$10.00", spendable.formatted())
+        assertEquals(balance.quarks, (spendable + spendable.launchpadSellFee(bps = 100)).quarks)
+    }
+
+    @Test
+    fun `spending the whole balance is only possible with a zero fee`() {
+        val balance = Fiat(20.0)
+
+        assertEquals(balance, balance.spendableUnderSellFeeOnTop(bps = 0))
+        assertEquals(balance, balance.spendableUnderGrossedUpSellFee(bps = 0))
+    }
+
+    @Test
+    fun `an on-top fee above 100 percent is clamped rather than over-shrinking the entry`() {
+        val balance = Fiat(20.0)
+
+        // Clamped to 10_000 (100%): half the balance covers a fee equal to the entry.
+        assertEquals("$10.00", balance.spendableUnderSellFeeOnTop(bps = 12_000).formatted())
+    }
 }

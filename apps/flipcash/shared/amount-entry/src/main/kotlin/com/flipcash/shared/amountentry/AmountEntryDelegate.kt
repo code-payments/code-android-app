@@ -182,6 +182,18 @@ class AmountEntryDelegate(
         updateAnimatedModel(backspace = false)
     }
 
+    /**
+     * Replaces whatever is currently entered with [amount], as opposed to [prefill], which types
+     * on top of the existing entry. For corrections the flow makes on the user's behalf — dropping
+     * an entry to the maximum a balance can actually fund, say — so the amount screen keeps
+     * agreeing with what the rest of the flow priced.
+     */
+    fun setAmount(amount: Double) {
+        numberInputHelper.fractionUnits = _state.value.currency.fractionUnits
+        reset()
+        prefill(amount)
+    }
+
     fun reset() {
         numberInputHelper.reset()
         _state.update { it.copy(amountAnimatedModel = AmountAnimatedInputUiModel()) }

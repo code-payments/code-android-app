@@ -458,10 +458,6 @@
     <string name="subtitle_youPay">You Pay</string>
     <string name="subtitle_youReceive">You Receive</string>
 
-    <string name="title_insufficientBalanceAfterFees">Insufficient Balance After Fees</string>
-    <string name="description_insufficientBalanceAfterFees">Switch to maximum amount, or go back and enter a smaller amount</string>
-    <string name="action_buyMaximumAmount">Buy Maximum Amount</string>
-
     <string name="action_give">Give</string>
     <string name="action_send">Send</string>
     <string name="title_transactionHistory">Transaction History</string>

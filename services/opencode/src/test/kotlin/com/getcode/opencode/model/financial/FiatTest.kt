@@ -307,4 +307,25 @@ class FiatTest {
         assertEquals(0L, Fiat.Zero.quarks)
         assertEquals(CurrencyCode.USD, Fiat.Zero.currencyCode)
     }
+
+    // --- Flooring to the smallest unit ---
+
+    @Test
+    fun `flooring truncates sub-unit precision instead of rounding it up`() {
+        // Leaving 1% headroom on a $10.00 balance gives $9.90099 — rounding up would put the
+        // entry right back over budget.
+        assertEquals(Fiat(9.90).quarks, Fiat(9.90099).flooredToSmallestUnit().quarks)
+    }
+
+    @Test
+    fun `flooring leaves a value already on the smallest unit untouched`() {
+        val exact = Fiat(9.90)
+        assertEquals(exact, exact.flooredToSmallestUnit())
+    }
+
+    @Test
+    fun `flooring a zero-decimal currency truncates to whole units`() {
+        val yen = Fiat(1234.9, CurrencyCode.JPY)
+        assertEquals(Fiat(1234.0, CurrencyCode.JPY).quarks, yen.flooredToSmallestUnit().quarks)
+    }
 }

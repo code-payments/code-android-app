@@ -162,6 +162,17 @@ data class Fiat(
             return Fiat(fiat = step, currencyCode = currencyCode)
         }
 
+    /**
+     * This value truncated down to its currency's smallest displayable unit (e.g. $9.90099 →
+     * $9.90). Used where rounding up would break the invariant that produced the value, such as a
+     * spend ceiling derived from a balance.
+     */
+    fun flooredToSmallestUnit(): Fiat {
+        val step = smallestUnit.quarks
+        if (step <= 1L) return this
+        return Fiat(quarks = Math.floorDiv(quarks, step) * step, currencyCode = currencyCode)
+    }
+
     /** Whether this value would format as non-zero in its currency. */
     val hasDisplayableValue: Boolean
         get() = rounded(currencyCode.fractionDigits) >= smallestUnit
