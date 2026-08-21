@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.internal.delegates
 
+import com.flipcash.app.analytics.Analytics
+import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
@@ -7,6 +9,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.EventStreamingController
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.EmojiReaction
 import com.flipcash.services.models.chat.MessageContent
@@ -21,6 +24,7 @@ import com.flipcash.shared.chat.EventSequenceTracker
 import com.flipcash.shared.chat.EventStreamOperations
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.services.user.UserManager
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -75,6 +79,8 @@ class EventStreamDelegate @Inject constructor(
     private val tokenCoordinator: TokenCoordinator,
     private val userManager: UserManager,
     private val stateHolder: ChatStateHolder,
+    private val analytics: FlipcashAnalyticsService,
+    private val exchange: Exchange,
 ) : EventStreamOperations {
 
     companion object {
@@ -109,6 +115,32 @@ class EventStreamDelegate @Inject constructor(
     // endregion
 
     // region Internal
+
+    /**
+     * Increments the per-user received counters for one inbound message.
+     *
+     * A tip is also a message, so a tip increments both counters — `Messages
+     * Received` is a total, not a non-tip remainder.
+     */
+    private fun countReceipt(msg: ChatMessage) {
+        analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Messages)
+
+        val tip = msg.content
+            .filterIsInstance<MessageContent.Cash>()
+            .firstOrNull { it.action == MessageContent.Cash.Action.TIPPED }
+            ?: return
+
+        analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips)
+
+        // Chat cash arrives in the SENDER's native currency. With no cached rate
+        // we count the tip but skip its value: an understated total is
+        // recoverable, a wrong one is permanent and unattributable.
+        val usd = exchange.rateToUsd(tip.amount.currencyCode)
+            ?.let { tip.amount.convertingTo(it) }
+            ?: return
+
+        analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, usd.decimalValue)
+    }
 
     internal fun initialize(scope: CoroutineScope) {
         this.scope = scope
@@ -299,9 +331,12 @@ class EventStreamDelegate @Inject constructor(
             }
         }
 
-        // --- Eagerly update token balance for incoming cash ---
+        // --- Eagerly update token balance + count receipts for analytics ---
 
         val selfId = userManager.accountId
+        val countedThrough = metadataDataSource.getAnalyticsCountedThrough(chatId)
+        var highestCounted = countedThrough
+
         for (msg in resolvedMessages) {
             if (msg.senderId == selfId) continue
             for (content in msg.content) {
@@ -309,6 +344,17 @@ class EventStreamDelegate @Inject constructor(
                     tokenCoordinator.add(content.mint, content.amount)
                 }
             }
+
+            // people.increment is cumulative and has no message identity, so a
+            // replay would inflate the counter permanently. The watermark is the
+            // only thing standing between gap fill and a corrupted profile.
+            if (msg.messageId <= countedThrough) continue
+            countReceipt(msg)
+            highestCounted = maxOf(highestCounted, msg.messageId)
+        }
+
+        if (highestCounted > countedThrough) {
+            metadataDataSource.advanceAnalyticsCountedThrough(chatId, highestCounted)
         }
 
         // --- Unknown chat → full feed sync ---
