@@ -52,6 +52,21 @@ jobs:
           path: spm-repo
           token: ${{ secrets.SHARED_CORE_PUBLISH_TOKEN }}
 
+      # Gradle configures every project in the build, and the Android app applies the
+      # secrets plugin, which fails configuration outright when `local.properties` is
+      # absent. This lane only builds the KMP module — nothing here compiles the app or
+      # talks to any of these services — so obviously-fake values are enough to get
+      # through configuration without handing this workflow the real secrets.
+      - name: Write placeholder local.properties
+        run: |
+          set -euo pipefail
+          {
+            echo 'BUGSNAG_API_KEY="00000000000000000000000000000000"'
+            echo 'GOOGLE_CLOUD_PROJECT_NUMBER=000000000000'
+            echo 'MIXPANEL_API_KEY="00000000000000000000000000000000"'
+            echo 'COINBASE_ONRAMP_API_KEY=00000000-0000-0000-0000-000000000000'
+          } > ./local.properties
+
       - name: Build the XCFramework, upload it, and update Package.swift
         env:
           # Gradle reads ORG_GRADLE_PROJECT_-prefixed vars as project properties,
