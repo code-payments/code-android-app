@@ -44,6 +44,20 @@ fun MyAccountScreen() {
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
+            .filterIsInstance<MyAccountScreenViewModel.Event.OnEditDisplayName>()
+            .onEach {
+                navigator.push(
+                    AppRoute.UpdateUserProfile(
+                        origin = AppRoute.Menu.MyAccount,
+                        includeName = true,
+                        includePhoto = false,
+                    )
+                )
+            }.launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
             .filterIsInstance<MyAccountScreenViewModel.Event.OnViewUserProfile>()
             .onEach { navigator.push(AppRoute.Menu.UserProfile) }
             .launchIn(this)

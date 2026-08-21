@@ -1,6 +1,7 @@
 package com.flipcash.app.myaccount.internal
 
 import com.flipcash.app.myaccount.internal.myaccount.Blocklist
+import com.flipcash.app.myaccount.internal.myaccount.ChangeDisplayName
 import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreenViewModel
 import com.flipcash.app.myaccount.internal.myaccount.RequireBiometrics
 import com.flipcash.app.myaccount.internal.myaccount.UserProfile
@@ -14,10 +15,26 @@ class MyAccountScreenViewModelStateTest {
     private val reduce = MyAccountScreenViewModel.Companion.updateStateForEvent
 
     @Test
-    fun `default state lists biometrics and blocklist`() {
+    fun `default state lists the display name, biometrics and blocklist`() {
         val state = MyAccountScreenViewModel.State()
-        assertEquals(listOf(RequireBiometrics, Blocklist), state.items)
+        assertEquals(listOf(ChangeDisplayName, RequireBiometrics, Blocklist), state.items)
         assertFalse(state.biometricsRequired)
+    }
+
+    @Test
+    fun `changing the display name is offered without the beta unlock`() {
+        val locked = MyAccountScreenViewModel.State()
+        assertTrue(locked.items.any { it is ChangeDisplayName })
+
+        val noBiometrics = reduce(
+            MyAccountScreenViewModel.Event.OnBiometricsSettingChanged(
+                required = false,
+                supported = false,
+                available = false,
+            )
+        )(locked)
+
+        assertTrue(noBiometrics.items.any { it is ChangeDisplayName })
     }
 
     @Test
@@ -142,6 +159,8 @@ class MyAccountScreenViewModelStateTest {
         val state = MyAccountScreenViewModel.State(biometricsRequired = true)
         val noOpEvents = listOf(
             MyAccountScreenViewModel.Event.OnBiometricsToggled,
+            MyAccountScreenViewModel.Event.OnChangeDisplayNameClicked,
+            MyAccountScreenViewModel.Event.OnEditDisplayName,
             MyAccountScreenViewModel.Event.OnContactMethodsClicked,
             MyAccountScreenViewModel.Event.OnViewUserProfile,
             MyAccountScreenViewModel.Event.OnBlocklistClicked,
