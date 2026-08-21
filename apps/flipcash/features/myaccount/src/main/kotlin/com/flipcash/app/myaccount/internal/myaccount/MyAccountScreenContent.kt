@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.menu.MenuList
 import com.getcode.libs.biometrics.Biometrics
@@ -43,6 +44,13 @@ private fun MyAccountScreenContent(
     MenuList(
         modifier = Modifier.fillMaxSize(),
         items = state.items,
+        // Only the biometrics row can be inert, and only when the hardware has nothing enrolled.
+        isItemEnabled = { item -> item != RequireBiometrics || state.biometricsAvailable },
+        supportingTextFor = { item ->
+            state.biometricsDescription
+                ?.takeIf { item == RequireBiometrics }
+                ?.let { stringResource(it) }
+        },
         onItemClick = { item ->
             if (item == RequireBiometrics) toggleBiometrics() else dispatch(item.action)
         },

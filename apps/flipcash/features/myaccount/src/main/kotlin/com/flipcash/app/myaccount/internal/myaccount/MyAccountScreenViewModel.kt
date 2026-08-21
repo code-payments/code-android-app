@@ -1,5 +1,6 @@
 package com.flipcash.app.myaccount.internal.myaccount
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
@@ -40,6 +41,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
         // isn't there, and shown-but-disabled when the hardware exists with nothing enrolled.
         val biometricsSupported: Boolean = true,
         val biometricsAvailable: Boolean = true,
+        // Why the row can't act, when it can't — e.g. the hardware is there with nothing enrolled.
+        @StringRes val biometricsDescription: Int? = null,
         val betaUnlocked: Boolean = false,
         // Staff-only rows stay out until the real flag state loads, so they never flash in.
         val items: List<MenuItem<Event>> = FullMenuList.filterNot { it is StaffMenuItem },
@@ -51,6 +54,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
             val required: Boolean,
             val supported: Boolean,
             val available: Boolean,
+            @StringRes val description: Int? = null,
         ) : Event
         /** Dispatched only after the screen's biometric prompt succeeds. */
         data object OnBiometricsToggled : Event
@@ -77,6 +81,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
                         required = item.setting.enabled,
                         supported = item.visible,
                         available = item.available,
+                        description = item.description,
                     )
                 )
             }.launchIn(viewModelScope)
@@ -135,6 +140,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
                         biometricsRequired = event.required,
                         biometricsSupported = event.supported,
                         biometricsAvailable = event.available,
+                        biometricsDescription = event.description,
                         items = buildItemList(
                             biometricsSupported = event.supported,
                             betaUnlocked = state.betaUnlocked,

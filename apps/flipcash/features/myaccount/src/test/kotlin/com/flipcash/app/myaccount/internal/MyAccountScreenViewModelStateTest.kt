@@ -98,6 +98,46 @@ class MyAccountScreenViewModelStateTest {
     }
 
     @Test
+    fun `unavailable biometrics carries the explanation through`() {
+        val updated = reduce(
+            MyAccountScreenViewModel.Event.OnBiometricsSettingChanged(
+                required = false,
+                supported = true,
+                available = false,
+                description = 42,
+            )
+        )(MyAccountScreenViewModel.State())
+
+        assertTrue(updated.items.any { it is RequireBiometrics })
+        assertFalse(updated.biometricsAvailable)
+        assertEquals(42, updated.biometricsDescription)
+    }
+
+    @Test
+    fun `enrolling biometrics clears the explanation`() {
+        val unavailable = reduce(
+            MyAccountScreenViewModel.Event.OnBiometricsSettingChanged(
+                required = false,
+                supported = true,
+                available = false,
+                description = 42,
+            )
+        )(MyAccountScreenViewModel.State())
+
+        val enrolled = reduce(
+            MyAccountScreenViewModel.Event.OnBiometricsSettingChanged(
+                required = false,
+                supported = true,
+                available = true,
+                description = null,
+            )
+        )(unavailable)
+
+        assertTrue(enrolled.biometricsAvailable)
+        assertEquals(null, enrolled.biometricsDescription)
+    }
+
+    @Test
     fun `no-op events return state unchanged`() {
         val state = MyAccountScreenViewModel.State(biometricsRequired = true)
         val noOpEvents = listOf(
