@@ -172,6 +172,25 @@ internal sealed interface AnalyticsEvent {
                 error?.let { put("Error", it.message.orEmpty()) }
             }
         }
+
+        data class TipReceived(
+            val chatType: ChatType,
+            val amount: Fiat,
+            val mint: Mint,
+        ) : ChatEvent {
+            override val name = "Tip Received"
+            override fun toProperties() = buildMap {
+                put("Chat Type", chatType.propertyValue)
+                putAll(amount.asProperties())
+                // Token Symbol is added centrally by the delegate.
+                put("Mint", mint.base58())
+            }
+        }
+
+        data class MessageReceived(val chatType: ChatType) : ChatEvent {
+            override val name = "Message Received"
+            override fun toProperties() = mapOf("Chat Type" to chatType.propertyValue)
+        }
     }
 
     sealed interface TipCardEvent : AnalyticsEvent {

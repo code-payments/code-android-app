@@ -284,6 +284,14 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         increment(counter.propertyValue, amount)
     }
 
+    override fun tipReceived(chatType: ChatType, amount: Fiat, mint: Mint) {
+        track(AnalyticsEvent.ChatEvent.TipReceived(chatType, amount, mint))
+    }
+
+    override fun messageReceived(chatType: ChatType) {
+        track(AnalyticsEvent.ChatEvent.MessageReceived(chatType))
+    }
+
     // region Internal
 
     private fun track(event: AnalyticsEvent, vararg extra: Pair<String, String>) {

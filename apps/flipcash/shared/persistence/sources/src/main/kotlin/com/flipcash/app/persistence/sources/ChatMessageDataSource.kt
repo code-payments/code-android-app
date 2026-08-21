@@ -124,6 +124,19 @@ class ChatMessageDataSource @Inject constructor(
     suspend fun getLatestMessageId(chatId: ChatId): Long? =
         db?.chatMessageDao()?.getLatest(mapper.chatIdHex(chatId))?.messageId
 
+    suspend fun getInboundMessagesInRange(
+        chatId: ChatId,
+        selfId: ID,
+        afterId: Long,
+        throughId: Long,
+    ): List<ChatMessage> =
+        db?.chatMessageDao()?.getInboundMessagesInRange(
+            chatIdHex = mapper.chatIdHex(chatId),
+            selfIdHex = mapper.userIdHex(selfId),
+            afterId = afterId,
+            throughId = throughId,
+        )?.map { toChatMessage(it) }.orEmpty()
+
     suspend fun upsert(chatId: ChatId, messages: List<ChatMessage>) {
         val hex = mapper.chatIdHex(chatId)
         val entities = messages.map { mapper.toEntity(hex, it) }

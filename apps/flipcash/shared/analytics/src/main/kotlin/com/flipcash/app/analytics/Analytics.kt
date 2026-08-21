@@ -52,6 +52,9 @@ interface FlipcashAnalyticsService : AnalyticsService {
     /** Increments a cumulative per-user counter. [amount] defaults to a single occurrence. */
     fun incrementReceivedCounter(counter: Analytics.ReceivedCounter, amount: Double = 1.0)
 
+    fun tipReceived(chatType: ChatType, amount: Fiat, mint: Mint)
+    fun messageReceived(chatType: ChatType)
+
     fun buttonTapped(button: Button) {
         action(button)
     }
@@ -145,6 +148,8 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun displayedErrorModal(title: String, message: String, screen: String?, callSite: String?) = Unit
     override fun displayNameSubmitted(source: DisplayNameSource, hadPreviousName: Boolean) = Unit
     override fun incrementReceivedCounter(counter: Analytics.ReceivedCounter, amount: Double) = Unit
+    override fun tipReceived(chatType: ChatType, amount: Fiat, mint: Mint) = Unit
+    override fun messageReceived(chatType: ChatType) = Unit
 }
 
 @Composable

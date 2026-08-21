@@ -18,6 +18,7 @@ import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
@@ -25,6 +26,7 @@ import com.flipcash.services.models.chat.TypingState
 import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.services.user.UserManager
+import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -180,6 +182,11 @@ class MessagingDelegate @Inject constructor(
             IllegalStateException("No account")
         )
 
+        // Report before the write, while the previous pointer is still readable.
+        // Crossing the pointer is the only moment a message is unambiguously
+        // "received" by the user rather than merely delivered to the device.
+        reportCrossedMessages(chatId, selfId, messageId)
+
         val pointer = MessagePointer(
             type = PointerType.READ,
             userId = selfId,
@@ -208,6 +215,38 @@ class MessagingDelegate @Inject constructor(
     // endregion
 
     // region Internal
+
+    /**
+     * Emits one received event per inbound message the read pointer is about to
+     * cross. A non-advancing pointer (a re-read, or a backwards jump from an
+     * out-of-order caller) crosses nothing and emits nothing.
+     */
+    private suspend fun reportCrossedMessages(chatId: ChatId, selfId: ID, messageId: Long) {
+        val previous = memberDataSource.getSelfReadPointer(chatId, selfId)
+        if (messageId <= previous) return
+
+        val crossed = messageDataSource.getInboundMessagesInRange(
+            chatId = chatId,
+            selfId = selfId,
+            afterId = previous,
+            throughId = messageId,
+        )
+        if (crossed.isEmpty()) return
+
+        val chatType = metadataDataSource.getChatType(chatId)
+
+        for (msg in crossed) {
+            val tip = msg.content
+                .filterIsInstance<MessageContent.Cash>()
+                .firstOrNull { it.action == MessageContent.Cash.Action.TIPPED }
+
+            if (tip != null) {
+                analytics.tipReceived(chatType, tip.amount, tip.mint)
+            } else {
+                analytics.messageReceived(chatType)
+            }
+        }
+    }
 
     internal suspend fun clear() {
         metadataDataSource.clear()

@@ -29,6 +29,20 @@ interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms DESC LIMIT 1")
     suspend fun getLatest(chatIdHex: String): ChatMessageEntity?
 
+    @Query(
+        "SELECT * FROM chat_messages " +
+            "WHERE chat_id_hex = :chatIdHex " +
+            "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex " +
+            "AND message_id > :afterId AND message_id <= :throughId " +
+            "ORDER BY message_id ASC"
+    )
+    suspend fun getInboundMessagesInRange(
+        chatIdHex: String,
+        selfIdHex: String,
+        afterId: Long,
+        throughId: Long,
+    ): List<ChatMessageEntity>
+
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex LIMIT 1")
     suspend fun getByClientId(chatIdHex: String, clientIdHex: String): ChatMessageEntity?
 

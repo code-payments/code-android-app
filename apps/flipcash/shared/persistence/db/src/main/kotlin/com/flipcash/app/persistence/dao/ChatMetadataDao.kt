@@ -37,6 +37,9 @@ interface ChatMetadataDao {
     @Query("SELECT latest_event_sequence FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getLatestEventSequence(chatIdHex: String): Long?
 
+    @Query("SELECT chat_type FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
+    suspend fun getChatType(chatIdHex: String): String?
+
     @Query("SELECT analytics_counted_through FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getAnalyticsCountedThrough(chatIdHex: String): Long?
 
