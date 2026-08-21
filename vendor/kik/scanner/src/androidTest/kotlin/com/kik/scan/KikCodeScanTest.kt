@@ -7,7 +7,7 @@ import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.OvalShape
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.getcode.util.unpadLuminancePlane
+import com.getcode.codes.kikcode.LuminancePlane
 import com.kik.kikx.kikcodes.ScanQuality
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.kincodes.KikCodeContentRendererImpl
@@ -25,7 +25,7 @@ import kotlin.test.assertTrue
  * Follows the production pipeline exactly: [Scanner.encode] produces the same encoded bytes the
  * backend hands the bill UI, [KikCodeContentRendererImpl] draws them through the shared geometry,
  * the result is packed into a synthetic YUV_420_888 Y plane, run through the same
- * [unpadLuminancePlane] conversion the camera analyzer uses, and handed to the native scanner.
+ * [LuminancePlane.unpad] conversion the camera analyzer uses, and handed to the native scanner.
  *
  * Results are logged under [TAG].
  */
@@ -110,7 +110,7 @@ class KikCodeScanTest {
     }
 
     private fun scan(frame: Frame): ScannableKikCode? {
-        val converted = unpadLuminancePlane(
+        val converted = LuminancePlane.unpad(
             data = frame.data,
             width = frame.width,
             height = frame.height,
@@ -173,11 +173,11 @@ class KikCodeScanTest {
 
             // Sanity: the fast path really is taken for the packed frame and not for the padded one.
             assertTrue(
-                unpadLuminancePlane(packed.data, width, height, packed.rowStride, 1) === packed.data,
+                LuminancePlane.unpad(packed.data, width, height, packed.rowStride, 1) === packed.data,
                 "${width}x$height packed frame should take the fast path",
             )
             assertTrue(
-                unpadLuminancePlane(padded.data, width, height, padded.rowStride, 1) !== padded.data,
+                LuminancePlane.unpad(padded.data, width, height, padded.rowStride, 1) !== padded.data,
                 "${width}x$height padded frame should be unpadded",
             )
 
@@ -215,25 +215,102 @@ class KikCodeScanTest {
             val data = ByteArray(width * height) { (it % 251).toByte() }
 
             repeat(5) {
-                unpadLuminancePlane(data, width, height, width, 1)
+                LuminancePlane.unpad(data, width, height, width, 1)
                 legacyUnpad(data, width, height, width, 1)
             }
 
             val iterations = 30
-            val fastNanos = measureNanoTime {
-                repeat(iterations) { unpadLuminancePlane(data, width, height, width, 1) }
-            } / iterations
             val legacyNanos = measureNanoTime {
                 repeat(iterations) { legacyUnpad(data, width, height, width, 1) }
             } / iterations
+
+            // The fast path returns in a few instructions, so 30 iterations sits at the
+            // System.nanoTime measurement floor -- run it enough times to actually resolve.
+            val fastIterations = 200_000
+            val fastNanos = measureNanoTime {
+                repeat(fastIterations) { LuminancePlane.unpad(data, width, height, width, 1) }
+            }.toDouble() / fastIterations
 
             Log.i(
                 TAG,
                 "conversion ${width}x$height packed: fast=${fastNanos / 1000.0}us " +
                     "legacy=${legacyNanos / 1000.0}us " +
-                    "saved=${(legacyNanos - fastNanos) / 1000.0}us/frame",
+                    "saved=${legacyNanos / 1000.0 - fastNanos / 1000.0}us/frame",
             )
         }
+    }
+
+    /**
+     * The shared packing rule lives in `:libs:codes:kikcode` so iOS applies the same one, which puts
+     * a cross-module call on the hot path where there used to be a module-local function. This
+     * A/Bs it against a module-local copy to confirm that indirection costs nothing.
+     *
+     * Measured over several alternating rounds taking the best of each: a single round is dominated
+     * by whichever loop the JIT compiled first, which is enough to invent a double-digit-nanosecond
+     * "difference" that reverses if you swap the order.
+     */
+    @Test
+    fun sharedFastPathCostsNoMoreThanAModuleLocalOne() {
+        val (width, height) = resolutions.last()
+        val data = ByteArray(width * height) { (it % 251).toByte() }
+        val iterations = 200_000
+
+        repeat(50_000) {
+            LuminancePlane.unpad(data, width, height, width, 1)
+            localUnpad(data, width, height, width, 1)
+        }
+
+        fun timeShared(): Double = measureNanoTime {
+            repeat(iterations) { LuminancePlane.unpad(data, width, height, width, 1) }
+        }.toDouble() / iterations
+
+        fun timeLocal(): Double = measureNanoTime {
+            repeat(iterations) { localUnpad(data, width, height, width, 1) }
+        }.toDouble() / iterations
+
+        var shared = Double.MAX_VALUE
+        var local = Double.MAX_VALUE
+        repeat(5) { round ->
+            // alternate which runs first so neither systematically pays for the other's warmup
+            if (round % 2 == 0) {
+                shared = minOf(shared, timeShared())
+                local = minOf(local, timeLocal())
+            } else {
+                local = minOf(local, timeLocal())
+                shared = minOf(shared, timeShared())
+            }
+        }
+
+        Log.i(
+            TAG,
+            "fast path ${width}x$height: shared=${shared}ns local=${local}ns " +
+                "delta=${shared - local}ns/frame",
+        )
+
+        // Both are a comparison and a return. A cross-module call that is not being optimized away
+        // would show up as a consistent multiple, not a fraction of a nanosecond.
+        assertTrue(
+            shared < local + 5.0,
+            "shared fast path regressed: shared=${shared}ns local=${local}ns",
+        )
+    }
+
+    /** A module-local copy of the fast path, used only as the A/B baseline above. */
+    private fun localUnpad(
+        data: ByteArray,
+        width: Int,
+        height: Int,
+        rowStride: Int,
+        pixelStride: Int,
+    ): ByteArray {
+        if (rowStride == width && pixelStride == 1) return data
+        val cleanData = ByteArray(width * height)
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                cleanData[y * width + x] = data[y * rowStride + x * pixelStride]
+            }
+        }
+        return cleanData
     }
 
     /** The pre-fix guard, reproduced so the benchmark compares like for like. */
