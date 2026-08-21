@@ -16,7 +16,6 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.utils.TraceManager
-import com.getcode.utils.base58
 import com.getcode.utils.trace
 import com.hoc081098.channeleventbus.ChannelEventBus
 import com.mixpanel.android.mpmetrics.MixpanelAPI
@@ -204,8 +203,11 @@ class UserManager @Inject constructor(
 
     private fun associate() {
         if (!BuildConfig.DEBUG) {
-            TraceManager.userId = accountId?.base58
-            mixpanelAPI.identify(accountId?.base58)
+            // Hex, not base58 — matches iOS so one user is one Mixpanel profile.
+            // See AnalyticsIdentity.kt.
+            val distinctId = accountId?.analyticsDistinctId()
+            TraceManager.userId = distinctId
+            mixpanelAPI.identify(distinctId)
         }
     }
 
