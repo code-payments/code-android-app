@@ -88,6 +88,20 @@ jobs:
             -PsharedCoreVersion=${{ inputs.version }} \
             -PspmRepoDir=$GITHUB_WORKSPACE/spm-repo
 
+      # KMMBridge points the binary target at the release asset's *API* URL, which
+      # serves private repos but is rate limited to 60 requests an hour per IP for
+      # anyone unauthenticated. This repo is public, so the plain download URL fetches
+      # the same bytes with no limit and no credentials -- without this, a developer or
+      # a CI runner that has spent its anonymous quota fails to resolve the package.
+      - name: Point the binary target at the unauthenticated download URL
+        working-directory: spm-repo
+        run: |
+          set -euo pipefail
+          download="https://github.com/${SPM_REPO}/releases/download/${{ inputs.version }}/SharedCore.xcframework.zip"
+          perl -pi -e 's{^let remoteKotlinUrl = ".*"$}{let remoteKotlinUrl = "'"$download"'"}' Package.swift
+          grep -q "$download" Package.swift
+          curl -fsSLI "$download" > /dev/null
+
       # The release asset is up by now but the tag still points at the old
       # Package.swift, so nothing consumes this build until the next step. Compiling
       # the Swift glue against the framework we just uploaded is the last moment a
