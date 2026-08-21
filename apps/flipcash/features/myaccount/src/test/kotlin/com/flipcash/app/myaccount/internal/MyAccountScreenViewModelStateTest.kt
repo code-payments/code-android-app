@@ -3,6 +3,7 @@ package com.flipcash.app.myaccount.internal
 import com.flipcash.app.myaccount.internal.myaccount.Blocklist
 import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreenViewModel
 import com.flipcash.app.myaccount.internal.myaccount.RequireBiometrics
+import com.flipcash.app.myaccount.internal.myaccount.UserProfile
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -46,6 +47,54 @@ class MyAccountScreenViewModelStateTest {
         assertTrue(updated.items.any { it is RequireBiometrics })
         assertTrue(updated.biometricsRequired)
         assertTrue(updated.biometricsAvailable)
+    }
+
+    @Test
+    fun `user profile stays hidden until beta features unlock`() {
+        val locked = MyAccountScreenViewModel.State()
+        assertFalse(locked.items.any { it is UserProfile })
+
+        val unlocked = reduce(
+            MyAccountScreenViewModel.Event.OnBetaFeaturesUnlocked(unlocked = true)
+        )(locked)
+
+        assertTrue(unlocked.items.any { it is UserProfile })
+        assertTrue(unlocked.items.any { it is RequireBiometrics })
+    }
+
+    @Test
+    fun `unlocking beta keeps an unsupported biometrics row hidden`() {
+        val noBiometrics = reduce(
+            MyAccountScreenViewModel.Event.OnBiometricsSettingChanged(
+                required = false,
+                supported = false,
+                available = false,
+            )
+        )(MyAccountScreenViewModel.State())
+
+        val unlocked = reduce(
+            MyAccountScreenViewModel.Event.OnBetaFeaturesUnlocked(unlocked = true)
+        )(noBiometrics)
+
+        assertFalse(unlocked.items.any { it is RequireBiometrics })
+        assertTrue(unlocked.items.any { it is UserProfile })
+    }
+
+    @Test
+    fun `biometrics changes keep an unlocked user profile visible`() {
+        val unlocked = reduce(
+            MyAccountScreenViewModel.Event.OnBetaFeaturesUnlocked(unlocked = true)
+        )(MyAccountScreenViewModel.State())
+
+        val updated = reduce(
+            MyAccountScreenViewModel.Event.OnBiometricsSettingChanged(
+                required = true,
+                supported = true,
+                available = true,
+            )
+        )(unlocked)
+
+        assertTrue(updated.items.any { it is UserProfile })
     }
 
     @Test

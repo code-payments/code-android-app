@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:menu"))
+    implementation(project(":apps:flipcash:shared:userflags"))
 
     implementation(project(":libs:datetime"))
     implementation(project(":libs:encryption:utils"))
