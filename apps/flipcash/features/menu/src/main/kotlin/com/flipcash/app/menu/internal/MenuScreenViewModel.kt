@@ -4,7 +4,6 @@ import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
-import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.bills.share.TipCodePreviewCache
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
@@ -29,7 +28,6 @@ import com.flipcash.features.menu.R
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.tipping.TippingCoordinator
-import com.getcode.opencode.managers.MnemonicManager
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
@@ -51,16 +49,13 @@ import javax.inject.Inject
 private val FullMenuList = buildList {
     add(MyAccount)
     add(AdvancedFeatures)
-    add(SwitchAccount)
 }
 
 @HiltViewModel
 internal class MenuScreenViewModel @Inject constructor(
     userManager: UserManager,
     userFlags: UserFlagsCoordinator,
-    authManager: AuthManager,
     versionInfo: VersionInfo,
-    mnemonicManager: MnemonicManager,
     featureFlags: FeatureFlagController,
     private val toastController: SystemToastController,
     dispatchers: DispatcherProvider,
@@ -104,8 +99,6 @@ internal class MenuScreenViewModel @Inject constructor(
         data class OnStaffUserDetermined(val staff: Boolean) : Event
         data object PresentDepositOptions: Event
         data class OpenScreen(val screen: AppRoute) : Event
-        data object OnSwitchAccountsClicked : Event
-        data class OnSwitchAccountTo(val entropy: String): Event
         data class OnTipCardPopulated(val card: Scannable.TipCard, val link: String?) : Event
         data object ShareTipCard : Event
         data object CopyTipLink : Event
@@ -173,23 +166,6 @@ internal class MenuScreenViewModel @Inject constructor(
             .debounce(500)
             .onEach { dispatchEvent(Event.CheckForUpdate) }
             .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnSwitchAccountsClicked>()
-            .map {
-                authManager.selectAccount()
-                    .fold(
-                        onSuccess = {
-                            authManager.logoutAndSwitchAccount(
-                                mnemonicManager.getEncodedBase64(it)
-                            )
-                        },
-                        onFailure = { Result.failure(it) }
-                    )
-            }.onResult(
-                onError = { },
-                onSuccess = { dispatchEvent(Event.OnSwitchAccountTo(it)) }
-            ).launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
@@ -352,13 +328,11 @@ internal class MenuScreenViewModel @Inject constructor(
 
                 Event.PresentDepositOptions,
                 Event.CheckForUpdate,
-                Event.OnSwitchAccountsClicked,
                 Event.ShareTipCard,
                 Event.CopyTipLink,
                 Event.DownloadTipCard,
                 is Event.ExportTipCard,
-                is Event.OpenScreen,
-                is Event.OnSwitchAccountTo -> { state -> state }
+                is Event.OpenScreen -> { state -> state }
 
                 is Event.OnFeatureFlagsUpdated -> { state ->
                     state.copy(

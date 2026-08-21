@@ -1,9 +1,21 @@
 package com.flipcash.app.menu.internal
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.EaseInOut
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,6 +32,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -27,14 +40,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,6 +67,7 @@ import com.flipcash.app.bills.components.cards.LocalTipCardBaseAlpha
 import com.flipcash.app.bills.components.cards.LocalTipCardColor
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.core.navigation.HideTabBar
 import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.core.ui.TileButton
 import com.flipcash.app.featureflags.FeatureFlag
@@ -61,6 +86,7 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.theme.CodeScaffold
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -76,6 +102,20 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
     // defaults to true) until DataStore emits the stored value. Reading `.value` inside a remember
     // froze that default, so a v1 build rendered the v2 "You" screen.
     val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
+
+    val listState = rememberLazyListState()
+    // Full screen is a state of *this* screen, not a destination: the card grows into the middle of
+    // the display and everything else — rows, footer, tab bar — animates out from under it
+    // (node 9277:121410). Pushing a route would cross-fade a second copy of the card in instead.
+    var cardExpanded by remember { mutableStateOf(false) }
+    val canExpand = isNewUi && state.tipCard != null
+
+    LaunchedEffect(canExpand) {
+        // Losing the card (a v1 build, or sign-out) must not strand the page expanded.
+        if (!canExpand) cardExpanded = false
+    }
+    HideTabBar(hidden = cardExpanded)
+    BackHandler(enabled = cardExpanded) { cardExpanded = false }
 
     LaunchedEffect(Unit) {
         viewModel.eventFlow
@@ -110,58 +150,138 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             }
         }
     ) { padding ->
-        MenuList(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            items = state.items,
-            showChevrons = isNewUi,
-            header = {
-                if (isNewUi) {
-                    YouHeader(
-                        card = state.tipCard,
-                        link = state.tipLink,
-                        onCopyLink = { viewModel.dispatchEvent(Event.CopyTipLink) },
-                        onShare = { viewModel.dispatchEvent(Event.ShareTipCard) },
-                        onDownload = { viewModel.dispatchEvent(Event.DownloadTipCard) },
-                    )
-                } else {
-                    MoneyTiles(viewModel, navigator)
-                }
-            },
-            footer = {
-                if (isNewUi) {
-                    // Scrolls with the list, so it needs its own breathing room off the last row's
-                    // divider. No navigationBarsPadding here — the reserved tab-bar inset below
-                    // already clears the system bar (the bar measures itself with that padding in).
-                    VersionFooter(
-                        viewModel = viewModel,
-                        state = state,
-                        modifier = Modifier.padding(
-                            top = CodeTheme.dimens.grid.x6,
-                            bottom = CodeTheme.dimens.grid.x3,
-                        ),
-                    )
-                }
-            },
+        ) {
+            // No app bar in v2, so the page owns its own status-bar clearance; the design puts the
+            // card 74dp below it (node 9278:7301).
+            val restingTop = WindowInsets.statusBars.asPaddingValues()
+                .calculateTopPadding() + CardTopSpacing
+            // The design's width, narrowed only if the display can't hold it inside the page's
+            // margins — same rule iOS applies.
+            val expandedCardWidth = minOf(
+                FullScreenCardWidth,
+                maxWidth - PageHorizontalInset * 2,
+            )
+            val cardWidth by animateDpAsState(
+                targetValue = if (cardExpanded) expandedCardWidth else YouCardWidth,
+                animationSpec = expansionSpring(Dp.VisibilityThreshold),
+                label = "tipCardWidth",
+            )
             // v2's tab bar is a hoisted overlay drawn ABOVE this content, so reserve its height as
             // bottom content padding — the list then scrolls clear of the bar instead of running
             // under it (the version footer was landing behind it). Per-entry via LocalTabBarPadding,
-            // which is only non-zero for tab homes. v1 has no such bar.
-            contentPadding = PaddingValues(
-                // No app bar in v2, so the page owns its own status-bar clearance; the design puts
-                // the card 74dp below it (node 9278:7301).
-                top = if (isNewUi) {
-                    WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + CardTopSpacing
-                } else {
-                    CodeTheme.dimens.grid.x3
-                },
-                bottom = LocalTabBarPadding.current.calculateBottomPadding(),
-            ),
-            onItemClick = {
-                viewModel.dispatchEvent(it.action)
+            // which is only non-zero for tab homes. v1 has no such bar; expanding gives the bar back
+            // its space because HideTabBar has taken the bar away.
+            val tabBarInset = LocalTabBarPadding.current.calculateBottomPadding()
+            val bottomInset by animateDpAsState(
+                targetValue = if (cardExpanded) 0.dp else tabBarInset,
+                animationSpec = expansionSpring(Dp.VisibilityThreshold),
+                label = "tabBarInset",
+            )
+            // How far into the expansion we are: everything but the card fades out on it and slides
+            // down out of the way, rather than being removed. Keeping the rows in the layout means
+            // nothing reflows on the way back (iOS does the same with opacity + offset).
+            val expansion by animateFloatAsState(
+                targetValue = if (cardExpanded) 1f else 0f,
+                animationSpec = expansionSpring(),
+                label = "expansion",
+            )
+            val slideAway = Modifier.graphicsLayer {
+                // Same overshoot: keep the fade inside a legal alpha range.
+                alpha = (1f - expansion).coerceIn(0f, 1f)
+                translationY = ContentSlideDistance.toPx() * expansion
             }
-        )
+
+            // The card doesn't hand off to a second copy of itself: the one in the list keeps its
+            // slot and is drawn travelling out of it, the way iOS offsets the card from its own
+            // measured frame. Measuring the slot (which never carries the offset) rather than the
+            // card keeps the measurement out of its own feedback loop, and because the slot grows
+            // with the card, the card is exactly centred by the time the spring settles.
+            var cardSlotCenterY by remember { mutableFloatStateOf(0f) }
+            val displayCenterY = LocalWindowInfo.current.containerSize.height / 2f
+            val cardShift = when {
+                cardSlotCenterY <= 0f -> 0f
+                else -> (displayCenterY - cardSlotCenterY) * expansion
+            }
+
+            MenuList(
+                modifier = Modifier.fillMaxSize(),
+                state = listState,
+                items = state.items,
+                showChevrons = isNewUi,
+                userScrollEnabled = !cardExpanded,
+                itemModifier = if (isNewUi) slideAway else Modifier,
+                header = {
+                    if (isNewUi) {
+                        YouHeader(
+                            card = state.tipCard,
+                            link = state.tipLink,
+                            enabled = !cardExpanded,
+                            expansion = expansion,
+                            slideAway = slideAway,
+                            cardWidth = cardWidth,
+                            cardShift = cardShift,
+                            onCardSlotPositioned = { cardSlotCenterY = it },
+                            onToggleFullScreen = { cardExpanded = !cardExpanded },
+                            onCopyLink = { viewModel.dispatchEvent(Event.CopyTipLink) },
+                            onShare = { viewModel.dispatchEvent(Event.ShareTipCard) },
+                            onDownload = { viewModel.dispatchEvent(Event.DownloadTipCard) },
+                        )
+                    } else {
+                        MoneyTiles(viewModel, navigator)
+                    }
+                },
+                footer = {
+                    if (isNewUi) {
+                        // Scrolls with the list, so it needs its own breathing room off the last
+                        // row's divider. No navigationBarsPadding here — the reserved tab-bar inset
+                        // below already clears the system bar (the bar measures itself with that
+                        // padding in).
+                        VersionFooter(
+                            viewModel = viewModel,
+                            state = state,
+                            enabled = !cardExpanded,
+                            modifier = slideAway.padding(
+                                top = VersionFooterTopSpacing,
+                                bottom = CodeTheme.dimens.grid.x3,
+                            ),
+                        )
+                    }
+                },
+                contentPadding = PaddingValues(
+                    top = if (isNewUi) restingTop else CodeTheme.dimens.grid.x3,
+                    // Clamped: the spring is underdamped, so it undershoots past the target on the
+                    // way to 0, and PaddingValues throws on a negative — taking the Recomposer, and
+                    // with it the whole UI, down with it.
+                    bottom = bottomInset.coerceAtLeast(0.dp),
+                ),
+                onItemClick = {
+                    // The faded-out rows are still laid out under the expanded card; don't let them
+                    // take a tap meant for the card.
+                    if (!cardExpanded) viewModel.dispatchEvent(it.action)
+                }
+            )
+
+            // Close sits at the foot of the display rather than under the card (node 9277:121410).
+            AnimatedVisibility(
+                visible = cardExpanded,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                enter = fadeIn(expansionSpring()),
+                exit = fadeOut(expansionSpring()),
+            ) {
+                FullScreenToggle(
+                    label = stringResource(R.string.action_closeFullScreen),
+                    chevronRotation = 180f,
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(bottom = CloseBottomSpacing)
+                        .noRippleClickable { cardExpanded = false },
+                )
+            }
+        }
     }
 }
 
@@ -171,22 +291,62 @@ private val CardTopSpacing = 74.dp
 /** The at-rest card width on the You tab (node 9278:7301: 241.636). */
 private val YouCardWidth = 242.dp
 
+/** The expanded card's width (node 9277:121410: 302.21 on a 402 frame); iOS pins the same 302. */
+private val FullScreenCardWidth = 302.dp
+
+/** The page's horizontal inset, and so the expanded card's minimum margin. */
+private val PageHorizontalInset = 20.dp
+
+/** Gap between the Close row and the system nav bar (node 9277:121410). */
+private val CloseBottomSpacing = 8.dp
+
+/**
+ * Clearance between the last settings row's divider and the version footer. iOS spends 32 above the
+ * footer plus 12 of the footer's own vertical padding on top of the row's 25 inset; the Android row
+ * already pays that same 25, so the difference lands here.
+ */
+private val VersionFooterTopSpacing = 44.dp
+
+/** How far the page's content slides down as it fades out under the expanding card. */
+private val ContentSlideDistance = 60.dp
+
+/**
+ * The whole expansion — card size, card position, the content sliding away, the Close row — runs on
+ * one spring, as iOS does: `.spring(response: 0.45, dampingFraction: 0.85)`. SwiftUI's `response` is
+ * the undamped period, so the equivalent Compose stiffness is `(2 * PI / 0.45) ^ 2`.
+ */
+private fun <T> expansionSpring(visibilityThreshold: T? = null) = spring(
+    dampingRatio = 0.85f,
+    stiffness = 195f,
+    visibilityThreshold = visibilityThreshold,
+)
+
 /**
  * The "You" tab header (node 9276:4634): the viewer's own tip card with a "Full Screen" affordance,
  * the copyable tip link, and the Share / Download tiles.
+ *
+ * The caller drives the full-screen state: it sizes the card ([cardWidth]) and draws it out of its
+ * slot towards the middle of the display ([cardShift], off the slot position reported by
+ * [onCardSlotPositioned]). It also hands down [slideAway] — the fade-and-slide every non-card
+ * element shares — plus [expansion] for the caption, which iOS fades in place rather than sliding.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun YouHeader(
     card: Scannable.TipCard?,
     link: String?,
+    enabled: Boolean,
+    expansion: Float,
+    slideAway: Modifier,
+    cardWidth: Dp,
+    cardShift: Float,
+    onCardSlotPositioned: (Float) -> Unit,
+    onToggleFullScreen: () -> Unit,
     onCopyLink: () -> Unit,
     onShare: () -> Unit,
     onDownload: () -> Unit,
 ) {
     if (card == null) return
-    val navigator = LocalCodeNavigator.current
-    val openFullScreen = { navigator.push(AppRoute.Menu.TipCard) }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -204,80 +364,132 @@ private fun YouHeader(
                     // list's content padding already owns that clearance, so consume the inset
                     // rather than paying it twice.
                     .consumeWindowInsets(WindowInsets.statusBarsIgnoringVisibility)
-                    .noRippleClickable { openFullScreen() },
+                    .onGloballyPositioned { onCardSlotPositioned(it.boundsInRoot().center.y) },
                 contentAlignment = Alignment.Center,
             ) {
-                ScannableRenderer(scannable = card, tipCardWidth = YouCardWidth)
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer { translationY = cardShift }
+                        .noRippleClickable { onToggleFullScreen() },
+                ) {
+                    ScannableRenderer(scannable = card, tipCardWidth = cardWidth)
+                }
             }
         }
 
         Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
 
-        Row(
-            modifier = Modifier.noRippleClickable { openFullScreen() },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.action_viewFullScreen),
-                style = CodeTheme.typography.textSmall,
-                color = White50,
-            )
-            Icon(
-                modifier = Modifier.size(16.dp),
-                painter = painterResource(R.drawable.ic_chevron_down_medium),
-                contentDescription = null,
-                tint = White50,
-            )
-        }
-
-        Spacer(Modifier.height(64.dp))
-
-        Column(
+        // The caption belongs to the card, so it fades where it stands instead of sliding off with
+        // the rest of the page.
+        FullScreenToggle(
+            label = stringResource(R.string.action_viewFullScreen),
+            chevronRotation = 0f,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = CodeTheme.dimens.grid.x5),
-            verticalArrangement = Arrangement.spacedBy(11.dp),
-        ) {
-            if (link != null) {
-                TipLinkRow(link = link, onCopy = onCopyLink)
-            }
+                .graphicsLayer { alpha = (1f - expansion).coerceIn(0f, 1f) }
+                .noRippleClickable { onToggleFullScreen() },
+        )
 
-            Row(
+        // Everything under the card gets out of the way so the card can own the display.
+        Column(
+            modifier = slideAway.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(Modifier.height(64.dp))
+
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(88.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    .padding(horizontal = CodeTheme.dimens.grid.x5),
+                verticalArrangement = Arrangement.spacedBy(11.dp),
             ) {
-                ShareTile(
-                    modifier = Modifier.weight(1f),
-                    icon = R.drawable.ic_share_os,
-                    label = stringResource(R.string.action_share),
-                    onClick = onShare,
-                )
-                ShareTile(
-                    modifier = Modifier.weight(1f),
-                    icon = R.drawable.ic_file_download,
-                    label = stringResource(R.string.action_download),
-                    onClick = onDownload,
-                )
-            }
-        }
+                if (link != null) {
+                    TipLinkRow(link = link, enabled = enabled, onCopy = onCopyLink)
+                }
 
-        Spacer(Modifier.height(19.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(88.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    ShareTile(
+                        modifier = Modifier.weight(1f),
+                        icon = R.drawable.ic_share_os,
+                        label = stringResource(R.string.action_share),
+                        enabled = enabled,
+                        onClick = onShare,
+                    )
+                    ShareTile(
+                        modifier = Modifier.weight(1f),
+                        icon = R.drawable.ic_file_download,
+                        label = stringResource(R.string.action_download),
+                        enabled = enabled,
+                        onClick = onDownload,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(19.dp))
+        }
+    }
+}
+
+/**
+ * The label + chevron that toggles the card's full-screen state — "Full Screen" pointing down under
+ * the resting card (node 9276:4634), "Close" pointing up at the foot of the expanded one
+ * (node 9277:121410). One glyph, flipped, so the two read as the same control.
+ */
+@Composable
+private fun FullScreenToggle(
+    label: String,
+    chevronRotation: Float,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Text(
+            text = label,
+            style = CodeTheme.typography.textSmall,
+            color = White50,
+        )
+        Icon(
+            modifier = Modifier
+                .size(16.dp)
+                .rotate(chevronRotation),
+            painter = painterResource(R.drawable.ic_chevron_down_medium),
+            contentDescription = null,
+            tint = White50,
+        )
     }
 }
 
 /** The tip link, tap-to-copy (node 9276:4748). Shown short — the full URL goes to the clipboard. */
 @Composable
-private fun TipLinkRow(link: String, onCopy: () -> Unit) {
+private fun TipLinkRow(link: String, enabled: Boolean, onCopy: () -> Unit) {
+    // Bumped rather than latched so a second tap restarts the hold instead of being swallowed.
+    var copyToken by remember { mutableIntStateOf(0) }
+    val copied = copyToken > 0
+
+    LaunchedEffect(copyToken) {
+        if (copyToken > 0) {
+            delay(CopyConfirmationMillis)
+            copyToken = 0
+        }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(40.dp)
             .clip(TileShape)
             .background(White05)
-            .clickable { onCopy() }
+            .clickable(enabled = enabled) {
+                onCopy()
+                copyToken++
+            }
             .padding(horizontal = CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -301,14 +513,30 @@ private fun TipLinkRow(link: String, onCopy: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Icon(
-            modifier = Modifier.size(20.dp),
-            painter = painterResource(R.drawable.ic_copy),
-            contentDescription = null,
-            tint = White,
-        )
+        // Confirms the copy landed, then hands the row back to the copy glyph (mirrors iOS
+        // TipCardLinkRow) — the clipboard gives no feedback of its own.
+        Crossfade(
+            targetState = copied,
+            animationSpec = tween(CopyIconFadeMillis, easing = EaseInOut),
+            label = "copyConfirmation",
+        ) { showCheck ->
+            Icon(
+                modifier = Modifier.size(20.dp),
+                painter = painterResource(
+                    if (showCheck) R.drawable.ic_check_circle else R.drawable.ic_copy
+                ),
+                contentDescription = null,
+                tint = White,
+            )
+        }
     }
 }
+
+/** How long the copy button holds the checkmark before reverting (iOS: 1.5s). */
+private const val CopyConfirmationMillis = 1_500L
+
+/** Cross-fade between the copy and confirmation glyphs (iOS: 0.15s ease-in-out). */
+private const val CopyIconFadeMillis = 150
 
 /**
  * One of the two square-ish actions under the link (node 9276:4756). The tile's height is fixed by
@@ -320,6 +548,7 @@ private fun ShareTile(
     modifier: Modifier = Modifier,
     icon: Int,
     label: String,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
     Column(
@@ -327,7 +556,7 @@ private fun ShareTile(
             .fillMaxSize()
             .clip(TileShape)
             .background(White05)
-            .clickable { onClick() },
+            .clickable(enabled = enabled) { onClick() },
         verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -399,13 +628,14 @@ private fun VersionFooter(
     viewModel: MenuScreenViewModel,
     state: MenuScreenViewModel.State,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Box(modifier = modifier.fillMaxWidth()) {
         Text(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.Center)
-                .noRippleClickable {
+                .noRippleClickable(enabled = enabled) {
                     viewModel.dispatchEvent(Event.OnVersionInfoClicked)
                 },
             text = stringResource(

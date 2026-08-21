@@ -307,10 +307,6 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object DeviceLogs : Menu
         @Serializable
         data object UserProfile : Menu
-
-        /** The viewer's own tip card, full screen (node 9277:121410). */
-        @Serializable
-        data object TipCard : Menu
         @Serializable
         data class Lab(val onboarding: Boolean = false) : Menu
         @Serializable

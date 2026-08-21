@@ -6,9 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,6 +28,8 @@ import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.cardexpand.LocalCardExpansion
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
+import com.flipcash.app.core.navigation.LocalTabBarVisibility
+import com.flipcash.app.core.navigation.TabBarVisibilityController
 import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.ui.transitions.CardExpandTransition
 import com.flipcash.app.internal.ui.AppNavigationBar
@@ -64,8 +64,6 @@ private fun isTokenInfoKey(key: Any?): Boolean {
  */
 private fun isGiveKey(key: Any?): Boolean =
     key?.toString()?.startsWith("Give(") == true
-
-private fun isSelfTipCardKey(key: Any?): Boolean = key is AppRoute.Menu.TipCard
 
 @Composable
 internal fun AppContent(
@@ -182,12 +180,19 @@ internal fun NewAppContent(
     val hazeState = rememberHazeState()
     val tabBarHeight = remember { mutableStateOf(0.dp) }
 
+    // Lets a tab home hide the bar without leaving its route — the You tab's tip card expands to
+    // full screen in place, so there's no route change for the visibility rule below to notice.
+    val tabBarVisibility = remember { TabBarVisibilityController() }
+
     // Card-expand (iOS #587): the wallet requests an expansion (via LocalCardExpansion); the detail is
     // drawn by CardExpandHost inside the wallet entry, driven by one progress scalar, so the deck stays
     // composed and reorganises behind it. See CardExpansionController / CurrencyInfoExpansion.
     // [cardExpansion] is owned by App so a `/token` deeplink — which is handled there, outside this
     // shell — can open a token as its expanded card instead of pushing a screen.
-    CompositionLocalProvider(LocalCardExpansion provides cardExpansion) {
+    CompositionLocalProvider(
+        LocalCardExpansion provides cardExpansion,
+        LocalTabBarVisibility provides tabBarVisibility,
+    ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Mark the nav content as the haze source so the frosted bar blurs whatever scrolls beneath it.
         Box(modifier = Modifier.hazeSource(hazeState)) {
@@ -232,13 +237,6 @@ internal fun NewAppContent(
                         // CardExpandTransition + TokenCardStack.
                         isTokenInfoKey(targetState.key) ->
                             CardExpandTransition.openEnter togetherWith CardExpandTransition.openExit
-                        // The You tab's own tip card, full screen: the card is already on screen,
-                        // so nothing slides in over it — the page (and, because this isn't a tab
-                        // route, the tab bar) drops away downward and leaves it, matching the
-                        // "Full Screen ⌄" chevron that opened it.
-                        isSelfTipCardKey(targetState.key) ->
-                            fadeIn(tween(300)) togetherWith
-                                    (slideOutVertically(targetOffsetY = { it }) + fadeOut(tween(300)))
                         landsOnTab ->
                             fadeIn(tween(300)) togetherWith fadeOut(tween(300))
                         else ->
@@ -259,11 +257,6 @@ internal fun NewAppContent(
                         // Swapping in a single frame keeps the scrim continuously up.
                         isGiveKey(initialState.key) ->
                             EnterTransition.None togetherWith ExitTransition.None
-                        // Reverse of the open: the page rides back up over the card. See the
-                        // matching branch in transitionSpec.
-                        isSelfTipCardKey(initialState.key) ->
-                            (slideInVertically(initialOffsetY = { it }) + fadeIn(tween(300))) togetherWith
-                                    fadeOut(tween(300))
                         else ->
                             slideInHorizontally(initialOffsetX = { -it }) togetherWith
                                     slideOutHorizontally(targetOffsetX = { it })
@@ -277,9 +270,6 @@ internal fun NewAppContent(
                         isTokenInfoKey(initialState.key) ->
                             CardExpandTransition.predictiveCloseEnter togetherWith
                                     CardExpandTransition.predictiveCloseExit
-                        isSelfTipCardKey(initialState.key) ->
-                            (slideInVertically(initialOffsetY = { it }) + fadeIn(tween(300))) togetherWith
-                                    fadeOut(tween(300))
                         else ->
                             slideInHorizontally(initialOffsetX = { -it }) togetherWith
                                     slideOutHorizontally(targetOffsetX = { it })
@@ -301,6 +291,7 @@ internal fun NewAppContent(
         AppNavigationBar(
             navigator = codeNavigator,
             hazeState = hazeState,
+            forceHidden = tabBarVisibility.isHidden,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .measured { if (it.height > tabBarHeight.value) tabBarHeight.value = it.height }

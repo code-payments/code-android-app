@@ -3,10 +3,13 @@ package com.flipcash.app.advanced.internal
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
+import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.getcode.opencode.managers.MnemonicManager
 import com.flipcash.core.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.manager.BottomBarAction
@@ -28,6 +31,7 @@ private val FullMenuList = buildList {
     add(BetaFlags)
     add(DeviceLogs)
 //    add(BillCustomizer)
+    add(SwitchAccount)
     add(LogOut)
     add(DeleteAccount)
 }
@@ -38,6 +42,7 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
     userFlags: UserFlagsCoordinator,
     resources: ResourceHelper,
     authManager: AuthManager,
+    mnemonicManager: MnemonicManager,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<AdvancedFeaturesScreenViewModel.State, AdvancedFeaturesScreenViewModel.Event>(
     initialState = State(),
@@ -46,12 +51,21 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
 ) {
     data class State(
         val isBetaEnabled: Boolean = false,
-        val items: List<MenuItem<Event>> = FullMenuList
+        val flags: List<BetaFeature> = emptyList(),
+        // Default hides staff-only AND flag-gated items until the real state loads, so a beta-gated
+        // row never flashes before its flag resolves.
+        val items: List<MenuItem<Event>> =
+            FullMenuList.filterNot { it is StaffMenuItem || it.featureFlag != null },
     )
 
     sealed interface Event {
-        data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
+        data class OnBetaFeaturesUnlocked(
+            val unlocked: Boolean,
+            val flags: List<BetaFeature> = emptyList(),
+        ) : Event
         data class OpenScreen(val screen: AppRoute) : Event
+        data object OnSwitchAccountsClicked : Event
+        data class OnSwitchAccountTo(val entropy: String) : Event
         data object OpenBillPlayground : Event
         data object OnAccessKeyClicked : Event
         data object OnViewAccessKey : Event
@@ -64,12 +78,29 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
     init {
         combine(
             featureFlagController.observeOverride(),
-            userFlags.resolvedFlags.map { it.isStaff.effectiveValue }
-        ) { override, isStaff ->
-            override || isStaff
-        }.map {
-            dispatchEvent(Event.OnBetaFeaturesUnlocked(it))
+            userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
+            featureFlagController.observe(),
+        ) { override, isStaff, flags ->
+            dispatchEvent(Event.OnBetaFeaturesUnlocked(override || isStaff, flags))
         }.launchIn(viewModelScope)
+
+        // Hands off to Google's Password Manager to pick another access key, then re-logs in as it.
+        eventFlow
+            .filterIsInstance<Event.OnSwitchAccountsClicked>()
+            .map {
+                authManager.selectAccount()
+                    .fold(
+                        onSuccess = {
+                            authManager.logoutAndSwitchAccount(
+                                mnemonicManager.getEncodedBase64(it)
+                            )
+                        },
+                        onFailure = { Result.failure(it) }
+                    )
+            }.onResult(
+                onError = { },
+                onSuccess = { dispatchEvent(Event.OnSwitchAccountTo(it)) }
+            ).launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnAccessKeyClicked>()
@@ -140,15 +171,33 @@ internal class AdvancedFeaturesScreenViewModel @Inject constructor(
     }
 
     internal companion object {
+        /**
+         * Staff-only rows need beta access (staff, or the version-footer override); flag-gated rows
+         * additionally need their flag switched on server-side.
+         */
+        private fun buildItemList(
+            unlocked: Boolean,
+            flags: List<BetaFeature>,
+        ): List<MenuItem<Event>> = FullMenuList
+            .filter { it !is StaffMenuItem || unlocked }
+            .filter { item ->
+                val flag = item.featureFlag ?: return@filter true
+                flags.find { it.flag.key == flag.key }?.enabled == true
+            }
+
         private val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnBetaFeaturesUnlocked -> { state ->
                     state.copy(
                         isBetaEnabled = event.unlocked,
+                        flags = event.flags,
+                        items = buildItemList(unlocked = event.unlocked, flags = event.flags),
                     )
                 }
 
                 is Event.OpenScreen,
+                Event.OnSwitchAccountsClicked,
+                is Event.OnSwitchAccountTo,
                 Event.OpenBillPlayground,
                 Event.OnAccessKeyClicked,
                 Event.OnViewAccessKey,

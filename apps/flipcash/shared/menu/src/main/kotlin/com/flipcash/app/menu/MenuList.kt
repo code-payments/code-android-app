@@ -1,5 +1,6 @@
 package com.flipcash.app.menu
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,6 +23,8 @@ fun <T> MenuList(
     header: @Composable (() -> Unit)? = null,
     footer: @Composable (() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    userScrollEnabled: Boolean = true,
+    itemModifier: Modifier = Modifier,
     onItemClick: (MenuItem<T>) -> Unit
 ) {
     LazyColumn(
@@ -32,13 +35,19 @@ fun <T> MenuList(
             ).sheetResignmentBehavior(state),
         state = state,
         contentPadding = contentPadding,
+        userScrollEnabled = userScrollEnabled,
     ) {
         if (header != null) {
             item { header() }
         }
         items(items, key = { it.id }, contentType = { it }) { item ->
-            ListItem(modifier = Modifier.animateItem(), item = item, showChevron = showChevrons) {
-                onItemClick(item)
+            // [itemModifier] wraps the whole row rather than riding on ListItem's own modifier:
+            // ListItem emits its divider as a sibling of the row, so a modifier handed to the row
+            // alone would leave the divider behind (visibly, for callers fading the list out).
+            Column(modifier = Modifier.animateItem().then(itemModifier)) {
+                ListItem(item = item, showChevron = showChevrons) {
+                    onItemClick(item)
+                }
             }
         }
 

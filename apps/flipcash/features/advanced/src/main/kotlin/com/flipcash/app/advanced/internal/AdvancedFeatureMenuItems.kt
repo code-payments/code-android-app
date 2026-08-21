@@ -11,7 +11,9 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.menu.FullMenuItem
+import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.core.R
 import com.getcode.util.resources.icons.Delete
 
@@ -71,4 +73,19 @@ internal data object DeleteAccount : FullMenuItem<AdvancedFeaturesScreenViewMode
         @Composable get() = stringResource(R.string.action_deleteAccount)
     override val action: AdvancedFeaturesScreenViewModel.Event =
         AdvancedFeaturesScreenViewModel.Event.OnDeleteAccountClicked
+}
+
+/**
+ * Staff/beta only, and dead without Google's Password Manager behind it —
+ * `PassphraseCredentialManager.selectCredential()` refuses outright when the flag is off. Sits here
+ * rather than on the You tab: it's a beta tool, next to the other one.
+ */
+internal data object SwitchAccount : StaffMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = painterResource(R.drawable.ic_menu_switchaccounts)
+    override val name: String
+        @Composable get() = stringResource(R.string.title_switchAccounts)
+    override val action: AdvancedFeaturesScreenViewModel.Event =
+        AdvancedFeaturesScreenViewModel.Event.OnSwitchAccountsClicked
+    override val featureFlag: FeatureFlag<*> = FeatureFlag.CredentialManager
 }

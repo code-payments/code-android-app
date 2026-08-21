@@ -49,6 +49,9 @@ internal fun AppNavigationBar(
     navigator: CodeNavigator,
     modifier: Modifier = Modifier,
     hazeState: HazeState? = null,
+    // A tab home taking over the whole screen without leaving its route (the You tab's tip card
+    // expanding in place). See TabBarVisibilityController.
+    forceHidden: Boolean = false,
 ) {
     // Selection follows the base of the backstack (the tab "home"), so it stays correct while a
     // sheet/modal sits on top and is right on launch. The top route only gates visibility.
@@ -79,7 +82,7 @@ internal fun AppNavigationBar(
         contentAlignment = Alignment.BottomCenter,
     ) {
         AnimatedVisibility(
-            visible = topTab != null && bottomBarMessages.isEmpty() && !billUp,
+            visible = topTab != null && bottomBarMessages.isEmpty() && !billUp && !forceHidden,
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut(),
         ) {

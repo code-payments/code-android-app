@@ -6,9 +6,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
-import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.menu.FullMenuItem
-import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.features.menu.R
 
 internal data object MyAccount : FullMenuItem<MenuScreenViewModel.Event>() {
@@ -30,13 +28,3 @@ internal data object AdvancedFeatures : FullMenuItem<MenuScreenViewModel.Event>(
         AppRoute.Menu.AdvancedFeatures
     )
 }
-
-internal data object SwitchAccount : StaffMenuItem<MenuScreenViewModel.Event>() {
-    override val icon: Painter
-        @Composable get() = painterResource(R.drawable.ic_menu_switchaccounts)
-    override val name: String
-        @Composable get() = stringResource(R.string.title_switchAccounts)
-    override val action: MenuScreenViewModel.Event = MenuScreenViewModel.Event.OnSwitchAccountsClicked
-    override val featureFlag: FeatureFlag<*> = FeatureFlag.CredentialManager
-}
-
