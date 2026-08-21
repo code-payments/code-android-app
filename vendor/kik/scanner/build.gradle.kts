@@ -36,4 +36,10 @@ dependencies {
     api(project(":libs:codes:kikcode"))
     implementation(project(":libs:encryption:ed25519"))
     implementation(project(":vendor:opencv:sdk"))
+
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.kotlin.test.junit)
+    androidTestImplementation(libs.kotlinx.coroutines.core)
 }

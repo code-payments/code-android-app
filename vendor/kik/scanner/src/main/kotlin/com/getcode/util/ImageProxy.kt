@@ -15,12 +15,35 @@ private fun ImageProxy.getLuminancePlaneData(): ByteArray {
     buffer.get(data)
     buffer.rewind()
 
-    val width = width
-    val height = height
-    val rowStride = plane.rowStride
-    val pixelStride = plane.pixelStride
+    return unpadLuminancePlane(
+        data = data,
+        width = width,
+        height = height,
+        rowStride = plane.rowStride,
+        pixelStride = plane.pixelStride,
+    )
+}
 
-    if (width != rowStride || pixelStride != -1) {
+/**
+ * Strips row padding (and any pixel interleaving) from a YUV_420_888 Y plane so the result is a
+ * tightly packed `width * height` luminance matrix.
+ *
+ * When the plane is already tightly packed — `rowStride == width` and `pixelStride == 1`, which is
+ * the common case for analysis resolutions whose width is a multiple of the hardware alignment —
+ * [data] is returned as-is, skipping the O(width * height) per-pixel copy.
+ *
+ * Note that YUV_420_888 guarantees a Y-plane pixel stride of 1, so in practice only
+ * the row-stride check can send us down the copying path; the pixel-stride term is kept to match
+ * the upstream implementation and to stay correct if that guarantee ever loosens.
+ */
+internal fun unpadLuminancePlane(
+    data: ByteArray,
+    width: Int,
+    height: Int,
+    rowStride: Int,
+    pixelStride: Int,
+): ByteArray {
+    if (width != rowStride || pixelStride != 1) {
         // remove padding from the Y plane data
         val cleanData = ByteArray(width * height)
         for (y in 0 until height) {
