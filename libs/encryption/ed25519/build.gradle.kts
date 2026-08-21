@@ -85,6 +85,15 @@ kotlin {
         compilations["main"].cinterops.create("ed25519") {
             definitionFile = file("cinterop/ed25519.def")
             includeDirs(ed25519SrcDir)
+            // Embed the archive in the klib rather than leaving it to each binary's
+            // linker flags: a static framework built from this module ships the C
+            // objects inside it, so consumers link one artifact and nothing else.
+            // Without this the framework exports `ed25519_*` as undefined symbols and
+            // only links inside an app that happens to compile the same C itself.
+            extraOpts(
+                "-staticLibrary", "libored25519.a",
+                "-libraryPath", libDir.get().asFile.absolutePath,
+            )
         }
 
         // Both the cinterop binding task and the Kotlin compile task need the
@@ -94,10 +103,6 @@ kotlin {
         }
         tasks.matching { it.name == "compileKotlin${name.replaceFirstChar { it.uppercaseChar() }}" }.configureEach {
             dependsOn(compileTaskName)
-        }
-
-        binaries.configureEach {
-            linkerOpts("-L${libDir.get().asFile.absolutePath}", "-lored25519")
         }
     }
 
