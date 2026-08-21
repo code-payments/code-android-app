@@ -67,7 +67,9 @@ private const val TipCardAspectRatio = 333f / 269f
  * on the scanner/camera). Capped at [TipCardMaxWidth]. Mirrors iOS `BillCanvas.tipcardSize`.
  */
 private const val TipCardCanvasWidthFraction = 0.82f
-private val TipCardMaxWidth: Dp = 270.dp
+// Sized so a phone-width canvas gets the full 0.82 fraction (node 9277:121417 puts the full-screen
+// card at 302 on a 402 frame); the cap is really there to stop a tablet blowing the card up.
+private val TipCardMaxWidth: Dp = 305.dp
 
 // The card derives its inner metrics from its width, matching iOS `TipcardView`.
 private const val TipCardCodeFraction = 0.68f   // scannable code (square)

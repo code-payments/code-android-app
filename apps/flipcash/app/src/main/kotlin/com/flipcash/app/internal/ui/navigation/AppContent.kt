@@ -28,6 +28,8 @@ import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.cardexpand.LocalCardExpansion
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
+import com.flipcash.app.core.navigation.LocalTabBarVisibility
+import com.flipcash.app.core.navigation.TabBarVisibilityController
 import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.ui.transitions.CardExpandTransition
 import com.flipcash.app.internal.ui.AppNavigationBar
@@ -178,12 +180,19 @@ internal fun NewAppContent(
     val hazeState = rememberHazeState()
     val tabBarHeight = remember { mutableStateOf(0.dp) }
 
+    // Lets a tab home hide the bar without leaving its route — the You tab's tip card expands to
+    // full screen in place, so there's no route change for the visibility rule below to notice.
+    val tabBarVisibility = remember { TabBarVisibilityController() }
+
     // Card-expand (iOS #587): the wallet requests an expansion (via LocalCardExpansion); the detail is
     // drawn by CardExpandHost inside the wallet entry, driven by one progress scalar, so the deck stays
     // composed and reorganises behind it. See CardExpansionController / CurrencyInfoExpansion.
     // [cardExpansion] is owned by App so a `/token` deeplink — which is handled there, outside this
     // shell — can open a token as its expanded card instead of pushing a screen.
-    CompositionLocalProvider(LocalCardExpansion provides cardExpansion) {
+    CompositionLocalProvider(
+        LocalCardExpansion provides cardExpansion,
+        LocalTabBarVisibility provides tabBarVisibility,
+    ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Mark the nav content as the haze source so the frosted bar blurs whatever scrolls beneath it.
         Box(modifier = Modifier.hazeSource(hazeState)) {
@@ -282,6 +291,7 @@ internal fun NewAppContent(
         AppNavigationBar(
             navigator = codeNavigator,
             hazeState = hazeState,
+            forceHidden = tabBarVisibility.isHidden,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .measured { if (it.height > tabBarHeight.value) tabBarHeight.value = it.height }

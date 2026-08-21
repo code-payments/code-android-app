@@ -76,15 +76,6 @@ internal fun ScannableContainer(
     val state by session.state.collectAsStateWithLifecycle()
     val billState by session.billState.collectAsStateWithLifecycle()
 
-    val autoStart = state.autoStartCamera == true
-    var cameraStarted by remember { mutableStateOf(autoStart) }
-
-    OnLifecycleEvent { _, event ->
-        if (event == Lifecycle.Event.ON_STOP && !autoStart) {
-            cameraStarted = false
-        }
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -115,15 +106,7 @@ internal fun ScannableContainer(
                             onClick = { cameraPermission.launch() }
                         )
                     }
-                    PermissionResult.Granted -> {
-                        if (!cameraStarted) {
-                            CameraDisabledView(modifier = Modifier.fillMaxSize()) {
-                                cameraStarted = true
-                            }
-                        } else {
-                            scannerView()
-                        }
-                    }
+                    PermissionResult.Granted -> scannerView()
                     PermissionResult.PermanentlyDenied -> {
                         CameraDisabledView(modifier = Modifier.fillMaxSize()) {
                             context.launchAppSettings()

@@ -103,6 +103,7 @@ internal class InternalShareSheetController(
                 is Shareable.TokenInfo -> Unit
                 is Shareable.Invite -> Unit
                 is Shareable.TipCard -> Unit
+                is Shareable.TipCodeImage -> Unit
             }
         }
     }
@@ -149,6 +150,8 @@ internal class InternalShareSheetController(
             }
 
             is Shareable.TipCard -> shareTipCard(shareable)
+
+            is Shareable.TipCodeImage -> shareTipCodeImage(shareable)
         }
     }
 
@@ -316,6 +319,36 @@ internal class InternalShareSheetController(
             // grant, and the Sharesheet's own preview process would be denied access to the image.
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             if (preview != null) addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        context.startActivity(share)
+    }
+
+    /**
+     * Shares the exported code file itself (PNG/SVG). Unlike [shareTipCard], the payload here IS the
+     * file: it goes out as an `EXTRA_STREAM` of the export's own MIME type, so "save to Files" and
+     * image-consuming targets receive something real rather than a link.
+     */
+    private fun shareTipCodeImage(shareable: Shareable.TipCodeImage) {
+        val export = shareable.export
+
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = export.mimeType
+            putExtra(Intent.EXTRA_STREAM, export.uri)
+            shareable.title?.let {
+                putExtra(Intent.EXTRA_TITLE, it)
+                putExtra(Intent.EXTRA_SUBJECT, it)
+            }
+            // Also as ClipData so the Sharesheet can draw a preview of the PNG (and so the read
+            // grant travels with the intent).
+            clipData = ClipData.newUri(context.contentResolver, shareable.title.orEmpty(), export.uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        val share = Intent.createChooser(intent, null).apply {
+            // addFlags, not `flags =` — see shareTipCard: assigning would wipe the migrated grant.
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
         context.startActivity(share)

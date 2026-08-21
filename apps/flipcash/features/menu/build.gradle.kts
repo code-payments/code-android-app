@@ -14,7 +14,6 @@ dependencies {
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:menu"))
     implementation(project(":apps:flipcash:shared:funding"))
-    implementation(project(":apps:flipcash:shared:session"))
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:shared:tipping"))
     implementation(project(":apps:flipcash:shared:userflags"))

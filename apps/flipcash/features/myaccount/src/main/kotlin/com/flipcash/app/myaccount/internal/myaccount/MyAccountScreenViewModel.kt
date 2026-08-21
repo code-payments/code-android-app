@@ -1,42 +1,34 @@
 package com.flipcash.app.myaccount.internal.myaccount
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.auth.AuthManager
-import com.flipcash.app.featureflags.BetaFeature
+import com.flipcash.app.appsettings.AppSettingValue
+import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.StaffMenuItem
-import com.flipcash.features.myaccount.R
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.flipcash.services.user.UserManager
-import com.getcode.manager.BottomBarAction
-import com.getcode.manager.BottomBarManager
-import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 private val FullMenuList = buildList {
-    add(AccessKey)
+    add(RequireBiometrics)
     add(Blocklist)
     add(UserProfile)
-    add(LogOut)
-    add(DeleteAccount)
 }
 
 @HiltViewModel
 internal class MyAccountScreenViewModel @Inject constructor(
-    userManager: UserManager,
+    private val appSettings: AppSettingsCoordinator,
     featureFlagController: FeatureFlagController,
-    resources: ResourceHelper,
-    authManager: AuthManager,
+    userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<MyAccountScreenViewModel.State, MyAccountScreenViewModel.Event>(
     initialState = State(),
@@ -44,78 +36,62 @@ internal class MyAccountScreenViewModel @Inject constructor(
     defaultDispatcher = dispatchers.Default,
 ) {
     internal data class State(
-        val isBetaEnabled: Boolean = false,
-        // Default hides staff-only AND flag-gated items until the real flag state loads, so a
-        // beta-gated item never flashes before its flag is resolved.
-        val items: List<MenuItem<Event>> =
-            FullMenuList.filterNot { it is StaffMenuItem || it.featureFlag != null }
+        val biometricsRequired: Boolean = false,
+        // Biometrics aren't offerable on every device: the row is hidden outright when the hardware
+        // isn't there, and shown-but-disabled when the hardware exists with nothing enrolled.
+        val biometricsSupported: Boolean = true,
+        val biometricsAvailable: Boolean = true,
+        // Why the row can't act, when it can't — e.g. the hardware is there with nothing enrolled.
+        @StringRes val biometricsDescription: Int? = null,
+        val betaUnlocked: Boolean = false,
+        // Staff-only rows stay out until the real flag state loads, so they never flash in.
+        val items: List<MenuItem<Event>> = FullMenuList.filterNot { it is StaffMenuItem },
     )
 
     internal sealed interface Event {
-        data class OnBetaFeaturesUnlocked(
-            val unlocked: Boolean,
-            val flags: List<BetaFeature> = emptyList(),
+        data class OnBetaFeaturesUnlocked(val unlocked: Boolean) : Event
+        data class OnBiometricsSettingChanged(
+            val required: Boolean,
+            val supported: Boolean,
+            val available: Boolean,
+            @StringRes val description: Int? = null,
         ) : Event
-        data object OnAccessKeyClicked : Event
+        /** Dispatched only after the screen's biometric prompt succeeds. */
+        data object OnBiometricsToggled : Event
         data object OnBlocklistClicked: Event
-        data object OnViewAccessKey : Event
         data object OnViewBlocklist: Event
         data object OnContactMethodsClicked : Event
         data object OnViewUserProfile : Event
-        data object OnDeleteAccountClicked : Event
-        data object OnAccountDeleted : Event
-        data object OnLogOutClicked : Event
-        data object OnLoggedOutCompletely : Event
     }
 
     init {
         combine(
             featureFlagController.observeOverride(),
-            userManager.state.map { it.flags?.isStaff == true },
-            featureFlagController.observe(),
-        ) { override, isStaff, flags ->
-            dispatchEvent(Event.OnBetaFeaturesUnlocked(override || isStaff, flags))
-        }.launchIn(viewModelScope)
+            userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
+        ) { override, isStaff -> override || isStaff }
+            .onEach { dispatchEvent(Event.OnBetaFeaturesUnlocked(it)) }
+            .launchIn(viewModelScope)
 
-        eventFlow
-            .filterIsInstance<Event.OnDeleteAccountClicked>()
-            .onEach {
-                BottomBarManager.showAlert(
-                    title = resources.getString(R.string.prompt_title_deleteAccount),
-                    message = resources.getString(R.string.prompt_description_deleteAccount),
-                    actions = listOf(
-                        BottomBarAction(resources.getString(R.string.action_deleteAccount)) {
-                            viewModelScope.launch {
-                                delay(150) // wait for dismiss
-                                authManager.deleteAndLogout()
-                                    .onSuccess { dispatchEvent(Event.OnAccountDeleted) }
-                                    .onFailure {
-                                        BottomBarManager.showError(
-                                            title = resources.getString(R.string.error_title_failedToDeleteAccount),
-                                            message = resources.getString(R.string.error_description_failedToDeleteAccount),
-                                        )
-                                    }
-                            }
-                        }
-                    ),
-                    showCancel = true,
+        appSettings.settings()
+            .map { items -> items.find { it.setting.type == AppSettingValue.BiometricsRequired } }
+            .onEach { item ->
+                item ?: return@onEach
+                dispatchEvent(
+                    Event.OnBiometricsSettingChanged(
+                        required = item.setting.enabled,
+                        supported = item.visible,
+                        available = item.available,
+                        description = item.description,
+                    )
                 )
             }.launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.OnAccessKeyClicked>()
+            .filterIsInstance<Event.OnBiometricsToggled>()
             .onEach {
-                BottomBarManager.showAlert(
-                    title = resources.getString(R.string.prompt_title_viewAccessKey),
-                    message = resources.getString(R.string.prompt_description_viewAccessKey),
-                    showScrim = true,
-                    showCancel = true,
-                    actions = listOf(
-                        BottomBarAction(
-                            text = resources.getString(R.string.action_viewAccessKey),
-                            onClick = { dispatchEvent(Event.OnViewAccessKey) }
-                        )
-                    ),
+                appSettings.update(
+                    AppSettingValue.BiometricsRequired,
+                    !stateFlow.value.biometricsRequired,
                 )
             }.launchIn(viewModelScope)
 
@@ -130,69 +106,45 @@ internal class MyAccountScreenViewModel @Inject constructor(
             .onEach {
                 dispatchEvent(Event.OnViewUserProfile)
             }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnLogOutClicked>()
-            .onEach {
-                BottomBarManager.showAlert(
-                    title = resources.getString(R.string.prompt_title_logout),
-                    message = resources.getString(R.string.prompt_description_logout),
-                    actions = listOf(
-                        BottomBarAction(resources.getString(R.string.action_logout)) {
-                            viewModelScope.launch {
-                                delay(150) // wait for dismiss
-                                authManager.logout()
-                                    .onSuccess {
-                                        dispatchEvent(Event.OnLoggedOutCompletely)
-                                    }
-                                    .onFailure {
-                                        BottomBarManager.showError(
-                                            title = resources.getString(R.string.error_title_failedToLogOut),
-                                            message = resources.getString(R.string.error_description_failedToLogOut),
-                                        )
-                                    }
-                            }
-                        },
-                    ),
-                    showCancel = true,
-                )
-            }.launchIn(viewModelScope)
     }
 
     internal companion object {
+        /** Biometrics drops out on hardware that can't offer it; staff rows need the beta unlock. */
         private fun buildItemList(
-            isBetaEnabled: Boolean,
-            flags: List<BetaFeature> = emptyList(),
-        ): List<MenuItem<Event>> {
-            val base = if (isBetaEnabled) {
-                FullMenuList
-            } else {
-                FullMenuList.filterNot { item -> item is StaffMenuItem }
-            }
-            // Flag-gated items only show when their feature flag is enabled.
-            return base.filter { item ->
-                val flag = item.featureFlag ?: return@filter true
-                flags.find { it.flag.key == flag.key }?.enabled == true
-            }
-        }
+            biometricsSupported: Boolean,
+            betaUnlocked: Boolean,
+        ): List<MenuItem<Event>> = FullMenuList
+            .filterNot { it == RequireBiometrics && !biometricsSupported }
+            .filter { it !is StaffMenuItem || betaUnlocked }
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                Event.OnLogOutClicked,
-                Event.OnLoggedOutCompletely,
+                Event.OnBiometricsToggled,
                 Event.OnContactMethodsClicked,
                 Event.OnViewUserProfile,
-                Event.OnViewAccessKey,
-                Event.OnDeleteAccountClicked,
-                Event.OnAccountDeleted,
-                Event.OnAccessKeyClicked,
                 Event.OnBlocklistClicked,
                 Event.OnViewBlocklist -> { state -> state }
 
                 is Event.OnBetaFeaturesUnlocked -> { state ->
                     state.copy(
-                        isBetaEnabled = event.unlocked,
-                        items = buildItemList(event.unlocked, event.flags)
+                        betaUnlocked = event.unlocked,
+                        items = buildItemList(
+                            biometricsSupported = state.biometricsSupported,
+                            betaUnlocked = event.unlocked,
+                        ),
+                    )
+                }
+
+                is Event.OnBiometricsSettingChanged -> { state ->
+                    state.copy(
+                        biometricsRequired = event.required,
+                        biometricsSupported = event.supported,
+                        biometricsAvailable = event.available,
+                        biometricsDescription = event.description,
+                        items = buildItemList(
+                            biometricsSupported = event.supported,
+                            betaUnlocked = state.betaUnlocked,
+                        ),
                     )
                 }
             }

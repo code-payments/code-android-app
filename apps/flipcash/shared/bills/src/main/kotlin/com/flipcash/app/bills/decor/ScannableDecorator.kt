@@ -59,9 +59,9 @@ sealed interface ScannableDecorator {
         /** Resolves the decor that own the below-bill content for [scannable]. */
         fun forScannable(scannable: Scannable): ScannableDecorator = when (scannable) {
             is Scannable.Payable -> PayableDecorator(scannable)
-            // The viewer's own tip card (e.g. the You tab's full-screen present) has no below-bill
-            // content — no Send-a-Tip modal, no add-money prompt. You can't tip yourself.
-            is Scannable.TipCard -> if (scannable.isSelf) NoOpScannableDecorator else TipCardDecorator(scannable)
+            // The viewer's own tip card (the You tab's full-screen present) gets no Send-a-Tip modal
+            // and no add-money prompt — you can't tip yourself — just a Close affordance.
+            is Scannable.TipCard -> TipCardDecorator(scannable)
         }
     }
 }

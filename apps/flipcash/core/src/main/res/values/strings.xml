@@ -972,4 +972,19 @@
 
     <string name="title_tipOnboarding">Send Your First Tip</string>
 
+    <!-- You tab (tip card) -->
+    <string name="action_viewFullScreen">Full Screen</string>
+    <string name="action_closeFullScreen">Close</string>
+    <string name="action_download">Download</string>
+    <string name="title_clipboardLabelTipCardLink">Tip Card Link</string>
+    <string name="title_downloadTipCardAs">Download As</string>
+    <string name="label_exportPng">PNG</string>
+    <string name="subtitle_exportPng">Social, chats, overlays</string>
+    <string name="label_exportSvg">SVG</string>
+    <string name="subtitle_exportSvg">Stays sharp at any size</string>
+    <string name="title_shareTipCode">My Flipcash Code</string>
+    <string name="error_title_tipCardExportFailed">Couldn\'t Export</string>
+    <string name="error_description_tipCardExportFailed">We were unable to export your tip code. Please try again</string>
+    <string name="title_changeDisplayName">Change Display Name</string>
+
 </resources>

@@ -239,11 +239,6 @@ class RealSessionController @Inject constructor(
             .onEach { blobStorageCoordinator.preloadPolicy() }
             .launchIn(scope)
 
-        appSettingsCoordinator
-            .observeValue(AppSettingValue.CameraStartByDefault)
-            .onEach { autoStart -> stateHolder.update { it.copy(autoStartCamera = autoStart) } }
-            .launchIn(scope)
-
         featureFlagController.observe(FeatureFlag.ShowNetworkState)
             .onEach { enabled -> stateHolder.update { it.copy(showNetworkOffline = enabled) } }
             .launchIn(scope)

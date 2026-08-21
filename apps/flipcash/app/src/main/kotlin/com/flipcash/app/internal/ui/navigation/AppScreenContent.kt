@@ -19,7 +19,6 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.advanced.AdvancedFeaturesScreen
-import com.flipcash.app.appsettings.AppSettingsScreen
 import com.flipcash.app.devicelogs.DeviceLogsScreen
 import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.BalanceScreen
@@ -146,7 +145,6 @@ fun appEntryProvider(
 
 
     // Menu
-    annotatedEntry<AppRoute.Menu.AppSettings> { AppSettingsScreen() }
     annotatedEntry<AppRoute.Menu.Lab> { key -> LabsScreen(onboarding = key.onboarding) }
     annotatedEntry<AppRoute.Menu.NavBarSettings> { NavBarSettingsScreen() }
     annotatedEntry<AppRoute.Menu.UserProfile> { UserProfileScreen() }
