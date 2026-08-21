@@ -38,3 +38,23 @@ fun Fiat.grossingUpLaunchpadSellFee(bps: Int): Fiat {
     val feeFraction = cappedBps / MAX_FEE_BPS.toDouble()
     return this / (1.0 - feeFraction)
 }
+
+/**
+ * The most of this balance that can be spent when the pool's sell fee is *grossed up* out of the
+ * spend: `balance × (1 − bps/10_000)`, the inverse of [grossingUpLaunchpadSellFee].
+ *
+ * Grossing the result back up lands exactly on this balance, which makes it the largest entry the
+ * balance can actually fund.
+ */
+fun Fiat.spendableUnderGrossedUpSellFee(bps: Int): Fiat = this - launchpadSellFee(bps)
+
+/**
+ * The most of this balance that can be spent when the fee is charged *on top* of the spend rather
+ * than skimmed out of it: `balance / (1 + bps/10_000)`.
+ *
+ * Adding that entry's own fee back lands exactly on this balance.
+ */
+fun Fiat.spendableUnderSellFeeOnTop(bps: Int): Fiat {
+    val cappedBps = bps.coerceIn(0, MAX_FEE_BPS)
+    return this / (1.0 + cappedBps / MAX_FEE_BPS.toDouble())
+}

@@ -30,6 +30,7 @@ import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.funding.PurchaseMethodMetadata
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.UsdcDepositSweep
+import com.flipcash.app.tokens.entryAffordableAfterFee
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -56,7 +57,6 @@ import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
-import com.getcode.opencode.model.financial.div
 import com.getcode.opencode.model.financial.grossingUpLaunchpadSellFee
 import com.getcode.opencode.model.financial.launchpadSellFee
 import com.getcode.opencode.model.financial.max
@@ -530,70 +530,43 @@ class SwapViewModel @Inject constructor(
         }
 
     /**
-     * Cross-currency buys pay the funding pool's sell fee on top of the entered amount, so
-     * "You Pay" = amount + fee. If that total exceeds the funding token's wallet balance, the user
-     * can't cover it — surface a modal (automatically, on landing the receipt) offering to drop to
-     * the maximum affordable amount rather than letting the buy fail.
+     * Drops the entry to the most the funding balance can cover once its fee is applied, in place.
      *
-     * No-op when the funding side charges nothing — v1's USDF buy — and sub-cent rounding is
-     * tolerated so applying the max doesn't immediately re-prompt. All comparisons are in USD
-     * ([Fiat.convertingToUsdIfNeeded]), the common denominator across native currencies.
+     * Entry is capped at the raw balance, so entering the maximum always overruns by exactly the
+     * fee — whether it rides on top of the amount (Dollars, which has no pool to skim) or is
+     * grossed up out of a launchpad sale. Rather than pricing a number the balance can't fund and
+     * asking the user to confirm a correction, the entry itself is set to the true maximum, so the
+     * amount screen and everything priced from it agree. Entries with room to spare are untouched.
+     *
+     * [balance] must be in the same currency the amount is entered in — the localized balance from
+     * [State.tokenWithBalance], or a USD wallet balance converted through the preferred rate.
      */
-    private fun maybePromptInsufficientBalanceAfterFees(
-        fundingToken: Token,
-        payTotal: Fiat,
-        rate: Rate,
+    private fun correctEntryToAffordable(
+        balance: Fiat,
+        feeBps: Int,
+        feeChargedOnTop: Boolean,
     ) {
-        // A v2 Get from Dollars charges the house rate on top instead of skimming a pool, so it
-        // can overrun the balance just like a cross-currency buy. v1's USDF buy is still free.
-        val feeChargedOnTop = fundingToken.address == Mint.usdf && stateFlow.value.isGet
-        if (fundingToken.address == Mint.usdf && !feeChargedOnTop) return
+        val corrected = entryAffordableAfterFee(
+            entered = amountDelegate.state.value.enteredAmount,
+            balance = balance,
+            feeBps = feeBps,
+            feeChargedOnTop = feeChargedOnTop,
+        ) ?: return
 
-        val balanceUsd = tokenCoordinator.balanceForToken(fundingToken).convertingToUsdIfNeeded(rate)
-        val payUsd = payTotal.convertingToUsdIfNeeded(rate)
-        if ((payUsd - balanceUsd) <= balanceUsd.smallestUnit) return
+        amountDelegate.setAmount(corrected.decimalValue)
+    }
 
-        BottomBarManager.showInfo(
-            title = resources.getString(R.string.title_insufficientBalanceAfterFees),
-            message = resources.getString(R.string.description_insufficientBalanceAfterFees),
-            actions = listOf(
-                BottomBarAction(
-                    text = resources.getString(R.string.action_buyMaximumAmount),
-                    style = BottomBarManager.BottomBarButtonStyle.Filled,
-                ) {
-                    // The most we can pay is the full balance, so the most we can receive (net of
-                    // the fee) is balance - fee(balance). This only corrects the displayed receipt
-                    // (via OnAmountAccepted, a pure state update): the buy already caps the pay amount
-                    // to the balance on-chain, and the entered amount is left untouched so returning
-                    // to amount entry preserves what the user typed. selectedAmount is passed through
-                    // unchanged.
-                    val balanceNative = balanceUsd.convertingTo(rate)
-                    val maxReceive = if (feeChargedOnTop) {
-                        // Fee on top: pay = receive × (1 + f), so the balance affords receive =
-                        // balance / (1 + f).
-                        balanceNative / (1.0 + DEFAULT_CONVERT_FEE_BPS / 10_000.0)
-                    } else {
-                        // Fee grossed up: pay = receive / (1 - f), so the balance affords receive =
-                        // balance × (1 - f).
-                        balanceNative -
-                            balanceNative.launchpadSellFee(fundingToken.launchpadMetadata?.sellFeeBps ?: 0)
-                    }
-                    val maxFee = balanceNative - maxReceive
-                    dispatchEvent(
-                        Event.OnAmountAccepted(
-                            amount = stateFlow.value.amountEntryState.selectedAmount,
-                            netTransferAmount = maxReceive,
-                            enteredAmount = maxReceive,
-                            feeAmount = maxFee,
-                        )
-                    )
-                },
-                BottomBarAction(
-                    text = resources.getString(R.string.action_dismiss),
-                    style = BottomBarManager.BottomBarButtonStyle.Text,
-                ),
-            ),
-        )
+    /**
+     * The fee a buy funded by [fundingToken] charges, as bps and whether it rides on top of the
+     * entered amount. A v2 Get from Dollars pays the flat house rate on top (no pool to skim);
+     * every other currency has its pool's sell fee grossed up into the debit; v1's reserves buy is
+     * free.
+     */
+    private fun buyFeeFor(fundingToken: Token): Pair<Int, Boolean> = when {
+        fundingToken.address != Mint.usdf ->
+            (fundingToken.launchpadMetadata?.sellFeeBps ?: 0) to false
+        stateFlow.value.isGet -> DEFAULT_CONVERT_FEE_BPS to true
+        else -> 0 to false
     }
 
     private suspend fun transactionLimit(): Fiat {
@@ -971,6 +944,17 @@ class SwapViewModel @Inject constructor(
                     is SwapPurpose.Convert -> {
                         val rate = exchange.preferredRate
                         val sourceWithBalance = stateFlow.value.tokenWithBalance ?: return@onEach
+                        // Converting out of Dollars charges the fee on top, so the whole balance
+                        // can't be converted — trim the entry to the real maximum instead of
+                        // pricing a debit the balance can't cover. Every other direction has its
+                        // fee skimmed out of the entry, which can't overrun.
+                        if (stateFlow.value.isConvertingFromDollars) {
+                            correctEntryToAffordable(
+                                balance = sourceWithBalance.balance,
+                                feeBps = convertFeeBps,
+                                feeChargedOnTop = true,
+                            )
+                        }
                         // The pin is taken against the total debited, which is the entered amount
                         // plus the fee when converting out of Dollars (see [totalDebitAmount]).
                         val amountFiat = verifiedFiatCalculator.compute(
@@ -1238,8 +1222,19 @@ class SwapViewModel @Inject constructor(
             .map { it.mint }
             .mapNotNull {
                 val token = tokenCoordinator.getTokenMetadata(it).getOrNull()?.token ?: return@mapNotNull null
-                val delegateState = amountDelegate.state.value
                 val rate = exchange.preferredRate
+
+                // The fee comes out of the same balance that funds the buy, so entering the whole
+                // balance can never cover both. Trim the entry to the real maximum before pricing
+                // anything, so the receipt and the amount screen show the same number.
+                val (feeBps, feeChargedOnTop) = buyFeeFor(token)
+                correctEntryToAffordable(
+                    balance = tokenCoordinator.balanceForToken(token).convertingTo(rate),
+                    feeBps = feeBps,
+                    feeChargedOnTop = feeChargedOnTop,
+                )
+
+                val delegateState = amountDelegate.state.value
                 val amountFiat = verifiedFiatCalculator.compute(
                     amount = Fiat(delegateState.enteredAmount, rate.currency),
                     token = token,
@@ -1260,22 +1255,17 @@ class SwapViewModel @Inject constructor(
                     balance = nativeAmount
                 )
 
-                val exchangeFee = if (token.address == Mint.usdf) {
+                val exchangeFee = if (feeChargedOnTop) {
                     // Dollars has no launchpad sale to skim, so a v2 Get pays the flat house rate
                     // *on top* of the entered amount — the same convention Convert-from-Dollars
-                    // uses. The v1 reserves buy stays free.
-                    if (stateFlow.value.isGet) {
-                        nativeAmount.launchpadSellFee(DEFAULT_CONVERT_FEE_BPS)
-                    } else {
-                        0.toFiat((rate.currency))
-                    }
+                    // uses.
+                    nativeAmount.launchpadSellFee(feeBps)
                 } else {
                     // The pool's sell fee is grossed up on top of the entered amount, so the
                     // fee is (amount / (1 - fee)) - amount. Uses the funding pool's own bps,
-                    // matching the gross-up applied at buy time in OnBuyConfirmed.
-                    nativeAmount.grossingUpLaunchpadSellFee(
-                        token.launchpadMetadata?.sellFeeBps ?: 0,
-                    ) - nativeAmount
+                    // matching the gross-up applied at buy time in OnBuyConfirmed. v1's reserves
+                    // buy charges nothing, so its zero bps nets out to zero here.
+                    nativeAmount.grossingUpLaunchpadSellFee(feeBps) - nativeAmount
                 }
 
                 dispatchEvent(
@@ -1291,14 +1281,6 @@ class SwapViewModel @Inject constructor(
                     )
                 )
                 dispatchEvent(Event.OnFundingTokenResolved(tokenWithBalance))
-
-                // Landing the receipt: if the fee pushes "You Pay" past the funding token's
-                // wallet balance, auto-offer to drop to the maximum affordable amount.
-                maybePromptInsufficientBalanceAfterFees(
-                    fundingToken = token,
-                    payTotal = nativeAmount + exchangeFee,
-                    rate = rate,
-                )
             }.onEach {
 
             }.launchIn(viewModelScope)

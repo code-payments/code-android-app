@@ -121,6 +121,18 @@ class AmountEntryDelegateTest {
     }
 
     @Test
+    fun `setAmount replaces the current entry rather than appending to it`() = runTest {
+        val delegate = createDelegate()
+        delegate.onCurrencyChanged(usd)
+        delegate.onNumber(1)
+        delegate.onNumber(2)
+
+        delegate.setAmount(9.90)
+
+        assertEquals(9.90, delegate.state.value.enteredAmount)
+    }
+
+    @Test
     fun `reset clears amount`() = runTest {
         val delegate = createDelegate()
         delegate.onCurrencyChanged(usd)
