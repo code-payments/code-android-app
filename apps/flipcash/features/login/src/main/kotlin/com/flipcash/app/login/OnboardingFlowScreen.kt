@@ -25,6 +25,7 @@ import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.navigation.homeRoute
@@ -269,6 +270,7 @@ private fun FlowNavigator<OnboardingStep, OnboardingResult>.proceedToNameOrPermi
         navigate(
             AppRoute.UpdateUserProfile(
                 origin = AppRoute.OnboardingFlow(),
+                nameSource = DisplayNameSource.Onboarding,
                 includeName = true,
                 includePhoto = false,
                 target = AppRoute.OnboardingFlow(

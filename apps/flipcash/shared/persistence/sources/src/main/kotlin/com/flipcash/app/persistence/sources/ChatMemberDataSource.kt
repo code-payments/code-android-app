@@ -7,6 +7,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessagePointer
+import com.flipcash.services.models.chat.PointerType
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -46,6 +47,15 @@ class ChatMemberDataSource @Inject constructor(
 
     suspend fun getMembersForChat(chatIdHex: String): List<ChatMember> =
         db?.chatMemberDao()?.getMembersForChat(chatIdHex)?.map { mapper.toMember(it) } ?: emptyList()
+
+    /** The READ pointer [selfId] has already advanced to in [chatId], or 0 if none is cached. */
+    suspend fun getSelfReadPointer(chatId: ChatId, selfId: ID): Long =
+        getMembersForChat(chatId)
+            .firstOrNull { it.userId == selfId }
+            ?.pointers
+            ?.firstOrNull { it.type == PointerType.READ }
+            ?.value
+            ?: 0L
 
     suspend fun upsert(chatId: ChatId, members: List<ChatMember>) {
         val database = db ?: return

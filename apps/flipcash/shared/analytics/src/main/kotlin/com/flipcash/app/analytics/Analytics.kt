@@ -1,8 +1,10 @@
 package com.flipcash.app.analytics
 
 import androidx.compose.runtime.Composable
+import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AnalyticsService
@@ -44,12 +46,30 @@ interface FlipcashAnalyticsService : AnalyticsService {
     fun deeplinkRouted(type: DeeplinkType, error: Throwable? = null)
     fun displayedErrorModal(title: String, message: String, screen: String? = null, callSite: String? = null)
 
+    /** @param hadPreviousName true when the user is replacing a name, false on first set. */
+    fun displayNameSubmitted(source: DisplayNameSource, hadPreviousName: Boolean)
+
+    /** Increments a cumulative per-user counter. [amount] defaults to a single occurrence. */
+    fun incrementReceivedCounter(counter: Analytics.ReceivedCounter, amount: Double = 1.0)
+
+    fun tipReceived(chatType: ChatType, amount: Fiat, mint: Mint)
+    fun messageReceived(chatType: ChatType)
+
     fun buttonTapped(button: Button) {
         action(button)
     }
 }
 
 object Analytics {
+
+    /**
+     * Cumulative per-user counters stored as Mixpanel people properties.
+     *
+     * These are incremented once per received message and are NOT idempotent —
+     * every caller must be behind the analytics watermark. See
+     * ChatMetadataDataSource.getAnalyticsCountedThrough.
+     */
+    enum class ReceivedCounter { Tips, TipsValue, Messages }
 
     sealed interface Transfer {
         sealed interface Initiate: Transfer {
@@ -67,7 +87,7 @@ object Analytics {
         }
 
         data object SentCash : Transfer
-        data object SentTip : Transfer
+        data class SentTip(val origin: TipOrigin) : Transfer
     }
     enum class OnrampSource { Settings, Balance, Give }
     enum class AddMoneySource { Menu, GiveShortfall, BuyShortfall, Chat, Scanner, Balance }
@@ -126,6 +146,10 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun deeplinkParsed(type: DeeplinkType?, url: String) = Unit
     override fun deeplinkRouted(type: DeeplinkType, error: Throwable?) = Unit
     override fun displayedErrorModal(title: String, message: String, screen: String?, callSite: String?) = Unit
+    override fun displayNameSubmitted(source: DisplayNameSource, hadPreviousName: Boolean) = Unit
+    override fun incrementReceivedCounter(counter: Analytics.ReceivedCounter, amount: Double) = Unit
+    override fun tipReceived(chatType: ChatType, amount: Fiat, mint: Mint) = Unit
+    override fun messageReceived(chatType: ChatType) = Unit
 }
 
 @Composable

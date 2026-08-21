@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.ui.DisplayTextInput
 import com.flipcash.app.core.ui.transitions.SharedTransition
 import com.flipcash.app.core.ui.transitions.sharedElementTransition
@@ -43,6 +44,7 @@ import kotlinx.coroutines.flow.onEach
 
 @Composable
 internal fun NameEntryScreen(
+    source: DisplayNameSource,
     allowBack: Boolean = true,
 ) {
     val flowNavigator = rememberFlowNavigator<UpdateProfileStep, UpdateProfileResult>()
@@ -67,7 +69,7 @@ internal fun NameEntryScreen(
         } else {
             Spacer(Modifier.statusBarsPadding().padding(2.5.dp))
         }
-        NameEntryScreenContent(state, viewModel::dispatchEvent)
+        NameEntryScreenContent(state, source, viewModel::dispatchEvent)
     }
 
     LaunchedEffect(viewModel) {
@@ -81,6 +83,7 @@ internal fun NameEntryScreen(
 @Composable
 private fun NameEntryScreenContent(
     state: NameEntryViewModel.State,
+    source: DisplayNameSource,
     dispatchEvent: (NameEntryViewModel.Event) -> Unit,
 ) {
     val keyboard = rememberKeyboardController()
@@ -115,7 +118,7 @@ private fun NameEntryScreenContent(
                 isSuccess = state.processingState.success,
                 onClick = {
                     keyboard.hideIfVisible {
-                        dispatchEvent(NameEntryViewModel.Event.CheckName)
+                        dispatchEvent(NameEntryViewModel.Event.CheckName(source))
                     }
                 },
             )
@@ -143,7 +146,7 @@ private fun NameEntryScreenContent(
                 ),
                 onKeyboardAction = {
                     keyboard.hideIfVisible {
-                        dispatchEvent(NameEntryViewModel.Event.CheckName)
+                        dispatchEvent(NameEntryViewModel.Event.CheckName(source))
                     }
                 },
             )

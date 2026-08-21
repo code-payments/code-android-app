@@ -3,8 +3,11 @@ package com.flipcash.app.analytics.internal
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.AnalyticsEvent
 import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.analytics.TokenSymbolResolver
 import com.flipcash.app.analytics.asProperties
+import com.flipcash.app.analytics.propertyValue
 import com.flipcash.app.analytics.toAnalyticsEvent
+import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.models.chat.ChatType
@@ -26,7 +29,8 @@ import org.json.JSONObject
 import javax.inject.Inject
 
 internal class MixpanelAnalyticsDelegate @Inject constructor(
-    private val mixpanelAPI: MixpanelAPI
+    private val mixpanelAPI: MixpanelAPI,
+    private val tokenSymbolResolver: TokenSymbolResolver,
 ) : FlipcashAnalyticsService {
 
     private var traceAppInit: Trace? = null
@@ -267,6 +271,27 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(AnalyticsEvent.ErrorModalDisplayed(title, message, screen, callSite))
     }
 
+    override fun displayNameSubmitted(source: DisplayNameSource, hadPreviousName: Boolean) {
+        val event = if (hadPreviousName) {
+            AnalyticsEvent.DisplayNameEvent.Updated(source)
+        } else {
+            AnalyticsEvent.DisplayNameEvent.Set(source)
+        }
+        track(event)
+    }
+
+    override fun incrementReceivedCounter(counter: Analytics.ReceivedCounter, amount: Double) {
+        increment(counter.propertyValue, amount)
+    }
+
+    override fun tipReceived(chatType: ChatType, amount: Fiat, mint: Mint) {
+        track(AnalyticsEvent.ChatEvent.TipReceived(chatType, amount, mint))
+    }
+
+    override fun messageReceived(chatType: ChatType) {
+        track(AnalyticsEvent.ChatEvent.MessageReceived(chatType))
+    }
+
     // region Internal
 
     private fun track(event: AnalyticsEvent, vararg extra: Pair<String, String>) {
@@ -274,9 +299,19 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(event.name, *properties)
     }
 
-    private fun track(name: String, vararg properties: Pair<String, String>) {
+    private fun increment(property: String, amount: Double) {
         if (BuildConfig.DEBUG) {
-            val propsString = properties.joinToString { "${it.first} => ${it.second}" }
+            trace("debug increment $property by $amount", type = TraceType.Silent)
+            return
+        }
+        mixpanelAPI.people.increment(property, amount)
+    }
+
+    private fun track(name: String, vararg properties: Pair<String, String>) {
+        val resolved = properties.toList().withTokenSymbols(tokenSymbolResolver)
+
+        if (BuildConfig.DEBUG) {
+            val propsString = resolved.joinToString { "${it.first} => ${it.second}" }
             trace(
                 buildString {
                     append("debug track $name")
@@ -288,11 +323,35 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         }
 
         val jsonObject = JSONObject()
-        properties.forEach { jsonObject.put(it.first, it.second) }
+        resolved.forEach { jsonObject.put(it.first, it.second) }
         mixpanelAPI.track(name, jsonObject)
     }
 
     private fun Throwable?.asProperty(): Array<Pair<String, String>> =
         this?.let { arrayOf("Error" to it.message.orEmpty()) } ?: emptyArray()
     // endregion
+}
+
+/** Mint-carrying property → the symbol property that accompanies it. */
+private val MINT_PROPERTIES = mapOf(
+    "Mint" to "Token Symbol",
+    "Payment Mint" to "Payment Token Symbol",
+)
+
+/**
+ * Returns [properties] with a ticker added beside every mint the [resolver] knows.
+ *
+ * An unresolvable mint adds nothing — the property must be absent rather than
+ * empty, so a failed cache lookup is distinguishable from a token with no symbol.
+ */
+internal fun List<Pair<String, String>>.withTokenSymbols(
+    resolver: TokenSymbolResolver,
+): List<Pair<String, String>> {
+    val present = map { it.first }.toSet()
+    val symbols = mapNotNull { (key, value) ->
+        val symbolKey = MINT_PROPERTIES[key] ?: return@mapNotNull null
+        if (symbolKey in present) return@mapNotNull null
+        resolver.symbolFor(value)?.let { symbolKey to it }
+    }
+    return this + symbols
 }

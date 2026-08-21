@@ -7,6 +7,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
@@ -49,6 +50,18 @@ class ChatMetadataDataSource @Inject constructor(
 
     suspend fun getLatestEventSequence(chatId: ChatId): Long =
         db?.chatMetadataDao()?.getLatestEventSequence(mapper.chatIdHex(chatId)) ?: 0L
+
+    suspend fun getChatType(chatId: ChatId): ChatType {
+        val stored = db?.chatMetadataDao()?.getChatType(mapper.chatIdHex(chatId))
+        return ChatType.entries.firstOrNull { it.name == stored } ?: ChatType.UNKNOWN
+    }
+
+    suspend fun getAnalyticsCountedThrough(chatId: ChatId): Long =
+        db?.chatMetadataDao()?.getAnalyticsCountedThrough(mapper.chatIdHex(chatId)) ?: 0L
+
+    suspend fun advanceAnalyticsCountedThrough(chatId: ChatId, messageId: Long) {
+        db?.chatMetadataDao()?.advanceAnalyticsCountedThrough(mapper.chatIdHex(chatId), messageId)
+    }
 
     suspend fun setHidden(chatId: ChatId, hidden: Boolean) {
         db?.chatMetadataDao()?.updateHidden(mapper.chatIdHex(chatId), hidden)

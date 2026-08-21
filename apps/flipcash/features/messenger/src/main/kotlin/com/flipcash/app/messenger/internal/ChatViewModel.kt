@@ -710,7 +710,7 @@ internal class ChatViewModel @Inject constructor(
 
                     // A payment into a tip DM is a tip; a contact DM is a plain cash send.
                     val transferEvent = if (stateFlow.value.participant is ChatParticipant.TipUser) {
-                        Analytics.Transfer.SentTip
+                        Analytics.Transfer.SentTip(TipOrigin.CHAT)
                     } else {
                         Analytics.Transfer.SentCash
                     }

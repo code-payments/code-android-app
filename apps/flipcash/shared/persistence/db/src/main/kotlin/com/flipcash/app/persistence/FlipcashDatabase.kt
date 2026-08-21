@@ -90,8 +90,9 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 26, to = 27), // messages.text_substitutions (nullable)
         AutoMigration(from = 27, to = 28), // tokens.market_cap_metrics (nullable)
         AutoMigration(from = 28, to = 29, spec = FlipcashDatabase.Migration28To29::class),
+        AutoMigration(from = 29, to = 30), // chat_metadata.analytics_counted_through
     ],
-    version = 29,
+    version = 30,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {

@@ -1,8 +1,10 @@
 package com.flipcash.app.analytics
 
 import androidx.core.net.toUri
+import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
@@ -17,6 +19,21 @@ import com.getcode.utils.getPublicKeyBase58
 internal sealed interface AnalyticsEvent {
     val name: String
     fun toProperties(): Map<String, String> = emptyMap()
+
+    sealed interface DisplayNameEvent : AnalyticsEvent {
+        val source: DisplayNameSource
+        override fun toProperties() = mapOf("Source" to source.propertyValue)
+
+        /** The user had no display name before this submission. */
+        data class Set(override val source: DisplayNameSource) : DisplayNameEvent {
+            override val name = "Display Name Set"
+        }
+
+        /** The user replaced an existing display name. */
+        data class Updated(override val source: DisplayNameSource) : DisplayNameEvent {
+            override val name = "Display Name Updated"
+        }
+    }
 
     data class PaidForAccount(
         val price: Double,
@@ -134,8 +151,9 @@ internal sealed interface AnalyticsEvent {
         override val name = "Receive Cash Link"
     }
 
-    data object SentTip : Transfer {
+    data class SentTip(val origin: TipOrigin) : Transfer {
         override val name = "Sent Tip"
+        override fun toProperties() = mapOf("Origin" to origin.propertyValue)
     }
 
     data object SentCash : ChatEvent {
@@ -153,6 +171,25 @@ internal sealed interface AnalyticsEvent {
                 put("Chat Type", chatType.propertyValue)
                 error?.let { put("Error", it.message.orEmpty()) }
             }
+        }
+
+        data class TipReceived(
+            val chatType: ChatType,
+            val amount: Fiat,
+            val mint: Mint,
+        ) : ChatEvent {
+            override val name = "Tip Received"
+            override fun toProperties() = buildMap {
+                put("Chat Type", chatType.propertyValue)
+                putAll(amount.asProperties())
+                // Token Symbol is added centrally by the delegate.
+                put("Mint", mint.base58())
+            }
+        }
+
+        data class MessageReceived(val chatType: ChatType) : ChatEvent {
+            override val name = "Message Received"
+            override fun toProperties() = mapOf("Chat Type" to chatType.propertyValue)
         }
     }
 
@@ -414,5 +451,25 @@ internal fun Analytics.Transfer.toAnalyticsEvent(): AnalyticsEvent = when (this)
     is Analytics.Transfer.SentCashLink.Clipboard  -> AnalyticsEvent.SentCashLink(clipboard = true)
     is Analytics.Transfer.SentCashLink.App        -> AnalyticsEvent.SentCashLink(app = name)
     is Analytics.Transfer.SentCash                -> AnalyticsEvent.SentCash
-    is Analytics.Transfer.SentTip                 -> AnalyticsEvent.SentTip
+    is Analytics.Transfer.SentTip                 -> AnalyticsEvent.SentTip(origin = origin)
 }
+
+internal val TipOrigin.propertyValue: String
+    get() = when (this) {
+        TipOrigin.TIPCARD -> "Tipcard"
+        TipOrigin.CHAT -> "Chat"
+    }
+
+internal val DisplayNameSource.propertyValue: String
+    get() = when (this) {
+        DisplayNameSource.Onboarding -> "Onboarding"
+        DisplayNameSource.MyAccount -> "My Account"
+        DisplayNameSource.TipCardSetup -> "Tip Card Setup"
+    }
+
+internal val Analytics.ReceivedCounter.propertyValue: String
+    get() = when (this) {
+        Analytics.ReceivedCounter.Tips -> "Tips Received"
+        Analytics.ReceivedCounter.TipsValue -> "Tips Received Value"
+        Analytics.ReceivedCounter.Messages -> "Messages Received"
+    }

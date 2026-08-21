@@ -3,6 +3,8 @@ package com.flipcash.app.userprofile.internal.name
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.FlipcashAnalyticsService
+import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.extensions.flatMapResult
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.features.userprofile.R
@@ -30,7 +32,8 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class NameEntryViewModel @Inject constructor(
-    userManager: UserManager,
+    private val userManager: UserManager,
+    private val analytics: FlipcashAnalyticsService,
     private val moderationController: ModerationController,
     private val profileController: ProfileController,
     private val resources: ResourceHelper,
@@ -48,7 +51,7 @@ class NameEntryViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data object CheckName : Event
+        data class CheckName(val source: DisplayNameSource) : Event
         data class UpdateProcessingState(
             val loading: Boolean = false,
             val success: Boolean = false
@@ -68,10 +71,19 @@ class NameEntryViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.CheckName>()
-            .map { stateFlow.value.nameFieldState.text.toString() }
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
-            .map {
-                profileController.setDisplayName(stateFlow.value.nameFieldState.text.toString())
+            .map { event ->
+                // Read the prior name BEFORE the write. The profile flow above
+                // pushes the stored name into the field, so the field itself
+                // cannot tell us whether one already existed.
+                val hadPreviousName = !userManager.profile?.displayName.isNullOrBlank()
+                val result = profileController.setDisplayName(
+                    stateFlow.value.nameFieldState.text.toString()
+                )
+                result.onSuccess {
+                    analytics.displayNameSubmitted(event.source, hadPreviousName)
+                }
+                result
             }.onResult(
                 onSuccess = {
                     viewModelScope.launch {
@@ -148,7 +160,7 @@ class NameEntryViewModel @Inject constructor(
     companion object {
         private val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
-                Event.CheckName -> { state -> state }
+                is Event.CheckName -> { state -> state }
                 is Event.UpdateProcessingState -> { state ->
                     val current = state.processingState
                     state.copy(

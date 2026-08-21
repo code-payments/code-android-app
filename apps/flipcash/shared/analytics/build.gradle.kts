@@ -7,6 +7,9 @@ android {
 }
 
 dependencies {
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     implementation(libs.bugsnag)

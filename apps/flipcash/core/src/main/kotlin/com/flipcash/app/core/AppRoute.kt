@@ -146,6 +146,7 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Parcelize
     data class UpdateUserProfile(
         val origin: AppRoute,
+        val nameSource: DisplayNameSource,
         val includeName: Boolean = true,
         val includePhoto: Boolean = true,
         val target: AppRoute? = null,
@@ -368,3 +369,7 @@ private fun buildUpdateUserProfileStack(
     if (includeName) add(UpdateProfileStep.Name)
     if (includePhoto) add(UpdateProfileStep.Photo)
 }
+
+/** Where a display-name entry flow was launched from. Reported as the `Source` analytics property. */
+@Serializable
+enum class DisplayNameSource { Onboarding, MyAccount, TipCardSetup }
