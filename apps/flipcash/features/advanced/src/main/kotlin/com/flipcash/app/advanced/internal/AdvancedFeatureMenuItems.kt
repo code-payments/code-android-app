@@ -48,7 +48,6 @@ internal data object DeviceLogs : FullMenuItem<AdvancedFeaturesScreenViewModel.E
 }
 
 internal data object BetaFlags : FullMenuItem<AdvancedFeaturesScreenViewModel.Event>() {
-    override val showBetaIndicator: Boolean = true
     override val icon: Painter
         @Composable get() = rememberVectorPainter(Icons.Filled.Science)
     override val name: String

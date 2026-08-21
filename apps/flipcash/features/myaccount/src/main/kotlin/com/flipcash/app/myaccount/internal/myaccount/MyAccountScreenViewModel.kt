@@ -14,7 +14,8 @@ import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 private val FullMenuList = buildList {
-    add(DisplayName)
+    // Change Display Name is deferred to its own change; the UserProfile screen it opens stays
+    // wired below so re-adding the row is a one-liner.
     add(RequireBiometrics)
     add(Blocklist)
 }

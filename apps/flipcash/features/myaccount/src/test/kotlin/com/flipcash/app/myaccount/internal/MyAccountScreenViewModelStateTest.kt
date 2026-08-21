@@ -1,7 +1,6 @@
 package com.flipcash.app.myaccount.internal
 
 import com.flipcash.app.myaccount.internal.myaccount.Blocklist
-import com.flipcash.app.myaccount.internal.myaccount.DisplayName
 import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreenViewModel
 import com.flipcash.app.myaccount.internal.myaccount.RequireBiometrics
 import kotlin.test.Test
@@ -14,9 +13,9 @@ class MyAccountScreenViewModelStateTest {
     private val reduce = MyAccountScreenViewModel.Companion.updateStateForEvent
 
     @Test
-    fun `default state lists display name, biometrics and blocklist`() {
+    fun `default state lists biometrics and blocklist`() {
         val state = MyAccountScreenViewModel.State()
-        assertEquals(listOf(DisplayName, RequireBiometrics, Blocklist), state.items)
+        assertEquals(listOf(RequireBiometrics, Blocklist), state.items)
         assertFalse(state.biometricsRequired)
     }
 
@@ -31,7 +30,6 @@ class MyAccountScreenViewModelStateTest {
         )(MyAccountScreenViewModel.State())
 
         assertFalse(updated.items.any { it is RequireBiometrics })
-        assertTrue(updated.items.any { it is DisplayName })
         assertTrue(updated.items.any { it is Blocklist })
     }
 
