@@ -11,10 +11,10 @@ group = "com.flipcash"
 // release version in; the fallback only matters for local builds.
 version = findProperty("sharedCoreVersion") as String? ?: "0.1.0"
 
-// Where `Package.swift` is written. CI points this at a checkout of
-// `code-payments/flipcash-shared-core-spm`; locally it lands under the root
-// build directory so `spmDevBuild` has somewhere to write without dirtying the
-// repo. Left unset, KMMBridge would write it to this repo's root.
+// Where the published `Package.swift` lives. CI points this at a checkout of
+// `code-payments/flipcash-shared-core-spm` that already holds a copy of
+// `spm/`; locally it falls back to the root build directory so a publish run
+// can't dirty the repo. Left unset, KMMBridge would write it to this repo's root.
 val spmPackageDir = findProperty("spmRepoDir") as String?
     ?: rootProject.layout.buildDirectory.dir("spm").get().asFile.path
 
@@ -59,7 +59,11 @@ kmmbridge {
     // `Package.swift` that references it is committed there. iOS then depends on
     // a small public repo instead of the whole Android app.
     gitHubReleaseArtifacts(repository = "code-payments/flipcash-shared-core-spm")
-    spm(spmDirectory = spmPackageDir, swiftToolVersion = "5.9") {
+    // `useCustomPackageFile` keeps `spm/Package.swift` — which adds the `SharedCoreKit`
+    // Swift target over the framework — and rewrites only the variables block inside it.
+    // The platform and tools version below are what KMMBridge would generate on its own;
+    // with a custom file it's `spm/Package.swift` that decides, so keep the two in step.
+    spm(spmDirectory = spmPackageDir, useCustomPackageFile = true, swiftToolVersion = "5.9") {
         iOS { v("15") }
     }
 }
