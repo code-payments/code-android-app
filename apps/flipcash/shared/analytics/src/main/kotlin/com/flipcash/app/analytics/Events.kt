@@ -447,3 +447,10 @@ internal val DisplayNameSource.propertyValue: String
         DisplayNameSource.MyAccount -> "My Account"
         DisplayNameSource.TipCardSetup -> "Tip Card Setup"
     }
+
+internal val Analytics.ReceivedCounter.propertyValue: String
+    get() = when (this) {
+        Analytics.ReceivedCounter.Tips -> "Tips Received"
+        Analytics.ReceivedCounter.TipsValue -> "Tips Received Value"
+        Analytics.ReceivedCounter.Messages -> "Messages Received"
+    }

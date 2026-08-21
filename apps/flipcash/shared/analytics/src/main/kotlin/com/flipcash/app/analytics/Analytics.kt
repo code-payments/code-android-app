@@ -49,12 +49,24 @@ interface FlipcashAnalyticsService : AnalyticsService {
     /** @param hadPreviousName true when the user is replacing a name, false on first set. */
     fun displayNameSubmitted(source: DisplayNameSource, hadPreviousName: Boolean)
 
+    /** Increments a cumulative per-user counter. [amount] defaults to a single occurrence. */
+    fun incrementReceivedCounter(counter: Analytics.ReceivedCounter, amount: Double = 1.0)
+
     fun buttonTapped(button: Button) {
         action(button)
     }
 }
 
 object Analytics {
+
+    /**
+     * Cumulative per-user counters stored as Mixpanel people properties.
+     *
+     * These are incremented once per received message and are NOT idempotent —
+     * every caller must be behind the analytics watermark. See
+     * ChatMetadataDataSource.getAnalyticsCountedThrough.
+     */
+    enum class ReceivedCounter { Tips, TipsValue, Messages }
 
     sealed interface Transfer {
         sealed interface Initiate: Transfer {
@@ -132,6 +144,7 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun deeplinkRouted(type: DeeplinkType, error: Throwable?) = Unit
     override fun displayedErrorModal(title: String, message: String, screen: String?, callSite: String?) = Unit
     override fun displayNameSubmitted(source: DisplayNameSource, hadPreviousName: Boolean) = Unit
+    override fun incrementReceivedCounter(counter: Analytics.ReceivedCounter, amount: Double) = Unit
 }
 
 @Composable

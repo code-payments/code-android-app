@@ -5,6 +5,7 @@ import com.flipcash.app.analytics.AnalyticsEvent
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.TokenSymbolResolver
 import com.flipcash.app.analytics.asProperties
+import com.flipcash.app.analytics.propertyValue
 import com.flipcash.app.analytics.toAnalyticsEvent
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
@@ -279,11 +280,23 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
         track(event)
     }
 
+    override fun incrementReceivedCounter(counter: Analytics.ReceivedCounter, amount: Double) {
+        increment(counter.propertyValue, amount)
+    }
+
     // region Internal
 
     private fun track(event: AnalyticsEvent, vararg extra: Pair<String, String>) {
         val properties = (event.toProperties().toList() + extra.toList()).toTypedArray()
         track(event.name, *properties)
+    }
+
+    private fun increment(property: String, amount: Double) {
+        if (BuildConfig.DEBUG) {
+            trace("debug increment $property by $amount", type = TraceType.Silent)
+            return
+        }
+        mixpanelAPI.people.increment(property, amount)
     }
 
     private fun track(name: String, vararg properties: Pair<String, String>) {
