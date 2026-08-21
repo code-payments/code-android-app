@@ -1,6 +1,5 @@
 package com.flipcash.app.deposit.internal
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,11 +11,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import com.flipcash.app.core.deposit.DepositResult
 import com.flipcash.app.core.deposit.DepositStep
+import com.flipcash.app.core.ui.ConversionCoin
+import com.flipcash.app.core.ui.ConversionGraphic
 import com.flipcash.core.R
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.solana.keys.Mint
@@ -82,24 +82,24 @@ internal fun UsdcDepositInformationScreen(showOtherOptions: Boolean) {
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Image(
-                        painter = painterResource(R.drawable.ic_deposit_usdc_as_usdf),
-                        contentDescription = null,
+                    ConversionGraphic(
+                        from = ConversionCoin.UsdcOnSolana,
+                        to = ConversionCoin.Dollars,
                     )
                 }
 
                 Column(
-                    modifier = Modifier.fillMaxWidth(0.60f),
+                    modifier = Modifier.fillMaxWidth(0.80f),
                     verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = stringResource(R.string.title_depositUsdcAsUsdf),
+                        text = stringResource(R.string.title_depositUsdcAsDollars),
                         style = CodeTheme.typography.textLarge,
                         color = CodeTheme.colors.textMain,
                     )
                     Text(
-                        text = stringResource(R.string.description_depositUsdcAsUsdf),
+                        text = stringResource(R.string.description_depositUsdcAsDollars),
                         style = CodeTheme.typography.textSmall,
                         color = CodeTheme.colors.textSecondary,
                         textAlign = TextAlign.Center,

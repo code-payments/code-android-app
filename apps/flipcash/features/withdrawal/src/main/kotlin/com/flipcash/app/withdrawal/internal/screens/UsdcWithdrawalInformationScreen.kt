@@ -4,12 +4,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,8 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.ui.ConversionCoin
+import com.flipcash.app.core.ui.ConversionGraphic
 import com.flipcash.app.core.withdrawal.WithdrawalResult
 import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.flipcash.app.featureflags.FeatureFlag
@@ -96,7 +95,10 @@ internal fun UsdcWithdrawalInformationScreen(showOtherOptions: Boolean) {
                     contentAlignment = Alignment.Center,
                 ) {
                     if (isNewUi) {
-                        ConversionGraphic()
+                        ConversionGraphic(
+                            from = ConversionCoin.Dollars,
+                            to = ConversionCoin.UsdcOnSolana,
+                        )
                     } else {
                         Image(
                             painter = painterResource(R.drawable.ic_withdraw_usdf_as_usdc),
@@ -130,35 +132,5 @@ internal fun UsdcWithdrawalInformationScreen(showOtherOptions: Boolean) {
                 }
             }
         }
-    }
-}
-
-/**
- * v2 "Dollars → USDC" graphic (Figma node 9216:19798). The v1 art carried the Flipcash "F" mark on
- * the left; v2 swaps in the gold Dollars coin, so the two halves are composed here rather than
- * shipped as one flattened asset.
- */
-@Composable
-private fun ConversionGraphic() {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        // 14 dp between each pair, matching the 278x124 Figma frame's coin/arrow gaps.
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Image(
-            modifier = Modifier.size(100.dp),
-            painter = painterResource(R.drawable.ic_coin_dollars),
-            contentDescription = null,
-        )
-        Image(
-            modifier = Modifier.size(28.dp),
-            painter = painterResource(R.drawable.ic_arrow_right),
-            contentDescription = null,
-        )
-        // Natural size (111x112): the 100 dp coin plus the Solana badge overhanging its corner.
-        Image(
-            painter = painterResource(R.drawable.ic_usdc_on_solana),
-            contentDescription = null,
-        )
     }
 }
