@@ -130,9 +130,13 @@ private fun TokenTxProcessingScreen(
                         val name = when (state.purpose) {
                             is SwapPurpose.Convert -> state.destinationTokenName
                             is SwapPurpose.BalanceIncrease -> state.tokenName
-                            else -> stringResource(R.string.title_cashReserves)
+                            // Selling is unreachable now that the v1 token screen is gone, and a
+                            // purpose is always set by the time a swap reaches this screen.
+                            else -> null
                         }
-                        state.netTransferAmount.formatted(suffix = stringResource(R.string.label_ofToken, name))
+                        state.netTransferAmount.formatted(
+                            suffix = name?.let { stringResource(R.string.label_ofToken, it) },
+                        )
                     }
                 },
                 style = CodeTheme.typography.textLarge,
