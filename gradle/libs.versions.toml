@@ -335,6 +335,7 @@ flipcash-android-library-compose = { id = "flipcash.android.library.compose" }
 flipcash-android-feature = { id = "flipcash.android.feature" }
 flipcash-android-ed25519-shadow = { id = "flipcash.android.ed25519.shadow" }
 flipcash-kmp-library = { id = "flipcash.kmp.library" }
+flipcash-kmp-test-fixtures = { id = "flipcash.kmp.test.fixtures" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
