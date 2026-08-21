@@ -1,9 +1,9 @@
 {
-  "updated": "2026-08-20T20:37:46Z",
+  "updated": "2026-08-21T21:50:32Z",
   "tracks": {
     "production": {
-      "versionCode": 4223,
-      "versionName": "2026.8.1"
+      "versionCode": 4318,
+      "versionName": "2026.8.2"
     },
     "beta": null,
     "alpha": null,
