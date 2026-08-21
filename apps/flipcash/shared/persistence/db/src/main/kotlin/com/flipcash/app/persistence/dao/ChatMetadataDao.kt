@@ -37,6 +37,16 @@ interface ChatMetadataDao {
     @Query("SELECT latest_event_sequence FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getLatestEventSequence(chatIdHex: String): Long?
 
+    @Query("SELECT analytics_counted_through FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
+    suspend fun getAnalyticsCountedThrough(chatIdHex: String): Long?
+
+    // MAX() keeps the watermark monotonic even if an out-of-order write lands.
+    @Query(
+        "UPDATE chat_metadata SET analytics_counted_through = MAX(analytics_counted_through, :messageId) " +
+            "WHERE chat_id_hex = :chatIdHex"
+    )
+    suspend fun advanceAnalyticsCountedThrough(chatIdHex: String, messageId: Long)
+
     @Query("UPDATE chat_metadata SET is_hidden = :hidden WHERE chat_id_hex = :chatIdHex")
     suspend fun updateHidden(chatIdHex: String, hidden: Boolean)
 

@@ -12,4 +12,8 @@ data class ChatMetadataEntity(
     @ColumnInfo(name = "last_message_id") val lastMessageId: Long?,
     @ColumnInfo(name = "latest_event_sequence", defaultValue = "0") val latestEventSequence: Long = 0,
     @ColumnInfo(name = "is_hidden", defaultValue = "0") val isHidden: Boolean = false,
+    // Highest message id already counted into the received-analytics people
+    // properties. Monotonic; guards non-idempotent increments against replay.
+    @ColumnInfo(name = "analytics_counted_through", defaultValue = "0")
+    val analyticsCountedThrough: Long = 0,
 )

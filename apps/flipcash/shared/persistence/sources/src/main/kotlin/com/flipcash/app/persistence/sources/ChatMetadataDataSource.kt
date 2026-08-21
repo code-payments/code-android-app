@@ -50,6 +50,13 @@ class ChatMetadataDataSource @Inject constructor(
     suspend fun getLatestEventSequence(chatId: ChatId): Long =
         db?.chatMetadataDao()?.getLatestEventSequence(mapper.chatIdHex(chatId)) ?: 0L
 
+    suspend fun getAnalyticsCountedThrough(chatId: ChatId): Long =
+        db?.chatMetadataDao()?.getAnalyticsCountedThrough(mapper.chatIdHex(chatId)) ?: 0L
+
+    suspend fun advanceAnalyticsCountedThrough(chatId: ChatId, messageId: Long) {
+        db?.chatMetadataDao()?.advanceAnalyticsCountedThrough(mapper.chatIdHex(chatId), messageId)
+    }
+
     suspend fun setHidden(chatId: ChatId, hidden: Boolean) {
         db?.chatMetadataDao()?.updateHidden(mapper.chatIdHex(chatId), hidden)
     }
