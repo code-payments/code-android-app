@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.tipping.TipResult
 import com.flipcash.app.core.tipping.TipStep
@@ -55,6 +56,7 @@ internal fun TipInfoScreen() {
                     flowNavigator.navigate(
                         AppRoute.UpdateUserProfile(
                             origin = AppRoute.Sheets.Tips(),
+                            nameSource = DisplayNameSource.TipCardSetup,
                             includeName = userManager?.profile?.displayName.isNullOrEmpty(),
                             includePhoto = false, // explicity false for now
                             target = AppRoute.Sheets.Tips(resumed = true),

@@ -1,6 +1,7 @@
 package com.flipcash.app.analytics
 
 import androidx.core.net.toUri
+import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.models.TipOrigin
@@ -18,6 +19,21 @@ import com.getcode.utils.getPublicKeyBase58
 internal sealed interface AnalyticsEvent {
     val name: String
     fun toProperties(): Map<String, String> = emptyMap()
+
+    sealed interface DisplayNameEvent : AnalyticsEvent {
+        val source: DisplayNameSource
+        override fun toProperties() = mapOf("Source" to source.propertyValue)
+
+        /** The user had no display name before this submission. */
+        data class Set(override val source: DisplayNameSource) : DisplayNameEvent {
+            override val name = "Display Name Set"
+        }
+
+        /** The user replaced an existing display name. */
+        data class Updated(override val source: DisplayNameSource) : DisplayNameEvent {
+            override val name = "Display Name Updated"
+        }
+    }
 
     data class PaidForAccount(
         val price: Double,
@@ -423,4 +439,11 @@ internal val TipOrigin.propertyValue: String
     get() = when (this) {
         TipOrigin.TIPCARD -> "Tipcard"
         TipOrigin.CHAT -> "Chat"
+    }
+
+internal val DisplayNameSource.propertyValue: String
+    get() = when (this) {
+        DisplayNameSource.Onboarding -> "Onboarding"
+        DisplayNameSource.MyAccount -> "My Account"
+        DisplayNameSource.TipCardSetup -> "Tip Card Setup"
     }

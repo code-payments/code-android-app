@@ -1,6 +1,7 @@
 package com.flipcash.app.analytics
 
 import androidx.compose.runtime.Composable
+import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.models.TipOrigin
@@ -44,6 +45,9 @@ interface FlipcashAnalyticsService : AnalyticsService {
     fun deeplinkParsed(type: DeeplinkType?, url: String)
     fun deeplinkRouted(type: DeeplinkType, error: Throwable? = null)
     fun displayedErrorModal(title: String, message: String, screen: String? = null, callSite: String? = null)
+
+    /** @param hadPreviousName true when the user is replacing a name, false on first set. */
+    fun displayNameSubmitted(source: DisplayNameSource, hadPreviousName: Boolean)
 
     fun buttonTapped(button: Button) {
         action(button)
@@ -127,6 +131,7 @@ class StubFlipcashAnalytics : FlipcashAnalyticsService {
     override fun deeplinkParsed(type: DeeplinkType?, url: String) = Unit
     override fun deeplinkRouted(type: DeeplinkType, error: Throwable?) = Unit
     override fun displayedErrorModal(title: String, message: String, screen: String?, callSite: String?) = Unit
+    override fun displayNameSubmitted(source: DisplayNameSource, hadPreviousName: Boolean) = Unit
 }
 
 @Composable

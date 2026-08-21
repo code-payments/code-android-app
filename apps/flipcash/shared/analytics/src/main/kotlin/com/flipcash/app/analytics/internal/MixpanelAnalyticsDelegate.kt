@@ -6,6 +6,7 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.analytics.TokenSymbolResolver
 import com.flipcash.app.analytics.asProperties
 import com.flipcash.app.analytics.toAnalyticsEvent
+import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.models.chat.ChatType
@@ -267,6 +268,15 @@ internal class MixpanelAnalyticsDelegate @Inject constructor(
 
     override fun displayedErrorModal(title: String, message: String, screen: String?, callSite: String?) {
         track(AnalyticsEvent.ErrorModalDisplayed(title, message, screen, callSite))
+    }
+
+    override fun displayNameSubmitted(source: DisplayNameSource, hadPreviousName: Boolean) {
+        val event = if (hadPreviousName) {
+            AnalyticsEvent.DisplayNameEvent.Updated(source)
+        } else {
+            AnalyticsEvent.DisplayNameEvent.Set(source)
+        }
+        track(event)
     }
 
     // region Internal

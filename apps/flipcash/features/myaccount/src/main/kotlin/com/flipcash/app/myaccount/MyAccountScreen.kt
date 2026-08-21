@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreen
 import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreenViewModel
 import com.flipcash.core.R
@@ -49,6 +50,7 @@ fun MyAccountScreen() {
                 navigator.push(
                     AppRoute.UpdateUserProfile(
                         origin = AppRoute.Menu.MyAccount,
+                        nameSource = DisplayNameSource.MyAccount,
                         includeName = true,
                         includePhoto = false,
                     )
