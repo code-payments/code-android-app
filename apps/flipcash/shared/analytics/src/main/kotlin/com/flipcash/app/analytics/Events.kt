@@ -3,6 +3,7 @@ package com.flipcash.app.analytics
 import androidx.core.net.toUri
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
@@ -134,8 +135,9 @@ internal sealed interface AnalyticsEvent {
         override val name = "Receive Cash Link"
     }
 
-    data object SentTip : Transfer {
+    data class SentTip(val origin: TipOrigin) : Transfer {
         override val name = "Sent Tip"
+        override fun toProperties() = mapOf("Origin" to origin.propertyValue)
     }
 
     data object SentCash : ChatEvent {
@@ -414,5 +416,11 @@ internal fun Analytics.Transfer.toAnalyticsEvent(): AnalyticsEvent = when (this)
     is Analytics.Transfer.SentCashLink.Clipboard  -> AnalyticsEvent.SentCashLink(clipboard = true)
     is Analytics.Transfer.SentCashLink.App        -> AnalyticsEvent.SentCashLink(app = name)
     is Analytics.Transfer.SentCash                -> AnalyticsEvent.SentCash
-    is Analytics.Transfer.SentTip                 -> AnalyticsEvent.SentTip
+    is Analytics.Transfer.SentTip                 -> AnalyticsEvent.SentTip(origin = origin)
 }
+
+internal val TipOrigin.propertyValue: String
+    get() = when (this) {
+        TipOrigin.TIPCARD -> "Tipcard"
+        TipOrigin.CHAT -> "Chat"
+    }

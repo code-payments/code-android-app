@@ -3,6 +3,7 @@ package com.flipcash.app.analytics
 import androidx.compose.runtime.Composable
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
+import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.libs.analytics.AnalyticsService
@@ -67,7 +68,7 @@ object Analytics {
         }
 
         data object SentCash : Transfer
-        data object SentTip : Transfer
+        data class SentTip(val origin: TipOrigin) : Transfer
     }
     enum class OnrampSource { Settings, Balance, Give }
     enum class AddMoneySource { Menu, GiveShortfall, BuyShortfall, Chat, Scanner, Balance }
