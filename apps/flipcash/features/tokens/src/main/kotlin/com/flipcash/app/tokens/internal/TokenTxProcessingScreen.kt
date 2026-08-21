@@ -127,12 +127,20 @@ private fun TokenTxProcessingScreen(
                     LoadingSuccessState.State.Idle -> ""
                     LoadingSuccessState.State.Loading -> stringResource(R.string.title_processingYourTransaction)
                     LoadingSuccessState.State.Success -> {
-                        val name = when (state.purpose) {
-                            is SwapPurpose.Convert -> state.destinationTokenName
+                        val name = when (val purpose = state.purpose) {
+                            // Adding money always lands in the reserve, so naming it reads as
+                            // "$1.00 of Dollars" — the amount alone already says it.
+                            is SwapPurpose.Buy if purpose.fundingSource != FundingSource.Flexible -> null
+                            // Converting into the reserve reads the same way, so it goes unnamed
+                            // too; every other destination still names what the user received.
+                            is SwapPurpose.Convert ->
+                                state.destinationTokenName.takeUnless { state.isConvertingToDollars }
                             is SwapPurpose.BalanceIncrease -> state.tokenName
                             else -> stringResource(R.string.title_cashReserves)
                         }
-                        state.netTransferAmount.formatted(suffix = stringResource(R.string.label_ofToken, name))
+                        state.netTransferAmount.formatted(
+                            suffix = name?.let { stringResource(R.string.label_ofToken, it) },
+                        )
                     }
                 },
                 style = CodeTheme.typography.textLarge,

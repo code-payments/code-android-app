@@ -808,8 +808,9 @@
 
     <string name="action_discover">Discover</string>
 
-    <string name="title_depositUsdcAsUsdf">Deposit USDC</string>
-    <string name="description_depositUsdcAsUsdf">Your Solana USDC will be converted 1:1 to USD on Flipcash (USDF)</string>
+    <string name="title_depositUsdcAsDollars">Deposit USDC</string>
+    <!-- The reserve is branded "Dollars"; the 1:1 conversion is the only thing the screen explains. -->
+    <string name="description_depositUsdcAsDollars">Your USDC will be converted 1:1 to Dollars on Flipcash</string>
 
     <string name="title_buyWithPhantom">Buy With Phantom</string>
     <string name="description_buyWithPhantom">Purchase using Solana USDC in Phantom. Simply connect your wallet and confirm the transaction</string>

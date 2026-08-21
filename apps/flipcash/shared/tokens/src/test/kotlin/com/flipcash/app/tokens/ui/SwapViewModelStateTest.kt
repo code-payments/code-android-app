@@ -277,4 +277,31 @@ class SwapViewModelStateTest {
     fun `netTransferAmount is Zero when confirmedNetTransferAmount is null`() {
         assertEquals(Fiat.Zero, SwapViewModel.State().netTransferAmount)
     }
+
+    // --- Computed: convert direction ---
+
+    @Test
+    fun `isConvertingToDollars is true when a conversion lands in the reserve`() {
+        val state = SwapViewModel.State(
+            purpose = SwapPurpose.Convert(mint = mint(), destinationMint = Mint.usdf),
+        )
+        assertTrue(state.isConvertingToDollars)
+        assertFalse(state.isConvertingFromDollars)
+    }
+
+    @Test
+    fun `isConvertingToDollars is false when a conversion lands in another token`() {
+        val state = SwapViewModel.State(
+            purpose = SwapPurpose.Convert(mint = Mint.usdf, destinationMint = mint()),
+        )
+        assertFalse(state.isConvertingToDollars)
+        assertTrue(state.isConvertingFromDollars)
+    }
+
+    @Test
+    fun `convert direction flags are false for non-convert purposes`() {
+        val state = SwapViewModel.State(purpose = SwapPurpose.Sell(Mint.usdf))
+        assertFalse(state.isConvertingToDollars)
+        assertFalse(state.isConvertingFromDollars)
+    }
 }

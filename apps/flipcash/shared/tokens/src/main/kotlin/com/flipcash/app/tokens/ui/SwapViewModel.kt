@@ -291,6 +291,10 @@ class SwapViewModel @Inject constructor(
         val isConvertingFromDollars: Boolean
             get() = (purpose as? SwapPurpose.Convert)?.mint == Mint.usdf
 
+        /** Whether a conversion lands in Dollars, which the reserve's own name never has to spell out. */
+        val isConvertingToDollars: Boolean
+            get() = (purpose as? SwapPurpose.Convert)?.destinationMint == Mint.usdf
+
         val canTransact: Boolean
             get() = buyProgress.isIdle && sellProgress.isIdle && processingProgress.isIdle
 
