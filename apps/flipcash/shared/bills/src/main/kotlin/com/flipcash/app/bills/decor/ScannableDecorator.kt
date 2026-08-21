@@ -61,7 +61,7 @@ sealed interface ScannableDecorator {
             is Scannable.Payable -> PayableDecorator(scannable)
             // The viewer's own tip card (the You tab's full-screen present) gets no Send-a-Tip modal
             // and no add-money prompt — you can't tip yourself — just a Close affordance.
-            is Scannable.TipCard -> if (scannable.isSelf) SelfTipCardDecorator else TipCardDecorator(scannable)
+            is Scannable.TipCard -> TipCardDecorator(scannable)
         }
     }
 }

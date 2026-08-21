@@ -6,7 +6,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,6 +64,8 @@ private fun isTokenInfoKey(key: Any?): Boolean {
  */
 private fun isGiveKey(key: Any?): Boolean =
     key?.toString()?.startsWith("Give(") == true
+
+private fun isSelfTipCardKey(key: Any?): Boolean = key is AppRoute.Menu.TipCard
 
 @Composable
 internal fun AppContent(
@@ -228,6 +232,13 @@ internal fun NewAppContent(
                         // CardExpandTransition + TokenCardStack.
                         isTokenInfoKey(targetState.key) ->
                             CardExpandTransition.openEnter togetherWith CardExpandTransition.openExit
+                        // The You tab's own tip card, full screen: the card is already on screen,
+                        // so nothing slides in over it — the page (and, because this isn't a tab
+                        // route, the tab bar) drops away downward and leaves it, matching the
+                        // "Full Screen ⌄" chevron that opened it.
+                        isSelfTipCardKey(targetState.key) ->
+                            fadeIn(tween(300)) togetherWith
+                                    (slideOutVertically(targetOffsetY = { it }) + fadeOut(tween(300)))
                         landsOnTab ->
                             fadeIn(tween(300)) togetherWith fadeOut(tween(300))
                         else ->
@@ -248,6 +259,11 @@ internal fun NewAppContent(
                         // Swapping in a single frame keeps the scrim continuously up.
                         isGiveKey(initialState.key) ->
                             EnterTransition.None togetherWith ExitTransition.None
+                        // Reverse of the open: the page rides back up over the card. See the
+                        // matching branch in transitionSpec.
+                        isSelfTipCardKey(initialState.key) ->
+                            (slideInVertically(initialOffsetY = { it }) + fadeIn(tween(300))) togetherWith
+                                    fadeOut(tween(300))
                         else ->
                             slideInHorizontally(initialOffsetX = { -it }) togetherWith
                                     slideOutHorizontally(targetOffsetX = { it })
@@ -261,6 +277,9 @@ internal fun NewAppContent(
                         isTokenInfoKey(initialState.key) ->
                             CardExpandTransition.predictiveCloseEnter togetherWith
                                     CardExpandTransition.predictiveCloseExit
+                        isSelfTipCardKey(initialState.key) ->
+                            (slideInVertically(initialOffsetY = { it }) + fadeIn(tween(300))) togetherWith
+                                    fadeOut(tween(300))
                         else ->
                             slideInHorizontally(initialOffsetX = { -it }) togetherWith
                                     slideOutHorizontally(targetOffsetX = { it })

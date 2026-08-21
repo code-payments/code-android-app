@@ -91,11 +91,5 @@ sealed interface Scannable {
     data class TipCard(
         override val data: List<Byte>,
         val user: UserProfile,
-        /**
-         * True when this is the viewer's *own* tip card, presented for display (e.g. the You tab's
-         * full-screen card) rather than scanned from someone else. Suppresses the Send-a-Tip modal
-         * and its add-money prompt — you can't tip yourself.
-         */
-        val isSelf: Boolean = false,
     ) : Scannable
 }

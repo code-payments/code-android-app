@@ -23,13 +23,6 @@ interface BillOperations {
     val billState: StateFlow<BillState>
     fun showBill(bill: Scannable.Payable)
     fun dismissBill(action: BillDeterminationResult)
-
-    /**
-     * Presents the viewer's *own* tip card full screen in the bill container (e.g. from the You tab),
-     * for display only — no Send-a-Tip modal, no submission. Dismissal reuses the overlay's
-     * drag-to-dismiss. A no-op if a bill is already showing (re-entrancy guard).
-     */
-    fun presentOwnTipCard(card: Scannable.TipCard)
 }
 
 interface CodeScanOperations {

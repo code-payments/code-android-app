@@ -1,7 +1,5 @@
 package com.flipcash.app.menu.internal
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -52,7 +49,6 @@ import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
-import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.features.menu.R
 import com.getcode.navigation.core.CodeNavigator
@@ -177,9 +173,7 @@ private val YouCardWidth = 242.dp
 
 /**
  * The "You" tab header (node 9276:4634): the viewer's own tip card with a "Full Screen" affordance,
- * the copyable tip link, and the Share / Download tiles. The in-page card fades out while its
- * expanded copy is presented in the root bill overlay (opacity, not removal, so nothing reflows on
- * dismiss).
+ * the copyable tip link, and the Share / Download tiles.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -191,14 +185,8 @@ private fun YouHeader(
     onDownload: () -> Unit,
 ) {
     if (card == null) return
-    val session = LocalSessionController.current ?: return
-    val billState by session.billState.collectAsStateWithLifecycle()
-    val presented = billState.bill is Scannable.TipCard
-    val cardAlpha by animateFloatAsState(
-        targetValue = if (presented) 0f else 1f,
-        animationSpec = tween(durationMillis = 200),
-        label = "youCardAlpha",
-    )
+    val navigator = LocalCodeNavigator.current
+    val openFullScreen = { navigator.push(AppRoute.Menu.TipCard) }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -216,8 +204,7 @@ private fun YouHeader(
                     // list's content padding already owns that clearance, so consume the inset
                     // rather than paying it twice.
                     .consumeWindowInsets(WindowInsets.statusBarsIgnoringVisibility)
-                    .graphicsLayer { alpha = cardAlpha }
-                    .noRippleClickable { session.presentOwnTipCard(card) },
+                    .noRippleClickable { openFullScreen() },
                 contentAlignment = Alignment.Center,
             ) {
                 ScannableRenderer(scannable = card, tipCardWidth = YouCardWidth)
@@ -227,9 +214,7 @@ private fun YouHeader(
         Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
 
         Row(
-            modifier = Modifier
-                .graphicsLayer { alpha = cardAlpha }
-                .noRippleClickable { session.presentOwnTipCard(card) },
+            modifier = Modifier.noRippleClickable { openFullScreen() },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp),
         ) {
@@ -325,7 +310,11 @@ private fun TipLinkRow(link: String, onCopy: () -> Unit) {
     }
 }
 
-/** One of the two square-ish actions under the link (node 9276:4756). */
+/**
+ * One of the two square-ish actions under the link (node 9276:4756). The tile's height is fixed by
+ * the parent row and the arrangement centres its contents, so it takes no vertical padding of its
+ * own: 20dp of it on each side left the label a 14dp box for a 16dp line and clipped its descenders.
+ */
 @Composable
 private fun ShareTile(
     modifier: Modifier = Modifier,
@@ -338,8 +327,7 @@ private fun ShareTile(
             .fillMaxSize()
             .clip(TileShape)
             .background(White05)
-            .clickable { onClick() }
-            .padding(vertical = CodeTheme.dimens.grid.x4),
+            .clickable { onClick() },
         verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

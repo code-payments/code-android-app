@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White20
+import com.getcode.ui.theme.CodeToggleSwitch
 import androidx.compose.foundation.clickable
 
 private val ListItemIconSize = 24.dp
@@ -121,6 +123,24 @@ object ListItemDefaults {
             painter = painterResource(id = R.drawable.ic_chevron_right),
             contentDescription = null,
             tint = White20,
+        )
+    }
+
+    /**
+     * A trailing switch that keeps the row the same height as every other one. It is
+     * presentation-only — the row's own `onClick` performs the toggle — and that is what buys the
+     * height: Material only applies its 48dp minimum touch target when `onCheckedChange` is
+     * non-null, which otherwise makes a toggle row ~24dp taller than its icon-and-chevron
+     * neighbours. Pinning the node to the icon size lets the 32dp track paint centred over it,
+     * inside the row's own padding.
+     */
+    @Composable
+    fun Toggle(checked: Boolean, enabled: Boolean = true) {
+        CodeToggleSwitch(
+            modifier = Modifier.height(ListItemIconSize),
+            checked = checked,
+            enabled = enabled,
+            onCheckedChange = null,
         )
     }
 }

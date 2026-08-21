@@ -10,7 +10,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.menu.MenuList
 import com.getcode.libs.biometrics.Biometrics
 import com.getcode.ui.components.ListItemDefaults
-import com.getcode.ui.theme.CodeToggleSwitch
 import kotlinx.coroutines.launch
 
 @Composable
@@ -29,7 +28,8 @@ private fun MyAccountScreenContent(
     val scope = rememberCoroutineScope()
 
     // Flipping the biometrics requirement has to be authenticated by the biometrics themselves,
-    // so the row (and its switch) route through a prompt before the toggle is dispatched.
+    // so the row routes through a prompt before the toggle is dispatched. The switch is display
+    // only; tapping anywhere on the row (the switch included) runs this.
     val toggleBiometrics = {
         if (state.biometricsAvailable) {
             scope.launch {
@@ -48,10 +48,9 @@ private fun MyAccountScreenContent(
         },
         endSlot = { item ->
             if (item == RequireBiometrics) {
-                CodeToggleSwitch(
+                ListItemDefaults.Toggle(
                     checked = state.biometricsRequired,
                     enabled = state.biometricsAvailable,
-                    onCheckedChange = { toggleBiometrics() },
                 )
             } else {
                 ListItemDefaults.Chevron()
