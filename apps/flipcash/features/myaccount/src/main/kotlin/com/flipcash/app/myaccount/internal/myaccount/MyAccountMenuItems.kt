@@ -2,12 +2,14 @@ package com.flipcash.app.myaccount.internal.myaccount
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContactMail
+import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.menu.FullMenuItem
 import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.core.R as CoreR
@@ -18,9 +20,21 @@ import com.flipcash.features.myaccount.R
  * Log Out, Delete Account) moved to Advanced, and the standalone App Settings screen folded its one
  * surviving toggle (Require Biometrics) in here.
  *
- * Require Biometrics is a toggle, not a destination — the screen renders a switch in its trailing
- * slot and routes the tap through a biometric prompt. Its [action] is what a row tap dispatches,
- * same as the switch.
+ * The row lands straight on the name step: [AppRoute.UpdateUserProfile] walks name then photo, and
+ * this is only ever about the name, so it asks for that step alone.
+ */
+internal data object ChangeDisplayName : FullMenuItem<MyAccountScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = rememberVectorPainter(Icons.Outlined.Badge)
+    override val name: String
+        @Composable get() = stringResource(CoreR.string.title_changeDisplayName)
+    override val action: MyAccountScreenViewModel.Event =
+        MyAccountScreenViewModel.Event.OnChangeDisplayNameClicked
+}
+
+/**
+ * A toggle, not a destination — the screen renders a switch in its trailing slot and routes the tap
+ * through a biometric prompt. Its [action] is what a row tap dispatches, same as the switch.
  */
 internal data object RequireBiometrics : FullMenuItem<MyAccountScreenViewModel.Event>() {
     override val icon: Painter
@@ -39,8 +53,8 @@ internal data object Blocklist : FullMenuItem<MyAccountScreenViewModel.Event>() 
 }
 
 /**
- * Staff/beta only. Promoting this to an always-visible "Change Display Name" row is its own change;
- * until then it stays where it was — behind the staff gate.
+ * Staff/beta only: the whole profile editor — contact methods, photo, name. The name on its own is
+ * reachable by everyone through [ChangeDisplayName].
  */
 internal data object UserProfile : StaffMenuItem<MyAccountScreenViewModel.Event>() {
     override val icon: Painter

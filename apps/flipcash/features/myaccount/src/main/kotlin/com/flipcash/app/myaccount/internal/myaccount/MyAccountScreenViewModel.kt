@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 private val FullMenuList = buildList {
+    add(ChangeDisplayName)
     add(RequireBiometrics)
     add(Blocklist)
     add(UserProfile)
@@ -58,6 +59,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
         ) : Event
         /** Dispatched only after the screen's biometric prompt succeeds. */
         data object OnBiometricsToggled : Event
+        data object OnChangeDisplayNameClicked : Event
+        data object OnEditDisplayName : Event
         data object OnBlocklistClicked: Event
         data object OnViewBlocklist: Event
         data object OnContactMethodsClicked : Event
@@ -96,6 +99,12 @@ internal class MyAccountScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnChangeDisplayNameClicked>()
+            .onEach {
+                dispatchEvent(Event.OnEditDisplayName)
+            }.launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.OnBlocklistClicked>()
             .onEach {
                 dispatchEvent(Event.OnViewBlocklist)
@@ -120,6 +129,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 Event.OnBiometricsToggled,
+                Event.OnChangeDisplayNameClicked,
+                Event.OnEditDisplayName,
                 Event.OnContactMethodsClicked,
                 Event.OnViewUserProfile,
                 Event.OnBlocklistClicked,
