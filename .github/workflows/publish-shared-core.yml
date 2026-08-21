@@ -1,0 +1,135 @@
+name: Publish SharedCore
+
+# Cuts a release of the `:kmp:shared-core` XCFramework into
+# code-payments/flipcash-shared-core-spm, which is the repo iOS depends on. The
+# Kotlin stays here; that repo only ever holds the generated `Package.swift` and
+# the release assets it points at.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish, e.g. 0.1.0 — also the Swift Package tag'
+        required: true
+
+concurrency:
+  # Two publishes at once would race on the same tag and release.
+  group: publish-shared-core
+  cancel-in-progress: false
+
+env:
+  CI: true
+  SPM_REPO: code-payments/flipcash-shared-core-spm
+
+jobs:
+  publish:
+    name: Publish SharedCore ${{ inputs.version }}
+    # Apple targets and `swift package compute-checksum` both need Xcode, so this
+    # lane can't share the Ubuntu runners the rest of CI uses.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Setup Java env
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+          cache: 'gradle'
+
+      # A fine-grained PAT with Contents: read & write on the Swift Package repo.
+      # The job's own GITHUB_TOKEN can't reach another repository, and a deploy
+      # key can only push git — it can't create the GitHub release the
+      # XCFramework is uploaded to — so one PAT covers both halves.
+      - name: Check out the Swift Package repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SPM_REPO }}
+          path: spm-repo
+          token: ${{ secrets.SHARED_CORE_PUBLISH_TOKEN }}
+
+      # Gradle configures every project in the build, and the Android app applies the
+      # secrets plugin, which fails configuration outright when `local.properties` is
+      # absent. This lane only builds the KMP module — nothing here compiles the app or
+      # talks to any of these services — so obviously-fake values are enough to get
+      # through configuration without handing this workflow the real secrets.
+      - name: Write placeholder local.properties
+        run: |
+          set -euo pipefail
+          {
+            echo 'BUGSNAG_API_KEY="00000000000000000000000000000000"'
+            echo 'GOOGLE_CLOUD_PROJECT_NUMBER=000000000000'
+            echo 'MIXPANEL_API_KEY="00000000000000000000000000000000"'
+            echo 'COINBASE_ONRAMP_API_KEY=00000000-0000-0000-0000-000000000000'
+          } > ./local.properties
+
+      # The Swift half of the package lives here, next to the Kotlin it wraps, so the
+      # two move in one commit; the Swift Package repo is a publish target, not a place
+      # to edit. `Package.swift` has to be in place before Gradle runs, since KMMBridge
+      # only rewrites the variables block inside it.
+      - name: Stage the Swift package sources
+        run: |
+          set -euo pipefail
+          rm -rf spm-repo/Sources spm-repo/Tests
+          cp -R kmp/shared-core/spm/Package.swift kmp/shared-core/spm/Sources kmp/shared-core/spm/Tests spm-repo/
+
+      - name: Build the XCFramework, upload it, and update Package.swift
+        env:
+          # Gradle reads ORG_GRADLE_PROJECT_-prefixed vars as project properties,
+          # which keeps the token out of the command line.
+          ORG_GRADLE_PROJECT_GITHUB_PUBLISH_TOKEN: ${{ secrets.SHARED_CORE_PUBLISH_TOKEN }}
+        run: |
+          ./gradlew :kmp:shared-core:kmmBridgePublish \
+            -PENABLE_PUBLISHING=true \
+            -PsharedCoreVersion=${{ inputs.version }} \
+            -PspmRepoDir=$GITHUB_WORKSPACE/spm-repo
+
+      # The release asset is up by now but the tag still points at the old
+      # Package.swift, so nothing consumes this build until the next step. Compiling
+      # the Swift glue against the framework we just uploaded is the last moment a
+      # mismatch between the two is cheap to fix — after the tag moves, it's a
+      # published-and-broken version.
+      - name: Verify the package builds against the uploaded framework
+        working-directory: spm-repo
+        run: |
+          set -euo pipefail
+          xcodebuild -scheme SharedCore \
+            -destination 'generic/platform=iOS Simulator' \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm-verify" \
+            -quiet \
+            build
+
+      - name: Commit and tag the Swift Package
+        working-directory: spm-repo
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A Package.swift Sources Tests
+          if git diff --cached --quiet; then
+            echo "Nothing to commit — the upload produced the same URL and checksum, and the Swift sources are unchanged."
+            exit 1
+          fi
+          git commit -m "SharedCore ${{ inputs.version }}"
+          git push origin HEAD:main
+
+          # The release upload already created this tag, pointing at whatever
+          # main was before the commit above — i.e. at a Package.swift that
+          # doesn't mention this release. Move it onto the commit that does, or
+          # SPM resolves the version to the previous binary.
+          git tag -f "${{ inputs.version }}"
+          git push -f origin "${{ inputs.version }}"
+
+      - name: Summary
+        run: |
+          {
+            echo "### SharedCore ${{ inputs.version }} published"
+            echo
+            echo "- Release: https://github.com/${SPM_REPO}/releases/tag/${{ inputs.version }}"
+            echo '- Consume: `.package(url: "https://github.com/'"${SPM_REPO}"'", from: "${{ inputs.version }}")`'
+          } >> "$GITHUB_STEP_SUMMARY"

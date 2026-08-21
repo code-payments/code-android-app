@@ -919,7 +919,7 @@
     <string name="subtitle_tipIntro">Add your name to receive tips</string>
     <string name="action_startReceivingTips">Start Receiving Tips</string>
 
-    <string name="title_profileNameSelection">What is your name?</string>
+    <string name="title_profileNameSelection">What\'s your name?</string>
     <string name="subtitle_profileNameSelection">This is how you\'ll appear to others</string>
     <string name="hint_profileName">Your Name</string>
     <string name="error_title_profileNameNotAllowed">This Name is Not Allowed</string>
