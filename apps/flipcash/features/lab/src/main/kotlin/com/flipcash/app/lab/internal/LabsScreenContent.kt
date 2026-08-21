@@ -1,5 +1,6 @@
 package com.flipcash.app.lab.internal
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
@@ -158,21 +160,36 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel, onboarding: Boole
 
         if (betaFlags.isEmpty()) {
             item(contentType = "empty_state") {
-                Box {
+                Box(
+                    // With nothing else in the list the empty state owns the viewport and centers in
+                    // it; when the override sections are showing it just centers in the gap they
+                    // leave, so it can't push them off screen.
+                    modifier = if (showAllFlags) {
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = CodeTheme.dimens.grid.x10)
+                    } else {
+                        Modifier.fillParentMaxSize()
+                    },
+                    contentAlignment = Alignment.Center,
+                ) {
                     Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
                     ) {
                         Text(
                             text = stringResource(R.string.title_labsAreEmpty),
                             style = CodeTheme.typography.textLarge,
-                            color = CodeTheme.colors.textMain
+                            color = CodeTheme.colors.textMain,
+                            textAlign = TextAlign.Center,
                         )
 
                         Text(
                             text = stringResource(R.string.subtitle_labsAreEmpty),
                             style = CodeTheme.typography.textMedium,
                             color = CodeTheme.colors.textSecondary,
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
