@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      The range harness binds the same CameraX use cases the scanner does, to record which
+      resolution the device actually negotiates rather than which one the app asks for.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+
+</manifest>
