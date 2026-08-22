@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.OvalShape
+import android.os.Debug
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.getcode.codes.kikcode.LuminancePlane
@@ -317,6 +318,72 @@ class KikCodeScanTest {
         )
     }
 
+    /**
+     * What sustained scanning costs the collector.
+     *
+     * The wall-clock benchmarks above measure one frame in isolation, which says nothing about the
+     * *shape* of the original complaint: scanning that is occasionally slow rather than uniformly
+     * slow. A steady per-frame tax reads as the latter. Blocking GC reads as the former.
+     *
+     * The pre-fix path allocated twice per frame at 1080p — once to read the plane out of the
+     * `ByteBuffer`, once more for the unpadding copy — roughly 4MB/frame, ~120MB/s at 30fps. The fix
+     * removes the second. A reusable frame buffer would remove the first as well, which is the only
+     * reason variant C is here: to size that remaining opportunity before anyone builds it.
+     *
+     * Reported as blocking GC count and time, since that is the part a user actually feels.
+     *
+     * Read the raw GC *counts* with care: the variants differ by two orders of magnitude in wall
+     * time, which gives the concurrent collector correspondingly more opportunity to run during the
+     * slow one. The quantity that compares cleanly across variants is allocations per frame — two,
+     * one, none.
+     */
+    @Test
+    fun sustainedScanningGcCost() {
+        val (width, height) = resolutions.last()
+        val frames = 300 // ten seconds of scanning at 30fps
+        val bufferBytes = width * height // packed: the common case, and the one the fix targets
+
+        fun gcStat(name: String): Long = Debug.getRuntimeStat(name)?.toLongOrNull() ?: -1L
+
+        fun measure(label: String, frame: (Int) -> ByteArray) {
+            Runtime.getRuntime().gc()
+            Thread.sleep(SETTLE_MS)
+            val gcBefore = gcStat("art.gc.gc-count")
+            val blockingBefore = gcStat("art.gc.blocking-gc-count")
+            val blockingTimeBefore = gcStat("art.gc.blocking-gc-time")
+
+            var sink = 0L
+            val elapsed = measureNanoTime {
+                repeat(frames) { i -> sink += frame(i)[0].toLong() }
+            }
+
+            Log.i(
+                TAG,
+                "gc $label ${width}x$height over $frames frames: " +
+                    "gc=${gcStat("art.gc.gc-count") - gcBefore} " +
+                    "blockingGc=${gcStat("art.gc.blocking-gc-count") - blockingBefore} " +
+                    "blockingGcTime=${gcStat("art.gc.blocking-gc-time") - blockingTimeBefore}ms " +
+                    "wall=${elapsed / 1_000_000}ms sink=$sink",
+            )
+        }
+
+        // Pre-fix: a fresh plane read plus the unpadding copy, every frame.
+        measure("legacy") {
+            legacyUnpad(ByteArray(bufferBytes), width, height, width, 1)
+        }
+
+        // Current: the plane read still allocates; the fast path adds nothing.
+        measure("fastPath") {
+            LuminancePlane.unpad(ByteArray(bufferBytes), width, height, width, 1)
+        }
+
+        // Hypothetical: ImageAnalysis delivers frames serially, so one buffer could be reused.
+        val reusable = ByteArray(bufferBytes)
+        measure("reusedBuffer") {
+            LuminancePlane.unpad(reusable, width, height, width, 1)
+        }
+    }
+
     /** A module-local copy of the fast path, used only as the A/B baseline above. */
     private fun localUnpad(
         data: ByteArray,
@@ -358,5 +425,6 @@ class KikCodeScanTest {
     private companion object {
         const val TAG = "KikCodeScanSweep"
         const val REMOTE_PAYLOAD_BYTES = 20
+        const val SETTLE_MS = 200L
     }
 }
