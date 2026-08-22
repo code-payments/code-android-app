@@ -42,4 +42,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.kotlin.test.junit)
     androidTestImplementation(libs.kotlinx.coroutines.core)
+    androidTestImplementation(libs.androidx.camerax.camera2)
+    androidTestImplementation(libs.androidx.camerax.lifecycle)
+    androidTestImplementation(libs.testing.androidx.test.rules)
 }

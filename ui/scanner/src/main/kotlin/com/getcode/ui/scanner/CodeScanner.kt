@@ -8,6 +8,9 @@ import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
@@ -93,9 +96,31 @@ fun CodeScanner(
             .build()
     }
 
+    // Ask for the analysis stream through ResolutionSelector rather than the deprecated
+    // setTargetResolution. The old API is only a hint, and on a 4:3 sensor it resolves a 1920x1080
+    // request down to a 720x720 square -- which costs range twice over. A square crop keeps the
+    // sensor's full height but only three quarters of its width, so the frame covers 57.6 degrees
+    // instead of 72.5, and it spans that narrower view with 720 pixels instead of 1920: 12.5
+    // pixels per degree where the lens can give 26.5. Naming the aspect ratio explicitly gets the
+    // full-width 16:9 stream the scanner was always meant to have.
+    //
+    // 1080p specifically, not more. The native detector normalises every threshold to a 480px
+    // baseline (scaling_rate = MIN(rows, cols) / 480), so the smallest decodable code grows almost
+    // as fast as the frame does and the angular floor barely moves above 1080p -- 4K measures
+    // slightly *worse* while quadrupling the per-frame work.
     val imageAnalysis = remember {
+        val resolution = ResolutionSelector.Builder()
+            .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
+            .setResolutionStrategy(
+                ResolutionStrategy(
+                    Size(1920, 1080),
+                    ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
+                )
+            )
+            .build()
+
         ImageAnalysis.Builder()
-            .setTargetResolution(Size(1920, 1080))
+            .setResolutionSelector(resolution)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
             .build()
