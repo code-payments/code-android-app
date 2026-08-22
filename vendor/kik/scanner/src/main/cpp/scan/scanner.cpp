@@ -417,23 +417,6 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
     Mat whitish;
     Mat blackish;
 
-    // --- START OF EDIT ---
-    // we switch to an inverted scheme (dark is high, light is low) if the
-    // center ellipse is dark, but we don't want to compute the extra threshold everytime
-    // so we only do this when needed.
-    //
-    // Using adaptive thresholding is more robust to lighting changes than a global threshold.
-    // It calculates a threshold for smaller regions, making it less susceptible to shadows or glare.
-    // A block size of 11 or higher is a good starting point and must be an odd number.
-    // The constant 'C' (here, 5) is subtracted from the mean, which helps in finding features.
-
-    // For finding dark features on a light background.
-    adaptiveThreshold(greyscale, blackish, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY_INV, 21, 5);
-
-    // For finding light features on a dark background.
-    adaptiveThreshold(greyscale, whitish, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 21, 5);
-    // --- END OF EDIT ---
-
     // we switch to an inverted scheme (dark is high, light is low) if the
     // center ellipse is dark, but we don't want to compute the extra threshold everytime
     // so we only do this when necessary
@@ -728,7 +711,15 @@ bool detectKikCode(Mat &greyscale, Mat *out_progress, uint32_t device_quality, u
             float dist = sqrt(pow(center1.x - center2.x, 2)
                        + pow(center1.y - center2.y, 2));
 
-            if (dist < 50 && 2 * potential_ellipses[i].size.area() > potential_ellipses[j].size.area()) {
+            float area1 = potential_ellipses[i].size.area();
+            float area2 = potential_ellipses[j].size.area();
+
+            // Only prune true near-duplicates -- the same physical circle fitted twice from the
+            // inner and outer edge of its stroke, which are comparable in area. A nearby ellipse
+            // that is much smaller is a *different* feature nested inside this one (e.g. the dot
+            // knocked out of the centre badge's glyph), and dropping the enclosing candidate in
+            // its favour loses the only ellipse that can yield finder points.
+            if (dist < 50 && 2 * area1 > area2 && 2 * area2 > area1) {
                 allowed = false;
                 break;
             }
