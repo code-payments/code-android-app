@@ -186,16 +186,14 @@ class EventStreamDelegate @Inject constructor(
     }
 
     /**
-     * Backfills a chat from [afterSequence] onward.
+     * Backfills a chat from its applied cursor onward.
      *
-     * Callers that have already written the server's sequence to `chat_metadata` before asking for
-     * a delta must pass the sequence the cache held *beforehand* — reading it here would return
-     * the value they just wrote and ask the server for everything after its own latest event,
-     * which is always nothing. The live gap-fill path has no such write in front of it and omits
-     * the argument.
+     * The cursor is read from `chat_metadata`, which holds what the client has actually applied:
+     * nothing writes the server's head there — a feed sync refreshes only the server-owned columns
+     * (`ChatMetadataDao.upsert`), and the mapper drops the head on the way in.
      */
-    internal suspend fun performDeltaSync(chatId: ChatId, afterSequence: Long? = null) {
-        val afterSequence = afterSequence ?: metadataDataSource.getLatestEventSequence(chatId)
+    internal suspend fun performDeltaSync(chatId: ChatId) {
+        val afterSequence = metadataDataSource.getLatestEventSequence(chatId)
         trace(tag = TAG, message = "Delta sync for $chatId from sequence $afterSequence", type = TraceType.Process)
 
         try {

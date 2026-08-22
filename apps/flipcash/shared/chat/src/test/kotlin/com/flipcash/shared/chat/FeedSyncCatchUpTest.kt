@@ -14,6 +14,7 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.launchIn
@@ -26,9 +27,10 @@ import kotlin.test.assertEquals
 import kotlin.time.Instant
 
 /**
- * A feed sync writes each chat's `lastMessage` and the server's `latestEventSequence` before it
- * decides whether that chat needs catching up. These tests hold the decision to what the cache held
- * *before* the sync wrote to it.
+ * A feed sync writes each chat's `lastMessage` before it decides whether that chat needs catching
+ * up, so the presence of message rows says nothing about whether a transcript was ever pulled.
+ * These tests hold the decision to the applied event cursor instead, and hold the terminal marker
+ * to its position after it.
  *
  * The user-visible failure: after a re-login the chat cache is empty (logout clears it via
  * `ChatCoordinator.reset`), the sync repopulates one message per chat, and anything derived from
@@ -38,7 +40,6 @@ import kotlin.time.Instant
 @OptIn(ExperimentalCoroutinesApi::class)
 class FeedSyncCatchUpTest {
 
-    private val selfId = listOf<Byte>(1, 2, 3)
     private val otherId = listOf<Byte>(4, 5, 6)
     private val chatId = ChatId("aabbccdd")
 
@@ -71,22 +72,17 @@ class FeedSyncCatchUpTest {
      * Stands in for the per-user Room database: what the sync writes is what a later read sees.
      * Relaxed mocks would answer `false`/`0` regardless of the writes, which is exactly the coupling
      * under test.
+     *
+     * `upsert` deliberately leaves [seededCursors] alone. That is the DAO's contract — the feed
+     * payload carries the server's head, and `ChatMetadataDao.upsert` refreshes only the columns
+     * the server owns, so a chat's applied cursor survives a sync (see `ChatMetadataDaoTest`).
      */
-    private class Harness(chats: List<ChatMetadata>, seededChatsWithMessages: Set<ChatId> = emptySet()) {
-        val chatsWithMessages = seededChatsWithMessages.toMutableSet()
-        val storedSequences = mutableMapOf<ChatId, Long>()
+    private class Harness(chats: List<ChatMetadata>, seededCursors: Map<ChatId, Long> = emptyMap()) {
+        val storedSequences = seededCursors.toMutableMap()
 
-        val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true).also { source ->
-            coEvery { source.upsert(any<ChatId>(), any()) } answers {
-                chatsWithMessages += firstArg<ChatId>()
-            }
-            coEvery { source.hasMessages(any()) } answers { firstArg<ChatId>() in chatsWithMessages }
-        }
+        val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true)
 
         val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true).also { source ->
-            coEvery { source.upsert(any<List<ChatMetadata>>()) } answers {
-                firstArg<List<ChatMetadata>>().forEach { storedSequences[it.chatId] = it.latestEventSequence }
-            }
             coEvery { source.getLatestEventSequence(any()) } answers {
                 storedSequences[firstArg<ChatId>()] ?: 0L
             }
@@ -136,8 +132,8 @@ class FeedSyncCatchUpTest {
     @Test
     fun `warm cache does not refetch history`() = runTest {
         val harness = Harness(
-            chats = listOf(metadata(lastMessage = message(20, otherId))),
-            seededChatsWithMessages = setOf(chatId),
+            chats = listOf(metadata(lastMessage = message(20, otherId), latestEventSequence = 20)),
+            seededCursors = mapOf(chatId to 20L),
         )
 
         val events = harness.sync(this)
@@ -153,47 +149,40 @@ class FeedSyncCatchUpTest {
     fun `a local sequence behind the server's triggers a delta sync`() = runTest {
         val harness = Harness(
             chats = listOf(metadata(lastMessage = message(20, otherId), latestEventSequence = 99)),
-            seededChatsWithMessages = setOf(chatId),
-        ).apply { storedSequences[chatId] = 42 }
+            seededCursors = mapOf(chatId to 42L),
+        )
 
         val events = harness.sync(this)
 
         assertEquals(
             listOf(
-                FeedSyncDelegate.Event.DeltaSyncNeeded(chatId, afterSequence = 42),
+                FeedSyncDelegate.Event.DeltaSyncNeeded(chatId),
                 FeedSyncDelegate.Event.CatchUpComplete,
             ),
             events,
-            "the gap must be measured against the sequence the cache held before the sync overwrote it",
+            "the gap must be measured against the sequence the cache holds, not against message rows",
         )
     }
 
     /**
-     * The event carrying its own `afterSequence` is the whole point: the delta consumer reads
-     * `chat_metadata` when not given one, and by then this sync has already stamped the server's
-     * sequence onto that row — so a re-read would ask the server for everything after its own
-     * latest event and get nothing back.
+     * The delta consumer reads the cursor out of `chat_metadata` for itself, which is only safe
+     * because a feed sync never seats one: a chat is caught up by a message load or by an applied
+     * delta, and by nothing the feed reports about the server's head.
      */
     @Test
-    fun `the delta request starts from the pre-sync sequence, not the row the sync wrote`() = runTest {
+    fun `a feed sync never advances the applied cursor`() = runTest {
         val harness = Harness(
             chats = listOf(metadata(lastMessage = message(20, otherId), latestEventSequence = 99)),
-            seededChatsWithMessages = setOf(chatId),
-        ).apply { storedSequences[chatId] = 42 }
-
-        val event = harness.sync(this)
-            .filterIsInstance<FeedSyncDelegate.Event.DeltaSyncNeeded>()
-            .single()
-
-        assertEquals(
-            99L,
-            harness.metadataDataSource.getLatestEventSequence(chatId),
-            "precondition: the sync has overwritten the stored sequence with the server's",
+            seededCursors = mapOf(chatId to 42L),
         )
+
+        harness.sync(this)
+
+        coVerify(exactly = 0) { harness.metadataDataSource.updateLatestEventSequence(any(), any()) }
         assertEquals(
             42L,
-            event.afterSequence,
-            "the delta must be requested from 42, or the backfill silently fetches nothing",
+            harness.metadataDataSource.getLatestEventSequence(chatId),
+            "the delta must still start from 42, or the backfill silently fetches nothing",
         )
     }
 
