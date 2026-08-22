@@ -2,6 +2,7 @@ package com.getcode.opencode.model.financial
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import com.getcode.opencode.tests.generateRandomPublicKeyForTest
 import kotlin.test.assertFalse
 
 /**
@@ -110,4 +111,37 @@ class LaunchpadSellFeeTest {
         // Clamped to 10_000 (100%): half the balance covers a fee equal to the entry.
         assertEquals("$10.00", balance.spendableUnderSellFeeOnTop(bps = 12_000).formatted())
     }
+
+    // region House-rate fallback
+
+    @Test
+    fun `a pool that declares its own sell fee uses it`() {
+        assertEquals(250, pool(sellFeeBps = 250).sellFeeBpsOrHouseRate)
+    }
+
+    @Test
+    fun `a token with no pool falls back to the house rate`() {
+        // Erring high is the safe direction — the fee is grossed up into the debit, so a zero
+        // fallback prices a debit the funding balance can't actually cover. iOS assumes the house
+        // rate on every leg for the same reason.
+        assertEquals(HOUSE_SELL_FEE_BPS, null.sellFeeBpsOrHouseRate)
+    }
+
+    private fun pool(sellFeeBps: Int): LaunchpadMetadata {
+        val key = generateRandomPublicKeyForTest()
+        return LaunchpadMetadata(
+            currencyConfig = key,
+            liquidityPool = key,
+            seed = key,
+            authority = key,
+            mintVault = key,
+            coreMintVault = key,
+            currentCirculatingSupplyQuarks = 1_000_000L,
+            sellFeeBps = sellFeeBps,
+            price = Fiat(fiat = 1.0),
+            marketCap = Fiat(fiat = 1000.0),
+        )
+    }
+
+    // endregion
 }

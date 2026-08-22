@@ -58,3 +58,18 @@ fun Fiat.spendableUnderSellFeeOnTop(bps: Int): Fiat {
     val cappedBps = bps.coerceIn(0, MAX_FEE_BPS)
     return this / (1.0 + cappedBps / MAX_FEE_BPS.toDouble())
 }
+
+/**
+ * The flat house sell fee, in basis points, charged wherever a pool doesn't declare one of its own.
+ */
+const val HOUSE_SELL_FEE_BPS = 100
+
+/**
+ * This pool's declared sell fee, or the house rate when there is no pool to declare one.
+ *
+ * Erring high is the safe direction: the fee is grossed up into the debit, so falling back to zero
+ * prices a debit the funding balance can't actually cover. iOS assumes the house rate on every leg
+ * for the same reason.
+ */
+val LaunchpadMetadata?.sellFeeBpsOrHouseRate: Int
+    get() = this?.sellFeeBps ?: HOUSE_SELL_FEE_BPS
