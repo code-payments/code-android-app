@@ -6,7 +6,10 @@ import android.util.Size
 import android.view.Surface
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.Camera
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.Preview
+import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
@@ -228,6 +231,72 @@ class AnalysisResolutionTest {
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
                 .build(),
         )
+    }
+
+    /**
+     * The centre exposure region the scanner asks for is actually accepted by this camera.
+     *
+     * `startFocusAndMetering` is a request, not a command: a device that does not support AE
+     * regions reports zero `maxMeteringPointsAe` and the call resolves as unsuccessful, leaving
+     * whole-frame metering in place. That failure is completely silent at runtime -- the scanner
+     * keeps working, just as badly as before -- so the only way to know the fix took is to ask.
+     *
+     * Logs rather than fails on an unsupported device: not every camera offers AE regions, and
+     * that is a fact about the hardware rather than a defect in the scanner.
+     */
+    @Test
+    fun centreExposureMeteringIsSupported() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val provider = ProcessCameraProvider.getInstance(context).get(10, TimeUnit.SECONDS)
+        val owner = TestLifecycleOwner()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val analysis = shippingAnalysis()
+        val executor = Executors.newSingleThreadExecutor()
+        var camera: Camera? = null
+
+        instrumentation.runOnMainSync {
+            provider.unbindAll()
+            camera = provider.bindToLifecycle(owner, selector, Preview.Builder().build(), analysis)
+            owner.resume()
+        }
+
+        try {
+            val bound = requireNotNull(camera) { "camera did not bind" }
+
+            // Wait for a real frame before asking. Binding returns long before the camera opens,
+            // and `startFocusAndMetering` on a camera that is not yet active fails with
+            // OperationCanceledException -- which would look identical to an unsupported device.
+            val frame = CountDownLatch(1)
+            analysis.setAnalyzer(executor) { image -> frame.countDown(); image.close() }
+            val active = frame.await(15, TimeUnit.SECONDS)
+            assertTrue(active, "camera never delivered a frame, so metering could not be tested")
+
+            val centre = SurfaceOrientedMeteringPointFactory(1f, 1f).createPoint(0.5f, 0.5f)
+            val action = FocusMeteringAction.Builder(centre, FocusMeteringAction.FLAG_AE)
+                .disableAutoCancel()
+                .build()
+
+            val supported = bound.cameraInfo.isFocusMeteringSupported(action)
+            val result = runCatching {
+                bound.cameraControl.startFocusAndMetering(action).get(5, TimeUnit.SECONDS)
+            }
+
+            Log.i(
+                TAG,
+                // No `isFocusSuccessful` here: it reports the *focus* outcome and is
+                // documented to return false whenever the action carries no AF flag, so on an
+                // AE-only request it says nothing and reads like a failure.
+                "centre AE metering: supported=$supported " +
+                    "requestOutcome=${result.exceptionOrNull()?.toString() ?: "accepted"}",
+            )
+        } finally {
+            instrumentation.runOnMainSync {
+                analysis.clearAnalyzer()
+                provider.unbindAll()
+                owner.destroy()
+            }
+            executor.shutdown()
+        }
     }
 
     private companion object {
