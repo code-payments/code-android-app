@@ -69,7 +69,7 @@ internal data class ReceiptLine(
  *
  * The two flows are the same screen: a bordered card holding an anchor row, an optional block of
  * line items and a second anchor row, over a warning and a confirm button. They differ only in
- * which side leads — Get reads "You Get / … / You Pay", Convert reads "You Convert / … / You
+ * which side leads — Get reads "You Pay / … / You Get", Convert reads "You Convert / … / You
  * Receive" — and in their copy, so all of that arrives as data. Each flow's own fee math stays in
  * the adapter that owns it, since that is the one piece the two genuinely disagree on.
  *
@@ -278,14 +278,25 @@ private fun TokenBuyReceiptScreen(
     // reads "You Get / Amount to convert / Conversion fee" — the same wording Convert uses.
     val isGet = state.isGet
 
-    SwapReceiptScreen(
-        top = ReceiptAnchor(
-            title = stringResource(
-                if (isGet) R.string.subtitle_youGet else R.string.subtitle_youReceive
-            ),
-            token = state.tokenWithBalance?.token,
-            amount = purchaseAmount,
+    val received = ReceiptAnchor(
+        title = stringResource(
+            if (isGet) R.string.subtitle_youGet else R.string.subtitle_youReceive
         ),
+        token = state.tokenWithBalance?.token,
+        amount = purchaseAmount,
+    )
+
+    val paid = ReceiptAnchor(
+        title = stringResource(R.string.subtitle_youPay),
+        token = state.fundingTokenWithBalance?.token,
+        amount = totalPaid,
+    )
+
+    SwapReceiptScreen(
+        // Get leads with what it costs, so the fee lines underneath read as the breakdown of the
+        // figure directly above them. v1's Buy still leads with what you receive — its pixels are
+        // not this change's to move.
+        top = if (isGet) paid else received,
         lines = if (feeAmount.isPositive && purchaseAmount != null) {
             listOf(
                 ReceiptLine(
@@ -307,11 +318,7 @@ private fun TokenBuyReceiptScreen(
         // v1's fee lines sit a notch closer together. Gated, not unified: the Buy receipt still
         // renders for v1 and for v2's Add Money, and neither is this change's to restyle.
         lineSpacing = if (isGet) CodeTheme.dimens.grid.x3 else CodeTheme.dimens.grid.x2,
-        bottom = ReceiptAnchor(
-            title = stringResource(R.string.subtitle_youPay),
-            token = state.fundingTokenWithBalance?.token,
-            amount = totalPaid,
-        ),
+        bottom = if (isGet) received else paid,
         warning = stringResource(R.string.label_buyWarning),
         confirmLabel = stringResource(
             if (isGet) R.string.action_confirm else R.string.action_buy
