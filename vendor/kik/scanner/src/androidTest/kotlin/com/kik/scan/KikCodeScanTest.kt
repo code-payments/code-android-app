@@ -3,11 +3,11 @@ package com.kik.scan
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.drawable.ShapeDrawable
-import android.graphics.drawable.shapes.OvalShape
 import android.os.Debug
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.getcode.codes.kikcode.LuminancePlane
 import com.kik.kikx.kikcodes.ScanQuality
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
@@ -36,9 +36,18 @@ class KikCodeScanTest {
     /**
      * The detector locates a code by its centre ellipse, so the badge well must be filled — in the
      * app that is the round logo drawable. An empty well is simply not scannable.
+     *
+     * Use the *real* artwork, not a plain white oval. The logo knocks its glyph out of the disc
+     * with the even-odd rule, and the glyph's round dot is itself an ellipse the detector can
+     * latch onto; a substituted oval has no dot and quietly hides that whole class of bug.
      */
     private val renderer = KikCodeContentRendererImpl().apply {
-        badge = ShapeDrawable(OvalShape()).apply { paint.color = Color.WHITE }
+        badge = requireNotNull(
+            ContextCompat.getDrawable(
+                InstrumentationRegistry.getInstrumentation().context,
+                com.kik.kikx.test.R.drawable.ic_logo_round_white,
+            )
+        )
     }
     private val scanner = KikCodeScannerImpl()
 
