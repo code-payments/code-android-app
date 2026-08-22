@@ -225,9 +225,19 @@ fun CodeScanner(
         mutableStateOf(PreviewView.StreamState.IDLE)
     }
 
-    LaunchedEffect(streamState) {
+    LaunchedEffect(streamState, gestureController) {
         if (streamState == PreviewView.StreamState.STREAMING) {
             trace("camera ready")
+
+            // Exposure is metered on the centre of the frame rather than the whole of it, so a
+            // bright code in a dark room is exposed for the code and not for the room. See
+            // `applyBaselineMetering` -- overexposure does not degrade detection, it ends it.
+            //
+            // Deliberately keyed on the stream actually running, not on the bind returning:
+            // `startFocusAndMetering` is refused with "Camera is not active" until the camera has
+            // opened, and it refuses *silently*. Asking any earlier would leave whole-frame
+            // metering in place while looking, from the source, exactly like a fix.
+            gestureController?.applyBaselineMetering()
         }
     }
 
