@@ -50,6 +50,7 @@ import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.Currency
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.HOUSE_SELL_FEE_BPS
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
@@ -63,6 +64,7 @@ import com.getcode.opencode.model.financial.max
 import com.getcode.opencode.model.financial.min
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.plus
+import com.getcode.opencode.model.financial.sellFeeBpsOrHouseRate
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.SwapState
@@ -483,8 +485,8 @@ class SwapViewModel @Inject constructor(
         get() {
             val purpose = stateFlow.value.purpose as? SwapPurpose.Convert ?: return 0
             if (purpose.mint == Mint.usdf) return DEFAULT_CONVERT_FEE_BPS
-            return stateFlow.value.tokenWithBalance?.token?.launchpadMetadata?.sellFeeBps
-                ?: DEFAULT_CONVERT_FEE_BPS
+            return stateFlow.value.tokenWithBalance?.token?.launchpadMetadata
+                .sellFeeBpsOrHouseRate
         }
 
     private val feeAmount: Fiat
@@ -559,12 +561,13 @@ class SwapViewModel @Inject constructor(
     /**
      * The fee a buy funded by [fundingToken] charges, as bps and whether it rides on top of the
      * entered amount. A v2 Get from Dollars pays the flat house rate on top (no pool to skim);
-     * every other currency has its pool's sell fee grossed up into the debit; v1's reserves buy is
+     * every other currency has its pool's sell fee grossed up into the debit (falling back to the
+     * house rate when the pool doesn't declare one, as [convertFeeBps] does); v1's reserves buy is
      * free.
      */
     private fun buyFeeFor(fundingToken: Token): Pair<Int, Boolean> = when {
         fundingToken.address != Mint.usdf ->
-            (fundingToken.launchpadMetadata?.sellFeeBps ?: 0) to false
+            fundingToken.launchpadMetadata.sellFeeBpsOrHouseRate to false
         stateFlow.value.isGet -> DEFAULT_CONVERT_FEE_BPS to true
         else -> 0 to false
     }
@@ -1315,7 +1318,7 @@ class SwapViewModel @Inject constructor(
                         }
                     } else {
                         enteredFiat.grossingUpLaunchpadSellFee(
-                            bps = fundingToken.launchpadMetadata?.sellFeeBps ?: 0,
+                            bps = fundingToken.launchpadMetadata.sellFeeBpsOrHouseRate,
                         )
                     },
                     token = fundingToken,
@@ -1891,7 +1894,7 @@ class SwapViewModel @Inject constructor(
          * House rate for a conversion when the source pool doesn't charge its own sell fee — 1%,
          * matching the launchpad default.
          */
-        private const val DEFAULT_CONVERT_FEE_BPS = 100
+        private const val DEFAULT_CONVERT_FEE_BPS = HOUSE_SELL_FEE_BPS
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
