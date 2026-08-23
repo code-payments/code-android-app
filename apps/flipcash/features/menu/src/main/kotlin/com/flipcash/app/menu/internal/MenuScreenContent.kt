@@ -12,6 +12,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,7 +33,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -50,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -74,18 +78,27 @@ import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
+import com.flipcash.app.menu.internal.MenuScreenViewModel.TipCardState
 import com.flipcash.app.updates.LocalAppUpdater
+import com.flipcash.core.R as CoreR
 import com.flipcash.features.menu.R
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
+import com.getcode.theme.White08
 import com.getcode.theme.White50
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.theme.CodeScaffold
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -108,6 +121,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
     // the display and everything else — rows, footer, tab bar — animates out from under it
     // (node 9277:121410). Pushing a route would cross-fade a second copy of the card in instead.
     var cardExpanded by remember { mutableStateOf(false) }
+    // Only a claimed card expands — the unclaimed stand-in is decoration behind the prompt.
     val canExpand = isNewUi && state.tipCard != null
 
     LaunchedEffect(canExpand) {
@@ -217,8 +231,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 header = {
                     if (isNewUi) {
                         YouHeader(
-                            card = state.tipCard,
-                            link = state.tipLink,
+                            tipCardState = state.tipCardState,
                             enabled = !cardExpanded,
                             expansion = expansion,
                             slideAway = slideAway,
@@ -229,6 +242,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                             onCopyLink = { viewModel.dispatchEvent(Event.CopyTipLink) },
                             onShare = { viewModel.dispatchEvent(Event.ShareTipCard) },
                             onDownload = { viewModel.dispatchEvent(Event.DownloadTipCard) },
+                            onClaim = { viewModel.dispatchEvent(Event.ClaimTipCard) },
                         )
                     } else {
                         MoneyTiles(viewModel, navigator)
@@ -325,6 +339,53 @@ private fun <T> expansionSpring(visibilityThreshold: T? = null) = spring(
  * The "You" tab header (node 9276:4634): the viewer's own tip card with a "Full Screen" affordance,
  * the copyable tip link, and the Share / Download tiles.
  *
+ * An account with no display name has no card yet, and gets [UnclaimedTipCardPrompt] in its place
+ * rather than an empty page. Nothing is drawn while the state is still [TipCardState.Unknown] — a
+ * named account resolves in a frame or two, and a prompt that flashed at it would be a lie.
+ */
+@Composable
+private fun YouHeader(
+    tipCardState: TipCardState,
+    enabled: Boolean,
+    expansion: Float,
+    slideAway: Modifier,
+    cardWidth: Dp,
+    cardShift: Float,
+    onCardSlotPositioned: (Float) -> Unit,
+    onToggleFullScreen: () -> Unit,
+    onCopyLink: () -> Unit,
+    onShare: () -> Unit,
+    onDownload: () -> Unit,
+    onClaim: () -> Unit,
+) {
+    when (tipCardState) {
+        TipCardState.Unknown -> Unit
+        is TipCardState.Unclaimed -> UnclaimedTipCardPrompt(
+            placeholder = tipCardState.placeholder,
+            cardWidth = cardWidth,
+            enabled = enabled,
+            onClaim = onClaim,
+        )
+        is TipCardState.Claimed -> ClaimedTipCard(
+            card = tipCardState.card,
+            link = tipCardState.link,
+            enabled = enabled,
+            expansion = expansion,
+            slideAway = slideAway,
+            cardWidth = cardWidth,
+            cardShift = cardShift,
+            onCardSlotPositioned = onCardSlotPositioned,
+            onToggleFullScreen = onToggleFullScreen,
+            onCopyLink = onCopyLink,
+            onShare = onShare,
+            onDownload = onDownload,
+        )
+    }
+}
+
+/**
+ * The claimed card and everything that hangs off it.
+ *
  * The caller drives the full-screen state: it sizes the card ([cardWidth]) and draws it out of its
  * slot towards the middle of the display ([cardShift], off the slot position reported by
  * [onCardSlotPositioned]). It also hands down [slideAway] — the fade-and-slide every non-card
@@ -332,8 +393,8 @@ private fun <T> expansionSpring(visibilityThreshold: T? = null) = spring(
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun YouHeader(
-    card: Scannable.TipCard?,
+private fun ClaimedTipCard(
+    card: Scannable.TipCard,
     link: String?,
     enabled: Boolean,
     expansion: Float,
@@ -346,8 +407,6 @@ private fun YouHeader(
     onShare: () -> Unit,
     onDownload: () -> Unit,
 ) {
-    if (card == null) return
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -433,6 +492,147 @@ private fun YouHeader(
         }
     }
 }
+
+/**
+ * What the "You" tab shows before the account has a display name: the card it *would* have, blurred
+ * out behind a prompt to claim it. Mirrors iOS `YouScreen.setupPrompt`.
+ *
+ * The stand-in is the account's real scannable payload drawn over an unnamed profile, with the
+ * card's own fill turned off so the 8% ground shows through — the same construction iOS uses. It is
+ * decoration: not tappable, not expandable, not shareable, and the tip link and Share / Download
+ * tiles are absent entirely, because there is nothing yet to link to or share.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun UnclaimedTipCardPrompt(
+    placeholder: Scannable.TipCard?,
+    cardWidth: Dp,
+    enabled: Boolean,
+    onClaim: () -> Unit,
+) {
+    val shape = RoundedCornerShape(cardWidth * TipCardCornerFraction)
+    val hazeState = rememberHazeState()
+    val placeholderName = stringResource(CoreR.string.label_tipCardNamePlaceholder)
+
+    // The card's ground, flattened: the 8% white wash resolved against the page behind it. The
+    // frosting composites over this, which is what makes the overlay opaque — haze draws the blur as
+    // a layer in FRONT of its source rather than filtering it in place, so without an opaque ground
+    // the sharp code would read straight through its own frosting.
+    // The HazeBlurStyle builder is not a @Composable scope, so the theme read is hoisted above it.
+    val cardGround = White08.compositeOver(CodeTheme.colors.background)
+    val frosting = HazeBlurStyle {
+        blurRadius(PlaceholderBlurRadius)
+        backgroundColor(cardGround)
+        // Haze only blurs on API 31+ and minSdk is 29; below that it falls back to this scrim, which
+        // has to be opaque for the same reason. Never the sharp code: an unclaimed card drawn
+        // legibly would read as a real one.
+        fallbackColorEffect(HazeColorEffect.tint(cardGround))
+        // Off: haze's default film grain over a scannable figure reads as noise in the code itself
+        // rather than as texture, and iOS frosts the stand-in with a plain blur.
+        noiseFactor(0f)
+    }
+
+    // The stand-in is a fixed-width card in a full-width header slot, so it has to be centred the way
+    // the claimed card's own Column centres it. Without this it sits at the slot's start edge.
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                // The card pads itself off the status bar; the list's content padding already owns that
+                // clearance here, so consume the inset rather than paying it twice.
+                .consumeWindowInsets(WindowInsets.statusBarsIgnoringVisibility)
+                .size(cardWidth, cardWidth * TipCardAspectRatio)
+                .clip(shape)
+                .background(White08)
+                .border(PlaceholderBorderWidth, White.copy(alpha = 0.12f), shape),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (placeholder != null) {
+                // A nameless account renders its name line as a bare "Tip ", which frosts to a much
+                // narrower smudge than a real card's. Stand a name in so the blur has the weight the
+                // claimed card's would (iOS `YouScreen.placeholderName`).
+                val stoodIn = remember(placeholder, placeholderName) {
+                    placeholder.copy(user = placeholder.user.copy(displayName = placeholderName))
+                }
+
+                CompositionLocalProvider(
+                    LocalTipCardColor provides Color(0xFF101011),
+                    // Fill off, so the placeholder ground behind it is what's frosted, not an opaque card.
+                    LocalTipCardBaseAlpha provides 0f,
+                ) {
+                    ScannableRenderer(
+                        modifier = Modifier.hazeSource(hazeState),
+                        scannable = stoodIn,
+                        tipCardWidth = cardWidth,
+                    )
+                }
+
+                // Drawn over the stand-in and under the prompt, so the copy below stays sharp.
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .hazeBlur(HazeInput.Sources(hazeState), frosting)
+                )
+            }
+
+            Column(
+                // iOS caps the prompt at the card width less 16, so the copy never reaches the corners.
+                modifier = Modifier.width(cardWidth - PromptInset * 2),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = stringResource(CoreR.string.title_tipIntro),
+                    style = CodeTheme.typography.textLarge,
+                    color = CodeTheme.colors.textMain,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    modifier = Modifier.padding(top = 8.dp),
+                    text = stringResource(CoreR.string.subtitle_tipIntro),
+                    style = CodeTheme.typography.textSmall,
+                    // Full strength, not secondary: it sits over the blurred code's glow.
+                    color = CodeTheme.colors.textMain,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    modifier = Modifier
+                        .padding(top = 20.dp)
+                        .clip(CircleShape)
+                        .background(CodeTheme.colors.textMain)
+                        .clickable(enabled = enabled, onClick = onClaim)
+                        .padding(horizontal = 25.dp, vertical = 10.dp),
+                    text = stringResource(CoreR.string.action_startReceivingTips),
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.background,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(UnclaimedRowsGap))
+    }
+}
+
+/** The tip card's height-to-width proportion and corner radius, mirrored from `TipCard`. */
+private const val TipCardAspectRatio = 333f / 269f
+private const val TipCardCornerFraction = 0.08f
+
+/** How far the unclaimed stand-in is frosted (iOS `YouScreen.setupPrompt`: `blur(radius: 12)`). */
+private val PlaceholderBlurRadius = 12.dp
+
+/** The hairline that keeps the blurred stand-in readable as a card rather than a smudge. */
+private val PlaceholderBorderWidth = 1.dp
+
+/** Margin between the claim prompt and the stand-in card's edges (iOS: 16 across the pair). */
+private val PromptInset = 8.dp
+
+/**
+ * Gap between the unclaimed stand-in and the first settings row. Wider than the claimed card's 19,
+ * because the claimed card pays part of its clearance in the Share / Download tiles that the
+ * unclaimed state doesn't draw (iOS `YouScreen`: `.padding(.top, displayName == nil ? 48 : 19)`).
+ */
+private val UnclaimedRowsGap = 48.dp
 
 /**
  * The label + chevron that toggles the card's full-screen state — "Full Screen" pointing down under

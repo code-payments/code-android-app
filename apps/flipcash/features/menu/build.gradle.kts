@@ -7,6 +7,10 @@ android {
 }
 
 dependencies {
+    testImplementation(kotlin("test"))
+
+    implementation(libs.bundles.haze)
+
     implementation(project(":apps:flipcash:shared:appupdates"))
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:authentication"))

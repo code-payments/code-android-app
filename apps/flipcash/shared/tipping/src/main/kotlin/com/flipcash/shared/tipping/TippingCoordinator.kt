@@ -279,6 +279,15 @@ class TippingCoordinator @Inject constructor(
     }
 
     /**
+     * A stand-in tip card for an account that hasn't claimed one yet — the real scannable payload
+     * for [currentUserId] over the account's own (still nameless) profile, so no network round-trip
+     * is needed. It is only ever drawn blurred behind the claim prompt, which stands a placeholder
+     * name in for the blur's sake. Null when there is no signed-in user.
+     */
+    fun unclaimedTipCard(): Scannable.TipCard? =
+        currentUserId?.let { tipCard(it, userManager.profile ?: UserProfile.Empty) }
+
+    /**
      * Resolves [userId]'s profile and builds their scannable tip card — for generating a card
      * for another user (e.g. a scanned counterparty).
      */
