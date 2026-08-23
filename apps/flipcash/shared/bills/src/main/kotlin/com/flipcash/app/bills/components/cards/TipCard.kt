@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -76,6 +77,14 @@ private const val TipCardCodeFraction = 0.68f   // scannable code (square)
 private const val TipCardAvatarFraction = 0.09f // name-row avatar
 private const val TipCardCornerFraction = 0.08f // corner radius
 private const val TipCardNameTopFraction = 0.06f // name-row top padding (of card height)
+// The name is part of that same proportional figure: Figma draws it at 17 on the 269-wide card and
+// scales it with the card, so the 302-wide full-screen card gets 19.1 (node 9277:121421) and the
+// 242-wide You-page card 15.3 (node 9276:4645). A fixed size instead left the name looking oversized
+// on the small card and undersized on the big one.
+private const val TipCardNameFraction = 17f / 269f
+// Line height as a multiple of the font size, carried over from `textMedium` (20 on 16) so a name
+// that wraps to a second line keeps the same rhythm it had at the fixed size.
+private const val TipCardNameLineHeightRatio = 1.25f
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -104,6 +113,10 @@ internal fun TipCard(
         val codeSize = width * TipCardCodeFraction
         val avatarSize = width * TipCardAvatarFraction
         val cornerRadius = width * TipCardCornerFraction
+        // Converted through the density rather than read as sp: the card is a fixed-geometry figure
+        // (and is rendered for export), so the name has to keep its proportion whatever the user's
+        // font scale is.
+        val nameFontSize = with(LocalDensity.current) { (width * TipCardNameFraction).toSp() }
 
         Box(
             modifier = Modifier
@@ -132,7 +145,10 @@ internal fun TipCard(
                 ) {
                     Text(
                         text = stringResource(R.string.label_tipUser, user.displayName),
-                        style = CodeTheme.typography.textMedium,
+                        style = CodeTheme.typography.textMedium.copy(
+                            fontSize = nameFontSize,
+                            lineHeight = nameFontSize * TipCardNameLineHeightRatio,
+                        ),
                         color = CodeTheme.colors.textMain,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
