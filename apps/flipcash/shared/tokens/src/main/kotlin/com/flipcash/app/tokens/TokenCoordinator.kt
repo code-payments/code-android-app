@@ -255,6 +255,17 @@ class TokenCoordinator @Inject constructor(
     suspend fun hasBalance(): Boolean =
         _state.value.balances.values.any { it.hasDisplayableValue }
 
+    /**
+     * Observable "is there money in this account right now?", across every token including reserves.
+     *
+     * Deliberately [Fiat.isPositive] rather than [Fiat.hasDisplayableValue]: this answers whether the
+     * account holds *anything*, so a dust balance that rounds away in the UI still counts. Callers
+     * that need "enough to act on" want [hasGiveableBalance] instead.
+     */
+    val hasAnyBalance: Flow<Boolean> = _state
+        .map { state -> state.balances.values.any { it.isPositive } }
+        .distinctUntilChanged()
+
     fun balanceForToken(token: Token): Fiat = _state.value.balances[token.address] ?: Fiat.Zero
 
     fun balanceForToken(tokenAddress: Mint): Flow<Fiat> =

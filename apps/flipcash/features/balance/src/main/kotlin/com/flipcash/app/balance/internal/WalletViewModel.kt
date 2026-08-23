@@ -9,6 +9,7 @@ import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.shared.transactionhistory.FeedSyncState
 import com.flipcash.shared.transactionhistory.TransactionListItem
 import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -35,6 +36,7 @@ internal class WalletViewModel @Inject constructor(
     analytics: FlipcashAnalyticsService,
     chatCoordinator: ChatCoordinator,
     feedCoordinator: ActivityFeedCoordinator,
+    tokenCoordinator: TokenCoordinator,
 ) : BaseViewModel<WalletViewModel.State, WalletViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -55,6 +57,8 @@ internal class WalletViewModel @Inject constructor(
          */
         val transactions: List<TransactionListItem> = emptyList(),
         val feedSyncState: FeedSyncState = FeedSyncState.Unknown,
+        /** Whether the account currently holds a balance in any token (see [isAwaitingActivity]). */
+        val holdsBalance: Boolean = false,
     ) {
         val hasReceivedMoney: Boolean
             get() = onboardingItems?.find { it is TutorialItem.AddMoney }?.isCompleted == true
@@ -71,15 +75,19 @@ internal class WalletViewModel @Inject constructor(
          * reconciled with the server at least once. Without this an established account signing in
          * was shown the new-user tutorial for as long as its history took to arrive. Local rows
          * short-circuit the wait: if there is already activity to draw, there is nothing to
-         * mistake for a new account.
+         * mistake for a new account — and neither is a held balance, which is a live read of the
+         * account rather than of the cache.
          */
         val isAwaitingActivity: Boolean
             get() = onboardingItems == null ||
-                    (feedSyncState == FeedSyncState.Unknown && transactions.isEmpty())
+                    (feedSyncState == FeedSyncState.Unknown && transactions.isEmpty() && !holdsBalance)
     }
 
     sealed interface Event {
-        data class OnOnboardingItemsUpdated(val items: List<TutorialItem>): Event
+        data class OnOnboardingItemsUpdated(
+            val items: List<TutorialItem>,
+            val holdsBalance: Boolean,
+        ): Event
         data class OnTransactionsUpdated(val transactions: List<TransactionListItem>) : Event
         data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider.Defined?) : Event
         data class OnFeedSyncStateChanged(val syncState: FeedSyncState) : Event
@@ -117,19 +125,27 @@ internal class WalletViewModel @Inject constructor(
             .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)
 
-        // Onboarding funnel milestones, derived from durable event history (not current balance):
-        // "added money" = any completed *incoming* entry in the activity feed — a buy, a deposit, or
-        // a tip received; "scanned a tip card" = an outgoing Cash chat message with verb TIPPED.
+        // Onboarding funnel milestones, derived from durable event history: "added money" = any
+        // completed *incoming* entry in the activity feed — a buy, a deposit, or a tip received;
+        // "scanned a tip card" = an outgoing Cash chat message with verb TIPPED.
+        //
+        // Holding a balance completes "add money" on its own. The feed is a *local* cache of events,
+        // so an account funded before this install — or on another device — has money but no local
+        // row to prove it, and would otherwise be told to add money it already has.
         combine(
             feedCoordinator.hasEverReceivedMoney(),
             chatCoordinator.hasEverTipped(),
-        ) { hasReceivedMoney, hasTipped ->
-            listOf(
-                TutorialItem.AddMoney(isCompleted = hasReceivedMoney),
-                TutorialItem.ScanTipCard(isCompleted = hasTipped),
+            tokenCoordinator.hasAnyBalance,
+        ) { hasReceivedMoney, hasTipped, holdsBalance ->
+            Event.OnOnboardingItemsUpdated(
+                items = listOf(
+                    TutorialItem.AddMoney(isCompleted = hasReceivedMoney || holdsBalance),
+                    TutorialItem.ScanTipCard(isCompleted = hasTipped),
+                ),
+                holdsBalance = holdsBalance,
             )
         }
-            .onEach { items -> dispatchEvent(Event.OnOnboardingItemsUpdated(items)) }
+            .onEach { dispatchEvent(it) }
             .launchIn(viewModelScope)
     }
 
@@ -147,7 +163,7 @@ internal class WalletViewModel @Inject constructor(
                     state.copy(feedSyncState = event.syncState)
                 }
                 is Event.OnOnboardingItemsUpdated -> { state ->
-                    state.copy(onboardingItems = event.items)
+                    state.copy(onboardingItems = event.items, holdsBalance = event.holdsBalance)
                 }
                 is Event.OnTransactionsUpdated -> { state ->
                     state.copy(transactions = event.transactions)
