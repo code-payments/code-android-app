@@ -9,7 +9,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -170,7 +172,7 @@ internal fun App(
 
                     val scrimController = remember { ScrimController() }
 
-                    Box(modifier = semanticsModifier) {
+                    Box(modifier = semanticsModifier.fillMaxSize().background(CodeTheme.colors.background)) {
                         SharedTransitionLayout {
                             CompositionLocalProvider(
                                 LocalCodeNavigator provides codeNavigator,
