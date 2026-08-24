@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -242,10 +243,13 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             // against itself — a frame behind its own size the whole way.
             var cardSlotCenterY by remember { mutableFloatStateOf(0f) }
             val displayCenterY = LocalWindowInfo.current.containerSize.height / 2f
-            val cardShift = remember(displayCenterY) {
+            val cardShift = remember(displayCenterY, expansion) {
                 {
                     if (cardSlotCenterY <= 0f) 0f
-                    else (displayCenterY - cardSlotCenterY) * progress()
+                    // The overdrag rides on the card's position alone: pushed down past full
+                    // screen the card has nowhere left to go, so it gives a little where it
+                    // stands while its size and every fade hold where the expansion left them.
+                    else (displayCenterY - cardSlotCenterY) * (progress() + expansion.overdrag)
                 }
             }
 
@@ -255,9 +259,16 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             // points back up — so the way out is up, and a finger that covers the distance the card
             // has left to go closes it exactly. The card stays under the finger the whole way and
             // springs to whichever end the release picks.
+            //
+            // It goes on the page rather than on the card, as iOS's does: expanded, the card IS the
+            // page, and a pull that has to land on the card exactly is a pull that misses — the
+            // card is 302dp of a display wider than that, with live margin either side. Nothing
+            // here scrolls while the card is up (see userScrollEnabled below), so there is no
+            // scroll for the drag to take events from.
             val density = LocalDensity.current
             val minTravel = with(density) { MinDragTravel.toPx() }
             val flingVelocity = with(density) { MinFlingVelocity.toPx() }
+            val touchSlop = LocalViewConfiguration.current.touchSlop
             // The same distance cardShift moves the card, so the card keeps pace with the finger
             // exactly. It holds still for the length of the gesture without having to be pinned:
             // the slot it measures from no longer grows with the card.
@@ -266,13 +277,16 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 state = rememberDraggableState { delta -> expansion.dragBy(delta / dragTravel) },
                 orientation = Orientation.Vertical,
                 enabled = cardExpanded,
+                onDragStarted = { expansion.startDrag(touchSlop / dragTravel) },
                 onDragStopped = { velocity ->
                     expansion.settle(velocity / dragTravel, flingVelocity / dragTravel)
                 },
             )
 
             MenuList(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(cardDrag),
                 state = listState,
                 items = state.items,
                 showChevrons = isNewUi,
@@ -287,7 +301,6 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                             slideAway = slideAway,
                             cardScale = cardScale,
                             cardShift = cardShift,
-                            cardDrag = cardDrag,
                             onCardSlotPositioned = { cardSlotCenterY = it },
                             onToggleFullScreen = { expansion.toggle() },
                             onCopyLink = { viewModel.dispatchEvent(Event.CopyTipLink) },
@@ -341,6 +354,9 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                     chevronRotation = 180f,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
+                        // Drawn over the list, so it needs the pull too — a hand reaching for
+                        // "Close" and pulling instead is the likeliest place to start one.
+                        .then(cardDrag)
                         .graphicsLayer { alpha = progress().coerceIn(0f, 1f) }
                         .navigationBarsPadding()
                         .padding(bottom = CloseBottomSpacing)
@@ -404,7 +420,6 @@ private fun YouHeader(
     slideAway: Modifier,
     cardScale: () -> Float,
     cardShift: () -> Float,
-    cardDrag: Modifier,
     onCardSlotPositioned: (Float) -> Unit,
     onToggleFullScreen: () -> Unit,
     onCopyLink: () -> Unit,
@@ -429,7 +444,6 @@ private fun YouHeader(
             slideAway = slideAway,
             cardScale = cardScale,
             cardShift = cardShift,
-            cardDrag = cardDrag,
             onCardSlotPositioned = onCardSlotPositioned,
             onToggleFullScreen = onToggleFullScreen,
             onCopyLink = onCopyLink,
@@ -449,9 +463,6 @@ private fun YouHeader(
  *
  * All four arrive as lambdas so they are read inside the graphics layers that use them, off the
  * composition. Read as values, the whole page would recompose on every frame of the animation.
- *
- * [cardDrag] goes on the card itself: the swipe that puts an expanded card away has to be attached
- * to the thing it moves, so the card is what the finger is holding rather than a hotspot near it.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -463,7 +474,6 @@ private fun ClaimedTipCard(
     slideAway: Modifier,
     cardScale: () -> Float,
     cardShift: () -> Float,
-    cardDrag: Modifier,
     onCardSlotPositioned: (Float) -> Unit,
     onToggleFullScreen: () -> Unit,
     onCopyLink: () -> Unit,
@@ -508,7 +518,6 @@ private fun ClaimedTipCard(
                             scaleY = scale
                             translationY = cardShift()
                         }
-                        .then(cardDrag)
                         .noRippleClickable { onToggleFullScreen() },
                 ) {
                     ScannableRenderer(scannable = card, tipCardWidth = FullScreenCardWidth)
