@@ -61,6 +61,8 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -79,7 +81,9 @@ import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.menu.internal.MenuScreenViewModel.TipCardState
+import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.updates.LocalAppUpdater
+import com.flipcash.services.models.UserProfile
 import com.flipcash.core.R as CoreR
 import com.flipcash.features.menu.R
 import com.getcode.navigation.core.CodeNavigator
@@ -94,6 +98,7 @@ import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.theme.CodeScaffold
 import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.blur.HazeBlurDefaults
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
@@ -501,6 +506,9 @@ private fun ClaimedTipCard(
  * card's own fill turned off so the 8% ground shows through — the same construction iOS uses. It is
  * decoration: not tappable, not expandable, not shareable, and the tip link and Share / Download
  * tiles are absent entirely, because there is nothing yet to link to or share.
+ *
+ * [blurEnabled] is haze's own API-31 gate, surfaced so a preview can render what an API 29/30
+ * device draws (see `Preview_UnclaimedTipCardPrompt_NoBlur`). Leave it at the default in app code.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -509,6 +517,7 @@ private fun UnclaimedTipCardPrompt(
     cardWidth: Dp,
     enabled: Boolean,
     onClaim: () -> Unit,
+    blurEnabled: Boolean = HazeBlurDefaults.isBlurEnabledByDefault(),
 ) {
     val shape = RoundedCornerShape(cardWidth * TipCardCornerFraction)
     val hazeState = rememberHazeState()
@@ -521,6 +530,7 @@ private fun UnclaimedTipCardPrompt(
     // The HazeBlurStyle builder is not a @Composable scope, so the theme read is hoisted above it.
     val cardGround = White08.compositeOver(CodeTheme.colors.background)
     val frosting = HazeBlurStyle {
+        blurEnabled(blurEnabled)
         blurRadius(PlaceholderBlurRadius)
         backgroundColor(cardGround)
         // Haze only blurs on API 31+ and minSdk is 29; below that it falls back to this scrim, which
@@ -850,4 +860,43 @@ private fun VersionFooter(
             ),
         )
     }
+}
+
+private val PreviewCodeData = listOf(
+    0xA5, 0x3C, 0xD7, 0x8B, 0x14, 0xE9, 0x62, 0xF0,
+    0x4D, 0xB6, 0x29, 0x7A, 0xC3, 0x58, 0x91, 0xDE,
+    0x6F, 0x03, 0xB4, 0x87, 0x2C, 0xE5, 0x50, 0xA9,
+    0x1E, 0x73, 0xC6, 0x3F, 0x98, 0x41, 0xDA, 0x65,
+    0x0B, 0xF2, 0x7D, 0xAE, 0x53, 0xC0, 0x19,
+).map { it.toByte() }
+
+/** The stand-in as an API 31+ device draws it: haze's RenderEffect blur over the card's ground. */
+@Preview(name = "Unclaimed — blurred (API 31+)")
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_UnclaimedTipCardPrompt() {
+    UnclaimedTipCardPrompt(
+        placeholder = Scannable.TipCard(data = PreviewCodeData, user = UserProfile.Empty),
+        cardWidth = YouCardWidth,
+        enabled = true,
+        onClaim = {},
+    )
+}
+
+/**
+ * The same stand-in on API 29/30, where haze can't blur and falls through to its scrim delegate.
+ * The scrim draws nothing on its own, so this is the preview that proves `fallbackColorEffect`
+ * is doing its job: the code underneath must be fully covered, not legible.
+ */
+@Preview(name = "Unclaimed — scrim fallback (API 29/30)")
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_UnclaimedTipCardPrompt_NoBlur() {
+    UnclaimedTipCardPrompt(
+        placeholder = Scannable.TipCard(data = PreviewCodeData, user = UserProfile.Empty),
+        cardWidth = YouCardWidth,
+        enabled = true,
+        onClaim = {},
+        blurEnabled = false,
+    )
 }
