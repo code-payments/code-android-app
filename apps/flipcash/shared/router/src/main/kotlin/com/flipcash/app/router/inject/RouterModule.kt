@@ -17,5 +17,8 @@ object RouterModule {
     @Provides
     fun providesRouter(
         userManager: UserManager,
-    ): Router = AppRouter(authStateProvider = { userManager.authState })
+    ): Router = AppRouter(
+        authStateProvider = { userManager.authState },
+        currentUserIdProvider = { userManager.accountId },
+    )
 }

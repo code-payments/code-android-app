@@ -54,8 +54,9 @@ class TipCardDelegate @Inject constructor(
     private val inFlight = MutableStateFlow<Set<ID>>(emptySet())
 
     override fun resolveTipCard(user: ID) {
-        // You can't tip yourself: ignore a scanned or deeplinked own tip card. Your own card is
-        // shown by the You tab, which expands it in place — it never comes through this path.
+        // You can't tip yourself, so there's nothing to present for your own card. A `/tip/{self}`
+        // deeplink never reaches here — AppRouter turns it into a Navigate to the You tab, which
+        // owns your card. This guard covers the remaining entry point (a scan of your own code).
         // Mirrors iOS TipFlow.begin's `guard userID != session.userID`.
         if (user == tippingCoordinator.currentUserId) return
         if (!inFlight.add(user)) return
