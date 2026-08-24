@@ -2,6 +2,7 @@ package com.flipcash.app.session.internal.delegates
 
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.session.TipCardEvent
 import com.flipcash.app.session.TipCardOperations
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.shared.tipping.TippingCoordinator
@@ -9,9 +10,12 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -50,14 +54,27 @@ class TipCardDelegate @Inject constructor(
     private val _events = Channel<Event>(Channel.UNLIMITED)
     val events: Flow<Event> = _events.consumeAsFlow()
 
+    // Separate from [events]: that channel is the shell's (single-consumer, consumeAsFlow), while
+    // this one is the UI's. Replay-less, so an event with no scanner on screen is simply dropped.
+    private val _tipCardEvents = MutableSharedFlow<TipCardEvent>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    override val tipCardEvents: Flow<TipCardEvent> = _tipCardEvents.asSharedFlow()
+
     // Users with an in-flight resolve — coalesces duplicate requests (e.g. repeated scan frames).
     private val inFlight = MutableStateFlow<Set<ID>>(emptySet())
 
     override fun resolveTipCard(user: ID) {
-        // You can't tip yourself: ignore a scanned or deeplinked own tip card. Your own card is
-        // shown by the You tab, which expands it in place — it never comes through this path.
+        // You can't tip yourself, so there's no card to present for your own id. Both scan paths
+        // (a QR tip link and an OpenCode tip payload) land here, so this is the one place that has
+        // to answer for them: signal the UI to show the You tab, which owns your card, instead of
+        // silently doing nothing. A `/tip/{self}` deeplink is diverted earlier, by AppRouter.
         // Mirrors iOS TipFlow.begin's `guard userID != session.userID`.
-        if (user == tippingCoordinator.currentUserId) return
+        if (user == tippingCoordinator.currentUserId) {
+            _tipCardEvents.tryEmit(TipCardEvent.OwnCardScanned)
+            return
+        }
         if (!inFlight.add(user)) return
 
         scope.launch {

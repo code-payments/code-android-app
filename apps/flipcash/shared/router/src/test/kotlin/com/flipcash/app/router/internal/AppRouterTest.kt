@@ -8,12 +8,15 @@ import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.AuthState
+import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.core.bytes
 import com.getcode.solana.keys.Mint
 import dev.theolm.rinku.DeepLink
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.net.URLEncoder
+import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -29,8 +32,12 @@ class AppRouterTest {
     }
 
     private var authState: AuthState = AuthState.Ready
+    private var currentUserId: ID? = null
 
-    private val router = AppRouter(authStateProvider = { authState })
+    private val router = AppRouter(
+        authStateProvider = { authState },
+        currentUserIdProvider = { currentUserId },
+    )
 
     private fun loggedIn() { authState = AuthState.Ready }
     private fun loggedOut() { authState = AuthState.LoggedOut }
@@ -375,6 +382,42 @@ class AppRouterTest {
         val identifier = chat.identifier
         assertIs<ChatIdentifier.ByChatId>(identifier)
         assertEquals(sampleChatId, identifier.chatId)
+    }
+
+    @Test
+    fun `dispatch presents the tip card for another user's tip card deeplink`() {
+        loggedIn()
+        currentUserId = UUID.fromString("22222222-2222-2222-2222-222222222222").bytes
+
+        val userId = "11111111-1111-1111-1111-111111111111"
+        val action = router.dispatch(DeepLink("https://app.flipcash.com/tip/$userId"))
+
+        assertIs<DeeplinkAction.PresentTipCard>(action)
+        assertEquals(UUID.fromString(userId).bytes, action.userId)
+    }
+
+    @Test
+    fun `dispatch routes your own tip card deeplink to the You tab`() {
+        loggedIn()
+        val userId = "11111111-1111-1111-1111-111111111111"
+        currentUserId = UUID.fromString(userId).bytes
+
+        val action = router.dispatch(DeepLink("https://app.flipcash.com/tip/$userId"))
+
+        // Tipping yourself is a payment no-op, so the link lands on the You tab instead.
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertEquals(listOf(AppRoute.Sheets.Menu), action.routes)
+    }
+
+    @Test
+    fun `dispatch presents the tip card when the current user id is unknown`() {
+        loggedIn()
+        currentUserId = null
+
+        val userId = "11111111-1111-1111-1111-111111111111"
+        val action = router.dispatch(DeepLink("https://app.flipcash.com/tip/$userId"))
+
+        assertIs<DeeplinkAction.PresentTipCard>(action)
     }
 
     // endregion

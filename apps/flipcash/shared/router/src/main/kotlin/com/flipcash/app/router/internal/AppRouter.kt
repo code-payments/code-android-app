@@ -19,6 +19,7 @@ import com.flipcash.app.router.internal.AppRouter.Companion.tip
 import com.flipcash.app.router.internal.AppRouter.Companion.token
 import com.flipcash.app.router.internal.AppRouter.Companion.verification
 import com.flipcash.services.user.AuthState
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.bytes
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.TraceType
@@ -31,6 +32,7 @@ import java.util.UUID
 
 internal class AppRouter(
     private val authStateProvider: () -> AuthState,
+    private val currentUserIdProvider: () -> ID?,
 ) : Router {
     companion object {
         val login = listOf("login")
@@ -83,7 +85,14 @@ internal class AppRouter(
                 listOf(AppRoute.Sheets.Tips(), AppRoute.Messaging.Chat(type.identifier))
             )
 
-            is DeeplinkType.Tipcard -> DeeplinkAction.PresentTipCard(type.userId)
+            // Your own tip card link: tipping yourself is a payment no-op, so instead of
+            // presenting a card that can't be acted on, land on the You tab — the surface that
+            // owns your tip card (see NavBarRoutes: NavBarButton.TipCard -> Sheets.Menu).
+            is DeeplinkType.Tipcard -> if (type.userId == currentUserIdProvider()) {
+                DeeplinkAction.Navigate(listOf(AppRoute.Sheets.Menu))
+            } else {
+                DeeplinkAction.PresentTipCard(type.userId)
+            }
         }
     }
 
