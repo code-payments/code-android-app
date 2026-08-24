@@ -302,6 +302,7 @@ class ProfileControllerTest {
 private class FakeProfileRepository : ProfileRepository {
     var getProfileResult: Result<UserProfile> = Result.failure(RuntimeException("not configured"))
     var setDisplayNameResult: Result<Unit> = Result.success(Unit)
+    var setUsernameResult: Result<Unit> = Result.success(Unit)
     var setProfilePictureResult: Result<MediaItem> = Result.failure(RuntimeException("not configured"))
     var updateTipCardResult: Result<Unit> = Result.success(Unit)
     var linkSocialAccountResult: Result<SocialAccount> = Result.failure(RuntimeException("not configured"))
@@ -309,6 +310,7 @@ private class FakeProfileRepository : ProfileRepository {
 
     override suspend fun getProfile(identifier: ProfileIdentifier, owner: Ed25519.KeyPair) = getProfileResult
     override suspend fun setDisplayName(displayName: String, owner: Ed25519.KeyPair) = setDisplayNameResult
+    override suspend fun setUsername(username: String, owner: Ed25519.KeyPair) = setUsernameResult
     override suspend fun setProfilePicture(blobId: BlobId, owner: Ed25519.KeyPair) = setProfilePictureResult
     override suspend fun updateTipCard(owner: Ed25519.KeyPair, hexColor: String) = updateTipCardResult
     override suspend fun linkSocialAccount(request: SocialAccountLinkRequest, owner: Ed25519.KeyPair) =

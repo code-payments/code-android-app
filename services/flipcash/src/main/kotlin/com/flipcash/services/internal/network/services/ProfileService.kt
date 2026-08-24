@@ -10,6 +10,7 @@ import com.flipcash.services.models.LinkSocialAccountError
 import com.flipcash.services.models.ProfileIdentifier
 import com.flipcash.services.models.SetDisplayNameError
 import com.flipcash.services.models.SetProfilePictureError
+import com.flipcash.services.models.SetUsernameError
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
 import com.flipcash.services.models.UnlinkSocialAccountError
@@ -60,6 +61,31 @@ internal class ProfileService @Inject constructor(
                 }
             },
             onFailure = { Result.failure(it.toValidationOrElse { cause -> SetDisplayNameError.Other(cause) }) }
+        )
+    }
+
+    suspend fun setUsername(
+        username: String,
+        owner: Ed25519.KeyPair,
+    ): Result<Unit> {
+        return runCatching {
+            api.setUsername(username, owner)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    ProfileService.SetUsernameResponse.Result.OK -> Result.success(Unit)
+                    ProfileService.SetUsernameResponse.Result.INVALID_USERNAME -> Result.failure(SetUsernameError.InvalidUsername())
+                    ProfileService.SetUsernameResponse.Result.DENIED -> Result.failure(SetUsernameError.Denied())
+                    ProfileService.SetUsernameResponse.Result.ALREADY_TAKEN -> Result.failure(SetUsernameError.AlreadyTaken())
+                    ProfileService.SetUsernameResponse.Result.FAILED_MODERATED ->
+                        Result.failure(SetUsernameError.FailedModerated(response.flaggedCategory.toFlaggedCategory()))
+                    ProfileService.SetUsernameResponse.Result.INSUFFICIENT_BALANCE -> Result.failure(SetUsernameError.InsufficientBalance())
+                    ProfileService.SetUsernameResponse.Result.RESERVED_WORD -> Result.failure(SetUsernameError.ReservedWord())
+                    ProfileService.SetUsernameResponse.Result.UNRECOGNIZED -> Result.failure(SetUsernameError.Unrecognized())
+                    null -> Result.failure(SetUsernameError.Unrecognized())
+                }
+            },
+            onFailure = { Result.failure(it.toValidationOrElse { cause -> SetUsernameError.Other(cause) }) }
         )
     }
 

@@ -5,6 +5,8 @@ import com.flipcash.services.internal.domain.UserProfileMapper
 import com.flipcash.services.internal.network.services.ProfileService
 import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.ProfileIdentifier
+import com.flipcash.services.models.SetDisplayNameError
+import com.flipcash.services.models.SetUsernameError
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
@@ -38,7 +40,34 @@ internal class InternalProfileRepository(
         owner: Ed25519.KeyPair
     ): Result<Unit> {
         return service.setDisplayName(displayName, owner)
-            .onFailure { ErrorUtils.handleError(it) }
+            .onFailure {
+                // The rejections below are the server answering a user's choice of
+                // display name, not a fault worth reporting.
+                val expected = it is SetDisplayNameError.InvalidDisplayName ||
+                        it is SetDisplayNameError.FailedModerated
+                if (!expected) {
+                    ErrorUtils.handleError(it)
+                }
+            }
+    }
+
+    override suspend fun setUsername(
+        username: String,
+        owner: Ed25519.KeyPair
+    ): Result<Unit> {
+        return service.setUsername(username, owner)
+            .onFailure {
+                // The rejections below are the server answering a user's choice of
+                // username, not a fault worth reporting.
+                val expected = it is SetUsernameError.InvalidUsername ||
+                        it is SetUsernameError.AlreadyTaken ||
+                        it is SetUsernameError.ReservedWord ||
+                        it is SetUsernameError.FailedModerated ||
+                        it is SetUsernameError.InsufficientBalance
+                if (!expected) {
+                    ErrorUtils.handleError(it)
+                }
+            }
     }
 
     override suspend fun setProfilePicture(
