@@ -9,6 +9,7 @@ import com.flipcash.app.core.AppRoute
 import com.getcode.opencode.model.core.ID
 import com.getcode.ui.core.RestrictionType
 import com.kik.kikx.models.ScannableKikCode
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 sealed interface BillDeterminationResult {
@@ -34,7 +35,23 @@ interface CashLinkOperations {
     fun openCashLink(cashLink: String?)
 }
 
+/** One-shot signals from tip card resolution that only the UI can act on. */
+sealed interface TipCardEvent {
+    /**
+     * The resolved card is the viewer's own. Tipping yourself is a payment no-op, so rather than
+     * present a card that can't be acted on, the UI sends them to the You tab — the surface that
+     * owns their tip card. Reached by scanning your own code (QR link or OpenCode payload); the
+     * `/tip/{self}` deeplink is diverted earlier, by the router.
+     */
+    data object OwnCardScanned : TipCardEvent
+}
+
 interface TipCardOperations {
+    /**
+     * Hot and replay-less: an event emitted with no collector is dropped, which is correct here —
+     * every producer runs while the scanner is on screen.
+     */
+    val tipCardEvents: Flow<TipCardEvent>
     fun resolveTipCard(user: ID)
 }
 

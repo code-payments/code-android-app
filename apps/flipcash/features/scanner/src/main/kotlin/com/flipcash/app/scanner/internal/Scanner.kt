@@ -24,6 +24,7 @@ import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.scanner.internal.bills.ScannableContainer
 import com.flipcash.app.session.LocalSessionController
+import com.flipcash.app.session.TipCardEvent
 import com.getcode.libs.code.detection.CodeScanResult
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.biometrics.LocalBiometricsState
@@ -66,6 +67,19 @@ internal fun Scanner() {
 
     var isPinching by remember { mutableStateOf(false) }
     var zoomRatio by remember { mutableFloatStateOf(1f) }
+
+    // Scanning your own tip card resolves to nothing to pay, so send the user to the You tab —
+    // the surface that owns their card — rather than leaving the scan with no visible outcome.
+    // Covers both scan shapes (QR tip link and OpenCode tip payload); they share the guard in
+    // TipCardDelegate that raises this. The equivalent deeplink is handled in AppRouter.
+    LaunchedEffect(session, navigator, isNewUi) {
+        session.tipCardEvents.collect { event ->
+            when (event) {
+                TipCardEvent.OwnCardScanned ->
+                    navigator.navigateAll(listOf(AppRoute.Sheets.Menu), isNewUi = isNewUi)
+            }
+        }
+    }
 
     LaunchedEffect(biometricsState, previewing) {
         if (previewing == true) {
