@@ -99,6 +99,22 @@ class ProfileController @Inject constructor(
     }
 
     /**
+     * Claims [username] as the caller's public Flipcash handle, replacing any
+     * username already set.
+     */
+    suspend fun setUsername(
+        username: String,
+    ): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.setUsername(username, owner)
+            // Reflect the change locally so anything observing the profile (e.g. a setup flow
+            // deciding which steps remain) sees it without waiting for a refresh.
+            .onSuccess { mergeLocalProfile { it.copy(username = username) } }
+    }
+
+    /**
      * Updates the caller's tip card customization with the given hex color string.
      */
     suspend fun updateTipCard(hexColor: String): Result<Unit> {

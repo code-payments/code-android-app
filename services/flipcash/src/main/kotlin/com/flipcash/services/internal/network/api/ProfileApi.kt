@@ -76,6 +76,25 @@ internal class ProfileApi @Inject constructor(
     }
 
     /**
+     * Sets the username for a user, replacing any username already set.
+     */
+    suspend fun setUsername(
+        username: String,
+        owner: Ed25519.KeyPair
+    ): ProfileService.SetUsernameResponse {
+        val request = ProfileService.SetUsernameRequest.newBuilder()
+            .setUsername(username.asUsername())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.setUsername(request)
+        }
+    }
+
+    /**
      * Sets the caller's profile picture to a blob they have already uploaded via
      * BlobStorage. The server derives the DISPLAY/THUMBNAIL renditions and returns
      * the full set.

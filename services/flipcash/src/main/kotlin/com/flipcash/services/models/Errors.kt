@@ -206,6 +206,23 @@ sealed class SetDisplayNameError(
     data class Other(override val cause: Throwable? = null) : SetDisplayNameError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class SetUsernameError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class InvalidUsername: SetUsernameError("Invalid username")
+    class Denied: SetUsernameError("Denied")
+    // Another user already holds this username.
+    class AlreadyTaken: SetUsernameError("Username already taken")
+    class FailedModerated(val category: ModerationResult.FlaggedCategory) : SetUsernameError("Content flagged: $category")
+    // Claiming this username costs more than the caller can pay.
+    class InsufficientBalance: SetUsernameError("Insufficient balance")
+    // The username is on the server's reserved list and cannot be claimed.
+    class ReservedWord: SetUsernameError("Reserved word")
+    class Unrecognized : SetUsernameError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SetUsernameError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class SetProfilePictureError(
     override val message: String? = null,
     override val cause: Throwable? = null
