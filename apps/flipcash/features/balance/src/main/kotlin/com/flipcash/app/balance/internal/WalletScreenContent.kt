@@ -124,7 +124,10 @@ internal fun WalletScreenContent(
             top = CodeTheme.dimens.inset,
             start = CodeTheme.dimens.inset,
             end = CodeTheme.dimens.inset,
-            bottom = LocalTabBarPadding.current.calculateBottomPadding() + CodeTheme.dimens.grid.x12,
+            // Clearance under the last row (the action tiles) once the list is scrolled to the end. The
+            // tab-bar inset already covers the floating bar and its own 15 dp drop, so this is only the
+            // visible gap above the bar: 40 dp, matching iOS (a 96 pt trailing spacer against a 58 pt bar).
+            bottom = LocalTabBarPadding.current.calculateBottomPadding() + CodeTheme.dimens.grid.x8,
         ),
     ) {
         item {
