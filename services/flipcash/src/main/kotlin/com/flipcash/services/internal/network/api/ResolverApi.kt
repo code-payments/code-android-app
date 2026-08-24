@@ -7,6 +7,7 @@ import com.flipcash.services.models.ResolveIdentifier
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asUserId
 import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.internal.network.extensions.asUsername
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import dev.bmcreations.protovalidate.orThrow
@@ -50,6 +51,8 @@ internal class ResolverApi @Inject constructor(
                 builder.setPhone(Common.PhoneNumber.newBuilder().setValue(phone.phoneNumber))
             is ResolveIdentifier.UserId ->
                 builder.setUserId(userId.asUserId())
+            is ResolveIdentifier.Username ->
+                builder.setUsername(username.asUsername())
         }.build()
     }
 }

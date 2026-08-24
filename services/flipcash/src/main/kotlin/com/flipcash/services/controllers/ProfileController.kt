@@ -2,6 +2,7 @@ package com.flipcash.services.controllers
 
 import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.LinkingToken
+import com.flipcash.services.models.ProfileIdentifier
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
@@ -68,11 +69,21 @@ class ProfileController @Inject constructor(
 
     suspend fun getProfileForUser(
         userId: ID,
-    ): Result<UserProfile> {
+    ): Result<UserProfile> = getProfile(ProfileIdentifier.UserId(userId))
+
+    /**
+     * Fetches a profile by its owner's public Flipcash handle. The response carries
+     * the user's ID, so a caller that only had the username learns it from here.
+     */
+    suspend fun getProfileForUsername(
+        username: String,
+    ): Result<UserProfile> = getProfile(ProfileIdentifier.Username(username))
+
+    private suspend fun getProfile(identifier: ProfileIdentifier): Result<UserProfile> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
-        return repository.getProfile(userId, owner)
+        return repository.getProfile(identifier, owner)
     }
 
     suspend fun setDisplayName(

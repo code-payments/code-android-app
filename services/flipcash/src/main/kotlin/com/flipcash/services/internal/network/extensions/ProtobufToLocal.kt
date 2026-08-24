@@ -373,6 +373,8 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
                         phoneNumber = phoneNumber.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
                         email = emailAddress.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
                         profilePicture = if (hasProfilePicture()) profilePicture.toMediaItem() else null,
+                        userId = if (hasUserId()) userId.toId() else null,
+                        username = if (hasUsername()) username.value else null,
                     )
                 },
                 pointers = member.pointersList.map { it.toPointer() },

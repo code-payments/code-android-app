@@ -2,6 +2,7 @@ package com.flipcash.services.models
 
 import android.os.Parcelable
 import com.flipcash.services.models.chat.MediaItem
+import com.getcode.opencode.model.core.ID
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
@@ -20,6 +21,12 @@ data class UserProfile(
     val joinedAt: Instant? = null,
     // The hex color for the user's tip card customization. Null when unset.
     val tipCardColor: String? = null,
+    // The ID of the user this profile belongs to. Server-provided on any fetched
+    // profile; null for a locally-constructed one.
+    val userId: ID? = null,
+    // The user's public Flipcash handle. Public, so it is present for any user —
+    // null when they haven't claimed one yet.
+    val username: String? = null,
 ): Parcelable {
     /** The phone number only when it has been verified — backwards-compatible accessor. */
     val verifiedPhoneNumber: String? get() = phoneNumber?.takeIf { it.verified }?.value
@@ -34,6 +41,8 @@ data class UserProfile(
             phoneNumber = null,
             email = null,
             tipCardColor = null,
+            userId = null,
+            username = null,
         )
     }
 }

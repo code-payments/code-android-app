@@ -22,6 +22,10 @@ class ResolverController @Inject constructor(
     suspend fun resolve(userId: ID): Result<PublicKey> =
         resolve(ResolveIdentifier.UserId(userId))
 
+    /** Resolves a username to its owner's on-chain address. */
+    suspend fun resolve(username: String): Result<PublicKey> =
+        resolve(ResolveIdentifier.Username(username))
+
     private suspend fun resolve(identifier: ResolveIdentifier): Result<PublicKey> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))

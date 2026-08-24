@@ -5,14 +5,15 @@ import com.codeinc.flipcash.gen.profile.v1.ProfileGrpcKt
 import com.codeinc.flipcash.gen.profile.v1.ProfileService
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asUserId
+import com.flipcash.services.internal.network.extensions.asUsername
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.internal.network.extensions.linkingToken
+import com.flipcash.services.models.ProfileIdentifier
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
 import com.flipcash.services.models.chat.BlobId
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
-import com.getcode.opencode.model.core.ID
 import com.getcode.utils.toByteString
 import com.codeinc.flipcash.gen.profile.v1.validate
 import dev.bmcreations.protovalidate.orThrow
@@ -32,13 +33,23 @@ internal class ProfileApi @Inject constructor(
         .withWaitForReady()
 
     /**
-     * Gets the profile for a user
+     * Gets the profile for a user, keyed by either their user ID or their username.
      */
-    suspend fun getProfile(userId: ID, owner: Ed25519.KeyPair): ProfileService.GetProfileResponse {
+    suspend fun getProfile(
+        identifier: ProfileIdentifier,
+        owner: Ed25519.KeyPair,
+    ): ProfileService.GetProfileResponse {
         val request = ProfileService.GetProfileRequest.newBuilder()
-            .setUserId(userId.asUserId())
+            .apply {
+                when (identifier) {
+                    is ProfileIdentifier.UserId -> setUserId(identifier.userId.asUserId())
+                    is ProfileIdentifier.Username -> setUsername(identifier.username.asUsername())
+                }
+            }
             .apply { setAuth(authenticate(owner)) }
             .build()
+
+        request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
             api.getProfile(request)
