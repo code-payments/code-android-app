@@ -22,4 +22,5 @@
     <string name="label_flag_minHolderAmount">Minimum Holder Amount for Leaderboard</string>
     <string name="hint_flag_minHolderAmount">Enter amount</string>
     <string name="label_flag_tipPresets">Tip Presets</string>
+    <string name="label_flag_usernameMinBalance">Username Minimum Balance</string>
 </resources>

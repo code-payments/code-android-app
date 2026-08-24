@@ -77,6 +77,11 @@ internal class UserFlagsViewModel @Inject constructor(
                                 "High ${format(presets.high)}",
                             ).joinToString(separator = "\n")
                         ),
+                        ReadOnlyTextEntry(
+                            R.string.label_flag_usernameMinBalance,
+                            flags.data.usernameMinBalance.effectiveValue
+                                .formatted(rule = Fiat.FormattingRule.Truncated)
+                        ),
                     )
                 }
 
