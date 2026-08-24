@@ -21,6 +21,8 @@ data class UserFlags(
     val minimumHolderValue: Fiat,
     val requireCoinbaseEmailVerification: Boolean,
     val tipPresets: List<TipPresets>,
+    // USDF that must be held across all currencies before a username can be set.
+    val usernameMinBalance: Fiat,
 ) {
     companion object {
         val Default = UserFlags(
@@ -39,6 +41,7 @@ data class UserFlags(
             minimumHolderValue = Fiat.Zero,
             requireCoinbaseEmailVerification = false,
             tipPresets = emptyList(),
+            usernameMinBalance = Fiat.Zero,
         )
     }
 }

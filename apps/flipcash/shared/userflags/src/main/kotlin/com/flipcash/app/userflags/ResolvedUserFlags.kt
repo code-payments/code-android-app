@@ -36,6 +36,7 @@ data class ResolvedUserFlags(
     val minimumHolderAmountForLeaderboard: ResolvedFlag<Fiat>,
     val requireCoinbaseEmailVerification: ResolvedFlag<Boolean>,
     val tipPresets: ResolvedFlag<List<TipPresets>>,
+    val usernameMinBalance: ResolvedFlag<Fiat>,
 )
 
 internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = ResolvedUserFlags(
@@ -54,4 +55,5 @@ internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = Resolv
     minimumHolderAmountForLeaderboard = ResolvedFlag(minimumHolderValue, overrides.minimumHolderAmountForLeaderboard),
     requireCoinbaseEmailVerification = ResolvedFlag(requireCoinbaseEmailVerification, overrides.requireCoinbaseEmailVerification),
     tipPresets = ResolvedFlag(tipPresets, FieldOverride.None),
+    usernameMinBalance = ResolvedFlag(usernameMinBalance, FieldOverride.None),
 )

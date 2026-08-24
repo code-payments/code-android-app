@@ -31,6 +31,7 @@ internal class UserFlagsMapper @Inject constructor():
             minimumHolderValue = Fiat(quarks = from.minimumHolderValue),
             requireCoinbaseEmailVerification = from.requireCoinbaseEmailVerification,
             tipPresets = from.tipPresetsList.map { it.toDomain() },
+            usernameMinBalance = Fiat(quarks = from.usernameMinBalance),
         )
     }
 }
