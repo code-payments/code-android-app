@@ -1,19 +1,15 @@
 package com.flipcash.app.menu.internal
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.EaseInOut
-import androidx.compose.animation.core.VisibilityThreshold
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -34,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,11 +38,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,6 +54,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -66,6 +64,7 @@ import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.bills.ScannableRenderer
@@ -125,16 +124,17 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
     // Full screen is a state of *this* screen, not a destination: the card grows into the middle of
     // the display and everything else — rows, footer, tab bar — animates out from under it
     // (node 9277:121410). Pushing a route would cross-fade a second copy of the card in instead.
-    var cardExpanded by remember { mutableStateOf(false) }
+    val expansion = rememberTipCardExpansion()
+    val cardExpanded = expansion.isExpanded
     // Only a claimed card expands — the unclaimed stand-in is decoration behind the prompt.
     val canExpand = isNewUi && state.tipCard != null
 
     LaunchedEffect(canExpand) {
         // Losing the card (a v1 build, or sign-out) must not strand the page expanded.
-        if (!canExpand) cardExpanded = false
+        if (!canExpand) expansion.collapse()
     }
     HideTabBar(hidden = cardExpanded)
-    BackHandler(enabled = cardExpanded) { cardExpanded = false }
+    BackHandler(enabled = cardExpanded) { expansion.collapse() }
 
     LaunchedEffect(Unit) {
         viewModel.eventFlow
@@ -184,47 +184,92 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 FullScreenCardWidth,
                 maxWidth - PageHorizontalInset * 2,
             )
-            val cardWidth by animateDpAsState(
-                targetValue = if (cardExpanded) expandedCardWidth else YouCardWidth,
-                animationSpec = expansionSpring(Dp.VisibilityThreshold),
-                label = "tipCardWidth",
-            )
+            // How far into the expansion we are. One progress drives all of it — the card's
+            // size and position, the page fading out beneath it, the Close row — so a swipe that
+            // stops part-way is as legal a state as either end, and none of it can drift out of
+            // step with the rest.
+            //
+            // Handed down as a lambda and never read here: every consumer below reads it inside a
+            // graphicsLayer block, which the frame re-runs on its own when the value changes.
+            // Reading it in composition instead recomposed this entire page — settings list
+            // included — on every frame of the animation.
+            val progress = remember(expansion) { { expansion.progress } }
+            // The card is scaled, not re-laid-out. Animating its width made every frame re-measure
+            // the card and everything inside it: a new corner radius to clip to, a new font size
+            // for the name (a full text re-layout), and a new size for the interop View that draws
+            // the code, which re-derives the code's geometry from scratch on each draw. That is
+            // work for the UI thread, and there is more of it than a frame has time for. iOS hit
+            // the same wall and settled on one scale over a card drawn once: laid out, each of the
+            // card's metrics is a separate animatable value — and the name's font size is not
+            // animatable at all — so the parts arrive at their new sizes at different moments and
+            // overlap mid-flight. Scaled, the card travels as one figure.
+            //
+            // The card is drawn at [FullScreenCardWidth], the widest it ever gets, so the scale
+            // only ever samples the drawing down.
+            val cardScale = remember(expandedCardWidth) {
+                { lerp(YouCardWidth, expandedCardWidth, progress()) / FullScreenCardWidth }
+            }
             // v2's tab bar is a hoisted overlay drawn ABOVE this content, so reserve its height as
             // bottom content padding — the list then scrolls clear of the bar instead of running
             // under it (the version footer was landing behind it). Per-entry via LocalTabBarPadding,
-            // which is only non-zero for tab homes. v1 has no such bar; expanding gives the bar back
-            // its space because HideTabBar has taken the bar away.
-            val tabBarInset = LocalTabBarPadding.current.calculateBottomPadding()
-            val bottomInset by animateDpAsState(
-                targetValue = if (cardExpanded) 0.dp else tabBarInset,
-                animationSpec = expansionSpring(Dp.VisibilityThreshold),
-                label = "tabBarInset",
-            )
-            // How far into the expansion we are: everything but the card fades out on it and slides
-            // down out of the way, rather than being removed. Keeping the rows in the layout means
-            // nothing reflows on the way back (iOS does the same with opacity + offset).
-            val expansion by animateFloatAsState(
-                targetValue = if (cardExpanded) 1f else 0f,
-                animationSpec = expansionSpring(),
-                label = "expansion",
-            )
-            val slideAway = Modifier.graphicsLayer {
-                // Same overshoot: keep the fade inside a legal alpha range.
-                alpha = (1f - expansion).coerceIn(0f, 1f)
-                translationY = ContentSlideDistance.toPx() * expansion
+            // which is only non-zero for tab homes. v1 has no such bar.
+            //
+            // It does not animate away with the expansion. It is content padding, so every frame of
+            // it relaid the whole list — and by the time the released space could be seen, the list
+            // has already faded out and slid away under the card.
+            val bottomInset = LocalTabBarPadding.current.calculateBottomPadding()
+            // Everything but the card fades out on the expansion and slides down out of the way,
+            // rather than being removed. Keeping the rows in the layout means nothing reflows on
+            // the way back (iOS does the same with opacity + offset).
+            val slideAway = remember(progress) {
+                Modifier.graphicsLayer {
+                    val fraction = progress()
+                    // A settled flick overshoots its end a little, so keep the fade in a legal
+                    // alpha range rather than assuming the progress is one.
+                    alpha = (1f - fraction).coerceIn(0f, 1f)
+                    translationY = ContentSlideDistance.toPx() * fraction
+                }
             }
 
             // The card doesn't hand off to a second copy of itself: the one in the list keeps its
             // slot and is drawn travelling out of it, the way iOS offsets the card from its own
             // measured frame. Measuring the slot (which never carries the offset) rather than the
-            // card keeps the measurement out of its own feedback loop, and because the slot grows
-            // with the card, the card is exactly centred by the time the spring settles.
+            // card keeps the measurement out of its own feedback loop.
+            //
+            // The slot keeps its resting size for the whole expansion: it is what the card scales
+            // out of, not something that grows with it. A slot that grew would move its own centre
+            // mid-flight, and that centre is what the shift measures from, so the card would travel
+            // against itself — a frame behind its own size the whole way.
             var cardSlotCenterY by remember { mutableFloatStateOf(0f) }
             val displayCenterY = LocalWindowInfo.current.containerSize.height / 2f
-            val cardShift = when {
-                cardSlotCenterY <= 0f -> 0f
-                else -> (displayCenterY - cardSlotCenterY) * expansion
+            val cardShift = remember(displayCenterY) {
+                {
+                    if (cardSlotCenterY <= 0f) 0f
+                    else (displayCenterY - cardSlotCenterY) * progress()
+                }
             }
+
+            // Swiping the expanded card back up puts it away. The card's own travel is the
+            // gesture's travel: expanding walks the card DOWN out of its slot into the middle of
+            // the display — which is what the "Full Screen" chevron points at, and why "Close"
+            // points back up — so the way out is up, and a finger that covers the distance the card
+            // has left to go closes it exactly. The card stays under the finger the whole way and
+            // springs to whichever end the release picks.
+            val density = LocalDensity.current
+            val minTravel = with(density) { MinDragTravel.toPx() }
+            val flingVelocity = with(density) { MinFlingVelocity.toPx() }
+            // The same distance cardShift moves the card, so the card keeps pace with the finger
+            // exactly. It holds still for the length of the gesture without having to be pinned:
+            // the slot it measures from no longer grows with the card.
+            val dragTravel = (displayCenterY - cardSlotCenterY).coerceAtLeast(minTravel)
+            val cardDrag = Modifier.draggable(
+                state = rememberDraggableState { delta -> expansion.dragBy(delta / dragTravel) },
+                orientation = Orientation.Vertical,
+                enabled = cardExpanded,
+                onDragStopped = { velocity ->
+                    expansion.settle(velocity / dragTravel, flingVelocity / dragTravel)
+                },
+            )
 
             MenuList(
                 modifier = Modifier.fillMaxSize(),
@@ -238,12 +283,13 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                         YouHeader(
                             tipCardState = state.tipCardState,
                             enabled = !cardExpanded,
-                            expansion = expansion,
+                            expansion = progress,
                             slideAway = slideAway,
-                            cardWidth = cardWidth,
+                            cardScale = cardScale,
                             cardShift = cardShift,
+                            cardDrag = cardDrag,
                             onCardSlotPositioned = { cardSlotCenterY = it },
-                            onToggleFullScreen = { cardExpanded = !cardExpanded },
+                            onToggleFullScreen = { expansion.toggle() },
                             onCopyLink = { viewModel.dispatchEvent(Event.CopyTipLink) },
                             onShare = { viewModel.dispatchEvent(Event.ShareTipCard) },
                             onDownload = { viewModel.dispatchEvent(Event.DownloadTipCard) },
@@ -272,10 +318,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                 },
                 contentPadding = PaddingValues(
                     top = if (isNewUi) restingTop else CodeTheme.dimens.grid.x3,
-                    // Clamped: the spring is underdamped, so it undershoots past the target on the
-                    // way to 0, and PaddingValues throws on a negative — taking the Recomposer, and
-                    // with it the whole UI, down with it.
-                    bottom = bottomInset.coerceAtLeast(0.dp),
+                    bottom = bottomInset,
                 ),
                 onItemClick = {
                     // The faded-out rows are still laid out under the expanded card; don't let them
@@ -285,19 +328,23 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             )
 
             // Close sits at the foot of the display rather than under the card (node 9277:121410).
-            AnimatedVisibility(
-                visible = cardExpanded,
-                modifier = Modifier.align(Alignment.BottomCenter),
-                enter = fadeIn(expansionSpring()),
-                exit = fadeOut(expansionSpring()),
-            ) {
+            // It fades on the same progress as everything else rather than on a transition of its
+            // own, so a swipe held half-way leaves it half-faded instead of fully drawn.
+            // Gated on a derived boolean rather than on the progress itself: the row has to leave
+            // the layout when the card is down (nothing invisible left at the foot of the page for
+            // a tap or TalkBack to find), but reading the progress here would recompose the page
+            // every frame. Derived, it only recomposes when the answer flips.
+            val closeVisible by remember { derivedStateOf { expansion.progress > 0f } }
+            if (closeVisible) {
                 FullScreenToggle(
                     label = stringResource(R.string.action_closeFullScreen),
                     chevronRotation = 180f,
                     modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .graphicsLayer { alpha = progress().coerceIn(0f, 1f) }
                         .navigationBarsPadding()
                         .padding(bottom = CloseBottomSpacing)
-                        .noRippleClickable { cardExpanded = false },
+                        .noRippleClickable(enabled = cardExpanded) { expansion.collapse() },
                 )
             }
         }
@@ -330,15 +377,16 @@ private val VersionFooterTopSpacing = 44.dp
 private val ContentSlideDistance = 60.dp
 
 /**
- * The whole expansion — card size, card position, the content sliding away, the Close row — runs on
- * one spring, as iOS does: `.spring(response: 0.45, dampingFraction: 0.85)`. SwiftUI's `response` is
- * the undamped period, so the equivalent Compose stiffness is `(2 * PI / 0.45) ^ 2`.
+ * How much of the expansion the "Full Screen" caption has to be gone within — a fraction of the
+ * progress, not of the duration, so a slow drag fades it on exactly the terms a spring does.
+ *
+ * It is short because the card is chasing it. The card's lower edge travels down from the slot at
+ * the sum of its own growth and its shift to the middle of the display — about 224dp of travel per
+ * unit of progress on a 1080x2424 screen, and more on a taller one — against the 24dp of clearance
+ * between the two. So the card is over this spot by a tenth of the way out, and the caption cannot
+ * still be legible when it gets there.
  */
-private fun <T> expansionSpring(visibilityThreshold: T? = null) = spring(
-    dampingRatio = 0.85f,
-    stiffness = 195f,
-    visibilityThreshold = visibilityThreshold,
-)
+private const val CaptionFadeTravel = 0.08f
 
 /**
  * The "You" tab header (node 9276:4634): the viewer's own tip card with a "Full Screen" affordance,
@@ -352,10 +400,11 @@ private fun <T> expansionSpring(visibilityThreshold: T? = null) = spring(
 private fun YouHeader(
     tipCardState: TipCardState,
     enabled: Boolean,
-    expansion: Float,
+    expansion: () -> Float,
     slideAway: Modifier,
-    cardWidth: Dp,
-    cardShift: Float,
+    cardScale: () -> Float,
+    cardShift: () -> Float,
+    cardDrag: Modifier,
     onCardSlotPositioned: (Float) -> Unit,
     onToggleFullScreen: () -> Unit,
     onCopyLink: () -> Unit,
@@ -367,7 +416,8 @@ private fun YouHeader(
         TipCardState.Unknown -> Unit
         is TipCardState.Unclaimed -> UnclaimedTipCardPrompt(
             placeholder = tipCardState.placeholder,
-            cardWidth = cardWidth,
+            // An unclaimed stand-in never expands, so it is only ever the resting card.
+            cardWidth = YouCardWidth,
             enabled = enabled,
             onClaim = onClaim,
         )
@@ -377,8 +427,9 @@ private fun YouHeader(
             enabled = enabled,
             expansion = expansion,
             slideAway = slideAway,
-            cardWidth = cardWidth,
+            cardScale = cardScale,
             cardShift = cardShift,
+            cardDrag = cardDrag,
             onCardSlotPositioned = onCardSlotPositioned,
             onToggleFullScreen = onToggleFullScreen,
             onCopyLink = onCopyLink,
@@ -391,10 +442,16 @@ private fun YouHeader(
 /**
  * The claimed card and everything that hangs off it.
  *
- * The caller drives the full-screen state: it sizes the card ([cardWidth]) and draws it out of its
+ * The caller drives the full-screen state: it scales the card ([cardScale]) and draws it out of its
  * slot towards the middle of the display ([cardShift], off the slot position reported by
  * [onCardSlotPositioned]). It also hands down [slideAway] — the fade-and-slide every non-card
  * element shares — plus [expansion] for the caption, which iOS fades in place rather than sliding.
+ *
+ * All four arrive as lambdas so they are read inside the graphics layers that use them, off the
+ * composition. Read as values, the whole page would recompose on every frame of the animation.
+ *
+ * [cardDrag] goes on the card itself: the swipe that puts an expanded card away has to be attached
+ * to the thing it moves, so the card is what the finger is holding rather than a hotspot near it.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -402,10 +459,11 @@ private fun ClaimedTipCard(
     card: Scannable.TipCard,
     link: String?,
     enabled: Boolean,
-    expansion: Float,
+    expansion: () -> Float,
     slideAway: Modifier,
-    cardWidth: Dp,
-    cardShift: Float,
+    cardScale: () -> Float,
+    cardShift: () -> Float,
+    cardDrag: Modifier,
     onCardSlotPositioned: (Float) -> Unit,
     onToggleFullScreen: () -> Unit,
     onCopyLink: () -> Unit,
@@ -428,15 +486,32 @@ private fun ClaimedTipCard(
                     // list's content padding already owns that clearance, so consume the inset
                     // rather than paying it twice.
                     .consumeWindowInsets(WindowInsets.statusBarsIgnoringVisibility)
+                    // The slot is the card at rest, pinned: the card grows by scaling out of it,
+                    // so the slot's centre — which cardShift measures from — has to hold still.
+                    .size(YouCardWidth, YouCardWidth * TipCardAspectRatio)
                     .onGloballyPositioned { onCardSlotPositioned(it.boundsInRoot().center.y) },
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
                     modifier = Modifier
-                        .graphicsLayer { translationY = cardShift }
+                        // Measured unbounded so the card can be drawn at its full width inside the
+                        // smaller slot; the slot's constraints would otherwise squeeze it back down
+                        // to the resting size and there would be nothing to scale up to.
+                        .wrapContentSize(unbounded = true)
+                        // Ahead of the gesture modifiers, so the drag and the tap travel with the
+                        // card rather than staying behind at the slot it left. Both reads happen
+                        // here rather than in composition: the layer re-runs this block by itself
+                        // when they change, which is a render-node transform and no relayout.
+                        .graphicsLayer {
+                            val scale = cardScale()
+                            scaleX = scale
+                            scaleY = scale
+                            translationY = cardShift()
+                        }
+                        .then(cardDrag)
                         .noRippleClickable { onToggleFullScreen() },
                 ) {
-                    ScannableRenderer(scannable = card, tipCardWidth = cardWidth)
+                    ScannableRenderer(scannable = card, tipCardWidth = FullScreenCardWidth)
                 }
             }
         }
@@ -444,12 +519,15 @@ private fun ClaimedTipCard(
         Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
 
         // The caption belongs to the card, so it fades where it stands instead of sliding off with
-        // the rest of the page.
+        // the rest of the page — and it is gone well before the card is over it. The caption is a
+        // later sibling than the card and so paints on top of it, while the card grows and travels
+        // down across this very spot; faded over the whole expansion it would still be legible at
+        // the point it ends up printed across the card's face. See [CaptionFadeTravel].
         FullScreenToggle(
             label = stringResource(R.string.action_viewFullScreen),
             chevronRotation = 0f,
             modifier = Modifier
-                .graphicsLayer { alpha = (1f - expansion).coerceIn(0f, 1f) }
+                .graphicsLayer { alpha = (1f - expansion() / CaptionFadeTravel).coerceIn(0f, 1f) }
                 .noRippleClickable { onToggleFullScreen() },
         )
 

@@ -8,6 +8,7 @@ android {
 
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation(libs.kotlinx.coroutines.test)
 
     implementation(libs.bundles.haze)
 
