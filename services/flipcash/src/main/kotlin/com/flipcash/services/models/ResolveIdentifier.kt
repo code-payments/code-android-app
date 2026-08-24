@@ -4,9 +4,10 @@ import com.getcode.opencode.model.core.ID
 
 /**
  * What to resolve to an on-chain address. Mirrors the resolver `Identifier` oneof:
- * a resolution is keyed by exactly one of a phone number or a user ID.
+ * a resolution is keyed by exactly one of a phone number, a user ID, or a username.
  */
 sealed interface ResolveIdentifier {
     data class Phone(val phone: ContactMethod.Phone) : ResolveIdentifier
     data class UserId(val userId: ID) : ResolveIdentifier
+    data class Username(val username: String) : ResolveIdentifier
 }

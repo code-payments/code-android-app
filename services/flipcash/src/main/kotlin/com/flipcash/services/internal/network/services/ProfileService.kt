@@ -7,6 +7,7 @@ import com.flipcash.services.internal.network.extensions.toFlaggedCategory
 import com.getcode.opencode.utils.toValidationOrElse
 import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.LinkSocialAccountError
+import com.flipcash.services.models.ProfileIdentifier
 import com.flipcash.services.models.SetDisplayNameError
 import com.flipcash.services.models.SetProfilePictureError
 import com.flipcash.services.models.SocialAccountLinkRequest
@@ -18,18 +19,17 @@ import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.internal.network.extensions.toMediaItem
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
-import com.getcode.opencode.model.core.ID
 import javax.inject.Inject
 
 internal class ProfileService @Inject constructor(
     private val api: ProfileApi,
 ) {
     suspend fun getProfile(
-        userId: ID,
+        identifier: ProfileIdentifier,
         owner: Ed25519.KeyPair,
     ): Result<Model.UserProfile> {
         return runCatching {
-            api.getProfile(userId, owner)
+            api.getProfile(identifier, owner)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {

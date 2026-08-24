@@ -45,6 +45,10 @@ internal fun ID.asUserId(): Common.UserId {
     return Common.UserId.newBuilder().setValue(toByteString()).build()
 }
 
+internal fun String.asUsername(): Common.Username {
+    return Common.Username.newBuilder().setValue(this).build()
+}
+
 internal fun Instant.asTimestamp(): Timestamp {
     return Timestamp.newBuilder().setSeconds(this.epochSeconds).build()
 }

@@ -4,6 +4,7 @@ import com.flipcash.services.internal.domain.SocialAccountMapper
 import com.flipcash.services.internal.domain.UserProfileMapper
 import com.flipcash.services.internal.network.services.ProfileService
 import com.flipcash.services.models.GetUserProfileError
+import com.flipcash.services.models.ProfileIdentifier
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.SocialAccountUnlinkRequest
@@ -12,7 +13,6 @@ import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.repository.ProfileRepository
 import com.getcode.ed25519.Ed25519
-import com.getcode.opencode.model.core.ID
 import com.getcode.utils.ErrorUtils
 
 internal class InternalProfileRepository(
@@ -20,8 +20,11 @@ internal class InternalProfileRepository(
     private val userProfileMapper: UserProfileMapper,
     private val socialAccountMapper: SocialAccountMapper,
 ): ProfileRepository {
-    override suspend fun getProfile(userId: ID, owner: Ed25519.KeyPair): Result<UserProfile> {
-        return service.getProfile(userId, owner)
+    override suspend fun getProfile(
+        identifier: ProfileIdentifier,
+        owner: Ed25519.KeyPair,
+    ): Result<UserProfile> {
+        return service.getProfile(identifier, owner)
             .map { userProfileMapper.map(it) }
             .onFailure {
                 if (it !is GetUserProfileError.NotFound) {

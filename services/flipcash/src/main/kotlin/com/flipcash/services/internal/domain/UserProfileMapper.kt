@@ -3,6 +3,8 @@ package com.flipcash.services.internal.domain
 import com.codeinc.flipcash.gen.profile.v1.Model
 import com.codeinc.flipcash.gen.profile.v1.emailAddressOrNull
 import com.codeinc.flipcash.gen.profile.v1.phoneNumberOrNull
+import com.codeinc.flipcash.gen.profile.v1.usernameOrNull
+import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.internal.network.extensions.toMediaItem
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.VerifiableContactMethod
@@ -25,6 +27,9 @@ class UserProfileMapper @Inject constructor(
                 Instant.fromEpochSeconds(from.joinTs.seconds, from.joinTs.nanos)
             } else null,
             tipCardColor = if (from.hasTipCardCustomization()) from.tipCardCustomization.color.hex else null,
+            userId = if (from.hasUserId()) from.userId.toId() else null,
+            // Public, so it is returned for any user — absent only when unclaimed.
+            username = from.usernameOrNull?.value,
         )
     }
 }
