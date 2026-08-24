@@ -7,8 +7,8 @@ import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.bills.share.TipCodePreviewCache
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
+import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.bill.Scannable
-import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.share.TipCodeExportFormat
 import com.flipcash.app.core.share.TipCodeExporter
@@ -82,12 +82,38 @@ internal class MenuScreenViewModel @Inject constructor(
         val unlockedBetaFeaturesManually: Boolean = false,
         val appVersionInfo: VersionInfo = VersionInfo(),
         val releaseTrack: String = "",
-        // The viewer's own tip card, shown at the top of the v2 "You" tab. Null until resolved
-        // (or when the profile has no display name).
-        val tipCard: Scannable.TipCard? = null,
-        // The shareable URL for [tipCard]. Displayed abbreviated; copied in full.
-        val tipLink: String? = null,
-    )
+        // The viewer's own tip card, shown at the top of the v2 "You" tab.
+        val tipCardState: TipCardState = TipCardState.Unknown,
+    ) {
+        /** The card to share, export or expand — only a claimed one qualifies. */
+        val tipCard: Scannable.TipCard?
+            get() = (tipCardState as? TipCardState.Claimed)?.card
+
+        /** The shareable URL for [tipCard]. Displayed abbreviated; copied in full. */
+        val tipLink: String?
+            get() = (tipCardState as? TipCardState.Claimed)?.link
+    }
+
+    /**
+     * What the "You" tab has to draw at the top of the page.
+     *
+     * The three cases are deliberately distinct: `tipCard == null` used to mean both "we haven't
+     * resolved it yet" and "this account has no display name, so there is nothing to resolve", and
+     * the header drew nothing for either — leaving a nameless account with no card, no prompt, and
+     * no way to claim one from this tab.
+     */
+    sealed interface TipCardState {
+        /** Still resolving (or signed out). Draw nothing rather than guessing. */
+        data object Unknown : TipCardState
+
+        /**
+         * The account has no display name, so it has no card to show yet. [placeholder] is a real
+         * scannable stand-in drawn blurred behind the claim prompt; it is never shareable.
+         */
+        data class Unclaimed(val placeholder: Scannable.TipCard?) : TipCardState
+
+        data class Claimed(val card: Scannable.TipCard, val link: String?) : TipCardState
+    }
 
     sealed interface Event {
         data object OnVersionInfoClicked: Event
@@ -99,7 +125,9 @@ internal class MenuScreenViewModel @Inject constructor(
         data class OnStaffUserDetermined(val staff: Boolean) : Event
         data object PresentDepositOptions: Event
         data class OpenScreen(val screen: AppRoute) : Event
-        data class OnTipCardPopulated(val card: Scannable.TipCard, val link: String?) : Event
+        data class OnTipCardStateChanged(val tipCardState: TipCardState) : Event
+        /** The claim prompt's CTA — collect a display name so the account gets a real card. */
+        data object ClaimTipCard : Event
         data object ShareTipCard : Event
         data object CopyTipLink : Event
         data object DownloadTipCard : Event
@@ -175,18 +203,54 @@ internal class MenuScreenViewModel @Inject constructor(
             }.onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)
 
-        // Rebuild the viewer's own tip card whenever their profile becomes available/changes, so the
-        // v2 "You" tab can show it at the top. Warm the Sharesheet preview eagerly so it's ready by
-        // the time the user taps "Share as a Link".
+        // Rebuild the viewer's own tip card whenever their profile becomes available/changes, so
+        // the v2 "You" tab can show it at the top. Warm the Sharesheet preview eagerly so it's ready
+        // by the time the user taps "Share as a Link" — but only for a card that can be shared.
+        //
+        // Gated on Ready: a named account restores its cached profile before auth completes, so
+        // waiting here means it never flashes the claim prompt on the way in.
         userManager.state
-            .mapNotNull { it.userProfile }
+            .filter { it.authState is AuthState.Ready }
+            .map { it.userProfile }
             .distinctUntilChanged()
-            .map { tippingCoordinator.resolveTipCard() }
-            .onResult(onSuccess = { card ->
-                val userId = tippingCoordinator.currentUserId
-                dispatchEvent(Event.OnTipCardPopulated(card, userId?.let { Linkify.tipcard(it) }))
-                userId?.let { tipCodePreviewCache.prepare(it, card) }
-            })
+            .onEach { profile ->
+                if (profile?.displayName.isNullOrEmpty()) {
+                    // No name means no card yet — the tab prompts to claim one instead. Built
+                    // locally, so an account whose profile the server has never seen still gets it.
+                    dispatchEvent(
+                        Event.OnTipCardStateChanged(
+                            TipCardState.Unclaimed(tippingCoordinator.unclaimedTipCard())
+                        )
+                    )
+                } else {
+                    tippingCoordinator.resolveTipCard().onSuccess { card ->
+                        val userId = tippingCoordinator.currentUserId
+                        dispatchEvent(
+                            Event.OnTipCardStateChanged(
+                                TipCardState.Claimed(card, userId?.let { Linkify.tipcard(it) })
+                            )
+                        )
+                        userId?.let { tipCodePreviewCache.prepare(it, card) }
+                    }
+                }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ClaimTipCard>()
+            .onEach {
+                dispatchEvent(
+                    Event.OpenScreen(
+                        AppRoute.UpdateUserProfile(
+                            origin = AppRoute.Sheets.Menu,
+                            nameSource = DisplayNameSource.TipCardSetup,
+                            includeName = true,
+                            // Explicitly false: a name is all a tip card needs.
+                            includePhoto = false,
+                        )
+                    )
+                )
+            }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -322,12 +386,13 @@ internal class MenuScreenViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OnTipCardPopulated -> { state ->
-                    state.copy(tipCard = event.card, tipLink = event.link)
+                is Event.OnTipCardStateChanged -> { state ->
+                    state.copy(tipCardState = event.tipCardState)
                 }
 
                 Event.PresentDepositOptions,
                 Event.CheckForUpdate,
+                Event.ClaimTipCard,
                 Event.ShareTipCard,
                 Event.CopyTipLink,
                 Event.DownloadTipCard,

@@ -7,14 +7,17 @@ import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.app.funding.PurchaseMethodController
+import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.services.user.UserManager
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -42,6 +45,9 @@ class BalanceViewModelTest {
     private val purchaseMethodController: PurchaseMethodController = mockk(relaxed = true)
     private val chatCoordinator: ChatCoordinator = mockk(relaxed = true)
     private val feedCoordinator: ActivityFeedCoordinator = mockk(relaxed = true)
+    private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true) {
+        every { hasAnyBalance } returns flowOf(false)
+    }
 
     private lateinit var dispatchers: TestDispatchers
 
@@ -53,6 +59,7 @@ class BalanceViewModelTest {
         analytics = StubFlipcashAnalytics(),
         chatCoordinator = chatCoordinator,
         feedCoordinator = feedCoordinator,
+        tokenCoordinator = tokenCoordinator,
     )
 
     @Test

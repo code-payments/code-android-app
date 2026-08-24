@@ -915,6 +915,9 @@
     <string name="title_tipIntro">Receive Tips From Everyone</string>
     <string name="subtitle_tipIntro">Add your name to receive tips</string>
     <string name="action_startReceivingTips">Start Receiving Tips</string>
+    <!-- Stand-in name on the blurred tip card behind the claim prompt. Never legible: it only
+         gives the name line the width a real one would have. -->
+    <string name="label_tipCardNamePlaceholder">Your Name</string>
 
     <string name="title_profileNameSelection">What\'s your name?</string>
     <string name="subtitle_profileNameSelection">This is how you\'ll appear to others</string>

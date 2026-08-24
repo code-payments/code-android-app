@@ -6,6 +6,8 @@ import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.tipping.TipStep
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.bills.share.TipCodePreviewCache
@@ -34,6 +36,7 @@ internal class TipFlowViewModel @Inject constructor(
     userManager: UserManager,
     tippingCoordinator: TippingCoordinator,
     tokenCoordinator: TokenCoordinator,
+    featureFlags: FeatureFlagController,
     shareable: ShareSheetController,
     tipCodePreviewCache: TipCodePreviewCache,
     private val resources: ResourceHelper,
@@ -68,19 +71,14 @@ internal class TipFlowViewModel @Inject constructor(
         combine(
             userManager.state.map { it.userProfile }.distinctUntilChanged(),
             stateFlow.map { it.resumed }.distinctUntilChanged(),
-        ) { profile, resumed ->
-            buildList {
-                val hasProfile = !profile?.displayName.isNullOrEmpty() // TODO: explicitly not required right now && profile.profilePicture != null
-                when {
-                    // Post-setup handoff: land on TipCard alone, with a close affordance. No Tips
-                    // underneath — closing exits, and reopening from home lands on the Tips list.
-                    resumed -> add(TipStep.TipCard)
-                    // Fresh open, incomplete profile: start setup (Intro → user-profile flow).
-                    !hasProfile -> add(TipStep.Intro)
-                    // Fresh open, set up: the Tips list.
-                    else -> add(TipStep.Tips)
-                }
-            }
+            featureFlags.observe(FeatureFlag.NewUi),
+        ) { profile, resumed, isNewUi ->
+            stepsFor(
+                // TODO: explicitly not required right now && profile.profilePicture != null
+                hasProfile = !profile?.displayName.isNullOrEmpty(),
+                resumed = resumed,
+                isNewUi = isNewUi,
+            )
         }.onEach {
             dispatchEvent(Event.StepsUpdated(it))
         }.launchIn(viewModelScope)
@@ -119,7 +117,29 @@ internal class TipFlowViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    companion object {
+    internal companion object {
+        /**
+         * The step the flow opens on.
+         *
+         * In v2 this flow *is* the "Chats" root tab: it always shows the list (and its empty state)
+         * whatever the profile looks like, so a nameless account gets the same chrome as any other,
+         * and the claim-your-tip-card prompt lives on the You tab instead. Swapping a root tab out
+         * for a setup screen would also strand that screen's Close, which has no sheet to dismiss.
+         */
+        fun stepsFor(hasProfile: Boolean, resumed: Boolean, isNewUi: Boolean): List<TipStep> =
+            listOf(
+                when {
+                    isNewUi -> TipStep.Tips
+                    // Post-setup handoff: land on TipCard alone, with a close affordance. No Tips
+                    // underneath — closing exits, and reopening from home lands on the Tips list.
+                    resumed -> TipStep.TipCard
+                    // Fresh open, incomplete profile: start setup (Intro → user-profile flow).
+                    !hasProfile -> TipStep.Intro
+                    // Fresh open, set up: the Tips list.
+                    else -> TipStep.Tips
+                }
+            )
+
         private val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
                 is Event.OnStepChanged -> { state -> state.copy(currentStep = event.step) }

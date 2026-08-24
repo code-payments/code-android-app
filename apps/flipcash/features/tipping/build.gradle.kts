@@ -7,6 +7,8 @@ android {
 }
 
 dependencies {
+    testImplementation(kotlin("test"))
+
     implementation(project(":services:flipcash"))
     implementation(project(":services:opencode"))
     implementation(project(":libs:messaging"))

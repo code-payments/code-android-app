@@ -75,6 +75,27 @@ class WalletLoadingStateTest {
     }
 
     @Test
+    fun `a held balance short-circuits the wait on an unsynced feed`() {
+        val state = WalletViewModel.State(
+            onboardingItems = milestones(addedMoney = true, tipped = false),
+            transactions = emptyList(),
+            feedSyncState = FeedSyncState.Unknown,
+            holdsBalance = true,
+        )
+        assertFalse(state.isAwaitingActivity)
+    }
+
+    @Test
+    fun `a held balance does not pre-empt the milestones themselves`() {
+        val state = WalletViewModel.State(
+            onboardingItems = null,
+            feedSyncState = FeedSyncState.Synced,
+            holdsBalance = true,
+        )
+        assertTrue(state.isAwaitingActivity)
+    }
+
+    @Test
     fun `tutorial is withheld while the milestones are unknown`() {
         assertTrue(WalletViewModel.State().isNewUserTutorialComplete)
     }
@@ -100,5 +121,21 @@ class WalletLoadingStateTest {
     @Test
     fun `hasReceivedMoney is false while unknown, gating the action tiles`() {
         assertFalse(WalletViewModel.State().hasReceivedMoney)
+    }
+
+    /**
+     * An account funded before this install has money but no local feed row to prove it. The
+     * milestone is fed `hasEverReceivedMoney || holdsBalance`, so the checklist — and the action
+     * tiles it gates — must read complete off the balance alone.
+     */
+    @Test
+    fun `a held balance completes the add-money milestone without a feed row`() {
+        val state = WalletViewModel.State(
+            onboardingItems = milestones(addedMoney = true, tipped = true),
+            feedSyncState = FeedSyncState.Synced,
+            holdsBalance = true,
+        )
+        assertTrue(state.hasReceivedMoney)
+        assertTrue(state.isNewUserTutorialComplete)
     }
 }
