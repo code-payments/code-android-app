@@ -62,11 +62,10 @@ graph TD
     Features["apps/flipcash/features/* — 26 self-contained screens"]
     Shared["apps/flipcash/shared/* — coordinators / controllers / services"]
     Services["services/* — gRPC wrappers (API → Service → Repository → Controller)"]
-    Defs["definitions/* — protobuf sources + generated models"]
     UI["ui/* — Compose components, theme, navigation, scanner"]
     Libs["libs/* — crypto, network, logging, currency (leaf utilities)"]
 
-    App --> Features --> Shared --> Services --> Defs --> Libs
+    App --> Features --> Shared --> Services --> Libs
     Features --> UI --> Libs
     Services --> Libs
 ```
@@ -83,7 +82,7 @@ persistence, payments, the design system, testing, and more.
 | Navigation | Jetpack **Navigation 3** + a custom `CodeNavigator` |
 | DI | **Hilt** + `CompositionLocal` |
 | Async | Kotlin **Coroutines + Flow** (MVI via `BaseViewModel<State, Event>`) |
-| Networking | **gRPC + Protobuf**; Retrofit/OkHttp for REST |
+| Networking | **gRPC + Protobuf** (contracts from the published `com.flipcash:{ocp,flipcash2}-client-protocol` artifacts); Retrofit/OkHttp for REST |
 | Persistence | **Room** (per-user database) + DataStore |
 | Crypto | **Ed25519**, BIP39 mnemonic/key derivation, **Solana** |
 | Build | Gradle convention plugins, KSP, **Java 21** |
@@ -93,7 +92,6 @@ persistence, payments, the design system, testing, and more.
 ```
 apps/flipcash/      Main app + feature (26) and shared modules
 services/           gRPC clients: flipcash, opencode (+ Compose wrappers)
-definitions/        Protobuf sources and generated models
 libs/               Reusable utilities (crypto, network, logging, currency, …)
 ui/                 Compose design system, navigation, scanner, biometrics
 vendor/             Third-party SDKs (Kik scanner, OpenCV, TipKit)

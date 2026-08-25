@@ -122,14 +122,6 @@ include(
     ":apps:flipcash:features:userflags",
     ":apps:flipcash:features:tipping",
 
-    // protobuf model and service implementations for the Open Code Protocol
-    ":definitions:opencode:models",
-    ":definitions:opencode:protos",
-
-    // protobuf model and service implementations for Flipcash
-    ":definitions:flipcash:models",
-    ":definitions:flipcash:protos",
-
     // Internal libs
     ":libs:analytics",
     ":libs:biometrics",
@@ -233,12 +225,10 @@ val includedProjectPaths = buildList {
 // Coverage: every module under these paths applies a `flipcash.android.*`
 // convention plugin (which pulls in Kover); :apps:flipcash:app applies Kover
 // directly. The denylist holds the modules under those paths that have no Kover.
-val koverPaths = listOf(":apps:flipcash", ":libs", ":ui", ":definitions", ":services:flipcash", ":services:opencode")
+val koverPaths = listOf(":apps:flipcash", ":libs", ":ui", ":services:flipcash", ":services:opencode")
 val nonKoverModules = setOf(
     ":apps:flipcash:benchmark",      // com.android.test — no Kover
     ":apps:flipcash:shared:ksp",     // pure-JVM helper — no Kover
-    ":definitions:opencode:protos",  // java-library proto jar — no Kover
-    ":definitions:flipcash:protos",  // java-library proto jar — no Kover
 )
 val koverModules = includedProjectPaths.filter { path ->
     koverPaths.any { path == it || path.startsWith("$it:") } && path !in nonKoverModules

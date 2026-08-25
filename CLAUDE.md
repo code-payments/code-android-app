@@ -44,10 +44,6 @@ services/
   opencode/         — Open Code Protocol gRPC services
   *-compose/        — Compose wrappers for services
 
-definitions/
-  flipcash/         — Protobuf definitions for Flipcash
-  opencode/         — Protobuf definitions for OCP
-
 libs/               — 20+ internal libraries
   crypto/           — Solana, Kin, Ed25519, encryption, key management
   network/          — Connectivity, JWT, exchange rates, Coinbase
@@ -86,7 +82,7 @@ The feature plugin automatically includes `:libs:logging`, `:ui:core`, `:ui:comp
 
 - **CompositionLocal injection**: `MainActivity` provides dozens of controllers/services via `CompositionLocalProvider` — features access dependencies through `Local*` composition locals rather than direct injection
 - **Feature modules are self-contained**: Each has its own state, controllers, and UI; communicates via shared modules
-- **Protobuf models**: Backend models are generated from `.proto` files in `definitions/`; don't hand-edit generated code
+- **Protobuf models**: Backend models come from the published `com.flipcash:{ocp,flipcash2}-client-protocol` artifacts, not from protos in this repo; the contracts are generated in their own repos
 - **Dark mode only**: App forces `MODE_NIGHT_YES`
 
 ## Namespaces

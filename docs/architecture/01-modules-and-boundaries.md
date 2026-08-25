@@ -14,7 +14,6 @@ This document is the map.
 | Features | `:apps:flipcash:features:*` | 26 | Self-contained screens (login, cash, balance, tokens, scanner, withdrawal, …). Each owns its state, ViewModels, and UI. |
 | Shared | `:apps:flipcash:shared:*` | 34 | Cross-feature coordinators, controllers, and services (authentication, session, router, payments, persistence, …). Coordinators own a domain's cached, session-aware state; see [02 — Roles](02-state-and-dependency-injection.md#roles-coordinators-controllers-managers-services). |
 | Services | `:services:*` | 4 | gRPC wrappers: `flipcash`, `flipcash-compose`, `opencode`, `opencode-compose`. |
-| Definitions | `:definitions:*` | 4 | Protobuf sources (`*/protos`) and generated models (`*/models`) for Flipcash and OCP. |
 | UI | `:ui:*` | 9 | Compose layer: `theme`, `components`, `core`, `resources`, `navigation`, `scanner`, `biometrics`, `emojis`, `testing`. |
 | Libs | `:libs:*` | 21 | Leaf utilities: crypto/encryption, network, logging, currency, coroutines, permissions, locale, … |
 | Vendor | `:vendor:*` | 3 | Third-party SDKs wrapped as modules: Kik scanner, OpenCV, TipKit. |
@@ -30,7 +29,7 @@ graph TD
     Shared[":apps:flipcash:shared:*"]
     Core[":apps:flipcash:core"]
     Svc[":services:*"]
-    Defs[":definitions:*:models"]
+    Defs["com.flipcash:{ocp,flipcash2}-client-protocol"]
     UI[":ui:*"]
     Libs[":libs:*"]
     Vendor[":vendor:*"]
@@ -51,7 +50,6 @@ graph TD
     Core --> Svc
     Core --> UI
     UI --> Libs
-    Defs --> Libs
     Libs --> Vendor
 ```
 
@@ -118,12 +116,14 @@ Consumers depend on `:bindings` and receive the API plus injection. Examples:
    `ui/*` / `libs/*` and on external libraries only. `ui/components` knows about
    `libs/currency` and `ui/theme`, never about a feature.
 2. **`libs/*` is leaf-level.** It may depend on other libs, `vendor/*`, and
-   `definitions/*:models` (data only), but never on services or app modules.
-3. **`services/*` wrap protobuf, nothing app-specific.** They depend on
-   `definitions/*:models`, libs, and the gRPC runtime; they re-export public
+   the generated protobuf models (data only), but never on services or app modules.
+3. **`services/*` wrap protobuf, nothing app-specific.** They depend on the
+   client-protocol artifacts, libs, and the gRPC runtime; they re-export public
    interfaces with `api(...)`. They never depend on features or shared modules.
-4. **`definitions/*:models` is generated; don't hand-edit it.** Regenerate from the
-   `.proto` sources in `definitions/*/protos`.
+4. **The protobuf models are an external dependency.** They arrive as the published
+   `com.flipcash:ocp-client-protocol` and `com.flipcash:flipcash2-client-protocol`
+   artifacts; the `.proto` sources and the codegen live in those repos, not here. A
+   contract change is a version bump in `gradle/libs.versions.toml`.
 5. **Features may depend on shared modules, libs, ui, core, and (occasionally)
    other features** — e.g. `:features:login` pulls in `:features:purchase` for the
    onboarding hand-off. Keep cross-feature edges rare and acyclic.

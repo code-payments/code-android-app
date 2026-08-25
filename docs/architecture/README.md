@@ -37,7 +37,7 @@ graph TD
     Shared["apps/flipcash/shared/* — 34 coordinators / controllers / services"]
     Core["apps/flipcash/core — app-wide routes, locals, infra"]
     Services["services/* — gRPC wrappers (API → Service → Repository → Controller)"]
-    Defs["definitions/* — protobuf sources + generated models"]
+    Defs["com.flipcash:{ocp,flipcash2}-client-protocol — published protobuf stubs"]
     UI["ui/* — Compose components, theme, navigation, scanner"]
     Libs["libs/* — crypto, network, logging, currency (leaf utilities)"]
     Vendor["vendor/* — Kik scanner, OpenCV, TipKit"]
@@ -76,7 +76,7 @@ depend on app modules.* See [01 — Modules & boundaries](01-modules-and-boundar
 | 10 | [Build & run](10-build-and-run.md) | Prerequisites, the real `local.properties` keys, Gradle commands, variants, CI |
 | 11 | [Adding a feature](11-adding-a-feature.md) | End-to-end: scaffold module → ViewModel → screen → route → register → share |
 | 12 | [Testing](12-testing.md) | What to test where, `:libs:test-utils`, Robolectric, fakes, Turbine (+ Compose UI guide) |
-| 13 | [Protobuf & codegen](13-protobuf-and-codegen.md) | proto sources → generated models → services; updating protos with `/fetch-protos` |
+| 13 | [Protobuf & codegen](13-protobuf-and-codegen.md) | where the published stubs come from, and bumping them with `/fetch-protos` |
 | 14 | [Error handling](14-error-handling.md) | `Result<T>`, typed sealed errors, `NotifiableError`, `retryable` |
 | 15 | [CI & release](15-ci-and-release.md) | The CI check, Fastlane lanes, release workflows, helper skills |
 | 16 | [Agents & skills](16-agents-and-skills.md) | The repo's Claude Code agents/skills and which task each one fits |

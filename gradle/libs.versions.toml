@@ -61,7 +61,6 @@ grpc = "1.83.1"
 grpc-okhttp = "1.83.1"
 grpc-kotlin = "1.5.0"
 protobuf = "4.35.1"
-protobuf-plugin = "0.10.0"
 protovalidate-kt = "0.1.1"
 
 # Generated client SDKs for the two backend contracts. Separate versions on purpose: the
@@ -357,12 +356,10 @@ firebase-perf = { id = "com.google.firebase.firebase-perf", version.ref = "fireb
 bugsnag-gradle = { id = "com.bugsnag.gradle", version.ref = "bugsnag-gradle-plugin" }
 secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secrets-gradle-plugin" }
 navigation-safeargs = { id = "androidx.navigation.safeargs.kotlin", version.ref = "androidx-navigation" }
-protobuf = { id = "com.google.protobuf", version.ref = "protobuf-plugin" }
 androidx-room = { id = "androidx.room", version.ref = "androidx-room" }
 androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidx-benchmark-macro" }
 screenshot = { id = "com.android.compose.screenshot", version.ref = "screenshot" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
-protobuf-validate = { id = "dev.bmcreations.protovalidate", version.ref = "protovalidate-kt" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 kmmbridge = { id = "co.touchlab.kmmbridge.github", version.ref = "kmmbridge" }

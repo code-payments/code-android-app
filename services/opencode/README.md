@@ -148,7 +148,7 @@ and `TokenMetadataProvider`.
 
 ## Adding an intent / RPC
 
-1. **Proto** — update `definitions/opencode` and regenerate
+1. **Proto** — land the contract change in `ocp-client-protocol`, then bump its version
    ([13](../../docs/architecture/13-protobuf-and-codegen.md)).
 2. **Intent** — add an `IntentType` + its `ActionType`s under
    `internal/network/api/intents/`; add any new `internal/solana/programs/` instruction.

@@ -67,7 +67,8 @@ abstractions, opted into via `trace(...)` or a `Local*`, never reimplemented per
 feature. See [08 — Cross-cutting concerns](08-cross-cutting-concerns.md).
 
 ### 7. Generated and signed artifacts are not hand-edited
-`definitions/*:models` is generated from `.proto`; don't edit it — regenerate.
+The protobuf models come from the published client-protocol artifacts; the `.proto`
+sources and the codegen live in those repos, so a contract change is a version bump.
 Signing and key derivation live in `libs/encryption/*` and `services/*`, not in
 feature code. See [06 — Payments & operations](06-payments-and-operations.md).
 

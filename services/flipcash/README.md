@@ -91,7 +91,7 @@ foreground/reconnect).
 
 ## Adding an RPC
 
-1. **Proto** — update `definitions/flipcash`, regenerate
+1. **Proto** — land the contract change in `flipcash2-client-protocol`, then bump its version
    ([13](../../docs/architecture/13-protobuf-and-codegen.md)).
 2. **Api** — add the call to `internal/network/api/XxxApi` (build request, sign, validate).
 3. **Service** — map the response to `Result<T>` + a typed error in
