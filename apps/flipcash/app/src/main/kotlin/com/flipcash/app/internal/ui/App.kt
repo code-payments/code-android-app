@@ -79,6 +79,7 @@ import com.getcode.ui.biometrics.rememberBiometricsState
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.bars.rememberBarManager
 import com.getcode.ui.core.RestrictionType
+import com.getcode.ui.utils.rememberKeyboardController
 import dev.bmcreations.tipkit.TipScaffold
 import dev.bmcreations.tipkit.engines.TipsEngine
 import dev.theolm.rinku.DeepLink
@@ -261,6 +262,7 @@ internal fun App(
 
                                 val emailCodeChannel = LocalEmailCodeChannel.current
                                 val currentRoute = codeNavigator.currentRouteKey
+                                val keyboard = rememberKeyboardController()
                                 LaunchedEffect(deepLink, currentRoute) {
                                     val link = deepLink ?: return@LaunchedEffect
 
@@ -273,6 +275,16 @@ internal fun App(
 
                                     val action = router.dispatch(link)
                                     deeplinkHandled = action != DeeplinkAction.None
+
+                                    // A link can land while a text field elsewhere in the app still
+                                    // holds focus — the common case is resuming from the background
+                                    // straight out of a chat, where the window restores the IME for
+                                    // the still-focused input as we route. Take the keyboard down
+                                    // (and clear focus, so it isn't restored again) before anything
+                                    // is presented, so a tip card doesn't come up over a keyboard,
+                                    // and none appears while the card is still resolving.
+                                    if (action != DeeplinkAction.None) keyboard.dismiss()
+
                                     when (action) {
                                         is DeeplinkAction.Navigate -> {
                                             // If a verification code targets a screen already open,
