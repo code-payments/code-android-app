@@ -24,7 +24,7 @@ android {
 }
 
 dependencies {
-    implementation("com.flipcash:flipcash2-client-protocol:0.1.0-SNAPSHOT")
+    implementation("com.flipcash:flipcash2-client-protocol:0.1.0")
     api(project(":libs:network:jwt"))
     api(project(":services:opencode"))
     implementation(project(":ui:resources"))
