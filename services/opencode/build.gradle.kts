@@ -27,7 +27,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":definitions:opencode:models"))
+    implementation("com.codeinc.opencode:ocp-client-protocol:0.1.0-SNAPSHOT")
     api(project(":libs:currency-math"))
     api(project(":libs:datetime"))
     api(project(":libs:encryption:base58"))
