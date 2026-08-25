@@ -41,6 +41,7 @@ import com.getcode.navigation.scrim.LocalScrimController
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.ModalAnimationSpeed
+import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -63,6 +64,13 @@ fun BillOverlay(modifier: Modifier = Modifier) {
 
     // Tip affordability (min-tip balance check), surfaced through the shared selection state.
     val tipSelection by LocalTipCoordinator.current.selection.collectAsStateWithLifecycle()
+
+    // A bill is a focused modal — it must never share the screen with a keyboard. What makes that
+    // reachable is a tip-card deeplink handled while a chat input still holds focus: App takes the
+    // keyboard down before routing, and this catches an IME the platform restores afterwards, on
+    // the way back from the background.
+    val keyboard = rememberKeyboardController()
+    OnBillPresented(billState.bill != null) { keyboard.hide() }
 
     Box(modifier = Modifier.fillMaxSize().then(modifier)) {
         val updatedState by rememberUpdatedState(state)
@@ -194,5 +202,26 @@ fun BillOverlay(modifier: Modifier = Modifier) {
             )
             with(overlays) { Content(overlayContext) }
         }
+    }
+}
+
+/**
+ * Runs [onPresented] when [presented] flips false -> true.
+ *
+ * Deliberately not a plain `LaunchedEffect(presented)`. [BillOverlay] is hosted per navigation
+ * entry, so a screen opened *while* a bill is up composes a fresh copy with the bill already
+ * present, and an unguarded effect would fire on that first pass. For the keyboard that would stomp
+ * the post-tip hand-off, which opens the chat with the keyboard up on purpose (see
+ * TipCardDecorator's LaunchChat). Seeding `wasPresented` from the value at first composition makes
+ * an already-presented bill a no-op, so only a bill that appears *while this copy is watching*
+ * counts as a presentation.
+ */
+@Composable
+internal fun OnBillPresented(presented: Boolean, onPresented: () -> Unit) {
+    var wasPresented by remember { mutableStateOf(presented) }
+    val currentOnPresented by rememberUpdatedState(onPresented)
+    LaunchedEffect(presented) {
+        if (presented && !wasPresented) currentOnPresented()
+        wasPresented = presented
     }
 }

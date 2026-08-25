@@ -13,6 +13,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.SoftwareKeyboardController
@@ -44,6 +46,7 @@ fun keyboardAsState(): State<Boolean> {
 class KeyboardController(
     private val view: View,
     private val softwareController: SoftwareKeyboardController?,
+    private val focusManager: FocusManager,
     private val coroutineScope: CoroutineScope,
 ) {
     var visible by mutableStateOf(false)
@@ -53,7 +56,20 @@ class KeyboardController(
         softwareController?.show()
     }
 
+    /**
+     * Takes the keyboard down and *keeps* it down: clears editor focus, then hides the IME.
+     *
+     * Hiding on its own isn't enough. The field stays focused, so the platform brings the keyboard
+     * straight back — most visibly when resuming from the background, where the window restores the
+     * IME for whatever still holds focus. Clearing focus removes the target it would be restored
+     * onto.
+     *
+     * Unconditional because every caller is taking the keyboard down on the way somewhere else: a
+     * pop, a sheet dismissal, a flow step, a deeplink being routed. A screen that wants the IME
+     * down while the field stays armed needs its own FocusRequester rather than this.
+     */
     fun hide() {
+        focusManager.clearFocus(force = true)
         softwareController?.hide()
     }
 
@@ -93,9 +109,10 @@ class KeyboardController(
 fun rememberKeyboardController(): KeyboardController {
     val view = LocalView.current
     val softwareController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
-    val keyboardController = remember(view, softwareController) {
-        KeyboardController(view, softwareController, scope)
+    val keyboardController = remember(view, softwareController, focusManager) {
+        KeyboardController(view, softwareController, focusManager, scope)
     }
 
     // Trigger visibility tracking
@@ -103,3 +120,4 @@ fun rememberKeyboardController(): KeyboardController {
 
     return keyboardController
 }
+

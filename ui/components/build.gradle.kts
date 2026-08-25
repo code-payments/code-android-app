@@ -13,6 +13,9 @@ android {
 
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.bundles.compose.ui.testing)
+
     implementation(project(":libs:datetime"))
     implementation(project(":libs:encryption:ed25519"))
     implementation(project(":libs:encryption:utils"))
