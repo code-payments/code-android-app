@@ -280,10 +280,10 @@ internal fun App(
                                     // holds focus — the common case is resuming from the background
                                     // straight out of a chat, where the window restores the IME for
                                     // the still-focused input as we route. Take the keyboard down
-                                    // (and clear focus, so it isn't restored again) before anything
-                                    // is presented, so a tip card doesn't come up over a keyboard,
-                                    // and none appears while the card is still resolving.
-                                    if (action != DeeplinkAction.None) keyboard.dismiss()
+                                    // before anything is presented, so a tip card doesn't come up
+                                    // over a keyboard, and none appears while the card is still
+                                    // resolving.
+                                    if (action != DeeplinkAction.None) keyboard.hide()
 
                                     when (action) {
                                         is DeeplinkAction.Navigate -> {

@@ -68,10 +68,9 @@ fun BillOverlay(modifier: Modifier = Modifier) {
     // A bill is a focused modal — it must never share the screen with a keyboard. What makes that
     // reachable is a tip-card deeplink handled while a chat input still holds focus: App takes the
     // keyboard down before routing, and this catches an IME the platform restores afterwards, on
-    // the way back from the background. Clearing focus, not just hiding, so there's nothing left
-    // for the platform to restore it onto.
+    // the way back from the background.
     val keyboard = rememberKeyboardController()
-    OnBillPresented(billState.bill != null) { keyboard.dismiss() }
+    OnBillPresented(billState.bill != null) { keyboard.hide() }
 
     Box(modifier = Modifier.fillMaxSize().then(modifier)) {
         val updatedState by rememberUpdatedState(state)

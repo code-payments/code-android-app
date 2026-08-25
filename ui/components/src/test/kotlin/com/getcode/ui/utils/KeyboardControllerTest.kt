@@ -22,9 +22,14 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Covers the difference between [KeyboardController.hide] and [KeyboardController.dismiss]: only
- * `dismiss` takes editor focus away, and that focus is what makes a hidden keyboard come back —
- * the window restores the IME for whatever still holds it when the app returns from the background.
+ * Covers the focus half of [KeyboardController.hide]. Hiding the IME without dropping editor focus
+ * leaves the platform a target to restore it onto — the window brings the keyboard back for
+ * whatever still holds focus when the app returns from the background — so taking focus away is
+ * what makes a hidden keyboard stay hidden.
+ *
+ * [KeyboardController.hideIfVisible] inherits this by delegating to `hide`, but isn't covered here:
+ * it gates on [KeyboardController.visible], which is read from window insets that Robolectric never
+ * reports for the IME.
  */
 @RunWith(RobolectricTestRunner::class)
 class KeyboardControllerTest {
@@ -63,24 +68,12 @@ class KeyboardControllerTest {
     }
 
     @Test
-    fun `dismiss takes focus off the editor`() {
-        focusedEditor()
-
-        composeTestRule.runOnUiThread { keyboard.dismiss() }
-        composeTestRule.waitForIdle()
-
-        assertFalse(editorFocused)
-    }
-
-    @Test
-    fun `hide leaves editor focus intact`() {
+    fun `hide takes focus off the editor`() {
         focusedEditor()
 
         composeTestRule.runOnUiThread { keyboard.hide() }
         composeTestRule.waitForIdle()
 
-        // The gap dismiss() exists to close: the IME goes down but the field stays focused, so the
-        // platform has something to restore it onto.
-        assertTrue(editorFocused)
+        assertFalse(editorFocused)
     }
 }

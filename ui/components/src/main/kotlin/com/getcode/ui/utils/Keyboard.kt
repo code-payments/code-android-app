@@ -56,21 +56,21 @@ class KeyboardController(
         softwareController?.show()
     }
 
-    fun hide() {
-        softwareController?.hide()
-    }
-
     /**
-     * Takes the keyboard down and *keeps* it down: clears editor focus first, then hides the IME.
+     * Takes the keyboard down and *keeps* it down: clears editor focus, then hides the IME.
      *
-     * Prefer this over [hide] whenever the keyboard belongs to a screen the user is being routed
-     * away from. `hide()` alone leaves the text field focused, so the platform brings the keyboard
+     * Hiding on its own isn't enough. The field stays focused, so the platform brings the keyboard
      * straight back — most visibly when resuming from the background, where the window restores the
-     * IME for whatever still holds focus. Clearing focus removes that target.
+     * IME for whatever still holds focus. Clearing focus removes the target it would be restored
+     * onto.
+     *
+     * Unconditional because every caller is taking the keyboard down on the way somewhere else: a
+     * pop, a sheet dismissal, a flow step, a deeplink being routed. A screen that wants the IME
+     * down while the field stays armed needs its own FocusRequester rather than this.
      */
-    fun dismiss() {
+    fun hide() {
         focusManager.clearFocus(force = true)
-        hide()
+        softwareController?.hide()
     }
 
     fun restartInput() {
