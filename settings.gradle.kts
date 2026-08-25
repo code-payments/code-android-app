@@ -21,6 +21,36 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
+// The contract packages are consumed at the versions pinned in gradle/libs.versions.toml,
+// which means trying a proto change would mean publishing one. Point protoLocalRoot at the
+// directory holding ocp-client-protocol/ and flipcash2-client-protocol/ to build against
+// those checkouts instead:
+//
+//     # local.properties
+//     protoLocalRoot=/Users/you/dev/bmcreations/code
+//
+// Gradle substitutes com.flipcash:ocp-client-protocol and com.flipcash:flipcash2-client-protocol
+// for the included builds on its own, because the coordinates match. The version in
+// libs.versions.toml is ignored while this is on.
+//
+// local.properties is untracked and CI never writes it, so release builds always resolve the
+// pinned versions from Maven Central.
+val protoLocalRoot = java.util.Properties().apply {
+    val f = File(settingsDir, "local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}.getProperty("protoLocalRoot")?.trim()?.takeIf { it.isNotEmpty() }
+
+if (protoLocalRoot != null) {
+    listOf("ocp-client-protocol", "flipcash2-client-protocol").forEach { repo ->
+        val dir = File(protoLocalRoot, repo)
+        require(dir.isDirectory) {
+            "protoLocalRoot=$protoLocalRoot has no $repo checkout in it"
+        }
+        includeBuild(dir)
+    }
+    logger.lifecycle("Contract packages: building from $protoLocalRoot, not the pinned versions")
+}
+
 dependencyResolutionManagement {
     repositoriesMode = RepositoriesMode.PREFER_SETTINGS
     repositories {
