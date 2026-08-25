@@ -46,7 +46,7 @@ full story.
 | **Intent** | A signed unit of money movement (transfer, remote send/receive, withdraw, swap, distribution) submitted over the `SubmitIntent` bidirectional stream. | [04](04-networking.md), [06](06-payments-and-operations.md) |
 | **Mint** | A Solana token mint address (`PublicKey` subtype); identifies a token such as USDF (`Mint.usdf`) or a launchpad currency. | [06](06-payments-and-operations.md) |
 | **MintMetadata / Token** | The model for any currency (`MintMetadata`, aliased `Token`). A non-null `launchpadMetadata` makes it a launchpad currency; `null` means it's USDF (the core mint). | [06](06-payments-and-operations.md) |
-| **Protobuf / proto** | The Protocol Buffers contract; generated code lives in `:definitions:*:models` and is never hand-edited. | [13](13-protobuf-and-codegen.md) |
+| **Protobuf / proto** | The Protocol Buffers contract; the generated code arrives as the `com.flipcash:{ocp,flipcash2}-client-protocol` artifacts, not from sources in this repo. | [13](13-protobuf-and-codegen.md) |
 | **NotifiableError** | Marker for errors that represent bugs (not user-caused) and should alert via Bugsnag/Slack. | [14](14-error-handling.md) |
 
 ## Architecture roles

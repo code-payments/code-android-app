@@ -13,8 +13,8 @@ When proto definitions change, trace the impact through the full dependency chai
 ## Architecture: Proto → Feature Chain
 
 ```
-definitions/<service>/protos/src/main/proto/    ← .proto files
-    [protobuf codegen]
+com.flipcash:{ocp,flipcash2}-client-protocol    ← published artifact, pinned in libs.versions.toml
+    [generated in its own repo — nothing runs protoc here]
     ↓
 com.codeinc.<service>.gen.<domain>.v1           ← Generated stubs (GrpcKt, request/response classes)
     ↓
@@ -29,15 +29,20 @@ services/<service>/ — *Controller.kt            ← User-facing abstraction (r
 apps/flipcash/shared/*/ or features/*/          ← ViewModels consume controllers
 ```
 
-**Proto packages:**
-- Flipcash: `com.codeinc.flipcash.gen.<domain>.v1` (phone, account, email, profile, push, activity, event, settings, iap, moderation, thirdparty)
-- OpenCode: `com.codeinc.opencode.gen.<domain>.v1` (transaction, account, currency, messaging)
+**Proto packages** (the artifact coordinate is `com.flipcash`; the packages inside are not):
+- Flipcash, from `flipcash2-client-protocol`: `com.codeinc.flipcash.gen.<domain>.v1` (phone, account, email, profile, push, activity, event, settings, iap, moderation, thirdparty)
+- OpenCode, from `ocp-client-protocol`: `com.codeinc.opencode.gen.<domain>.v1` (transaction, account, currency, messaging)
+
+To read a generated stub, look in the resolved artifact under `~/.gradle/caches/modules-2/`
+or in the client repo's build output — there is no generated source tree in this project.
 
 ## Analysis Process
 
 ### 1. Identify what changed in the proto definitions
 
-Compare the current proto files with the previous version (use git diff on `definitions/`). Identify:
+The `.proto` sources are not in this repo. Diff the contract between the old and new
+artifact versions with `gh api repos/code-payments/<ocp|flipcash2>-client-protocol/compare/<old>...<new>`,
+or read `proto/` in a local clone at each tag. Identify:
 - New services or RPCs
 - Changed request/response message fields
 - New or modified enum values

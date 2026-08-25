@@ -13,7 +13,7 @@ right tool so you (or an agent) don't reinvent work the repo already automates.
 | Investigate a crash/stack trace and trace it to a root cause | `bug-triage` | agent |
 | Create a new feature / shared / lib module skeleton | `module-scaffolder` | agent |
 | Add a screen end-to-end (uses the scaffolder) | follow [11 — Adding a feature](11-adding-a-feature.md) | guide |
-| Fetch latest protobufs, verify, summarize, scaffold stubs | `/fetch-protos` | skill |
+| Bump a client-protocol artifact, summarize, scaffold stubs | `/fetch-protos` | skill |
 | Trace the impact of a proto change through the codebase | `proto-change-tracer` | agent |
 | Assess the blast radius of a dependency bump | `dependency-impact` | agent |
 | Review a Dependabot PR for breaking changes | `/dep-review` | skill |
@@ -33,7 +33,7 @@ Agents are launched via the `Agent` tool for open-ended, multi-step work:
   package structure, entry points, navigation registration, `settings.gradle.kts`
   inclusion.
 - **proto-change-tracer** — after `/fetch-protos`, traces
-  `generated models → Api → Service → Repository → Controller → features`
+  `generated stubs → Api → Service → Repository → Controller → features`
   ([13](13-protobuf-and-codegen.md)).
 - **dependency-impact** — for a dependency bump, finds dependent modules, breaking
   API changes, and targeted tests to run.
@@ -48,7 +48,7 @@ Skills are slash commands for repeatable workflows:
 
 - **/triage** — triage a Bugsnag production issue (top open or a specific
   URL/ID) end-to-end.
-- **/fetch-protos** `[flipcash|opencode] [commit]` — pull + regenerate protos
+- **/fetch-protos** `[flipcash|opencode] [version]` — bump a client-protocol artifact
   ([13](13-protobuf-and-codegen.md)).
 - **/dep-review** `<PR>` — review a Dependabot PR for breaking changes and required
   code updates.

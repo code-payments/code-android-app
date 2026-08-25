@@ -1,10 +1,10 @@
 ---
 name: fetch-protos
 description: >
-  Fetch latest protobuf definitions, verify build, summarize API changes,
-  and scaffold new service stubs. Usage: /fetch-protos [flipcash|opencode] [commit_sha]
+  Bump a client-protocol artifact, summarize the contract changes it carries,
+  and scaffold new service stubs. Usage: /fetch-protos [flipcash|opencode] [version]
 user-invocable: true
-argument-hint: "[flipcash|opencode] [commit_sha]"
+argument-hint: "[flipcash|opencode] [version]"
 allowed-tools:
   - Bash
   - Read
@@ -17,79 +17,92 @@ allowed-tools:
 
 # Fetch Protos
 
-Fetch protobuf definitions from upstream repos, verify they compile, summarize
-API changes, and scaffold missing service layer implementations.
+The protos are no longer vendored here. Both contracts arrive as published
+artifacts, so "fetching" is bumping a version pin and reacting to what the new
+version changed.
+
+| Target | Artifact | Client repo | Upstream contract |
+|--------|----------|-------------|-------------------|
+| `flipcash` | `com.flipcash:flipcash2-client-protocol` | `code-payments/flipcash2-client-protocol` | `code-payments/flipcash2-protobuf-api` |
+| `opencode` | `com.flipcash:ocp-client-protocol` | `code-payments/ocp-client-protocol` | `code-payments/ocp-protobuf-api` |
 
 ## Pre-flight context
 
-- Current proto files: !`find definitions/*/protos/src/main/proto -name "*.proto" 2>/dev/null | wc -l | tr -d ' '` proto files across targets
-- Git status: !`git status --short definitions/`
+- Pinned versions: !`grep -E "^(ocp|flipcash2)-client-protocol = " gradle/libs.versions.toml`
+- Git status: !`git status --short gradle/libs.versions.toml services/`
 
 ## Input
 
-Parse `$ARGUMENTS` to determine targets and optional commit SHA.
+Parse `$ARGUMENTS` to determine targets and an optional version.
 
 **Rules:**
 - Known targets: `flipcash`, `opencode`
-- If no targets specified, fetch **both** (`flipcash` and `opencode`)
-- A hex string (7+ chars) as the last argument is treated as a commit SHA
+- If no targets specified, check **both**
+- A semver-looking string as the last argument is the version to move to; without
+  one, use the latest release
 - Examples:
-  - `/fetch-protos` → fetch flipcash + opencode at HEAD
-  - `/fetch-protos flipcash` → fetch flipcash only
-  - `/fetch-protos opencode abc1234` → fetch opencode at commit abc1234
-  - `/fetch-protos flipcash opencode` → fetch both explicitly
+  - `/fetch-protos` → check both artifacts for newer releases
+  - `/fetch-protos flipcash` → flipcash only, latest release
+  - `/fetch-protos opencode 0.2.0` → opencode at 0.2.0
 
 ## Steps
 
-### Step 1 — Fetch protos
-
-For each target, run the fetch script from the repo root:
+### Step 1 — Find the release
 
 ```bash
-bash scripts/fetch-protos.sh -t <target> [commit_sha]
+gh release list --repo code-payments/<ocp|flipcash2>-client-protocol --limit 10
 ```
 
-Target-to-repo mapping (handled by the script):
-| Target | Repository |
-|--------|-----------|
-| `flipcash` | `git@github.com:code-payments/flipcash2-protobuf-api.git` |
-| `opencode` | `git@github.com:code-payments/ocp-protobuf-api.git` |
+Compare against the pin in `gradle/libs.versions.toml`. If the pinned version is
+already the latest and no version was requested, say so and stop.
 
-Show the script output to the user.
+If the contract change you want has **not been released**, it has to land in the
+client repo first: sync its protos at the upstream SHA, regenerate, and publish.
+That repo's README covers it — this skill does not do it.
 
-### Step 2 — Diff and summarize changes
+### Step 2 — Bump the pin
 
-Run `git diff` on the proto directories to identify what changed:
+Edit `gradle/libs.versions.toml`:
+
+```toml
+ocp-client-protocol = "<new>"          # or flipcash2-client-protocol
+```
+
+### Step 3 — Diff and summarize the contract change
+
+The `.proto` sources are not in this repo. Diff them between the two release tags:
 
 ```bash
-git diff --stat definitions/
-git diff definitions/
+gh api repos/code-payments/<repo>/compare/<old-version>...<new-version> \
+  --jq '.files[] | select(.filename | startswith("proto/")) | .filename'
 ```
 
-For each changed `.proto` file, summarize:
+Read the patch for each changed file. Summarize:
 - **New RPCs** added to services
 - **Modified RPCs** (changed request/response types or fields)
 - **Removed RPCs**
 - **New/modified messages** and fields
 
-Present a structured change summary table to the user. If nothing changed, report
-that protos are already up to date and stop here.
+Present a structured change summary table. If the diff carries no `proto/` change,
+the release is generator or packaging work only — say so, and expect no service
+layer impact.
 
-### Step 3 — Build verification
+### Step 4 — Build verification
 
-Build the definitions modules to verify the protos compile:
+Build the service module that consumes the artifact:
 
 ```bash
-./gradlew :definitions:flipcash:models:assembleDebug :definitions:opencode:models:assembleDebug
+./gradlew :services:<flipcash|opencode>:assembleDebug
 ```
 
-Only build the targets that were fetched. If the build fails, show errors and stop.
+Only build the targets that were bumped. If the build fails, show errors and stop —
+a removed or renamed field breaks compilation here, which is the point.
 
-### Step 4 — Detect service layer impact
+### Step 5 — Detect service layer impact
 
-#### 4a — RPC changes
+#### 5a — RPC changes
 
-For each new or modified RPC found in Step 2:
+For each new or modified RPC found in Step 3:
 
 1. Identify which service proto file it belongs to (e.g., `account/v1/flipcash_account_service.proto`)
 2. Search for the corresponding Api class in `services/<target>/src/**/network/api/`
@@ -103,7 +116,7 @@ Present a report:
 | `NewRpc` | missing | missing | missing | missing | **New — needs scaffolding** |
 | `ModifiedRpc` | exists | exists | exists | exists | **Signature may need update** |
 
-#### 4b — Message field changes (domain models)
+#### 5b — Message field changes (domain models)
 
 For each message with added or removed fields (e.g., `UserFlags`, `UserProfile`):
 
@@ -156,7 +169,7 @@ For **read-only** fields (e.g., booleans like `enablePhoneNumberSend`):
 
 Present a report of domain model updates needed and apply them after user confirmation.
 
-### Step 5 — Scaffold new service stubs
+### Step 6 — Scaffold new service stubs
 
 For RPCs marked as needing scaffolding, ask the user if they want to scaffold them.
 If confirmed, generate code following the patterns below.
@@ -269,13 +282,13 @@ suspend fun newRpc(...): Result<DomainType> {
 If a new Repository interface+impl pair was created, add a `@Provides` binding in
 the corresponding Hilt module (`FlipcashModule.kt` or `OpenCodeModule.kt`).
 
-### Step 6 — Review and commit
+### Step 7 — Review and commit
 
 Show the user a summary of all changes (proto updates + any scaffolded code).
 
 Offer to commit with a conventional commit message:
 ```
-chore(protos): update <target> protobuf definitions
+chore(protos): bump <flipcash2|ocp>-client-protocol to <version>
 ```
 
 If service stubs were also scaffolded, suggest a separate commit:
@@ -285,7 +298,7 @@ feat(<target>): scaffold service stubs for new RPCs
 
 ## Never
 
-- Edit generated protobuf code in `definitions/*/models/build/`
+- Try to edit the generated protobuf code — it lives in the published artifact
 - Commit without user approval
 - Skip build verification
 - Scaffold service code without asking the user first
