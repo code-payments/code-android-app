@@ -70,18 +70,8 @@ fun BillOverlay(modifier: Modifier = Modifier) {
     // keyboard down before routing, and this catches an IME the platform restores afterwards, on
     // the way back from the background. Clearing focus, not just hiding, so there's nothing left
     // for the platform to restore it onto.
-    //
-    // Only on a false -> true transition. This overlay is hosted per navigation entry, so a screen
-    // opened *while* a bill is up composes a fresh copy with the bill already present; firing there
-    // would stomp the post-tip hand-off, which opens the chat with the keyboard up on purpose (see
-    // TipCardDecorator's LaunchChat). Seeding from the current value makes that first pass a no-op.
     val keyboard = rememberKeyboardController()
-    val billPresented = billState.bill != null
-    var wasBillPresented by remember { mutableStateOf(billPresented) }
-    LaunchedEffect(billPresented) {
-        if (billPresented && !wasBillPresented) keyboard.dismiss()
-        wasBillPresented = billPresented
-    }
+    OnBillPresented(billState.bill != null) { keyboard.dismiss() }
 
     Box(modifier = Modifier.fillMaxSize().then(modifier)) {
         val updatedState by rememberUpdatedState(state)
@@ -213,5 +203,26 @@ fun BillOverlay(modifier: Modifier = Modifier) {
             )
             with(overlays) { Content(overlayContext) }
         }
+    }
+}
+
+/**
+ * Runs [onPresented] when [presented] flips false -> true.
+ *
+ * Deliberately not a plain `LaunchedEffect(presented)`. [BillOverlay] is hosted per navigation
+ * entry, so a screen opened *while* a bill is up composes a fresh copy with the bill already
+ * present, and an unguarded effect would fire on that first pass. For the keyboard that would stomp
+ * the post-tip hand-off, which opens the chat with the keyboard up on purpose (see
+ * TipCardDecorator's LaunchChat). Seeding `wasPresented` from the value at first composition makes
+ * an already-presented bill a no-op, so only a bill that appears *while this copy is watching*
+ * counts as a presentation.
+ */
+@Composable
+internal fun OnBillPresented(presented: Boolean, onPresented: () -> Unit) {
+    var wasPresented by remember { mutableStateOf(presented) }
+    val currentOnPresented by rememberUpdatedState(onPresented)
+    LaunchedEffect(presented) {
+        if (presented && !wasPresented) currentOnPresented()
+        wasPresented = presented
     }
 }
