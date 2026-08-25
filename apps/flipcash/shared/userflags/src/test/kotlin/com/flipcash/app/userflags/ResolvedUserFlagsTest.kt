@@ -35,6 +35,7 @@ class ResolvedUserFlagsTest {
         assertEquals(Fiat(quarks = 4_000_000L), resolved.minimumHolderAmountForLeaderboard.effectiveValue)
         assertEquals(true, resolved.requireCoinbaseEmailVerification.effectiveValue)
         assertEquals(ServerFlags.tipPresets, resolved.tipPresets.effectiveValue)
+        assertEquals(Fiat(quarks = 5_000_000L), resolved.usernameMinBalance.effectiveValue)
     }
 
     @Test
@@ -140,6 +141,7 @@ private val ServerFlags = UserFlags(
     tipPresets = listOf(
         TipPresets(region = "US", minimum = 1.0, low = 2.0, medium = 3.0, high = 4.0),
     ),
+    usernameMinBalance = Fiat(quarks = 5_000_000L),
 )
 
 // Every value here differs from the matching server value above, so a flag that reads the
