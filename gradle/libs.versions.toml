@@ -64,6 +64,12 @@ protobuf = "4.35.1"
 protobuf-plugin = "0.10.0"
 protovalidate-kt = "0.1.1"
 
+# Generated client SDKs for the two backend contracts. Separate versions on purpose: the
+# protos are independent (flipcash2 does not import ocp), so the packages move on their own
+# cadence and there is nothing to keep aligned.
+ocp-client-protocol = "0.1.0"
+flipcash2-client-protocol = "0.1.0"
+
 # The Android port is the ONLY libphonenumber this app depends on, deliberately. Google's
 # `com.googlecode` artifact used to sit alongside it; the two ship separate copies of the metadata,
 # so any version skew between them meant they could disagree on whether a number is valid — and the
@@ -215,6 +221,8 @@ grpc-protobuf-lite = { module = "io.grpc:grpc-protobuf-lite", version.ref = "grp
 grpc-stub = { module = "io.grpc:grpc-stub", version.ref = "grpc" }
 protobuf-kotlin-lite = { module = "com.google.protobuf:protobuf-kotlin-lite", version.ref = "protobuf" }
 protobuf-validate-runtime = { module = "dev.bmcreations:protovalidate-runtime", version.ref = "protovalidate-kt" }
+ocp-client-protocol = { module = "com.flipcash:ocp-client-protocol", version.ref = "ocp-client-protocol" }
+flipcash2-client-protocol = { module = "com.flipcash:flipcash2-client-protocol", version.ref = "flipcash2-client-protocol" }
 
 # Retrofit
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }

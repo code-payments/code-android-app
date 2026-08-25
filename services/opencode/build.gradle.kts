@@ -27,7 +27,7 @@ android {
 }
 
 dependencies {
-    implementation("com.flipcash:ocp-client-protocol:0.1.0")
+    implementation(libs.ocp.client.protocol)
     api(project(":libs:currency-math"))
     api(project(":libs:datetime"))
     api(project(":libs:encryption:base58"))
