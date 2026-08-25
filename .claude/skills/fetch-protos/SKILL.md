@@ -29,6 +29,7 @@ version changed.
 ## Pre-flight context
 
 - Pinned versions: !`grep -E "^(ocp|flipcash2)-client-protocol = " gradle/libs.versions.toml`
+- Local override: !`grep -E "^protoLocalRoot" local.properties 2>/dev/null || echo "none — building against the pins above"`
 - Git status: !`git status --short gradle/libs.versions.toml services/`
 
 ## Input
@@ -56,9 +57,25 @@ gh release list --repo code-payments/<ocp|flipcash2>-client-protocol --limit 10
 Compare against the pin in `gradle/libs.versions.toml`. If the pinned version is
 already the latest and no version was requested, say so and stop.
 
-If the contract change you want has **not been released**, it has to land in the
-client repo first: sync its protos at the upstream SHA, regenerate, and publish.
-That repo's README covers it — this skill does not do it.
+If the contract change you want has **not been released**, do not reach for a release.
+Publishing is for CI release builds; Maven Central will not take a version number
+twice, so cutting one to try a field burns a real version. Build against the client
+checkout instead, by adding the workspace root to `local.properties`:
+
+```properties
+protoLocalRoot=/Users/you/dev/bmcreations/code
+```
+
+`settings.gradle.kts` includes `ocp-client-protocol` and `flipcash2-client-protocol`
+from there as composite builds, and Gradle substitutes them for the published
+coordinates because the group and module match — so the pins in
+`gradle/libs.versions.toml` are ignored while it is set. `local.properties` is
+untracked and CI never writes it.
+
+That covers consuming an unreleased contract. Producing one — editing a `.proto` and
+syncing it into the client repo — happens in the client repo, and the orchestrator's
+`/contract-change` skill drives both halves. Skip Step 2 and Step 3 in this mode: there
+is no pin to bump, and the diff is whatever is in your checkout.
 
 ### Step 2 — Bump the pin
 
@@ -97,6 +114,9 @@ Build the service module that consumes the artifact:
 
 Only build the targets that were bumped. If the build fails, show errors and stop —
 a removed or renamed field breaks compilation here, which is the point.
+
+With `protoLocalRoot` set, this also builds the client repo, so a broken `.proto` in
+your checkout surfaces as a codegen failure in the included build rather than here.
 
 ### Step 5 — Detect service layer impact
 
@@ -298,6 +318,10 @@ feat(<target>): scaffold service stubs for new RPCs
 
 ## Never
 
+- Leave `protoLocalRoot` set when you hand the branch off or move on. It silently overrides the
+  pinned versions for whoever builds next, and the failure looks like a mystery version mismatch.
+- Cut a release of a client package just to try a change. Use the local override; release when the
+  change is settled and a build you do not control needs it.
 - Try to edit the generated protobuf code — it lives in the published artifact
 - Commit without user approval
 - Skip build verification
