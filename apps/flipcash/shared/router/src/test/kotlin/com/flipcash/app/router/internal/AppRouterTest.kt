@@ -453,6 +453,33 @@ class AppRouterTest {
         assertNull(router.classify(DeepLink("https://flipcash.com/terms")))
     }
 
+    // The reserved list is Android's half of a pair: iOS says the same thing with the AASA's
+    // `exclude` entries. Anything the website serves and this list misses is a page that opens the
+    // app and dead-ends on "username not found", so the two are checked against each other.
+    @Test
+    fun `classify ignores every handle-shaped path the AASA excludes`() {
+        val excludedByTheAasa = listOf(
+            "app", "api", "assets", "fonts", "icons", "js", "v1",
+            "pool", "wallet", "currencycreator",
+            "blog", "download", "privacy", "support", "terms",
+            "c", "cash", "chat", "tip", "token", "verify",
+        )
+        excludedByTheAasa.forEach { path ->
+            assertNull(
+                router.classify(DeepLink("https://flipcash.com/$path")),
+                "flipcash.com/$path belongs to the website, not to a handle",
+            )
+        }
+    }
+
+    // Reserved by path, not by case: the App Link filter admits mixed case (a link is typed or
+    // auto-capitalised), and isVanityProfile lowercases before consulting the list.
+    @Test
+    fun `classify ignores a reserved path in mixed case`() {
+        assertNull(router.classify(DeepLink("https://flipcash.com/Download")))
+        assertNull(router.classify(DeepLink("https://flipcash.com/CurrencyCreator")))
+    }
+
     @Test
     fun `classify ignores a vanity path that isn't shaped like a handle`() {
         // Too short, too long, and outside the server's charset.

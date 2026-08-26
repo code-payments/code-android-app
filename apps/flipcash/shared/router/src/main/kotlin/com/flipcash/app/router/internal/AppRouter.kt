@@ -70,9 +70,26 @@ internal class AppRouter(
          * them is charset-valid as a username, and the server reserves them — so a link to one
          * could only ever fail to resolve, but it would fail *inside* the app, having taken the tap
          * away from the browser. Ruling them out here keeps `flipcash.com/download` a web link.
+         *
+         * This is the whole of the narrowing. An intent filter can only widen — its `data` elements
+         * OR together and there is no exclude form — so the manifest's `pathAdvancedPattern` can
+         * hold the claim to the handle *shape* but not subtract these particular words from it.
+         * The AASA's `exclude` entries are how iOS says the same thing, which is why this list is
+         * kept in step with them: that file is the website's own statement of what it serves.
+         * Only its handle-shaped entries appear here — it also excludes paths the filter could
+         * never match (`/favicon.ico`, `/robots.txt`, anything multi-segment).
          */
         val reservedVanityPaths: Set<String> =
-            setOf("download", "privacy", "terms", "support", "help", "about", "blog", "legal") +
+            // The website's own pages.
+            setOf(
+                "download", "privacy", "terms", "support", "help", "about", "blog", "legal",
+                "currencycreator",
+            ) +
+                // Static roots and the web API, served off the apex alongside the pages.
+                setOf("app", "api", "assets", "fonts", "icons", "js", "v1") +
+                // Routes belonging to the app hosts. The apex answers for them too, so a link
+                // naming one is a mis-hosted route, not somebody's handle.
+                setOf("pool", "wallet") +
                 login + cashLink + verification + token + chat + tip
     }
 
