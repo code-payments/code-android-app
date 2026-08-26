@@ -699,6 +699,19 @@ internal class ChatViewModel @Inject constructor(
                     }
 
                     val chatId = stateFlow.value.chatId
+
+                    // A tip DM's first payment comes from the "Send Tip" call to action, which is
+                    // the whole bottom bar until that payment unlocks typing. It says tip, so it
+                    // sends one. Every later send comes from the money button beside a composer
+                    // that only exists once the thread is unlocked, and stays a plain send.
+                    //
+                    // `TIPCARD` is how a tip is asked for: `TipDmPayment.Location` has two values,
+                    // and the server reads them as the verb ("Tipped" vs "Sent") rather than as a
+                    // place. Sending `CHAT` here would title the payment "Sent" in the recipient's
+                    // activity feed, under a button that promised a tip.
+                    val isTip = stateFlow.value.chatType == ChatType.TIP_DM &&
+                        !stateFlow.value.typingConstraints.enabled
+
                     val result = when (val participant = stateFlow.value.participant) {
                         is ChatParticipant.Contact -> contactPaymentDelegate.send(
                             contact = participant.contact,
@@ -712,7 +725,7 @@ internal class ChatViewModel @Inject constructor(
                             verifiedFiat = verifiedFiat,
                             token = token,
                             source = source,
-                            origin = TipOrigin.CHAT,
+                            origin = if (isTip) TipOrigin.TIPCARD else TipOrigin.CHAT,
                         )
                         null -> {
                             dispatchEvent(Event.SendStateUpdated())
@@ -720,12 +733,11 @@ internal class ChatViewModel @Inject constructor(
                         }
                     }
 
-                    // Only a tip card payment is a tip — the same line the activity feed
-                    // draws, from `ChatMetadata.TipDmPayment.Location`. Every send from this
-                    // screen is `CHAT`, whether the peer is a contact or a tip user, so it
-                    // reports as a plain cash send. `Sent Tip` is left to the tip card flow
-                    // in `TippingCoordinator`.
-                    val transferEvent = Analytics.Transfer.SentCash
+                    // Report what was sent, on the same line `TipDmPayment.Location` draws: the
+                    // tip call to action above is a tip, and every other send from this screen —
+                    // contact DM or unlocked tip DM — is a plain cash send.
+                    val transferEvent =
+                        if (isTip) Analytics.Transfer.SentTip else Analytics.Transfer.SentCash
 
                     result.onSuccess {
                         dispatchEvent(Event.SendStateUpdated(success = true))
