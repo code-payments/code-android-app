@@ -38,6 +38,8 @@ import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.HandlePrefix
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.MediaItem
+import com.flipcash.services.models.handle
+import com.flipcash.services.models.nameOrHandle
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 
@@ -103,15 +105,26 @@ fun ContactAvatar(
     }
 }
 
+/**
+ * A person's avatar taken entirely from their server [UserProfile] — the chat header and info card,
+ * the activity feed. Falls back to the initials of their name-or-handle, matching the surfaces that
+ * pass the two separately ([ContactAvatar] with [MediaItem] + display name).
+ *
+ * A profile with neither a name nor a handle is not a person we can name, so it keeps the silhouette.
+ * The activity feed relies on that for its non-person rows, which pass [UserProfile.Empty].
+ */
 @Composable
 fun ContactAvatar(
     userProfile: UserProfile,
     modifier: Modifier = Modifier,
 ) {
+    val name = remember(userProfile) { nameOrHandle(userProfile.displayName, userProfile.handle) }
     ProfileAvatar(
         image = userProfile.profilePicture,
         modifier = modifier,
-        fallback = { UnknownContactAvatar(includeBorder = true) },
+        fallback = {
+            if (name != null) InitialsText(name) else UnknownContactAvatar(includeBorder = true)
+        },
     )
 }
 
