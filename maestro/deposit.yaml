@@ -6,12 +6,16 @@ tags:
 ---
 # Fund-safe: opens the Add Money method sheet and enters the USDC deposit flow.
 - runFlow: subflows/login_with_deeplink.yaml
-- runFlow: subflows/navigate_to_menu.yaml
+# Add Money is a wallet action tile now, below the card deck and recent activity.
+- runFlow: subflows/navigate_to_wallet.yaml
+- scrollUntilVisible:
+    element: "Add Money"
+    direction: DOWN
 
 - tapOn: "Add Money"
 - extendedWaitUntil:
     visible:
-      text: "Select Method"
+      text: "Add Money With"
     timeout: 8000
 - tapOn: "Other Wallet"
 - extendedWaitUntil:

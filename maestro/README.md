@@ -121,7 +121,7 @@ maestro/run.sh maestro/tipping_setup.yaml
 
 **Verified green** (run any of these with `maestro/run.sh`):
 - `login_logout.yaml` — real seed-login UI + logout (Log Out lives on My Account)
-- `account_navigation.yaml` — menu → My Account → App Settings
+- `account_navigation.yaml` — You tab → My Account, then Advanced
 - `wallet_token_info.yaml` — wallet → token info + market-cap chart
 - `discovery_leaderboard.yaml` — wallet → Discover Currencies → leaderboard → token info
 - `withdraw.yaml` — menu → Withdraw Money → USDC → amount entry (fund-safe)

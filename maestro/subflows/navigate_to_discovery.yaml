@@ -2,6 +2,10 @@ appId: com.flipcash.app.android
 ---
 # There is no Discover tab: currency discovery is one of the wallet's action tiles.
 - runFlow: navigate_to_wallet.yaml
+# The tiles sit below the card deck and recent activity.
+- scrollUntilVisible:
+    element: "Discover Currencies"
+    direction: DOWN
 - tapOn: "Discover Currencies"
 - extendedWaitUntil:
     visible:

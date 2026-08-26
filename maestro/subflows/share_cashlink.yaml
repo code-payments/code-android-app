@@ -8,6 +8,10 @@ appId: com.flipcash.app.android
 - tapOn:
     id: copy
 - waitForAnimationToEnd
+# The confirm prompt slides in over the bill, so wait it out rather than tapping mid-animation.
+- extendedWaitUntil:
+    visible: ".*Yes.*"
+    timeout: 8000
 - tapOn: 
     text: ".*Yes.*"
     waitToSettleTimeoutMs: 500

@@ -9,6 +9,9 @@ tags:
 
 # Currency creation is a wallet action tile now -- Discover no longer carries the promo.
 - runFlow: subflows/navigate_to_wallet.yaml
+- scrollUntilVisible:
+    element: "Create a Currency"
+    direction: DOWN
 - tapOn: "Create a Currency"
 - extendedWaitUntil: { visible: { id: currency_creator_screen }, timeout: 8000 }
 - assertVisible: "Create Your Currency"

@@ -1,6 +1,10 @@
 appId: com.flipcash.app.android
 ---
 - runFlow: navigate_to_menu.yaml
+# The You tab leads with the tip card, so the list rows sit below the fold.
+- scrollUntilVisible:
+    element: "My Account"
+    direction: DOWN
 - tapOn: My Account
 - extendedWaitUntil:
     visible:

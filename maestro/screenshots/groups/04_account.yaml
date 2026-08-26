@@ -14,13 +14,3 @@ tags:
 
 # Return to scanner
 - runFlow: ../../subflows/return_to_scanner.yaml
-
-# Screenshot: App Settings
-- runFlow: ../../subflows/navigate_to_app_settings.yaml
-- runFlow:
-    file: ../../helpers/screenshot.yaml
-    env:
-      SCREENSHOT_NAME: app_settings_screen
-
-# Return to scanner
-- runFlow: ../../subflows/return_to_scanner.yaml

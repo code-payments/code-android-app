@@ -9,16 +9,21 @@ tags:
     env:
       BETA_FLAGS: ""
 
-# The chats tab lists tip conversations; open the first one.
+# The chats tab lists tip conversations. Open the contact's by name: the list is ordered by
+# recency and carries the account's own self-tip chat, so index 0 is not stably the contact.
 - tapOn: { id: nav_chats }
 - extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
 - assertVisible: { id: send_contact_row }
-- tapOn: { id: send_contact_row, index: 0 }
+- scrollUntilVisible:
+    element: "${CONTACT_NAME}"
+    direction: DOWN
+- tapOn: "${CONTACT_NAME}"
 
-# In the tip conversation: the tip event and the message composer are present.
+# In the tip conversation: a tip event and the message composer are present. Which way the tip
+# went is live data, so match either direction.
 - extendedWaitUntil: { visible: { id: chat_screen }, timeout: 8000 }
 - assertVisible: { id: chat_message_input }
-- assertVisible: "You tipped"
+- assertVisible: "You tipped|You received a tip"
 
 # Send a message and confirm it lands in the transcript.
 - tapOn: { id: chat_message_input }
