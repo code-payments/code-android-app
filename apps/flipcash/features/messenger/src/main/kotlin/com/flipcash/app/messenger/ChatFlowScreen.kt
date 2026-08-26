@@ -11,6 +11,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
@@ -33,6 +34,7 @@ import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.results.navigateForResult
 import com.getcode.navigation.results.resultBackNavigator
 import com.getcode.navigation.scenes.LocalSheetNavigator
+import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -55,6 +57,15 @@ fun ChatFlowScreen(
         // Popping with the IME still up drags the screen behind it out from under the keyboard.
         onExit = { _, _ -> keyboard.hideIfVisible { navigator.pop() } },
         entryProvider = chatEntryProvider(route.identifier, route.openKeyboard),
+        // ChatStep.AmountEntry is a Sheet, so the flow needs the sheet strategy to draw it as one;
+        // without it the step would fall through to SinglePane and cover the thread. Amount entry
+        // returns its result inside the flow (resultBackNavigator), so the strategy's own
+        // dismiss-delivers-Canceled path has nothing to address here — hence the null key. A
+        // swipe-dismiss just leaves the pending callback unclaimed, which is what a cancel means.
+        sceneStrategies = listOf(
+            ModalBottomSheetSceneStrategy(navigator.resultStore) { null },
+            SinglePaneSceneStrategy(),
+        ),
     )
 }
 
