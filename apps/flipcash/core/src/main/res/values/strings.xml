@@ -244,10 +244,10 @@
     <string name="error_title_paymentFailedDueToInsufficientFunds">Insufficient Balance</string>
     <string name="error_description_paymentFailedDueToInsufficientFunds">You don\'t have enough funds to complete this payment</string>
 
-    <plurals name="subtitle_personCount">
-        <item quantity="zero">0 people</item>
-        <item quantity="one">1 person</item>
-        <item quantity="other">%1$s people</item>
+    <plurals name="subtitle_memberCount">
+        <item quantity="zero">0 members</item>
+        <item quantity="one">1 member</item>
+        <item quantity="other">%1$s members</item>
     </plurals>
 
     <string name="action_addCash">Add Cash</string>
@@ -826,7 +826,7 @@
 
     <string name="content_description_leaderboard">Learn more</string>
     <string name="prompt_title_learnAboutLeaderboard">Leaderboard Ranking</string>
-    <string name="prompt_description_learnAboutLeaderboard">People must have a minimum balance of %1$s to be counted</string>
+    <string name="prompt_description_learnAboutLeaderboard">Members must have a minimum balance of %1$s to be counted</string>
 
     <string name="action_invite">Invite</string>
     <string name="action_remove">Remove</string>

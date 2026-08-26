@@ -97,7 +97,7 @@ internal fun TokenMetricsRow(
             val subtitle = token.marketCap()?.formatted().orEmpty()
 
             val value = pluralStringResource(
-                R.plurals.subtitle_personCount,
+                R.plurals.subtitle_memberCount,
                 token.holderMetrics.currentHolders.toInt(),
                 token.holderMetrics.currentHolders.abbreviated()
             )
@@ -146,7 +146,7 @@ internal fun TokenMetricsRow(
             val value = currentCap?.let { "$currencySymbol${it.abbreviated()}" }.orEmpty()
 
             val subtitle = pluralStringResource(
-                R.plurals.subtitle_personCount,
+                R.plurals.subtitle_memberCount,
                 token.holderMetrics.currentHolders.toInt(),
                 token.holderMetrics.currentHolders.abbreviated()
             )
