@@ -708,12 +708,12 @@ internal class ChatViewModel @Inject constructor(
                         }
                     }
 
-                    // A payment into a tip DM is a tip; a contact DM is a plain cash send.
-                    val transferEvent = if (stateFlow.value.participant is ChatParticipant.TipUser) {
-                        Analytics.Transfer.SentTip(TipOrigin.CHAT)
-                    } else {
-                        Analytics.Transfer.SentCash
-                    }
+                    // Only a tip card payment is a tip — the same line the activity feed
+                    // draws, from `ChatMetadata.TipDmPayment.Location`. Every send from this
+                    // screen is `CHAT`, whether the peer is a contact or a tip user, so it
+                    // reports as a plain cash send. `Sent Tip` is left to the tip card flow
+                    // in `TippingCoordinator`.
+                    val transferEvent = Analytics.Transfer.SentCash
 
                     result.onSuccess {
                         dispatchEvent(Event.SendStateUpdated(success = true))
