@@ -62,7 +62,11 @@ class FeedSyncDelegate @Inject constructor(
 
     sealed interface Event {
         data class LoadMessages(val chatId: ChatId) : Event
-        data class DeltaSyncNeeded(val chatId: ChatId) : Event
+        /**
+         * @param afterSequence the sequence the local cache held *before* this sync overwrote it;
+         *   the delta must be requested from there, not from the row we just wrote.
+         */
+        data class DeltaSyncNeeded(val chatId: ChatId, val afterSequence: Long) : Event
     }
 
     private val _events = Channel<Event>(Channel.UNLIMITED)
@@ -188,10 +192,35 @@ class FeedSyncDelegate @Inject constructor(
         Result.success(contact.chats + (tip?.chats ?: emptyList()))
     }
 
+    /** What the local cache held for a chat before a sync wrote to it. */
+    private data class CachedChatState(
+        val hasMessages: Boolean,
+        val latestEventSequence: Long,
+    )
+
     private suspend fun performFeedSync() {
         stateHolder.update { it.copy(feedSyncState = FeedSyncState.Syncing) }
         fetchCombinedFeed()
             .onSuccess { chats ->
+                // Snapshot the cache before writing to it. The writes below stamp the server's
+                // latestEventSequence onto every metadata row and give every chat at least one
+                // message, so the catch-up checks at the end of this sync — which are reads of
+                // exactly those two things — would otherwise always find the chat current and
+                // never fire.
+                //
+                // Both branches being inert had the same consequence: after a re-login, where
+                // logout has cleared the chat cache (ChatCoordinator.reset), a chat is left
+                // holding only the one message the feed carried. Anything derived from chat
+                // history then reads as if the rest never happened — the wallet's "send a tip"
+                // milestone looks for an outgoing TIPPED message and re-shows the new-user
+                // tutorial to an account that has already tipped.
+                val cached = chats.associate { chat ->
+                    chat.chatId to CachedChatState(
+                        hasMessages = messageDataSource.hasMessages(chat.chatId),
+                        latestEventSequence = metadataDataSource.getLatestEventSequence(chat.chatId),
+                    )
+                }
+
                 metadataDataSource.upsert(chats)
 
                 for (chat in chats) {
@@ -205,14 +234,18 @@ class FeedSyncDelegate @Inject constructor(
                 trace(tag = TAG, message = "Feed synced: ${chats.size} chats", type = TraceType.Process)
 
                 for (chat in chats) {
+                    val before = cached[chat.chatId] ?: continue
                     if (chat.latestEventSequence > 0) {
-                        val localSeq = metadataDataSource.getLatestEventSequence(chat.chatId)
-                        if (localSeq > 0 && localSeq < chat.latestEventSequence) {
-                            _events.send(Event.DeltaSyncNeeded(chat.chatId))
+                        if (before.latestEventSequence > 0 &&
+                            before.latestEventSequence < chat.latestEventSequence
+                        ) {
+                            _events.send(
+                                Event.DeltaSyncNeeded(chat.chatId, before.latestEventSequence)
+                            )
                             continue
                         }
                     }
-                    if (!messageDataSource.hasMessages(chat.chatId)) {
+                    if (!before.hasMessages) {
                         _events.send(Event.LoadMessages(chat.chatId))
                     }
                 }

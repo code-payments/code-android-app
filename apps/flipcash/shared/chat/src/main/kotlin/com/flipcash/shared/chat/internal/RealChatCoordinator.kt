@@ -144,7 +144,7 @@ class RealChatCoordinator @Inject constructor(
                     is FeedSyncDelegate.Event.LoadMessages ->
                         messagingDelegate.loadMessages(event.chatId)
                     is FeedSyncDelegate.Event.DeltaSyncNeeded ->
-                        eventStreamDelegate.performDeltaSync(event.chatId)
+                        eventStreamDelegate.performDeltaSync(event.chatId, event.afterSequence)
                 }
             }.launchIn(scope)
 
@@ -197,7 +197,7 @@ class RealChatCoordinator @Inject constructor(
 
     // region ChatCoordinator
 
-    override suspend fun reset() {
+    override suspend fun teardown() {
         eventStreamDelegate.stopHeartbeat()
         eventStreamDelegate.close()
         feedDelegate.cancelJobs()
@@ -205,9 +205,13 @@ class RealChatCoordinator @Inject constructor(
         stateHolder.reset()
         eventStreamDelegate.clearAll()
         cluster.value = null
-        messagingDelegate.clear()
         supervisorJob.cancel()
-        trace(tag = TAG, message = "reset complete", type = TraceType.Process)
+        trace(tag = TAG, message = "teardown complete", type = TraceType.Process)
+    }
+
+    override suspend fun clearCache() {
+        messagingDelegate.clear()
+        trace(tag = TAG, message = "cache cleared", type = TraceType.Process)
     }
 
     // endregion
