@@ -33,6 +33,7 @@ import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.results.navigateForResult
 import com.getcode.navigation.results.resultBackNavigator
+import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
 import com.getcode.navigation.scenes.LocalSheetNavigator
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.utils.rememberKeyboardController
@@ -151,8 +152,12 @@ private fun FlowConversationScreen(identifier: ChatIdentifier, openKeyboard: Boo
 private fun FlowAmountEntryScreen() {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val navigator = LocalCodeNavigator.current
-    val resultBack = resultBackNavigator<ChatSendResult>()
+    // Every way out of this step goes through the sheet's own dismissal, which animates it down to
+    // Hidden and pops the entry once it settles. Popping the entry directly — navigateBack, or the
+    // pop ResultBackNavigator does by default — deletes the scene mid-frame, so the sheet vanishes
+    // instead of closing.
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val resultBack = resultBackNavigator<ChatSendResult>(exit = dismissSheet)
 
     // No re-shadow: ChatAmountEntryContent reads the inner LocalCodeNavigator, and its
     // navigator.push(AppRoute.Main.RegionSelection) / push(AppRoute.Sheets.TokenSelection)
@@ -164,7 +169,7 @@ private fun FlowAmountEntryScreen() {
         eventFlow = viewModel.eventFlow,
         onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnConfirmRequested) },
         onSendComplete = { resultBack.returnValue(ChatSendResult) }, // intra-flow result -> Conversation
-        onExit = { navigator.navigateBack() },                       // pop the AmountEntry step
+        onExit = dismissSheet,
     )
 }
 

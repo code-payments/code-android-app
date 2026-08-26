@@ -312,11 +312,13 @@ inline fun <reified T : Parcelable> resultBackNavigator(
     @Suppress("UNCHECKED_CAST") route: NavigationRetVal<T>? = LocalNavKey.current as? NavigationRetVal<T>,
     navigator: CodeNavigator = LocalCodeNavigator.current,
     navResultStore: NavResultStore = LocalCodeNavigator.current.resultStore,
+    noinline exit: (() -> Unit)? = null,
 ): IResultBackNavigator<T> = route?.let {
     ResultBackNavigator(
         navResultKey = route.asKey(),
         navigator = navigator,
         navResultStore = navResultStore,
+        exit = exit,
     )
 } ?: run {
     trace("ResultBackNavigator: Returning default object because route was not a RetVal")
@@ -345,10 +347,17 @@ interface IResultBackNavigator<T : Parcelable> {
     fun returnNoValue() = returnCanceled()
 }
 
+/**
+ * @param exit How to leave the screen once the result has been delivered. Defaults to popping the
+ *   entry outright. A screen that animates itself away — a sheet has to settle at Hidden before its
+ *   entry is popped — passes its own dismissal here; an immediate pop would cut that short. The
+ *   result is always delivered first, so the exit can pop on its own schedule.
+ */
 class ResultBackNavigator<T : Parcelable>(
     private val navResultKey: NavResultKey<NavigationRetVal<T>, T>,
     private val navigator: CodeNavigator,
     private val navResultStore: NavResultStore,
+    private val exit: (() -> Unit)? = null,
 ) : IResultBackNavigator<T> {
     private fun returnResult(value: NavResultOrCanceled<T>) {
         val callerId = navigator.backStack.getOrNull(navigator.backStack.lastIndex - 1)
@@ -362,7 +371,7 @@ class ResultBackNavigator<T : Parcelable>(
         } else {
             trace("No caller to deliver result to; result will be dropped", type = TraceType.Silent)
         }
-        navigator.navigateBack(navigatingForResult = true)
+        exit?.invoke() ?: navigator.navigateBack(navigatingForResult = true)
     }
 
     override fun returnValue(value: T) {
