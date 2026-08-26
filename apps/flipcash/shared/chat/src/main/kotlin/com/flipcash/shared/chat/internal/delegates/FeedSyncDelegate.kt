@@ -10,6 +10,7 @@ import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.PointerType
+import com.flipcash.services.models.chat.isDmAddressable
 import com.flipcash.shared.chat.ChatHydrationState
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.FeedOperations
@@ -110,12 +111,7 @@ class FeedSyncDelegate @Inject constructor(
 
                     // Contact DMs require a resolvable identity (phone / display name). Tip DMs are
                     // identified by user id and have no phone by design, so they are never dropped.
-                    if (chatType == ChatType.CONTACT_DM) {
-                        val profile = otherMember.userProfile
-                        val hasIdentity = profile.displayName.isNotBlank() ||
-                            !profile.verifiedPhoneNumber.isNullOrBlank()
-                        if (!hasIdentity) return@mapNotNull null
-                    }
+                    if (!isDmAddressable(chatType, otherMember.userProfile)) return@mapNotNull null
 
                     val readPointer = metadata.members
                         .firstOrNull { it.userId == selfId }
