@@ -87,10 +87,14 @@ private fun convertTitle(
  * preferring the observed display name for `UserId` substitutions (server
  * [MessageSubstitution.fallback] otherwise).
  *
- * Otherwise the server sends a bare verb (e.g. "Tipped", "Received") and the client completes it
- * with the relevant subject, resolved reactively (the bare verb shows until it lands):
- * - received tips read "Tip from <name>";
- * - tips/sends and anything else with a counterparty append the **counterparty** name — "Tipped Sally".
+ * Otherwise the server sends a bare verb and the client completes it with the counterparty, resolved
+ * reactively (the bare verb shows until it lands). The verb is what separates a tip from a plain
+ * send — the server picks it from the payment's `ChatMetadata.TipDmPayment.Location`, so a tip-card
+ * tip reads "Tipped" and an in-chat send reads "Sent". Peer payments are phrased from it:
+ * - sent: "Tipped Sally" for a tip, "Sent to Sally" otherwise;
+ * - received: "Tip from Sally" for a tip, "Received from Sally" otherwise.
+ *
+ * Anything else with a counterparty appends the name to the server verb.
  *
  * Buys/sells/deposits carry no counterparty, so they render the server text verbatim
  * ("Purchased", "Sold", "Added").
@@ -117,14 +121,28 @@ private fun resolveTitle(
         return result
     }
 
-    val counterpartyName = counterparty?.displayName?.takeIf { it.isNotBlank() }
+    val counterpartyName = counterparty?.displayName?.takeIf { it.isNotBlank() } ?: return text
+    val isTip = text.isTipVerb()
     return when (meta) {
         is MessageMetadata.ReceivedCrypto ->
-            if (counterpartyName != null) resources.getString(R.string.title_activity_tipFrom, counterpartyName) else text
-        else ->
-            if (counterpartyName != null) "$text $counterpartyName" else text
+            if (isTip) resources.getString(R.string.title_activity_tipFrom, counterpartyName)
+            else resources.getString(R.string.title_activity_receivedFrom, counterpartyName)
+        is MessageMetadata.DirectlySentCrypto ->
+            // "Tipped" already reads as a transitive verb; "Sent" needs the preposition.
+            if (isTip) "$text $counterpartyName"
+            else resources.getString(R.string.title_activity_sentTo, counterpartyName)
+        else -> "$text $counterpartyName"
     }
 }
+
+/**
+ * Whether the server's bare verb marks this payment as a tip ("Tip", "Tipped") rather than a plain
+ * send ("Sent", "Received"). The activity feed carries no structured tip flag — `activity/v1` models
+ * a peer payment only as directly-sent/received crypto — so the verb is the only signal the client
+ * gets. Matching it is safe while `localized_text` is English-only; a localized feed would need the
+ * distinction promoted into the notification metadata.
+ */
+private fun String.isTipVerb(): Boolean = trim().startsWith("tip", ignoreCase = true)
 
 private fun userIdOf(meta: MessageMetadata?): ID? = when (meta) {
     is MessageMetadata.DirectlySentCrypto -> meta.userId

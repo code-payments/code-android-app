@@ -2,6 +2,10 @@
 <resources>
     <!-- Activity feed row title for a received tip; %1$s is the sender's display name. -->
     <string name="title_activity_tipFrom">Tip from %1$s</string>
+    <!-- Activity feed row title for a peer payment the user sent; %1$s is the recipient's display name. -->
+    <string name="title_activity_sentTo">Sent to %1$s</string>
+    <!-- Activity feed row title for a peer payment the user received; %1$s is the sender's display name. -->
+    <string name="title_activity_receivedFrom">Received from %1$s</string>
     <!-- Activity feed row title for a convert; %1$s is the source token name, %2$s the destination. -->
     <string name="title_activity_convert">%1$s → %2$s</string>
     <!-- Fee line beneath a convert's amount in the activity feed; %1$s is the formatted fee. -->
