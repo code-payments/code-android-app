@@ -205,7 +205,7 @@ class ReceivedCounterTest {
         coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, 1.0) }
         coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Messages, 1.0) }
         coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, 5.0) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -215,7 +215,7 @@ class ReceivedCounterTest {
 
         coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Messages, 1.0) }
         coVerify(exactly = 0) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, any()) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -224,7 +224,7 @@ class ReceivedCounterTest {
         deliver(tipMessage(messageId = 1L, senderId = selfId))
 
         coVerify(exactly = 0) { analytics.incrementReceivedCounter(any(), any()) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -236,7 +236,7 @@ class ReceivedCounterTest {
         deliver(msg) // gap fill / reconnect replays the same message
 
         coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, 1.0) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -246,7 +246,7 @@ class ReceivedCounterTest {
         deliver(textMessage(messageId = 10L, senderId = otherId))
 
         coVerify(exactly = 0) { analytics.incrementReceivedCounter(any(), any()) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -256,7 +256,7 @@ class ReceivedCounterTest {
         deliver(tipMessage(messageId = 1L, senderId = otherId, amount = cad))
 
         coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, 5.0) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -268,6 +268,6 @@ class ReceivedCounterTest {
 
         coVerify(exactly = 1) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.Tips, 1.0) }
         coVerify(exactly = 0) { analytics.incrementReceivedCounter(Analytics.ReceivedCounter.TipsValue, any()) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 }

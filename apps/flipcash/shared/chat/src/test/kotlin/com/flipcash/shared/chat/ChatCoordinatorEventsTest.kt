@@ -186,7 +186,7 @@ class ChatCoordinatorEventsTest {
                 messages.size == 1 && messages[0].messageId == 1L
             })
         }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -209,7 +209,7 @@ class ChatCoordinatorEventsTest {
                 messages.size == 1 && messages[0].messageId == 42L
             })
         }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -238,7 +238,7 @@ class ChatCoordinatorEventsTest {
                 messages.size == 2
             })
         }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     // endregion
@@ -262,7 +262,7 @@ class ChatCoordinatorEventsTest {
         runCurrent()
 
         coVerify { metadataDataSource.updateLatestEventSequence(chatId, 2L) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -290,7 +290,7 @@ class ChatCoordinatorEventsTest {
         // Cursor should advance to 1 (contiguous), not 3
         coVerify { metadataDataSource.updateLatestEventSequence(chatId, 1L) }
         coVerify(exactly = 0) { metadataDataSource.updateLatestEventSequence(chatId, 3L) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -322,7 +322,7 @@ class ChatCoordinatorEventsTest {
 
         // After filling the gap, cursor should advance to 3
         coVerify { metadataDataSource.updateLatestEventSequence(chatId, 3L) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     // endregion
@@ -359,7 +359,7 @@ class ChatCoordinatorEventsTest {
         assertEquals(1, summary.reactions.size)
         assertEquals("\uD83D\uDE00", summary.reactions[0].emoji.value)
         assertEquals(1L, summary.reactions[0].count)
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -407,7 +407,7 @@ class ChatCoordinatorEventsTest {
         assertEquals(1, reactions.size)
         assertEquals(3L, reactions[0].count) // stayed at 3, stale update rejected
         assertEquals(5L, reactions[0].sequence)
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -453,7 +453,7 @@ class ChatCoordinatorEventsTest {
         val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
         assertNotNull(reactions)
         assertTrue(reactions.isEmpty())
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -489,7 +489,7 @@ class ChatCoordinatorEventsTest {
         val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
         assertNotNull(reactions)
         assertEquals(2, reactions.size)
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     // endregion
@@ -503,7 +503,7 @@ class ChatCoordinatorEventsTest {
         runCurrent()
 
         // Logout cancels the coordinator's supervisor job (and thus its scope).
-        coordinator.reset()
+        coordinator.teardown()
         runCurrent()
 
         // Re-login in the same process. Before the fix, the scope stayed cancelled,
@@ -522,7 +522,7 @@ class ChatCoordinatorEventsTest {
                 messages.size == 1 && messages[0].messageId == 7L
             })
         }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     // endregion

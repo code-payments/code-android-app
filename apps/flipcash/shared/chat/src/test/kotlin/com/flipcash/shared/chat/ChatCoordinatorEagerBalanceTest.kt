@@ -177,7 +177,7 @@ class ChatCoordinatorEagerBalanceTest {
         runCurrent()
 
         coVerify(exactly = 1) { tokenCoordinator.add(mint, amount) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -188,7 +188,7 @@ class ChatCoordinatorEagerBalanceTest {
         runCurrent()
 
         coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -199,7 +199,7 @@ class ChatCoordinatorEagerBalanceTest {
         runCurrent()
 
         coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -217,7 +217,7 @@ class ChatCoordinatorEagerBalanceTest {
 
         coVerify(exactly = 1) { tokenCoordinator.add(mint, amount1) }
         coVerify(exactly = 1) { tokenCoordinator.add(mintB, amount2) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 
     @Test
@@ -231,6 +231,6 @@ class ChatCoordinatorEagerBalanceTest {
         runCurrent()
 
         coVerify(exactly = 1) { tokenCoordinator.add(any<Mint>(), any()) }
-        coordinator.reset()
+        coordinator.teardown()
     }
 }

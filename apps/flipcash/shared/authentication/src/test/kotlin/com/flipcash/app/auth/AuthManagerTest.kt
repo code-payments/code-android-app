@@ -11,6 +11,7 @@ import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.profile.ProfileCoordinator
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.ProfileController
@@ -65,6 +66,7 @@ class AuthManagerTest {
     private val userFlags: UserFlagsCoordinator = mockk(relaxed = true)
     private val profileCoordinator: ProfileCoordinator = mockk(relaxed = true)
     private val contactCoordinator: ContactCoordinator = mockk(relaxed = true)
+    private val chatCoordinator: ChatCoordinator = mockk(relaxed = true)
     private val userManagerState = MutableStateFlow(UserManager.State())
 
     private val networkConnectivityListener = mockk<NetworkConnectivityListener>(relaxed = true)
@@ -108,6 +110,7 @@ class AuthManagerTest {
             userFlags = userFlags,
             profileCoordinator = profileCoordinator,
             contactCoordinator = contactCoordinator,
+            chatCoordinator = chatCoordinator,
             dispatchers = dispatchers,
             networkObserver = networkConnectivityListener,
         )
@@ -162,6 +165,27 @@ class AuthManagerTest {
         verify { featureFlagController.reset() }
         verify { appSettings.reset() }
         verify { userFlags.clearAll() }
+    }
+
+    @Test
+    fun `logout leaves the chat cache in place`() = runTest {
+        coEvery { credentialManager.logout() } returns Result.success(Unit)
+
+        authManager.logout()
+
+        // The Room file is named from the account entropy, so signing out never has to erase chat
+        // history to keep accounts apart — and keeping it lets a re-login reconcile what it already
+        // has instead of rebuilding from one message per chat.
+        coVerify(exactly = 0) { chatCoordinator.clearCache() }
+    }
+
+    @Test
+    fun `deleteAndLogout erases the chat cache`() = runTest {
+        coEvery { credentialManager.logout() } returns Result.success(Unit)
+
+        authManager.deleteAndLogout()
+
+        coVerify(exactly = 1) { chatCoordinator.clearCache() }
     }
 
     @Test

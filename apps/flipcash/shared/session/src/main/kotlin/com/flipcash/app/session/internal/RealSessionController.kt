@@ -185,7 +185,7 @@ class RealSessionController @Inject constructor(
                         stopPolling()
                         depositDelegate.cancelSweep()
                         scope.launch { contactCoordinator.reset() }
-                        scope.launch { chatCoordinator.reset() }
+                        scope.launch { chatCoordinator.teardown() }
                         stateHolder.reset()
                     }
 

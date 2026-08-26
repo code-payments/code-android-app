@@ -21,6 +21,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
@@ -77,6 +78,12 @@ internal class WalletViewModel @Inject constructor(
          * short-circuit the wait: if there is already activity to draw, there is nothing to
          * mistake for a new account — and neither is a held balance, which is a live read of the
          * account rather than of the cache.
+         *
+         * The two caches are separate and settle separately. The `feedSyncState` clause covers the
+         * activity feed; the *chat* cache backing the tip milestone is covered by
+         * [onboardingItems] staying null, because the milestone flow withholds an answer until its
+         * own history has hydrated. A held balance deliberately does not short-circuit that one:
+         * it says nothing about whether the account has tipped.
          */
         val isAwaitingActivity: Boolean
             get() = onboardingItems == null ||
@@ -137,14 +144,21 @@ internal class WalletViewModel @Inject constructor(
             chatCoordinator.hasEverTipped(),
             tokenCoordinator.hasAnyBalance,
         ) { hasReceivedMoney, hasTipped, holdsBalance ->
-            Event.OnOnboardingItemsUpdated(
-                items = listOf(
-                    TutorialItem.AddMoney(isCompleted = hasReceivedMoney || holdsBalance),
-                    TutorialItem.ScanTipCard(isCompleted = hasTipped),
-                ),
-                holdsBalance = holdsBalance,
-            )
+            // A null tip milestone means the chat cache has not been reconciled yet, and an
+            // un-hydrated cache reports every account as never having tipped. Emitting nothing
+            // keeps [State.onboardingItems] null, which holds the whole tab on its spinner rather
+            // than drawing "Scan a Tip Card" as outstanding to someone who already did it.
+            hasTipped?.let {
+                Event.OnOnboardingItemsUpdated(
+                    items = listOf(
+                        TutorialItem.AddMoney(isCompleted = hasReceivedMoney || holdsBalance),
+                        TutorialItem.ScanTipCard(isCompleted = it),
+                    ),
+                    holdsBalance = holdsBalance,
+                )
+            }
         }
+            .filterNotNull()
             .onEach { dispatchEvent(it) }
             .launchIn(viewModelScope)
     }

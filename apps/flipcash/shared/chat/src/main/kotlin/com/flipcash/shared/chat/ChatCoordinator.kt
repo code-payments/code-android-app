@@ -120,8 +120,19 @@ interface MessagingOperations {
     /** Observes all messages in [chatId] as a flat list. */
     fun observeMessages(chatId: ChatId): Flow<List<ChatMessage>>
 
-    /** True once the user has ever sent a tip (a Cash message with verb TIPPED) — onboarding milestone. */
-    fun hasEverTipped(): Flow<Boolean>
+    /**
+     * Whether the user has ever sent a tip — a Cash message with verb TIPPED — or `null` while the
+     * answer is not yet trustworthy.
+     *
+     * The read is of a local cache, so an absent TIPPED message means "never tipped" only once that
+     * cache is known to be complete; before then it is indistinguishable from history that has not
+     * arrived. Onboarding is the caller, and it draws a tutorial off the answer, so it needs the
+     * third state rather than a `false` it has to guess about. Resolves to `true`/`false` once
+     * [ChatHydrationState] leaves [ChatHydrationState.Unknown] — including on
+     * [ChatHydrationState.Unavailable], so an unreachable server ends the wait instead of extending
+     * it forever.
+     */
+    fun hasEverTipped(): Flow<Boolean?>
 
     /** Observes messages in [chatId] via Paging 3, with remote-mediated page loads. */
     fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>>
@@ -166,8 +177,27 @@ interface ChatCoordinator : FeedOperations, EventStreamOperations, DmChatResolve
     /** Full observable snapshot of chat state (feed, typing, reactions, active chat). */
     val state: StateFlow<ChatState>
 
-    /** Tears down all connections, clears persisted data, and resets in-memory state. */
-    suspend fun reset()
+    /**
+     * Closes connections, cancels jobs, and drops in-memory state.
+     *
+     * Deliberately leaves the persisted cache alone. The Room database is per-account
+     * (`FlipcashDatabase.init` names the file from the account entropy), so signing out does not
+     * have to erase anything to keep the next account's data separate — logging in swaps to a
+     * different file. Keeping the cache lets a re-login reconcile what it already has via the
+     * feed sync's catch-up instead of rebuilding from nothing, which is what the "send a tip"
+     * onboarding milestone was silently losing.
+     *
+     * @see clearCache for the one caller that does want the data gone.
+     */
+    suspend fun teardown()
+
+    /**
+     * Erases this account's persisted chat history — metadata, messages, and members.
+     *
+     * Account deletion only. Ordinary logout and account switching go through [teardown] and
+     * keep the cache.
+     */
+    suspend fun clearCache()
 }
 
 class NoDmChatInitializedException(e164: String) : Exception("No DM chat for $e164")

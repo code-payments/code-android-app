@@ -7,6 +7,7 @@ import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
+import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
@@ -54,6 +55,7 @@ class AuthManager @Inject constructor(
     private val userFlags: UserFlagsCoordinator,
     private val profileCoordinator: ProfileCoordinator,
     private val contactCoordinator: ContactCoordinator,
+    private val chatCoordinator: ChatCoordinator,
     private val networkObserver: NetworkConnectivityListener,
     private val dispatchers: DispatcherProvider,
 //    private val analytics: AnalyticsService,
@@ -315,6 +317,11 @@ class AuthManager @Inject constructor(
         //todo: add account deletion
         // Wipe server contact set before logout while the session can still authenticate.
         contactCoordinator.clearServerContactSet()
+        // Deletion is the only path that erases the local chat cache. Plain logout and account
+        // switching leave it — the database is per-account, so it never has to be emptied to keep
+        // accounts apart, and keeping it lets a re-login reconcile rather than refetch. That makes
+        // this the one caller responsible for the data actually going away.
+        chatCoordinator.clearCache()
         return logout()
     }
 

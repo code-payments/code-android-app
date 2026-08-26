@@ -144,7 +144,13 @@ class RealChatCoordinator @Inject constructor(
                     is FeedSyncDelegate.Event.LoadMessages ->
                         messagingDelegate.loadMessages(event.chatId)
                     is FeedSyncDelegate.Event.DeltaSyncNeeded ->
-                        eventStreamDelegate.performDeltaSync(event.chatId)
+                        eventStreamDelegate.performDeltaSync(event.chatId, event.afterSequence)
+                    // Arrives after every catch-up item above it, because this is one sequential
+                    // collector over a FIFO channel. Anything reading chat history as evidence —
+                    // the wallet's "send a tip" milestone — waits for this rather than for the
+                    // feed sync, which reports itself synced before the backfill is scheduled.
+                    FeedSyncDelegate.Event.CatchUpComplete ->
+                        feedDelegate.markHistoryHydrated()
                 }
             }.launchIn(scope)
 
@@ -197,7 +203,7 @@ class RealChatCoordinator @Inject constructor(
 
     // region ChatCoordinator
 
-    override suspend fun reset() {
+    override suspend fun teardown() {
         eventStreamDelegate.stopHeartbeat()
         eventStreamDelegate.close()
         feedDelegate.cancelJobs()
@@ -205,9 +211,13 @@ class RealChatCoordinator @Inject constructor(
         stateHolder.reset()
         eventStreamDelegate.clearAll()
         cluster.value = null
-        messagingDelegate.clear()
         supervisorJob.cancel()
-        trace(tag = TAG, message = "reset complete", type = TraceType.Process)
+        trace(tag = TAG, message = "teardown complete", type = TraceType.Process)
+    }
+
+    override suspend fun clearCache() {
+        messagingDelegate.clear()
+        trace(tag = TAG, message = "cache cleared", type = TraceType.Process)
     }
 
     // endregion

@@ -185,8 +185,17 @@ class EventStreamDelegate @Inject constructor(
         heartbeatJob = null
     }
 
-    internal suspend fun performDeltaSync(chatId: ChatId) {
-        val afterSequence = metadataDataSource.getLatestEventSequence(chatId)
+    /**
+     * Backfills a chat from [afterSequence] onward.
+     *
+     * Callers that have already written the server's sequence to `chat_metadata` before asking for
+     * a delta must pass the sequence the cache held *beforehand* — reading it here would return
+     * the value they just wrote and ask the server for everything after its own latest event,
+     * which is always nothing. The live gap-fill path has no such write in front of it and omits
+     * the argument.
+     */
+    internal suspend fun performDeltaSync(chatId: ChatId, afterSequence: Long? = null) {
+        val afterSequence = afterSequence ?: metadataDataSource.getLatestEventSequence(chatId)
         trace(tag = TAG, message = "Delta sync for $chatId from sequence $afterSequence", type = TraceType.Process)
 
         try {
