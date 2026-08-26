@@ -155,6 +155,15 @@ class MessagingDelegate @Inject constructor(
             .onSuccess { messages ->
                 messageDataSource.upsert(chatId, messages)
 
+                // Seat the event-log cursor at the newest page's frontier. It is what marks this
+                // transcript as fetched, and it lets a following catch-up resume from head and
+                // append genuinely newer messages instead of re-pulling the whole history from
+                // sequence 0. Only ever advanced — a page older than the cursor must not rewind it.
+                val head = messages.maxOfOrNull { it.eventSequence } ?: 0L
+                if (head > metadataDataSource.getLatestEventSequence(chatId)) {
+                    metadataDataSource.updateLatestEventSequence(chatId, head)
+                }
+
                 val latest = messages.maxByOrNull { it.messageId } ?: return@onSuccess
                 metadataDataSource.updateLastMessageId(chatId, latest.messageId)
                 metadataDataSource.updateLastActivity(chatId, latest.timestamp.toEpochMilliseconds())

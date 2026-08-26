@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -16,11 +17,55 @@ interface ChatMetadataDao {
     @Query("SELECT * FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getById(chatIdHex: String): ChatMetadataEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(entity: ChatMetadataEntity)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIfAbsent(entity: ChatMetadataEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(entities: List<ChatMetadataEntity>)
+    /**
+     * Overwrites only the columns the server owns. `latest_event_sequence` and
+     * `analytics_counted_through` are client-owned watermarks that no server payload
+     * carries, so they are deliberately absent here.
+     */
+    @Query(
+        "UPDATE chat_metadata SET chat_type = :chatType, " +
+            "last_activity_epoch_ms = :lastActivityEpochMs, " +
+            "last_message_id = :lastMessageId, " +
+            "is_hidden = :isHidden " +
+            "WHERE chat_id_hex = :chatIdHex"
+    )
+    suspend fun updateServerOwnedFields(
+        chatIdHex: String,
+        chatType: String,
+        lastActivityEpochMs: Long,
+        lastMessageId: Long?,
+        isHidden: Boolean,
+    )
+
+    /**
+     * Inserts a new chat, or refreshes an existing one's server-owned columns in place.
+     *
+     * Deliberately not a whole-row REPLACE: `latest_event_sequence` is the cursor the
+     * client has actually applied from the event log, and `analytics_counted_through`
+     * is the replay guard for received-message analytics. Neither is carried by a feed
+     * payload, so replacing the row would reset both — the cursor to whatever the server
+     * reported as its head (skipping every unapplied event on the next `GetDelta`) and
+     * the analytics watermark to zero (re-counting messages already counted).
+     */
+    @Transaction
+    suspend fun upsert(entity: ChatMetadataEntity) {
+        if (insertIfAbsent(entity) != -1L) return
+        updateServerOwnedFields(
+            chatIdHex = entity.chatIdHex,
+            chatType = entity.chatType,
+            lastActivityEpochMs = entity.lastActivityEpochMs,
+            lastMessageId = entity.lastMessageId,
+            isHidden = entity.isHidden,
+        )
+    }
+
+    @Transaction
+    suspend fun upsert(entities: List<ChatMetadataEntity>) {
+        for (entity in entities) upsert(entity)
+    }
 
     @Query("SELECT last_activity_epoch_ms FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getLastActivity(chatIdHex: String): Long?

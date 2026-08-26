@@ -51,13 +51,20 @@ class ChatEntityMapper @Inject constructor() {
 
     // region ChatMetadata
 
+    /**
+     * Maps server truth onto the row. [ChatMetadata.latestEventSequence] is the server's
+     * head, not something the client has applied, so it is deliberately not carried into
+     * `latestEventSequence` — that column is the applied catch-up cursor, advanced only by
+     * a message load or a delta sync. A fresh insert therefore starts at 0, meaning "this
+     * transcript has never been fetched"; `ChatMetadataDao.upsert` leaves the column alone
+     * on an existing row.
+     */
     fun toEntity(metadata: ChatMetadata): ChatMetadataEntity {
         return ChatMetadataEntity(
             chatIdHex = metadata.chatId.bytes.toList().hexEncodedString(),
             chatType = metadata.type.name,
             lastActivityEpochMs = metadata.lastActivity.toEpochMilliseconds(),
             lastMessageId = metadata.lastMessage?.messageId,
-            latestEventSequence = metadata.latestEventSequence,
             isHidden = metadata.isHidden,
         )
     }
@@ -73,7 +80,9 @@ class ChatEntityMapper @Inject constructor() {
             members = members,
             lastMessage = lastMessage,
             lastActivity = Instant.fromEpochMilliseconds(entity.lastActivityEpochMs),
-            latestEventSequence = entity.latestEventSequence,
+            // The server's head is valid only at fetch time and is never stored, so a chat
+            // rebuilt from the database reports 0 — "unknown", not "no events".
+            latestEventSequence = 0,
             isHidden = entity.isHidden,
         )
     }
