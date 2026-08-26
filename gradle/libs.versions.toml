@@ -66,7 +66,7 @@ protovalidate-kt = "0.1.1"
 # Generated client SDKs for the two backend contracts. Separate versions on purpose: the
 # protos are independent (flipcash2 does not import ocp), so the packages move on their own
 # cadence and there is nothing to keep aligned.
-ocp-client-protocol = "0.1.0"
+ocp-client-protocol = "0.2.0"
 flipcash2-client-protocol = "0.1.0"
 
 # The Android port is the ONLY libphonenumber this app depends on, deliberately. Google's

@@ -61,6 +61,16 @@ sealed class GetRatesError(
     data class Other(override val cause: Throwable? = null) : GetRatesError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class GetBalanceError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Denied : GetBalanceError("Denied")
+    class NotFound : GetBalanceError("Not found")
+    class Unrecognized : GetBalanceError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetBalanceError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class GetMintsError(
     override val message: String? = null,
     override val cause: Throwable? = null

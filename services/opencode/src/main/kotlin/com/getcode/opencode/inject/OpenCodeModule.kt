@@ -13,6 +13,7 @@ import com.getcode.opencode.internal.annotations.OpenCodeManagedChannel
 import com.getcode.opencode.internal.annotations.OpenCodeManagedStreamingChannel
 import com.getcode.opencode.internal.annotations.OpenCodeProtocol
 import com.getcode.opencode.internal.domain.repositories.InternalAccountRepository
+import com.getcode.opencode.internal.domain.repositories.InternalBalanceRepository
 import com.getcode.opencode.internal.domain.repositories.InternalCurrencyRepository
 import com.getcode.opencode.internal.domain.repositories.InternalEventRepository
 import com.getcode.opencode.internal.domain.repositories.InternalMessagingRepository
@@ -23,12 +24,14 @@ import com.getcode.opencode.internal.exchange.RealVerifiedFiatCalculator
 import com.getcode.opencode.internal.manager.VerifiedProtoManager
 import com.getcode.opencode.internal.network.pollers.SwapPoller
 import com.getcode.opencode.internal.network.services.AccountService
+import com.getcode.opencode.internal.network.services.BalanceService
 import com.getcode.opencode.internal.network.services.CurrencyService
 import com.getcode.opencode.internal.network.services.MessagingService
 import com.getcode.opencode.internal.network.services.SwapService
 import com.getcode.opencode.internal.network.services.TransactionService
 import com.getcode.opencode.providers.SessionListener
 import com.getcode.opencode.repositories.AccountRepository
+import com.getcode.opencode.repositories.BalanceRepository
 import com.getcode.opencode.repositories.CurrencyRepository
 import com.getcode.opencode.repositories.EventRepository
 import com.getcode.opencode.repositories.MessagingRepository
@@ -179,6 +182,13 @@ object OpenCodeModule {
     internal fun providesCurrencyRepository(
         service: CurrencyService
     ): CurrencyRepository = InternalCurrencyRepository(service)
+
+    @Provides
+    @Singleton
+    internal fun providesBalanceRepository(
+        service: BalanceService
+    ): BalanceRepository = InternalBalanceRepository(service)
+
     @Provides
     @Singleton
     internal fun providesEventBus(): ChannelEventBus = ChannelEventBus()
