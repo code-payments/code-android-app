@@ -1,0 +1,30 @@
+appId: com.flipcash.app.android
+name: "Vanity deeplink — your own handle lands on the You tab"
+tags:
+  - tipping
+---
+# `flipcash.com/{username}` for the handle you own. There is nothing payable at the far end,
+# so AppRouter diverts it to the You tab — the surface that owns your own tip card — rather
+# than presenting a card that can't be acted on.
+#
+# The regression this guards is the cold start: both handle-based self-checks compare handles,
+# which they can't do until this account's profile has loaded, and a link opened from cold
+# lands inside that window. Hence `clearAppState`, which makes the deeplink the very first
+# thing the process does.
+#
+# Requires env: LOGIN_DEEPLINK, LOGIN_USERNAME (the handle that account owns).
+- runFlow: subflows/login_with_deeplink.yaml
+
+- runFlow:
+    file: helpers/launch_deeplink.yaml
+    env:
+      clearAppState: "true"
+      deeplink: https://flipcash.com/${LOGIN_USERNAME}
+
+- extendedWaitUntil:
+    visible:
+      id: menu_screen
+    timeout: 20000
+
+# Not a tip card: the You tab, showing your own handle rather than an offer to tip it.
+- assertVisible: "@${LOGIN_USERNAME}"
