@@ -77,12 +77,14 @@ class ProfileCoordinator @Inject constructor(
 @Serializable
 private data class CachedProfile(
     val displayName: String? = null,
+    val username: String? = null,
     val socialAccounts: List<CachedSocialAccount> = emptyList(),
     val phoneNumber: VerifiableContactMethod? = null,
     val email: VerifiableContactMethod? = null,
 ) {
     fun toDomain(): UserProfile = UserProfile(
         displayName = displayName.orEmpty(),
+        username = username,
         socialAccounts = socialAccounts.mapNotNull { it.toDomain() },
         phoneNumber = phoneNumber,
         email = email,
@@ -91,6 +93,7 @@ private data class CachedProfile(
     companion object {
         fun fromDomain(profile: UserProfile): CachedProfile = CachedProfile(
             displayName = profile.displayName,
+            username = profile.username,
             socialAccounts = profile.socialAccounts.map { CachedSocialAccount.fromDomain(it) },
             phoneNumber = profile.phoneNumber,
             email = profile.email,

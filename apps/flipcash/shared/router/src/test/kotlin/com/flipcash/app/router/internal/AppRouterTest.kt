@@ -6,6 +6,7 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.core.util.Linkify
+import com.flipcash.app.core.tipping.TipCardOwner
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.AuthState
 import com.getcode.opencode.model.core.ID
@@ -33,10 +34,11 @@ class AppRouterTest {
 
     private var authState: AuthState = AuthState.Ready
     private var currentUserId: ID? = null
+    private var currentUsername: String? = null
 
     private val router = AppRouter(
         authStateProvider = { authState },
-        currentUserIdProvider = { currentUserId },
+        currentUserProvider = { AppRouter.CurrentUser(currentUserId, currentUsername) },
     )
 
     private fun loggedIn() { authState = AuthState.Ready }
@@ -393,7 +395,7 @@ class AppRouterTest {
         val action = router.dispatch(DeepLink("https://app.flipcash.com/tip/$userId"))
 
         assertIs<DeeplinkAction.PresentTipCard>(action)
-        assertEquals(UUID.fromString(userId).bytes, action.userId)
+        assertEquals(TipCardOwner.ById(UUID.fromString(userId).bytes), action.owner)
     }
 
     @Test
@@ -418,6 +420,143 @@ class AppRouterTest {
         val action = router.dispatch(DeepLink("https://app.flipcash.com/tip/$userId"))
 
         assertIs<DeeplinkAction.PresentTipCard>(action)
+    }
+
+    // endregion
+
+    // region classify + dispatch — vanity profile links
+
+    @Test
+    fun `classify recognizes a vanity profile link`() {
+        val type = router.classify(DeepLink(Linkify.tipcard(TipCardOwner.ByUsername("sally_streamer"))))
+        assertIs<DeeplinkType.TipcardByUsername>(type)
+        assertEquals("sally_streamer", type.username)
+    }
+
+    @Test
+    fun `classify lowercases a vanity profile link`() {
+        val type = router.classify(DeepLink("https://flipcash.com/Sally_Streamer"))
+        assertIs<DeeplinkType.TipcardByUsername>(type)
+        assertEquals("sally_streamer", type.username)
+    }
+
+    @Test
+    fun `classify recognizes a vanity profile link on the www host`() {
+        val type = router.classify(DeepLink("https://www.flipcash.com/sally_streamer"))
+        assertIs<DeeplinkType.TipcardByUsername>(type)
+    }
+
+    @Test
+    fun `classify ignores the website's own pages on the vanity host`() {
+        assertNull(router.classify(DeepLink(Linkify.download("abc123"))))
+        assertNull(router.classify(DeepLink("https://flipcash.com/privacy")))
+        assertNull(router.classify(DeepLink("https://flipcash.com/terms")))
+    }
+
+    // The reserved list is Android's half of a pair: iOS says the same thing with the AASA's
+    // `exclude` entries. Anything the website serves and this list misses is a page that opens the
+    // app and dead-ends on "username not found", so the two are checked against each other.
+    @Test
+    fun `classify ignores every handle-shaped path the AASA excludes`() {
+        val excludedByTheAasa = listOf(
+            "app", "api", "assets", "fonts", "icons", "js", "v1",
+            "pool", "wallet", "currencycreator",
+            "blog", "download", "privacy", "support", "terms",
+            "c", "cash", "chat", "tip", "token", "verify",
+        )
+        excludedByTheAasa.forEach { path ->
+            assertNull(
+                router.classify(DeepLink("https://flipcash.com/$path")),
+                "flipcash.com/$path belongs to the website, not to a handle",
+            )
+        }
+    }
+
+    // Reserved by path, not by case: the App Link filter admits mixed case (a link is typed or
+    // auto-capitalised), and isVanityProfile lowercases before consulting the list.
+    @Test
+    fun `classify ignores a reserved path in mixed case`() {
+        assertNull(router.classify(DeepLink("https://flipcash.com/Download")))
+        assertNull(router.classify(DeepLink("https://flipcash.com/CurrencyCreator")))
+    }
+
+    @Test
+    fun `classify ignores a vanity path that isn't shaped like a handle`() {
+        // Too short, too long, and outside the server's charset.
+        assertNull(router.classify(DeepLink("https://flipcash.com/a")))
+        assertNull(router.classify(DeepLink("https://flipcash.com/sixteencharacter")))
+        assertNull(router.classify(DeepLink("https://flipcash.com/sally.streamer")))
+    }
+
+    @Test
+    fun `classify ignores a multi-segment path on the vanity host`() {
+        assertNull(router.classify(DeepLink("https://flipcash.com/sally/streamer")))
+    }
+
+    @Test
+    fun `classify does not treat the app host as a vanity link`() {
+        assertNull(router.classify(DeepLink("https://app.flipcash.com/sally_streamer")))
+    }
+
+    @Test
+    fun `dispatch presents the tip card for a vanity profile link`() {
+        loggedIn()
+        val action = router.dispatch(DeepLink(Linkify.tipcard(TipCardOwner.ByUsername("sally_streamer"))))
+        assertIs<DeeplinkAction.PresentTipCard>(action)
+        assertEquals(TipCardOwner.ByUsername("sally_streamer"), action.owner)
+    }
+
+    // Your own handle diverts to the You tab here rather than after resolution: the session
+    // announces a self-tip through a replay-less event only the scanner collects, so a link
+    // opened onto any other tab would drop it silently.
+    @Test
+    fun `dispatch routes your own vanity profile link to the You tab`() {
+        loggedIn()
+        currentUsername = "sally_streamer"
+        val action = router.dispatch(DeepLink(Linkify.tipcard(TipCardOwner.ByUsername("sally_streamer"))))
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertEquals(AppRoute.Sheets.Menu, action.routes.single())
+    }
+
+    // A link can be typed or pasted in any case; handles are lowercase on the wire.
+    @Test
+    fun `dispatch matches your own handle regardless of case`() {
+        loggedIn()
+        currentUsername = "sally_streamer"
+        val action = router.dispatch(DeepLink("https://flipcash.com/Sally_Streamer"))
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertEquals(AppRoute.Sheets.Menu, action.routes.single())
+    }
+
+    @Test
+    fun `dispatch routes a vanity profile link to onboarding when logged out`() {
+        loggedOut()
+        val action = router.dispatch(DeepLink(Linkify.tipcard(TipCardOwner.ByUsername("sally_streamer"))))
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertIs<AppRoute.OnboardingFlow>(action.routes.single())
+    }
+
+    @Test
+    fun `dispatch hands an unrouted vanity-host link back to the web`() {
+        loggedIn()
+        val action = router.dispatch(DeepLink("https://flipcash.com/privacy"))
+        assertIs<DeeplinkAction.OpenExternally>(action)
+        assertEquals("https://flipcash.com/privacy", action.url)
+    }
+
+    @Test
+    fun `dispatch hands the vanity host back to the web even when logged out`() {
+        // The escape hatch runs before the auth check: onboarding is no better a landing place for
+        // a website link than the home screen is.
+        loggedOut()
+        assertIs<DeeplinkAction.OpenExternally>(router.dispatch(DeepLink(Linkify.download("abc123"))))
+    }
+
+    @Test
+    fun `dispatch leaves an unrouted link on another host alone`() {
+        loggedIn()
+        assertEquals(DeeplinkAction.None, router.dispatch(DeepLink("https://app.flipcash.com/nonsense")))
+        assertEquals(DeeplinkAction.None, router.dispatch(DeepLink("https://example.com/privacy")))
     }
 
     // endregion

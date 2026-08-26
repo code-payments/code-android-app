@@ -22,6 +22,13 @@ sealed interface DeeplinkType: Parcelable {
 
     @Serializable data class Tipcard(val userId: ID): DeeplinkType
 
+    /**
+     * A vanity `flipcash.com/{username}` link — the same destination as [Tipcard], addressed by the
+     * owner's public handle. The id it resolves to is the server's to supply, so it stays a
+     * username all the way to the session.
+     */
+    @Serializable data class TipcardByUsername(val username: String): DeeplinkType
+
     @Serializable
     data class EmailVerification(
         val email: String,

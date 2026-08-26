@@ -1,13 +1,19 @@
 package com.flipcash.app.core.navigation
 
-import com.getcode.opencode.model.core.ID
+import com.flipcash.app.core.tipping.TipCardOwner
 import com.getcode.solana.keys.Mint
 
 sealed interface DeeplinkAction {
     data class Navigate(val routes: List<com.flipcash.app.core.AppRoute>) : DeeplinkAction
     data class Login(val entropy: String) : DeeplinkAction
     data class OpenCashLink(val entropy: String) : DeeplinkAction
-    data class PresentTipCard(val userId: ID): DeeplinkAction
+
+    /**
+     * Present someone's tip card. [owner] carries how the link named them — a `/tip/{id}` link by
+     * id, a vanity `flipcash.com/{username}` link by handle — because resolving the handle is a
+     * server round trip, and that belongs to the session rather than to the router.
+     */
+    data class PresentTipCard(val owner: TipCardOwner): DeeplinkAction
 
     /**
      * A `/token/{mint}` link.
@@ -24,6 +30,16 @@ sealed interface DeeplinkAction {
         val mint: Mint,
         val routes: List<com.flipcash.app.core.AppRoute>,
     ) : DeeplinkAction
+
+    /**
+     * A link the app captured but doesn't route — hand it back to the web.
+     *
+     * Only the bare `flipcash.com` host produces one. Its path space is shared with the website
+     * (/download, /privacy, /terms), and the App Link filter can only narrow it to the handle
+     * charset — which those words also satisfy, and which older platforms ignore entirely. Rather
+     * than dead-end the tap on the home screen, the URL goes to a browser.
+     */
+    data class OpenExternally(val url: String) : DeeplinkAction
 
     data object None : DeeplinkAction
 }

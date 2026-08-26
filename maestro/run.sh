@@ -29,6 +29,8 @@ cred() {
 SEED_PHRASE="$(cred SEED_PHRASE)"
 LOGIN_DEEPLINK="$(cred LOGIN_DEEPLINK)"
 TIPCARD_DEEPLINK="$(cred TIPCARD_DEEPLINK)"
+# The handle the SEED_PHRASE/LOGIN_DEEPLINK account has claimed, for the vanity-link flows.
+LOGIN_USERNAME="$(cred LOGIN_USERNAME)"
 # Dedicated USDF-only (reserves-only) account for gate tests.
 USDF_ONLY_DEEPLINK="$(cred USDF_ONLY_DEEPLINK)"
 # On-Flipcash contact for send-to-contact tests (seeded into the emulator's contacts).
@@ -84,6 +86,7 @@ maestro --device "$DEVICE" test \
   -e SEED_PHRASE="$SEED_PHRASE" \
   -e LOGIN_DEEPLINK="$LOGIN_DEEPLINK" \
   -e TIPCARD_DEEPLINK="$TIPCARD_DEEPLINK" \
+  -e LOGIN_USERNAME="$LOGIN_USERNAME" \
   -e USDF_ONLY_DEEPLINK="$USDF_ONLY_DEEPLINK" \
   -e CONTACT_NAME="$CONTACT_NAME" \
   -e CONTACT_PHONE="$CONTACT_PHONE" \

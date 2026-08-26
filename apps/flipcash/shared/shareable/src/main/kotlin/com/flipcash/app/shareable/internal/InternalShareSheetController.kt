@@ -14,6 +14,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.flipcash.app.core.money.formatted
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.core.util.MessagingPackages
+import com.flipcash.app.core.tipping.TipCardOwner
 import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.ShareSheetController.Companion.ACTION_CASH_LINK_SHARED
@@ -292,7 +293,11 @@ internal class InternalShareSheetController(
     }
 
     private fun shareTipCard(shareable: Shareable.TipCard) {
-        val url = Linkify.tipcard(shareable.userId)
+        // Addressed the same way the You tab's link row addresses it, so what gets shared is what
+        // the card says it is.
+        val url = Linkify.tipcard(
+            TipCardOwner.preferringUsername(shareable.username, shareable.userId)
+        )
         val preview = shareable.preview
 
         val intent = Intent(Intent.ACTION_SEND).apply {

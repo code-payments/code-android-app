@@ -398,6 +398,7 @@ internal val Analytics.AddMoneySource.propertyValue: String
         Analytics.AddMoneySource.Menu -> "Menu"
         Analytics.AddMoneySource.GiveShortfall -> "Give Shortfall"
         Analytics.AddMoneySource.BuyShortfall -> "Buy Shortfall"
+        Analytics.AddMoneySource.UsernameShortfall -> "Username Shortfall"
         Analytics.AddMoneySource.Chat -> "Chat"
         Analytics.AddMoneySource.Scanner -> "Scanner"
         Analytics.AddMoneySource.Balance -> "Balance"

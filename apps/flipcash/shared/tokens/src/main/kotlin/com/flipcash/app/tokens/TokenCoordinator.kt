@@ -15,6 +15,7 @@ import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.sources.TokenDataSource
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.app.tokens.core.ReservesBalanceProvider
+import com.flipcash.app.tokens.core.TotalBalanceProvider
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TokenController
 import com.getcode.opencode.exchange.Exchange
@@ -32,6 +33,7 @@ import com.getcode.opencode.model.financial.TokenResult
 import com.getcode.opencode.model.financial.TokenWithBalance
 import com.getcode.opencode.model.financial.minus
 import com.getcode.opencode.model.financial.plus
+import com.getcode.opencode.model.financial.sum
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.providers.SessionListener
 import com.getcode.opencode.providers.TokenMetadataProvider
@@ -112,7 +114,8 @@ class TokenCoordinator @Inject constructor(
     private val dataSource: TokenDataSource,
     private val featureFlags: FeatureFlagController,
     private val dispatchers: DispatcherProvider,
-) : TokenMetadataProvider, SessionListener, DefaultLifecycleObserver, ReservesBalanceProvider {
+) : TokenMetadataProvider, SessionListener, DefaultLifecycleObserver, ReservesBalanceProvider,
+    TotalBalanceProvider {
 
     companion object {
         private const val TAG = "TokenCoordinator"
@@ -280,6 +283,19 @@ class TokenCoordinator @Inject constructor(
     fun reservesBalance(): Fiat = balanceForToken(Token.usdf)
 
     override fun observeReservesBalance(): Flow<Fiat> = balanceForToken(Mint.usdf)
+
+    /**
+     * Every token added together, reserves included — the number the username minimum-balance rule
+     * is measured against.
+     *
+     * Summing the raw balances is safe because they are all USD-denominated: [Fiat.plus] refuses a
+     * mismatched `currencyCode`, so a non-USD balance in this map would already be failing
+     * elsewhere. Summing before rounding also matches how the token list computes its total, and
+     * how iOS computes this one.
+     */
+    override fun observeTotalBalance(): Flow<Fiat> = _state
+        .map { state -> state.balances.values.sum() }
+        .distinctUntilChanged()
 
     suspend fun add(token: Token, fiat: LocalFiat) {
         val rate = exchange.rateToUsd(fiat.rate.currency)

@@ -20,6 +20,7 @@ iOS's `FlipcashUITests`. Flows are plain YAML under `maestro/`; reusable pieces 
    SEED_PHRASE=word1 word2 ... word12          # primary account (tip-enabled)
    LOGIN_DEEPLINK=https://app.flipcash.com/login?data=...   # same account as SEED_PHRASE
    TIPCARD_DEEPLINK=https://app.flipcash.com/tip/...        # the primary account's tip card
+   LOGIN_USERNAME=sally_streamer               # the handle that same account has claimed
    USDF_ONLY_DEEPLINK=https://app.flipcash.com/login?data=...  # reserves-only gate account
    CONTACT_NAME=Brandon McAnsh                  # an on-Flipcash contact for send-to-contact
    CONTACT_PHONE=+15869802333                   # seed this contact into the emulator
@@ -120,6 +121,13 @@ maestro/run.sh maestro/tipping_setup.yaml
   Blocked, then unblock (leaves the account clean)
 - `tip_deeplink.yaml` — open a tip-card deeplink (`TIPCARD_DEEPLINK`) → presents the tip flow
   (waits for balances to sync first, else the empty-cache state trips the add-money gate)
+- `vanity_deeplink_self.yaml` — `flipcash.com/{LOGIN_USERNAME}` followed by the account that owns
+  that handle → the You tab, not a tip card. Opens from cold on purpose: the handle-based
+  self-checks are blind until the account's own profile has loaded, and that is the window a
+  link tapped from outside the app lands in
+- `vanity_deeplink_tip.yaml` — the same link followed by a brand-new account → that handle
+  owner's tip card, asserted on the `@handle` the card draws under the name (`creates-account`,
+  so it is excluded from the default CI tag set)
 - `buy.yaml` — token info → Buy → payment currency → confirm-purchase screen (fund-safe)
 - `sell.yaml` — token info → Sell → amount entry (fund-safe)
 - `currency_creator.yaml` — Discover → Create Your Own Currency → intro + $20 balance gate

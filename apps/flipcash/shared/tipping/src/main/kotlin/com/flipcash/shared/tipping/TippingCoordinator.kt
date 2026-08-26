@@ -4,6 +4,7 @@ import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.tipping.OwnTipCard
 import com.flipcash.app.core.tipping.TipAmount
 import com.flipcash.app.core.tipping.TipEvent
 import com.flipcash.app.core.tipping.TipSelectionHolder
@@ -79,6 +80,10 @@ class TippingCoordinator @Inject constructor(
     /** The signed-in user's id ([UserManager.accountId]), or null if unavailable. */
     val currentUserId: ID?
         get() = userManager.accountId
+
+    /** The signed-in user's claimed handle, or null when they haven't claimed one. */
+    val currentUsername: String?
+        get() = userManager.profile?.username?.takeIf { it.isNotBlank() }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -293,16 +298,44 @@ class TippingCoordinator @Inject constructor(
      */
     suspend fun resolveTipCard(userId: ID): Result<Scannable.TipCard> =
         resolveProfile(userId)
-            .onSuccess {
-                // Dual gating, like the send / currency-creator flows: the presentation gate only
-                // asks "is there any giveable balance?" (no amount threshold, so it stays currency-
-                // agnostic). The minimum-tip and per-amount affordability are enforced downstream —
-                // the amount entry's below-min / over-balance gates and confirmTip.
-                _canTip.value = tokenCoordinator.hasGiveableBalance()
-                _userId.value = userId
-                vibrator.vibrate()
-            }
+            .onSuccess { onCardResolved(userId) }
             .map { tipCard(userId, it) }
+
+    /**
+     * The same, for someone named by their public handle — the only thing a
+     * `flipcash.com/{username}` link carries. One round trip, not two: the profile fetch answers
+     * with the user's id, which is what the card is actually built from.
+     *
+     * Fails when the handle is unclaimed (the server's `NotFound`), when the profile comes back
+     * without an id, which would leave nothing to encode into the scannable code, or when the
+     * handle turns out to be the viewer's own ([OwnTipCard]).
+     */
+    suspend fun resolveTipCard(username: String): Result<Scannable.TipCard> =
+        profileController.getProfileForUsername(username)
+            .mapCatching { profile ->
+                val userId = profile.userId
+                    ?: throw IllegalStateException("Profile for @$username carries no user id")
+                // The second self-check, and the only one that can't be fooled. The two before it
+                // compare handles, so they answer "not me" for the whole window between signing in
+                // and this account's own profile arriving — which is exactly when a cold-started
+                // link lands. The id off the wire has no such window.
+                // Mirrors iOS TipFlow.prepare's `guard userID != session.userID`.
+                if (userId == currentUserId) throw OwnTipCard(username)
+                onCardResolved(userId)
+                tipCard(userId, profile)
+            }
+
+    /**
+     * Dual gating, like the send / currency-creator flows: the presentation gate only asks "is
+     * there any giveable balance?" (no amount threshold, so it stays currency-agnostic). The
+     * minimum-tip and per-amount affordability are enforced downstream — the amount entry's
+     * below-min / over-balance gates and confirmTip.
+     */
+    private suspend fun onCardResolved(userId: ID) {
+        _canTip.value = tokenCoordinator.hasGiveableBalance()
+        _userId.value = userId
+        vibrator.vibrate()
+    }
 
     /** Updates the tip submission's processing state; used by the send path (see [confirmTip]). */
     private fun setSendState(state: LoadingSuccessState) {

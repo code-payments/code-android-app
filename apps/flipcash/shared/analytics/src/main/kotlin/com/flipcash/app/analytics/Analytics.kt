@@ -89,7 +89,7 @@ object Analytics {
         data object SentTip : Transfer
     }
     enum class OnrampSource { Settings, Balance, Give }
-    enum class AddMoneySource { Menu, GiveShortfall, BuyShortfall, Chat, Scanner, Balance }
+    enum class AddMoneySource { Menu, GiveShortfall, BuyShortfall, UsernameShortfall, Chat, Scanner, Balance }
     enum class AddMoneyMethod { Coinbase, Phantom, OtherWallet, Reserves }
     enum class OnrampVerificationStep { ShowInfo, EnterPhone, ConfirmPhone, EnterEmail, ConfirmEmail }
     enum class OnrampPurchaseStep { PresetSelected, EnterCustomAmount, InvokePayment, InvokePaymentCustom, Completed }

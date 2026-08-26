@@ -19,6 +19,7 @@ import com.flipcash.app.core.AppRoute.Token.*
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.app.core.tipping.TipCardOwner
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.router.LocalRouter
@@ -164,7 +165,12 @@ internal fun Scanner() {
                                     }
                                     is DeeplinkType.Login -> Unit
                                     is DeeplinkType.Tipcard -> {
-                                        session.resolveTipCard(deeplink.userId)
+                                        session.resolveTipCard(TipCardOwner.ById(deeplink.userId))
+                                    }
+                                    // A printed or on-screen `flipcash.com/{username}` is the
+                                    // same card as a scanned /tip/{id}, addressed by handle.
+                                    is DeeplinkType.TipcardByUsername -> {
+                                        session.resolveTipCard(TipCardOwner.ByUsername(deeplink.username))
                                     }
                                 }
                             }

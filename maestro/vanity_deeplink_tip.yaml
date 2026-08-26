@@ -1,0 +1,26 @@
+appId: com.flipcash.app.android
+name: "Vanity deeplink — someone else's handle presents their tip card"
+tags:
+  - tipping
+  - creates-account
+---
+# The other half of `vanity_deeplink_self.yaml`: the same link, followed by an account that
+# doesn't own the handle, resolves it over the wire and presents that person's card.
+#
+# A brand-new account rather than one of the seeded logins, because the seeded ones are the
+# handle's owner — this needs a viewer who is demonstrably somebody else.
+#
+# Requires env: LOGIN_USERNAME (a handle owned by a different account than the one created here).
+- runFlow:
+    file: subflows/create_account.yaml
+    env:
+      BETA_FLAGS: ""
+
+- openLink: https://flipcash.com/${LOGIN_USERNAME}
+
+# The handle under the name is what proves the link resolved to its owner — the display name
+# would only show that *a* card opened. See TipCard: the line is drawn only once a handle is
+# claimed, so asserting it also covers the rendering.
+- extendedWaitUntil:
+    visible: "@${LOGIN_USERNAME}"
+    timeout: 20000

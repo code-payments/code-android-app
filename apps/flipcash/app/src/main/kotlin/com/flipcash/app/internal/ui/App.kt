@@ -1,5 +1,9 @@
 package com.flipcash.app.internal.ui
 
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SharedTransitionLayout
@@ -49,6 +53,8 @@ import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.featureflags.model.BackgroundResetTimeout
+import androidx.core.net.toUri
+import com.flipcash.app.MainActivity
 import com.flipcash.app.internal.ui.navigation.AppContent
 import com.flipcash.app.internal.ui.navigation.NewAppContent
 import com.flipcash.app.internal.ui.navigation.appEntryProvider
@@ -61,6 +67,7 @@ import com.flipcash.app.theme.FlipcashTheme
 import com.flipcash.features.shareapp.R
 import com.flipcash.services.user.AuthState
 import com.getcode.animation.LocalSharedTransitionScope
+import com.getcode.utils.trace
 import com.getcode.libs.biometrics.BiometricsError
 import com.getcode.libs.qr.rememberQrBitmapPainter
 import com.getcode.navigation.AppNavHost
@@ -200,7 +207,9 @@ internal fun App(
                                                         is DeeplinkAction.OpenCashLink ->
                                                             session.openCashLink(action.entropy)
                                                         is DeeplinkAction.PresentTipCard ->
-                                                            session.resolveTipCard(action.userId)
+                                                            session.resolveTipCard(action.owner)
+                                                        is DeeplinkAction.OpenExternally ->
+                                                            context.openInBrowser(action.url)
                                                         is DeeplinkAction.Login ->
                                                             viewModel.handleLoginEntropy(
                                                                 action.entropy,
@@ -231,7 +240,9 @@ internal fun App(
                                                         is DeeplinkAction.OpenCashLink ->
                                                             session.openCashLink(action.entropy)
                                                         is DeeplinkAction.PresentTipCard ->
-                                                            session.resolveTipCard(action.userId)
+                                                            session.resolveTipCard(action.owner)
+                                                        is DeeplinkAction.OpenExternally ->
+                                                            context.openInBrowser(action.url)
                                                         is DeeplinkAction.Login ->
                                                             viewModel.handleLoginEntropy(
                                                                 action.entropy,
@@ -338,7 +349,10 @@ internal fun App(
                                             onDismissed = { }
                                         )
 
-                                        is DeeplinkAction.PresentTipCard -> session.resolveTipCard(action.userId)
+                                        is DeeplinkAction.PresentTipCard ->
+                                            session.resolveTipCard(action.owner)
+                                        is DeeplinkAction.OpenExternally ->
+                                            context.openInBrowser(action.url)
                                         is DeeplinkAction.OpenCashLink -> session.openCashLink(
                                             action.entropy
                                         )
@@ -451,3 +465,38 @@ private fun BackgroundResetEffect(
     }
 }
 
+/**
+ * Hand a link back to the web — the tail of [DeeplinkAction.OpenExternally].
+ *
+ * Not `ChromeTabsUtils.launchUrl`, and not `LocalUriHandler`: both send a package-less `ACTION_VIEW`,
+ * and this URL is on a host we are a verified handler for, so it would resolve straight back to us
+ * and the tap would loop. The browser has to be named. Resolving the default one keeps the hop
+ * invisible, which is what a tap on `flipcash.com/download` should feel like; when there isn't one to
+ * name — no default set, or the resolver activity answered — the chooser does it instead, with our
+ * own activity excluded so it can't be picked.
+ */
+private fun Context.openInBrowser(url: String) {
+    val uri = url.toUri()
+    val view = Intent(Intent.ACTION_VIEW, uri).addCategory(Intent.CATEGORY_BROWSABLE)
+
+    // Probed against a host we make no claim on, so the answer is a browser rather than ourselves.
+    val probe = Intent(Intent.ACTION_VIEW, "https://example.com".toUri())
+        .addCategory(Intent.CATEGORY_BROWSABLE)
+    val browser = packageManager
+        .resolveActivity(probe, PackageManager.MATCH_DEFAULT_ONLY)
+        ?.activityInfo
+        ?.packageName
+        ?.takeIf { it != packageName && it != "android" }
+
+    val intent = if (browser != null) {
+        view.setPackage(browser)
+    } else {
+        Intent.createChooser(view, null).putExtra(
+            Intent.EXTRA_EXCLUDE_COMPONENTS,
+            arrayOf(ComponentName(this, MainActivity::class.java)),
+        )
+    }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+    runCatching { startActivity(intent) }
+        .onFailure { trace(tag = "Deeplink", message = "No browser to open $url", error = it) }
+}

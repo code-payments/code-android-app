@@ -3,10 +3,12 @@ package com.flipcash.app.session.internal.delegates
 import com.flipcash.app.analytics.FlipcashAnalyticsService
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.core.tipping.TipCardOwner
 import com.flipcash.app.session.TipCardEvent
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.shared.tipping.TippingCoordinator
 import com.getcode.opencode.model.core.ID
+import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -37,10 +39,12 @@ class TipCardDelegateTest {
         every { currentUserId } returns self
     }
     private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
+    private val resources = mockk<ResourceHelper>(relaxed = true)
 
     private fun delegate() = TipCardDelegate(
         tippingCoordinator = tippingCoordinator,
         analytics = analytics,
+        resources = resources,
         dispatchers = TestDispatcherProvider(UnconfinedTestDispatcher()),
     )
 
@@ -51,7 +55,7 @@ class TipCardDelegateTest {
         // Let the collector attach before emitting — the flow is replay-less.
         testScheduler.advanceUntilIdle()
 
-        delegate.resolveTipCard(self)
+        delegate.resolveTipCard(TipCardOwner.ById(self))
 
         assertEquals(TipCardEvent.OwnCardScanned, event.await())
         coVerify(exactly = 0) { tippingCoordinator.resolveTipCard(any<ID>()) }
@@ -66,7 +70,7 @@ class TipCardDelegateTest {
         val presented = async { delegate.events.first() }
         testScheduler.advanceUntilIdle()
 
-        delegate.resolveTipCard(other)
+        delegate.resolveTipCard(TipCardOwner.ById(other))
 
         assertEquals(TipCardDelegate.Event.Present(card), presented.await())
     }

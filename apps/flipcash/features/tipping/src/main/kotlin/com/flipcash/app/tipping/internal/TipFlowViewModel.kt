@@ -112,7 +112,14 @@ internal class TipFlowViewModel @Inject constructor(
                 val title = stateFlow.value.tipCard?.user?.displayName
                     ?.let { resources.getString(R.string.label_tipUser, it) }
                 // Attach the eagerly-rendered preview if it's ready; null shares the URL alone.
-                shareable.present(Shareable.TipCard(userId, tipCodePreviewCache.get(userId), title))
+                shareable.present(
+                    Shareable.TipCard(
+                        userId = userId,
+                        preview = tipCodePreviewCache.get(userId),
+                        title = title,
+                        username = stateFlow.value.tipCard?.user?.username,
+                    )
+                )
             }
             .launchIn(viewModelScope)
     }

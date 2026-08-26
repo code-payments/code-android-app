@@ -50,6 +50,10 @@ sealed interface Shareable {
         val preview: TipCodePreview? = null,
         // Optional Sharesheet title shown above the link (e.g. "Tip Brandon McAnsh").
         val title: String? = null,
+        // The owner's claimed handle, when they have one. Carried so the shared link is the vanity
+        // form the You tab shows and copies — sharing a UUID for a card that displays
+        // `flipcash.com/<username>` would hand out a second, unrecognisable address for it.
+        val username: String? = null,
     ): Shareable {
         override val pendingData: ShareablePendingData? = null
     }

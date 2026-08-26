@@ -2,6 +2,7 @@ package com.flipcash.app.myaccount.internal
 
 import com.flipcash.app.myaccount.internal.myaccount.Blocklist
 import com.flipcash.app.myaccount.internal.myaccount.ChangeDisplayName
+import com.flipcash.app.myaccount.internal.myaccount.ChangeUsername
 import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreenViewModel
 import com.flipcash.app.myaccount.internal.myaccount.RequireBiometrics
 import com.flipcash.app.myaccount.internal.myaccount.UserProfile
@@ -15,9 +16,9 @@ class MyAccountScreenViewModelStateTest {
     private val reduce = MyAccountScreenViewModel.Companion.updateStateForEvent
 
     @Test
-    fun `default state lists the display name, biometrics and blocklist`() {
+    fun `default state lists the display name, username, biometrics and blocklist`() {
         val state = MyAccountScreenViewModel.State()
-        assertEquals(listOf(ChangeDisplayName, RequireBiometrics, Blocklist), state.items)
+        assertEquals(listOf(ChangeDisplayName, ChangeUsername, RequireBiometrics, Blocklist), state.items)
         assertFalse(state.biometricsRequired)
     }
 
@@ -161,6 +162,8 @@ class MyAccountScreenViewModelStateTest {
             MyAccountScreenViewModel.Event.OnBiometricsToggled,
             MyAccountScreenViewModel.Event.OnChangeDisplayNameClicked,
             MyAccountScreenViewModel.Event.OnEditDisplayName,
+            MyAccountScreenViewModel.Event.OnChangeUsernameClicked,
+            MyAccountScreenViewModel.Event.OnEditUsername,
             MyAccountScreenViewModel.Event.OnContactMethodsClicked,
             MyAccountScreenViewModel.Event.OnViewUserProfile,
             MyAccountScreenViewModel.Event.OnBlocklistClicked,

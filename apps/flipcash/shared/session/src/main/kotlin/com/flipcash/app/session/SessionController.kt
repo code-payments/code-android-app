@@ -3,6 +3,7 @@ package com.flipcash.app.session
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.core.tipping.TipCardOwner
 import com.flipcash.app.session.BillDeterminationResult.ActedUpon
 import com.getcode.opencode.model.financial.Token
 import com.flipcash.app.core.AppRoute
@@ -52,7 +53,13 @@ interface TipCardOperations {
      * every producer runs while the scanner is on screen.
      */
     val tipCardEvents: Flow<TipCardEvent>
-    fun resolveTipCard(user: ID)
+
+    /**
+     * Resolves [owner]'s tip card and presents it. Both ways of naming them arrive here — a scan or
+     * a `/tip/{id}` link by id, a `flipcash.com/{username}` link by handle — because everything
+     * after resolution is the same card.
+     */
+    fun resolveTipCard(owner: TipCardOwner)
 }
 
 interface DepositOperations {

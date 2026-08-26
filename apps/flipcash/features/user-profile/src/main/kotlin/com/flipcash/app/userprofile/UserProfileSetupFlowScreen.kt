@@ -9,6 +9,7 @@ import com.flipcash.app.core.userprofile.UpdateProfileResult
 import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.userprofile.internal.name.NameEntryScreen
 import com.flipcash.app.userprofile.internal.photo.PhotoSelectionScreen
+import com.flipcash.app.userprofile.internal.username.UsernameEntryScreen
 import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowExitReason
@@ -59,6 +60,9 @@ private fun profileUpdateProvider(
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<UpdateProfileStep.Name> {
         NameEntryScreen(source = route.nameSource, allowBack = route.allowBack)
+    }
+    annotatedEntry<UpdateProfileStep.Username> {
+        UsernameEntryScreen()
     }
     annotatedEntry<UpdateProfileStep.Photo> {
         PhotoSelectionScreen()

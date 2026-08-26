@@ -33,6 +33,7 @@ import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
 import com.getcode.opencode.model.core.ID
 import com.flipcash.services.models.SocialAccount
+import com.flipcash.services.models.handle
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.NavigationTrigger
@@ -306,8 +307,7 @@ class NotificationService : FirebaseMessagingService(),
     private fun UserProfile.socialHandle(): String? =
         socialAccounts.filterIsInstance<SocialAccount.TwitterX>()
             .firstOrNull()
-            ?.username
-            ?.let { "@$it" }
+            ?.handle
 
     /**
      * Loads a remote avatar [url] into a software [Bitmap] via the app's shared

@@ -88,6 +88,20 @@ fun Preview_TipCard() {
         payloadData = PREVIEW_CODE_DATA,
         user = UserProfile.Empty.copy(
             displayName = "Flipcash User",
+            username = "flipcash_user",
+        )
+    )
+}
+
+/** The same card for an account that hasn't claimed a handle — the second line is absent, not blank. */
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+fun Preview_TipCard_NoUsername() {
+    TipCard(
+        payloadData = PREVIEW_CODE_DATA,
+        user = UserProfile.Empty.copy(
+            displayName = "Flipcash User",
         )
     )
 }
