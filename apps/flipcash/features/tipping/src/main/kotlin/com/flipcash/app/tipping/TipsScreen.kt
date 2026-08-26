@@ -37,6 +37,7 @@ import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.CodeScaffold
 
@@ -56,6 +57,12 @@ fun TipsScreen() {
             AppBarWithTitle(
                 title = stringResource(R.string.title_chats),
                 titleTextStyle = CodeTheme.typography.screenTitleLarge,
+                // Node 9442:5779 — the only way to start a chat with someone who has never paid
+                // you. A pushed route, not a step of this flow: this list is a tab home, and a step
+                // pushed inside it would leave the tab bar over the entry screen.
+                endContent = {
+                    AppBarDefaults.Add { navigator.push(AppRoute.Messaging.NewChat) }
+                },
             )
         }
     ) { padding ->

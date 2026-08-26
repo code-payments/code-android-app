@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.rounded.RestorePage
@@ -78,6 +79,24 @@ object AppBarDefaults {
         ) { size ->
             Icon(
                 imageVector = Icons.Outlined.Close,
+                contentDescription = "",
+                tint = Color.White,
+                modifier = Modifier.requiredSize(size),
+            )
+        }
+    }
+
+    /** Trailing "+" — a title bar's create action (e.g. starting a new chat). */
+    @Composable
+    fun Add(modifier: Modifier = Modifier, hazeState: HazeState? = null, onClick: () -> Unit) {
+        CircularIconButton(
+            modifier = modifier,
+            hazeState = hazeState,
+            onClick = onClick,
+            testTag = "action_add"
+        ) { size ->
+            Icon(
+                imageVector = Icons.Outlined.Add,
                 contentDescription = "",
                 tint = Color.White,
                 modifier = Modifier.requiredSize(size),

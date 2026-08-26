@@ -324,6 +324,11 @@ internal class ChatViewModel @Inject constructor(
                     is ChatIdentifier.ByContact -> identifier.chatId
                         ?: chatCoordinator.getChatId(identifier.contact).getOrNull()
                     is ChatIdentifier.ByChatId -> identifier.chatId
+                    // Derived, not looked up: the canonical tip-DM id is a function of the two user
+                    // ids, so it is known before the chat exists. Opening on it means the first tip
+                    // lands in the chat the user is already looking at.
+                    is ChatIdentifier.ByUser ->
+                        chatCoordinator.generateChatId(identifier.userId).getOrNull()
                 }
 
                 // Re-entering the same, already-open chat (e.g. returning from the amount-entry
@@ -376,6 +381,10 @@ internal class ChatViewModel @Inject constructor(
                             viewModelScope.launch { chatCoordinator.getOtherMember(identifier.chatId) }
                         }
                     }
+                    // Identity came in with the identifier (the username lookup that produced it
+                    // returned the profile), and the OnChatOpened reducer has already applied it.
+                    // There is nothing to look up: a chat opened this way may have no members yet.
+                    is ChatIdentifier.ByUser -> Unit
                 }
             }
             .launchIn(viewModelScope)
@@ -841,6 +850,16 @@ internal class ChatViewModel @Inject constructor(
                                 chatType = ChatType.CONTACT_DM,
                             )
                         is ChatIdentifier.ByChatId -> state
+                        // The counterparty is known up front, so the header card and the send gate
+                        // resolve on the first frame. Nothing else can supply them here: a chat
+                        // reached by username may not exist yet, and a chat with no members has no
+                        // profile to observe.
+                        is ChatIdentifier.ByUser ->
+                            state.copy(
+                                participant = ChatParticipant.TipUser(id.userId, id.profile),
+                                chatType = ChatType.TIP_DM,
+                                resolveState = ResolveState.Resolved,
+                            )
                     }
                 }
                 is Event.OnContactFound -> { state ->
