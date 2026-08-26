@@ -28,4 +28,5 @@ dependencies {
 
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.robolectric)
 }

@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
 import android.os.Parcelable
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -79,8 +80,9 @@ internal fun ChatProfileScreen(viewModel: ChatProfileViewModel) {
     }
 }
 
+@VisibleForTesting
 @Composable
-private fun ProfileHeader(
+internal fun ProfileHeader(
     participant: ChatParticipant?,
     joinDate: Instant?,
     modifier: Modifier = Modifier,
