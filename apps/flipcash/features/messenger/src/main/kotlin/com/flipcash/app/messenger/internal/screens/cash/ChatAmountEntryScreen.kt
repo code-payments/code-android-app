@@ -76,8 +76,11 @@ internal fun ChatAmountEntryContent(
                         )
                     }
                 },
-                leftIcon = {
-                    AppBarDefaults.UpNavigation { onExit() }
+                // A close X, not an up arrow: this is a sheet over the conversation, and dismissing
+                // it drops the amount rather than stepping back to a previous screen. Matches the
+                // other sheet-presented amount entry, TipAmountEntryScreen.
+                rightContents = {
+                    AppBarDefaults.Close { onExit() }
                 },
             )
         },

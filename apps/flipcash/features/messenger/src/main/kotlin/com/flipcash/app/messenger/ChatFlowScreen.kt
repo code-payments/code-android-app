@@ -11,6 +11,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
@@ -32,7 +33,9 @@ import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.results.navigateForResult
 import com.getcode.navigation.results.resultBackNavigator
+import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
 import com.getcode.navigation.scenes.LocalSheetNavigator
+import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -44,12 +47,26 @@ fun ChatFlowScreen(
     resultStateRegistry: NavResultStateRegistry,
 ) {
     val navigator = LocalCodeNavigator.current
+    val keyboard = rememberKeyboardController()
 
     FlowHost<ChatStep, Parcelable>(
         initialStack = route.rememberInitialStack(),
         resultStateRegistry = resultStateRegistry,
-        onExit = { _, _ -> navigator.pop() },
+        // Put the keyboard away before the chat leaves. Every way out of the conversation lands
+        // here — the top bar's up control pops the inner navigator, which at the flow root reaches
+        // onRootReached, and so does system back — so this is the one place that has to do it.
+        // Popping with the IME still up drags the screen behind it out from under the keyboard.
+        onExit = { _, _ -> keyboard.hideIfVisible { navigator.pop() } },
         entryProvider = chatEntryProvider(route.identifier, route.openKeyboard),
+        // ChatStep.AmountEntry is a Sheet, so the flow needs the sheet strategy to draw it as one;
+        // without it the step would fall through to SinglePane and cover the thread. Amount entry
+        // returns its result inside the flow (resultBackNavigator), so the strategy's own
+        // dismiss-delivers-Canceled path has nothing to address here — hence the null key. A
+        // swipe-dismiss just leaves the pending callback unclaimed, which is what a cancel means.
+        sceneStrategies = listOf(
+            ModalBottomSheetSceneStrategy(navigator.resultStore) { null },
+            SinglePaneSceneStrategy(),
+        ),
     )
 }
 
@@ -135,8 +152,12 @@ private fun FlowConversationScreen(identifier: ChatIdentifier, openKeyboard: Boo
 private fun FlowAmountEntryScreen() {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val navigator = LocalCodeNavigator.current
-    val resultBack = resultBackNavigator<ChatSendResult>()
+    // Every way out of this step goes through the sheet's own dismissal, which animates it down to
+    // Hidden and pops the entry once it settles. Popping the entry directly — navigateBack, or the
+    // pop ResultBackNavigator does by default — deletes the scene mid-frame, so the sheet vanishes
+    // instead of closing.
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val resultBack = resultBackNavigator<ChatSendResult>(exit = dismissSheet)
 
     // No re-shadow: ChatAmountEntryContent reads the inner LocalCodeNavigator, and its
     // navigator.push(AppRoute.Main.RegionSelection) / push(AppRoute.Sheets.TokenSelection)
@@ -148,7 +169,7 @@ private fun FlowAmountEntryScreen() {
         eventFlow = viewModel.eventFlow,
         onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnConfirmRequested) },
         onSendComplete = { resultBack.returnValue(ChatSendResult) }, // intra-flow result -> Conversation
-        onExit = { navigator.navigateBack() },                       // pop the AmountEntry step
+        onExit = dismissSheet,
     )
 }
 

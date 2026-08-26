@@ -324,6 +324,11 @@ internal class ChatViewModel @Inject constructor(
                     is ChatIdentifier.ByContact -> identifier.chatId
                         ?: chatCoordinator.getChatId(identifier.contact).getOrNull()
                     is ChatIdentifier.ByChatId -> identifier.chatId
+                    // Derived, not looked up: the canonical tip-DM id is a function of the two user
+                    // ids, so it is known before the chat exists. Opening on it means the first tip
+                    // lands in the chat the user is already looking at.
+                    is ChatIdentifier.ByUser ->
+                        chatCoordinator.generateChatId(identifier.userId).getOrNull()
                 }
 
                 // Re-entering the same, already-open chat (e.g. returning from the amount-entry
@@ -376,6 +381,10 @@ internal class ChatViewModel @Inject constructor(
                             viewModelScope.launch { chatCoordinator.getOtherMember(identifier.chatId) }
                         }
                     }
+                    // Identity came in with the identifier (the username lookup that produced it
+                    // returned the profile), and the OnChatOpened reducer has already applied it.
+                    // There is nothing to look up: a chat opened this way may have no members yet.
+                    is ChatIdentifier.ByUser -> Unit
                 }
             }
             .launchIn(viewModelScope)
@@ -690,6 +699,19 @@ internal class ChatViewModel @Inject constructor(
                     }
 
                     val chatId = stateFlow.value.chatId
+
+                    // A tip DM's first payment comes from the "Send Tip" call to action, which is
+                    // the whole bottom bar until that payment unlocks typing. It says tip, so it
+                    // sends one. Every later send comes from the money button beside a composer
+                    // that only exists once the thread is unlocked, and stays a plain send.
+                    //
+                    // `TIPCARD` is how a tip is asked for: `TipDmPayment.Location` has two values,
+                    // and the server reads them as the verb ("Tipped" vs "Sent") rather than as a
+                    // place. Sending `CHAT` here would title the payment "Sent" in the recipient's
+                    // activity feed, under a button that promised a tip.
+                    val isTip = stateFlow.value.chatType == ChatType.TIP_DM &&
+                        !stateFlow.value.typingConstraints.enabled
+
                     val result = when (val participant = stateFlow.value.participant) {
                         is ChatParticipant.Contact -> contactPaymentDelegate.send(
                             contact = participant.contact,
@@ -703,7 +725,7 @@ internal class ChatViewModel @Inject constructor(
                             verifiedFiat = verifiedFiat,
                             token = token,
                             source = source,
-                            origin = TipOrigin.CHAT,
+                            origin = if (isTip) TipOrigin.TIPCARD else TipOrigin.CHAT,
                         )
                         null -> {
                             dispatchEvent(Event.SendStateUpdated())
@@ -711,12 +733,11 @@ internal class ChatViewModel @Inject constructor(
                         }
                     }
 
-                    // Only a tip card payment is a tip — the same line the activity feed
-                    // draws, from `ChatMetadata.TipDmPayment.Location`. Every send from this
-                    // screen is `CHAT`, whether the peer is a contact or a tip user, so it
-                    // reports as a plain cash send. `Sent Tip` is left to the tip card flow
-                    // in `TippingCoordinator`.
-                    val transferEvent = Analytics.Transfer.SentCash
+                    // Report what was sent, on the same line `TipDmPayment.Location` draws: the
+                    // tip call to action above is a tip, and every other send from this screen —
+                    // contact DM or unlocked tip DM — is a plain cash send.
+                    val transferEvent =
+                        if (isTip) Analytics.Transfer.SentTip else Analytics.Transfer.SentCash
 
                     result.onSuccess {
                         dispatchEvent(Event.SendStateUpdated(success = true))
@@ -841,6 +862,16 @@ internal class ChatViewModel @Inject constructor(
                                 chatType = ChatType.CONTACT_DM,
                             )
                         is ChatIdentifier.ByChatId -> state
+                        // The counterparty is known up front, so the header card and the send gate
+                        // resolve on the first frame. Nothing else can supply them here: a chat
+                        // reached by username may not exist yet, and a chat with no members has no
+                        // profile to observe.
+                        is ChatIdentifier.ByUser ->
+                            state.copy(
+                                participant = ChatParticipant.TipUser(id.userId, id.profile),
+                                chatType = ChatType.TIP_DM,
+                                resolveState = ResolveState.Resolved,
+                            )
                     }
                 }
                 is Event.OnContactFound -> { state ->

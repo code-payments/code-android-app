@@ -209,11 +209,14 @@ private fun CashBubble(
                     .padding(top = CodeTheme.dimens.grid.x5, bottom = CodeTheme.dimens.grid.x8),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                val subtitleRes = when (action) {
-                    MessageContent.Cash.Action.TIPPED ->
-                        if (isFromSelf) R.string.subtitle_youTipped else R.string.subtitle_youReceivedTip
-                    MessageContent.Cash.Action.SENT ->
-                        if (isFromSelf) R.string.subtitle_youSent else R.string.subtitle_youReceived
+                // The verb splits the two only on the sending side. A recipient reads
+                // "You received" either way: the money that arrived is the same money, and which
+                // button the sender pressed to send it isn't something the thread needs to relay.
+                val subtitleRes = if (!isFromSelf) {
+                    R.string.subtitle_youReceived
+                } else when (action) {
+                    MessageContent.Cash.Action.TIPPED -> R.string.subtitle_youTipped
+                    MessageContent.Cash.Action.SENT -> R.string.subtitle_youSent
                 }
                 Text(
                     text = stringResource(subtitleRes),

@@ -25,6 +25,7 @@ import com.flipcash.app.balance.WalletScreen
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
+import com.flipcash.app.tipping.NewChatScreen
 import com.flipcash.app.tipping.TipAmountEntryScreen
 import com.flipcash.app.tipping.TippingFlowScreen
 import com.flipcash.shared.transactionhistory.ActivityHistoryScreen
@@ -110,6 +111,7 @@ fun appEntryProvider(
     annotatedEntry<AppRoute.Messaging.Chat> { key ->
         ChatFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
+    annotatedEntry<AppRoute.Messaging.NewChat> { NewChatScreen() }
 
     // Tokens
     annotatedEntry<AppRoute.Token.Info>(testTag = "token_info_screen") { key ->

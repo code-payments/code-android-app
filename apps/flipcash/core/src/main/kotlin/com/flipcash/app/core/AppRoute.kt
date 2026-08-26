@@ -324,6 +324,18 @@ sealed interface AppRoute : NavKey, Parcelable {
             override val initialStack: List<NavKey>
                 get() = listOf(ChatStep.Conversation)
         }
+
+        /**
+         * Starting a chat by typing someone's `@handle` (node 9442:5825), reached from the "+" on
+         * the Chats list.
+         *
+         * A top-level route rather than a step of the tipping flow, even though the Chats list it
+         * is reached from is one: the flow is a tab home, so a step pushed inside it keeps the tab
+         * bar. This covers it, the way [Chat] does.
+         */
+        @Serializable
+        @Parcelize
+        data object NewChat : Messaging
     }
 
     @Serializable

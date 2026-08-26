@@ -52,13 +52,18 @@ internal fun RowScope.SendCashButton(
     hazeMaterial: HazeBlurStyle,
     onClick: () -> Unit,
 ) {
-    // Tip chats always use the minimized (dark, symbol-only) button. The normal send flow keeps the
+    // Tip chats use the minimized (dark, symbol-only) button. The normal send flow keeps the
     // expanded "Send $" presentation and only collapses to the symbol once the user starts typing.
     // chatType resolves from the fast local contact lookup, so a tip DM condenses immediately rather
     // than waiting on the server profile.
     val isTipChat = state.chatType == ChatType.TIP_DM
-    val isTyping = isTipChat || state.chatInputState.text.isNotEmpty()
     val canType = state.typingConstraints.enabled
+
+    // ...except before the first payment, when there is no composer to sit beside and this button
+    // is the entire bar. Condensing it there would leave a full-width transparent "$"; what the
+    // chat actually needs is its one call to action, so it stays white and says what it does.
+    val isCallToAction = isTipChat && !canType
+    val isTyping = !isCallToAction && (isTipChat || state.chatInputState.text.isNotEmpty())
 
     // Colors ease slowly and independently of the width/label so the fill change reads as one calm
     // transition instead of snapping with the resize — but NOT on the first settle. A tip chat opens
@@ -133,6 +138,17 @@ internal fun RowScope.SendCashButton(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (isCallToAction) {
+            Text(
+                text = stringResource(R.string.title_sendTip),
+                color = contentColor,
+                style = CodeTheme.typography.textMedium,
+                maxLines = 1,
+                softWrap = false,
+            )
+            return@Row
+        }
+
         // "action_sendCashViaSymbol" is "Send %1$s" — literally "Send " + the currency symbol.
         // Keep the symbol mounted at all times and only collapse the "Send " prefix, so the
         // symbol never crossfades against a wider label (which garbled into "$nd $").

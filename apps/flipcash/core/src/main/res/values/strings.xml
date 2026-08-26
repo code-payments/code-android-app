@@ -880,7 +880,6 @@
     <string name="subtitle_youTipped">You tipped</string>
     <string name="subtitle_youReceived">You received</string>
     <string name="subtitle_youSent">You sent</string>
-    <string name="subtitle_youReceivedTip">You received a tip</string>
     <string name="label_chat_preview_cash_suffix">%1$s of %2$s</string>
     <string name="label_chat_preview_sentCash">You sent %1$s</string>
     <string name="label_chat_preview_receivedCash">You received %1$s</string>
@@ -901,7 +900,17 @@
     <string name="title_tips">Tips</string>
     <string name="title_chats">Chats</string>
     <string name="title_noChatsYet">No Chats Yet</string>
-    <string name="description_noChatsYet">Send a tip or share your Tip Card to start chatting</string>
+    <string name="description_noChatsYet">Start a new chat, or share your profile</string>
+
+    <!-- Starting a chat by @handle from the Chats tab's "+" (nodes 9442:5825 / 9442:103386). -->
+    <string name="title_newChat">Enter Flipcash username</string>
+    <string name="subtitle_newChat">Enter the Flipcash username of the person you want to chat with</string>
+    <!-- Distinct from error_*_usernameNotFound below, which answers a tapped link; here the user
+         typed the handle themselves and can just correct it. -->
+    <string name="error_title_newChatUsernameNotFound">Username Not Found</string>
+    <string name="error_description_newChatUsernameNotFound">Please try a different username</string>
+    <string name="error_title_newChatOwnUsername">That\'s Your Username</string>
+    <string name="error_description_newChatOwnUsername">You can\'t start a chat with yourself</string>
     <string name="title_tipIntro">Receive Tips From Everyone</string>
     <string name="subtitle_tipIntro">Add your name to receive tips</string>
     <string name="action_startReceivingTips">Start Receiving Tips</string>
