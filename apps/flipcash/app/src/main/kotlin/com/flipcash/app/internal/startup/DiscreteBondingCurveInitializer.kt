@@ -3,18 +3,20 @@ package com.flipcash.app.internal.startup
 import android.content.Context
 import androidx.startup.Initializer
 import com.flipcash.libs.currency.math.Curves
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
+/**
+ * Preloads the discrete bonding curve tables.
+ *
+ * Depends on [TraceInitializer] so a failure here is actually traceable.
+ */
 class DiscreteBondingCurveInitializer : Initializer<Unit> {
     override fun create(context: Context) {
-        CoroutineScope(Dispatchers.IO).launch {
+        launchBestEffort(tag = "curves") {
             Curves.initialize(context)
         }
     }
 
     override fun dependencies(): List<Class<out Initializer<*>?>?> {
-        return emptyList()
+        return listOf(TraceInitializer::class.java)
     }
 }

@@ -15,9 +15,6 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class TraceInitializer: Initializer<Unit> {
@@ -35,7 +32,7 @@ class TraceInitializer: Initializer<Unit> {
             Timber.plant(FlipcashDebugTree)
             TraceManager.includeRpcBodies = true
         } else {
-            CoroutineScope(Dispatchers.IO).launch {
+            launchBestEffort(tag = "trace") {
                 val entryPoint = EntryPointAccessors.fromApplication(context, TraceEntryPoint::class.java)
                 val stageProvider = entryPoint.releaseStageProvider()
                 val versionCode = BuildConfig.VERSION_CODE

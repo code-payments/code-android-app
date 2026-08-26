@@ -6,9 +6,6 @@ import com.flipcash.app.internal.time.SntpClient
 import com.getcode.utils.ClockSource
 import com.getcode.utils.TraceManager
 import com.getcode.utils.trace
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 /**
  * Best-effort SNTP measurement of how far the device clock has drifted from real time, taken once at
@@ -22,11 +19,11 @@ import kotlinx.coroutines.launch
 class ClockDriftInitializer : Initializer<Unit> {
 
     override fun create(context: Context) {
-        CoroutineScope(Dispatchers.IO).launch {
+        launchBestEffort(tag = "clock") {
             val offsetMillis = SntpClient.queryClockOffsetMillis()
             if (offsetMillis == null) {
                 trace(tag = "clock", message = "Clock drift on launch: unavailable (SNTP query failed)")
-                return@launch
+                return@launchBestEffort
             }
             // drift = device time - true time = negative of the NTP offset (true - device).
             val driftMillis = -offsetMillis
