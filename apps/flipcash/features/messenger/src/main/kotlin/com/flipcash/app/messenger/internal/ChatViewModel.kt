@@ -29,6 +29,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.isDmAddressable
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.amountentry.AmountEntryDelegate
 import com.flipcash.shared.amountentry.AmountEntryLabel
@@ -418,19 +419,21 @@ internal class ChatViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         // Observe member identity — if the other member loses identity (e.g. unlinked
-        // their phone), mark the chat as read-only.
+        // their phone), mark the chat as read-only. Gated by chat type through the same rule the
+        // feed filters on, so a tip DM — addressed by user id, named by handle — is never
+        // deactivated for lacking a name or a phone.
         stateFlow.mapNotNull { it.chatId }
             .distinctUntilChanged()
-            .flatMapLatest { chatCoordinator.observeMembers(it) }
-            .map { members ->
+            .flatMapLatest { chatId ->
+                combine(
+                    chatCoordinator.observeMembers(chatId),
+                    stateFlow.map { it.chatType }.distinctUntilChanged(),
+                ) { members, chatType -> members to chatType }
+            }
+            .map { (members, chatType) ->
                 val selfId = userManager.accountId
                 val other = members.firstOrNull { it.userId != selfId }
-                if (other != null) {
-                    val profile = other.userProfile
-                    val hasIdentity = profile.displayName.isNotBlank() ||
-                        !profile.verifiedPhoneNumber.isNullOrBlank()
-                    !hasIdentity
-                } else false
+                if (other != null) !isDmAddressable(chatType, other.userProfile) else false
             }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.ChatDeactivated(isReadOnly = it)) }
