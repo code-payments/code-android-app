@@ -8,11 +8,7 @@ tags:
 - runFlow: subflows/login_with_deeplink.yaml
 
 # Open Discover and assert the leaderboard rendered.
-- tapOn: "Discover"
-- extendedWaitUntil:
-    visible:
-      id: discovery_screen
-    timeout: 8000
+- runFlow: subflows/navigate_to_discovery.yaml
 - assertVisible:
     id: discovery_leaderboard
 - assertVisible:

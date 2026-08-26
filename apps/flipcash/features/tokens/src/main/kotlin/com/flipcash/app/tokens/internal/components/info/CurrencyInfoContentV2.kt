@@ -404,10 +404,7 @@ private fun CurrencyActionTiles(
                         // "Withdraw as USDC" intro, anything else opens straight on the amount screen.
                         dispatch(
                             TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.Transfers.Withdrawal(
-                                    showOtherOptions = false,
-                                    preselectedMint = tokenMint,
-                                )
+                                AppRoute.Transfers.Withdrawal(preselectedMint = tokenMint)
                             )
                         )
                     },

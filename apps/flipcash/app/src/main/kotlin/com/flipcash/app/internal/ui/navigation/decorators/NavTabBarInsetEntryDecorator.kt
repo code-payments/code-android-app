@@ -18,7 +18,7 @@ import com.getcode.navigation.core.CodeNavigator
  * hoisted) v2 navigation bar while pushed/detail screens do not.
  *
  * Crucially it renders *nothing* — the bar itself is a single persistent overlay at the app root (see
- * AppNavigationBar in NewAppContent) so tab switches stay seamless (the selection pill slides, one haze
+ * AppNavigationBar in AppContent) so tab switches stay seamless (the selection pill slides, one haze
  * source, no crossfade). This decorator only supplies the inset, and does so per entry:
  *
  * - The inset is a single global before this — toggled by the top route — collapsed mid-transition and

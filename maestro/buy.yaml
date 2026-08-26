@@ -1,26 +1,48 @@
 appId: com.flipcash.app.android
-name: "Buy — token info → confirm purchase (fund-safe)"
+name: "Get — discovery → token info → confirm (fund-safe)"
 tags:
   - smoke
   - swap
 ---
 # Fund-safe: drives the buy flow to the confirmation screen and stops (never confirms).
+#
+# v2 renames the direct buy to "Get" and only offers it on a currency the account does NOT
+# hold — a held currency's info screen shows Give/Convert/Withdraw instead. So this enters
+# through Discover rather than through the wallet's own deck.
+#
+# The payment currency is also picked inline on the amount screen now (seeded with a default),
+# so there is no pushed "Select Payment Currency" step between the amount and the receipt.
 - runFlow: subflows/login_with_deeplink.yaml
-- runFlow: subflows/navigate_to_wallet.yaml
+- runFlow: subflows/navigate_to_discovery.yaml
 
-- tapOn: "Float"
-- extendedWaitUntil: { visible: { id: token_info_screen }, timeout: 8000 }
-- tapOn: "Buy"
-- extendedWaitUntil: { visible: { id: swap_screen }, timeout: 8000 }
-- assertVisible: "Amount to Buy"
+# The leaderboard is live data, so which rows the account already holds varies. Walk the
+# first few until one offers Get; each attempt backs out of a held currency's info screen.
+- runFlow:
+    file: subflows/try_get_from_leaderboard.yaml
+    env:
+      ROW: "0"
+- runFlow:
+    when: { notVisible: { id: swap_screen } }
+    file: subflows/try_get_from_leaderboard.yaml
+    env:
+      ROW: "1"
+- runFlow:
+    when: { notVisible: { id: swap_screen } }
+    file: subflows/try_get_from_leaderboard.yaml
+    env:
+      ROW: "2"
+- runFlow:
+    when: { notVisible: { id: swap_screen } }
+    file: subflows/try_get_from_leaderboard.yaml
+    env:
+      ROW: "3"
+- assertVisible:
+    id: swap_screen
 
-# Minimal amount, then pick a payment currency.
+# Minimal amount, then straight to the receipt (funding source is already seeded).
 - tapOn: { id: keypad_1 }
 - tapOn: "Next"
-- extendedWaitUntil: { visible: { id: token_selection_screen }, timeout: 8000 }
-- assertVisible: "Select Payment Currency"
-- tapOn: "USDF"
 
 # Confirmation — assert and stop (do not confirm the purchase).
 - extendedWaitUntil: { visible: { id: buy_receipt_screen }, timeout: 8000 }
-- assertVisible: "Confirm Purchase"
+- assertVisible: "You Get"

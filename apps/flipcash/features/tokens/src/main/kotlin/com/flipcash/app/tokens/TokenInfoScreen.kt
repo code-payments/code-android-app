@@ -3,7 +3,6 @@ package com.flipcash.app.tokens
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -37,9 +36,6 @@ import com.flipcash.app.analytics.Button
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.SwapResult
-import com.flipcash.app.core.ui.TokenIconWithName
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.tokens.internal.TokenInfoScreen
 import com.flipcash.app.tokens.internal.components.info.CurrencyInfoTitlePill
 import com.flipcash.app.tokens.ui.TokenInfoViewModel
@@ -76,13 +72,9 @@ fun TokenInfoScreen(
     val viewModel = hiltViewModel<TokenInfoViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
-    val features = LocalFeatureFlags.current
-    // Collect rather than snapshot `.value` — the flow is seeded with the flag's default until
-    // DataStore emits, so a remembered read freezes the default (see MenuScreenContent).
-    val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
-    // v2: the title is a leading "Liquid Glass" pill that fades in once the hero card's own title has
+    // The title is a leading "Liquid Glass" pill that fades in once the hero card's own title has
     // scrolled up under the bar. Approximate that point by the first item's scroll offset.
     val revealThresholdPx = with(LocalDensity.current) { CodeTheme.dimens.staticGrid.x12.toPx() }
     val showPill by remember(listState, revealThresholdPx) {
@@ -96,34 +88,26 @@ fun TokenInfoScreen(
         label = "titlePill",
     )
 
-    // For v2 the app bar chrome (back / title pill / share) is frosted "liquid glass" over the content
+    // The app bar chrome (back / title pill / share) is frosted "liquid glass" over the content
     // scrolling beneath it — [haze] is that content's blur source.
     val appBar: @Composable (HazeState?) -> Unit = { haze ->
         AppBarWithTitle(
             titleContent = {
                 state.token.dataOrNull?.let { token ->
-                    if (isNewUi) {
-                        CurrencyInfoTitlePill(
-                            token = token,
-                            marketCap = state.marketCap,
-                            progress = pillProgress,
-                            hazeState = haze,
-                        )
-                    } else {
-                        TokenIconWithName(
-                            token = token,
-                            imageSize = CodeTheme.dimens.staticGrid.x5,
-                            spacing = CodeTheme.dimens.grid.x1,
-                        )
-                    }
+                    CurrencyInfoTitlePill(
+                        token = token,
+                        marketCap = state.marketCap,
+                        progress = pillProgress,
+                        hazeState = haze,
+                    )
                 }
             },
-            titleAlignment = if (isNewUi) Alignment.Start else Alignment.CenterHorizontally,
+            titleAlignment = Alignment.Start,
             onBackIconClicked = { navigator.pop() },
-            // v2 currency-info is a modal dismiss, not a true back nav — lead with a close (✕). But when
+            // Currency-info is a modal dismiss, not a true back nav — lead with a close (✕). But when
             // it was PUSHED onto the stack (e.g. drilled into from token discovery) it IS a back nav, so
             // lead with a back arrow instead.
-            leadingDismiss = isNewUi && !asPush,
+            leadingDismiss = !asPush,
             hazeState = haze,
             endContent = {
                 state.token.dataOrNull?.let {
@@ -138,62 +122,52 @@ fun TokenInfoScreen(
         )
     }
 
-    if (isNewUi) {
-        // Overlay: content fills behind the app bar (hazeSource for the frosted chrome) and is inset by
-        // the bar height, measured BEFORE the content in the same layout pass (OverlayTopBarScaffold),
-        // so the hero card sits correctly on the very first frame — no settle/jump. The bar draws its
-        // own bg->transparent scrim (chat-style) so content fades as it scrolls under it.
-        val hazeState = rememberHazeState()
-        val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    // Overlay: content fills behind the app bar (hazeSource for the frosted chrome) and is inset by
+    // the bar height, measured BEFORE the content in the same layout pass (OverlayTopBarScaffold),
+    // so the hero card sits correctly on the very first frame — no settle/jump. The bar draws its
+    // own bg->transparent scrim (chat-style) so content fades as it scrolls under it.
+    val hazeState = rememberHazeState()
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
-        OverlayTopBarScaffold(
-            topBar = {
-                // Fade the status-bar strip plus HALF the app-bar row (behind the chrome): the hero card
-                // dims as it scrolls up under the bar (matching iOS) while staying vibrant below the bar's
-                // midline. [appBarHeight] is measured on the app bar alone (status bar excluded), so the
-                // scrim = status bar + half the app bar. The scrim never grows the content inset (the
-                // scaffold measures the full bar), so there's no jump.
-                var appBarHeight by remember { mutableStateOf(0.dp) }
-                val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-                Box {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(statusBarHeight + appBarHeight * 0.5f)
-                            .background(
-                                Brush.verticalGradient(
-                                    0f to CodeTheme.colors.background,
-                                    1f to Color.Transparent,
-                                )
+    OverlayTopBarScaffold(
+        topBar = {
+            // Fade the status-bar strip plus HALF the app-bar row (behind the chrome): the hero card
+            // dims as it scrolls up under the bar (matching iOS) while staying vibrant below the bar's
+            // midline. [appBarHeight] is measured on the app bar alone (status bar excluded), so the
+            // scrim = status bar + half the app bar. The scrim never grows the content inset (the
+            // scaffold measures the full bar), so there's no jump.
+            var appBarHeight by remember { mutableStateOf(0.dp) }
+            val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+            Box {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(statusBarHeight + appBarHeight * 0.5f)
+                        .background(
+                            Brush.verticalGradient(
+                                0f to CodeTheme.colors.background,
+                                1f to Color.Transparent,
                             )
-                    )
-                    Box(modifier = Modifier.statusBarsPadding()) {
-                        Box(modifier = Modifier.measured { appBarHeight = it.height }) {
-                            appBar(hazeState)
-                        }
+                        )
+                )
+                Box(modifier = Modifier.statusBarsPadding()) {
+                    Box(modifier = Modifier.measured { appBarHeight = it.height }) {
+                        appBar(hazeState)
                     }
                 }
-            },
-        ) { topPadding ->
-            TokenInfoScreen(
-                viewModel = viewModel,
-                shortfall = shortFall,
-                listState = listState,
-                contentPadding = PaddingValues(
-                    top = topPadding,
-                    bottom = bottomInset + CodeTheme.dimens.grid.x8,
-                ),
-                hazeState = hazeState,
-            )
-        }
-    } else {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            appBar(null)
-            TokenInfoScreen(viewModel, shortFall, listState)
-        }
+            }
+        },
+    ) { topPadding ->
+        TokenInfoScreen(
+            viewModel = viewModel,
+            shortfall = shortFall,
+            listState = listState,
+            contentPadding = PaddingValues(
+                top = topPadding,
+                bottom = bottomInset + CodeTheme.dimens.grid.x8,
+            ),
+            hazeState = hazeState,
+        )
     }
 
     LaunchedEffect(Unit) {

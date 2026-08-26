@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
  * (Give / Convert / Withdraw) covers it with correct z-order and the deck reorganises behind it — while
  * a plain dismiss collapses the overlay back into the deck.
  *
- * The [CardExpansionController] itself is provided at the app root (see NewAppContent), so its fly-state
+ * The [CardExpansionController] itself is provided at the app root (see AppContent), so its fly-state
  * (progress, source/hero bounds, expandedKey) SURVIVES this entry's composition being torn down when a
  * screen is pushed over the wallet — the overlay re-inflates from that surviving controller state on the
  * way back, rather than reopening from scratch.

@@ -9,16 +9,18 @@ tags:
 #
 # The regression this guards is the cold start: both handle-based self-checks compare handles,
 # which they can't do until this account's profile has loaded, and a link opened from cold
-# lands inside that window. Hence `clearAppState`, which makes the deeplink the very first
-# thing the process does.
+# lands inside that window. Hence `stopApp` before the link, so handling it is the very first
+# thing the new process does. Not `clearState` — that wipes the account too, and the link
+# would only reach the login screen.
 #
 # Requires env: LOGIN_DEEPLINK, LOGIN_USERNAME (the handle that account owns).
 - runFlow: subflows/login_with_deeplink.yaml
 
+- stopApp
 - runFlow:
     file: helpers/launch_deeplink.yaml
     env:
-      clearAppState: "true"
+      clearAppState: "false"
       deeplink: https://flipcash.com/${LOGIN_USERNAME}
 
 - extendedWaitUntil:

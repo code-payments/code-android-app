@@ -136,7 +136,9 @@ private fun TokenTxProcessingScreen(
                             is SwapPurpose.Convert ->
                                 state.destinationTokenName.takeUnless { state.isConvertingToDollars }
                             is SwapPurpose.BalanceIncrease -> state.tokenName
-                            else -> stringResource(R.string.title_cashReserves)
+                            // Selling is unreachable now that the v1 token screen is gone, and a
+                            // purpose is always set by the time a swap reaches this screen.
+                            else -> null
                         }
                         state.netTransferAmount.formatted(
                             suffix = name?.let { stringResource(R.string.label_ofToken, it) },

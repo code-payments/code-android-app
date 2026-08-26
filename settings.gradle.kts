@@ -131,7 +131,6 @@ include(
     ":apps:flipcash:features:menu",
     ":apps:flipcash:features:purchase",
     ":apps:flipcash:features:lab",
-    ":apps:flipcash:features:home",
     ":apps:flipcash:features:appupdates",
     ":apps:flipcash:features:deposit",
     ":apps:flipcash:features:advanced",

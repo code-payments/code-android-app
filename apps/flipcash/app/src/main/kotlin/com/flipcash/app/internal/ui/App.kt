@@ -46,9 +46,7 @@ import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.NavBarButton
-import com.flipcash.app.core.navigation.NavBarConfig
 import com.flipcash.app.core.ui.NavigationBar
-import com.flipcash.app.core.ui.rememberNavigationBarState
 import com.flipcash.app.core.verification.email.LocalEmailCodeChannel
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.LocalFeatureFlags
@@ -56,7 +54,6 @@ import com.flipcash.app.featureflags.model.BackgroundResetTimeout
 import androidx.core.net.toUri
 import com.flipcash.app.MainActivity
 import com.flipcash.app.internal.ui.navigation.AppContent
-import com.flipcash.app.internal.ui.navigation.NewAppContent
 import com.flipcash.app.internal.ui.navigation.appEntryProvider
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
@@ -97,7 +94,6 @@ import kotlinx.coroutines.flow.first
 internal fun App(
     tipsEngine: TipsEngine,
 ) {
-    val features = LocalFeatureFlags.current
     val router = LocalRouter.current!!
     val analytics = rememberAnalytics()
     val viewModel = getActivityScopedViewModel<HomeViewModel>()
@@ -128,12 +124,10 @@ internal fun App(
     val session = LocalSessionController.current!!
     val userState by userManager.state.collectAsStateWithLifecycle()
 
-    val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
-
-    // Card-expand (iOS #587) is owned HERE rather than inside NewAppContent because the deeplink
-    // handling below sits outside the v1/v2 shells: a `/token` link opens the wallet's expanded card
-    // (see DeeplinkAction.OpenToken), which needs the controller. NewAppContent provides it to the
-    // tree; v1 has no expansion and never touches it.
+    // Card-expand (iOS #587) is owned HERE rather than inside AppContent because the deeplink
+    // handling below sits outside the shell: a `/token` link opens the wallet's expanded card
+    // (see DeeplinkAction.OpenToken), which needs the controller. AppContent provides it to the
+    // tree.
     val context = LocalContext.current
     val cardExpansion = remember(context) {
         CardExpansionController().apply {
@@ -189,79 +183,44 @@ internal fun App(
                                 LocalSharedTransitionScope provides this,
                             ) {
                                     CoinbaseOnRampHandler {
-                                        if (isNewUi) {
-                                            NewAppContent(
-                                                codeNavigator = codeNavigator,
-                                                resultStateRegistry = resultStateRegistry,
-                                                barManager = barManager,
-                                                cardExpansion = cardExpansion,
-                                                deepLink = { deepLink },
-                                                onPendingAction = { action ->
-                                                    deeplinkHandled = true
-                                                    when (action) {
-                                                        // v2 cold start: the wallet is already the
-                                                        // launch home, so the token just opens as its
-                                                        // expanded card on top of it.
-                                                        is DeeplinkAction.OpenToken ->
-                                                            cardExpansion.beginExpanded(action.mint)
-                                                        is DeeplinkAction.OpenCashLink ->
-                                                            session.openCashLink(action.entropy)
-                                                        is DeeplinkAction.PresentTipCard ->
-                                                            session.resolveTipCard(action.owner)
-                                                        is DeeplinkAction.OpenExternally ->
-                                                            context.openInBrowser(action.url)
-                                                        is DeeplinkAction.Login ->
-                                                            viewModel.handleLoginEntropy(
-                                                                action.entropy,
-                                                                onSwitchAccount = {
-                                                                    codeNavigator.replaceAll(
-                                                                        AppRoute.OnboardingFlow(
-                                                                            seed = action.entropy,
-                                                                            fromDeeplink = true
-                                                                        )
+                                        AppContent(
+                                            codeNavigator = codeNavigator,
+                                            resultStateRegistry = resultStateRegistry,
+                                            barManager = barManager,
+                                            cardExpansion = cardExpansion,
+                                            deepLink = { deepLink },
+                                            onPendingAction = { action ->
+                                                deeplinkHandled = true
+                                                when (action) {
+                                                    // Cold start: the wallet is already the launch
+                                                    // home, so the token just opens as its expanded
+                                                    // card on top of it.
+                                                    is DeeplinkAction.OpenToken ->
+                                                        cardExpansion.beginExpanded(action.mint)
+                                                    is DeeplinkAction.OpenCashLink ->
+                                                        session.openCashLink(action.entropy)
+                                                    is DeeplinkAction.PresentTipCard ->
+                                                        session.resolveTipCard(action.owner)
+                                                    is DeeplinkAction.OpenExternally ->
+                                                        context.openInBrowser(action.url)
+                                                    is DeeplinkAction.Login ->
+                                                        viewModel.handleLoginEntropy(
+                                                            action.entropy,
+                                                            onSwitchAccount = {
+                                                                codeNavigator.replaceAll(
+                                                                    AppRoute.OnboardingFlow(
+                                                                        seed = action.entropy,
+                                                                        fromDeeplink = true
                                                                     )
-                                                                },
-                                                                onDismissed = { }
-                                                            )
-                                                        else -> {}
-                                                    }
-                                                    deepLink = null
+                                                                )
+                                                            },
+                                                            onDismissed = { }
+                                                        )
+                                                    else -> {}
                                                 }
-                                            )
-                                        } else {
-                                            AppContent(
-                                                codeNavigator = codeNavigator,
-                                                resultStateRegistry = resultStateRegistry,
-                                                barManager = barManager,
-                                                deepLink = { deepLink },
-                                                onPendingAction = { action ->
-                                                    deeplinkHandled = true
-                                                    when (action) {
-                                                        is DeeplinkAction.OpenCashLink ->
-                                                            session.openCashLink(action.entropy)
-                                                        is DeeplinkAction.PresentTipCard ->
-                                                            session.resolveTipCard(action.owner)
-                                                        is DeeplinkAction.OpenExternally ->
-                                                            context.openInBrowser(action.url)
-                                                        is DeeplinkAction.Login ->
-                                                            viewModel.handleLoginEntropy(
-                                                                action.entropy,
-                                                                onSwitchAccount = {
-                                                                    codeNavigator.replaceAll(
-                                                                        AppRoute.OnboardingFlow(
-                                                                            seed = action.entropy,
-                                                                            fromDeeplink = true
-                                                                        )
-                                                                    )
-                                                                },
-                                                                onDismissed = { }
-                                                            )
-                                                        else -> {}
-                                                    }
-                                                    deepLink = null
-                                                }
-                                            )
-                                        }
+                                                deepLink = null
+                                            }
+                                        )
 
                                         // The scrim + bill overlay are hosted per-entry by
                                         // NavBillOverlayEntryDecorator (added to the AppNavHost
@@ -310,30 +269,19 @@ internal fun App(
                                             } else false
 
                                             if (!delivered) {
-                                                codeNavigator.navigateAll(
-                                                    action.routes,
-                                                    isNewUi = isNewUi,
-                                                )
+                                                codeNavigator.navigateAll(action.routes)
                                             }
                                         }
 
                                         is DeeplinkAction.OpenToken -> {
-                                            if (isNewUi) {
-                                                // Land on the wallet tab (clearing anything pushed on
-                                                // it) and open the token as its EXPANDED CARD — the
-                                                // same overlay, chrome and dismissal a tap on the card
-                                                // gives. Pushing it instead reads as a modal on a stack
-                                                // the user never navigated. Mirrors iOS
-                                                // DeepLinkController's requestedCardMint.
-                                                codeNavigator.navigateAll(
-                                                    listOf(AppRoute.Sheets.Wallet),
-                                                    isNewUi = true,
-                                                )
-                                                cardExpansion.beginExpanded(action.mint)
-                                            } else {
-                                                // v1 has no card expansion — open the wallet sheet.
-                                                codeNavigator.navigateAll(action.routes)
-                                            }
+                                            // Land on the wallet tab (clearing anything pushed on
+                                            // it) and open the token as its EXPANDED CARD — the
+                                            // same overlay, chrome and dismissal a tap on the card
+                                            // gives. Pushing it instead reads as a modal on a stack
+                                            // the user never navigated. Mirrors iOS
+                                            // DeepLinkController's requestedCardMint.
+                                            codeNavigator.navigateAll(listOf(AppRoute.Sheets.Wallet))
+                                            cardExpansion.beginExpanded(action.mint)
                                         }
 
                                         is DeeplinkAction.Login -> viewModel.handleLoginEntropy(

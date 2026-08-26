@@ -532,7 +532,6 @@
     <string name="label_blendModeColorDodge">Color Dodge</string>
     <string name="label_blendModePlusLighter">Plus Lighter</string>
 
-    <string name="title_cashReserves">USDF</string>
     <string name="action_buyMore">Buy More</string>
 
     <string name="title_addMoney">Add Money</string>
@@ -597,8 +596,6 @@
     <string name="label_marketCapYearShort">1Y</string>
     <string name="label_marketCapYear">this year</string>
 
-    <string name="prompt_title_selectMethod">Select Method</string>
-    <string name="prompt_title_selectPurchaseMethod">Select Purchase Method</string>
     <string name="action_useCashReservesWithBalance">USDF (%1$s)</string>
     <string name="action_debitCardWithPrefix">Debit Card with</string>
     <string name="action_paySuffix">Pay</string>
@@ -650,15 +647,10 @@
     <string name="prompt_message_currencyCreateNotYetAvailable">Check back soon</string>
 
     <string name="title_settingsSectionFeatures">Features</string>
-    <string name="title_settingsSectionHomeScreen">Home Screen</string>
     <string name="title_settingsSectionDeveloper">Developer</string>
     <string name="subtitle_settingsUserFlags">User Flags</string>
     <string name="title_settingsSectionAccount">Account</string>
     <string name="title_userFlags">User Flags</string>
-
-    <string name="title_settingsButtonOrder">Button Order</string>
-    <string name="subtitle_settingsButtonOrder">Hold and drag to reorder</string>
-    <string name="title_settingsSectionGiveButtonLabel">Give Button Label</string>
 
     <string name="title_purchase">Purchase</string>
     <string name="action_connectYourPhantomWallet">Connect Your Phantom Wallet</string>
@@ -788,7 +780,6 @@
     <string name="title_you">You</string>
 
     <string name="title_withdrawUsdfAsUsdc">Withdraw as USDC</string>
-    <string name="description_withdrawUsdfAsUsdc">Your USDF will be converted 1:1 to Solana USDC on withdrawal</string>
     <!-- v2 wording of the same screen: the reserve is branded "Dollars" and the chain is named last. -->
     <string name="description_withdrawDollarsAsUsdc">Your Dollars will be converted 1:1 to USDC on Solana</string>
     <string name="displayName_solanaUsdc">Solana USDC</string>
@@ -822,7 +813,6 @@
     <string name="title_depositToken">Deposit %1$s</string>
 
     <string name="action_depositOtherCurrencies">Deposit Other Flipcash Currencies</string>
-    <string name="action_withdrawOtherCurrencies">Withdraw Other Flipcash Currencies</string>
 
     <string name="content_description_leaderboard">Learn more</string>
     <string name="prompt_title_learnAboutLeaderboard">Leaderboard Ranking</string>

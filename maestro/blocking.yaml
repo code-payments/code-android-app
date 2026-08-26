@@ -9,34 +9,41 @@ tags:
     env:
       BETA_FLAGS: ""
 
-# Open the tip conversation.
-- tapOn: "Tips"
+# Open the tip conversation (the chats tab).
+- tapOn: { id: nav_chats }
 - extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
-- tapOn: { id: send_contact_row, index: 0 }
+# Pick the chat by participant rather than by position: the list is ordered by recency and
+# carries the account's own self-tip chat, so index 0 is not stably the contact.
+- scrollUntilVisible:
+    element: "${CONTACT_NAME}"
+    direction: DOWN
+- tapOn: "${CONTACT_NAME}"
 - extendedWaitUntil: { visible: { id: chat_screen }, timeout: 8000 }
 
 # Open the participant's profile from the chat header and block them.
-# (Participant name is specific to the test account's tip chat.)
-- tapOn: { text: "Brandon McAnsh", index: 0 }
+- tapOn: { text: "${CONTACT_NAME}", index: 0 }
 - extendedWaitUntil: { visible: { id: profile_screen }, timeout: 8000 }
 - tapOn: "Block"
-- assertVisible: "Block Brandon McAnsh?"
+- assertVisible: "Block ${CONTACT_NAME}?"
 - tapOn: { text: "^Block$" }
 - extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
 
-# Verify they appear in My Account -> Blocked.
-- tapOn: { id: action_close, optional: true }
-- extendedWaitUntil: { visible: { id: scanner_screen }, timeout: 8000 }
-- tapOn: { id: menu_button }
+# Verify they appear in My Account -> Blocked. Chats is a root tab, so the You tab is one tap
+# away rather than behind a sheet dismiss.
+- tapOn: { id: nav_tipcard }
 - extendedWaitUntil: { visible: { id: menu_screen }, timeout: 8000 }
+# The You tab leads with the tip card, so the list rows sit below the fold.
+- scrollUntilVisible:
+    element: "My Account"
+    direction: DOWN
 - tapOn: "My Account"
 - extendedWaitUntil: { visible: { id: my_account_screen }, timeout: 8000 }
 - tapOn: "Blocked"
 - extendedWaitUntil: { visible: { id: blocklist_screen }, timeout: 8000 }
-- assertVisible: "Brandon McAnsh"
+- assertVisible: "${CONTACT_NAME}"
 
 # Unblock to restore the account to a clean state.
-- tapOn: "Brandon McAnsh"
-- assertVisible: "Unblock Brandon McAnsh?"
+- tapOn: "${CONTACT_NAME}"
+- assertVisible: "Unblock ${CONTACT_NAME}?"
 - tapOn: { text: "^Unblock$" }
 - assertVisible: "No One Blocked"

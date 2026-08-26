@@ -1,7 +1,8 @@
 appId: com.flipcash.app.android
 ---
 - runFlow: ../helpers/close_open_sheet.yaml
-- tapOn: Wallet
+- tapOn:
+    id: nav_wallet
 - extendedWaitUntil:
    visible: Float
 - tapOn: Float

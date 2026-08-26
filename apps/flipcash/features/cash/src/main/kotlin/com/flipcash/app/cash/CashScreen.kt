@@ -16,8 +16,6 @@ import com.flipcash.app.cash.internal.GiveScreenContent
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.TokenSelectionPill
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.session.LocalSessionController
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.solana.keys.Mint
@@ -35,8 +33,6 @@ fun CashScreen(
 ) {
     val navigator = LocalCodeNavigator.current
     val session = LocalSessionController.current!!
-    val features = LocalFeatureFlags.current
-    val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
 
     val viewModel = hiltViewModel<CashScreenViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
@@ -46,13 +42,13 @@ fun CashScreen(
             .filterIsInstance<CashScreenViewModel.Event.PresentBill>()
             .onEach {
                 session.showBill(it.bill)
-                // v2 reaches this screen as a PUSH (from currency-info), not a sheet, so hide() —
+                // This screen is reached as a PUSH (from currency-info), not a sheet, so hide() —
                 // which only pops when a Sheet is on the stack — would leave it up. Pop back to the
                 // currency-info underneath so the bill presents over it. The pop is deliberately
-                // untransitioned (see NewAppContent's popTransitionSpec): the bill overlay + scrim are
+                // untransitioned (see AppContent's popTransitionSpec): the bill overlay + scrim are
                 // drawn per nav entry, so an animated pop slides the outgoing entry's copy away while
                 // the incoming entry composes its own — which reads as a flash behind the bill.
-                if (isNewUi) navigator.pop() else navigator.hide()
+                navigator.pop()
             }
             .launchIn(this)
     }

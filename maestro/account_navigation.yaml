@@ -9,21 +9,21 @@ tags:
 
 # Menu → My Account
 - runFlow: subflows/navigate_to_menu.yaml
+# The You tab leads with the tip card, so both list rows sit below the fold.
+- scrollUntilVisible:
+    element: "My Account"
+    direction: DOWN
 - tapOn: "My Account"
 - extendedWaitUntil:
     visible:
       id: my_account_screen
     timeout: 10000
 
-# Back to menu, then App Settings
+# Back to menu, then Advanced
 - tapOn:
     id: action_back
 - extendedWaitUntil:
     visible:
       id: menu_screen
     timeout: 10000
-- tapOn: "App Settings"
-- extendedWaitUntil:
-    visible:
-      id: app_settings_screen
-    timeout: 10000
+- runFlow: subflows/navigate_to_advanced_features.yaml

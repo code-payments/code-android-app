@@ -1,13 +1,22 @@
-# Menu → Withdraw Money → (USDC path) → amount entry.
+# Wallet → Withdraw Money → pick Dollars → (USDC path) → amount entry.
 appId: com.flipcash.app.android
 ---
-- runFlow: navigate_to_menu.yaml
+# Withdraw Money is a wallet action tile now, below the card deck and recent activity.
+- runFlow: navigate_to_wallet.yaml
+- scrollUntilVisible:
+    element: "Withdraw Money"
+    direction: DOWN
 - tapOn: "Withdraw Money"
+# No preselected mint, so the flow opens on the currency picker.
 - extendedWaitUntil:
     visible:
       id: withdrawal_screen
     timeout: 8000
-- tapOn: "Withdraw as USDC"
+- tapOn: "Dollars"
+- extendedWaitUntil:
+    visible:
+      text: "Withdraw as USDC"
+    timeout: 8000
 - tapOn: "Next"
 - extendedWaitUntil:
     visible:

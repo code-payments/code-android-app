@@ -20,7 +20,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -29,14 +28,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.discovery.internal.LeaderboardEntry
 import com.flipcash.app.discovery.internal.TokenDiscoveryViewModel
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.LocalFeatureFlags
-import com.flipcash.app.tokens.ui.CurrencyCreatorUpsellCard
 import com.flipcash.features.discovery.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.ui.DiscoverCategory
@@ -48,7 +43,6 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.sheetResignmentBehavior
-import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
@@ -60,19 +54,9 @@ internal fun TokenLeaderboard(
     dispatch: (TokenDiscoveryViewModel.Event) -> Unit
 ) {
     val reduceBottomPadding = CodeTheme.dimens.grid.x4
-    val features = LocalFeatureFlags.current
-    val isNewUi by features.observe(FeatureFlag.NewUi).collectAsStateWithLifecycle()
-
-    // v2 surfaces currency creation as a Wallet action tile, so Discover drops its promo entirely;
-    // v1 keeps it as the first row above the leaderboard. The haze source stays wired for the
-    // scroll gradient's benefit.
+    // Currency creation is surfaced as a Wallet action tile, so Discover carries no promo of its
+    // own. The haze source stays wired for the scroll gradient's benefit.
     val hazeState = rememberHazeState()
-
-    val currencyCreatorCard = @Composable { modifier: Modifier, haze: HazeState? ->
-        CurrencyCreatorUpsellCard(modifier = modifier, hazeState = haze) {
-            dispatch(TokenDiscoveryViewModel.Event.CreateCurrency)
-        }
-    }
     CodeScaffold { padding ->
         LazyColumn(
             modifier = Modifier
@@ -83,7 +67,7 @@ internal fun TokenLeaderboard(
                     state,
                     color = CodeTheme.colors.background,
                     isLongGradient = true,
-                    showAtEnd = isNewUi,
+                    showAtEnd = true,
                 )
                 .addIf(tokens.isLoaded()) {
                     Modifier.sheetResignmentBehavior(state)
@@ -136,11 +120,6 @@ internal fun TokenLeaderboard(
 
                 is Loadable.Loaded -> {
                     val results = tokens.data
-                    // currency creator upsell card
-                    if (!isNewUi) {
-                        item { currencyCreatorCard(Modifier.fillParentMaxWidth(), null) }
-                    }
-
                     if (results.isEmpty()) {
                         item {
                             Box(
@@ -213,11 +192,7 @@ internal fun TokenLeaderboard(
                                 ),
                                 rank = index + 1,
                                 token = entry.token,
-                                rankingSystem = if (isNewUi) {
-                                    RankingSystem.MarketCap
-                                } else {
-                                    RankingSystem.Holders
-                                },
+                                rankingSystem = RankingSystem.MarketCap,
                             ) {
                                 dispatch(TokenDiscoveryViewModel.Event.OpenTokenInfo(entry.token.address))
                             }

@@ -10,14 +10,21 @@ tags:
     env:
       BETA_FLAGS: "coinbase_onramp_sandbox_enabled"
 
-- runFlow: subflows/navigate_to_menu.yaml
+# Add Money is a wallet action tile now, below the card deck and recent activity.
+- runFlow: subflows/navigate_to_wallet.yaml
+- scrollUntilVisible:
+    element: "Add Money"
+    direction: DOWN
 - tapOn: "Add Money"
-- extendedWaitUntil: { visible: { text: "Select Method" }, timeout: 8000 }
+- extendedWaitUntil: { visible: { text: "Add Money With" }, timeout: 8000 }
 
 # The Coinbase / Google Pay method is icon-only, so it's anchored by testTag.
 - assertVisible: { id: purchase_method_coinbase }
 - tapOn: { id: purchase_method_coinbase }
 
-# Coinbase requires a verified phone, so the onramp begins with phone verification.
+# Coinbase requires a verified phone and email, so the onramp begins with the
+# verification flow — an intro page, then the phone step.
 - extendedWaitUntil: { visible: { id: verification_screen }, timeout: 8000 }
-- assertVisible: "Connect Phone Number"
+- assertVisible: "Verify Your Phone Number And Email To Continue"
+- tapOn: "Next"
+- extendedWaitUntil: { visible: { text: "Connect Phone Number" }, timeout: 8000 }
