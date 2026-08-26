@@ -120,8 +120,19 @@ interface MessagingOperations {
     /** Observes all messages in [chatId] as a flat list. */
     fun observeMessages(chatId: ChatId): Flow<List<ChatMessage>>
 
-    /** True once the user has ever sent a tip (a Cash message with verb TIPPED) — onboarding milestone. */
-    fun hasEverTipped(): Flow<Boolean>
+    /**
+     * Whether the user has ever sent a tip — a Cash message with verb TIPPED — or `null` while the
+     * answer is not yet trustworthy.
+     *
+     * The read is of a local cache, so an absent TIPPED message means "never tipped" only once that
+     * cache is known to be complete; before then it is indistinguishable from history that has not
+     * arrived. Onboarding is the caller, and it draws a tutorial off the answer, so it needs the
+     * third state rather than a `false` it has to guess about. Resolves to `true`/`false` once
+     * [ChatHydrationState] leaves [ChatHydrationState.Unknown] — including on
+     * [ChatHydrationState.Unavailable], so an unreachable server ends the wait instead of extending
+     * it forever.
+     */
+    fun hasEverTipped(): Flow<Boolean?>
 
     /** Observes messages in [chatId] via Paging 3, with remote-mediated page loads. */
     fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>>

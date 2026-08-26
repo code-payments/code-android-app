@@ -145,6 +145,12 @@ class RealChatCoordinator @Inject constructor(
                         messagingDelegate.loadMessages(event.chatId)
                     is FeedSyncDelegate.Event.DeltaSyncNeeded ->
                         eventStreamDelegate.performDeltaSync(event.chatId, event.afterSequence)
+                    // Arrives after every catch-up item above it, because this is one sequential
+                    // collector over a FIFO channel. Anything reading chat history as evidence —
+                    // the wallet's "send a tip" milestone — waits for this rather than for the
+                    // feed sync, which reports itself synced before the backfill is scheduled.
+                    FeedSyncDelegate.Event.CatchUpComplete ->
+                        feedDelegate.markHistoryHydrated()
                 }
             }.launchIn(scope)
 

@@ -23,7 +23,6 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
@@ -128,7 +127,7 @@ class FeedSyncCatchUpTest {
         val events = harness.sync(this)
 
         assertEquals(
-            listOf(FeedSyncDelegate.Event.LoadMessages(chatId)),
+            listOf(FeedSyncDelegate.Event.LoadMessages(chatId), FeedSyncDelegate.Event.CatchUpComplete),
             events,
             "a chat with no cached history must be caught up, not judged by the row the sync just wrote",
         )
@@ -143,7 +142,11 @@ class FeedSyncCatchUpTest {
 
         val events = harness.sync(this)
 
-        assertTrue(events.isEmpty(), "a chat already backed by cached history needs no catch-up, got $events")
+        assertEquals(
+            listOf(FeedSyncDelegate.Event.CatchUpComplete),
+            events,
+            "a chat already backed by cached history needs no catch-up, only the terminal marker",
+        )
     }
 
     @Test
@@ -156,7 +159,10 @@ class FeedSyncCatchUpTest {
         val events = harness.sync(this)
 
         assertEquals(
-            listOf(FeedSyncDelegate.Event.DeltaSyncNeeded(chatId, afterSequence = 42)),
+            listOf(
+                FeedSyncDelegate.Event.DeltaSyncNeeded(chatId, afterSequence = 42),
+                FeedSyncDelegate.Event.CatchUpComplete,
+            ),
             events,
             "the gap must be measured against the sequence the cache held before the sync overwrote it",
         )
@@ -175,7 +181,9 @@ class FeedSyncCatchUpTest {
             seededChatsWithMessages = setOf(chatId),
         ).apply { storedSequences[chatId] = 42 }
 
-        val event = harness.sync(this).single() as FeedSyncDelegate.Event.DeltaSyncNeeded
+        val event = harness.sync(this)
+            .filterIsInstance<FeedSyncDelegate.Event.DeltaSyncNeeded>()
+            .single()
 
         assertEquals(
             99L,
@@ -186,6 +194,35 @@ class FeedSyncCatchUpTest {
             42L,
             event.afterSequence,
             "the delta must be requested from 42, or the backfill silently fetches nothing",
+        )
+    }
+
+    /**
+     * The marker has to be last, not merely present: hydration is declared when it is routed, and a
+     * marker that overtook a pending catch-up would declare the cache complete while the backfill
+     * that completes it is still outstanding.
+     */
+    @Test
+    fun `the catch-up marker is the last event of a successful sync`() = runTest {
+        val harness = Harness(chats = listOf(metadata(lastMessage = message(20, otherId))))
+
+        val events = harness.sync(this)
+
+        assertEquals(FeedSyncDelegate.Event.CatchUpComplete, events.last())
+    }
+
+    @Test
+    fun `a failed sync emits no marker`() = runTest {
+        val harness = Harness(chats = emptyList())
+        coEvery { harness.chatController.getDmChatFeed(ChatType.CONTACT_DM, any()) } returns
+            Result.failure(RuntimeException("offline"))
+
+        val events = harness.sync(this)
+
+        assertEquals(
+            emptyList(),
+            events,
+            "nothing was reconciled, so nothing may report itself reconciled",
         )
     }
 }

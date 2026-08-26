@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalPagingApi::class)
+@file:OptIn(ExperimentalPagingApi::class, ExperimentalCoroutinesApi::class)
 
 package com.flipcash.shared.chat.internal.delegates
 
@@ -23,12 +23,15 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.shared.chat.ChatHydrationState
 import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -94,7 +97,32 @@ class MessagingDelegate @Inject constructor(
         return messageDataSource.observeMessages(chatId)
     }
 
-    override fun hasEverTipped(): Flow<Boolean> = messageDataSource.hasEverTipped()
+    override fun hasEverTipped(): Flow<Boolean?> =
+        stateHolder.state
+            .map { it.historyHydration }
+            .distinctUntilChanged()
+            .flatMapLatest { hydration ->
+                // Re-subscribing on the hydration change re-runs the query, so the first value a
+                // caller sees after a backfill is a fresh read. `combine`-ing the two flows instead
+                // would race: the emission carrying "hydrated" would carry the *pre*-backfill answer
+                // with it, and the caller would act on `false` a beat before Room's invalidation
+                // published `true` — the same flash of wrong state, just narrower.
+                messageDataSource.hasEverTipped().map { tipped ->
+                    when {
+                        // A TIPPED message in the cache is proof regardless of hydration, and
+                        // answering straight away is what keeps a warm cache — the normal case now
+                        // that logout no longer wipes it — from waiting on a round-trip.
+                        tipped -> true
+                        // Absence proves nothing yet. Null rather than false: the caller has to be
+                        // able to tell "has not tipped" from "we have not looked".
+                        hydration == ChatHydrationState.Unknown -> null
+                        else -> false
+                    }
+                }
+            }
+            // The re-subscribe repeats the current answer whenever hydration moves, which for a
+            // cache that already held the tip is the same `true` twice over.
+            .distinctUntilChanged()
 
     override fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>> {
         return Pager(

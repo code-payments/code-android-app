@@ -10,6 +10,7 @@ import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.PointerType
+import com.flipcash.shared.chat.ChatHydrationState
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.FeedOperations
 import com.flipcash.shared.chat.FeedSyncState
@@ -67,6 +68,19 @@ class FeedSyncDelegate @Inject constructor(
          *   the delta must be requested from there, not from the row we just wrote.
          */
         data class DeltaSyncNeeded(val chatId: ChatId, val afterSequence: Long) : Event
+
+        /**
+         * Emitted last by every successful sync, after any catch-up above it.
+         *
+         * [events] is a FIFO channel routed by a single sequential collector in
+         * [RealChatCoordinator][com.flipcash.shared.chat.internal.RealChatCoordinator], so by the
+         * time this is handled every catch-up item ahead of it has finished its suspend call and
+         * committed its writes. That ordering is the whole reason it exists: it is what makes
+         * [markHistoryHydrated] safe to call, and it cannot be replaced by watching
+         * [FeedSyncState][com.flipcash.shared.chat.FeedSyncState], which flips to `Synced` before
+         * the catch-up is even scheduled.
+         */
+        data object CatchUpComplete : Event
     }
 
     private val _events = Channel<Event>(Channel.UNLIMITED)
@@ -155,6 +169,16 @@ class FeedSyncDelegate @Inject constructor(
         val scope = scope ?: return
         syncJob?.cancel()
         syncJob = scope.launch { performFeedSync() }
+    }
+
+    /**
+     * Marks the message cache reconciled with the server.
+     *
+     * Called by the coordinator when it routes [Event.CatchUpComplete], not by the sync itself —
+     * the sync only *schedules* the backfill, and hydration is about that backfill having run.
+     */
+    internal fun markHistoryHydrated() {
+        stateHolder.update { it.copy(historyHydration = ChatHydrationState.Hydrated) }
     }
 
     internal fun cancelJobs() {
@@ -249,9 +273,25 @@ class FeedSyncDelegate @Inject constructor(
                         _events.send(Event.LoadMessages(chat.chatId))
                     }
                 }
+
+                _events.send(Event.CatchUpComplete)
             }
             .onFailure { error ->
-                stateHolder.update { it.copy(feedSyncState = FeedSyncState.Error) }
+                stateHolder.update { state ->
+                    state.copy(
+                        feedSyncState = FeedSyncState.Error,
+                        // Don't downgrade a hydration that already succeeded: a later failure means
+                        // this sync missed, not that the cache stopped being trustworthy. Moving off
+                        // Unknown at all matters though — callers waiting on hydration have to stop
+                        // waiting when the server is unreachable, or the wallet spins forever
+                        // offline.
+                        historyHydration = if (state.historyHydration == ChatHydrationState.Unknown) {
+                            ChatHydrationState.Unavailable
+                        } else {
+                            state.historyHydration
+                        },
+                    )
+                }
                 trace(tag = TAG, message = "Feed sync failed: ${error.message}", type = TraceType.Error)
             }
     }
