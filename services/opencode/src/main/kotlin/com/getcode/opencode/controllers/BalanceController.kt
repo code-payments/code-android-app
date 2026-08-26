@@ -1,6 +1,6 @@
 package com.getcode.opencode.controllers
 
-import com.getcode.opencode.model.balance.Balance
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.repositories.BalanceRepository
 import com.getcode.solana.keys.PublicKey
 import javax.inject.Inject
@@ -11,14 +11,14 @@ class BalanceController @Inject constructor(
     private val balanceRepository: BalanceRepository,
 ) {
     /**
-     * Returns balance data for any owner account.
+     * Returns the owner's core-mint (USDF) balance.
      *
      * Unlike the rest of this package's controllers, this does not take an
      * `AccountCluster` — the underlying RPC is unauthenticated and unsigned, so a
      * bare [PublicKey] is all that's needed, and this can resolve balance for any
      * owner account, not just the current user's.
      */
-    suspend fun getBalance(owner: PublicKey): Result<Balance> {
+    suspend fun getBalance(owner: PublicKey): Result<Fiat> {
         return balanceRepository.getBalance(owner)
     }
 }
