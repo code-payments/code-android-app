@@ -81,6 +81,8 @@ import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.menu.internal.MenuScreenViewModel.TipCardState
+import com.flipcash.app.menu.internal.components.UsernameProgress
+import com.flipcash.app.menu.internal.components.UsernameProgressCard
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.services.models.UserProfile
@@ -93,6 +95,7 @@ import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.White08
 import com.getcode.theme.White50
+import com.getcode.theme.extraSmall
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.core.noRippleClickable
@@ -183,7 +186,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             // margins — same rule iOS applies.
             val expandedCardWidth = minOf(
                 FullScreenCardWidth,
-                maxWidth - PageHorizontalInset * 2,
+                maxWidth - CodeTheme.dimens.inset * 2,
             )
             // How far into the expansion we are. One progress drives all of it — the card's
             // size and position, the page fading out beneath it, the Close row — so a swipe that
@@ -207,8 +210,13 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             //
             // The card is drawn at [FullScreenCardWidth], the widest it ever gets, so the scale
             // only ever samples the drawing down.
-            val cardScale = remember(expandedCardWidth) {
-                { lerp(YouCardWidth, expandedCardWidth, progress()) / FullScreenCardWidth }
+            //
+            // Both widths are read here rather than inside the lambda: they are theme-backed now,
+            // and the lambda the frame calls is not a composable scope.
+            val restingCardWidth = YouCardWidth
+            val drawnCardWidth = FullScreenCardWidth
+            val cardScale = remember(expandedCardWidth, restingCardWidth, drawnCardWidth) {
+                { lerp(restingCardWidth, expandedCardWidth, progress()) / drawnCardWidth }
             }
             // v2's tab bar is a hoisted overlay drawn ABOVE this content, so reserve its height as
             // bottom content padding — the list then scrolls clear of the bar instead of running
@@ -222,13 +230,14 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
             // Everything but the card fades out on the expansion and slides down out of the way,
             // rather than being removed. Keeping the rows in the layout means nothing reflows on
             // the way back (iOS does the same with opacity + offset).
-            val slideAway = remember(progress) {
+            val slideDistance = ContentSlideDistance
+            val slideAway = remember(progress, slideDistance) {
                 Modifier.graphicsLayer {
                     val fraction = progress()
                     // A settled flick overshoots its end a little, so keep the fade in a legal
                     // alpha range rather than assuming the progress is one.
                     alpha = (1f - fraction).coerceIn(0f, 1f)
-                    translationY = ContentSlideDistance.toPx() * fraction
+                    translationY = slideDistance.toPx() * fraction
                 }
             }
 
@@ -307,6 +316,9 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                             onShare = { viewModel.dispatchEvent(Event.ShareTipCard) },
                             onDownload = { viewModel.dispatchEvent(Event.DownloadTipCard) },
                             onClaim = { viewModel.dispatchEvent(Event.ClaimTipCard) },
+                            usernameProgress = state.usernameProgress,
+                            usernameMinimumBalance = state.usernameMinimumBalance,
+                            onClaimUsername = { viewModel.dispatchEvent(Event.ClaimUsername) },
                         )
                     } else {
                         MoneyTiles(viewModel, navigator)
@@ -367,30 +379,40 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
     }
 }
 
-/** Distance from the status bar to the top of the tip card (node 9278:7301). */
-private val CardTopSpacing = 74.dp
+/** Distance from the status bar to the top of the tip card (node 9278:7301: 74). */
+private val CardTopSpacing: Dp
+    @Composable get() = CodeTheme.dimens.grid.x15
 
-/** The at-rest card width on the You tab (node 9278:7301: 241.636). */
-private val YouCardWidth = 242.dp
+/**
+ * The card at rest (node 9278:7301: 241.636) and expanded (node 9277:121410: 302.21), both measured
+ * on a 402-wide frame and kept here as the fraction of the display they were drawn at rather than
+ * the dp they happened to measure on it. iOS pins 302 outright; as a fraction the card holds its
+ * proportion of a narrower or wider display instead of crowding one and stranding the other.
+ */
+private const val YouCardWidthFraction = 0.60f
+private const val FullScreenCardWidthFraction = 0.75f
 
-/** The expanded card's width (node 9277:121410: 302.21 on a 402 frame); iOS pins the same 302. */
-private val FullScreenCardWidth = 302.dp
+private val YouCardWidth: Dp
+    @Composable get() = CodeTheme.dimens.screenWidth * YouCardWidthFraction
 
-/** The page's horizontal inset, and so the expanded card's minimum margin. */
-private val PageHorizontalInset = 20.dp
+private val FullScreenCardWidth: Dp
+    @Composable get() = CodeTheme.dimens.screenWidth * FullScreenCardWidthFraction
 
 /** Gap between the Close row and the system nav bar (node 9277:121410). */
-private val CloseBottomSpacing = 8.dp
+private val CloseBottomSpacing: Dp
+    @Composable get() = CodeTheme.dimens.grid.x2
 
 /**
  * Clearance between the last settings row's divider and the version footer. iOS spends 32 above the
  * footer plus 12 of the footer's own vertical padding on top of the row's 25 inset; the Android row
  * already pays that same 25, so the difference lands here.
  */
-private val VersionFooterTopSpacing = 44.dp
+private val VersionFooterTopSpacing: Dp
+    @Composable get() = CodeTheme.dimens.grid.x9
 
 /** How far the page's content slides down as it fades out under the expanding card. */
-private val ContentSlideDistance = 60.dp
+private val ContentSlideDistance: Dp
+    @Composable get() = CodeTheme.dimens.grid.x12
 
 /**
  * How much of the expansion the "Full Screen" caption has to be gone within — a fraction of the
@@ -426,6 +448,9 @@ private fun YouHeader(
     onShare: () -> Unit,
     onDownload: () -> Unit,
     onClaim: () -> Unit,
+    usernameProgress: UsernameProgress?,
+    usernameMinimumBalance: String,
+    onClaimUsername: () -> Unit,
 ) {
     when (tipCardState) {
         TipCardState.Unknown -> Unit
@@ -449,6 +474,9 @@ private fun YouHeader(
             onCopyLink = onCopyLink,
             onShare = onShare,
             onDownload = onDownload,
+            usernameProgress = usernameProgress,
+            usernameMinimumBalance = usernameMinimumBalance,
+            onClaimUsername = onClaimUsername,
         )
     }
 }
@@ -479,6 +507,9 @@ private fun ClaimedTipCard(
     onCopyLink: () -> Unit,
     onShare: () -> Unit,
     onDownload: () -> Unit,
+    usernameProgress: UsernameProgress?,
+    usernameMinimumBalance: String,
+    onClaimUsername: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -545,13 +576,13 @@ private fun ClaimedTipCard(
             modifier = slideAway.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(64.dp))
+            Spacer(Modifier.height(CodeTheme.dimens.grid.x13))
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.grid.x5),
-                verticalArrangement = Arrangement.spacedBy(11.dp),
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             ) {
                 if (link != null) {
                     TipLinkRow(link = link, enabled = enabled, onCopy = onCopyLink)
@@ -560,8 +591,8 @@ private fun ClaimedTipCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(88.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        .height(CodeTheme.dimens.grid.x18),
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 ) {
                     ShareTile(
                         modifier = Modifier.weight(1f),
@@ -578,9 +609,20 @@ private fun ClaimedTipCard(
                         onClick = onDownload,
                     )
                 }
+
+                // Only under a claimed card: an account with no display name is already being asked
+                // for one, and a second nudge under the blurred stand-in isn't in the design. Gone
+                // entirely once a handle exists — the caller nulls it out.
+                if (usernameProgress != null) {
+                    UsernameProgressCard(
+                        progress = usernameProgress,
+                        minimumBalance = usernameMinimumBalance,
+                        onClick = onClaimUsername,
+                    )
+                }
             }
 
-            Spacer(Modifier.height(19.dp))
+            Spacer(Modifier.height(CodeTheme.dimens.grid.x4))
         }
     }
 }
@@ -649,9 +691,15 @@ private fun UnclaimedTipCardPrompt(
             if (placeholder != null) {
                 // A nameless account renders its name line as a bare "Tip ", which frosts to a much
                 // narrower smudge than a real card's. Stand a name in so the blur has the weight the
-                // claimed card's would (iOS `YouScreen.placeholderName`).
+                // claimed card's would (iOS `YouScreen.placeholderName`). The handle goes with it —
+                // this card is a stand-in, and a real `@handle` under a stand-in name is neither.
                 val stoodIn = remember(placeholder, placeholderName) {
-                    placeholder.copy(user = placeholder.user.copy(displayName = placeholderName))
+                    placeholder.copy(
+                        user = placeholder.user.copy(
+                            displayName = placeholderName,
+                            username = null,
+                        )
+                    )
                 }
 
                 CompositionLocalProvider(
@@ -686,7 +734,7 @@ private fun UnclaimedTipCardPrompt(
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
                     text = stringResource(CoreR.string.subtitle_tipIntro),
                     style = CodeTheme.typography.textSmall,
                     // Full strength, not secondary: it sits over the blurred code's glow.
@@ -695,11 +743,14 @@ private fun UnclaimedTipCardPrompt(
                 )
                 Text(
                     modifier = Modifier
-                        .padding(top = 20.dp)
+                        .padding(top = CodeTheme.dimens.grid.x4)
                         .clip(CircleShape)
                         .background(CodeTheme.colors.textMain)
                         .clickable(enabled = enabled, onClick = onClaim)
-                        .padding(horizontal = 25.dp, vertical = 10.dp),
+                        .padding(
+                            horizontal = CodeTheme.dimens.grid.x5,
+                            vertical = CodeTheme.dimens.grid.x2,
+                        ),
                     text = stringResource(CoreR.string.action_startReceivingTips),
                     style = CodeTheme.typography.textMedium,
                     color = CodeTheme.colors.background,
@@ -719,17 +770,20 @@ private const val TipCardCornerFraction = 0.08f
 private val PlaceholderBlurRadius = 12.dp
 
 /** The hairline that keeps the blurred stand-in readable as a card rather than a smudge. */
-private val PlaceholderBorderWidth = 1.dp
+private val PlaceholderBorderWidth: Dp
+    @Composable get() = CodeTheme.dimens.border
 
 /** Margin between the claim prompt and the stand-in card's edges (iOS: 16 across the pair). */
-private val PromptInset = 8.dp
+private val PromptInset: Dp
+    @Composable get() = CodeTheme.dimens.grid.x2
 
 /**
  * Gap between the unclaimed stand-in and the first settings row. Wider than the claimed card's 19,
  * because the claimed card pays part of its clearance in the Share / Download tiles that the
  * unclaimed state doesn't draw (iOS `YouScreen`: `.padding(.top, displayName == nil ? 48 : 19)`).
  */
-private val UnclaimedRowsGap = 48.dp
+private val UnclaimedRowsGap: Dp
+    @Composable get() = CodeTheme.dimens.grid.x10
 
 /**
  * The label + chevron that toggles the card's full-screen state — "Full Screen" pointing down under
@@ -745,7 +799,7 @@ private fun FullScreenToggle(
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
     ) {
         Text(
             text = label,
@@ -780,8 +834,8 @@ private fun TipLinkRow(link: String, enabled: Boolean, onCopy: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(40.dp)
-            .clip(TileShape)
+            .height(CodeTheme.dimens.grid.x8)
+            .clip(CodeTheme.shapes.extraSmall)
             .background(White05)
             .clickable(enabled = enabled) {
                 onCopy()
@@ -794,7 +848,7 @@ private fun TipLinkRow(link: String, enabled: Boolean, onCopy: () -> Unit) {
         Row(
             modifier = Modifier.weight(1f, fill = false),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
         ) {
             Icon(
                 modifier = Modifier.size(20.dp),
@@ -851,10 +905,13 @@ private fun ShareTile(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .clip(TileShape)
+            .clip(CodeTheme.shapes.extraSmall)
             .background(White05)
             .clickable(enabled = enabled) { onClick() },
-        verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(
+            CodeTheme.dimens.grid.x1,
+            Alignment.CenterVertically,
+        ),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
@@ -870,23 +927,6 @@ private fun ShareTile(
         )
     }
 }
-
-private val TileShape = RoundedCornerShape(6.dp)
-
-/**
- * `https://app.flipcash.com/tip/<uuid>` -> `app.flipcash.com/tip/b0ced...` (node 9276:4753). The
- * user never types this — it's a recognisable stand-in for the link the copy button puts on the
- * clipboard, so it's cut short rather than ellipsized at whatever width the device happens to give.
- */
-private fun String.abbreviatedLink(): String {
-    val withoutScheme = substringAfter("://")
-    val lastSegment = withoutScheme.substringAfterLast('/')
-    if (lastSegment.length <= ABBREVIATED_ID_LENGTH) return withoutScheme
-    val prefix = withoutScheme.removeSuffix(lastSegment)
-    return "$prefix${lastSegment.take(ABBREVIATED_ID_LENGTH)}..."
-}
-
-private const val ABBREVIATED_ID_LENGTH = 5
 
 /** v1 Settings-sheet header: the Add Money / Withdraw tiles (removed from the v2 You tab). */
 @Composable
@@ -906,7 +946,7 @@ private fun MoneyTiles(
             text = stringResource(R.string.action_addMoney),
             icon = painterResource(R.drawable.ic_menu_deposit)
         ) {
-            viewModel.dispatchEvent(Event.PresentDepositOptions)
+            viewModel.dispatchEvent(Event.PresentDepositOptions())
         }
 
         TileButton(

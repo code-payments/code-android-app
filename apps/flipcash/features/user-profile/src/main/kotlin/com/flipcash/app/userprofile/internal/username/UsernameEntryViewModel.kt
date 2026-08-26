@@ -1,0 +1,209 @@
+package com.flipcash.app.userprofile.internal.username
+
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.extensions.onResult
+import com.flipcash.app.userflags.UserFlagsCoordinator
+import com.flipcash.features.userprofile.R
+import com.flipcash.services.controllers.ProfileController
+import com.flipcash.services.models.MaxUsernameLength
+import com.flipcash.services.models.MinUsernameLength
+import com.flipcash.services.models.ModerationResult
+import com.flipcash.services.models.SetUsernameError
+import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.model.core.errors.ValidationException
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.util.resources.ResourceHelper
+import com.getcode.view.BaseViewModel
+import com.getcode.view.LoadingSuccessState
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
+
+/**
+ * Claiming the public `@handle`. Shaped like `NameEntryViewModel`, but the failure surface is much
+ * wider: the server can reject a username for six distinct reasons, each with its own dialog.
+ *
+ * Every rejection is informational rather than an error. They all describe something the user typed
+ * — taken, too short, wrong characters — and are fixed by typing something else; the destructive
+ * style would read as a fault in the app instead of a prompt to try another handle.
+ *
+ * Length is checked here rather than server-side so "Too Short" / "Too Long" name the actual
+ * problem instead of arriving as a generic `INVALID_USERNAME`. The charset is enforced as the user
+ * types (see `UsernameInputTransformation`), so `InvalidUsername` off the wire only ever means the
+ * server disagrees with us about the charset — it still gets the "Invalid Characters" dialog.
+ */
+@HiltViewModel
+class UsernameEntryViewModel @Inject constructor(
+    private val userManager: UserManager,
+    private val profileController: ProfileController,
+    private val userFlags: UserFlagsCoordinator,
+    private val resources: ResourceHelper,
+) : BaseViewModel<UsernameEntryViewModel.State, UsernameEntryViewModel.Event>(
+    initialState = State(),
+    updateStateForEvent = updateStateForEvent
+) {
+    data class State(
+        val usernameFieldState: TextFieldState = TextFieldState(),
+        val processingState: LoadingSuccessState = LoadingSuccessState(),
+    ) {
+        val hasUsername: Boolean
+            get() = usernameFieldState.text.isNotBlank()
+    }
+
+    sealed interface Event {
+        data object CheckUsername : Event
+        data class UpdateProcessingState(
+            val loading: Boolean = false,
+            val success: Boolean = false
+        ) : Event
+
+        data object OnUsernameApproved : Event
+    }
+
+    init {
+        userManager.state
+            .mapNotNull { it.userProfile }
+            .map { profile -> profile.username }
+            .onEach { username ->
+                val inputState = stateFlow.value.usernameFieldState
+                inputState.setTextAndPlaceCursorAtEnd(username.orEmpty())
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.CheckUsername>()
+            .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
+            .map { stateFlow.value.usernameFieldState.text.toString() }
+            .map { username ->
+                lengthComplaint(username)
+                    ?.let { Result.failure(it) }
+                    ?: profileController.setUsername(username)
+            }
+            .onResult(
+                onSuccess = {
+                    viewModelScope.launch {
+                        dispatchEvent(Event.UpdateProcessingState(success = true))
+                        delay(500.milliseconds)
+                        dispatchEvent(Event.OnUsernameApproved)
+                        dispatchEvent(Event.UpdateProcessingState())
+                    }
+                },
+                onError = { cause ->
+                    dispatchEvent(Event.UpdateProcessingState())
+                    handleUsernameSetFailure(cause)
+                }
+            ).launchIn(viewModelScope)
+    }
+
+    private fun handleUsernameSetFailure(cause: Throwable) {
+        when (cause) {
+            is LengthComplaint.TooShort -> BottomBarManager.showInfo(
+                title = resources.getString(R.string.error_title_usernameTooShort),
+                message = resources.getString(
+                    R.string.error_description_usernameTooShort,
+                    MinUsernameLength,
+                ),
+            )
+
+            is LengthComplaint.TooLong -> BottomBarManager.showInfo(
+                title = resources.getString(R.string.error_title_usernameTooLong),
+                message = resources.getString(
+                    R.string.error_description_usernameTooLong,
+                    MaxUsernameLength,
+                ),
+            )
+
+            is SetUsernameError.AlreadyTaken -> BottomBarManager.showInfo(
+                title = resources.getString(R.string.error_title_usernameTaken),
+                message = resources.getString(R.string.error_description_usernameTaken),
+            )
+
+            // The moderator speaks about names, not usernames, so the descriptions are the
+            // display-name copy verbatim — only the title changes.
+            is SetUsernameError.FailedModerated -> BottomBarManager.showInfo(
+                title = resources.getString(R.string.error_title_usernameNotAllowed),
+                message = resources.getString(moderationDescription(cause.category)),
+            )
+
+            is SetUsernameError.ReservedWord -> BottomBarManager.showInfo(
+                title = resources.getString(R.string.error_title_usernameTrademarked),
+                message = resources.getString(R.string.error_description_usernameTrademarked),
+            )
+
+            is SetUsernameError.InsufficientBalance -> {
+                val minimum = userFlags.resolvedFlags.value.usernameMinBalance.effectiveValue
+                val formatted = minimum.formatted(
+                    rule = Fiat.FormattingRule.Truncated,
+                    suffix = minimum.currencyCode.name,
+                )
+                BottomBarManager.showInfo(
+                    title = resources.getString(
+                        R.string.error_title_usernameMinimumBalance,
+                        formatted,
+                    ),
+                    message = resources.getString(
+                        R.string.error_description_usernameMinimumBalance,
+                        formatted,
+                    ),
+                )
+            }
+
+            is SetUsernameError.InvalidUsername,
+            is ValidationException -> BottomBarManager.showInfo(
+                title = resources.getString(R.string.error_title_usernameInvalidCharacters),
+                message = resources.getString(R.string.error_description_usernameInvalidCharacters),
+            )
+
+            // The only branch that isn't the user's doing — a failed check is ours to own, so it
+            // stays an error while every rejection above is informational.
+            else -> BottomBarManager.showError(
+                title = resources.getString(R.string.error_title_usernameCheckFailed),
+                message = resources.getString(R.string.error_description_usernameCheckFailed),
+            )
+        }
+    }
+
+    private fun moderationDescription(category: ModerationResult.FlaggedCategory): Int =
+        when (category) {
+            ModerationResult.FlaggedCategory.NONE ->
+                R.string.error_description_profileNameNotAllowed
+            ModerationResult.FlaggedCategory.OTHER ->
+                R.string.error_description_profileNameNotAllowedFlaggedOther
+            ModerationResult.FlaggedCategory.NSFW ->
+                R.string.error_description_profileNameNotAllowedFlaggedNsfw
+            ModerationResult.FlaggedCategory.IMPERSONATION ->
+                R.string.error_description_profileNameNotAllowedFlaggedImpersonation
+            ModerationResult.FlaggedCategory.MISLEADING ->
+                R.string.error_description_profileNameNotAllowedFlaggedMisleading
+            ModerationResult.FlaggedCategory.SPAM ->
+                R.string.error_description_profileNameNotAllowedFlaggedSpam
+        }
+
+    companion object {
+        private val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
+            when (event) {
+                Event.CheckUsername -> { state -> state }
+                is Event.UpdateProcessingState -> { state ->
+                    val current = state.processingState
+                    state.copy(
+                        processingState = current.copy(
+                            loading = event.loading,
+                            success = event.success
+                        )
+                    )
+                }
+
+                Event.OnUsernameApproved -> { state -> state }
+            }
+        }
+    }
+}

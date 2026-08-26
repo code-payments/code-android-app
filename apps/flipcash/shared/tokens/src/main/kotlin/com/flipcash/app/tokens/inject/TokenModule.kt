@@ -2,6 +2,7 @@ package com.flipcash.app.tokens.inject
 
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.core.ReservesBalanceProvider
+import com.flipcash.app.tokens.core.TotalBalanceProvider
 import com.getcode.opencode.providers.SessionListener
 import com.getcode.opencode.providers.TokenMetadataProvider
 import dagger.Binds
@@ -33,4 +34,9 @@ abstract class TokenModule {
     abstract fun bindReservesBalanceProvider(
         coordinator: TokenCoordinator
     ): ReservesBalanceProvider
+
+    @Binds
+    abstract fun bindTotalBalanceProvider(
+        coordinator: TokenCoordinator
+    ): TotalBalanceProvider
 }

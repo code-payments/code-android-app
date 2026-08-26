@@ -7,10 +7,12 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.isUsernameShaped
 import com.flipcash.app.core.navigation.Key
 import com.flipcash.app.core.navigation.fragments
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
+import com.flipcash.app.core.tipping.TipCardOwner
 import com.flipcash.app.router.Router
 import com.flipcash.app.router.internal.AppRouter.Companion.cashLink
 import com.flipcash.app.router.internal.AppRouter.Companion.chat
@@ -32,8 +34,16 @@ import java.util.UUID
 
 internal class AppRouter(
     private val authStateProvider: () -> AuthState,
-    private val currentUserIdProvider: () -> ID?,
+    private val currentUserProvider: () -> CurrentUser,
 ) : Router {
+
+    /**
+     * How the signed-in account can be addressed, for matching a tip card link against itself.
+     * Both nullable and read together: see [TipCardOwner.isSelf] for why the id and the handle
+     * cannot be sourced from one profile.
+     */
+    internal data class CurrentUser(val id: ID?, val username: String?)
+
     companion object {
         val login = listOf("login")
         val cashLink = listOf("c", "cash")
@@ -47,10 +57,27 @@ internal class AppRouter(
          * the fragment as `#source=<url>`. See [DeepLink.unwrapJumpTarget].
          */
         const val JUMP_HOST = "jump.flipcash.com"
+
+        /**
+         * The bare host, which serves the website *and* every user's vanity profile link
+         * (`flipcash.com/sally_streamer`). Distinct from the `app.` / `send.` hosts, whose whole
+         * path space belongs to the app.
+         */
+        const val VANITY_HOST = "flipcash.com"
+
+        /**
+         * Paths on [VANITY_HOST] that belong to the website rather than to a person. Every one of
+         * them is charset-valid as a username, and the server reserves them — so a link to one
+         * could only ever fail to resolve, but it would fail *inside* the app, having taken the tap
+         * away from the browser. Ruling them out here keeps `flipcash.com/download` a web link.
+         */
+        val reservedVanityPaths: Set<String> =
+            setOf("download", "privacy", "terms", "support", "help", "about", "blog", "legal") +
+                login + cashLink + verification + token + chat + tip
     }
 
     override fun dispatch(deepLink: DeepLink): DeeplinkAction {
-        val type = classify(deepLink) ?: return DeeplinkAction.None
+        val type = classify(deepLink) ?: return deepLink.unrouted()
 
         // Not logged in — redirect to login (or login deeplink itself)
         if (authStateProvider() !is AuthState.Ready) {
@@ -85,14 +112,27 @@ internal class AppRouter(
                 listOf(AppRoute.Sheets.Tips(), AppRoute.Messaging.Chat(type.identifier))
             )
 
-            // Your own tip card link: tipping yourself is a payment no-op, so instead of
-            // presenting a card that can't be acted on, land on the You tab — the surface that
-            // owns your tip card (see NavBarRoutes: NavBarButton.TipCard -> Sheets.Menu).
-            is DeeplinkType.Tipcard -> if (type.userId == currentUserIdProvider()) {
-                DeeplinkAction.Navigate(listOf(AppRoute.Sheets.Menu))
-            } else {
-                DeeplinkAction.PresentTipCard(type.userId)
-            }
+            is DeeplinkType.Tipcard -> tipCard(TipCardOwner.ById(type.userId))
+
+            is DeeplinkType.TipcardByUsername -> tipCard(TipCardOwner.ByUsername(type.username))
+        }
+    }
+
+    /**
+     * Where a tip card link goes. Your own leads nowhere payable, so instead of presenting a card
+     * that can't be acted on it lands on the You tab — the surface that owns your tip card (see
+     * NavBarRoutes: NavBarButton.TipCard -> Sheets.Menu).
+     *
+     * The self-check belongs here and not after resolution: the session announces a self-tip
+     * through a replay-less event that only the scanner collects, so a link opened onto any other
+     * tab — a cold start lands on the wallet — would drop it and do nothing at all.
+     */
+    private fun tipCard(owner: TipCardOwner): DeeplinkAction {
+        val self = currentUserProvider()
+        return if (owner.isSelf(self.id, self.username)) {
+            DeeplinkAction.Navigate(listOf(AppRoute.Sheets.Menu))
+        } else {
+            DeeplinkAction.PresentTipCard(owner)
         }
     }
 
@@ -127,6 +167,7 @@ internal class AppRouter(
             deepLink.isEmailVerification() -> deepLink.handleEmailVerification()
             deepLink.isTipChat() -> deepLink.handleTipChat()
             deepLink.isTipCard() -> deepLink.handleTipCard()
+            deepLink.isVanityProfile() -> deepLink.handleVanityProfile()
             // `/chat/{id}` links are intentionally NOT handled: the Send tab / direct-send
             // flow they opened was removed. The manifest no longer claims that path either, so
             // such a link opens in the browser rather than dead-ending here. Re-add routing and
@@ -135,6 +176,22 @@ internal class AppRouter(
             else -> null
         }
     }
+
+    /**
+     * What to do with a link the app was handed but has no route for.
+     *
+     * For every host but the bare one that is "nothing": those hosts belong to the app, and a path
+     * it doesn't know is a link it was never meant to receive. `flipcash.com` is different — its
+     * path space is shared with the website, and the App Link filter can only narrow it to the
+     * handle charset, which `/download` and `/privacy` also satisfy (and which the platform ignores
+     * below API 31). Send those back to a browser instead of dead-ending on the home screen.
+     */
+    private fun DeepLink.unrouted(): DeeplinkAction =
+        if (host.removePrefix("www.").equals(VANITY_HOST, ignoreCase = true)) {
+            DeeplinkAction.OpenExternally(data)
+        } else {
+            DeeplinkAction.None
+        }
 
     private fun resolveEmailVerification(type: DeeplinkType.EmailVerification): DeeplinkAction {
         val origin = EmailDeeplinkOrigin.deserialize(type.origin.orEmpty())
@@ -214,6 +271,27 @@ private fun DeepLink.isTipChat(): Boolean =
     tip.contains(pathSegments.getOrNull(0)) && chat.contains(pathSegments.getOrNull(1))
 
 private fun DeepLink.isTipCard(): Boolean =  tip.contains(pathSegments.getOrNull(0))
+
+/**
+ * `flipcash.com/{username}` — a single path segment on the bare host, shaped like a handle and not
+ * one of the website's own pages.
+ *
+ * All three conditions matter. The manifest claims this host for username-shaped paths only, but a
+ * `pathAdvancedPattern` is ignored below API 31, so on those versions the whole host arrives here
+ * and this is the only place the distinction is made.
+ */
+private fun DeepLink.isVanityProfile(): Boolean {
+    if (!host.removePrefix("www.").equals(AppRouter.VANITY_HOST, ignoreCase = true)) return false
+    val segment = pathSegments.singleOrNull()?.lowercase() ?: return false
+    return segment.isUsernameShaped() && segment !in AppRouter.reservedVanityPaths
+}
+
+private fun DeepLink.handleVanityProfile(): DeeplinkType.TipcardByUsername? {
+    // Lowercased, not just matched case-insensitively: handles are lowercase on the wire, and this
+    // string is what the profile lookup is keyed by.
+    val username = pathSegments.singleOrNull()?.lowercase() ?: return null
+    return DeeplinkType.TipcardByUsername(username)
+}
 
 private fun DeepLink.handleLoginLink(): DeeplinkType.Login? {
     val uri = data.toUri()

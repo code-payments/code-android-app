@@ -19,6 +19,11 @@ object RouterModule {
         userManager: UserManager,
     ): Router = AppRouter(
         authStateProvider = { userManager.authState },
-        currentUserIdProvider = { userManager.accountId },
+        currentUserProvider = {
+            AppRouter.CurrentUser(
+                id = userManager.accountId,
+                username = userManager.profile?.username,
+            )
+        },
     )
 }

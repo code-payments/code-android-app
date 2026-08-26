@@ -1,7 +1,7 @@
 package com.flipcash.app.core.util
 
+import com.flipcash.app.core.tipping.TipCardOwner
 import com.flipcash.services.models.chat.ChatId
-import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.uuid
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
@@ -12,7 +12,23 @@ import com.getcode.utils.urlEncode
 
 object Linkify {
     fun cashLink(entropy: String): String = "https://send.flipcash.com/c/#/e=${entropy}"
-    fun tipcard(userId: ID): String = "https://app.flipcash.com/tip/${userId.uuid}"
+
+    /**
+     * A tip card's URL, in the form its [owner] is named by.
+     *
+     * The handle form — `flipcash.com/sally_streamer` (node 9442:3673) — is what an account shows
+     * and shares once it has claimed a username, because it reads as a person rather than as a
+     * UUID; the id form stays the address for an account without one. [TipCardOwner.preferringUsername]
+     * is that precedence, for callers that hold both.
+     *
+     * Note the handle form's bare host, no `app.` subdomain: the manifest claims `flipcash.com` for
+     * username-shaped paths only, so this is the exact shape that has to resolve back into the app.
+     */
+    fun tipcard(owner: TipCardOwner): String = when (owner) {
+        is TipCardOwner.ById -> "https://app.flipcash.com/tip/${owner.userId.uuid}"
+        is TipCardOwner.ByUsername -> "https://flipcash.com/${owner.username}"
+    }
+
     fun download(shareRef: String): String = "https://flipcash.com/download?r=${shareRef}"
     fun whatsApp(phoneNumber: String, message: String): String =
         "https://wa.me/${phoneNumber.removePrefix("+")}?text=${message.urlEncode()}"

@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
 import com.flipcash.services.models.SocialAccount
+import com.flipcash.services.models.handle
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
@@ -437,7 +438,7 @@ private fun SocialAccountRow(
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "@${account.username}",
+                text = account.handle,
                 style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textMain,
             )

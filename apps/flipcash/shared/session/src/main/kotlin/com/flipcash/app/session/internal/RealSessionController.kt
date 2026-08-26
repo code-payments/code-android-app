@@ -13,6 +13,7 @@ import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.core.internal.updater.ProfileUpdater
+import com.flipcash.app.core.tipping.TipCardOwner
 import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.session.BillOperations
@@ -142,7 +143,8 @@ class RealSessionController @Inject constructor(
                     is CodeScanDelegate.Event.BillReady -> showBill(event.bill)
                     is CodeScanDelegate.Event.RefreshFeed -> bringActivityFeedCurrent()
                     is CodeScanDelegate.Event.CheckPendingFeed -> checkPendingItemsInFeed()
-                    is CodeScanDelegate.Event.TipCardScanned -> resolveTipCard(event.userId)
+                    is CodeScanDelegate.Event.TipCardScanned ->
+                        resolveTipCard(TipCardOwner.ById(event.userId))
                 }
             }.launchIn(scope)
 

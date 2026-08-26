@@ -101,7 +101,18 @@ internal fun ContactInfoContainer(
             }
         }
 
-        if (contact != null && !contact.isUnknown) {
+        // The line under the name says how this person is addressed: a tip DM by their public
+        // handle (node 9443:8928), a contact DM by the number the chat is keyed on. Never both —
+        // only one of the two identity sources backs any given conversation.
+        val handle = participant?.handle
+        if (handle != null) {
+            Text(
+                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
+                text = handle,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+            )
+        } else if (contact != null && !contact.isUnknown) {
             Text(
                 modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
                 text = contact.displayNumber,
@@ -260,7 +271,10 @@ private fun Preview_AllStates() {
     // A tip DM's counterparty: identity from a server profile — no phone number, no pill.
     val tipUser = ChatParticipant.TipUser(
         userId = listOf(1.toByte()),
-        profile = UserProfile.Empty.copy(displayName = "Grace Hopper"),
+        profile = UserProfile.Empty.copy(
+            displayName = "Grace Hopper",
+            username = "grace_hopper",
+        ),
     )
 
     // Fixed width so every state renders at the same size regardless of name/number length.

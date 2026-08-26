@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,6 +29,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.bills.components.ScannableCode
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.handle
 import com.flipcash.shared.bills.R
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
@@ -85,6 +85,12 @@ private const val TipCardNameFraction = 17f / 269f
 // Line height as a multiple of the font size, carried over from `textMedium` (20 on 16) so a name
 // that wraps to a second line keeps the same rhythm it had at the fixed size.
 private const val TipCardNameLineHeightRatio = 1.25f
+// The claimed handle sits directly under the name and at the same size — node 9443:7991 draws both
+// at 15 on the 241.6-wide card — so it scales with the rest of the figure. Medium rather than Demi,
+// at half opacity, is what separates it from the name; a second type size would not survive the
+// card being drawn at three different widths.
+private const val TipCardHandleGapFraction = 4f / 241.636f
+private const val TipCardHandleAlpha = 0.5f
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -138,10 +144,10 @@ internal fun TipCard(
                     )
                 }
 
-                Row(
+                Column(
                     modifier = Modifier.padding(top = height * TipCardNameTopFraction),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(width * TipCardHandleGapFraction),
                 ) {
                     Text(
                         text = stringResource(R.string.label_tipUser, user.displayName),
@@ -153,6 +159,21 @@ internal fun TipCard(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
+
+                    // Only for an account that has claimed one — the line is absent rather than
+                    // blank, so a card without a handle is the figure it always was.
+                    user.handle?.let { handle ->
+                        Text(
+                            text = handle,
+                            style = CodeTheme.typography.caption.copy(
+                                fontSize = nameFontSize,
+                                lineHeight = nameFontSize * TipCardNameLineHeightRatio,
+                            ),
+                            color = CodeTheme.colors.textMain.copy(alpha = TipCardHandleAlpha),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }

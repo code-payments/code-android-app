@@ -929,6 +929,41 @@
     <string name="error_description_profileNameNotAllowedFlaggedImpersonation">AI flagged this name for impersonation. Please try a different name. If you think the name was rejected in error please DM @flipcash on X</string>
     <string name="error_description_profileNameNotAllowedFlaggedMisleading">AI flagged this name as misleading. Please try a different name. If you think the name was rejected in error please DM @flipcash on X</string>
     <string name="error_description_profileNameNotAllowedFlaggedSpam">AI flagged this name as spam. Please try a different name. If you think the name was rejected in error please DM @flipcash on X</string>
+    <!-- Username (the public @handle). Distinct from the display name: lowercase, unique, and
+         claimed only once the account clears the minimum-balance gate. -->
+    <string name="title_usernameSelection">Enter username</string>
+    <string name="subtitle_usernameSelection">This is how you\'ll be uniquely identified on the platform</string>
+    <string name="hint_username">Username</string>
+    <string name="title_changeUsername">Change Username</string>
+
+    <!-- The "You" tab's username progress card (nodes 9536:4336 / 9537:1845). -->
+    <string name="title_usernameUpsell">Get a custom @username</string>
+    <string name="subtitle_usernameUpsellLocked">Get your balance to %1$s or more to unlock</string>
+    <string name="subtitle_usernameUpsellUnlocked">Tap to select your username now</string>
+    <string name="label_usernameAmountToGo">%1$s to go</string>
+    <string name="error_title_usernameTaken">Username Taken</string>
+    <string name="error_description_usernameTaken">Please try a different username</string>
+    <!-- Moderation rejections reuse the display-name descriptions above, per the design. -->
+    <string name="error_title_usernameNotAllowed">Inappropriate Username</string>
+    <string name="error_title_usernameTrademarked">Trademarks Not Allowed</string>
+    <string name="error_description_usernameTrademarked">Please pick a different name that is not trademarked. If you own the trademark please contact support@flipcash.com</string>
+    <string name="error_title_usernameInvalidCharacters">Invalid Characters</string>
+    <string name="error_description_usernameInvalidCharacters">Only letters, numbers, and underscores are allowed</string>
+    <string name="error_title_usernameTooLong">Too Long</string>
+    <string name="error_description_usernameTooLong">Usernames must be a maximum of %1$d characters</string>
+    <string name="error_title_usernameTooShort">Too Short</string>
+    <string name="error_description_usernameTooShort">Usernames must be a minimum of %1$d characters</string>
+    <string name="error_title_usernameMinimumBalance">%1$s Minimum Balance Required</string>
+    <string name="error_description_usernameMinimumBalance">In order to stop username squatting getting a username requires a total Flipcash balance of at least %1$s</string>
+    <string name="error_title_usernameCheckFailed">Something Went Wrong</string>
+    <string name="error_description_usernameCheckFailed">Please try again</string>
+
+    <!-- A tapped `flipcash.com/{username}` link that resolves to nothing. -->
+    <string name="error_title_usernameNotFound">No Such Account</string>
+    <string name="error_description_usernameNotFound">Nobody has claimed \@%1$s</string>
+    <string name="error_title_tipCardUnavailable">Couldn\'t Open Tip Card</string>
+    <string name="error_description_tipCardUnavailable">Please check your connection and try again</string>
+
     <string name="error_title_profilePhotoNotAllowed">This Photo is Not Allowed</string>
     <string name="error_description_profilePhotoNotAllowedFlaggedOther">AI flagged this photo. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>
     <string name="error_description_profilePhotoNotAllowedFlaggedNsfw">AI flagged this photo as sexually explicit. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>

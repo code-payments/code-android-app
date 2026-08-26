@@ -2,6 +2,7 @@ package com.flipcash.app.myaccount.internal.myaccount
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContactMail
+import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.runtime.Composable
@@ -30,6 +31,23 @@ internal data object ChangeDisplayName : FullMenuItem<MyAccountScreenViewModel.E
         @Composable get() = stringResource(CoreR.string.title_changeDisplayName)
     override val action: MyAccountScreenViewModel.Event =
         MyAccountScreenViewModel.Event.OnChangeDisplayNameClicked
+}
+
+/**
+ * Node 9491:6297. The public `@handle`. One of two ways into the same username step — the other is
+ * the "You" tab's progress card — because claiming a first handle and changing an existing one are
+ * the same screen, differing only in what the field is prefilled with.
+ *
+ * Unconditional: the minimum-balance gate is the server's, and an account that hasn't cleared it is
+ * told so on submit rather than being shown a row that isn't there.
+ */
+internal data object ChangeUsername : FullMenuItem<MyAccountScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = rememberVectorPainter(Icons.Outlined.AlternateEmail)
+    override val name: String
+        @Composable get() = stringResource(CoreR.string.title_changeUsername)
+    override val action: MyAccountScreenViewModel.Event =
+        MyAccountScreenViewModel.Event.OnChangeUsernameClicked
 }
 
 /**

@@ -15,25 +15,33 @@ import com.flipcash.app.core.share.TipCodeExporter
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.core.toast.SystemToastController
+import com.flipcash.app.core.tipping.TipCardOwner
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
+import com.flipcash.app.menu.internal.components.UsernameProgress
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.updates.ReleaseStage
 import com.flipcash.app.updates.ReleaseStageProvider
+import com.flipcash.app.tokens.core.TotalBalanceProvider
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.menu.BuildConfig
 import com.flipcash.features.menu.R
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.tipping.TippingCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -45,6 +53,13 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+/**
+ * The minimum-balance gate as the copy quotes it — `$100 USD` rather than `$100.00`. Shared by the
+ * card and the sheet so a round threshold never renders two different ways.
+ */
+private fun Fiat.formattedGate(): String =
+    formatted(rule = Fiat.FormattingRule.Truncated, suffix = currencyCode.name)
 
 private val FullMenuList = buildList {
     add(MyAccount)
@@ -61,6 +76,7 @@ internal class MenuScreenViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
     releaseStageProvider: ReleaseStageProvider,
     purchaseMethodController: PurchaseMethodController,
+    totalBalance: TotalBalanceProvider,
     analytics: FlipcashAnalyticsService,
     private val tippingCoordinator: TippingCoordinator,
     private val tipCodePreviewCache: TipCodePreviewCache,
@@ -84,6 +100,12 @@ internal class MenuScreenViewModel @Inject constructor(
         val releaseTrack: String = "",
         // The viewer's own tip card, shown at the top of the v2 "You" tab.
         val tipCardState: TipCardState = TipCardState.Unknown,
+        // The nudge toward claiming a `@handle`, or null when there is nothing to nudge about — a
+        // handle already exists, or the account state hasn't resolved yet.
+        val usernameProgress: UsernameProgress? = null,
+        // The gate, formatted (e.g. `$100 USD`). Carried next to [usernameProgress] because both the
+        // card's locked subtitle and the sheet behind its tap quote it.
+        val usernameMinimumBalance: String = "",
     ) {
         /** The card to share, export or expand — only a claimed one qualifies. */
         val tipCard: Scannable.TipCard?
@@ -123,9 +145,23 @@ internal class MenuScreenViewModel @Inject constructor(
         data class OnAppVersionUpdated(val versionInfo: VersionInfo) : Event
         data class OnReleaseTrackDetermined(val stage: String): Event
         data class OnStaffUserDetermined(val staff: Boolean) : Event
-        data object PresentDepositOptions: Event
+        /**
+         * Add money, tagged with what prompted it. The default covers the menu's own row; the
+         * username gate passes its own source so a shortfall-driven deposit isn't reported as a
+         * deliberate visit to Add Money.
+         */
+        data class PresentDepositOptions(
+            val source: Analytics.AddMoneySource = Analytics.AddMoneySource.Menu,
+        ) : Event
         data class OpenScreen(val screen: AppRoute) : Event
         data class OnTipCardStateChanged(val tipCardState: TipCardState) : Event
+        data class OnUsernameProgressChanged(
+            val progress: UsernameProgress?,
+            val minimumBalance: String,
+        ) : Event
+
+        /** The progress card's tap — claim a handle, or explain why it can't be claimed yet. */
+        data object ClaimUsername : Event
         /** The claim prompt's CTA — collect a display name so the account gets a real card. */
         data object ClaimTipCard : Event
         data object ShareTipCard : Event
@@ -197,8 +233,8 @@ internal class MenuScreenViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
-            .mapNotNull {
-                analytics.addMoneyOpened(Analytics.AddMoneySource.Menu)
+            .mapNotNull { event ->
+                analytics.addMoneyOpened(event.source)
                 purchaseMethodController.presentDepositOptions(popToRoot = true)
             }.onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)
@@ -227,11 +263,87 @@ internal class MenuScreenViewModel @Inject constructor(
                         val userId = tippingCoordinator.currentUserId
                         dispatchEvent(
                             Event.OnTipCardStateChanged(
-                                TipCardState.Claimed(card, userId?.let { Linkify.tipcard(it) })
+                                TipCardState.Claimed(card, tipCardLink(card.user, userId))
                             )
                         )
                         userId?.let { tipCodePreviewCache.prepare(it, card) }
                     }
+                }
+            }
+            .launchIn(viewModelScope)
+
+        // The username nudge. Gated on Ready for the same reason as the tip card: a named account
+        // restores its cached profile before auth completes, so the card would otherwise flash for
+        // someone who already holds a handle.
+        combine(
+            userManager.state
+                .filter { it.authState is AuthState.Ready }
+                .map { it.userProfile?.username },
+            userFlags.resolvedFlags.map { it.usernameMinBalance.effectiveValue },
+            totalBalance.observeTotalBalance(),
+        ) { username, minimum, balance ->
+            val progress = when (val gate = usernameGate(username, minimum, balance)) {
+                UsernameGate.Claimed -> null
+                UsernameGate.Unlocked -> UsernameProgress.Unlocked
+                is UsernameGate.Locked -> UsernameProgress.Locked(
+                    fraction = gate.fraction,
+                    remaining = gate.shortfall.formattedGate(),
+                )
+            }
+            Event.OnUsernameProgressChanged(progress, minimum.formattedGate())
+        }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(it) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ClaimUsername>()
+            .onEach {
+                when (stateFlow.value.usernameProgress) {
+                    UsernameProgress.Unlocked -> dispatchEvent(
+                        Event.OpenScreen(
+                            AppRoute.UpdateUserProfile(
+                                origin = AppRoute.Sheets.Menu,
+                                // Inert: the name step is skipped, but the route asks for a source.
+                                nameSource = DisplayNameSource.TipCardSetup,
+                                includeName = false,
+                                includePhoto = false,
+                                includeUsername = true,
+                            )
+                        )
+                    )
+
+                    // Below the minimum the tap states the rule instead of walking into a rejection
+                    // on submit. Same strings as the server's refusal, and the same informational
+                    // style the entry screen gives it, so the two can't disagree.
+                    is UsernameProgress.Locked -> BottomBarManager.showInfo(
+                        title = resources.getString(
+                            R.string.error_title_usernameMinimumBalance,
+                            stateFlow.value.usernameMinimumBalance,
+                        ),
+                        message = resources.getString(
+                            R.string.error_description_usernameMinimumBalance,
+                            stateFlow.value.usernameMinimumBalance,
+                        ),
+                        actions = listOf(
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_addMoney),
+                                onClick = {
+                                    dispatchEvent(
+                                        Event.PresentDepositOptions(
+                                            Analytics.AddMoneySource.UsernameShortfall
+                                        )
+                                    )
+                                },
+                            ),
+                            BottomBarAction(
+                                text = resources.getString(R.string.action_dismiss),
+                                style = BottomBarManager.BottomBarButtonStyle.Text,
+                            ),
+                        ),
+                    )
+
+                    null -> Unit
                 }
             }
             .launchIn(viewModelScope)
@@ -311,10 +423,21 @@ internal class MenuScreenViewModel @Inject constructor(
                 val title = stateFlow.value.tipCard?.user?.displayName
                     ?.let { resources.getString(R.string.label_tipUser, it) }
                 // Attach the eagerly-rendered preview if it's ready; null shares the URL alone.
-                shareable.present(Shareable.TipCard(userId, tipCodePreviewCache.get(userId), title))
+                shareable.present(
+                    Shareable.TipCard(
+                        userId = userId,
+                        preview = tipCodePreviewCache.get(userId),
+                        title = title,
+                        username = stateFlow.value.tipCard?.user?.username,
+                    )
+                )
             }
             .launchIn(viewModelScope)
     }
+
+    /** The link the card shares itself with. Null only when there is no signed-in user to address. */
+    private fun tipCardLink(profile: UserProfile, userId: ID?): String? =
+        userId?.let { Linkify.tipcard(TipCardOwner.preferringUsername(profile.username, it)) }
 
     internal companion object {
         private const val TAP_THRESHOLD = 6
@@ -390,9 +513,17 @@ internal class MenuScreenViewModel @Inject constructor(
                     state.copy(tipCardState = event.tipCardState)
                 }
 
-                Event.PresentDepositOptions,
+                is Event.OnUsernameProgressChanged -> { state ->
+                    state.copy(
+                        usernameProgress = event.progress,
+                        usernameMinimumBalance = event.minimumBalance,
+                    )
+                }
+
+                is Event.PresentDepositOptions,
                 Event.CheckForUpdate,
                 Event.ClaimTipCard,
+                Event.ClaimUsername,
                 Event.ShareTipCard,
                 Event.CopyTipLink,
                 Event.DownloadTipCard,
