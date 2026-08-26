@@ -29,6 +29,8 @@ class TransactionItemMapperTest {
 
     private val resources = FakeResourceHelper()
         .stub(R.string.title_activity_tipFrom, "Tip from %1\$s")
+        .stub(R.string.title_activity_sentTo, "Sent to %1\$s")
+        .stub(R.string.title_activity_receivedFrom, "Received from %1\$s")
         .stub(R.string.title_activity_convert, "%1\$s → %2\$s")
     private val mapper = TransactionItemMapper(resources)
 
@@ -100,7 +102,7 @@ class TransactionItemMapperTest {
     }
 
     @Test
-    fun `bare verb title appends the resolved counterparty name`() {
+    fun `sent tip appends the resolved counterparty name`() {
         val msg = feedMessage(metadata = MessageMetadata.DirectlySentCrypto(userId = knownUserId))
             .copy(text = "Tipped", textSubstitutions = emptyList())
         val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to cached)
@@ -120,10 +122,46 @@ class TransactionItemMapperTest {
     @Test
     fun `received tip reads Tip from the counterparty`() {
         val msg = feedMessage(metadata = MessageMetadata.ReceivedCrypto(userId = knownUserId))
-            .copy(text = "Received", textSubstitutions = emptyList())
+            .copy(text = "Tipped", textSubstitutions = emptyList())
         val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to cached)
 
         assertEquals("Tip from Sally The Streamer", item.title)
+    }
+
+    @Test
+    fun `an in-chat send reads Sent to the counterparty, not Tipped`() {
+        val msg = feedMessage(metadata = MessageMetadata.DirectlySentCrypto(userId = knownUserId))
+            .copy(text = "Sent", textSubstitutions = emptyList())
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to cached)
+
+        assertEquals("Sent to Sally The Streamer", item.title)
+    }
+
+    @Test
+    fun `a received in-chat send reads Received from the counterparty, not Tip from`() {
+        val msg = feedMessage(metadata = MessageMetadata.ReceivedCrypto(userId = knownUserId))
+            .copy(text = "Sent", textSubstitutions = emptyList())
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to cached)
+
+        assertEquals("Received from Sally The Streamer", item.title)
+    }
+
+    @Test
+    fun `a received send keeps Received from when the server says Received`() {
+        val msg = feedMessage(metadata = MessageMetadata.ReceivedCrypto(userId = knownUserId))
+            .copy(text = "Received", textSubstitutions = emptyList())
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to cached)
+
+        assertEquals("Received from Sally The Streamer", item.title)
+    }
+
+    @Test
+    fun `a received send stays bare until the counterparty profile resolves`() {
+        val msg = feedMessage(metadata = MessageMetadata.ReceivedCrypto(userId = knownUserId))
+            .copy(text = "Sent", textSubstitutions = emptyList())
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to emptyMap())
+
+        assertEquals("Sent", item.title)
     }
 
     @Test

@@ -204,7 +204,7 @@ class TippingCoordinator @Inject constructor(
                 delay(400.milliseconds)
                 setSendState(LoadingSuccessState())
                 analytics.transfer(
-                    event = Analytics.Transfer.SentTip(TipOrigin.TIPCARD),
+                    event = Analytics.Transfer.SentTip,
                     amount = verifiedFiat.localFiat,
                     successful = true,
                 )
@@ -217,7 +217,7 @@ class TippingCoordinator @Inject constructor(
             }.onFailure { cause ->
                 setSendState(LoadingSuccessState())
                 analytics.transfer(
-                    event = Analytics.Transfer.SentTip(TipOrigin.TIPCARD),
+                    event = Analytics.Transfer.SentTip,
                     amount = verifiedFiat.localFiat,
                     error = cause,
                 )
