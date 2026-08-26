@@ -60,7 +60,7 @@ internal class BlocklistViewModel @Inject constructor(
                 BottomBarManager.showMessage(
                     title = resources.getString(
                         R.string.prompt_title_unblockUser,
-                        event.user.displayName,
+                        event.user.name.orEmpty(),
                     ),
                     message = resources.getString(R.string.prompt_description_unblockUser),
                     actions = listOf(

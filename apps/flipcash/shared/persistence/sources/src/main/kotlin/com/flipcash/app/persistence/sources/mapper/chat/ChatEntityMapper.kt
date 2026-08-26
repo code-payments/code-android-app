@@ -175,6 +175,7 @@ class ChatEntityMapper @Inject constructor() {
             emailVerified = profile.email?.verified,
             socialAccounts = profile.socialAccounts.map { it.toSerialized() },
             profilePicture = profile.profilePicture,
+            username = profile.username,
         )
     }
 

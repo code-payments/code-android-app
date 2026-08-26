@@ -1,7 +1,12 @@
 package com.flipcash.app.persistence.sources.mapper.chat
 
+import com.flipcash.app.persistence.entities.ChatMemberEntity
+import com.flipcash.app.persistence.entities.ChatMemberWithProfile
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.services.models.handle
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import org.junit.Assert.assertEquals
@@ -55,6 +60,36 @@ class ChatEntityMapperTest {
         val metadata = mapper.toMetadata(entity, members = emptyList(), lastMessage = null)
 
         assertEquals(0L, metadata.latestEventSequence)
+    }
+
+    /**
+     * The handle a tip DM falls back to when its counterparty never set a name only reaches the UI
+     * through this cache — both the feed and the open conversation read members from Room, not from
+     * the wire response. Dropping the username here made [UserProfile.handle] null everywhere.
+     */
+    @Test
+    fun `a member's username survives the round trip through the profile row`() {
+        val member = ChatMember(
+            userId = listOf(0xAB.toByte()),
+            userProfile = UserProfile.Empty.copy(displayName = "", username = "sally_streamer"),
+            pointers = emptyList(),
+        )
+
+        val profileRow = mapper.toProfileEntity(member)
+        assertEquals("sally_streamer", profileRow.username)
+
+        val readBack = mapper.toMember(
+            ChatMemberWithProfile(
+                member = ChatMemberEntity(
+                    chatIdHex = CHAT_HEX,
+                    userIdHex = profileRow.userIdHex,
+                    pointersJson = null,
+                ),
+                profile = profileRow,
+            )
+        )
+
+        assertEquals("@sally_streamer", readBack.userProfile.handle)
     }
 
     private companion object {

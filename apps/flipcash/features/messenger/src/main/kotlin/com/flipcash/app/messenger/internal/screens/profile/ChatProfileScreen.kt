@@ -97,12 +97,25 @@ private fun ProfileHeader(
         )
         Text(
             modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
-            text = participant?.displayName.orEmpty(),
+            text = participant?.name.orEmpty(),
             style = CodeTheme.typography.textLarge,
             color = CodeTheme.colors.textMain,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        // The handle sits under the name, the same shape as the info card's identity line
+        // (node 9443:8928). Left out when the line above is already the handle, so a name-less
+        // account doesn't read it twice.
+        participant?.handle?.takeIf { it != participant.name }?.let { handle ->
+            Text(
+                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
+                text = handle,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         joinDate?.let { instant ->
             Text(
                 modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),

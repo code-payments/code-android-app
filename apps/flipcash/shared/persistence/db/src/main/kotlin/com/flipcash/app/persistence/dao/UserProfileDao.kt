@@ -35,7 +35,7 @@ interface UserProfileDao {
         INSERT OR REPLACE INTO user_profiles (
             user_id_hex, display_name, phone_value, phone_verified,
             email_value, email_verified, social_accounts_json,
-            profile_picture_json, pending_migration_json
+            profile_picture_json, username, pending_migration_json
         ) VALUES (
             :userIdHex,
             :displayName,
@@ -45,6 +45,7 @@ interface UserProfileDao {
             (SELECT email_verified FROM user_profiles WHERE user_id_hex = :userIdHex),
             (SELECT social_accounts_json FROM user_profiles WHERE user_id_hex = :userIdHex),
             COALESCE(:profilePicture, (SELECT profile_picture_json FROM user_profiles WHERE user_id_hex = :userIdHex)),
+            (SELECT username FROM user_profiles WHERE user_id_hex = :userIdHex),
             (SELECT pending_migration_json FROM user_profiles WHERE user_id_hex = :userIdHex)
         )
         """

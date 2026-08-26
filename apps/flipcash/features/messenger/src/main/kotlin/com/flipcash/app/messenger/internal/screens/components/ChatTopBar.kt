@@ -83,7 +83,9 @@ internal fun ChatTopBar(
 
                     Text(
                         modifier = Modifier.weight(1f),
-                        text = state.participant?.displayName.orEmpty(),
+                        // Name-or-handle: the bar is one line (node 9443:9094), and the handle is
+                        // the only identity a name-less tip DM counterparty has.
+                        text = state.participant?.name.orEmpty(),
                         style = CodeTheme.typography.textMedium,
                         color = CodeTheme.colors.textMain,
                     )

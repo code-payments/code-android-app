@@ -2,6 +2,7 @@ package com.flipcash.shared.chat.ui
 
 import com.flipcash.core.R
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.handle
 import com.flipcash.shared.chat.ChatSummary
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
@@ -17,6 +18,9 @@ import com.getcode.util.resources.ResourceHelper
  * is taken from the chat member that isn't [selfId] — used directly by rows with no
  * separate contact (e.g. tip DMs); the send flow ignores those in favour of its matched
  * device contact.
+ *
+ * The handle rides along with the name because a tip DM counterparty need not have a display
+ * name; [ConversationReference.name] is what rows should render.
  */
 fun ChatSummary.toConversationReference(
     selfId: ID?,
@@ -27,6 +31,7 @@ fun ChatSummary.toConversationReference(
     return ConversationReference(
         chatId = metadata.chatId,
         displayName = other?.userProfile?.displayName,
+        handle = other?.userProfile?.handle,
         image = other?.userProfile?.profilePicture,
         lastMessagePreview = formatPreview(selfId, tokensByMint, resources),
         lastActivity = metadata.lastActivity,

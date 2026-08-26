@@ -33,5 +33,8 @@ data class UserProfileEntity(
     @ColumnInfo(name = "email_verified") val emailVerified: Boolean?,
     @ColumnInfo(name = "social_accounts_json") val socialAccounts: List<SocialAccountSerialized>?,
     @ColumnInfo(name = "profile_picture_json") val profilePicture: MediaItem?,
+    // The public `@handle`, bare (no `@` — that is presentation, added by
+    // [com.flipcash.services.models.handle]). Null when the user hasn't claimed one.
+    @ColumnInfo(name = "username") val username: String? = null,
     @ColumnInfo(name = "pending_migration_json") val pendingMigrationJson: String? = null,
 )

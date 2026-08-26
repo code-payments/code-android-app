@@ -48,3 +48,19 @@ val UserProfile.handle: String?
 /** The linked X account's handle, shown the same way a Flipcash one is. */
 val SocialAccount.TwitterX.handle: String
     get() = username.asHandle()
+
+/**
+ * How a person is named: their display name when they have one, their `@handle` when they don't.
+ *
+ * A `TIP_DM` counterparty is only ever identified by their server profile, and a display name is not
+ * required to hold one — `FeedSyncDelegate.feed` keeps name-less tip DMs in the feed on purpose,
+ * where a `CONTACT_DM` without an identity is dropped. Every surface that named such a person by
+ * `displayName` alone rendered an empty string. The handle is public and stable, so it is the
+ * identity to fall back to, and for some of these accounts it is the only one there is.
+ *
+ * Blank counts as absent on both sides, so a profile carrying `""` reads the same as one carrying
+ * nothing. Returns null only when the person has neither — a contact DM's counterparty has no handle
+ * by design, so for those this is just the display name.
+ */
+fun nameOrHandle(displayName: String?, handle: String?): String? =
+    displayName?.takeIf { it.isNotBlank() } ?: handle?.takeIf { it.isNotBlank() }
