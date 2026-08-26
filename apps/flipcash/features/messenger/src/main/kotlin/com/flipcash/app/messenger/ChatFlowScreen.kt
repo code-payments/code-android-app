@@ -44,11 +44,16 @@ fun ChatFlowScreen(
     resultStateRegistry: NavResultStateRegistry,
 ) {
     val navigator = LocalCodeNavigator.current
+    val keyboard = rememberKeyboardController()
 
     FlowHost<ChatStep, Parcelable>(
         initialStack = route.rememberInitialStack(),
         resultStateRegistry = resultStateRegistry,
-        onExit = { _, _ -> navigator.pop() },
+        // Put the keyboard away before the chat leaves. Every way out of the conversation lands
+        // here — the top bar's up control pops the inner navigator, which at the flow root reaches
+        // onRootReached, and so does system back — so this is the one place that has to do it.
+        // Popping with the IME still up drags the screen behind it out from under the keyboard.
+        onExit = { _, _ -> keyboard.hideIfVisible { navigator.pop() } },
         entryProvider = chatEntryProvider(route.identifier, route.openKeyboard),
     )
 }
