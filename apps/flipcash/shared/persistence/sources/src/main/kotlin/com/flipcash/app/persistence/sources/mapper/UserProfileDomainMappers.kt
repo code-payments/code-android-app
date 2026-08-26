@@ -16,6 +16,7 @@ fun UserProfileSerialized.toDomain(): UserProfile = UserProfile(
     phoneNumber = phoneNumber,
     email = email,
     profilePicture = profilePicture,
+    username = username,
 )
 
 fun SocialAccountSerialized.toDomain(): SocialAccount = when (this) {

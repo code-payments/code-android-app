@@ -90,4 +90,28 @@ class HandleTest {
     fun `a claimed username reads as a handle`() {
         assertEquals("@sally_streamer", UserProfile.Empty.copy(username = "sally_streamer").handle)
     }
+
+    @Test
+    fun `a display name wins over a handle`() {
+        assertEquals("Grace Hopper", nameOrHandle("Grace Hopper", "@grace_hopper"))
+    }
+
+    @Test
+    fun `the handle stands in when there is no display name`() {
+        assertEquals("@sally_streamer", nameOrHandle(null, "@sally_streamer"))
+        assertEquals("@sally_streamer", nameOrHandle("", "@sally_streamer"))
+        assertEquals("@sally_streamer", nameOrHandle("   ", "@sally_streamer"))
+    }
+
+    @Test
+    fun `neither leaves nothing to render`() {
+        assertNull(nameOrHandle(null, null))
+        assertNull(nameOrHandle("", ""))
+        assertNull(nameOrHandle("  ", "  "))
+    }
+
+    @Test
+    fun `a contact DM keeps its name with no handle to fall back to`() {
+        assertEquals("Ada Lovelace", nameOrHandle("Ada Lovelace", null))
+    }
 }

@@ -81,7 +81,7 @@ internal fun ContactInfoContainer(
         ) {
             Text(
                 modifier = if (onOpenProfile != null) Modifier.weight(1f, fill = false) else Modifier,
-                text = participant?.displayName.orEmpty(),
+                text = participant?.name.orEmpty(),
                 autoSize = TextAutoSize.StepBased(
                     minFontSize = CodeTheme.typography.textSmall.fontSize,
                     maxFontSize = CodeTheme.typography.textLarge.fontSize,
@@ -103,8 +103,9 @@ internal fun ContactInfoContainer(
 
         // The line under the name says how this person is addressed: a tip DM by their public
         // handle (node 9443:8928), a contact DM by the number the chat is keyed on. Never both —
-        // only one of the two identity sources backs any given conversation.
-        val handle = participant?.handle
+        // only one of the two identity sources backs any given conversation. Dropped when the name
+        // above already *is* the handle, so a name-less account doesn't show it twice.
+        val handle = participant?.handle?.takeIf { it != participant.name }
         if (handle != null) {
             Text(
                 modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
@@ -277,6 +278,13 @@ private fun Preview_AllStates() {
         ),
     )
 
+    // A tip DM's counterparty who never set a name: the handle is their whole identity, so it
+    // takes the name line and the line beneath it is dropped.
+    val handleOnlyUser = ChatParticipant.TipUser(
+        userId = listOf(2.toByte()),
+        profile = UserProfile.Empty.copy(username = "sally_streamer"),
+    )
+
     // Fixed width so every state renders at the same size regardless of name/number length.
     val cardWidth = Modifier.width(300.dp)
     Column(
@@ -286,6 +294,7 @@ private fun Preview_AllStates() {
         ContactInfoContainer(participant = knownContact, modifier = cardWidth)
         ContactInfoContainer(participant = unknownContact, modifier = cardWidth)
         ContactInfoContainer(participant = tipUser, modifier = cardWidth)
+        ContactInfoContainer(participant = handleOnlyUser, modifier = cardWidth)
     }
 }
 

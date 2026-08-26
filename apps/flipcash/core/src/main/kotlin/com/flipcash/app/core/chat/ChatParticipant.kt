@@ -4,6 +4,7 @@ import android.os.Parcelable
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.handle
+import com.flipcash.services.models.nameOrHandle
 import com.getcode.opencode.model.core.ID
 import kotlinx.parcelize.Parcelize
 
@@ -30,6 +31,15 @@ sealed interface ChatParticipant: Parcelable {
      * have claimed it.
      */
     val handle: String?
+
+    /**
+     * What to call this person — the one rule every surface that names them uses.
+     *
+     * [displayName] when they have one, [handle] when they don't. Null only when they have
+     * neither, which for a [TipUser] means a profile the server sent us nothing identifying for,
+     * and for a [Contact] means a device contact with an empty name.
+     */
+    val name: String? get() = nameOrHandle(displayName, handle)
 
     data class Contact(val contact: DeviceContact) : ChatParticipant {
         override val displayName: String get() = contact.displayName

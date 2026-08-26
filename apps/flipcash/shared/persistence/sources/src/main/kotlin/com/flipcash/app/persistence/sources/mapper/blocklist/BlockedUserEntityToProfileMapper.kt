@@ -3,6 +3,7 @@ package com.flipcash.app.persistence.sources.mapper.blocklist
 import com.flipcash.app.core.blocklist.BlockedUserProfile
 import com.flipcash.app.persistence.entities.BlockedUserWithProfile
 import com.flipcash.app.persistence.entities.toSerialized
+import com.flipcash.services.models.asHandle
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.mapper.Mapper
 import javax.inject.Inject
@@ -17,6 +18,7 @@ class BlockedUserEntityToProfileMapper @Inject constructor() :
         return BlockedUserProfile(
             userId = from.blocked.userIdHex.hexToId(),
             displayName = profile?.displayName.orEmpty(),
+            handle = profile?.username?.takeIf { it.isNotBlank() }?.asHandle(),
             profilePicture = profile?.profilePicture,
             blockedAt = Instant.fromEpochMilliseconds(from.blocked.blockedAtEpochMs),
         )

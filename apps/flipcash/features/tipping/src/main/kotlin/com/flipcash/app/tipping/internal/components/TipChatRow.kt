@@ -27,7 +27,7 @@ internal fun TipChatRow(
         avatar = {
             ContactAvatar(
                 image = chat.image,
-                displayName = chat.displayName.orEmpty(),
+                displayName = chat.name.orEmpty(),
                 modifier = Modifier
                     .requiredSize(CodeTheme.dimens.staticGrid.x8)
                     .clip(CircleShape),
@@ -36,7 +36,9 @@ internal fun TipChatRow(
         title = {
             Text(
                 modifier = Modifier.weight(1f),
-                text = chat.displayName.orEmpty(),
+                // Name, or the `@handle` when there isn't one — the row's single line of identity
+                // (node 9442:103645 has the preview under it, so there is nowhere else to put it).
+                text = chat.name.orEmpty(),
                 style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textMain,
             )

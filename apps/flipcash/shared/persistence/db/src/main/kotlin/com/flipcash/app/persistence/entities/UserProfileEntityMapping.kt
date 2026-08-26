@@ -24,6 +24,7 @@ fun UserProfileEntity.toSerialized(): UserProfileSerialized {
         phoneNumber = phoneValue?.let { VerifiableContactMethod(it, phoneVerified ?: false) },
         email = emailValue?.let { VerifiableContactMethod(it, emailVerified ?: false) },
         profilePicture = profilePicture,
+        username = username,
     )
 }
 

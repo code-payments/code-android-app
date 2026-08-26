@@ -112,7 +112,7 @@ private fun BlockedUserRow(
     ) {
         ContactAvatar(
             image = user.profilePicture,
-            displayName = user.displayName,
+            displayName = user.name.orEmpty(),
             // Blocked users are shown obscured, per the design.
             blurred = true,
             modifier = Modifier
@@ -121,7 +121,8 @@ private fun BlockedUserRow(
         )
         Text(
             modifier = Modifier.weight(1f),
-            text = user.displayName,
+            // One line, so the handle stands in for a missing name rather than sitting under it.
+            text = user.name.orEmpty(),
             style = CodeTheme.typography.textLarge,
             color = CodeTheme.colors.textMain,
             maxLines = 1,

@@ -170,6 +170,7 @@ class UserProfileDaoTest {
         emailValue = "a@b.com", emailVerified = false,
         socialAccounts = emptyList(),
         profilePicture = MediaItem(renditions = emptyList()),
+        username = "alice",
     )
 
     @Test
@@ -186,6 +187,17 @@ class UserProfileDaoTest {
             assertEquals("+15551234567", it.getString(1))    // phone preserved
             assertEquals("a@b.com", it.getString(2))          // email preserved
         }
+    }
+
+    @Test
+    fun `partial name+avatar write preserves the cached username`() = runBlocking {
+        val dao = db.userProfileDao()
+        dao.upsertFull(listOf(fullProfile("u1")))
+
+        // The blocklist has no username to write; the handle must survive its sync.
+        dao.upsertNameAndAvatar(userIdHex = "u1", displayName = "Alice (blocked)", profilePicture = null)
+
+        assertEquals("alice", dao.getByUserId("u1")?.username)
     }
 
     @Test

@@ -35,6 +35,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.request.placeholder
 import com.flipcash.app.core.contacts.DeviceContact
+import com.flipcash.services.models.HandlePrefix
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.MediaItem
 import com.getcode.theme.CodeTheme
@@ -272,7 +273,10 @@ private fun UnknownContactAvatar(
 @Composable
 private fun BoxWithConstraintsScope.InitialsText(displayName: String) {
     val initials = remember(displayName) {
-        displayName.split(" ")
+        // Callers pass a name-or-handle, so strip the `@` first — otherwise every handle-only
+        // account gets the same "@" avatar instead of its own first letter.
+        displayName.removePrefix(HandlePrefix)
+            .split(" ")
             .take(2)
             .mapNotNull { it.firstOrNull()?.uppercaseChar() }
             .joinToString("")

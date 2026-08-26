@@ -93,7 +93,11 @@ internal class ChatProfileViewModel @Inject constructor(
             .filterIsInstance<ChatParticipant.TipUser>()
             .onEach { participant ->
                 BottomBarManager.showAlert(
-                    title = resources.getString(R.string.prompt_title_blockUser, participant.displayName),
+                    // "Block ?" is what this read for an account with no display name.
+                    title = resources.getString(
+                        R.string.prompt_title_blockUser,
+                        participant.name.orEmpty(),
+                    ),
                     message = resources.getString(R.string.prompt_description_blockUser),
                     actions = listOf(
                         BottomBarAction(
