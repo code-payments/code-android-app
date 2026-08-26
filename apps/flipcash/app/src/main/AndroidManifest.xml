@@ -219,6 +219,15 @@
                  makes the same distinction again in code (isVanityProfile) and leaves anything
                  that isn't a handle unrouted.
 
+                 A-Z is in the set even though no handle contains one: the matcher is
+                 case-sensitive, and a link is typed, printed, or auto-capitalised in any case.
+                 Without it `flipcash.com/Sally_Streamer` isn't claimed at all on API 31+ and opens
+                 in the browser, while the same link works below 31 — where the attribute is
+                 ignored. Widening it hands the app a few more of the website's pages in mixed case
+                 (`/Download`), which is what already happens below 31: isVanityProfile lowercases
+                 before the reserved-path check, so those classify as unrouted and bounce straight
+                 back out via DeeplinkAction.OpenExternally.
+
                  Verification needs assetlinks.json served from https://flipcash.com/.well-known/,
                  not only from the app./send. subdomains.
             -->
@@ -230,13 +239,13 @@
 
                 <data
                     android:host="flipcash.com"
-                    android:pathAdvancedPattern="/[a-z0-9_]{2,15}"
+                    android:pathAdvancedPattern="/[a-zA-Z0-9_]{2,15}"
                     android:scheme="https"
                     tools:ignore="UnusedAttribute" />
                 <!-- AppRouter strips `www.` before matching, so the filter has to admit it. -->
                 <data
                     android:host="www.flipcash.com"
-                    android:pathAdvancedPattern="/[a-z0-9_]{2,15}"
+                    android:pathAdvancedPattern="/[a-zA-Z0-9_]{2,15}"
                     android:scheme="https"
                     tools:ignore="UnusedAttribute" />
             </intent-filter>
