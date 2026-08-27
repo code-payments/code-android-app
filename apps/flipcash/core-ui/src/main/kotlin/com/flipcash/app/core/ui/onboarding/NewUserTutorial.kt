@@ -25,8 +25,11 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
+import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
@@ -69,6 +72,30 @@ sealed interface TutorialItem {
             @Composable get() = stringResource(R.string.subtitle_scanTipCard)
         override val icon: Painter
             @Composable get() = painterResource(R.drawable.ic_nav_scan)
+    }
+
+    class ProfilePicture(override val isCompleted: Boolean) : Profile {
+        override val title: String
+            @Composable get() = stringResource(R.string.title_addProfilePicture)
+        override val description: String
+            @Composable get() = stringResource(R.string.subtitle_addProfilePicture)
+        override val icon: Painter
+            @Composable get() = painterResource(R.drawable.ic_people_circle)
+    }
+
+    /**
+     * Drawn but inert. Nothing backs a user-set minimum tip yet: the amount comes from
+     * server-supplied regional presets, no field for it exists on the profile or the tip-card
+     * customization message, and iOS has no implementation either. The row is in the design, so
+     * it is drawn — and it never completes, which is the state node 9641:17019 shows.
+     */
+    class MinimumTip(override val isCompleted: Boolean = false) : Profile {
+        override val title: String
+            @Composable get() = stringResource(R.string.title_setMinimumTip)
+        override val description: String
+            @Composable get() = stringResource(R.string.subtitle_setMinimumTip)
+        override val icon: Painter
+            @Composable get() = painterResource(R.drawable.ic_coins)
     }
 }
 
@@ -165,4 +192,32 @@ private fun OnboardingItemRow(
             contentDescription = null
         )
     }
+}
+
+@Preview(name = "Finish Your Profile — nothing done")
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun PreviewFinishProfileEmpty() {
+    NewUserTutorial(
+        title = stringResource(R.string.title_finishYourProfile),
+        items = listOf(
+            TutorialItem.ProfilePicture(isCompleted = false),
+            TutorialItem.MinimumTip(),
+        ),
+        onItemClicked = {},
+    )
+}
+
+@Preview(name = "Finish Your Profile — photo set")
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun PreviewFinishProfilePhotoSet() {
+    NewUserTutorial(
+        title = stringResource(R.string.title_finishYourProfile),
+        items = listOf(
+            TutorialItem.ProfilePicture(isCompleted = true),
+            TutorialItem.MinimumTip(),
+        ),
+        onItemClicked = {},
+    )
 }
