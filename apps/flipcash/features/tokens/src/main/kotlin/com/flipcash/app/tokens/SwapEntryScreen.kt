@@ -55,9 +55,11 @@ internal fun SwapEntryScreen(
                 is SwapPurpose.Buy if purpose.fundingSource != FundingSource.Flexible ->
                     stringResource(R.string.title_amountToAdd)
                 is SwapPurpose.Convert -> stringResource(R.string.title_amountToConvert)
-                // v2 renames the direct buy to "Get" and states the amount in the header instead
-                // of the title, matching Convert.
-                is SwapPurpose.BalanceIncrease if state.isGet -> stringResource(R.string.title_get)
+                // v2 titles the direct buy after the currency-info tile that opened it and
+                // states the amount in the header instead of the title, matching Convert.
+                is SwapPurpose.BalanceIncrease if state.isGet -> stringResource(
+                    if (state.isBuyingMore) R.string.action_buyMore else R.string.action_buyIn
+                )
                 is SwapPurpose.BalanceIncrease -> stringResource(R.string.title_amountToBuy)
                 is SwapPurpose.BalanceDecrease -> stringResource(R.string.title_amountToSell)
             },

@@ -39,6 +39,7 @@ import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.tokens.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
@@ -106,6 +107,7 @@ data class AmountEntryState(
 @HiltViewModel
 class SwapViewModel @Inject constructor(
     private val userManager: UserManager,
+    private val accountController: AccountController,
     private val exchange: Exchange,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     transactionController: TransactionOperations,
@@ -268,6 +270,8 @@ class SwapViewModel @Inject constructor(
         val fundingTokenWithBalance: TokenWithBalance? = null,
         // Convert only: the currency the conversion lands in. `tokenWithBalance` is the source.
         val destinationTokenWithBalance: TokenWithBalance? = null,
+        /** Whether the account already holds a token account for the target mint. See [isBuyingMore]. */
+        val hasTokenAccount: Boolean = false,
     ) {
         val sellFee: Double?
             get() {
@@ -324,6 +328,16 @@ class SwapViewModel @Inject constructor(
         val isGet: Boolean
             get() = purpose is SwapPurpose.Buy && !isAddingMoney
 
+        /**
+         * Whether a Get is adding to a position the account already has, which titles its screens
+         * "Buy More" rather than "Buy In".
+         *
+         * Held is the same test the currency-info tile row uses — an existing token account, or a
+         * positive balance — so the tile the user tapped and the screen it opens always agree.
+         */
+        val isBuyingMore: Boolean
+            get() = isGet && (hasTokenAccount || tokenBalance.isPositive)
+
         /** The currency a Get is paid from. Null until the default is seeded or one is picked. */
         val fundingMint: Mint?
             get() = fundingTokenWithBalance?.token?.address
@@ -346,6 +360,7 @@ class SwapViewModel @Inject constructor(
     sealed interface Event {
         data class OnPurposeChanged(val purpose: SwapPurpose) : Event
         data class OnSelectedTokenChanged(val token: TokenWithBalance) : Event
+        data class OnTokenAccountKnown(val exists: Boolean) : Event
         data class OnReservesUpdated(val reserves: TokenWithBalance) : Event
 
         data class OnLimitsChanged(val limits: Limits?) : Event
@@ -404,7 +419,7 @@ class SwapViewModel @Inject constructor(
         data object ShowSellReceipt : Event
 
         // region v2 Get — the payment source is chosen inline, before the amount is confirmed.
-        /** Opens the "Get with" picker. */
+        /** Opens the "Buy with" picker. */
         data object SelectBuyFundingSource : Event
         /** A payment source was picked (or defaulted); the token still needs resolving. */
         data class OnFundingSourceSelected(val mint: Mint) : Event
@@ -699,6 +714,15 @@ class SwapViewModel @Inject constructor(
             }
             .filterNotNull()
             .onEach { dispatchEvent(Event.OnFundingSourceResolved(it)) }
+            .launchIn(viewModelScope)
+
+        // A token account outlives a balance that has gone to zero, so it — not the balance
+        // alone — is what tells a Get whether it is a first buy or a top-up.
+        eventFlow.filterIsInstance<Event.OnPurposeChanged>()
+            .map { it.purpose.mint }
+            .distinctUntilChanged()
+            .flatMapLatest { accountController.observeHasAccountFor(it) }
+            .onEach { dispatchEvent(Event.OnTokenAccountKnown(it)) }
             .launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.OnPurposeChanged>()
@@ -1907,6 +1931,7 @@ class SwapViewModel @Inject constructor(
                     state.copy(purpose = resolved)
                 }
                 is Event.OnSelectedTokenChanged -> { state -> state.copy(tokenWithBalance = event.token) }
+                is Event.OnTokenAccountKnown -> { state -> state.copy(hasTokenAccount = event.exists) }
                 is Event.OnReservesUpdated -> { state -> state.copy(reservesWithBalance = event.reserves) }
 
                 is Event.OnAmountAccepted -> { state ->

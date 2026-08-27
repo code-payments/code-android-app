@@ -40,7 +40,7 @@ sealed interface SwapStep : FlowStep, Parcelable {
     data object ConvertDestinationSelection : SwapStep, Sheet, WrapContentSheet, HalfSheet
 
     /**
-     * v2 Get only: the payment-source picker, opened from the inline "Get with" row on amount
+     * v2 Get only: the payment-source picker, opened from the inline "Buy with" row on amount
      * entry. Distinct from [TokenSelection] because picking here pops back to the amount screen
      * rather than advancing to the receipt.
      */
