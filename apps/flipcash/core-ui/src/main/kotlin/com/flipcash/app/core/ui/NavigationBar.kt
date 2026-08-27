@@ -13,6 +13,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -87,6 +88,11 @@ fun NavigationBar(
     state: NavigationBarState,
     onButtonClick: (NavBarButton) -> Unit = {},
     hazeState: HazeState? = null,
+    // The You tab wears the account's own photo in place of its glyph once one is set (node
+    // 9641:17130). This module sits below the profile layer, so the caller supplies the avatar and
+    // passes null when there is no photo. The modifier handed back already sizes, clips and fades
+    // the slot; the avatar only has to fill it.
+    avatar: (@Composable (Modifier) -> Unit)? = null,
 ) {
     val order = NavBarButton.tabs
     if (order.isEmpty()) return
@@ -174,14 +180,36 @@ fun NavigationBar(
                     contentAlignment = Alignment.Center,
                 ) {
                     Box {
-                        Image(
-                            modifier = Modifier
-                                .size(iconSize)
-                                .graphicsLayer { alpha = iconAlpha },
-                            painter = painterResource(button.icon),
-                            colorFilter = ColorFilter.tint(Color.White),
-                            contentDescription = null,
-                        )
+                        if (button == NavBarButton.TipCard && avatar != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(iconSize)
+                                    .graphicsLayer { alpha = iconAlpha }
+                                    .padding(CodeTheme.dimens.thickBorder),
+                            ) {
+                                avatar(Modifier.fillMaxSize().clip(CircleShape))
+                                // Drawn over the photo rather than behind it, so the ring survives
+                                // whatever background the avatar paints for itself.
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .border(
+                                            CodeTheme.dimens.thickBorder,
+                                            Color.White,
+                                            CircleShape,
+                                        ),
+                                )
+                            }
+                        } else {
+                            Image(
+                                modifier = Modifier
+                                    .size(iconSize)
+                                    .graphicsLayer { alpha = iconAlpha },
+                                painter = painterResource(button.icon),
+                                colorFilter = ColorFilter.tint(Color.White),
+                                contentDescription = null,
+                            )
+                        }
                         // Overlaps the glyph's top-right corner (matching the iOS bar) rather than
                         // floating detached above it. Full opacity regardless of tab selection —
                         // the count must stay readable on an unselected tab.
