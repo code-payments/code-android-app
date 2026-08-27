@@ -85,4 +85,18 @@ class NameEntryStateTest {
 
         assertEquals(state, reduce(NameEntryViewModel.Event.DiscardChanges)(state))
     }
+
+    @Test
+    fun `a refresh that moves the baseline leaves the edit in the field`() {
+        val editing = stateWith(saved = "Brandon McAnsh", typed = "Brandon McAnshx")
+
+        // The 60s profile poll can publish a different name — reducing it must not touch
+        // the field, only the baseline the field is measured against.
+        val refreshed = reduce(
+            NameEntryViewModel.Event.OnSavedNameLoaded("")
+        )(editing)
+
+        assertEquals("Brandon McAnshx", refreshed.nameFieldState.text.toString())
+        assertTrue(refreshed.isChanged)
+    }
 }

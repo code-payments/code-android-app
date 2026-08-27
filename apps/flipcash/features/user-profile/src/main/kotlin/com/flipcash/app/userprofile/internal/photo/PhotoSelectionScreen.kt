@@ -41,6 +41,7 @@ import com.flipcash.app.core.ui.transitions.sharedBoundsTransition
 import com.flipcash.app.core.userprofile.UpdateProfileResult
 import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.core.R
+import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White50
@@ -119,7 +120,7 @@ private fun PhotoSelectionScreenContent(
                         .navigationBarsPadding()
                         .padding(bottom = CodeTheme.dimens.grid.x3),
                     text = stringResource(R.string.action_save),
-                    enabled = state.image.isLoaded() && state.processingState.isIdle,
+                    enabled = state.isChanged && state.processingState.isIdle,
                     isLoading = state.processingState.loading,
                     isSuccess = state.processingState.success,
                     onClick = {
@@ -173,6 +174,17 @@ private fun PhotoSelectionScreenContent(
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     CodeCircularProgressIndicator()
                                 }
+                            }
+                            // No pick pending: show whatever picture is already stored, so the
+                            // step opens on the current avatar rather than an empty well. It is a
+                            // server-side MediaItem, so it can't be mistaken for a pick — Save
+                            // stays disabled until one is made.
+                            state.savedPicture != null -> {
+                                ContactAvatar(
+                                    image = state.savedPicture,
+                                    displayName = state.name,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
                             }
                             else -> {
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

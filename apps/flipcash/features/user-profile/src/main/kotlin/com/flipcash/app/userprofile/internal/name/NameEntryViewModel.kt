@@ -84,8 +84,16 @@ class NameEntryViewModel @Inject constructor(
             // overwrites whatever the user is part-way through typing.
             .distinctUntilChanged()
             .onEach { name ->
+                // distinctUntilChanged only stops an identical value from landing again; the
+                // profile is polled every 60s and a refresh that can't find the server profile
+                // publishes UserProfile.Empty, so a *different* name can still arrive mid-edit.
+                // The field follows the store only while it is untouched — an edit owns it, and
+                // the baseline moves under it so the confirm button stays honest either way.
+                val pristine = !stateFlow.value.isChanged
                 dispatchEvent(Event.OnSavedNameLoaded(name))
-                stateFlow.value.nameFieldState.setTextAndPlaceCursorAtEnd(name)
+                if (pristine) {
+                    stateFlow.value.nameFieldState.setTextAndPlaceCursorAtEnd(name)
+                }
             }.launchIn(viewModelScope)
 
         eventFlow

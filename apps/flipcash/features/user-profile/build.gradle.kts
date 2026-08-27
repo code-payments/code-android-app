@@ -16,6 +16,7 @@ dependencies {
 
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:blob"))
+    implementation(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:userflags"))
 
