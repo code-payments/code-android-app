@@ -21,7 +21,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
@@ -49,8 +48,22 @@ internal class WalletViewModel @Inject constructor(
          * Onboarding milestones, or `null` while they are still unknown. The distinction matters:
          * an empty/incomplete checklist is what draws the new-user tutorial, and every milestone
          * reads as incomplete before its source has reported.
+         *
+         * Published off local reads (the feed's own cache and the held balance), so this lands
+         * without waiting on the network. The tip milestone inside it is the one that needs a
+         * server round-trip; [isTipMilestoneResolved] says whether it can be believed yet.
          */
         val onboardingItems: List<TutorialItem>? = null,
+        /**
+         * Whether [TutorialItem.ScanTipCard]'s answer is trustworthy.
+         *
+         * The tip milestone is read off the chat cache, which reports every account as never
+         * having tipped until its history has been reconciled with the server — a wait that
+         * scales with how many conversations the account has. Only the tutorial depends on that
+         * answer, so only the tutorial waits for it (see [isNewUserTutorialComplete]); the rest
+         * of the tab draws off state it already has, as iOS does.
+         */
+        val isTipMilestoneResolved: Boolean = false,
         /**
          * Preview of the most recent unified cross-token activity — at most [RECENT_PREVIEW_COUNT]
          * rows. The coordinator owns the mapping and enforces the limit; the full paged history is a
@@ -64,9 +77,15 @@ internal class WalletViewModel @Inject constructor(
         val hasReceivedMoney: Boolean
             get() = onboardingItems?.find { it is TutorialItem.AddMoney }?.isCompleted == true
 
-        /** Treated as complete while unknown, so the tutorial is never the thing we guess at. */
+        /**
+         * Treated as complete while unknown, so the tutorial is never the thing we guess at.
+         *
+         * "Unknown" covers the un-reconciled chat cache as well as absent milestones: until
+         * [isTipMilestoneResolved], `ScanTipCard` reads incomplete for everyone, and drawing that
+         * would tell an established tipper to go and scan a tip card.
+         */
         val isNewUserTutorialComplete: Boolean
-            get() = onboardingItems?.all { it.isCompleted } != false
+            get() = !isTipMilestoneResolved || onboardingItems?.all { it.isCompleted } != false
 
         /**
          * Whether the activity half of the tab is still settling.
@@ -79,11 +98,11 @@ internal class WalletViewModel @Inject constructor(
          * mistake for a new account — and neither is a held balance, which is a live read of the
          * account rather than of the cache.
          *
-         * The two caches are separate and settle separately. The `feedSyncState` clause covers the
-         * activity feed; the *chat* cache backing the tip milestone is covered by
-         * [onboardingItems] staying null, because the milestone flow withholds an answer until its
-         * own history has hydrated. A held balance deliberately does not short-circuit that one:
-         * it says nothing about whether the account has tipped.
+         * Scoped to the activity feed on purpose. The *chat* cache backing the tip milestone
+         * settles separately and far later — its hydration waits on a per-conversation backfill —
+         * and the only thing that reads it is the tutorial, which withholds itself while unsure
+         * (see [isNewUserTutorialComplete]). Holding the whole tab for it meant the balance and
+         * the card deck, both long since resolved, waited on an answer neither of them uses.
          */
         val isAwaitingActivity: Boolean
             get() = onboardingItems == null ||
@@ -94,6 +113,7 @@ internal class WalletViewModel @Inject constructor(
         data class OnOnboardingItemsUpdated(
             val items: List<TutorialItem>,
             val holdsBalance: Boolean,
+            val isTipMilestoneResolved: Boolean,
         ): Event
         data class OnTransactionsUpdated(val transactions: List<TransactionListItem>) : Event
         data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider.Defined?) : Event
@@ -145,20 +165,21 @@ internal class WalletViewModel @Inject constructor(
             tokenCoordinator.hasAnyBalance,
         ) { hasReceivedMoney, hasTipped, holdsBalance ->
             // A null tip milestone means the chat cache has not been reconciled yet, and an
-            // un-hydrated cache reports every account as never having tipped. Emitting nothing
-            // keeps [State.onboardingItems] null, which holds the whole tab on its spinner rather
-            // than drawing "Scan a Tip Card" as outstanding to someone who already did it.
-            hasTipped?.let {
-                Event.OnOnboardingItemsUpdated(
-                    items = listOf(
-                        TutorialItem.AddMoney(isCompleted = hasReceivedMoney || holdsBalance),
-                        TutorialItem.ScanTipCard(isCompleted = it),
-                    ),
-                    holdsBalance = holdsBalance,
-                )
-            }
+            // un-hydrated cache reports every account as never having tipped. That is carried as
+            // `isTipMilestoneResolved` rather than by withholding the emission: the other
+            // milestone and the action tiles are answerable from local state immediately, and
+            // holding them back put the chat backfill on the critical path for the whole tab.
+            // "Scan a Tip Card" is still never drawn as outstanding to someone who already did it
+            // — [State.isNewUserTutorialComplete] reads complete until this resolves.
+            Event.OnOnboardingItemsUpdated(
+                items = listOf(
+                    TutorialItem.AddMoney(isCompleted = hasReceivedMoney || holdsBalance),
+                    TutorialItem.ScanTipCard(isCompleted = hasTipped == true),
+                ),
+                holdsBalance = holdsBalance,
+                isTipMilestoneResolved = hasTipped != null,
+            )
         }
-            .filterNotNull()
             .onEach { dispatchEvent(it) }
             .launchIn(viewModelScope)
     }
@@ -177,7 +198,11 @@ internal class WalletViewModel @Inject constructor(
                     state.copy(feedSyncState = event.syncState)
                 }
                 is Event.OnOnboardingItemsUpdated -> { state ->
-                    state.copy(onboardingItems = event.items, holdsBalance = event.holdsBalance)
+                    state.copy(
+                        onboardingItems = event.items,
+                        holdsBalance = event.holdsBalance,
+                        isTipMilestoneResolved = event.isTipMilestoneResolved,
+                    )
                 }
                 is Event.OnTransactionsUpdated -> { state ->
                     state.copy(transactions = event.transactions)
