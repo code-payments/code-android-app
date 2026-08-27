@@ -28,7 +28,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -67,6 +66,8 @@ internal fun PhotoSelectionScreen() {
 
     Column {
         AppBarWithTitle(
+            title = stringResource(R.string.title_setProfilePicture),
+            titleAlignment = Alignment.CenterHorizontally,
             onBackIconClicked = {
                 keyboard.hideIfVisible {
                     flowNavigator.back()
@@ -101,29 +102,8 @@ private fun PhotoSelectionScreenContent(
     CodeScaffold(
         modifier = Modifier
             .padding(horizontal = CodeTheme.dimens.inset),
-        topBar = {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-                    .padding(top = CodeTheme.dimens.grid.x8),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-            ) {
-                Text(
-                    text = stringResource(R.string.title_profileImageSelection),
-                    style = CodeTheme.typography.textLarge,
-                    color = CodeTheme.colors.textMain,
-                )
-
-                Text(
-                    modifier = Modifier
-                        .padding(horizontal = CodeTheme.dimens.inset),
-                    text = stringResource(R.string.subtitle_profileImageSelection),
-                    style = CodeTheme.typography.textSmall,
-                    textAlign = TextAlign.Center,
-                    color = CodeTheme.colors.textSecondary,
-                )
-            }
-        },
+        // The app bar carries the title now; the body is just the photo and the name.
+        topBar = {},
         bottomBar = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -135,7 +115,7 @@ private fun PhotoSelectionScreenContent(
                         .fillMaxWidth()
                         .navigationBarsPadding()
                         .padding(bottom = CodeTheme.dimens.grid.x3),
-                    text = stringResource(R.string.action_next),
+                    text = stringResource(R.string.action_save),
                     enabled = state.image.isLoaded() && state.processingState.isIdle,
                     isLoading = state.processingState.loading,
                     isSuccess = state.processingState.success,
