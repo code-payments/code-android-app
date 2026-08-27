@@ -30,7 +30,6 @@ import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -77,24 +76,7 @@ internal fun AppNavigationBar(
         session?.state?.map { it.tipsUnreadCount } ?: flowOf(0)
     }.collectAsStateWithLifecycle(initialValue = 0)
 
-    // The You tab wears the account's own photo once one is set. Gated on Ready like the rest of
-    // the profile-driven chrome: a named account restores its cached profile before auth
-    // completes, so an ungated read would show the previous account's avatar on the way in.
-    val userManager = LocalUserManager.current
-    val profile by remember(userManager) {
-        userManager?.state
-            ?.filter { it.authState is AuthState.Ready }
-            ?.map { it.userProfile }
-            ?.distinctUntilChanged()
-            ?: flowOf(null)
-    }.collectAsStateWithLifecycle(initialValue = null)
-    val profilePicture = profile?.profilePicture
-    val displayName = profile?.displayName.orEmpty()
-    val avatar: (@Composable (Modifier) -> Unit)? = if (profilePicture != null) {
-        { avatarModifier -> ContactAvatar(profilePicture, displayName, avatarModifier) }
-    } else {
-        null
-    }
+    val avatar = rememberProfileAvatar()
 
     Box(
         modifier = Modifier
@@ -125,4 +107,26 @@ internal fun AppNavigationBar(
             )
         }
     }
+}
+
+/**
+ * The account's own photo, ready to drop into the You tab, or null when there isn't one.
+ *
+ * Gated on Ready like the rest of the profile-driven chrome: a named account restores its cached
+ * profile before auth completes, so an ungated read would show the previous account's avatar on
+ * the way in.
+ */
+@Composable
+private fun rememberProfileAvatar(): (@Composable (Modifier) -> Unit)? {
+    val userManager = LocalUserManager.current
+    val profile by remember(userManager) {
+        userManager?.state
+            ?.filter { it.authState is AuthState.Ready }
+            ?.map { it.userProfile }
+            ?: flowOf(null)
+    }.collectAsStateWithLifecycle(initialValue = null)
+
+    val picture = profile?.profilePicture ?: return null
+    val displayName = profile?.displayName.orEmpty()
+    return { modifier -> ContactAvatar(picture, displayName, modifier) }
 }
