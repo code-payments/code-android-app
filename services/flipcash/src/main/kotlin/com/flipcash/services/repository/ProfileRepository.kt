@@ -8,6 +8,7 @@ import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.MediaItem
 import com.getcode.ed25519.Ed25519
+import com.getcode.opencode.model.financial.Fiat
 
 interface ProfileRepository {
     suspend fun getProfile(identifier: ProfileIdentifier, owner: Ed25519.KeyPair): Result<UserProfile>
@@ -15,6 +16,7 @@ interface ProfileRepository {
     suspend fun setUsername(username: String, owner: Ed25519.KeyPair): Result<Unit>
     suspend fun setProfilePicture(blobId: BlobId, owner: Ed25519.KeyPair): Result<MediaItem>
     suspend fun updateTipCard(owner: Ed25519.KeyPair, hexColor: String): Result<Unit>
+    suspend fun setMinDmChatInitFee(owner: Ed25519.KeyPair, fee: Fiat): Result<Unit>
     suspend fun linkSocialAccount(request: SocialAccountLinkRequest, owner: Ed25519.KeyPair): Result<SocialAccount>
     suspend fun unlinkSocialAccount(request: SocialAccountUnlinkRequest, owner: Ed25519.KeyPair): Result<Unit>
 }

@@ -16,6 +16,7 @@ import com.flipcash.services.models.chat.TypingState
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.network.jwt.ApiProvider
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
@@ -91,6 +92,13 @@ internal fun ChatId.asChatId(): Common.ChatId {
 
 internal fun String.asCountryCode(): Common.CountryCode {
     return Common.CountryCode.newBuilder().setValue(this).build()
+}
+
+internal fun Fiat.asFiatPaymentAmount(): Common.FiatPaymentAmount {
+    return Common.FiatPaymentAmount.newBuilder()
+        .setCurrency(currencyCode.name.lowercase())
+        .setNativeAmount(decimalValue)
+        .build()
 }
 
 internal fun SocialAccountLinkRequest.linkingToken(): ProfileService.LinkSocialAccountRequest.LinkingToken {

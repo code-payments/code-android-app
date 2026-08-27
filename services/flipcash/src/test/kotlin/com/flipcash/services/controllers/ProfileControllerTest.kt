@@ -14,6 +14,7 @@ import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -305,6 +306,7 @@ private class FakeProfileRepository : ProfileRepository {
     var setUsernameResult: Result<Unit> = Result.success(Unit)
     var setProfilePictureResult: Result<MediaItem> = Result.failure(RuntimeException("not configured"))
     var updateTipCardResult: Result<Unit> = Result.success(Unit)
+    var setMinDmChatInitFeeResult: Result<Unit> = Result.success(Unit)
     var linkSocialAccountResult: Result<SocialAccount> = Result.failure(RuntimeException("not configured"))
     var unlinkSocialAccountResult: Result<Unit> = Result.success(Unit)
 
@@ -313,6 +315,7 @@ private class FakeProfileRepository : ProfileRepository {
     override suspend fun setUsername(username: String, owner: Ed25519.KeyPair) = setUsernameResult
     override suspend fun setProfilePicture(blobId: BlobId, owner: Ed25519.KeyPair) = setProfilePictureResult
     override suspend fun updateTipCard(owner: Ed25519.KeyPair, hexColor: String) = updateTipCardResult
+    override suspend fun setMinDmChatInitFee(owner: Ed25519.KeyPair, fee: Fiat) = setMinDmChatInitFeeResult
     override suspend fun linkSocialAccount(request: SocialAccountLinkRequest, owner: Ed25519.KeyPair) =
         linkSocialAccountResult
     override suspend fun unlinkSocialAccount(request: SocialAccountUnlinkRequest, owner: Ed25519.KeyPair) =

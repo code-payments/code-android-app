@@ -15,6 +15,7 @@ import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.repository.ProfileRepository
 import com.getcode.ed25519.Ed25519
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.utils.ErrorUtils
 
 internal class InternalProfileRepository(
@@ -83,6 +84,14 @@ internal class InternalProfileRepository(
         hexColor: String,
     ): Result<Unit> {
         return service.updateTipCard(owner, hexColor)
+            .onFailure { ErrorUtils.handleError(it) }
+    }
+
+    override suspend fun setMinDmChatInitFee(
+        owner: Ed25519.KeyPair,
+        fee: Fiat,
+    ): Result<Unit> {
+        return service.setMinDmChatInitFee(owner, fee)
             .onFailure { ErrorUtils.handleError(it) }
     }
 

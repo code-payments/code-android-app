@@ -4,6 +4,7 @@ import com.codeinc.flipcash.gen.profile.v1.Model
 import com.codeinc.flipcash.gen.profile.v1.emailAddressOrNull
 import com.codeinc.flipcash.gen.profile.v1.phoneNumberOrNull
 import com.codeinc.flipcash.gen.profile.v1.usernameOrNull
+import com.flipcash.services.internal.network.extensions.toFiat
 import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.internal.network.extensions.toMediaItem
 import com.flipcash.services.models.UserProfile
@@ -30,6 +31,7 @@ class UserProfileMapper @Inject constructor(
             userId = if (from.hasUserId()) from.userId.toId() else null,
             // Public, so it is returned for any user — absent only when unclaimed.
             username = from.usernameOrNull?.value,
+            minDmChatInitFee = if (from.hasMinDmChatInitFee()) from.minDmChatInitFee.toFiat() else null,
         )
     }
 }
