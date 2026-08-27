@@ -22,18 +22,17 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
  * The tip milestone is read off the chat cache, which reports every account as never having tipped
- * until its history has been reconciled. The wallet must not draw that: [WalletViewModel.State.
- * onboardingItems] stays null — holding the tab on its loading state — until the chat coordinator
- * commits to an answer.
- *
- * A held balance deliberately does not release the wait here, unlike for the activity feed: it is
- * evidence about money, not about tipping.
+ * until its history has been reconciled — a wait that scales with how many conversations the
+ * account has. The wallet must not draw that answer, but it must not wait on it either: the
+ * milestones publish immediately off local state, carrying
+ * [WalletViewModel.State.isTipMilestoneResolved] to say whether the tip half can be believed, and
+ * only the tutorial reads that flag.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class WalletMilestoneGatingTest {
@@ -70,25 +69,34 @@ class WalletMilestoneGatingTest {
     )
 
     @Test
-    fun `milestones are withheld while the tip milestone is unknown`() =
+    fun `milestones publish without waiting on the tip milestone`() =
         runTest(mainCoroutineRule.dispatcher) {
             dispatchers = TestDispatchers(testScheduler)
 
             val vm = createViewModel()
             advanceUntilIdle()
 
-            assertNull(
-                vm.stateFlow.value.onboardingItems,
-                "an un-reconciled chat cache reports every account as never having tipped",
+            val state = vm.stateFlow.value
+            assertNotNull(
+                state.onboardingItems,
+                "the add-money milestone is answerable from local state and must not wait",
+            )
+            assertFalse(
+                state.isTipMilestoneResolved,
+                "an un-reconciled chat cache cannot answer whether the account has tipped",
             )
             assertTrue(
-                vm.stateFlow.value.isAwaitingActivity,
-                "the tab must keep loading rather than draw a milestone it cannot yet answer",
+                state.isNewUserTutorialComplete,
+                "so the tutorial withholds itself rather than drawing an answer it does not have",
+            )
+            assertTrue(
+                state.hasReceivedMoney,
+                "the milestone the chat cache says nothing about is drawn immediately",
             )
         }
 
     @Test
-    fun `milestones are published once the tip milestone resolves`() =
+    fun `the tip milestone is believed once the chat cache reconciles`() =
         runTest(mainCoroutineRule.dispatcher) {
             dispatchers = TestDispatchers(testScheduler)
 
@@ -97,13 +105,33 @@ class WalletMilestoneGatingTest {
             hasEverTipped.value = true
             advanceUntilIdle()
 
-            val items = vm.stateFlow.value.onboardingItems
+            val state = vm.stateFlow.value
+            val items = state.onboardingItems
             assertNotNull(items)
+            assertTrue(state.isTipMilestoneResolved)
             assertEquals(
                 listOf(true, true),
                 items.map { it.isCompleted },
                 "both milestones read complete: the account holds a balance and has tipped",
             )
             assertTrue(items.any { it is TutorialItem.ScanTipCard })
+        }
+
+    @Test
+    fun `a reconciled cache that has never seen a tip draws the tutorial`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+
+            val vm = createViewModel()
+            advanceUntilIdle()
+            hasEverTipped.value = false
+            advanceUntilIdle()
+
+            val state = vm.stateFlow.value
+            assertTrue(state.isTipMilestoneResolved)
+            assertFalse(
+                state.isNewUserTutorialComplete,
+                "an answered 'never tipped' is an outstanding milestone, not an unknown one",
+            )
         }
 }

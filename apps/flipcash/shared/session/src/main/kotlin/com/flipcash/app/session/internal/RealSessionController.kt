@@ -45,6 +45,7 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -120,6 +121,9 @@ class RealSessionController @Inject constructor(
     TipCardOperations by tippingDelegate {
 
     private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
+
+    /** In-flight feed catch-up, so a repeated foreground edge joins it instead of duplicating it. */
+    private var feedCatchUpJob: Job? = null
 
     override val state: StateFlow<SessionState>
         get() = stateHolder.state
@@ -316,7 +320,11 @@ class RealSessionController @Inject constructor(
 
     private fun startPolling() {
         if (userManager.authState.canAccessAuthenticatedApis) {
-            tokenUpdater.poll(scope = scope, frequency = 20.seconds, startIn = 2.seconds)
+            // No `startIn` on the balances: this is the only thing that fetches them after login
+            // (TokenCoordinator.onUserLoggedIn just hydrates Room, which is empty on a fresh
+            // account), and the wallet tab holds its spinner until the fetch lands. A head start
+            // here was a second of the login spinner spent deliberately idle.
+            tokenUpdater.poll(scope = scope, frequency = 20.seconds)
             activityFeedUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 60.seconds)
             profileUpdater.poll(scope = scope, frequency = 60.seconds, startIn = 0.seconds)
         }
@@ -390,11 +398,26 @@ class RealSessionController @Inject constructor(
         }
     }
 
-    private fun bringActivityFeedCurrent(count: Int = 100) {
-        if (userManager.authState.canAccessAuthenticatedApis) {
-            scope.launch {
-                feedCoordinator.fetchSinceLatest(count)
-            }
+    /**
+     * Reconciles the activity feed with the server.
+     *
+     * [count] only bites on a cold cache, where [ActivityFeedCoordinator.fetchSinceLatest] seeds
+     * the newest [count] rows; with anything cached it pages *forward* from the newest row and
+     * takes whatever has happened since. So the size is really "how much history a fresh login
+     * waits for before the wallet can draw" — and the wallet previews three rows. The default
+     * covers the history screen's first page (it pages at 20) and leaves the rest to that screen's
+     * own paging, rather than making every login pay for a hundred rows up front.
+     *
+     * Guarded against overlap because the foreground edge can arrive twice at login — from the
+     * transition into [AuthState.Ready] and from `ON_RESUME` — and the second one would otherwise
+     * duplicate the fetch rather than wait for it.
+     */
+    private fun bringActivityFeedCurrent(count: Int = FEED_CATCH_UP_PAGE) {
+        if (!userManager.authState.canAccessAuthenticatedApis) return
+        if (feedCatchUpJob?.isActive == true) return
+
+        feedCatchUpJob = scope.launch {
+            feedCoordinator.fetchSinceLatest(count)
         }
     }
 
@@ -404,5 +427,10 @@ class RealSessionController @Inject constructor(
                 blocklistCoordinator.refresh()
             }
         }
+    }
+
+    private companion object {
+        /** Rows a fresh login seeds the activity feed with. See [bringActivityFeedCurrent]. */
+        const val FEED_CATCH_UP_PAGE = 25
     }
 }

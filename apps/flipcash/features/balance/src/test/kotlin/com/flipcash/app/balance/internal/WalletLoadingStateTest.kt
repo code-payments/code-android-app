@@ -104,6 +104,7 @@ class WalletLoadingStateTest {
     fun `tutorial shows once a milestone is known to be outstanding`() {
         val state = WalletViewModel.State(
             onboardingItems = milestones(addedMoney = true, tipped = false),
+            isTipMilestoneResolved = true,
             feedSyncState = FeedSyncState.Synced,
         )
         assertFalse(state.isNewUserTutorialComplete)
@@ -113,9 +114,33 @@ class WalletLoadingStateTest {
     fun `tutorial is complete when every milestone is`() {
         val state = WalletViewModel.State(
             onboardingItems = milestones(addedMoney = true, tipped = true),
+            isTipMilestoneResolved = true,
             feedSyncState = FeedSyncState.Synced,
         )
         assertTrue(state.isNewUserTutorialComplete)
+    }
+
+    /**
+     * The chat cache reports every account as never having tipped until it has been reconciled,
+     * and reconciling it waits on a per-conversation backfill. The tutorial is the only thing that
+     * reads the answer, so it is the only thing that waits.
+     */
+    @Test
+    fun `an unresolved tip milestone withholds the tutorial without holding the tab`() {
+        val state = WalletViewModel.State(
+            onboardingItems = milestones(addedMoney = true, tipped = false),
+            isTipMilestoneResolved = false,
+            feedSyncState = FeedSyncState.Synced,
+        )
+        assertTrue(
+            state.isNewUserTutorialComplete,
+            "an un-reconciled chat cache must not be drawn as an outstanding milestone",
+        )
+        assertFalse(
+            state.isAwaitingActivity,
+            "the balance and the card deck do not read the tip milestone and must not wait for it",
+        )
+        assertTrue(state.hasReceivedMoney, "the action tiles read local state and are answerable")
     }
 
     @Test
@@ -132,6 +157,7 @@ class WalletLoadingStateTest {
     fun `a held balance completes the add-money milestone without a feed row`() {
         val state = WalletViewModel.State(
             onboardingItems = milestones(addedMoney = true, tipped = true),
+            isTipMilestoneResolved = true,
             feedSyncState = FeedSyncState.Synced,
             holdsBalance = true,
         )
