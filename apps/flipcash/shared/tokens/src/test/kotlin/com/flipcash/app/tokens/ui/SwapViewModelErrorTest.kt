@@ -9,6 +9,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
+import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
@@ -58,6 +59,7 @@ class SwapViewModelErrorTest {
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
 
     private val userManager = mockk<UserManager>(relaxed = true)
+    private val accountController = mockk<AccountController>(relaxed = true)
     private val exchange = mockk<Exchange>(relaxed = true)
     private val verifiedFiatCalculator = mockk<VerifiedFiatCalculator>(relaxed = true)
     // Mockito for Result-returning methods (MockK double-boxes Result inline class)
@@ -87,6 +89,11 @@ class SwapViewModelErrorTest {
 
         every { userManager.accountCluster } returns accountCluster
 
+        // A Get asks whether the mint already has a token account to decide first-buy vs top-up.
+        // Nothing here exercises that branch, so answer "no" rather than leaving it on a relaxed
+        // mock's empty flow.
+        every { accountController.observeHasAccountFor(any()) } returns MutableStateFlow(false)
+
         // Stub limits StateFlow so init block doesn't NPE on null flow
         whenever(transactionController.limits).thenReturn(MutableStateFlow(null))
 
@@ -107,6 +114,7 @@ class SwapViewModelErrorTest {
     private fun createViewModel(): SwapViewModel {
         return SwapViewModel(
             userManager = userManager,
+            accountController = accountController,
             exchange = exchange,
             verifiedFiatCalculator = verifiedFiatCalculator,
             transactionController = transactionController,
