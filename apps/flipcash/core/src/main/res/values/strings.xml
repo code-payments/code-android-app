@@ -575,9 +575,8 @@
     <string name="subtitle_amountAvailable">%1$s available</string>
     <string name="action_confirmConversion">Confirm</string>
 
-    <!-- Currency purchase (v2 Get flow) -->
-    <string name="title_get">Get</string>
-    <string name="label_getWith">Get with</string>
+    <!-- Currency purchase (v2 buy flow) -->
+    <string name="label_buyWith">Buy with</string>
     <string name="subtitle_youGet">You Get</string>
     <string name="action_confirm">Confirm</string>
     <string name="label_buyWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
