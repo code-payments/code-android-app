@@ -3,7 +3,7 @@ package com.flipcash.app.balance.internal
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.Analytics
 import com.flipcash.app.analytics.FlipcashAnalyticsService
-import com.flipcash.app.balance.internal.components.TutorialItem
+import com.flipcash.app.core.ui.onboarding.TutorialItem
 import com.flipcash.app.core.AppRoute
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.shared.transactionhistory.FeedSyncState
@@ -53,7 +53,7 @@ internal class WalletViewModel @Inject constructor(
          * without waiting on the network. The tip milestone inside it is the one that needs a
          * server round-trip; [isTipMilestoneResolved] says whether it can be believed yet.
          */
-        val onboardingItems: List<TutorialItem>? = null,
+        val onboardingItems: List<TutorialItem.Wallet>? = null,
         /**
          * Whether [TutorialItem.ScanTipCard]'s answer is trustworthy.
          *
@@ -111,7 +111,7 @@ internal class WalletViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnOnboardingItemsUpdated(
-            val items: List<TutorialItem>,
+            val items: List<TutorialItem.Wallet>,
             val holdsBalance: Boolean,
             val isTipMilestoneResolved: Boolean,
         ): Event

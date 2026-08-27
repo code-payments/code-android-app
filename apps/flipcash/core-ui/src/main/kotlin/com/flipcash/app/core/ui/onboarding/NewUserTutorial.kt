@@ -1,4 +1,4 @@
-package com.flipcash.app.balance.internal.components
+package com.flipcash.app.core.ui.onboarding
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -27,9 +27,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
-import com.flipcash.features.balance.R
+import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraSmall
 
+/**
+ * A row in a "what's left to do" checklist.
+ *
+ * Split by the screen that owns it: [Wallet] and [Profile] are drawn by different tabs and share
+ * nothing but the row layout, so each call site's `when` stays exhaustive over its own family and
+ * cannot be handed an item it has no branch for.
+ */
 sealed interface TutorialItem {
     val title: String
         @Composable get
@@ -39,17 +47,22 @@ sealed interface TutorialItem {
         @Composable get
     val isCompleted: Boolean
 
-    class AddMoney(override val isCompleted: Boolean) : TutorialItem {
+    /** The wallet tab's new-user milestones. */
+    sealed interface Wallet : TutorialItem
+
+    /** The "You" tab's profile-completion steps (node 9544:18140). */
+    sealed interface Profile : TutorialItem
+
+    class AddMoney(override val isCompleted: Boolean) : Wallet {
         override val title: String
             @Composable get() = stringResource(R.string.title_addMoney)
         override val description: String
             @Composable get() = stringResource(R.string.subtitle_addMoney)
         override val icon: Painter
             @Composable get() = rememberVectorPainter(Icons.Outlined.AddCircleOutline)
-
     }
 
-    class ScanTipCard(override val isCompleted: Boolean) : TutorialItem {
+    class ScanTipCard(override val isCompleted: Boolean) : Wallet {
         override val title: String
             @Composable get() = stringResource(R.string.title_scanTipCard)
         override val description: String
@@ -60,11 +73,11 @@ sealed interface TutorialItem {
 }
 
 @Composable
-fun NewUserTutorial(
+fun <T : TutorialItem> NewUserTutorial(
     title: String,
-    items: List<TutorialItem>,
+    items: List<T>,
     modifier: Modifier = Modifier,
-    onItemClicked: (TutorialItem) -> Unit,
+    onItemClicked: (T) -> Unit,
 ) {
     val completedCount = remember(items) { items.count { it.isCompleted } }
 
@@ -93,7 +106,7 @@ fun NewUserTutorial(
 
         Column(
             modifier = Modifier
-                .clip(CodeTheme.shapes.medium)
+                .clip(CodeTheme.shapes.extraSmall)
                 .background(color = Color.White.copy(0.05f)),
         ) {
             items.fastForEach { item ->
