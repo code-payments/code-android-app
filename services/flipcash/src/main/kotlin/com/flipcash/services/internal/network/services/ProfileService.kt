@@ -9,6 +9,7 @@ import com.flipcash.services.models.GetUserProfileError
 import com.flipcash.services.models.LinkSocialAccountError
 import com.flipcash.services.models.ProfileIdentifier
 import com.flipcash.services.models.SetDisplayNameError
+import com.flipcash.services.models.SetMinDmChatInitFeeError
 import com.flipcash.services.models.SetProfilePictureError
 import com.flipcash.services.models.SetUsernameError
 import com.flipcash.services.models.SocialAccountLinkRequest
@@ -20,6 +21,7 @@ import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.internal.network.extensions.toMediaItem
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
+import com.getcode.opencode.model.financial.Fiat
 import javax.inject.Inject
 
 internal class ProfileService @Inject constructor(
@@ -128,6 +130,26 @@ internal class ProfileService @Inject constructor(
                 }
             },
             onFailure = { Result.failure(it.toValidationOrElse { cause -> UpdateTipCardError.Other(cause) }) }
+        )
+    }
+
+    suspend fun setMinDmChatInitFee(
+        owner: Ed25519.KeyPair,
+        fee: Fiat,
+    ): Result<Unit> {
+        return runCatching {
+            api.setMinDmChatInitFee(owner, fee)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    ProfileService.SetMinDmChatInitFeeResponse.Result.OK -> Result.success(Unit)
+                    ProfileService.SetMinDmChatInitFeeResponse.Result.DENIED -> Result.failure(SetMinDmChatInitFeeError.Denied())
+                    ProfileService.SetMinDmChatInitFeeResponse.Result.INVALID_AMOUNT -> Result.failure(SetMinDmChatInitFeeError.InvalidAmount())
+                    ProfileService.SetMinDmChatInitFeeResponse.Result.UNRECOGNIZED -> Result.failure(SetMinDmChatInitFeeError.Unrecognized())
+                    null -> Result.failure(SetMinDmChatInitFeeError.Unrecognized())
+                }
+            },
+            onFailure = { Result.failure(it.toValidationOrElse { cause -> SetMinDmChatInitFeeError.Other(cause) }) }
         )
     }
 

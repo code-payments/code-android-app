@@ -4,6 +4,7 @@ import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.profile.v1.ProfileGrpcKt
 import com.codeinc.flipcash.gen.profile.v1.ProfileService
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
+import com.flipcash.services.internal.network.extensions.asFiatPaymentAmount
 import com.flipcash.services.internal.network.extensions.asUserId
 import com.flipcash.services.internal.network.extensions.asUsername
 import com.flipcash.services.internal.network.extensions.authenticate
@@ -14,6 +15,7 @@ import com.flipcash.services.models.SocialAccountUnlinkRequest
 import com.flipcash.services.models.chat.BlobId
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.utils.toByteString
 import com.codeinc.flipcash.gen.profile.v1.validate
 import dev.bmcreations.protovalidate.orThrow
@@ -155,6 +157,26 @@ internal class ProfileApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.updateTipCard(request)
+        }
+    }
+
+    /**
+     * Sets the minimum fee another user must pay to initialize a DM chat with
+     * the caller, replacing any fee already set.
+     */
+    suspend fun setMinDmChatInitFee(
+        owner: Ed25519.KeyPair,
+        fee: Fiat,
+    ): ProfileService.SetMinDmChatInitFeeResponse {
+        val request = ProfileService.SetMinDmChatInitFeeRequest.newBuilder()
+            .setMinDmChatInitFee(fee.asFiatPaymentAmount())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.setMinDmChatInitFee(request)
         }
     }
 

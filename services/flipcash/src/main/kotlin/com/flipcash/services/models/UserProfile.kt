@@ -3,6 +3,7 @@ package com.flipcash.services.models
 import android.os.Parcelable
 import com.flipcash.services.models.chat.MediaItem
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
@@ -27,6 +28,11 @@ data class UserProfile(
     // The user's public Flipcash handle. Public, so it is present for any user —
     // null when they haven't claimed one yet.
     val username: String? = null,
+    // The minimum fee another user must pay to initialize a DM chat with this
+    // user. Public, so it is present for any user, not just the caller. Null
+    // when the user hasn't set one, in which case the server default applies.
+    // Update it with ProfileController.setMinDmChatInitFee.
+    val minDmChatInitFee: Fiat? = null,
 ): Parcelable {
     /** The phone number only when it has been verified — backwards-compatible accessor. */
     val verifiedPhoneNumber: String? get() = phoneNumber?.takeIf { it.verified }?.value
@@ -43,6 +49,7 @@ data class UserProfile(
             tipCardColor = null,
             userId = null,
             username = null,
+            minDmChatInitFee = null,
         )
     }
 }

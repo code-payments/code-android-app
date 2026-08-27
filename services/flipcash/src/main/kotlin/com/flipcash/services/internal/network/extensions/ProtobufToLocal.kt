@@ -70,6 +70,10 @@ internal fun Common.UserId.toId(): ID = value.toByteArray().toList()
 internal fun Common.Hash.toChecksum(): Checksum = value.toByteArray().toChecksum()
 internal fun Common.PublicKey.toPublicKey(): PublicKey = value.toByteArray().toPublicKey()
 internal fun Common.PublicKey.toMint(): Mint = value.toByteArray().toMint()
+internal fun Common.FiatPaymentAmount.toFiat(): Fiat = Fiat(
+    fiat = nativeAmount,
+    currencyCode = CurrencyCode.tryValueOf(currency) ?: CurrencyCode.USD,
+)
 
 internal fun PushModels.Payload.asPayload(): NotificationPayload {
     val navigationTrigger = navigationOrNull?.typeCase?.let { type ->
