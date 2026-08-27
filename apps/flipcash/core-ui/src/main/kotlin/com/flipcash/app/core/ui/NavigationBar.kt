@@ -205,7 +205,7 @@ fun NavigationBar(
                                 modifier = Modifier
                                     .size(iconSize)
                                     .graphicsLayer { alpha = iconAlpha },
-                                painter = painterResource(button.icon),
+                                painter = painterResource(button.icon(selected)),
                                 colorFilter = ColorFilter.tint(Color.White),
                                 contentDescription = null,
                             )
@@ -240,14 +240,18 @@ internal val NavBarButton.testTag: String
         NavBarButton.TipCard -> "nav_tipcard"
     }
 
-@get:DrawableRes
-private val NavBarButton.icon: Int
-    get() = when (this) {
-        NavBarButton.Scanner -> R.drawable.ic_nav_scan
-        NavBarButton.Wallet -> R.drawable.ic_nav_wallet
-        NavBarButton.Chats -> R.drawable.ic_nav_chat
-        NavBarButton.TipCard -> R.drawable.ic_nav_tipcard
-    }
+/**
+ * The glyph for [this] tab at the weight its selection calls for. Every tab is drawn as an outline
+ * until it is selected, where it fills in; the dimming on top of that is the caller's alpha. The
+ * unsuffixed drawable is the outline, so `ic_nav_scan` stays the outline the tutorial card reuses.
+ */
+@DrawableRes
+private fun NavBarButton.icon(selected: Boolean): Int = when (this) {
+    NavBarButton.Scanner -> if (selected) R.drawable.ic_nav_scan_selected else R.drawable.ic_nav_scan
+    NavBarButton.Wallet -> if (selected) R.drawable.ic_nav_wallet_selected else R.drawable.ic_nav_wallet
+    NavBarButton.Chats -> if (selected) R.drawable.ic_nav_chat_selected else R.drawable.ic_nav_chat
+    NavBarButton.TipCard -> if (selected) R.drawable.ic_nav_tipcard_selected else R.drawable.ic_nav_tipcard
+}
 
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
