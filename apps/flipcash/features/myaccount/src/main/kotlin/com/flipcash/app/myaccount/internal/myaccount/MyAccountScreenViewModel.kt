@@ -9,9 +9,11 @@ import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.StaffMenuItem
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.flipcash.services.user.UserManager
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -31,6 +33,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
     private val appSettings: AppSettingsCoordinator,
     featureFlagController: FeatureFlagController,
     userFlags: UserFlagsCoordinator,
+    userManager: UserManager,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<MyAccountScreenViewModel.State, MyAccountScreenViewModel.Event>(
     initialState = State(),
@@ -46,8 +49,15 @@ internal class MyAccountScreenViewModel @Inject constructor(
         // Why the row can't act, when it can't — e.g. the hardware is there with nothing enrolled.
         @StringRes val biometricsDescription: Int? = null,
         val betaUnlocked: Boolean = false,
-        // Staff-only rows stay out until the real flag state loads, so they never flash in.
-        val items: List<MenuItem<Event>> = FullMenuList.filterNot { it is StaffMenuItem },
+        // Whether the account holds a handle. Changing one presupposes having one.
+        val usernameClaimed: Boolean = false,
+        // Conditional rows — staff, and the handle — stay out until their real state loads, so they
+        // never flash in for an account that shouldn't see them.
+        val items: List<MenuItem<Event>> = buildItemList(
+            biometricsSupported = true,
+            betaUnlocked = false,
+            usernameClaimed = false,
+        ),
     )
 
     internal sealed interface Event {
@@ -62,6 +72,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
         data object OnBiometricsToggled : Event
         data object OnChangeDisplayNameClicked : Event
         data object OnEditDisplayName : Event
+        data class OnUsernameClaimChanged(val claimed: Boolean) : Event
         data object OnChangeUsernameClicked : Event
         data object OnEditUsername : Event
         data object OnBlocklistClicked: Event
@@ -76,6 +87,13 @@ internal class MyAccountScreenViewModel @Inject constructor(
             userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
         ) { override, isStaff -> override || isStaff }
             .onEach { dispatchEvent(Event.OnBetaFeaturesUnlocked(it)) }
+            .launchIn(viewModelScope)
+
+        userManager.state
+            .map { it.userProfile?.username }
+            .map { username -> !username.isNullOrBlank() }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnUsernameClaimChanged(it)) }
             .launchIn(viewModelScope)
 
         appSettings.settings()
@@ -127,12 +145,17 @@ internal class MyAccountScreenViewModel @Inject constructor(
     }
 
     internal companion object {
-        /** Biometrics drops out on hardware that can't offer it; staff rows need the beta unlock. */
+        /**
+         * Biometrics drops out on hardware that can't offer it; staff rows need the beta unlock;
+         * changing a handle needs one to already be claimed.
+         */
         private fun buildItemList(
             biometricsSupported: Boolean,
             betaUnlocked: Boolean,
+            usernameClaimed: Boolean,
         ): List<MenuItem<Event>> = FullMenuList
             .filterNot { it == RequireBiometrics && !biometricsSupported }
+            .filterNot { it == ChangeUsername && !usernameClaimed }
             .filter { it !is StaffMenuItem || betaUnlocked }
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
@@ -153,6 +176,18 @@ internal class MyAccountScreenViewModel @Inject constructor(
                         items = buildItemList(
                             biometricsSupported = state.biometricsSupported,
                             betaUnlocked = event.unlocked,
+                            usernameClaimed = state.usernameClaimed,
+                        ),
+                    )
+                }
+
+                is Event.OnUsernameClaimChanged -> { state ->
+                    state.copy(
+                        usernameClaimed = event.claimed,
+                        items = buildItemList(
+                            biometricsSupported = state.biometricsSupported,
+                            betaUnlocked = state.betaUnlocked,
+                            usernameClaimed = event.claimed,
                         ),
                     )
                 }
@@ -166,6 +201,7 @@ internal class MyAccountScreenViewModel @Inject constructor(
                         items = buildItemList(
                             biometricsSupported = event.supported,
                             betaUnlocked = state.betaUnlocked,
+                            usernameClaimed = state.usernameClaimed,
                         ),
                     )
                 }
