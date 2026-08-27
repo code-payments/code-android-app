@@ -424,7 +424,7 @@ class AppRouterTest {
 
     // endregion
 
-    // region classify + dispatch — vanity profile links
+    // region classify + dispatch — tip card links on the bare host
 
     @Test
     fun `classify recognizes a vanity profile link`() {
@@ -478,6 +478,69 @@ class AppRouterTest {
     fun `classify ignores a reserved path in mixed case`() {
         assertNull(router.classify(DeepLink("https://flipcash.com/Download")))
         assertNull(router.classify(DeepLink("https://flipcash.com/CurrencyCreator")))
+    }
+
+    @Test
+    fun `classify recognizes a tip card link addressed by account id`() {
+        val userId = "11111111-2222-3333-4444-555555555555"
+        val type = router.classify(DeepLink("https://flipcash.com/$userId"))
+        assertIs<DeeplinkType.Tipcard>(type)
+        assertEquals(UUID.fromString(userId).bytes, type.userId)
+    }
+
+    @Test
+    fun `classify recognizes an id link written by Linkify`() {
+        val userId = UUID.fromString("11111111-2222-3333-4444-555555555555").bytes
+        val type = router.classify(DeepLink(Linkify.tipcard(TipCardOwner.ById(userId))))
+        assertIs<DeeplinkType.Tipcard>(type)
+        assertEquals(userId, type.userId)
+    }
+
+    // A link is typed, printed, or auto-capitalised in any case; the id it resolves to is the same.
+    @Test
+    fun `classify recognizes an id link in mixed case`() {
+        val type = router.classify(DeepLink("https://flipcash.com/AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"))
+        assertIs<DeeplinkType.Tipcard>(type)
+        assertEquals(UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").bytes, type.userId)
+    }
+
+    @Test
+    fun `classify recognizes an id link on the www host`() {
+        val type = router.classify(DeepLink("https://www.flipcash.com/11111111-2222-3333-4444-555555555555"))
+        assertIs<DeeplinkType.Tipcard>(type)
+    }
+
+    @Test
+    fun `dispatch presents the tip card for another user's id link`() {
+        loggedIn()
+        currentUserId = UUID.fromString("22222222-2222-2222-2222-222222222222").bytes
+
+        val userId = "11111111-1111-1111-1111-111111111111"
+        val action = router.dispatch(DeepLink("https://flipcash.com/$userId"))
+
+        assertIs<DeeplinkAction.PresentTipCard>(action)
+        assertEquals(TipCardOwner.ById(UUID.fromString(userId).bytes), action.owner)
+    }
+
+    @Test
+    fun `dispatch routes your own id link to the You tab`() {
+        loggedIn()
+        val userId = "11111111-1111-1111-1111-111111111111"
+        currentUserId = UUID.fromString(userId).bytes
+
+        val action = router.dispatch(DeepLink("https://flipcash.com/$userId"))
+
+        assertIs<DeeplinkAction.Navigate>(action)
+        assertEquals(AppRoute.Sheets.Menu, action.routes.single())
+    }
+
+    // UUID.fromString would take these; the regex doesn't. A shape the app doesn't claim goes back
+    // to the browser rather than being captured from the website.
+    @Test
+    fun `classify ignores a path that only loosely resembles a UUID`() {
+        assertNull(router.classify(DeepLink("https://flipcash.com/1-1-1-1-1")))
+        assertNull(router.classify(DeepLink("https://flipcash.com/11111111-2222-3333-4444-5555555555")))
+        assertNull(router.classify(DeepLink("https://flipcash.com/gggggggg-2222-3333-4444-555555555555")))
     }
 
     @Test

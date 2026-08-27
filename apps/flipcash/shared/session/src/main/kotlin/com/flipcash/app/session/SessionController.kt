@@ -42,7 +42,7 @@ sealed interface TipCardEvent {
      * The resolved card is the viewer's own. Tipping yourself is a payment no-op, so rather than
      * present a card that can't be acted on, the UI sends them to the You tab — the surface that
      * owns their tip card. Reached by scanning your own code (QR link or OpenCode payload); the
-     * `/tip/{self}` deeplink is diverted earlier, by the router.
+     * `flipcash.com/{self}` deeplink is diverted earlier, by the router.
      */
     data object OwnCardScanned : TipCardEvent
 }
@@ -56,8 +56,8 @@ interface TipCardOperations {
 
     /**
      * Resolves [owner]'s tip card and presents it. Both ways of naming them arrive here — a scan or
-     * a `/tip/{id}` link by id, a `flipcash.com/{username}` link by handle — because everything
-     * after resolution is the same card.
+     * a `flipcash.com/{id}` link by id, a `flipcash.com/{username}` link by handle — because
+     * everything after resolution is the same card.
      */
     fun resolveTipCard(owner: TipCardOwner)
 }

@@ -20,10 +20,14 @@ sealed interface DeeplinkType: Parcelable {
 
     @Serializable data class TipChat(val identifier: ChatIdentifier): DeeplinkType, Navigatable
 
+    /**
+     * A tip card addressed by account id — `flipcash.com/{uuid}`, or the older
+     * `app.flipcash.com/tip/{uuid}` that links already shared still carry.
+     */
     @Serializable data class Tipcard(val userId: ID): DeeplinkType
 
     /**
-     * A vanity `flipcash.com/{username}` link — the same destination as [Tipcard], addressed by the
+     * A `flipcash.com/{username}` link — the same destination as [Tipcard], addressed by the
      * owner's public handle. The id it resolves to is the server's to supply, so it stays a
      * username all the way to the session.
      */

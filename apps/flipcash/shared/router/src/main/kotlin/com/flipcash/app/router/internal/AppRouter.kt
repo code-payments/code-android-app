@@ -59,14 +59,14 @@ internal class AppRouter(
         const val JUMP_HOST = "jump.flipcash.com"
 
         /**
-         * The bare host, which serves the website *and* every user's vanity profile link
-         * (`flipcash.com/sally_streamer`). Distinct from the `app.` / `send.` hosts, whose whole
-         * path space belongs to the app.
+         * The bare host, which serves the website *and* every user's tip card link — by handle
+         * (`flipcash.com/sally_streamer`) or by account id (`flipcash.com/{uuid}`). Distinct from
+         * the `app.` / `send.` hosts, whose whole path space belongs to the app.
          */
-        const val VANITY_HOST = "flipcash.com"
+        const val PROFILE_HOST = "flipcash.com"
 
         /**
-         * Paths on [VANITY_HOST] that belong to the website rather than to a person. Every one of
+         * Paths on [PROFILE_HOST] that belong to the website rather than to a person. Every one of
          * them is charset-valid as a username, and the server reserves them — so a link to one
          * could only ever fail to resolve, but it would fail *inside* the app, having taken the tap
          * away from the browser. Ruling them out here keeps `flipcash.com/download` a web link.
@@ -79,7 +79,7 @@ internal class AppRouter(
          * Only its handle-shaped entries appear here — it also excludes paths the filter could
          * never match (`/favicon.ico`, `/robots.txt`, anything multi-segment).
          */
-        val reservedVanityPaths: Set<String> =
+        val reservedProfilePaths: Set<String> =
             // The website's own pages.
             setOf(
                 "download", "privacy", "terms", "support", "help", "about", "blog", "legal",
@@ -184,7 +184,7 @@ internal class AppRouter(
             deepLink.isEmailVerification() -> deepLink.handleEmailVerification()
             deepLink.isTipChat() -> deepLink.handleTipChat()
             deepLink.isTipCard() -> deepLink.handleTipCard()
-            deepLink.isVanityProfile() -> deepLink.handleVanityProfile()
+            deepLink.isProfileLink() -> deepLink.handleProfileLink()
             // `/chat/{id}` links are intentionally NOT handled: the Send tab / direct-send
             // flow they opened was removed. The manifest no longer claims that path either, so
             // such a link opens in the browser rather than dead-ending here. Re-add routing and
@@ -204,7 +204,7 @@ internal class AppRouter(
      * below API 31). Send those back to a browser instead of dead-ending on the home screen.
      */
     private fun DeepLink.unrouted(): DeeplinkAction =
-        if (host.removePrefix("www.").equals(VANITY_HOST, ignoreCase = true)) {
+        if (host.removePrefix("www.").equals(PROFILE_HOST, ignoreCase = true)) {
             DeeplinkAction.OpenExternally(data)
         } else {
             DeeplinkAction.None
@@ -290,25 +290,46 @@ private fun DeepLink.isTipChat(): Boolean =
 private fun DeepLink.isTipCard(): Boolean =  tip.contains(pathSegments.getOrNull(0))
 
 /**
- * `flipcash.com/{username}` — a single path segment on the bare host, shaped like a handle and not
- * one of the website's own pages.
+ * A tip card link on the bare host: one path segment naming its owner, either as a handle
+ * (`flipcash.com/sally_streamer`) or as an account id (`flipcash.com/{uuid}`).
  *
- * All three conditions matter. The manifest claims this host for username-shaped paths only, but a
- * `pathAdvancedPattern` is ignored below API 31, so on those versions the whole host arrives here
- * and this is the only place the distinction is made.
+ * A handle has to clear two more conditions than the id does — the server's charset, and not being
+ * one of the website's own pages — because it shares a shape with `/download` and `/privacy`. A
+ * UUID can't collide with either, so its shape is the whole test.
+ *
+ * The manifest claims this host for those two path shapes only, but a `pathAdvancedPattern` is
+ * ignored below API 31, so on those versions the whole host arrives here and this is the only
+ * place the distinction is made.
  */
-private fun DeepLink.isVanityProfile(): Boolean {
-    if (!host.removePrefix("www.").equals(AppRouter.VANITY_HOST, ignoreCase = true)) return false
+private fun DeepLink.isProfileLink(): Boolean {
+    if (!host.removePrefix("www.").equals(AppRouter.PROFILE_HOST, ignoreCase = true)) return false
     val segment = pathSegments.singleOrNull()?.lowercase() ?: return false
-    return segment.isUsernameShaped() && segment !in AppRouter.reservedVanityPaths
+    return segment.isUuidShaped() ||
+            (segment.isUsernameShaped() && segment !in AppRouter.reservedProfilePaths)
 }
 
-private fun DeepLink.handleVanityProfile(): DeeplinkType.TipcardByUsername? {
-    // Lowercased, not just matched case-insensitively: handles are lowercase on the wire, and this
-    // string is what the profile lookup is keyed by.
-    val username = pathSegments.singleOrNull()?.lowercase() ?: return null
-    return DeeplinkType.TipcardByUsername(username)
+private fun DeepLink.handleProfileLink(): DeeplinkType? {
+    // Lowercased, not just matched case-insensitively: handles are lowercase on the wire and a
+    // UUID is written lowercase, and this string is what the lookup is keyed by.
+    val segment = pathSegments.singleOrNull()?.lowercase() ?: return null
+    return if (segment.isUuidShaped()) {
+        DeeplinkType.Tipcard(UUID.fromString(segment).bytes)
+    } else {
+        DeeplinkType.TipcardByUsername(segment)
+    }
 }
+
+/**
+ * Canonical 8-4-4-4-12 lowercase hex — the exact shape `Linkify.tipcard` writes and the manifest's
+ * `pathAdvancedPattern` claims.
+ *
+ * Not `UUID.fromString`, which also accepts short groups (`1-1-1-1-1`): a link the app doesn't
+ * recognise on this host goes back to the browser, and claiming a shape the website might serve
+ * would take that tap away from it.
+ */
+private fun String.isUuidShaped(): Boolean = UuidPattern.matches(this)
+
+private val UuidPattern = Regex("^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")
 
 private fun DeepLink.handleLoginLink(): DeeplinkType.Login? {
     val uri = data.toUri()

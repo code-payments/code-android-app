@@ -14,6 +14,14 @@ class AbbreviatedLinkTest {
     }
 
     @Test
+    fun `abbreviates an id link on the bare host`() {
+        assertEquals(
+            "flipcash.com/b0ced…",
+            "https://flipcash.com/b0ced1f2-a3b4-c5d6-e7f8-091a2b3c4d5e".abbreviatedLink(),
+        )
+    }
+
+    @Test
     fun `a vanity link is left whole`() {
         assertEquals(
             "flipcash.com/sally_streamer",
