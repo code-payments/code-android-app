@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.core.R
@@ -108,19 +109,20 @@ fun <T : TutorialItem> NewUserTutorial(
 ) {
     val completedCount = remember(items) { items.count { it.isCompleted } }
 
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
-    ) {
+    Column(modifier = modifier) {
+        // Node 9641:17024 pads the header on all four sides rather than putting a gap under it, so
+        // the space between the title and the box belongs to the header.
         Row(
             modifier = Modifier.fillMaxWidth()
-                .padding(horizontal = CodeTheme.dimens.inset),
+                .padding(CodeTheme.dimens.grid.x3),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = title,
-                style = CodeTheme.typography.screenTitle,
+                // Not `screenTitle`: FlipcashDesignSystem overrides it to 20sp/W500 app-wide, and
+                // node 9641:17026 asks for Avenir Demi at 18.
+                style = CodeTheme.typography.textMedium.copy(fontSize = 18.sp),
                 color = CodeTheme.colors.textMain,
             )
 
@@ -131,10 +133,14 @@ fun <T : TutorialItem> NewUserTutorial(
             )
         }
 
+        // Node 9641:17028: the box owns the padding and the rows sit flush inside it, spaced by
+        // the same step.
         Column(
             modifier = Modifier
                 .clip(CodeTheme.shapes.extraSmall)
-                .background(color = Color.White.copy(0.05f)),
+                .background(color = Color.White.copy(0.05f))
+                .padding(CodeTheme.dimens.grid.x3),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         ) {
             items.fastForEach { item ->
                 OnboardingItemRow(
@@ -154,9 +160,8 @@ private fun OnboardingItemRow(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    Row(modifier = modifier
-        .clickable(enabled = !item.isCompleted, onClick = onClick)
-        .padding(CodeTheme.dimens.inset),
+    Row(
+        modifier = modifier.clickable(enabled = !item.isCompleted, onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
         Image(
@@ -172,7 +177,8 @@ private fun OnboardingItemRow(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .alpha(if (item.isCompleted) 0.38f else 1f)
+                .alpha(if (item.isCompleted) 0.38f else 1f),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
         ) {
             Text(
                 text = item.title,
@@ -186,7 +192,7 @@ private fun OnboardingItemRow(
             )
         }
         Icon(
-            modifier = Modifier.align(Alignment.CenterVertically),
+            modifier = Modifier.align(Alignment.CenterVertically).size(16.dp),
             painter = painterResource(R.drawable.ic_chevron_right),
             tint = CodeTheme.colors.textSecondary,
             contentDescription = null

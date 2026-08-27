@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -544,7 +545,7 @@ private fun ClaimedTipCard(
             modifier = slideAway.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(CodeTheme.dimens.grid.x13))
+            Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
 
             Column(
                 modifier = Modifier
@@ -567,6 +568,16 @@ private fun ClaimedTipCard(
                             is TutorialItem.MinimumTip -> Unit
                         }
                     }
+
+
+                    // Node 9641:17048 separates the checklist from the link row. The column
+                    // already spaces siblings by 10dp; the rest of the 20dp gap on each side is
+                    // the divider's own padding.
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
+                        color = CodeTheme.colors.divider,
+                        thickness = CodeTheme.dimens.border,
+                    )
                 }
 
                 if (link != null) {
