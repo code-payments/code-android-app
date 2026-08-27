@@ -1,0 +1,16 @@
+<!-- Vertical mirror of ic_arrow_down, for the Withdraw tile on Dollars. The design has no
+     28px up arrow of its own — Figma's IconArrowUp is the 15.8px square-cap market-cap
+     indicator, and the tile row it draws (node 9631:2168) has no Withdraw tile at all.
+     Named _large because ui/components already owns a 20dp ic_arrow_up for chat send. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="28"
+    android:viewportHeight="28">
+    <path
+        android:pathData="M21.2917 11.6667L14 4.375L6.70833 11.6667M14 5.25V23.625"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.75"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
