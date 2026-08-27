@@ -15,11 +15,79 @@ class MyAccountScreenViewModelStateTest {
 
     private val reduce = MyAccountScreenViewModel.Companion.updateStateForEvent
 
+    private fun claimed(state: MyAccountScreenViewModel.State) =
+        reduce(MyAccountScreenViewModel.Event.OnUsernameClaimChanged(claimed = true))(state)
+
     @Test
-    fun `default state lists the display name, username, biometrics and blocklist`() {
+    fun `default state lists the display name, biometrics and blocklist`() {
         val state = MyAccountScreenViewModel.State()
-        assertEquals(listOf(ChangeDisplayName, ChangeUsername, RequireBiometrics, Blocklist), state.items)
+        assertEquals(listOf(ChangeDisplayName, RequireBiometrics, Blocklist), state.items)
         assertFalse(state.biometricsRequired)
+    }
+
+    @Test
+    fun `changing the username is offered only once a handle is claimed`() {
+        val unclaimed = MyAccountScreenViewModel.State()
+        assertFalse(unclaimed.usernameClaimed)
+        assertFalse(unclaimed.items.any { it is ChangeUsername })
+
+        val withHandle = claimed(unclaimed)
+
+        assertTrue(withHandle.usernameClaimed)
+        assertEquals(
+            listOf(ChangeDisplayName, ChangeUsername, RequireBiometrics, Blocklist),
+            withHandle.items,
+        )
+    }
+
+    @Test
+    fun `losing the handle takes the username row back out`() {
+        val dropped = reduce(
+            MyAccountScreenViewModel.Event.OnUsernameClaimChanged(claimed = false)
+        )(claimed(MyAccountScreenViewModel.State()))
+
+        assertFalse(dropped.usernameClaimed)
+        assertFalse(dropped.items.any { it is ChangeUsername })
+    }
+
+    @Test
+    fun `biometrics changes keep a claimed username row visible`() {
+        val updated = reduce(
+            MyAccountScreenViewModel.Event.OnBiometricsSettingChanged(
+                required = true,
+                supported = true,
+                available = true,
+            )
+        )(claimed(MyAccountScreenViewModel.State()))
+
+        assertTrue(updated.items.any { it is ChangeUsername })
+    }
+
+    @Test
+    fun `unlocking beta keeps a claimed username row visible`() {
+        val updated = reduce(
+            MyAccountScreenViewModel.Event.OnBetaFeaturesUnlocked(unlocked = true)
+        )(claimed(MyAccountScreenViewModel.State()))
+
+        assertTrue(updated.items.any { it is ChangeUsername })
+        assertTrue(updated.items.any { it is UserProfile })
+    }
+
+    @Test
+    fun `claiming a handle leaves the other rows' conditions alone`() {
+        val noBiometrics = reduce(
+            MyAccountScreenViewModel.Event.OnBiometricsSettingChanged(
+                required = false,
+                supported = false,
+                available = false,
+            )
+        )(MyAccountScreenViewModel.State())
+
+        val withHandle = claimed(noBiometrics)
+
+        assertTrue(withHandle.items.any { it is ChangeUsername })
+        assertFalse(withHandle.items.any { it is RequireBiometrics })
+        assertFalse(withHandle.items.any { it is UserProfile })
     }
 
     @Test
