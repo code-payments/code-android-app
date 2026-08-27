@@ -198,6 +198,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:region-selection:core"))
     implementation(project(":apps:flipcash:shared:region-selection:ui"))
     implementation(project(":apps:flipcash:shared:contacts"))
+    implementation(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:notifications"))
     implementation(project(":apps:flipcash:shared:onramp:coinbase"))
     implementation(project(":apps:flipcash:shared:onramp:deeplinks"))
