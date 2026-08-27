@@ -77,6 +77,8 @@ import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.menu.internal.MenuScreenViewModel.TipCardState
+import com.flipcash.app.core.ui.onboarding.NewUserTutorial
+import com.flipcash.app.core.ui.onboarding.TutorialItem
 import com.flipcash.app.menu.internal.components.UsernameProgress
 import com.flipcash.app.menu.internal.components.UsernameProgressCard
 import com.flipcash.app.theme.FlipcashThemeWrapper
@@ -280,6 +282,10 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                         usernameProgress = state.usernameProgress,
                         usernameMinimumBalance = state.usernameMinimumBalance,
                         onClaimUsername = { viewModel.dispatchEvent(Event.ClaimUsername) },
+                        profileTutorial = state.profileTutorial,
+                        onSetProfilePicture = {
+                            viewModel.dispatchEvent(Event.SetProfilePicture)
+                        },
                     )
                 },
                 footer = {
@@ -407,6 +413,8 @@ private fun YouHeader(
     usernameProgress: UsernameProgress?,
     usernameMinimumBalance: String,
     onClaimUsername: () -> Unit,
+    profileTutorial: List<TutorialItem.Profile>?,
+    onSetProfilePicture: () -> Unit,
 ) {
     when (tipCardState) {
         TipCardState.Unknown -> Unit
@@ -433,6 +441,8 @@ private fun YouHeader(
             usernameProgress = usernameProgress,
             usernameMinimumBalance = usernameMinimumBalance,
             onClaimUsername = onClaimUsername,
+            profileTutorial = profileTutorial,
+            onSetProfilePicture = onSetProfilePicture,
         )
     }
 }
@@ -466,6 +476,8 @@ private fun ClaimedTipCard(
     usernameProgress: UsernameProgress?,
     usernameMinimumBalance: String,
     onClaimUsername: () -> Unit,
+    profileTutorial: List<TutorialItem.Profile>?,
+    onSetProfilePicture: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -540,6 +552,23 @@ private fun ClaimedTipCard(
                     .padding(horizontal = CodeTheme.dimens.grid.x5),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             ) {
+                // Node 9641:17031 puts the checklist directly under the caption, above the
+                // link row. Null while the profile is unresolved so it never draws against a
+                // guess.
+                if (profileTutorial != null) {
+                    NewUserTutorial(
+                        modifier = Modifier.fillMaxWidth(),
+                        title = stringResource(R.string.title_finishYourProfile),
+                        items = profileTutorial,
+                    ) { item ->
+                        when (item) {
+                            is TutorialItem.ProfilePicture -> onSetProfilePicture()
+                            // Inert: nothing backs a user-set minimum tip yet.
+                            is TutorialItem.MinimumTip -> Unit
+                        }
+                    }
+                }
+
                 if (link != null) {
                     TipLinkRow(link = link, enabled = enabled, onCopy = onCopyLink)
                 }
