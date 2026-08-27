@@ -12,6 +12,7 @@ import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.repository.ProfileRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import javax.inject.Inject
@@ -122,6 +123,17 @@ class ProfileController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.updateTipCard(owner, hexColor)
+    }
+
+    /**
+     * Sets the minimum fee another user must pay to initialize a DM chat with
+     * the caller, replacing any fee already set.
+     */
+    suspend fun setMinDmChatInitFee(fee: Fiat): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.setMinDmChatInitFee(owner, fee)
     }
 
     /**

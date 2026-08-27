@@ -1,4 +1,4 @@
-package com.flipcash.app.balance.internal.components
+package com.flipcash.app.core.ui.onboarding
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -25,11 +25,23 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
-import com.flipcash.features.balance.R
+import com.flipcash.app.theme.FlipcashThemeWrapper
+import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraSmall
 
+/**
+ * A row in a "what's left to do" checklist.
+ *
+ * Split by the screen that owns it: [Wallet] and [Profile] are drawn by different tabs and share
+ * nothing but the row layout, so each call site's `when` stays exhaustive over its own family and
+ * cannot be handed an item it has no branch for.
+ */
 sealed interface TutorialItem {
     val title: String
         @Composable get
@@ -39,17 +51,22 @@ sealed interface TutorialItem {
         @Composable get
     val isCompleted: Boolean
 
-    class AddMoney(override val isCompleted: Boolean) : TutorialItem {
+    /** The wallet tab's new-user milestones. */
+    sealed interface Wallet : TutorialItem
+
+    /** The "You" tab's profile-completion steps (node 9544:18140). */
+    sealed interface Profile : TutorialItem
+
+    class AddMoney(override val isCompleted: Boolean) : Wallet {
         override val title: String
             @Composable get() = stringResource(R.string.title_addMoney)
         override val description: String
             @Composable get() = stringResource(R.string.subtitle_addMoney)
         override val icon: Painter
             @Composable get() = rememberVectorPainter(Icons.Outlined.AddCircleOutline)
-
     }
 
-    class ScanTipCard(override val isCompleted: Boolean) : TutorialItem {
+    class ScanTipCard(override val isCompleted: Boolean) : Wallet {
         override val title: String
             @Composable get() = stringResource(R.string.title_scanTipCard)
         override val description: String
@@ -57,30 +74,55 @@ sealed interface TutorialItem {
         override val icon: Painter
             @Composable get() = painterResource(R.drawable.ic_nav_scan)
     }
+
+    class ProfilePicture(override val isCompleted: Boolean) : Profile {
+        override val title: String
+            @Composable get() = stringResource(R.string.title_addProfilePicture)
+        override val description: String
+            @Composable get() = stringResource(R.string.subtitle_addProfilePicture)
+        override val icon: Painter
+            @Composable get() = painterResource(R.drawable.ic_people_circle)
+    }
+
+    /**
+     * Drawn but inert. Nothing backs a user-set minimum tip yet: the amount comes from
+     * server-supplied regional presets, no field for it exists on the profile or the tip-card
+     * customization message, and iOS has no implementation either. The row is in the design, so
+     * it is drawn — and it never completes, which is the state node 9641:17019 shows.
+     */
+    class MinimumTip(override val isCompleted: Boolean = false) : Profile {
+        override val title: String
+            @Composable get() = stringResource(R.string.title_setMinimumTip)
+        override val description: String
+            @Composable get() = stringResource(R.string.subtitle_setMinimumTip)
+        override val icon: Painter
+            @Composable get() = painterResource(R.drawable.ic_coins)
+    }
 }
 
 @Composable
-fun NewUserTutorial(
+fun <T : TutorialItem> NewUserTutorial(
     title: String,
-    items: List<TutorialItem>,
+    items: List<T>,
     modifier: Modifier = Modifier,
-    onItemClicked: (TutorialItem) -> Unit,
+    onItemClicked: (T) -> Unit,
 ) {
     val completedCount = remember(items) { items.count { it.isCompleted } }
 
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
-    ) {
+    Column(modifier = modifier) {
+        // Node 9641:17024 pads the header on all four sides rather than putting a gap under it, so
+        // the space between the title and the box belongs to the header.
         Row(
             modifier = Modifier.fillMaxWidth()
-                .padding(horizontal = CodeTheme.dimens.inset),
+                .padding(CodeTheme.dimens.grid.x3),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = title,
-                style = CodeTheme.typography.screenTitle,
+                // Not `screenTitle`: FlipcashDesignSystem overrides it to 20sp/W500 app-wide, and
+                // node 9641:17026 asks for Avenir Demi at 18.
+                style = CodeTheme.typography.textMedium.copy(fontSize = 18.sp),
                 color = CodeTheme.colors.textMain,
             )
 
@@ -91,10 +133,14 @@ fun NewUserTutorial(
             )
         }
 
+        // Node 9641:17028: the box owns the padding and the rows sit flush inside it, spaced by
+        // the same step.
         Column(
             modifier = Modifier
-                .clip(CodeTheme.shapes.medium)
-                .background(color = Color.White.copy(0.05f)),
+                .clip(CodeTheme.shapes.extraSmall)
+                .background(color = Color.White.copy(0.05f))
+                .padding(CodeTheme.dimens.grid.x3),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         ) {
             items.fastForEach { item ->
                 OnboardingItemRow(
@@ -114,9 +160,8 @@ private fun OnboardingItemRow(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    Row(modifier = modifier
-        .clickable(enabled = !item.isCompleted, onClick = onClick)
-        .padding(CodeTheme.dimens.inset),
+    Row(
+        modifier = modifier.clickable(enabled = !item.isCompleted, onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
         Image(
@@ -146,10 +191,38 @@ private fun OnboardingItemRow(
             )
         }
         Icon(
-            modifier = Modifier.align(Alignment.CenterVertically),
+            modifier = Modifier.align(Alignment.CenterVertically).size(16.dp),
             painter = painterResource(R.drawable.ic_chevron_right),
             tint = CodeTheme.colors.textSecondary,
             contentDescription = null
         )
     }
+}
+
+@Preview(name = "Finish Your Profile — nothing done")
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun PreviewFinishProfileEmpty() {
+    NewUserTutorial(
+        title = stringResource(R.string.title_finishYourProfile),
+        items = listOf(
+            TutorialItem.ProfilePicture(isCompleted = false),
+            TutorialItem.MinimumTip(),
+        ),
+        onItemClicked = {},
+    )
+}
+
+@Preview(name = "Finish Your Profile — photo set")
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun PreviewFinishProfilePhotoSet() {
+    NewUserTutorial(
+        title = stringResource(R.string.title_finishYourProfile),
+        items = listOf(
+            TutorialItem.ProfilePicture(isCompleted = true),
+            TutorialItem.MinimumTip(),
+        ),
+        onItemClicked = {},
+    )
 }

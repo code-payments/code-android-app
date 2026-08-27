@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -77,6 +78,8 @@ import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.menu.MenuList
 import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.menu.internal.MenuScreenViewModel.TipCardState
+import com.flipcash.app.core.ui.onboarding.NewUserTutorial
+import com.flipcash.app.core.ui.onboarding.TutorialItem
 import com.flipcash.app.menu.internal.components.UsernameProgress
 import com.flipcash.app.menu.internal.components.UsernameProgressCard
 import com.flipcash.app.theme.FlipcashThemeWrapper
@@ -280,6 +283,10 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                         usernameProgress = state.usernameProgress,
                         usernameMinimumBalance = state.usernameMinimumBalance,
                         onClaimUsername = { viewModel.dispatchEvent(Event.ClaimUsername) },
+                        profileTutorial = state.profileTutorial,
+                        onSetProfilePicture = {
+                            viewModel.dispatchEvent(Event.SetProfilePicture)
+                        },
                     )
                 },
                 footer = {
@@ -407,6 +414,8 @@ private fun YouHeader(
     usernameProgress: UsernameProgress?,
     usernameMinimumBalance: String,
     onClaimUsername: () -> Unit,
+    profileTutorial: List<TutorialItem.Profile>?,
+    onSetProfilePicture: () -> Unit,
 ) {
     when (tipCardState) {
         TipCardState.Unknown -> Unit
@@ -433,6 +442,8 @@ private fun YouHeader(
             usernameProgress = usernameProgress,
             usernameMinimumBalance = usernameMinimumBalance,
             onClaimUsername = onClaimUsername,
+            profileTutorial = profileTutorial,
+            onSetProfilePicture = onSetProfilePicture,
         )
     }
 }
@@ -466,6 +477,8 @@ private fun ClaimedTipCard(
     usernameProgress: UsernameProgress?,
     usernameMinimumBalance: String,
     onClaimUsername: () -> Unit,
+    profileTutorial: List<TutorialItem.Profile>?,
+    onSetProfilePicture: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -532,7 +545,7 @@ private fun ClaimedTipCard(
             modifier = slideAway.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(CodeTheme.dimens.grid.x13))
+            Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
 
             Column(
                 modifier = Modifier
@@ -540,6 +553,33 @@ private fun ClaimedTipCard(
                     .padding(horizontal = CodeTheme.dimens.grid.x5),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             ) {
+                // Node 9641:17031 puts the checklist directly under the caption, above the
+                // link row. Null while the profile is unresolved so it never draws against a
+                // guess.
+                if (profileTutorial != null) {
+                    NewUserTutorial(
+                        modifier = Modifier.fillMaxWidth(),
+                        title = stringResource(R.string.title_finishYourProfile),
+                        items = profileTutorial,
+                    ) { item ->
+                        when (item) {
+                            is TutorialItem.ProfilePicture -> onSetProfilePicture()
+                            // Inert: nothing backs a user-set minimum tip yet.
+                            is TutorialItem.MinimumTip -> Unit
+                        }
+                    }
+
+
+                    // Node 9641:17048 separates the checklist from the link row. The column
+                    // already spaces siblings by 10dp; the rest of the 20dp gap on each side is
+                    // the divider's own padding.
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
+                        color = CodeTheme.colors.divider,
+                        thickness = CodeTheme.dimens.border,
+                    )
+                }
+
                 if (link != null) {
                     TipLinkRow(link = link, enabled = enabled, onCopy = onCopyLink)
                 }

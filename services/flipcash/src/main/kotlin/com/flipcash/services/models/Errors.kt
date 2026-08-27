@@ -601,6 +601,16 @@ sealed class UpdateTipCardError(
     data class Other(override val cause: Throwable? = null) : UpdateTipCardError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class SetMinDmChatInitFeeError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: SetMinDmChatInitFeeError("Denied")
+    class InvalidAmount: SetMinDmChatInitFeeError("Invalid amount")
+    class Unrecognized : SetMinDmChatInitFeeError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SetMinDmChatInitFeeError(message = cause?.message, cause = cause), NotifiableError
+}
+
 // Thrown when a reserved blob failed server-side finalization (moderation / decode / size).
 // Terminal: the client must reserve a fresh upload to retry.
 class BlobRejectedException(val rejection: BlobRejection) :

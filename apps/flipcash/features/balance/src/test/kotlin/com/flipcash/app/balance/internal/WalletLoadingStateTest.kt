@@ -1,6 +1,6 @@
 package com.flipcash.app.balance.internal
 
-import com.flipcash.app.balance.internal.components.TutorialItem
+import com.flipcash.app.core.ui.onboarding.TutorialItem
 import com.flipcash.shared.transactionhistory.FeedSyncState
 import com.flipcash.shared.transactionhistory.TransactionAvatar
 import com.flipcash.shared.transactionhistory.TransactionListItem

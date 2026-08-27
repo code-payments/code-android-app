@@ -38,8 +38,8 @@ import kotlinx.coroutines.launch
 import com.flipcash.app.core.ui.AppreciationStyle
 import com.flipcash.app.core.ui.TokenCardStack
 import com.flipcash.app.balance.internal.components.BalanceHeader
-import com.flipcash.app.balance.internal.components.NewUserTutorial
-import com.flipcash.app.balance.internal.components.TutorialItem
+import com.flipcash.app.core.ui.onboarding.NewUserTutorial
+import com.flipcash.app.core.ui.onboarding.TutorialItem
 import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.core.ui.TileButton
 import com.flipcash.app.core.ui.TileButtonStyle
