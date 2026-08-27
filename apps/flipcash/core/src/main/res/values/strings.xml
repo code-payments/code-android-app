@@ -977,8 +977,7 @@
     <string name="error_description_profilePhotoNotAllowedFlaggedImpersonation">AI flagged this photo for impersonation. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>
     <string name="error_description_profilePhotoNotAllowedFlaggedMisleading">AI flagged this photo as misleading. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>
     <string name="error_description_profilePhotoNotAllowedFlaggedSpam">AI flagged this photo as spam. Please try a different photo. If you think the photo was rejected in error please DM @flipcash on X</string>
-    <string name="title_profileImageSelection">Upload Your Photo</string>
-    <string name="subtitle_profileImageSelection">This photo will be shown when receiving tips</string>
+    <string name="title_setProfilePicture">Set Profile Picture</string>
     <string name="placeholder_profileDisplayName">Your Name</string>
     <string name="subtitle_profileImageRecommended">500x500 Recommended</string>
     <string name="title_myTipCard">My Tip Card</string>
