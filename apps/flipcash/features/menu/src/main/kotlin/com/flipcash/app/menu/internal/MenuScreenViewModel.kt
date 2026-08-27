@@ -12,6 +12,7 @@ import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.share.TipCodeExportFormat
 import com.flipcash.app.core.share.TipCodeExporter
+import com.flipcash.app.core.ui.onboarding.TutorialItem
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.featureflags.BetaFeature
 import com.flipcash.app.core.toast.SystemToastController
@@ -106,6 +107,9 @@ internal class MenuScreenViewModel @Inject constructor(
         // The gate, formatted (e.g. `$100 USD`). Carried next to [usernameProgress] because both the
         // card's locked subtitle and the sheet behind its tap quote it.
         val usernameMinimumBalance: String = "",
+        // The "Finish Your Profile" checklist, or null while the profile is unresolved. Only ever
+        // drawn under a claimed card — see [ClaimedTipCard].
+        val profileTutorial: List<TutorialItem.Profile>? = null,
     ) {
         /** The card to share, export or expand — only a claimed one qualifies. */
         val tipCard: Scannable.TipCard?
@@ -159,6 +163,10 @@ internal class MenuScreenViewModel @Inject constructor(
             val progress: UsernameProgress?,
             val minimumBalance: String,
         ) : Event
+        data class OnProfileTutorialChanged(val items: List<TutorialItem.Profile>?) : Event
+
+        /** The checklist's photo row — opens the photo step of the profile flow on its own. */
+        data object SetProfilePicture : Event
 
         /** The progress card's tap — claim a handle, or explain why it can't be claimed yet. */
         data object ClaimUsername : Event
@@ -272,6 +280,17 @@ internal class MenuScreenViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        // Gated on Ready for the same reason as the tip card: a named account restores its cached
+        // profile before auth completes, so the checklist would otherwise flash an outstanding
+        // photo step at someone who already has one.
+        userManager.state
+            .filter { it.authState is AuthState.Ready }
+            .map { it.userProfile }
+            .distinctUntilChanged()
+            .map { profileTutorialItems(it) }
+            .onEach { dispatchEvent(Event.OnProfileTutorialChanged(it)) }
+            .launchIn(viewModelScope)
+
         // The username nudge. Gated on Ready for the same reason as the tip card: a named account
         // restores its cached profile before auth completes, so the card would otherwise flash for
         // someone who already holds a handle.
@@ -359,6 +378,25 @@ internal class MenuScreenViewModel @Inject constructor(
                             includeName = true,
                             // Explicitly false: a name is all a tip card needs.
                             includePhoto = false,
+                        )
+                    )
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.SetProfilePicture>()
+            .onEach {
+                dispatchEvent(
+                    Event.OpenScreen(
+                        AppRoute.UpdateUserProfile(
+                            origin = AppRoute.Sheets.Menu,
+                            nameSource = DisplayNameSource.MyAccount,
+                            // Photo only: the account already has a name and a card by the time
+                            // this checklist is drawn, so the flow reduces to the one step.
+                            includeName = false,
+                            includePhoto = true,
+                            includeUsername = false,
                         )
                     )
                 )
@@ -520,10 +558,15 @@ internal class MenuScreenViewModel @Inject constructor(
                     )
                 }
 
+                is Event.OnProfileTutorialChanged -> { state ->
+                    state.copy(profileTutorial = event.items)
+                }
+
                 is Event.PresentDepositOptions,
                 Event.CheckForUpdate,
                 Event.ClaimTipCard,
                 Event.ClaimUsername,
+                Event.SetProfilePicture,
                 Event.ShareTipCard,
                 Event.CopyTipLink,
                 Event.DownloadTipCard,
