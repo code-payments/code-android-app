@@ -76,6 +76,9 @@ class PhotoSelectionViewModel @Inject constructor(
         ) : Event
 
         data object OnImageApproved : Event
+
+        /** Back was pressed with an unsaved pick: drop it, leaving the stored picture as it was. */
+        data object DiscardChanges : Event
         data class OnImageSelected(val image: Uri) : Event
         data class OnImageCached(val image: Uri, val mimeType: String) : Event
         data object OnImageCleared : Event
@@ -158,12 +161,32 @@ class PhotoSelectionViewModel @Inject constructor(
                 },
                 onError = { cause ->
                     dispatchEvent(Event.UpdateProcessingState())
-                    stateFlow.value.image.dataOrNull?.let { contentReader.removeFromCache(it) }
-                    dispatchEvent(Event.OnImageCleared)
+                    discardPendingImage()
                     handleUploadFailure(cause)
                 }
             )
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.DiscardChanges>()
+            .onEach { discardPendingImage() }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * A pick that never reached the server is only a re-encoded file in the cache, so leaving the
+     * step has to delete it — nothing else ever will. Covers the paths the back button doesn't:
+     * a gesture back, and the successful upload that makes the local copy redundant.
+     */
+    override fun onCleared() {
+        discardPendingImage()
+        super.onCleared()
+    }
+
+    private fun discardPendingImage() {
+        val pending = stateFlow.value.image.dataOrNull ?: return
+        contentReader.removeFromCache(pending)
+        dispatchEvent(Event.OnImageCleared)
     }
 
     /** Clears the pending selection and surfaces [title]/[message] to the user. */
@@ -364,6 +387,7 @@ class PhotoSelectionViewModel @Inject constructor(
                 }
 
                 Event.OnImageApproved -> { state -> state }
+                Event.DiscardChanges -> { state -> state }
                 is Event.OnImageCached -> { state ->
                     state.copy(image = Loadable.Loaded(event.image), imageMimeType = event.mimeType)
                 }

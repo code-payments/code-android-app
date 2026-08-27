@@ -70,6 +70,9 @@ internal fun PhotoSelectionScreen() {
             titleAlignment = Alignment.CenterHorizontally,
             onBackIconClicked = {
                 keyboard.hideIfVisible {
+                    // Leaving throws the pick away rather than carrying it back in; the stored
+                    // picture is whatever it was before the step opened.
+                    viewModel.dispatchEvent(PhotoSelectionViewModel.Event.DiscardChanges)
                     flowNavigator.back()
                 }
             },

@@ -21,6 +21,7 @@ import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -43,11 +44,20 @@ class NameEntryViewModel @Inject constructor(
 ) {
     data class State(
         val nameFieldState: TextFieldState = TextFieldState(),
+        /**
+         * The stored display name: what the field is seeded with, what an edit is measured
+         * against, and what a discarded edit reverts to.
+         */
+        val savedName: String = "",
         val attestation: ModerationResult.Attestation = ModerationResult.Attestation.Empty,
         val processingState: LoadingSuccessState = LoadingSuccessState(),
     ) {
         val hasName: Boolean
             get() = nameFieldState.text.isNotBlank()
+
+        /** Node 9553:113166 — one character's difference is enough to arm the confirm button. */
+        val isChanged: Boolean
+            get() = nameFieldState.text.toString() != savedName
     }
 
     sealed interface Event {
@@ -57,16 +67,32 @@ class NameEntryViewModel @Inject constructor(
             val success: Boolean = false
         ) : Event
 
+        /** The stored name arrived (or changed) — the field and the baseline follow it. */
+        data class OnSavedNameLoaded(val name: String) : Event
+
+        /** Back was pressed with an uncommitted edit: put [State.savedName] back in the field. */
+        data object DiscardChanges : Event
+
         data object OnNameApproved : Event
     }
 
     init {
         userManager.state
             .mapNotNull { it.userProfile }
-            .map { profile -> profile.displayName }
+            .map { profile -> profile.displayName.orEmpty() }
+            // Without this, any unrelated emission from the profile re-seeds the field and
+            // overwrites whatever the user is part-way through typing.
+            .distinctUntilChanged()
             .onEach { name ->
-                val inputState = stateFlow.value.nameFieldState
-                inputState.setTextAndPlaceCursorAtEnd(name.orEmpty())
+                dispatchEvent(Event.OnSavedNameLoaded(name))
+                stateFlow.value.nameFieldState.setTextAndPlaceCursorAtEnd(name)
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.DiscardChanges>()
+            .onEach {
+                val state = stateFlow.value
+                state.nameFieldState.setTextAndPlaceCursorAtEnd(state.savedName)
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -157,10 +183,12 @@ class NameEntryViewModel @Inject constructor(
             }
         }
     }
-    companion object {
-        private val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
+    internal companion object {
+        val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
                 is Event.CheckName -> { state -> state }
+                is Event.OnSavedNameLoaded -> { state -> state.copy(savedName = event.name) }
+                Event.DiscardChanges -> { state -> state }
                 is Event.UpdateProcessingState -> { state ->
                     val current = state.processingState
                     state.copy(
