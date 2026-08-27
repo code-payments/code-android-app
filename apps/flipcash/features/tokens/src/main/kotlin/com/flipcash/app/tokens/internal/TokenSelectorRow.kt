@@ -104,14 +104,14 @@ internal fun ConvertDestinationSelector(
     modifier = modifier,
 )
 
-/** "Get with [🪙 Currency ⌄]" — what a v2 Get is paid from. */
+/** "Buy with [🪙 Currency ⌄]" — what a v2 buy is paid from. */
 @Composable
 internal fun BuyFundingSelector(
     funding: TokenWithBalance?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) = TokenSelectorRow(
-    label = stringResource(R.string.label_getWith),
+    label = stringResource(R.string.label_buyWith),
     selected = funding,
     onClick = onClick,
     modifier = modifier,

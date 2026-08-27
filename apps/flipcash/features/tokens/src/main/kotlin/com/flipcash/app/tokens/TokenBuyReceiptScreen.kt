@@ -33,7 +33,11 @@ internal fun BuyReceiptScreen() {
     ) {
         AppBarWithTitle(
             title = stringResource(
-                if (state.isGet) R.string.title_get else R.string.title_confirmPurchase
+                when {
+                    !state.isGet -> R.string.title_confirmPurchase
+                    state.isBuyingMore -> R.string.action_buyMore
+                    else -> R.string.action_buyIn
+                }
             ),
             titleAlignment = Alignment.CenterHorizontally,
             onBackIconClicked = { flowNavigator.back() }

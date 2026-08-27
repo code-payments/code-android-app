@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,9 +28,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowDownward
-import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -332,19 +330,57 @@ private fun CurrencyActionTiles(
     dispatch: (TokenInfoViewModel.Event) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val giveTile: @Composable RowScope.() -> Unit = {
+        ActionTile(
+            modifier = Modifier.weight(1f),
+            label = stringResource(R.string.action_give),
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.ic_banknote),
+                    contentDescription = null,
+                    tint = CodeTheme.colors.textMain,
+                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                )
+            },
+            onClick = {
+                dispatch(
+                    TokenInfoViewModel.Event.OpenScreen(
+                        AppRoute.Sheets.Give(mint = tokenMint, fromTokenInfo = true)
+                    )
+                )
+            },
+        )
+    }
+
+    val convertTile: @Composable RowScope.() -> Unit = {
+        ActionTile(
+            modifier = Modifier.weight(1f),
+            label = stringResource(R.string.action_convert),
+            icon = {
+                Icon(
+                    painter = painterResource(R.drawable.ic_convert),
+                    contentDescription = null,
+                    tint = CodeTheme.colors.textMain,
+                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                )
+            },
+            onClick = { dispatch(TokenInfoViewModel.Event.OnConvert) },
+        )
+    }
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
         when {
             !isHeld -> {
-                // Single full-width "Get" tile
+                // Single full-width "Buy In" tile
                 ActionTile(
                     modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.action_get),
+                    label = stringResource(R.string.action_buyIn),
                     icon = {
                         Icon(
-                            imageVector = Icons.Outlined.ArrowDownward,
+                            painter = painterResource(R.drawable.ic_arrow_down),
                             contentDescription = null,
                             tint = CodeTheme.colors.textMain,
                             modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
@@ -354,46 +390,17 @@ private fun CurrencyActionTiles(
                 )
             }
 
-            else -> {
-                // Held (incl. USDF/Dollars in v2): Give + Convert + Withdraw
-                ActionTile(
-                    modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.action_give),
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_banknote),
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textMain,
-                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
-                        )
-                    },
-                    onClick = {
-                        dispatch(
-                            TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.Sheets.Give(mint = tokenMint, fromTokenInfo = true)
-                            )
-                        )
-                    },
-                )
-                ActionTile(
-                    modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.action_convert),
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_convert),
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textMain,
-                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
-                        )
-                    },
-                    onClick = { dispatch(TokenInfoViewModel.Event.OnConvert) },
-                )
+            // Dollars keeps Withdraw: there is no "buy more" of the cash reserve, and cashing
+            // out is the action people come to this screen for.
+            tokenMint == Mint.usdf -> {
+                giveTile()
+                convertTile()
                 ActionTile(
                     modifier = Modifier.weight(1f),
                     label = stringResource(R.string.action_withdraw),
                     icon = {
                         Icon(
-                            imageVector = Icons.Outlined.ArrowUpward,
+                            painter = painterResource(R.drawable.ic_arrow_up_large),
                             contentDescription = null,
                             tint = CodeTheme.colors.textMain,
                             modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
@@ -409,6 +416,25 @@ private fun CurrencyActionTiles(
                         )
                     },
                 )
+            }
+
+            // Held non-USDF token: Give + Buy More + Convert
+            else -> {
+                giveTile()
+                ActionTile(
+                    modifier = Modifier.weight(1f),
+                    label = stringResource(R.string.action_buyMore),
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_arrow_down),
+                            contentDescription = null,
+                            tint = CodeTheme.colors.textMain,
+                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                        )
+                    },
+                    onClick = { dispatch(TokenInfoViewModel.Event.OnBuy(shortfall)) },
+                )
+                convertTile()
             }
         }
     }

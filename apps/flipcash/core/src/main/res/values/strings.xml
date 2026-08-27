@@ -549,7 +549,7 @@
     <string name="action_buy">Buy</string>
     <string name="action_sell">Sell</string>
     <string name="action_convert">Convert</string>
-    <string name="action_get">Get</string>
+    <string name="action_buyIn">Buy In</string>
     <string name="label_createdAt">Created %1$s</string>
     <string name="subtitle_about">About</string>
     <string name="title_amountToWithdraw">Amount to Withdraw</string>
@@ -575,9 +575,8 @@
     <string name="subtitle_amountAvailable">%1$s available</string>
     <string name="action_confirmConversion">Confirm</string>
 
-    <!-- Currency purchase (v2 Get flow) -->
-    <string name="title_get">Get</string>
-    <string name="label_getWith">Get with</string>
+    <!-- Currency purchase (v2 buy flow) -->
+    <string name="label_buyWith">Buy with</string>
     <string name="subtitle_youGet">You Get</string>
     <string name="action_confirm">Confirm</string>
     <string name="label_buyWarning">Review the above before confirming.\nOnce made, your transaction is irreversible.</string>
