@@ -23,6 +23,7 @@ import javax.inject.Inject
 private val FullMenuList = buildList {
     add(ChangeDisplayName)
     add(ChangeUsername)
+    add(ProfilePicture)
     add(RequireBiometrics)
     add(Blocklist)
     add(UserProfile)
@@ -75,6 +76,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
         data class OnUsernameClaimChanged(val claimed: Boolean) : Event
         data object OnChangeUsernameClicked : Event
         data object OnEditUsername : Event
+        data object OnProfilePictureClicked : Event
+        data object OnEditProfilePicture : Event
         data object OnBlocklistClicked: Event
         data object OnViewBlocklist: Event
         data object OnContactMethodsClicked : Event
@@ -132,6 +135,12 @@ internal class MyAccountScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnProfilePictureClicked>()
+            .onEach {
+                dispatchEvent(Event.OnEditProfilePicture)
+            }.launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.OnBlocklistClicked>()
             .onEach {
                 dispatchEvent(Event.OnViewBlocklist)
@@ -165,6 +174,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
                 Event.OnEditDisplayName,
                 Event.OnChangeUsernameClicked,
                 Event.OnEditUsername,
+                Event.OnProfilePictureClicked,
+                Event.OnEditProfilePicture,
                 Event.OnContactMethodsClicked,
                 Event.OnViewUserProfile,
                 Event.OnBlocklistClicked,

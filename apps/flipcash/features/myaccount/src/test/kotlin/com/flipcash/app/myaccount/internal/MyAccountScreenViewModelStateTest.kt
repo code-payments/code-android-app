@@ -4,6 +4,7 @@ import com.flipcash.app.myaccount.internal.myaccount.Blocklist
 import com.flipcash.app.myaccount.internal.myaccount.ChangeDisplayName
 import com.flipcash.app.myaccount.internal.myaccount.ChangeUsername
 import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreenViewModel
+import com.flipcash.app.myaccount.internal.myaccount.ProfilePicture
 import com.flipcash.app.myaccount.internal.myaccount.RequireBiometrics
 import com.flipcash.app.myaccount.internal.myaccount.UserProfile
 import kotlin.test.Test
@@ -19,10 +20,27 @@ class MyAccountScreenViewModelStateTest {
         reduce(MyAccountScreenViewModel.Event.OnUsernameClaimChanged(claimed = true))(state)
 
     @Test
-    fun `default state lists the display name, biometrics and blocklist`() {
+    fun `default state lists the display name, profile picture, biometrics and blocklist`() {
         val state = MyAccountScreenViewModel.State()
-        assertEquals(listOf(ChangeDisplayName, RequireBiometrics, Blocklist), state.items)
+        assertEquals(
+            listOf(ChangeDisplayName, ProfilePicture, RequireBiometrics, Blocklist),
+            state.items,
+        )
         assertFalse(state.biometricsRequired)
+    }
+
+    @Test
+    fun `the profile picture row carries no condition`() {
+        val noBiometrics = reduce(
+            MyAccountScreenViewModel.Event.OnBiometricsSettingChanged(
+                required = false,
+                supported = false,
+                available = false,
+            )
+        )(MyAccountScreenViewModel.State())
+
+        assertTrue(noBiometrics.items.any { it is ProfilePicture })
+        assertTrue(claimed(noBiometrics).items.any { it is ProfilePicture })
     }
 
     @Test
@@ -35,7 +53,7 @@ class MyAccountScreenViewModelStateTest {
 
         assertTrue(withHandle.usernameClaimed)
         assertEquals(
-            listOf(ChangeDisplayName, ChangeUsername, RequireBiometrics, Blocklist),
+            listOf(ChangeDisplayName, ChangeUsername, ProfilePicture, RequireBiometrics, Blocklist),
             withHandle.items,
         )
     }
@@ -232,6 +250,8 @@ class MyAccountScreenViewModelStateTest {
             MyAccountScreenViewModel.Event.OnEditDisplayName,
             MyAccountScreenViewModel.Event.OnChangeUsernameClicked,
             MyAccountScreenViewModel.Event.OnEditUsername,
+            MyAccountScreenViewModel.Event.OnProfilePictureClicked,
+            MyAccountScreenViewModel.Event.OnEditProfilePicture,
             MyAccountScreenViewModel.Event.OnContactMethodsClicked,
             MyAccountScreenViewModel.Event.OnViewUserProfile,
             MyAccountScreenViewModel.Event.OnBlocklistClicked,

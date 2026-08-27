@@ -941,7 +941,7 @@
     <string name="title_usernameSelection">Enter username</string>
     <string name="subtitle_usernameSelection">This is how you\'ll be uniquely identified on the platform</string>
     <string name="hint_username">Username</string>
-    <string name="title_changeUsername">Change Username</string>
+    <string name="title_username">Username</string>
 
     <!-- The "You" tab's username progress card (nodes 9536:4336 / 9537:1845). -->
     <string name="title_usernameUpsell">Get a custom @username</string>
@@ -1026,6 +1026,9 @@
     <string name="title_shareTipCode">My Flipcash Code</string>
     <string name="error_title_tipCardExportFailed">Couldn\'t Export</string>
     <string name="error_description_tipCardExportFailed">We were unable to export your tip code. Please try again</string>
-    <string name="title_changeDisplayName">Change Display Name</string>
+    <!-- My Account rows (node 9544:18478). Each names the thing it edits rather than the act of
+         editing it, so the list reads as an inventory of the profile. -->
+    <string name="title_displayName">Display Name</string>
+    <string name="title_profilePicture">Profile Picture</string>
 
 </resources>

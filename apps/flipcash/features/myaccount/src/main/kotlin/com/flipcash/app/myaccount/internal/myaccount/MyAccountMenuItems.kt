@@ -2,6 +2,7 @@ package com.flipcash.app.myaccount.internal.myaccount
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContactMail
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Block
@@ -21,14 +22,14 @@ import com.flipcash.features.myaccount.R
  * Log Out, Delete Account) moved to Advanced, and the standalone App Settings screen folded its one
  * surviving toggle (Require Biometrics) in here.
  *
- * The row lands straight on the name step: [AppRoute.UpdateUserProfile] walks name then photo, and
- * this is only ever about the name, so it asks for that step alone.
+ * The row lands straight on the name step: [AppRoute.UpdateUserProfile] walks name, username then
+ * photo, and this is only ever about the name, so it asks for that step alone.
  */
 internal data object ChangeDisplayName : FullMenuItem<MyAccountScreenViewModel.Event>() {
     override val icon: Painter
         @Composable get() = rememberVectorPainter(Icons.Outlined.Badge)
     override val name: String
-        @Composable get() = stringResource(CoreR.string.title_changeDisplayName)
+        @Composable get() = stringResource(CoreR.string.title_displayName)
     override val action: MyAccountScreenViewModel.Event =
         MyAccountScreenViewModel.Event.OnChangeDisplayNameClicked
 }
@@ -47,9 +48,23 @@ internal data object ChangeUsername : FullMenuItem<MyAccountScreenViewModel.Even
     override val icon: Painter
         @Composable get() = rememberVectorPainter(Icons.Outlined.AlternateEmail)
     override val name: String
-        @Composable get() = stringResource(CoreR.string.title_changeUsername)
+        @Composable get() = stringResource(CoreR.string.title_username)
     override val action: MyAccountScreenViewModel.Event =
         MyAccountScreenViewModel.Event.OnChangeUsernameClicked
+}
+
+/**
+ * Node 9544:20116. The avatar, on its own row. [AppRoute.UpdateUserProfile] walks name then username
+ * then photo, so this asks for the photo step alone — the same single-step edit the staff-only
+ * profile editor already pushes.
+ */
+internal data object ProfilePicture : FullMenuItem<MyAccountScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = rememberVectorPainter(Icons.Outlined.AccountCircle)
+    override val name: String
+        @Composable get() = stringResource(CoreR.string.title_profilePicture)
+    override val action: MyAccountScreenViewModel.Event =
+        MyAccountScreenViewModel.Event.OnProfilePictureClicked
 }
 
 /**
@@ -73,8 +88,9 @@ internal data object Blocklist : FullMenuItem<MyAccountScreenViewModel.Event>() 
 }
 
 /**
- * Staff/beta only: the whole profile editor — contact methods, photo, name. The name on its own is
- * reachable by everyone through [ChangeDisplayName].
+ * Staff/beta only: the whole profile editor — contact methods, photo, name. What it adds over the
+ * rows above is the contact methods; the name and the photo are already reachable by everyone
+ * through [ChangeDisplayName] and [ProfilePicture].
  */
 internal data object UserProfile : StaffMenuItem<MyAccountScreenViewModel.Event>() {
     override val icon: Painter
