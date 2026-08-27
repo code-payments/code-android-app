@@ -30,7 +30,7 @@ import javax.inject.Singleton
 
 /**
  * Implements [TipCardOperations] — the single public entry point for presenting another
- * user's tip card, whether it arrives via a deeplink (`/tip/{userId}` or the vanity
+ * user's tip card, whether it arrives via a deeplink (`flipcash.com/{userId}` or the vanity
  * `flipcash.com/{username}`), a scanned QR link, or a scanned OpenCode tip payload
  * (see [CodeScanDelegate.onTipCardScanned]).
  *

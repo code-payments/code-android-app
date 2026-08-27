@@ -209,22 +209,25 @@
             </intent-filter>
 
             <!--
-                 Vanity profile links: `flipcash.com/{username}` opens that user's tip card.
+                 Tip card links on the bare host: `flipcash.com/{username}` for an account with a
+                 claimed handle, `flipcash.com/{uuid}` for one without. Both open that user's tip
+                 card.
 
-                 Usernames only. The bare host also serves the website (/download, /privacy,
+                 Those two shapes only. The bare host also serves the website (/download, /privacy,
                  /terms), so the path is held to the server's own `[a-z0-9_]{2,15}` handle charset
-                 rather than claimed wholesale. That needs pathAdvancedPattern — pathPattern's glob
-                 has no character sets — which the platform only understands from API 31; below
-                 that the attribute is ignored and the filter matches the whole host, so AppRouter
-                 makes the same distinction again in code (isVanityProfile) and leaves anything
-                 that isn't a handle unrouted.
+                 and to a canonical 8-4-4-4-12 UUID rather than claimed wholesale. That needs
+                 pathAdvancedPattern — pathPattern's glob has no character sets — which the
+                 platform only understands from API 31; below that the attribute is ignored and the
+                 filter matches the whole host, so AppRouter makes the same distinction again in
+                 code (isProfileLink) and leaves anything that is neither shape unrouted.
 
-                 A-Z is in the set even though no handle contains one: the matcher is
-                 case-sensitive, and a link is typed, printed, or auto-capitalised in any case.
-                 Without it `flipcash.com/Sally_Streamer` isn't claimed at all on API 31+ and opens
-                 in the browser, while the same link works below 31 — where the attribute is
-                 ignored. Widening it hands the app a few more of the website's pages in mixed case
-                 (`/Download`), which is what already happens below 31: isVanityProfile lowercases
+                 A-Z is in the handle set even though no handle contains one, and A-F in the UUID
+                 set even though Linkify writes lowercase: the matcher is case-sensitive, and a
+                 link is typed, printed, or auto-capitalised in any case. Without it
+                 `flipcash.com/Sally_Streamer` isn't claimed at all on API 31+ and opens in the
+                 browser, while the same link works below 31 — where the attribute is ignored.
+                 Widening it hands the app a few more of the website's pages in mixed case
+                 (`/Download`), which is what already happens below 31: isProfileLink lowercases
                  before the reserved-path check, so those classify as unrouted and bounce straight
                  back out via DeeplinkAction.OpenExternally.
 
@@ -242,10 +245,20 @@
                     android:pathAdvancedPattern="/[a-zA-Z0-9_]{2,15}"
                     android:scheme="https"
                     tools:ignore="UnusedAttribute" />
+                <data
+                    android:host="flipcash.com"
+                    android:pathAdvancedPattern="/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
+                    android:scheme="https"
+                    tools:ignore="UnusedAttribute" />
                 <!-- AppRouter strips `www.` before matching, so the filter has to admit it. -->
                 <data
                     android:host="www.flipcash.com"
                     android:pathAdvancedPattern="/[a-zA-Z0-9_]{2,15}"
+                    android:scheme="https"
+                    tools:ignore="UnusedAttribute" />
+                <data
+                    android:host="www.flipcash.com"
+                    android:pathAdvancedPattern="/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
                     android:scheme="https"
                     tools:ignore="UnusedAttribute" />
             </intent-filter>

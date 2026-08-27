@@ -9,9 +9,10 @@ sealed interface DeeplinkAction {
     data class OpenCashLink(val entropy: String) : DeeplinkAction
 
     /**
-     * Present someone's tip card. [owner] carries how the link named them — a `/tip/{id}` link by
-     * id, a vanity `flipcash.com/{username}` link by handle — because resolving the handle is a
-     * server round trip, and that belongs to the session rather than to the router.
+     * Present someone's tip card. [owner] carries how the link named them — `flipcash.com/{id}`
+     * (or the older `/tip/{id}`) by id, `flipcash.com/{username}` by handle — because resolving
+     * the handle is a server round trip, and that belongs to the session rather than to the
+     * router.
      */
     data class PresentTipCard(val owner: TipCardOwner): DeeplinkAction
 

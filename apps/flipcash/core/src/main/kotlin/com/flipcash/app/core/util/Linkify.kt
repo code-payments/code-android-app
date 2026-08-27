@@ -16,16 +16,19 @@ object Linkify {
     /**
      * A tip card's URL, in the form its [owner] is named by.
      *
-     * The handle form — `flipcash.com/sally_streamer` (node 9442:3673) — is what an account shows
-     * and shares once it has claimed a username, because it reads as a person rather than as a
-     * UUID; the id form stays the address for an account without one. [TipCardOwner.preferringUsername]
-     * is that precedence, for callers that hold both.
+     * One segment on the bare host either way — `flipcash.com/sally_streamer` (node 9442:3673)
+     * for an account that has claimed a handle, `flipcash.com/{uuid}` for one that hasn't. The
+     * handle is what an account shows and shares once it has one, because it reads as a person
+     * rather than as a UUID; [TipCardOwner.preferringUsername] is that precedence, for callers
+     * that hold both.
      *
-     * Note the handle form's bare host, no `app.` subdomain: the manifest claims `flipcash.com` for
-     * username-shaped paths only, so this is the exact shape that has to resolve back into the app.
+     * Note the bare host, no `app.` subdomain: the manifest claims `flipcash.com` for
+     * handle-shaped and UUID-shaped paths only, so these are the exact shapes that have to
+     * resolve back into the app. The older `app.flipcash.com/tip/{uuid}` form is still routed —
+     * links already shared carry it — but nothing writes it any more.
      */
     fun tipcard(owner: TipCardOwner): String = when (owner) {
-        is TipCardOwner.ById -> "https://app.flipcash.com/tip/${owner.userId.uuid}"
+        is TipCardOwner.ById -> "https://flipcash.com/${owner.userId.uuid}"
         is TipCardOwner.ByUsername -> "https://flipcash.com/${owner.username}"
     }
 

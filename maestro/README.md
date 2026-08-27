@@ -19,7 +19,7 @@ iOS's `FlipcashUITests`. Flows are plain YAML under `maestro/`; reusable pieces 
    ```
    SEED_PHRASE=word1 word2 ... word12          # primary account (tip-enabled)
    LOGIN_DEEPLINK=https://app.flipcash.com/login?data=...   # same account as SEED_PHRASE
-   TIPCARD_DEEPLINK=https://app.flipcash.com/tip/...        # the primary account's tip card
+   TIPCARD_DEEPLINK=https://flipcash.com/<uuid>             # the primary account's tip card
    LOGIN_USERNAME=sally_streamer               # the handle that same account has claimed
    USDF_ONLY_DEEPLINK=https://app.flipcash.com/login?data=...  # reserves-only gate account
    CONTACT_NAME=Brandon McAnsh                  # an on-Flipcash contact for send-to-contact

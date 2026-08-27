@@ -6,9 +6,10 @@ import com.flipcash.services.models.isUsernameShaped
 private const val ABBREVIATED_ID_LENGTH = 5
 
 /**
- * `https://app.flipcash.com/tip/<uuid>` -> `app.flipcash.com/tip/b0ced…` (node 9276:4753). The
- * user never types this — it's a recognisable stand-in for the link the copy button puts on the
- * clipboard, so it's cut short rather than ellipsized at whatever width the device happens to give.
+ * `https://flipcash.com/<uuid>` -> `flipcash.com/b0ced…` (node 9276:4753). The user never types
+ * this — it's a recognisable stand-in for the link the copy button puts on the clipboard, so it's
+ * cut short rather than ellipsized at whatever width the device happens to give. The older
+ * `app.flipcash.com/tip/<uuid>` form abbreviates the same way, since only the last segment is cut.
  *
  * A vanity link is left whole: `flipcash.com/sally_streamer` (node 9442:3673) is the entire point
  * of claiming a handle, it fits, and abbreviating it would hide the part that identifies the
