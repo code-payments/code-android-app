@@ -38,8 +38,10 @@ internal data object ChangeDisplayName : FullMenuItem<MyAccountScreenViewModel.E
  * the "You" tab's progress card — because claiming a first handle and changing an existing one are
  * the same screen, differing only in what the field is prefilled with.
  *
- * Unconditional: the minimum-balance gate is the server's, and an account that hasn't cleared it is
- * told so on submit rather than being shown a row that isn't there.
+ * Shown only once a handle is claimed, matching iOS `SettingsMyAccountScreen`. Claiming the first
+ * one belongs to the You tab's card, which carries the minimum-balance gate and disappears the
+ * moment `usernameGate` reads `Claimed` — exactly where this row appears. No balance gate here: the
+ * minimum exists to stop squatting at claim time, and an account holding a handle has cleared it.
  */
 internal data object ChangeUsername : FullMenuItem<MyAccountScreenViewModel.Event>() {
     override val icon: Painter
