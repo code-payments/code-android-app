@@ -177,8 +177,7 @@ private fun OnboardingItemRow(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .alpha(if (item.isCompleted) 0.38f else 1f),
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+                .alpha(if (item.isCompleted) 0.38f else 1f)
         ) {
             Text(
                 text = item.title,
