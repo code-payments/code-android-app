@@ -1,0 +1,11 @@
+<!-- Material Symbols Outlined "familiar_face_and_zone", 24dp/wght 400. The -960 viewBox
+     Google ships is translated into a 0..960 one, matching ic_biometrics. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+  <path
+      android:pathData="M480,800 q-134,0,-227,-93 t-93,-227 q0,-134,93,-227 t227,-93 q134,0,227,93 t93,227 q0,134,-93,227 t-227,93 Z m0,-80 q100,0,170,-70 t70,-170 q0,-17,-2.5,-33.5 T710,414 q-15,3,-30,4.5 t-30,1.5 q-63,0,-120,-24 t-102,-70 q-28,57,-77,99 t-111,61 q3,98,72.5,166 T480,720 Z M256,394 q44,-23,67,-53.5 t45,-72.5 q-38,20,-67,52.5 T256,394 Z m95.5,154.5 Q340,537,340,520 t11.5,-28.5 Q363,480,380,480 t28.5,11.5 Q420,503,420,520 t-11.5,28.5 Q397,560,380,560 t-28.5,-11.5 Z M650,340 h12 q6,0,12,-1 -33,-45,-83.5,-72 T480,240 h-12 q-6,0,-11,1 39,45,82.5,72 T650,340 Z m-98.5,208.5 Q540,537,540,520 t11.5,-28.5 Q563,480,580,480 t28.5,11.5 Q620,503,620,520 t-11.5,28.5 Q597,560,580,560 t-28.5,-11.5 Z M40,240 v-120 q0,-33,23.5,-56.5 T120,40 h120 v80 H120 v120 H40 Z M240,920 H120 q-33,0,-56.5,-23.5 T40,840 v-120 h80 v120 h120 v80 Z m480,0 v-80 h120 v-120 h80 v120 q0,33,-23.5,56.5 T840,920 H720 Z m120,-680 v-120 H720 v-80 h120 q33,0,56.5,23.5 T920,120 v120 h-80 Z m-383,1 Z m-89,27 Z"
+      android:fillColor="#e8eaed"/>
+</vector>

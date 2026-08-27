@@ -2,7 +2,6 @@ package com.flipcash.app.myaccount.internal.myaccount
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContactMail
-import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Block
@@ -60,7 +59,7 @@ internal data object ChangeUsername : FullMenuItem<MyAccountScreenViewModel.Even
  */
 internal data object ProfilePicture : FullMenuItem<MyAccountScreenViewModel.Event>() {
     override val icon: Painter
-        @Composable get() = rememberVectorPainter(Icons.Outlined.AccountCircle)
+        @Composable get() = painterResource(CoreR.drawable.ic_profile_picture)
     override val name: String
         @Composable get() = stringResource(CoreR.string.title_profilePicture)
     override val action: MyAccountScreenViewModel.Event =
