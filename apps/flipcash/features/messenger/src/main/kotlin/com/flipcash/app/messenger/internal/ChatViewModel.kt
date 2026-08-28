@@ -833,10 +833,7 @@ internal class ChatViewModel @Inject constructor(
         val balanceInLocal = balance.convertingTo(rate)
         val isOverBalance = entered.valueGreaterThan(balanceInLocal)
         if (isOverBalance) {
-            BottomBarManager.showAlert(
-                resources.getString(R.string.error_title_insufficientFunds),
-                resources.getString(R.string.error_description_insufficientFunds),
-            )
+            presentInsufficientBalance()
         }
         return isOverBalance
     }
@@ -872,6 +869,26 @@ internal class ChatViewModel @Inject constructor(
                 token = token,
             ))
         }
+    }
+
+    /**
+     * Over balance, with something in the account: the same prompt the tip card raises, offering
+     * the way out of it. [presentAddMoney] covers the empty account, which has nothing to enter a
+     * smaller amount than.
+     */
+    private fun presentInsufficientBalance() {
+        BottomBarManager.showInfo(
+            title = resources.getString(R.string.title_insufficientBalance),
+            message = resources.getString(R.string.description_insufficientBalanceToUse),
+            actions = listOf(
+                BottomBarAction(
+                    text = resources.getString(R.string.action_addMoney)
+                ) {
+                    dispatchEvent(Event.PresentDepositOptions)
+                },
+            ),
+            showCancel = true,
+        )
     }
 
     private fun presentAddMoney() {
