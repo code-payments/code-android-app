@@ -273,8 +273,13 @@ internal class CashScreenViewModel @Inject constructor(
                     verifiedState = result.verifiedState,
                 )
 
-                dispatchEvent(Event.UpdateLoadingState(loading = false, success = true))
-                dispatchEvent(Event.PresentBill(bill))
+                // Hold the checkmark before the bill takes over. Dispatching success and the bill
+                // on the same frame drew the checkmark and replaced it in one pass, so the button
+                // went from spinner straight to the bill. Nothing resets the state afterwards:
+                // presenting the bill pops this screen, so the next Give builds a fresh view model.
+                dispatchSuccessThen(Event.UpdateLoadingState(loading = false, success = true)) {
+                    dispatchEvent(Event.PresentBill(bill))
+                }
             }.launchIn(viewModelScope)
 
         eventFlow
