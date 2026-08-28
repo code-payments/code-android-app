@@ -11,7 +11,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.myaccount.internal.userprofile.UserProfileScreenContent
 import com.flipcash.app.myaccount.internal.userprofile.UserProfileViewModel
 import com.flipcash.core.R
@@ -42,36 +41,6 @@ fun UserProfileScreen() {
             leftIcon = { AppBarDefaults.UpNavigation { navigator.pop() } },
         )
         UserProfileScreenContent(state = state, dispatch = viewModel::dispatchEvent)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<UserProfileViewModel.Event.EditNameClicked>()
-            .onEach {
-                navigator.push(
-                    AppRoute.UpdateUserProfile(
-                        origin = AppRoute.Menu.UserProfile,
-                        nameSource = DisplayNameSource.MyAccount,
-                        includeName = true,
-                        includePhoto = false,
-                    )
-                )
-            }.launchIn(this)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<UserProfileViewModel.Event.EditPhotoClicked>()
-            .onEach {
-                navigator.push(
-                    AppRoute.UpdateUserProfile(
-                        origin = AppRoute.Menu.UserProfile,
-                        nameSource = DisplayNameSource.MyAccount,
-                        includeName = false,
-                        includePhoto = true,
-                    )
-                )
-            }.launchIn(this)
     }
 
     LaunchedEffect(viewModel) {

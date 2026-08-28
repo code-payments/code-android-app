@@ -41,6 +41,9 @@ class ContactMethodsViewModelStateTest {
             UserProfileViewModel.Event.OnProfileUpdated(
                 displayName = "Alice",
                 profilePicture = null,
+                username = "alice",
+                tipCardLink = "https://flipcash.com/alice",
+                usernameMinBalance = "$5 USD",
                 phone = VerifiableContactMethod("+15551234567", verified = true),
                 email = VerifiableContactMethod("test@example.com", verified = false),
                 linkedForPayment = true,
@@ -48,6 +51,8 @@ class ContactMethodsViewModelStateTest {
             )
         )(UserProfileViewModel.State())
         assertEquals("Alice", updated.displayName)
+        assertEquals("alice", updated.username)
+        assertEquals("https://flipcash.com/alice", updated.tipCardLink)
         assertEquals(VerifiableContactMethod("+15551234567", verified = true), updated.phone)
         assertEquals(VerifiableContactMethod("test@example.com", verified = false), updated.email)
         assertTrue(updated.phoneLinkedForPayment)
@@ -61,6 +66,9 @@ class ContactMethodsViewModelStateTest {
             UserProfileViewModel.Event.OnProfileUpdated(
                 displayName = "",
                 profilePicture = null,
+                username = null,
+                tipCardLink = null,
+                usernameMinBalance = "$5 USD",
                 phone = null,
                 email = null,
                 linkedForPayment = false,
@@ -68,6 +76,10 @@ class ContactMethodsViewModelStateTest {
             )
         )(UserProfileViewModel.State())
         assertTrue(updated.displayName.isEmpty())
+        // No handle claimed: the header falls back to the upsell, which needs the minimum.
+        assertNull(updated.username)
+        assertNull(updated.tipCardLink)
+        assertEquals("$5 USD", updated.usernameMinBalance)
         assertNull(updated.phone)
         assertNull(updated.email)
         assertFalse(updated.phoneLinkedForPayment)
