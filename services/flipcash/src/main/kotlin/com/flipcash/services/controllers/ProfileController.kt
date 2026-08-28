@@ -134,6 +134,7 @@ class ProfileController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.setMinDmChatInitFee(owner, fee)
+            .onSuccess { mergeLocalProfile { it.copy(minDmChatInitFee = fee) } }
     }
 
     /**

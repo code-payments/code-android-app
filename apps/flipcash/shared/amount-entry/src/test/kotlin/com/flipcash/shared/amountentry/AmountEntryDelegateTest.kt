@@ -47,6 +47,7 @@ class AmountEntryDelegateTest {
         loadingState: MutableStateFlow<LoadingSuccessState> = MutableStateFlow(LoadingSuccessState()),
         maxAmount: MutableStateFlow<Fiat?> = MutableStateFlow(null),
         minimumAmount: MutableStateFlow<Fiat?> = MutableStateFlow(null),
+        confirmEnabled: MutableStateFlow<Boolean> = MutableStateFlow(true),
     ): AmountEntryDelegate {
         val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
         val delegate = AmountEntryDelegate(
@@ -56,6 +57,7 @@ class AmountEntryDelegateTest {
             loadingState = loadingState,
             maxAmount = maxAmount,
             minimumAmount = minimumAmount,
+            confirmEnabled = confirmEnabled,
         )
         // Keep a subscriber active so WhileSubscribed produces values
         delegate.config.launchIn(scope)
@@ -390,6 +392,52 @@ class AmountEntryDelegateTest {
         val hint = delegate.config.value.hint
         assertIs<AmountEntryHint.Error>(hint)
         assertTrue(hint.text.startsWith("Min is"))
+    }
+
+    @Test
+    fun `a floor with no ceiling is a standing info hint`() = runTest {
+        val min = MutableStateFlow<Fiat?>(Fiat(5.0, CurrencyCode.USD))
+        val delegate = createDelegate(
+            style = AmountEntryStyle(
+                actionLabel = AmountEntryLabel.Plain("Save"),
+                belowMinHint = { "Min is $it" },
+            ),
+            minimumAmount = min,
+        )
+        delegate.onCurrencyChanged(usd)
+
+        // Nothing entered, no maximum to describe: the floor states the rule up front.
+        val resting = delegate.config.value.hint
+        assertIs<AmountEntryHint.Info>(resting)
+        assertTrue(resting.text.startsWith("Min is"))
+
+        delegate.onNumber(2)
+        assertIs<AmountEntryHint.Error>(delegate.config.value.hint)
+    }
+
+    // ---------------------------------------------------------------
+    // Config derivation — confirmEnabled
+    // ---------------------------------------------------------------
+
+    @Test
+    fun `confirm stays disabled while the extra gate is closed`() = runTest {
+        val gate = MutableStateFlow(false)
+        val delegate = createDelegate(confirmEnabled = gate)
+        delegate.onCurrencyChanged(usd)
+        delegate.onNumber(5)
+
+        assertFalse(delegate.config.value.canConfirm)
+
+        gate.value = true
+        assertTrue(delegate.config.value.canConfirm)
+    }
+
+    @Test
+    fun `an open gate still needs an entered amount`() = runTest {
+        val delegate = createDelegate(confirmEnabled = MutableStateFlow(true))
+        delegate.onCurrencyChanged(usd)
+
+        assertFalse(delegate.config.value.canConfirm)
     }
 
     // ---------------------------------------------------------------

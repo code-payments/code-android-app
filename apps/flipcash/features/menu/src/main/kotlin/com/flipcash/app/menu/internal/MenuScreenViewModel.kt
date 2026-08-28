@@ -8,6 +8,7 @@ import com.flipcash.app.bills.share.TipCodePreviewCache
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.DisplayNameSource
+import com.flipcash.app.core.MinimumTipSource
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.share.TipCodeExportFormat
@@ -167,6 +168,9 @@ internal class MenuScreenViewModel @Inject constructor(
 
         /** The checklist's photo row — opens the photo step of the profile flow on its own. */
         data object SetProfilePicture : Event
+
+        /** The checklist's minimum-tip row — opens the amount entry for the DM-init fee. */
+        data object SetMinimumTip : Event
 
         /** The progress card's tap — claim a handle, or explain why it can't be claimed yet. */
         data object ClaimUsername : Event
@@ -404,6 +408,17 @@ internal class MenuScreenViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.SetMinimumTip>()
+            .onEach {
+                dispatchEvent(
+                    Event.OpenScreen(
+                        AppRoute.SetMinimumTip(MinimumTipSource.ProfileTutorial)
+                    )
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.CopyTipLink>()
             .mapNotNull { stateFlow.value.tipLink }
             .onEach { link ->
@@ -567,6 +582,7 @@ internal class MenuScreenViewModel @Inject constructor(
                 Event.ClaimTipCard,
                 Event.ClaimUsername,
                 Event.SetProfilePicture,
+                Event.SetMinimumTip,
                 Event.ShareTipCard,
                 Event.CopyTipLink,
                 Event.DownloadTipCard,

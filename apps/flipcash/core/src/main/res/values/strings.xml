@@ -993,6 +993,17 @@
     <string name="error_description_tipMinimum">Increase the amount to send</string>
     <string name="label_viaTipCard">via Tip Card</string>
 
+    <!-- Minimum-tip entry (nodes 9541:10951, 9553:113170). Backed by the profile's
+         min_dm_chat_init_fee: tipping is what opens a DM, so the fee to start one is the
+         minimum tip. Distinct from the send-side strings above, which are about a tip in flight. -->
+    <string name="title_minimumTipEntry">Set Minimum Tip</string>
+    <string name="title_minimumTip">Minimum Tip</string>
+    <string name="subtitle_minimumTipHint">%1$s minimum</string>
+    <string name="error_title_minimumTip">%1$s Minimum Tip</string>
+    <string name="error_description_minimumTip">Please enter a higher amount</string>
+    <string name="error_title_minimumTipFailed">Something Went Wrong</string>
+    <string name="error_description_minimumTipFailed">We were unable to save your minimum tip. Please try again</string>
+
     <string name="title_block">Block</string>
     <string name="title_blocklist">Blocked</string>
     <string name="action_block">Block</string>

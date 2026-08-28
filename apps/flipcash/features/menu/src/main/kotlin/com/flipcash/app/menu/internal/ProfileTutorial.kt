@@ -9,12 +9,13 @@ import com.flipcash.services.models.UserProfile
  * Null while the profile is unresolved, so the card is never drawn against a guess — an account
  * that already has a photo would otherwise flash an outstanding step on the way in.
  *
- * The minimum-tip step is always outstanding; see [TutorialItem.MinimumTip].
+ * Both steps read straight off the profile, so a step completed elsewhere — My Account's own
+ * Minimum Tip row, say — closes here too.
  */
 internal fun profileTutorialItems(profile: UserProfile?): List<TutorialItem.Profile>? {
     profile ?: return null
     return listOf(
         TutorialItem.ProfilePicture(isCompleted = profile.profilePicture != null),
-        TutorialItem.MinimumTip(),
+        TutorialItem.MinimumTip(isCompleted = profile.minDmChatInitFee != null),
     )
 }

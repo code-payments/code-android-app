@@ -161,6 +161,15 @@ sealed interface AppRoute : NavKey, Parcelable {
             get() = buildUpdateUserProfileStack(includeName, includeUsername, includePhoto)
     }
 
+    /**
+     * Minimum-tip entry — the fee another user has to pay to open a DM with you, which the profile
+     * carries as `minDmChatInitFee`. Reached from the You tab's profile checklist and from My
+     * Account; [source] only decides how the confirm button reads.
+     */
+    @Serializable
+    @Parcelize
+    data class SetMinimumTip(val source: MinimumTipSource) : AppRoute
+
     @Serializable
     @Parcelize
     sealed interface Sheets : AppRoute {
@@ -384,3 +393,10 @@ private fun buildUpdateUserProfileStack(
 /** Where a display-name entry flow was launched from. Reported as the `Source` analytics property. */
 @Serializable
 enum class DisplayNameSource { Onboarding, MyAccount, TipCardSetup }
+
+/**
+ * Where a minimum-tip entry was launched from. The checklist row is a setup step, so its button
+ * reads "Next"; My Account is editing a setting that already exists, so its button reads "Save".
+ */
+@Serializable
+enum class MinimumTipSource { ProfileTutorial, MyAccount }

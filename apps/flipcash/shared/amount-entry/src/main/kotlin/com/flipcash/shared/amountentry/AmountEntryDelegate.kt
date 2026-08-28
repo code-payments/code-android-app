@@ -34,6 +34,10 @@ class AmountEntryDelegate(
     loadingState: StateFlow<LoadingSuccessState> = MutableStateFlow(LoadingSuccessState()),
     maxAmount: StateFlow<Fiat?> = MutableStateFlow(null),
     minimumAmount: StateFlow<Fiat?> = MutableStateFlow(null),
+    // An extra gate on the confirm action, ANDed with "something was entered". For flows where a
+    // valid amount still isn't actionable — a settings screen whose Save stays inert until the
+    // entry differs from the saved value. Defaults to always-allowed.
+    confirmEnabled: StateFlow<Boolean> = MutableStateFlow(true),
     // Emits whenever the selected token changes. Like a region/currency change, switching
     // tokens re-denominates the entry, so the typed amount is reset (see init). Defaults to a
     // no-op for flows without a token concept.
@@ -47,8 +51,19 @@ class AmountEntryDelegate(
         loadingState: StateFlow<LoadingSuccessState> = MutableStateFlow(LoadingSuccessState()),
         maxAmount: StateFlow<Fiat?> = MutableStateFlow(null),
         minimumAmount: StateFlow<Fiat?> = MutableStateFlow(null),
+        confirmEnabled: StateFlow<Boolean> = MutableStateFlow(true),
         tokenChanges: Flow<*> = emptyFlow<Any?>(),
-    ) : this(exchange, scope, maxLength, MutableStateFlow(style), loadingState, maxAmount, minimumAmount, tokenChanges)
+    ) : this(
+        exchange,
+        scope,
+        maxLength,
+        MutableStateFlow(style),
+        loadingState,
+        maxAmount,
+        minimumAmount,
+        confirmEnabled,
+        tokenChanges,
+    )
 
     data class State(
         val currency: CurrencyHolder = CurrencyHolder(),
@@ -65,9 +80,16 @@ class AmountEntryDelegate(
     private val _state = MutableStateFlow(State())
     override val state: StateFlow<State> = _state.asStateFlow()
 
+    // The bounds and the confirm gate travel together because `combine` tops out at five typed
+    // sources and the config already needs state, style and loading.
+    private val bounds: Flow<Triple<Fiat?, Fiat?, Boolean>> =
+        combine(maxAmount, minimumAmount, confirmEnabled) { max, min, allowed ->
+            Triple(max, min, allowed)
+        }
+
     override val config: StateFlow<AmountEntryConfig> = combine(
-        _state, style, loadingState, maxAmount, minimumAmount,
-    ) { delegateState, currentStyle, loading, max, min ->
+        _state, style, loadingState, bounds,
+    ) { delegateState, currentStyle, loading, (max, min, confirmAllowed) ->
         val isBelowMin = min != null && currentStyle.belowMinHint != null &&
             !delegateState.isEmpty && delegateState.enteredAmount > 0 &&
             Fiat(delegateState.enteredAmount, min.currencyCode).valueLessThan(min)
@@ -79,12 +101,16 @@ class AmountEntryDelegate(
             isBelowMin -> AmountEntryHint.Error(currentStyle.belowMinHint!!(min!!.formatted()))
             isOverMax -> AmountEntryHint.Error(currentStyle.overMaxHint(max!!.formatted()))
             max != null -> AmountEntryHint.Info(currentStyle.infoHint(max.formatted()))
+            // No ceiling to describe, so the floor is the standing hint rather than only an
+            // error — it tells the user the rule before they break it.
+            min != null && currentStyle.belowMinHint != null ->
+                AmountEntryHint.Info(currentStyle.belowMinHint!!(min.formatted()))
             else -> AmountEntryHint.None
         }
 
         AmountEntryConfig(
             hint = hint,
-            canConfirm = delegateState.enteredAmount > 0.0,
+            canConfirm = delegateState.enteredAmount > 0.0 && confirmAllowed,
             canChangeCurrency = currentStyle.canChangeCurrency,
             action = AmountEntryAction(
                 label = currentStyle.actionLabel,

@@ -3,6 +3,7 @@ package com.flipcash.app.myaccount.internal
 import com.flipcash.app.myaccount.internal.myaccount.Blocklist
 import com.flipcash.app.myaccount.internal.myaccount.ChangeDisplayName
 import com.flipcash.app.myaccount.internal.myaccount.ChangeUsername
+import com.flipcash.app.myaccount.internal.myaccount.MinimumTip
 import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreenViewModel
 import com.flipcash.app.myaccount.internal.myaccount.ProfilePicture
 import com.flipcash.app.myaccount.internal.myaccount.RequireBiometrics
@@ -20,10 +21,10 @@ class MyAccountScreenViewModelStateTest {
         reduce(MyAccountScreenViewModel.Event.OnUsernameClaimChanged(claimed = true))(state)
 
     @Test
-    fun `default state lists the display name, profile picture, biometrics and blocklist`() {
+    fun `default state lists the display name, profile picture, minimum tip, biometrics and blocklist`() {
         val state = MyAccountScreenViewModel.State()
         assertEquals(
-            listOf(ChangeDisplayName, ProfilePicture, RequireBiometrics, Blocklist),
+            listOf(ChangeDisplayName, ProfilePicture, MinimumTip, RequireBiometrics, Blocklist),
             state.items,
         )
         assertFalse(state.biometricsRequired)
@@ -53,7 +54,14 @@ class MyAccountScreenViewModelStateTest {
 
         assertTrue(withHandle.usernameClaimed)
         assertEquals(
-            listOf(ChangeDisplayName, ChangeUsername, ProfilePicture, RequireBiometrics, Blocklist),
+            listOf(
+                ChangeDisplayName,
+                ChangeUsername,
+                ProfilePicture,
+                MinimumTip,
+                RequireBiometrics,
+                Blocklist,
+            ),
             withHandle.items,
         )
     }
@@ -165,6 +173,7 @@ class MyAccountScreenViewModelStateTest {
                 ChangeDisplayName,
                 ChangeUsername,
                 ProfilePicture,
+                MinimumTip,
                 RequireBiometrics,
                 Blocklist,
             ),
@@ -271,6 +280,8 @@ class MyAccountScreenViewModelStateTest {
             MyAccountScreenViewModel.Event.OnEditUsername,
             MyAccountScreenViewModel.Event.OnProfilePictureClicked,
             MyAccountScreenViewModel.Event.OnEditProfilePicture,
+            MyAccountScreenViewModel.Event.OnMinimumTipClicked,
+            MyAccountScreenViewModel.Event.OnEditMinimumTip,
             MyAccountScreenViewModel.Event.OnContactMethodsClicked,
             MyAccountScreenViewModel.Event.OnViewUserProfile,
             MyAccountScreenViewModel.Event.OnBlocklistClicked,

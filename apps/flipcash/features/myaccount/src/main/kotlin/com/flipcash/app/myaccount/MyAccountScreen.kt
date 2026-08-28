@@ -11,6 +11,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.DisplayNameSource
+import com.flipcash.app.core.MinimumTipSource
 import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreen
 import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreenViewModel
 import com.flipcash.core.R
@@ -87,6 +88,13 @@ fun MyAccountScreen() {
                     )
                 )
             }.launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<MyAccountScreenViewModel.Event.OnEditMinimumTip>()
+            .onEach { navigator.push(AppRoute.SetMinimumTip(MinimumTipSource.MyAccount)) }
+            .launchIn(this)
     }
 
     LaunchedEffect(viewModel) {
