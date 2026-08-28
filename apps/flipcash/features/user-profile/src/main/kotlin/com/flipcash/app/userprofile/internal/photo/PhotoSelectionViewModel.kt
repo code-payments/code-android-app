@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.app.core.data.Loadable
+import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.extensions.flatMapResult
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.services.models.blob.ImageConstraints
@@ -17,6 +18,7 @@ import com.flipcash.services.models.BlobRejectedException
 import com.flipcash.services.models.ImageModerationError
 import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.TextModerationError
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.RejectionReason
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
@@ -28,6 +30,7 @@ import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -52,12 +55,21 @@ class PhotoSelectionViewModel @Inject constructor(
     private val resources: ResourceHelper,
     val contentReader: ContentReader,
 ) : BaseViewModel<PhotoSelectionViewModel.State, PhotoSelectionViewModel.Event>(
-    initialState = State(name = userManager.profile?.displayName.orEmpty()),
+    initialState = State(
+        name = userManager.profile?.displayName.orEmpty(),
+        savedPicture = userManager.profile?.profilePicture,
+    ),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
     data class State(
         val name: String,
+        /**
+         * The stored profile picture, shown until a pick replaces it and again if that pick is
+         * discarded. Display only: it is a server-side [MediaItem], never a local [Uri], so it
+         * can't arm Save — [image] holding a pick is still the only thing that counts as a change.
+         */
+        val savedPicture: MediaItem? = null,
         val image: Loadable<Uri> = Loadable.Loading(),
         val attestation: ModerationResult.Attestation = ModerationResult.Attestation.Empty,
         val processingState: LoadingSuccessState = LoadingSuccessState(),
@@ -65,10 +77,21 @@ class PhotoSelectionViewModel @Inject constructor(
         val uploadPolicy: UploadPolicy? = null,
         // MIME type of the re-encoded image bytes to upload; resolved from the selected image.
         val imageMimeType: String = uploadMimeFor(null),
-    )
+    ) {
+        /**
+         * The image case of nodes 9553:113166 / 9553:113168: a pick is the only thing that arms
+         * Save. [savedPicture] is display only, so opening the step on the stored avatar leaves
+         * this false.
+         */
+        val isChanged: Boolean
+            get() = image.isLoaded()
+    }
 
     sealed interface Event {
         data object CheckImage : Event
+
+        /** The stored picture arrived, or changed — including to null when it is unset. */
+        data class OnSavedPictureLoaded(val picture: MediaItem?) : Event
         data class UploadPolicyLoaded(val policy: UploadPolicy) : Event
         data class UpdateProcessingState(
             val loading: Boolean = false,
@@ -76,12 +99,23 @@ class PhotoSelectionViewModel @Inject constructor(
         ) : Event
 
         data object OnImageApproved : Event
+
+        /** Back was pressed with an unsaved pick: drop it, leaving the stored picture as it was. */
+        data object DiscardChanges : Event
         data class OnImageSelected(val image: Uri) : Event
         data class OnImageCached(val image: Uri, val mimeType: String) : Event
         data object OnImageCleared : Event
     }
 
     init {
+        // Keeps the seeded avatar current: a save merges the server's renditions back into the
+        // profile, so this is also what swaps the stored picture in once an upload lands.
+        userManager.state
+            .map { it.userProfile?.profilePicture }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnSavedPictureLoaded(it)) }
+            .launchIn(viewModelScope)
+
         // Observe the policy — the coordinator serves the launch-preloaded cache and self-refreshes
         // it if it has aged past its ttl, re-emitting the fresh value here.
         blobStorage.policy
@@ -158,12 +192,32 @@ class PhotoSelectionViewModel @Inject constructor(
                 },
                 onError = { cause ->
                     dispatchEvent(Event.UpdateProcessingState())
-                    stateFlow.value.image.dataOrNull?.let { contentReader.removeFromCache(it) }
-                    dispatchEvent(Event.OnImageCleared)
+                    discardPendingImage()
                     handleUploadFailure(cause)
                 }
             )
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.DiscardChanges>()
+            .onEach { discardPendingImage() }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * A pick that never reached the server is only a re-encoded file in the cache, so leaving the
+     * step has to delete it — nothing else ever will. Covers the paths the back button doesn't:
+     * a gesture back, and the successful upload that makes the local copy redundant.
+     */
+    override fun onCleared() {
+        discardPendingImage()
+        super.onCleared()
+    }
+
+    private fun discardPendingImage() {
+        val pending = stateFlow.value.image.dataOrNull ?: return
+        contentReader.removeFromCache(pending)
+        dispatchEvent(Event.OnImageCleared)
     }
 
     /** Clears the pending selection and surfaces [title]/[message] to the user. */
@@ -349,9 +403,12 @@ class PhotoSelectionViewModel @Inject constructor(
         // Under-shoot the estimated fitting edge so re-encode overhead doesn't push us back over.
         private const val RESIZE_SAFETY = 0.9
 
-        private val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
+        internal val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
                 Event.CheckImage -> { state -> state }
+                is Event.OnSavedPictureLoaded -> { state ->
+                    state.copy(savedPicture = event.picture)
+                }
                 is Event.UploadPolicyLoaded -> { state -> state.copy(uploadPolicy = event.policy) }
                 is Event.UpdateProcessingState -> { state ->
                     val current = state.processingState
@@ -364,6 +421,7 @@ class PhotoSelectionViewModel @Inject constructor(
                 }
 
                 Event.OnImageApproved -> { state -> state }
+                Event.DiscardChanges -> { state -> state }
                 is Event.OnImageCached -> { state ->
                     state.copy(image = Loadable.Loaded(event.image), imageMimeType = event.mimeType)
                 }

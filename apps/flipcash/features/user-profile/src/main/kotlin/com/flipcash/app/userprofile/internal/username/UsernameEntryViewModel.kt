@@ -20,6 +20,7 @@ import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -54,10 +55,19 @@ class UsernameEntryViewModel @Inject constructor(
 ) {
     data class State(
         val usernameFieldState: TextFieldState = TextFieldState(),
+        /**
+         * The claimed handle, or empty before a first claim: what the field is seeded with, what
+         * an edit is measured against, and what a discarded edit reverts to.
+         */
+        val savedUsername: String = "",
         val processingState: LoadingSuccessState = LoadingSuccessState(),
     ) {
         val hasUsername: Boolean
             get() = usernameFieldState.text.isNotBlank()
+
+        /** Node 9553:113168 — one character's difference is enough to arm the confirm button. */
+        val isChanged: Boolean
+            get() = usernameFieldState.text.toString() != savedUsername
     }
 
     sealed interface Event {
@@ -67,16 +77,40 @@ class UsernameEntryViewModel @Inject constructor(
             val success: Boolean = false
         ) : Event
 
+        /** The claimed handle arrived (or changed) — the field and the baseline follow it. */
+        data class OnSavedUsernameLoaded(val username: String) : Event
+
+        /** Back was pressed with an uncommitted edit: put [State.savedUsername] back in the field. */
+        data object DiscardChanges : Event
+
         data object OnUsernameApproved : Event
     }
 
     init {
         userManager.state
             .mapNotNull { it.userProfile }
-            .map { profile -> profile.username }
+            .map { profile -> profile.username.orEmpty() }
+            // Without this, any unrelated emission from the profile re-seeds the field and
+            // overwrites whatever the user is part-way through typing.
+            .distinctUntilChanged()
             .onEach { username ->
-                val inputState = stateFlow.value.usernameFieldState
-                inputState.setTextAndPlaceCursorAtEnd(username.orEmpty())
+                // distinctUntilChanged only stops an identical value from landing again; the
+                // profile is polled every 60s and a refresh that can't find the server profile
+                // publishes UserProfile.Empty, so a *different* handle can still arrive mid-edit.
+                // The field follows the store only while it is untouched — an edit owns it, and
+                // the baseline moves under it so the confirm button stays honest either way.
+                val pristine = !stateFlow.value.isChanged
+                dispatchEvent(Event.OnSavedUsernameLoaded(username))
+                if (pristine) {
+                    stateFlow.value.usernameFieldState.setTextAndPlaceCursorAtEnd(username)
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.DiscardChanges>()
+            .onEach {
+                val state = stateFlow.value
+                state.usernameFieldState.setTextAndPlaceCursorAtEnd(state.savedUsername)
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -188,10 +222,14 @@ class UsernameEntryViewModel @Inject constructor(
                 R.string.error_description_profileNameNotAllowedFlaggedSpam
         }
 
-    companion object {
-        private val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
+    internal companion object {
+        val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
                 Event.CheckUsername -> { state -> state }
+                is Event.OnSavedUsernameLoaded -> { state ->
+                    state.copy(savedUsername = event.username)
+                }
+                Event.DiscardChanges -> { state -> state }
                 is Event.UpdateProcessingState -> { state ->
                     val current = state.processingState
                     state.copy(

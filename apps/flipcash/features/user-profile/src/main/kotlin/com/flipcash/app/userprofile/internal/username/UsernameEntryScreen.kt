@@ -58,6 +58,10 @@ internal fun UsernameEntryScreen() {
         AppBarWithTitle(
             onBackIconClicked = {
                 keyboard.hideIfVisible {
+                    // Leaving throws the edit away rather than carrying it back in. A gesture back
+                    // lands in the same place by a different route: the step's ViewModel is scoped
+                    // to its nav entry, so popping the entry drops the field with it.
+                    viewModel.dispatchEvent(UsernameEntryViewModel.Event.DiscardChanges)
                     flowNavigator.back()
                 }
             },
@@ -105,7 +109,7 @@ private fun UsernameEntryScreenContent(
                         bottom = CodeTheme.dimens.grid.x3
                     ).imePadding(),
                 text = stringResource(R.string.action_next),
-                enabled = state.hasUsername && state.processingState.isIdle,
+                enabled = state.hasUsername && state.isChanged && state.processingState.isIdle,
                 isLoading = state.processingState.loading,
                 isSuccess = state.processingState.success,
                 onClick = {
