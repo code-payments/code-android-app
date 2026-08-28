@@ -1,4 +1,4 @@
-package com.flipcash.app.menu.internal
+package com.flipcash.app.core.util
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
