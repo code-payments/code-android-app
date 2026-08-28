@@ -81,7 +81,13 @@ internal class CashScreenViewModel @Inject constructor(
         scope = viewModelScope,
         style = AmountEntryStyle(
             actionLabel = AmountEntryLabel.Plain(resources.getString(R.string.action_next)),
-            infoHint = { resources.getString(R.string.subtitle_giveCashHint, it) },
+            // The v2 header carries no currency flag, so there's nothing left to tap to reach
+            // region selection. Changing currency lives on the wallet balance instead.
+            canChangeCurrency = false,
+            // States the ceiling the way Convert and the v2 Get do. The over-max line stays
+            // give-specific: the cap is the lower of the balance and the per-transaction send
+            // limit, and when the limit is what binds, "available" alone wouldn't explain it.
+            infoHint = { resources.getString(R.string.subtitle_amountAvailable, it) },
             overMaxHint = { resources.getString(R.string.subtitle_giveCashHintLimitExceeded, it) },
         ),
         loadingState = stateFlow.map { it.generatingBill }
@@ -267,8 +273,13 @@ internal class CashScreenViewModel @Inject constructor(
                     verifiedState = result.verifiedState,
                 )
 
-                dispatchEvent(Event.UpdateLoadingState(loading = false, success = true))
-                dispatchEvent(Event.PresentBill(bill))
+                // Hold the checkmark before the bill takes over. Dispatching success and the bill
+                // on the same frame drew the checkmark and replaced it in one pass, so the button
+                // went from spinner straight to the bill. Nothing resets the state afterwards:
+                // presenting the bill pops this screen, so the next Give builds a fresh view model.
+                dispatchSuccessThen(Event.UpdateLoadingState(loading = false, success = true)) {
+                    dispatchEvent(Event.PresentBill(bill))
+                }
             }.launchIn(viewModelScope)
 
         eventFlow

@@ -52,7 +52,6 @@
     <string name="error_description_insufficientFunds">You do not have enough funds to complete this transaction. You can deposit more funds in Settings</string>
     <string name="error_description_withdrawInsufficientFunds">You do not have enough funds to complete this withdrawal. Please try a smaller amount</string>
 
-    <string name="subtitle_giveCashHint">Enter up to %1$s</string>
     <string name="subtitle_giveCashHintLimitExceeded">You can only give up to %1$s</string>
 
     <string name="subtitle_sendHint">Enter up to %1$s</string>
