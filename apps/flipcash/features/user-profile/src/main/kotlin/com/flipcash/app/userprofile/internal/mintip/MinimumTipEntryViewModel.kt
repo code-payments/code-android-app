@@ -33,8 +33,8 @@ import javax.inject.Inject
 import kotlin.math.abs
 
 /**
- * Backs the minimum-tip entry screen (nodes 9541:10951, 9553:113170) — the fee another user has to
- * pay to open a DM, which the profile carries as `minDmChatInitFee`.
+ * Backs the minimum-tip entry screen — the fee another user has to pay to open a DM, which the
+ * profile carries as `minDmChatInitFee`.
  *
  * Two things separate it from the send-side tip entry: there is no ceiling, since a user can ask
  * for any amount regardless of what anyone can afford, so the preset minimum is the only bound and
@@ -151,7 +151,9 @@ internal class MinimumTipEntryViewModel @Inject constructor(
 
                 val min = minimumAmount.value
                 if (min != null && amount.valueLessThan(min)) {
-                    BottomBarManager.showAlert(
+                    // Info, not alert: nothing has gone wrong and nothing is being destroyed —
+                    // the entry is just under the floor and needs raising.
+                    BottomBarManager.showInfo(
                         title = resources.getString(R.string.error_title_minimumTip, min.formatted()),
                         message = resources.getString(R.string.error_description_minimumTip),
                     )
