@@ -1,9 +1,8 @@
-package com.flipcash.app.tipping.internal
+package com.flipcash.app.userprofile.internal.mintip
 
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.core.MinimumTipSource
 import com.flipcash.app.core.ui.ConfirmationStyle
-import com.flipcash.features.tipping.R
+import com.flipcash.core.R
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.amountentry.AmountEntryDelegate
@@ -37,19 +36,19 @@ import kotlin.math.abs
  * Backs the minimum-tip entry screen (nodes 9541:10951, 9553:113170) — the fee another user has to
  * pay to open a DM, which the profile carries as `minDmChatInitFee`.
  *
- * Two things separate it from the send-side [TipAmountEntryViewModel]: there is no ceiling, since a
- * user can ask for any amount regardless of what anyone can afford, so the preset minimum is the
- * only bound and it shows as a standing hint rather than only on error; and the confirm action is a
- * save, so it stays inert until the entry actually differs from what is already stored.
+ * Two things separate it from the send-side tip entry: there is no ceiling, since a user can ask
+ * for any amount regardless of what anyone can afford, so the preset minimum is the only bound and
+ * it shows as a standing hint rather than only on error; and the confirm action is a save, so it
+ * stays inert until the entry actually differs from what is already stored.
  */
 @HiltViewModel
-internal class SetMinimumTipViewModel @Inject constructor(
+internal class MinimumTipEntryViewModel @Inject constructor(
     exchange: Exchange,
     private val resources: ResourceHelper,
     private val profileController: ProfileController,
     userManager: UserManager,
     tipPaymentDelegate: TipPaymentDelegate,
-) : BaseViewModel<SetMinimumTipViewModel.State, SetMinimumTipViewModel.Event>(
+) : BaseViewModel<MinimumTipEntryViewModel.State, MinimumTipEntryViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
 ) {
@@ -88,9 +87,9 @@ internal class SetMinimumTipViewModel @Inject constructor(
     // it needs the delegate's own state and so cannot be built before the delegate exists.
     private val entryChanged = MutableStateFlow(false)
 
-    // The label is the only thing the entry point changes, and the screen supplies it, so the
+    // The label is the only thing the step's position changes, and the screen supplies it, so the
     // style is a flow rather than a constant.
-    private val style = MutableStateFlow(styleFor(MinimumTipSource.MyAccount))
+    private val style = MutableStateFlow(styleFor(isLastStep = true))
 
     val amountDelegate = AmountEntryDelegate(
         exchange = exchange,
@@ -180,19 +179,14 @@ internal class SetMinimumTipViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    /** Called by the screen once the route's entry point is known. */
-    fun onSourceResolved(source: MinimumTipSource) {
-        style.value = styleFor(source)
+    /** Called by the screen once the step's position in the flow is known. */
+    fun onPositionResolved(isLastStep: Boolean) {
+        style.value = styleFor(isLastStep)
     }
 
-    private fun styleFor(source: MinimumTipSource) = AmountEntryStyle(
+    private fun styleFor(isLastStep: Boolean) = AmountEntryStyle(
         actionLabel = AmountEntryLabel.Plain(
-            resources.getString(
-                when (source) {
-                    MinimumTipSource.ProfileTutorial -> R.string.action_next
-                    MinimumTipSource.MyAccount -> R.string.action_save
-                }
-            )
+            resources.getString(if (isLastStep) R.string.action_save else R.string.action_next)
         ),
         actionStyle = ConfirmationStyle.Button,
         belowMinHint = { resources.getString(R.string.subtitle_minimumTipHint, it) },

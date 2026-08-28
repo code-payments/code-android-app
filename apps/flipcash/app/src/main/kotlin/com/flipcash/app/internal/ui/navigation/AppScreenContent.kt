@@ -26,7 +26,6 @@ import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.tipping.NewChatScreen
-import com.flipcash.app.tipping.SetMinimumTipScreen
 import com.flipcash.app.tipping.TipAmountEntryScreen
 import com.flipcash.app.tipping.TippingFlowScreen
 import com.flipcash.shared.transactionhistory.ActivityHistoryScreen
@@ -135,7 +134,6 @@ fun appEntryProvider(
     }
 
     // User Profile Management
-    annotatedEntry<AppRoute.SetMinimumTip> { key -> SetMinimumTipScreen(key.source) }
 
     annotatedEntry<AppRoute.UpdateUserProfile> { key ->
         UpdateUserProfileFlowScreen(route = key, resultStateRegistry = resultStateRegistry)

@@ -51,8 +51,7 @@ class ProfileTutorialTest {
     }
 
     @Test
-    fun `a picture and a minimum tip close the checklist`() {
-        val items = profileTutorialItems(profile(picture = anyPicture, minimumTip = Fiat(1.0)))
-        assertTrue(items!!.all { it.isCompleted })
+    fun `a picture and a minimum tip take the checklist away entirely`() {
+        assertNull(profileTutorialItems(profile(picture = anyPicture, minimumTip = Fiat(1.0))))
     }
 }

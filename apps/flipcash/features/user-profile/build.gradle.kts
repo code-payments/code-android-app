@@ -14,10 +14,12 @@ dependencies {
 
     implementation(libs.bundles.kotlinx.serialization)
 
+    implementation(project(":apps:flipcash:shared:amount-entry"))
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:blob"))
     implementation(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:featureflags"))
+    implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:userflags"))
 
     implementation(project(":libs:messaging"))

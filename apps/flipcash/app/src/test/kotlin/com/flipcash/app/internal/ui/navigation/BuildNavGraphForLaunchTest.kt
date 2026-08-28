@@ -1,6 +1,8 @@
 package com.flipcash.app.internal.ui.navigation
 
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.DisplayNameSource
+import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.solana.keys.Mint
@@ -167,8 +169,10 @@ class BuildNavGraphForLaunchTest {
     fun `onboarding at DisplayName resume point routes to display name entry then permissions`() {
         val result = build(AuthState.Onboarding(AuthState.ResumePoint.DisplayName))!!
         val route = assertIs<AppRoute.UpdateUserProfile>(result.baseRoutes.single())
-        assertTrue(route.includeName)
-        assertEquals(false, route.includePhoto)
+        assertEquals(
+            listOf(UpdateProfileStep.Name(DisplayNameSource.Onboarding)),
+            route.steps,
+        )
         val target = assertIs<AppRoute.OnboardingFlow>(route.target)
         assertEquals(AppRoute.OnboardingFlow.Phase.Permissions, target.phase)
     }

@@ -25,6 +25,7 @@ import com.flipcash.app.android.R
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.DisplayNameSource
+import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.homeRoute
 import com.flipcash.app.core.extensions.navigateAll
@@ -194,9 +195,7 @@ internal fun buildNavGraphForLaunch(
                 listOf(
                     AppRoute.UpdateUserProfile(
                         origin = AppRoute.OnboardingFlow(),
-                        nameSource = DisplayNameSource.Onboarding,
-                        includeName = true,
-                        includePhoto = false,
+                        steps = listOf(UpdateProfileStep.Name(DisplayNameSource.Onboarding)),
                         target = AppRoute.OnboardingFlow(
                             phase = AppRoute.OnboardingFlow.Phase.Permissions,
                             skipContacts = true,

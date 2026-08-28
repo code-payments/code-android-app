@@ -11,7 +11,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.DisplayNameSource
-import com.flipcash.app.core.MinimumTipSource
+import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreen
 import com.flipcash.app.myaccount.internal.myaccount.MyAccountScreenViewModel
 import com.flipcash.core.R
@@ -51,9 +51,7 @@ fun MyAccountScreen() {
                 navigator.push(
                     AppRoute.UpdateUserProfile(
                         origin = AppRoute.Menu.MyAccount,
-                        nameSource = DisplayNameSource.MyAccount,
-                        includeName = true,
-                        includePhoto = false,
+                        steps = listOf(UpdateProfileStep.Name(DisplayNameSource.MyAccount)),
                     )
                 )
             }.launchIn(this)
@@ -66,10 +64,7 @@ fun MyAccountScreen() {
                 navigator.push(
                     AppRoute.UpdateUserProfile(
                         origin = AppRoute.Menu.MyAccount,
-                        nameSource = DisplayNameSource.MyAccount,
-                        includeName = false,
-                        includePhoto = false,
-                        includeUsername = true,
+                        steps = listOf(UpdateProfileStep.Username),
                     )
                 )
             }.launchIn(this)
@@ -82,9 +77,7 @@ fun MyAccountScreen() {
                 navigator.push(
                     AppRoute.UpdateUserProfile(
                         origin = AppRoute.Menu.MyAccount,
-                        nameSource = DisplayNameSource.MyAccount,
-                        includeName = false,
-                        includePhoto = true,
+                        steps = listOf(UpdateProfileStep.Photo),
                     )
                 )
             }.launchIn(this)
@@ -93,7 +86,14 @@ fun MyAccountScreen() {
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<MyAccountScreenViewModel.Event.OnEditMinimumTip>()
-            .onEach { navigator.push(AppRoute.SetMinimumTip(MinimumTipSource.MyAccount)) }
+            .onEach {
+                navigator.push(
+                    AppRoute.UpdateUserProfile(
+                        origin = AppRoute.Menu.MyAccount,
+                        steps = listOf(UpdateProfileStep.MinimumTip),
+                    )
+                )
+            }
             .launchIn(this)
     }
 
