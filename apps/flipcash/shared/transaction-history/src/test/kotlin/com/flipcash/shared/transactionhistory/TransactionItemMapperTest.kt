@@ -242,6 +242,68 @@ class TransactionItemMapperTest {
     }
 
     @Test
+    fun `give with no identifier uses the token icon`() {
+        val token = usdfToken()
+        val msg = feedMessage(metadata = MessageMetadata.DirectlySentCrypto())
+            .copy(text = "Gave", textSubstitutions = emptyList())
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token) to cached)
+
+        assertEquals(TransactionAvatar.TokenIcon(token), item.avatar)
+        assertEquals("-", item.signedAmountPrefix)
+        assertEquals("Gave", item.title)
+    }
+
+    @Test
+    fun `grab with no identifier uses the token icon`() {
+        val token = usdfToken()
+        val msg = feedMessage(metadata = MessageMetadata.ReceivedCrypto())
+            .copy(text = "Received", textSubstitutions = emptyList())
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token) to cached)
+
+        assertEquals(TransactionAvatar.TokenIcon(token), item.avatar)
+        assertEquals("+", item.signedAmountPrefix)
+    }
+
+    /** A named counterparty is still coming, so the row waits for it rather than showing the token. */
+    @Test
+    fun `send to a named but unresolved user keeps the generic avatar`() {
+        val token = usdfToken()
+        val msg = feedMessage(metadata = MessageMetadata.DirectlySentCrypto(userId = knownUserId))
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token) to emptyMap())
+
+        assertEquals(TransactionAvatar.Generic, item.avatar)
+    }
+
+    @Test
+    fun `send to a phone-only recipient keeps the generic avatar`() {
+        val token = usdfToken()
+        val msg = feedMessage(metadata = MessageMetadata.DirectlySentCrypto(phoneNumber = "+15555550123"))
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token) to emptyMap())
+
+        assertEquals(TransactionAvatar.Generic, item.avatar)
+    }
+
+    /** No token has resolved from the mint cache yet, so there is no icon to draw. */
+    @Test
+    fun `give with no identifier and no token stays generic`() {
+        val msg = feedMessage(metadata = MessageMetadata.DirectlySentCrypto())
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to cached)
+
+        assertEquals(TransactionAvatar.Generic, item.avatar)
+    }
+
+    @Test
+    fun `cash link uses the token icon`() {
+        val token = usdfToken()
+        val creator = PublicKey(ByteArray(32).toList())
+        val msg = feedMessage(metadata = MessageMetadata.IndirectlySentCrypto(creator, canCancel = true))
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token) to cached)
+
+        assertEquals(TransactionAvatar.TokenIcon(token), item.avatar)
+        assertEquals("-", item.signedAmountPrefix)
+    }
+
+    @Test
     fun `null metadata yields null prefix and a generic avatar`() {
         val msg = feedMessage(metadata = null)
         val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to emptyMap())

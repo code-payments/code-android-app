@@ -35,7 +35,8 @@ internal class TransactionItemMapper @Inject constructor(
             counterparty != null -> TransactionAvatar.Profile(counterparty)
             // A convert always draws both sides, even before both tokens have resolved.
             convert != null -> TransactionAvatar.SwapTokens(from = token, to = source.toToken)
-            hasNoCounterparty(meta) && token != null -> TransactionAvatar.TokenIcon(token)
+            (hasNoCounterparty(meta) || isUnidentifiedBill(meta)) && token != null ->
+                TransactionAvatar.TokenIcon(token)
             else -> TransactionAvatar.Generic
         }
 
@@ -150,11 +151,31 @@ private fun userIdOf(meta: MessageMetadata?): ID? = when (meta) {
     else -> null
 }
 
+/**
+ * Whether this is a bill hand-off — a give or a grab — that names nobody.
+ *
+ * The two devices never exchange identities during one: the grabber's `RequestToGrabBill` carries a
+ * destination token account and nothing else, so when the server also leaves the notification's
+ * identifier unset there is no counterparty to resolve, now or later. The row would otherwise keep
+ * the generic silhouette forever; the token's own icon at least says what moved.
+ *
+ * Deliberately narrow: a peer payment whose profile simply hasn't landed yet *does* carry an
+ * identifier, so it stays generic and swaps in the real avatar when the profile arrives.
+ */
+private fun isUnidentifiedBill(meta: MessageMetadata?): Boolean = when (meta) {
+    is MessageMetadata.DirectlySentCrypto -> meta.userId == null && meta.phoneNumber == null
+    is MessageMetadata.ReceivedCrypto -> meta.userId == null && meta.phoneNumber == null
+    else -> false
+}
+
 private fun hasNoCounterparty(meta: MessageMetadata?): Boolean = when (meta) {
     MessageMetadata.DepositedCrypto,
     is MessageMetadata.WithdrewCrypto,
     MessageMetadata.BoughtToken,
     is MessageMetadata.SwappedCrypto,
+    // A cash link is sent to whoever opens it, so it carries a gift-card vault instead of a
+    // recipient — there is never a profile to draw, only the token that moved.
+    is MessageMetadata.IndirectlySentCrypto,
     MessageMetadata.SoldToken -> true
     else -> false
 }
