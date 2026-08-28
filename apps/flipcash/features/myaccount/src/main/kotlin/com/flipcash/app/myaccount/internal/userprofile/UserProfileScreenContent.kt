@@ -8,22 +8,25 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -50,6 +53,20 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SwipeAction
 import com.getcode.ui.components.SwipeActionRow
 import com.getcode.ui.components.text.SectionHeader
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.EaseInOut
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.sp
+import com.flipcash.app.core.util.abbreviatedLink
+import com.getcode.theme.White05
+import com.getcode.theme.extraSmall
+import com.getcode.ui.core.verticalScrollStateGradient
+import kotlinx.coroutines.delay
 
 @Composable
 internal fun UserProfileScreenContent(
@@ -57,17 +74,40 @@ internal fun UserProfileScreenContent(
     dispatch: (UserProfileViewModel.Event) -> Unit,
 ) {
     val inset = CodeTheme.dimens.inset
+    val listState = rememberLazyListState()
+    // The gesture-bar inset rides in contentPadding rather than on the list itself: as a layout
+    // inset it shortened the viewport and cut the last card off at the padded edge, and it left the
+    // list exactly one screen tall and so unable to scroll at all. As content padding the list still
+    // fills the window and the last card scrolls clear of the bar, fading out under the gradient.
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = inset),
+        modifier = Modifier
+            .fillMaxSize()
+            // Fades at both edges, so content reads as running past the app bar and the gesture bar
+            // rather than stopping at them.
+            .verticalScrollStateGradient(
+                scrollState = listState,
+                showAtStart = true,
+                showAtEnd = true,
+                isLongGradient = true,
+            ),
+        state = listState,
+        contentPadding = PaddingValues(
+            start = inset,
+            end = inset,
+            bottom = bottomInset + CodeTheme.dimens.grid.x3,
+        ),
     ) {
-        // Profile header — avatar (tap to edit photo) + name with a pencil (tap to edit name).
+        // Profile header — the account's public identity, read only. Editing the photo and the
+        // display name lives in My Account, which is the single place those are changed.
         item(contentType = "profile_header") {
             ProfileHeader(
                 displayName = state.displayName,
                 profilePicture = state.profilePicture,
-                onEditName = { dispatch(UserProfileViewModel.Event.EditNameClicked) },
-                onEditPhoto = { dispatch(UserProfileViewModel.Event.EditPhotoClicked) },
+                username = state.username,
+                tipCardLink = state.tipCardLink,
+                usernameMinBalance = state.usernameMinBalance,
+                onCopyLink = { dispatch(UserProfileViewModel.Event.CopyTipCardLink) },
             )
         }
 
@@ -267,44 +307,135 @@ internal fun UserProfileScreenContent(
 private fun ProfileHeader(
     displayName: String,
     profilePicture: MediaItem?,
-    onEditName: () -> Unit,
-    onEditPhoto: () -> Unit,
+    username: String?,
+    tipCardLink: String?,
+    usernameMinBalance: String,
+    onCopyLink: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = CodeTheme.dimens.grid.x6),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+        // Avatar, name, handle and link are one identity block, so they sit tight together.
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
     ) {
         ContactAvatar(
             image = profilePicture,
-            displayName = displayName.orEmpty(),
+            displayName = displayName,
             modifier = Modifier
                 .size(96.dp)
-                .clip(CircleShape)
-                .clickable { onEditPhoto() },
+                .clip(CircleShape),
         )
-        Row(
-            modifier = Modifier.clickable { onEditName() },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-        ) {
+        Text(
+            text = displayName.takeIf { it.isNotEmpty() }
+                ?: stringResource(R.string.subtitle_noDisplayName),
+            style = CodeTheme.typography.textLarge,
+            color = CodeTheme.colors.textMain,
+        )
+        if (username != null) {
             Text(
-                text = displayName.takeIf { it.isNotEmpty() }
-                    ?: stringResource(R.string.subtitle_noDisplayName),
-                style = CodeTheme.typography.textLarge,
-                color = CodeTheme.colors.textMain,
+                text = "@$username",
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textSecondary,
             )
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = null,
-                tint = CodeTheme.colors.textSecondary,
-                modifier = Modifier.size(16.dp),
+        } else {
+            // The same flag the entry screen's rejection dialog quotes, so the two never name
+            // different thresholds. Stated rather than actionable: claiming happens on the You tab.
+            Text(
+                text = stringResource(R.string.title_usernameUpsell),
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textSecondary,
+            )
+            Text(
+                text = stringResource(
+                    R.string.subtitle_usernameUpsellLocked,
+                    usernameMinBalance,
+                ),
+                style = CodeTheme.typography.caption,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
+        if (tipCardLink != null) {
+            TipCardLinkRow(
+                link = tipCardLink,
+                onCopy = onCopyLink,
+                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
             )
         }
     }
 }
+
+/**
+ * The account's public link, tap to copy — the same row the You tab shows, so the link reads and
+ * behaves identically in both places. The clipboard gives no feedback of its own, so the copy glyph
+ * holds a checkmark for a moment after the tap.
+ */
+@Composable
+private fun TipCardLinkRow(
+    link: String,
+    onCopy: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Bumped rather than latched so a second tap restarts the hold instead of being swallowed.
+    var copyToken by remember { mutableIntStateOf(0) }
+    val copied = copyToken > 0
+
+    LaunchedEffect(copyToken) {
+        if (copyToken > 0) {
+            delay(CopyConfirmationMillis)
+            copyToken = 0
+        }
+    }
+
+    Row(
+        modifier = modifier
+            .height(CodeTheme.dimens.grid.x8)
+            .clip(CodeTheme.shapes.extraSmall)
+            .background(White05)
+            .clickable {
+                onCopy()
+                copyToken++
+            }
+            .padding(horizontal = CodeTheme.dimens.grid.x3),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+    ) {
+        Icon(
+            modifier = Modifier.size(20.dp),
+            painter = painterResource(R.drawable.ic_chain_link),
+            contentDescription = null,
+            tint = Color.White,
+        )
+        Text(
+            text = link.abbreviatedLink(),
+            style = CodeTheme.typography.textSmall.copy(fontSize = 15.sp),
+            color = Color.White.copy(alpha = 0.7f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Crossfade(
+            targetState = copied,
+            animationSpec = tween(CopyIconFadeMillis, easing = EaseInOut),
+            label = "copyConfirmation",
+        ) { showCheck ->
+            Icon(
+                modifier = Modifier.size(20.dp),
+                painter = painterResource(
+                    if (showCheck) R.drawable.ic_check_circle else R.drawable.ic_copy
+                ),
+                contentDescription = null,
+                tint = Color.White,
+            )
+        }
+    }
+}
+
+/** How long the copy button holds the checkmark before reverting (iOS: 1.5s). */
+private const val CopyConfirmationMillis = 1_500L
+
+/** Cross-fade between the copy and confirmation glyphs (iOS: 0.15s ease-in-out). */
+private const val CopyIconFadeMillis = 150
 
 /** Non-swipeable card wrapper — just visual styling. */
 @Composable

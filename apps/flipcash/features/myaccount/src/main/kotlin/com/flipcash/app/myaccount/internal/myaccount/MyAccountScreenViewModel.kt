@@ -20,13 +20,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
+// Render order. User Profile leads it, so the account being described comes before the settings
+// that change it.
 private val FullMenuList = buildList {
+    add(UserProfile)
     add(ChangeDisplayName)
     add(ChangeUsername)
     add(ProfilePicture)
     add(RequireBiometrics)
     add(Blocklist)
-    add(UserProfile)
 }
 
 @HiltViewModel

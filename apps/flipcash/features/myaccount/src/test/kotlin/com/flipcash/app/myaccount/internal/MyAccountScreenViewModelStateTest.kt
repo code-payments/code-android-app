@@ -154,6 +154,25 @@ class MyAccountScreenViewModelStateTest {
     }
 
     @Test
+    fun `an unlocked user profile leads the list`() {
+        val unlocked = reduce(
+            MyAccountScreenViewModel.Event.OnBetaFeaturesUnlocked(unlocked = true)
+        )(claimed(MyAccountScreenViewModel.State()))
+
+        assertEquals(
+            listOf(
+                UserProfile,
+                ChangeDisplayName,
+                ChangeUsername,
+                ProfilePicture,
+                RequireBiometrics,
+                Blocklist,
+            ),
+            unlocked.items,
+        )
+    }
+
+    @Test
     fun `user profile stays hidden until beta features unlock`() {
         val locked = MyAccountScreenViewModel.State()
         assertFalse(locked.items.any { it is UserProfile })

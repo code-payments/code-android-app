@@ -80,6 +80,7 @@ import com.flipcash.app.menu.internal.MenuScreenViewModel.Event
 import com.flipcash.app.menu.internal.MenuScreenViewModel.TipCardState
 import com.flipcash.app.core.ui.onboarding.NewUserTutorial
 import com.flipcash.app.core.ui.onboarding.TutorialItem
+import com.flipcash.app.core.util.abbreviatedLink
 import com.flipcash.app.menu.internal.components.UsernameProgress
 import com.flipcash.app.menu.internal.components.UsernameProgressCard
 import com.flipcash.app.theme.FlipcashThemeWrapper

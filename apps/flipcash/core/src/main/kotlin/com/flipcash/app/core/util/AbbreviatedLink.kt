@@ -1,4 +1,4 @@
-package com.flipcash.app.menu.internal
+package com.flipcash.app.core.util
 
 import com.flipcash.services.models.isUsernameShaped
 
@@ -17,7 +17,7 @@ private const val ABBREVIATED_ID_LENGTH = 5
  *
  * Mirrors iOS `TipCardLinkRow.displayText(for:)`.
  */
-internal fun String.abbreviatedLink(): String {
+fun String.abbreviatedLink(): String {
     val withoutScheme = substringAfter("://")
     val lastSegment = withoutScheme.substringAfterLast('/')
     if (lastSegment.isUsernameShaped()) return withoutScheme

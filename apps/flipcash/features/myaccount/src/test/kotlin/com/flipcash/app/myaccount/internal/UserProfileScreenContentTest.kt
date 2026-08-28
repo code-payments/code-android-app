@@ -1,10 +1,13 @@
 package com.flipcash.app.myaccount.internal
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import com.flipcash.app.myaccount.internal.userprofile.UserProfileScreenContent
 import com.flipcash.app.myaccount.internal.userprofile.UserProfileViewModel
 import com.flipcash.services.models.SocialAccount
@@ -23,6 +26,11 @@ class UserProfileScreenContentTest {
     val composeTestRule = createComposeRule()
 
     private var lastEvent: UserProfileViewModel.Event? = null
+
+    /** The social section sits below the fold, so bring it into view before asserting on it. */
+    private fun scrollTo(text: String) {
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(text))
+    }
 
     private fun setScreen(state: UserProfileViewModel.State = UserProfileViewModel.State()) {
         lastEvent = null
@@ -47,6 +55,43 @@ class UserProfileScreenContentTest {
     fun `no display name placeholder when empty`() {
         setScreen(UserProfileViewModel.State(displayName = ""))
         composeTestRule.onNodeWithText("No display name set").assertIsDisplayed()
+    }
+
+    // ---------------------------------------------------------------
+    // Handle and public link
+    // ---------------------------------------------------------------
+
+    @Test
+    fun `claimed handle shown with its link`() {
+        setScreen(
+            UserProfileViewModel.State(
+                username = "alice",
+                tipCardLink = "https://flipcash.com/alice",
+            )
+        )
+        composeTestRule.onNodeWithText("@alice").assertIsDisplayed()
+        // The scheme is dropped: the link is shown the way it's read aloud.
+        composeTestRule.onNodeWithText("flipcash.com/alice").assertIsDisplayed()
+    }
+
+    @Test
+    fun `unclaimed handle shows the upsell and its minimum`() {
+        setScreen(
+            UserProfileViewModel.State(
+                username = null,
+                usernameMinBalance = "$5 USD",
+            )
+        )
+        composeTestRule.onNodeWithText("Get a custom @username").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Get your balance to $5 USD or more to unlock")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `tapping the link dispatches CopyTipCardLink`() {
+        setScreen(UserProfileViewModel.State(tipCardLink = "https://flipcash.com/alice"))
+        composeTestRule.onNodeWithText("flipcash.com/alice").performClick()
+        assertTrue(lastEvent is UserProfileViewModel.Event.CopyTipCardLink)
     }
 
     // ---------------------------------------------------------------
@@ -132,6 +177,7 @@ class UserProfileScreenContentTest {
             followerCount = 0,
         )
         setScreen(UserProfileViewModel.State(socialAccounts = listOf(account)))
+        scrollTo("@testuser")
         composeTestRule.onNodeWithText("@testuser").assertIsDisplayed()
         composeTestRule.onNodeWithText("Test User").assertIsDisplayed()
     }
@@ -139,6 +185,7 @@ class UserProfileScreenContentTest {
     @Test
     fun `no social accounts placeholder when list empty`() {
         setScreen(UserProfileViewModel.State(socialAccounts = emptyList()))
+        scrollTo("No social accounts linked")
         composeTestRule.onNodeWithText("No social accounts linked").assertIsDisplayed()
     }
 

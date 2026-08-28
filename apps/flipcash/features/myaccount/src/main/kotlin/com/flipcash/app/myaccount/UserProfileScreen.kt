@@ -7,14 +7,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.myaccount.internal.userprofile.UserProfileScreenContent
 import com.flipcash.app.myaccount.internal.userprofile.UserProfileViewModel
-import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
@@ -32,46 +29,12 @@ fun UserProfileScreen() {
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        // No title: the header below names the account, so a bar title would say it twice.
         AppBarWithTitle(
-            title = {
-                AppBarDefaults.Title(
-                    text = stringResource(R.string.title_userProfile),
-                )
-            },
-            titleAlignment = Alignment.CenterHorizontally,
+            title = { },
             leftIcon = { AppBarDefaults.UpNavigation { navigator.pop() } },
         )
         UserProfileScreenContent(state = state, dispatch = viewModel::dispatchEvent)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<UserProfileViewModel.Event.EditNameClicked>()
-            .onEach {
-                navigator.push(
-                    AppRoute.UpdateUserProfile(
-                        origin = AppRoute.Menu.UserProfile,
-                        nameSource = DisplayNameSource.MyAccount,
-                        includeName = true,
-                        includePhoto = false,
-                    )
-                )
-            }.launchIn(this)
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<UserProfileViewModel.Event.EditPhotoClicked>()
-            .onEach {
-                navigator.push(
-                    AppRoute.UpdateUserProfile(
-                        origin = AppRoute.Menu.UserProfile,
-                        nameSource = DisplayNameSource.MyAccount,
-                        includeName = false,
-                        includePhoto = true,
-                    )
-                )
-            }.launchIn(this)
     }
 
     LaunchedEffect(viewModel) {

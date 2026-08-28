@@ -4,6 +4,9 @@ import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.extensions.setText
+import com.flipcash.app.core.tipping.TipCardOwner
+import com.flipcash.app.core.util.Linkify
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.core.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ContactVerificationController
@@ -16,6 +19,7 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.uuid
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
@@ -36,6 +40,7 @@ internal class UserProfileViewModel @Inject constructor(
     private val contactController: ContactVerificationController,
     private val contactCoordinator: ContactCoordinator,
     private val profileController: ProfileController,
+    private val userFlags: UserFlagsCoordinator,
     private val resources: ResourceHelper,
     clipboardManager: ClipboardManager,
     dispatchers: DispatcherProvider,
@@ -47,6 +52,15 @@ internal class UserProfileViewModel @Inject constructor(
     internal data class State(
         val displayName: String = "",
         val profilePicture: MediaItem? = null,
+        /** The claimed handle, or null for an account that hasn't claimed one. */
+        val username: String? = null,
+        /**
+         * The account's public link — `flipcash.com/<handle>` once a handle exists, and the UUID
+         * form until then. Null only before the account id has loaded.
+         */
+        val tipCardLink: String? = null,
+        /** The `usernameMinBalance` flag, formatted, for the account that has no handle yet. */
+        val usernameMinBalance: String = "",
         val phone: VerifiableContactMethod? = null,
         val email: VerifiableContactMethod? = null,
         val phoneLinkedForPayment: Boolean = false,
@@ -60,17 +74,14 @@ internal class UserProfileViewModel @Inject constructor(
         data class OnProfileUpdated(
             val displayName: String,
             val profilePicture: MediaItem?,
+            val username: String?,
+            val tipCardLink: String?,
+            val usernameMinBalance: String,
             val phone: VerifiableContactMethod?,
             val email: VerifiableContactMethod?,
             val linkedForPayment: Boolean,
             val socialAccounts: List<SocialAccount>,
         ) : Event
-
-        /** Open the update-profile flow to set/replace the display name. */
-        data object EditNameClicked : Event
-
-        /** Open the update-profile flow to set/replace the profile picture. */
-        data object EditPhotoClicked : Event
 
         data object UnlinkPhoneClicked : Event
         data object UnlinkEmailClicked : Event
@@ -91,19 +102,36 @@ internal class UserProfileViewModel @Inject constructor(
         data object CopyPublicKey : Event
         data object CopyAccountId : Event
         data object CopyPushToken : Event
+
+        /** Put [State.tipCardLink] on the clipboard. */
+        data object CopyTipCardLink : Event
     }
 
     init {
         combine(
             userManager.state,
             contactCoordinator.isLinkedForPayment,
-        ) { state, linkedForPayment ->
+            userFlags.resolvedFlags,
+        ) { state, linkedForPayment, flags ->
             val profile = state.userProfile
+            val minimum = flags.usernameMinBalance.effectiveValue
 
             dispatchEvent(
                 Event.OnProfileUpdated(
                     displayName = profile?.displayName.orEmpty(),
                     profilePicture = profile?.profilePicture,
+                    username = profile?.username,
+                    // Built the same way the You tab builds it, so the two never show different
+                    // links for the same account: the handle when there is one, the id until then.
+                    tipCardLink = state.accountId?.let { userId ->
+                        Linkify.tipcard(
+                            TipCardOwner.preferringUsername(profile?.username, userId)
+                        )
+                    },
+                    usernameMinBalance = minimum.formatted(
+                        rule = Fiat.FormattingRule.Truncated,
+                        suffix = minimum.currencyCode.name,
+                    ),
                     // Carry the contact (value + verified) so unverified entries still show.
                     phone = profile?.phoneNumber,
                     email = profile?.email,
@@ -227,6 +255,16 @@ internal class UserProfileViewModel @Inject constructor(
                     label = resources.getString(R.string.title_clipboardLabelPushToken)
                 )
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.CopyTipCardLink>()
+            .mapNotNull { stateFlow.value.tipCardLink }
+            .onEach {
+                clipboardManager.setText(
+                    text = it,
+                    label = resources.getString(R.string.title_clipboardLabelTipCardLink)
+                )
+            }.launchIn(viewModelScope)
     }
 
     private suspend fun unlinkPhone() {
@@ -283,6 +321,9 @@ internal class UserProfileViewModel @Inject constructor(
                     state.copy(
                         displayName = event.displayName,
                         profilePicture = event.profilePicture,
+                        username = event.username,
+                        tipCardLink = event.tipCardLink,
+                        usernameMinBalance = event.usernameMinBalance,
                         phone = event.phone,
                         email = event.email,
                         phoneLinkedForPayment = event.linkedForPayment,
@@ -304,14 +345,13 @@ internal class UserProfileViewModel @Inject constructor(
                 Event.ConnectEmailClicked,
                 Event.ReplacePhoneClicked,
                 Event.ReplaceEmailClicked,
-                Event.EditNameClicked,
-                Event.EditPhotoClicked,
                 is Event.UnlinkSocialAccountClicked,
                 Event.NavigateToPhoneVerification,
                 Event.NavigateToEmailVerification,
                 Event.CopyPublicKey,
                 Event.CopyAccountId,
-                Event.CopyPushToken -> { state -> state }
+                Event.CopyPushToken,
+                Event.CopyTipCardLink -> { state -> state }
             }
         }
     }
