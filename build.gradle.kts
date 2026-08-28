@@ -3,7 +3,17 @@ buildscript {
         google()
         mavenCentral()
         gradlePluginPortal()
-        maven(url = "https://jitpack.io")
+        // JitPack only ever serves its own coordinate namespaces. Without this filter it
+        // is queried for every artifact, and because it sits ahead of repo.gradle.org a
+        // transient JitPack timeout fails the build before the tooling API is ever looked
+        // for where it actually lives.
+        maven(url = "https://jitpack.io") {
+            content {
+                includeGroupByRegex("com\\.github\\..*")
+                includeGroupByRegex("com\\.gitlab\\..*")
+                includeGroupByRegex("com\\.bitbucket\\..*")
+            }
+        }
         maven(url = "https://repo.gradle.org/gradle/libs-releases")
     }
 

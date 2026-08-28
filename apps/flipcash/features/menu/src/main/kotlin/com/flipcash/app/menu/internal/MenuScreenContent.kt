@@ -288,6 +288,9 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                         onSetProfilePicture = {
                             viewModel.dispatchEvent(Event.SetProfilePicture)
                         },
+                        onSetMinimumTip = {
+                            viewModel.dispatchEvent(Event.SetMinimumTip)
+                        },
                     )
                 },
                 footer = {
@@ -417,6 +420,7 @@ private fun YouHeader(
     onClaimUsername: () -> Unit,
     profileTutorial: List<TutorialItem.Profile>?,
     onSetProfilePicture: () -> Unit,
+    onSetMinimumTip: () -> Unit,
 ) {
     when (tipCardState) {
         TipCardState.Unknown -> Unit
@@ -445,6 +449,7 @@ private fun YouHeader(
             onClaimUsername = onClaimUsername,
             profileTutorial = profileTutorial,
             onSetProfilePicture = onSetProfilePicture,
+            onSetMinimumTip = onSetMinimumTip,
         )
     }
 }
@@ -480,6 +485,7 @@ private fun ClaimedTipCard(
     onClaimUsername: () -> Unit,
     profileTutorial: List<TutorialItem.Profile>?,
     onSetProfilePicture: () -> Unit,
+    onSetMinimumTip: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -565,8 +571,7 @@ private fun ClaimedTipCard(
                     ) { item ->
                         when (item) {
                             is TutorialItem.ProfilePicture -> onSetProfilePicture()
-                            // Inert: nothing backs a user-set minimum tip yet.
-                            is TutorialItem.MinimumTip -> Unit
+                            is TutorialItem.MinimumTip -> onSetMinimumTip()
                         }
                     }
 

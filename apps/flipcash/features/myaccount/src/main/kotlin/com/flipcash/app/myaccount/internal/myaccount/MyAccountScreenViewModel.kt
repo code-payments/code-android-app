@@ -27,6 +27,7 @@ private val FullMenuList = buildList {
     add(ChangeDisplayName)
     add(ChangeUsername)
     add(ProfilePicture)
+    add(MinimumTip)
     add(RequireBiometrics)
     add(Blocklist)
 }
@@ -80,6 +81,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
         data object OnEditUsername : Event
         data object OnProfilePictureClicked : Event
         data object OnEditProfilePicture : Event
+        data object OnMinimumTipClicked : Event
+        data object OnEditMinimumTip : Event
         data object OnBlocklistClicked: Event
         data object OnViewBlocklist: Event
         data object OnContactMethodsClicked : Event
@@ -143,6 +146,12 @@ internal class MyAccountScreenViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnMinimumTipClicked>()
+            .onEach {
+                dispatchEvent(Event.OnEditMinimumTip)
+            }.launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.OnBlocklistClicked>()
             .onEach {
                 dispatchEvent(Event.OnViewBlocklist)
@@ -178,6 +187,8 @@ internal class MyAccountScreenViewModel @Inject constructor(
                 Event.OnEditUsername,
                 Event.OnProfilePictureClicked,
                 Event.OnEditProfilePicture,
+                Event.OnMinimumTipClicked,
+                Event.OnEditMinimumTip,
                 Event.OnContactMethodsClicked,
                 Event.OnViewUserProfile,
                 Event.OnBlocklistClicked,

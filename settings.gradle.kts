@@ -7,7 +7,13 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
-        maven(url = "https://jitpack.io")
+        maven(url = "https://jitpack.io") {
+            content {
+                includeGroupByRegex("com\\.github\\..*")
+                includeGroupByRegex("com\\.gitlab\\..*")
+                includeGroupByRegex("com\\.bitbucket\\..*")
+            }
+        }
     }
     resolutionStrategy {
         eachPlugin {
@@ -59,7 +65,13 @@ dependencyResolutionManagement {
         mavenCentral()
         maven(url = "https://plugins.gradle.org/m2/")
         maven(url = "https://maven.fpregistry.io/releases")
-        maven(url = "https://jitpack.io")
+        maven(url = "https://jitpack.io") {
+            content {
+                includeGroupByRegex("com\\.github\\..*")
+                includeGroupByRegex("com\\.gitlab\\..*")
+                includeGroupByRegex("com\\.bitbucket\\..*")
+            }
+        }
         maven(url = "https://central.sonatype.com/repository/maven-snapshots/")
     }
 }

@@ -67,6 +67,20 @@ internal data object ProfilePicture : FullMenuItem<MyAccountScreenViewModel.Even
 }
 
 /**
+ * The fee another user has to pay to open a DM, which the profile carries as `minDmChatInitFee`.
+ * The same entry screen the "You" tab's checklist opens, reached here as a standing setting rather
+ * than a setup step.
+ */
+internal data object MinimumTip : FullMenuItem<MyAccountScreenViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = painterResource(CoreR.drawable.ic_coins)
+    override val name: String
+        @Composable get() = stringResource(CoreR.string.title_minimumTip)
+    override val action: MyAccountScreenViewModel.Event =
+        MyAccountScreenViewModel.Event.OnMinimumTipClicked
+}
+
+/**
  * A toggle, not a destination — the screen renders a switch in its trailing slot and routes the tap
  * through a biometric prompt. Its [action] is what a row tap dispatches, same as the switch.
  */

@@ -19,6 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.DisplayNameSource
+import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.tipping.TipResult
 import com.flipcash.app.core.tipping.TipStep
@@ -56,9 +57,12 @@ internal fun TipInfoScreen() {
                     flowNavigator.navigate(
                         AppRoute.UpdateUserProfile(
                             origin = AppRoute.Sheets.Tips(),
-                            nameSource = DisplayNameSource.TipCardSetup,
-                            includeName = userManager?.profile?.displayName.isNullOrEmpty(),
-                            includePhoto = false, // explicity false for now
+                            // A card only needs a name, and only if the account hasn't got one.
+                            steps = if (userManager?.profile?.displayName.isNullOrEmpty()) {
+                                listOf(UpdateProfileStep.Name(DisplayNameSource.TipCardSetup))
+                            } else {
+                                emptyList()
+                            },
                             target = AppRoute.Sheets.Tips(resumed = true),
                         )
                     )

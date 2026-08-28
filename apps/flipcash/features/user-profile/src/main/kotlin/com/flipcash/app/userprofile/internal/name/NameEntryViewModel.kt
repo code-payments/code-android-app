@@ -14,6 +14,7 @@ import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.SetDisplayNameError
 import com.flipcash.services.models.TextModerationError
 import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.errors.ValidationException
 import com.getcode.util.resources.ResourceHelper
@@ -61,6 +62,12 @@ class NameEntryViewModel @Inject constructor(
     }
 
     sealed interface Event {
+        /**
+         * Save was pressed. Replacing a stored name asks first; a first name has nothing to
+         * overwrite and goes straight to [CheckName].
+         */
+        data class ConfirmNameChange(val source: DisplayNameSource) : Event
+
         data class CheckName(val source: DisplayNameSource) : Event
         data class UpdateProcessingState(
             val loading: Boolean = false,
@@ -94,6 +101,25 @@ class NameEntryViewModel @Inject constructor(
                 if (pristine) {
                     stateFlow.value.nameFieldState.setTextAndPlaceCursorAtEnd(name)
                 }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ConfirmNameChange>()
+            .onEach { event ->
+                if (stateFlow.value.savedName.isBlank()) {
+                    dispatchEvent(Event.CheckName(event.source))
+                    return@onEach
+                }
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_changeDisplayName),
+                    message = resources.getString(R.string.prompt_description_changeDisplayName),
+                    actions = listOf(
+                        BottomBarAction(resources.getString(R.string.action_changeDisplayName)) {
+                            dispatchEvent(Event.CheckName(event.source))
+                        }
+                    ),
+                    showCancel = true,
+                )
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -194,6 +220,7 @@ class NameEntryViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
+                is Event.ConfirmNameChange -> { state -> state }
                 is Event.CheckName -> { state -> state }
                 is Event.OnSavedNameLoaded -> { state -> state.copy(savedName = event.name) }
                 Event.DiscardChanges -> { state -> state }

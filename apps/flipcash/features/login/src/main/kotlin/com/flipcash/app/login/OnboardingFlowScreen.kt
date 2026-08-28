@@ -26,6 +26,7 @@ import com.flipcash.app.analytics.Action
 import com.flipcash.app.analytics.Button
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.DisplayNameSource
+import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.navigation.homeRoute
@@ -267,9 +268,7 @@ private fun FlowNavigator<OnboardingStep, OnboardingResult>.proceedToNameOrPermi
         navigate(
             AppRoute.UpdateUserProfile(
                 origin = AppRoute.OnboardingFlow(),
-                nameSource = DisplayNameSource.Onboarding,
-                includeName = true,
-                includePhoto = false,
+                steps = listOf(UpdateProfileStep.Name(DisplayNameSource.Onboarding)),
                 target = AppRoute.OnboardingFlow(
                     phase = AppRoute.OnboardingFlow.Phase.Permissions,
                     skipContacts = true,

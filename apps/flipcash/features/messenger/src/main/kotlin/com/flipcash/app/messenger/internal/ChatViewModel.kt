@@ -261,7 +261,9 @@ internal class ChatViewModel @Inject constructor(
     // tip (from the tip payment delegate); a contact DM swipes to *send* with no minimum.
     private fun amountStyle(isTip: Boolean) = AmountEntryStyle(
         actionLabel = AmountEntryLabel.Plain(
-            resources.getString(R.string.action_swipeToSend)
+            resources.getString(
+                if (isTip) R.string.action_swipeToTip else R.string.action_swipeToSend
+            )
         ),
         actionStyle = ConfirmationStyle.Slide,
         infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
@@ -269,6 +271,13 @@ internal class ChatViewModel @Inject constructor(
         belowMinHint = if (isTip) {
             { min -> resources.getString(R.string.subtitle_tipHintMinimum, min) }
         } else null,
+        // A tip's ceiling is only the sender's own balance; the minimum is the recipient's rule
+        // and the one worth stating up front, so it holds the hint line for the whole entry.
+        standingHint = if (isTip) {
+            AmountEntryStyle.StandingHint.Floor
+        } else {
+            AmountEntryStyle.StandingHint.Ceiling
+        },
     )
 
     private val isTipFlow = stateFlow
@@ -669,7 +678,9 @@ internal class ChatViewModel @Inject constructor(
                     val minimum = minAmountFlow.value
                     if (minimum != null && amount.valueLessThan(minimum)) {
                         dispatchEvent(Event.SendStateUpdated())
-                        BottomBarManager.showAlert(
+                        // Info, not alert: nothing has failed and nothing is being destroyed —
+                        // the entry is just under the recipient's floor and needs raising.
+                        BottomBarManager.showInfo(
                             title = resources.getString(R.string.error_title_tipMinimum, minimum.formatted()),
                             message = resources.getString(R.string.error_description_tipMinimum),
                         )
