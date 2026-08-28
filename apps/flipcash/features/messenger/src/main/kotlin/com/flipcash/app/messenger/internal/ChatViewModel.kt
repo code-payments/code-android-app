@@ -66,6 +66,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -257,8 +258,9 @@ internal class ChatViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     }
 
-    // The amount entry adapts to the chat type: a tip DM swipes to *tip* and enforces the minimum
-    // tip (from the tip payment delegate); a contact DM swipes to *send* with no minimum.
+    // The amount entry adapts to the chat type: a tip DM swipes to *tip*, a contact DM to *send*.
+    // Whether there is a minimum to enforce is a separate question — see [minAmountFlow] — and the
+    // style degrades to the "enter up to" ceiling hint on its own when there is none.
     private fun amountStyle(isTip: Boolean) = AmountEntryStyle(
         actionLabel = AmountEntryLabel.Plain(
             resources.getString(
@@ -280,8 +282,14 @@ internal class ChatViewModel @Inject constructor(
         },
     )
 
-    private val isTipFlow = stateFlow
-        .map { it.participant is ChatParticipant.TipUser }
+    // The counterparty of a tip DM, whose server profile carries the fee they charge to open a DM.
+    // Null for a contact DM: it is addressed by phone number and there is no profile to read one off.
+    private val tipRecipientFlow = stateFlow
+        .map { it.participant as? ChatParticipant.TipUser }
+        .distinctUntilChanged()
+
+    private val isTipFlow = tipRecipientFlow
+        .map { it != null }
         .distinctUntilChanged()
 
     private val amountStyleFlow by lazy {
@@ -290,10 +298,39 @@ internal class ChatViewModel @Inject constructor(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), amountStyle(isTip = false))
     }
 
+    /**
+     * Whether this conversation already exists. Members are the same signal
+     * [com.flipcash.shared.chat.DmChatResolver.getChatId] calls initialized: a chat the server has
+     * created has a member row, one derived from a user id alone does not.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val isChatInitialized by lazy {
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatCoordinator.observeMembers(it) }
+            .map { it.isNotEmpty() }
+            .distinctUntilChanged()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    }
+
+    /**
+     * The floor the entry enforces, and only for the payment that opens a tip DM.
+     *
+     * What the recipient sets is the fee to *open* a DM with them, so it gates that first payment
+     * and nothing after it: once the conversation exists, sending cash in it has no minimum at all.
+     * A contact DM never has one.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
     private val minAmountFlow by lazy {
-        combine(isTipFlow, tipPaymentDelegate.minTipAmount) { isTip, tipMin ->
-            if (isTip) tipMin else null
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        combine(tipRecipientFlow, isChatInitialized) { recipient, initialized ->
+            recipient?.takeUnless { initialized }
+        }
+            .distinctUntilChanged()
+            .flatMapLatest { recipient ->
+                if (recipient == null) flowOf(null)
+                else tipPaymentDelegate.minimumToOpenDmWith(recipient.profile)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     }
 
     val amountDelegate by lazy {
