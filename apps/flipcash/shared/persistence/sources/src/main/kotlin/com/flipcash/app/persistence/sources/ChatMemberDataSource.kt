@@ -84,6 +84,30 @@ class ChatMemberDataSource @Inject constructor(
         dao.updatePointers(chatIdHex, userIdHex, mapper.pointersToJson(merged))
     }
 
+    /**
+     * Replaces a chat's membership with [members], keeping the rows that survive instead of
+     * clearing the table first. A wipe takes each member's pointers with it, and the refresh
+     * that follows can only restore what the server knew at fetch time — so a read the client
+     * has advanced locally but not yet reported would be lost.
+     */
+    suspend fun replaceMembers(chatId: ChatId, members: List<ChatMember>) {
+        if (members.isEmpty()) {
+            deleteForChat(chatId)
+            return
+        }
+
+        val database = db ?: return
+        val hex = mapper.chatIdHex(chatId)
+        database.withTransaction {
+            database.userProfileDao().upsertFull(members.map { mapper.toProfileEntity(it) })
+            database.chatMemberDao().upsert(members.map { mapper.toEntity(hex, it) })
+            database.chatMemberDao().deleteMembersNotIn(
+                chatIdHex = hex,
+                keepUserIdHexes = members.map { mapper.userIdHex(it.userId) },
+            )
+        }
+    }
+
     suspend fun deleteForChat(chatId: ChatId) {
         db?.chatMemberDao()?.deleteForChat(mapper.chatIdHex(chatId))
     }

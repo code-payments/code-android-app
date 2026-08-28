@@ -301,8 +301,10 @@ class EventStreamDelegate @Inject constructor(
             when (metaUpdate) {
                 is MetadataUpdate.FullRefresh -> {
                     metadataDataSource.upsert(metaUpdate.metadata)
-                    memberDataSource.deleteForChat(metaUpdate.metadata.chatId)
-                    memberDataSource.upsert(metaUpdate.metadata.chatId, metaUpdate.metadata.members)
+                    memberDataSource.replaceMembers(
+                        metaUpdate.metadata.chatId,
+                        metaUpdate.metadata.members,
+                    )
                     metaUpdate.metadata.lastMessage?.let { msg ->
                         messageDataSource.upsert(metaUpdate.metadata.chatId, listOf(msg))
                     }
