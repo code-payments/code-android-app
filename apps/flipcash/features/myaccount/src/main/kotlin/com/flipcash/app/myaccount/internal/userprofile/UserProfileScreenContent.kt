@@ -8,16 +8,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -52,7 +56,6 @@ import com.getcode.ui.components.text.SectionHeader
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -62,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import com.flipcash.app.core.util.abbreviatedLink
 import com.getcode.theme.White05
 import com.getcode.theme.extraSmall
+import com.getcode.ui.core.verticalScrollStateGradient
 import kotlinx.coroutines.delay
 
 @Composable
@@ -70,16 +74,28 @@ internal fun UserProfileScreenContent(
     dispatch: (UserProfileViewModel.Event) -> Unit,
 ) {
     val inset = CodeTheme.dimens.inset
+    val listState = rememberLazyListState()
+    // The gesture-bar inset rides in contentPadding rather than on the list itself: as a layout
+    // inset it shortened the viewport and cut the last card off at the padded edge, and it left the
+    // list exactly one screen tall and so unable to scroll at all. As content padding the list still
+    // fills the window and the last card scrolls clear of the bar, fading out under the gradient.
+    val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .navigationBarsPadding(),
-        // The last section sat directly under the gesture bar, which also left the list exactly
-        // one screen tall and so unable to scroll at all.
+            // Fades at both edges, so content reads as running past the app bar and the gesture bar
+            // rather than stopping at them.
+            .verticalScrollStateGradient(
+                scrollState = listState,
+                showAtStart = true,
+                showAtEnd = true,
+                isLongGradient = true,
+            ),
+        state = listState,
         contentPadding = PaddingValues(
             start = inset,
             end = inset,
-            bottom = CodeTheme.dimens.grid.x3,
+            bottom = bottomInset + CodeTheme.dimens.grid.x3,
         ),
     ) {
         // Profile header — the account's public identity, read only. Editing the photo and the
