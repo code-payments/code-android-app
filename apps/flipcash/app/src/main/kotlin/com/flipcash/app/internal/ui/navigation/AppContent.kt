@@ -16,7 +16,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import dev.chrisbanes.haze.hazeSource
@@ -194,12 +193,12 @@ internal fun AppContent(
             navigator = codeNavigator,
             hazeState = hazeState,
             forceHidden = tabBarVisibility.isHidden,
+            // The bar fades itself out with the wallet's card expansion — and drops out of the tree at
+            // the end of the fade, so an invisible bar can't be tapped. See AppNavigationBar.
+            cardExpansion = cardExpansion,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .measured { if (it.height > tabBarHeight.value) tabBarHeight.value = it.height }
-                // Fades out with the expansion and back in with the collapse (no abrupt snap on return),
-                // like iOS's tab bar. At rest progress is 0, so it's fully shown.
-                .graphicsLayer { alpha = 1f - cardExpansion.progress.value },
+                .measured { if (it.height > tabBarHeight.value) tabBarHeight.value = it.height },
         )
 
         // The expanded currency-info overlay is hosted INSIDE the wallet nav entry (see CardExpandHost),
