@@ -8,9 +8,11 @@ import kotlin.time.Instant
 /**
  * Leading avatar for a transaction row.
  * - [Profile] — a resolved counterparty (tip / user-to-user send-receive), keyed by user id.
- * - [TokenIcon] — no counterparty (deposit / buy / sell / withdraw): the token's icon.
+ * - [TokenIcon] — no counterparty to draw: deposit / buy / sell / withdraw, a cash link (sent to
+ *   whoever opens it), or a give or grab the server left unidentified (a bill hand-off never
+ *   exchanges identities). The token's icon.
  * - [SwapTokens] — a convert: both sides' icons, source behind destination.
- * - [Generic] — unresolved / unknown counterparty.
+ * - [Generic] — a counterparty that is named but not yet resolved, or unknown metadata.
  */
 sealed interface TransactionAvatar {
     data class Profile(val profile: UserProfile) : TransactionAvatar

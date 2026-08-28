@@ -153,8 +153,13 @@ fun TokenCardStack(
         // Always the fanned height, so the list's scroll range is stable while cards collapse.
         val height = if (placeables.isEmpty()) 0 else cardPx + fannedPx * (placeables.size - 1)
         // Scroll distance at which every card has finished collapsing (the last card pins last).
-        val collapseComplete =
-            ((placeables.size - 1) * (fannedPx - collapsedPx) - pinInsetPx).coerceAtLeast(0)
+        // Deliberately NOT clamped at 0: it is a cap on `past`, and at that cap the last card sits at
+        // exactly its fanned slot, so the deck never leaves the measured height. When the fanned slack
+        // is smaller than the pin inset — a single card has none at all — the cap is negative and no
+        // card ever pins, which is correct: there is nothing to collapse. Clamping it to 0 would let
+        // the deck pin `pinInset` px below its own top, pushing the front card past the bottom of the
+        // item and under the following row (the wallet's "Recent" section overlapping a lone card).
+        val collapseComplete = (placeables.size - 1) * (fannedPx - collapsedPx) - pinInsetPx
         layout(constraints.maxWidth, height) {
             // Read scroll offset HERE (placement) — not in the measure scope — so scrolling only
             // re-places the cards; reading it while measuring would re-run each card's SubcomposeLayout.
