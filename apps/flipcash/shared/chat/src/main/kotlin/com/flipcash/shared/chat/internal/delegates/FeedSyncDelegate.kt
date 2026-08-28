@@ -17,6 +17,7 @@ import com.flipcash.shared.chat.FeedOperations
 import com.flipcash.shared.chat.FeedSyncState
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.services.user.UserManager
+import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -70,6 +71,12 @@ class FeedSyncDelegate @Inject constructor(
          * the row still holds what the client has actually applied.
          */
         data class DeltaSyncNeeded(val chatId: ChatId) : Event
+
+        /**
+         * The client's own READ pointer for [chatId] is ahead of the copy the feed just returned,
+         * so the server never took the advance. The consumer re-reports [messageId].
+         */
+        data class ReadPointerUnreported(val chatId: ChatId, val messageId: Long) : Event
 
         /**
          * Emitted last by every successful sync, after any catch-up above it.
@@ -184,6 +191,32 @@ class FeedSyncDelegate @Inject constructor(
         feedObserverJob = null
     }
 
+    /**
+     * Emits [Event.ReadPointerUnreported] when the stored READ pointer for [chat] is ahead of the
+     * one the feed just returned.
+     *
+     * A read is written locally the moment the message is on screen and reported to the server
+     * afterwards, and nothing retries a report that fails. The local pointer survives — the member
+     * row keeps whichever value is further ahead — so the two copies can disagree indefinitely,
+     * leaving every other device and the pushes this one receives treating the chat as unread. A
+     * feed payload is the server's own copy, so the sync is where they can be compared.
+     */
+    private suspend fun reportUnreportedRead(chat: ChatMetadata, selfId: ID) {
+        val server = chat.members
+            .firstOrNull { it.userId == selfId }
+            ?.pointers
+            ?.firstOrNull { it.type == PointerType.READ }
+            ?.value
+            ?: 0L
+
+        // Read after the merge above, so this is max(local, server): ahead of `server` only when
+        // a local advance never reached it.
+        val local = memberDataSource.getSelfReadPointer(chat.chatId, selfId)
+        if (local > server) {
+            _events.send(Event.ReadPointerUnreported(chat.chatId, local))
+        }
+    }
+
     private suspend fun buildFeedFromDb(
         metadataEntities: List<ChatMetadataEntity>,
         membersByChat: Map<String, List<ChatMember>>,
@@ -229,7 +262,11 @@ class FeedSyncDelegate @Inject constructor(
                 stateHolder.update { it.copy(feedSyncState = FeedSyncState.Synced) }
                 trace(tag = TAG, message = "Feed synced: ${chats.size} chats", type = TraceType.Process)
 
+                val selfId = userManager.accountId
+
                 for (chat in chats) {
+                    if (selfId != null) reportUnreportedRead(chat, selfId)
+
                     // The applied cursor, not the presence of messages, is what says whether a
                     // transcript was ever pulled: the loop above persists each chat's last-message
                     // preview, so "has messages" is true for nearly every chat in a feed the client
