@@ -10,12 +10,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.LocalUserManager
 import dev.chrisbanes.haze.HazeState
@@ -52,6 +55,10 @@ internal fun AppNavigationBar(
     // A tab home taking over the whole screen without leaving its route (the You tab's tip card
     // expanding in place). See TabBarVisibilityController.
     forceHidden: Boolean = false,
+    // The wallet's card expansion, which fades this bar out as a card opens over the deck. Passed as
+    // the controller rather than a Float so the progress is read inside a graphicsLayer and a frame of
+    // the expansion doesn't recompose the bar.
+    cardExpansion: CardExpansionController? = null,
 ) {
     // Selection follows the base of the backstack (the tab "home"), so it stays correct while a
     // sheet/modal sits on top and is right on launch. The top route only gates visibility.
@@ -78,9 +85,26 @@ internal fun AppNavigationBar(
 
     val avatar = rememberProfileAvatar()
 
+    // The expansion is the wallet's, and only the wallet entry can collapse it (CardExpandHost), so
+    // scope the fade to that tab. A route change that leaves the wallet mid-expansion would otherwise
+    // strand the bar faded out with nothing left to bring it back.
+    val expansion = cardExpansion?.takeIf { selectedTab == NavBarButton.Wallet }
+    val fadeProgress = { expansion?.progress?.value ?: 0f }
+
+    // Fully faded means fully off screen, and off screen must mean untappable: alpha alone leaves the
+    // bar hit-testable, so an invisible bar still took taps and switched tabs. Drop it from the tree at
+    // the end of the fade instead. derivedStateOf keeps that to the two frames the boolean flips on,
+    // rather than one recomposition per frame of the expansion.
+    val fadedOut by remember(expansion) {
+        derivedStateOf { fadeProgress() >= 1f }
+    }
+
     Box(
         modifier = Modifier
-            .then(modifier),
+            .then(modifier)
+            // Fades out with the expansion and back in with the collapse (no abrupt snap on return),
+            // like iOS's tab bar. At rest progress is 0, so it's fully shown.
+            .graphicsLayer { alpha = 1f - fadeProgress() },
         contentAlignment = Alignment.BottomCenter,
     ) {
         AnimatedVisibility(
@@ -88,23 +112,28 @@ internal fun AppNavigationBar(
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut(),
         ) {
-            val state = rememberNavigationBarState(
-                selectedTab = selectedTab ?: NavBarButton.Wallet,
-                tipUnreadCount = tipUnreadCount,
-            )
-            NavigationBar(
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .padding(horizontal = CodeTheme.dimens.grid.x8)
-                    .padding(bottom = CodeTheme.dimens.grid.x3),
-                state = state,
-                onButtonClick = { button ->
-                    // Tab bar semantics: swap the current screen (single backstack).
-                    navigator.replaceAll(button.destinationRoute())
-                },
-                hazeState = hazeState,
-                avatar = avatar,
-            )
+            // Inside the AnimatedVisibility, not part of its `visible`: the bar is already at alpha 0
+            // by the time this drops it, so it must not also play the slide-out — and on the way back
+            // it reappears where it stood and fades up, as before.
+            if (!fadedOut) {
+                val state = rememberNavigationBarState(
+                    selectedTab = selectedTab ?: NavBarButton.Wallet,
+                    tipUnreadCount = tipUnreadCount,
+                )
+                NavigationBar(
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(horizontal = CodeTheme.dimens.grid.x8)
+                        .padding(bottom = CodeTheme.dimens.grid.x3),
+                    state = state,
+                    onButtonClick = { button ->
+                        // Tab bar semantics: swap the current screen (single backstack).
+                        navigator.replaceAll(button.destinationRoute())
+                    },
+                    hazeState = hazeState,
+                    avatar = avatar,
+                )
+            }
         }
     }
 }
