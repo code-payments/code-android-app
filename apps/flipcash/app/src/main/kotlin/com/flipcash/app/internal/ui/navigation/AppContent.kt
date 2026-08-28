@@ -102,14 +102,18 @@ internal fun AppContent(
                 navigator = codeNavigator,
                 resultStateRegistry = resultStateRegistry,
                 decorators = listOf(
-                    // First = outermost: bill draws above screen content but is skipped for sheet
-                    // entries, so NavDisplay paints the sheet scene above the bill-bearing base
-                    // entry — sheets open OVER the bill. See NavBillOverlayEntryDecorator.
-                    rememberNavBillOverlayEntryDecorator(),
+                    // First = outermost, and outermost draws last: a bottom bar message is a prompt
+                    // that has to be answered, so it sits above everything the entry draws — the
+                    // bill overlay and its scrim included (the tip card's own modal would otherwise
+                    // cover the insufficient-balance prompt raised from it).
                     rememberNavMessagingEntryDecorator(
                         codeNavigator.backStack,
                         barManager
                     ),
+                    // The bill draws above screen content but is skipped for sheet entries, so
+                    // NavDisplay paints the sheet scene above the bill-bearing base entry — sheets
+                    // open OVER the bill. See NavBillOverlayEntryDecorator.
+                    rememberNavBillOverlayEntryDecorator(),
                     rememberNavBlockingOverlayEntryDecorator(),
                     // Inset-only: reserves LocalTabBarPadding per tab-home entry for the hoisted bar,
                     // so pushed/detail screens are not inset and the inset never collapses mid-push.
