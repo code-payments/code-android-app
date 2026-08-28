@@ -4,6 +4,7 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
@@ -146,12 +147,22 @@ fun BillOverlay(modifier: Modifier = Modifier) {
         // When the tip modal is up, pin the tip card just above it: reserve the modal's height as
         // bottom inset AND bottom-align the card (bias 0 = centered, 1 = bottom). Both animated so the
         // card slides from centered down to just above the modal, and back, in lockstep with the modal.
-        val tipModalUp = managementHeight > 0.dp && updatedBillState.bill is Scannable.TipCard
+        val isTipCard = updatedBillState.bill is Scannable.TipCard
+        val tipModalUp = managementHeight > 0.dp && isTipCard
         val modalSpeed = ModalAnimationSpeed.Normal(updatedBillState.confirmationDelayMillis)
-        val offset = if (updatedBillState.bill is Scannable.TipCard) CodeTheme.dimens.grid.x8 else CodeTheme.dimens.grid.x2
+        val offset = if (isTipCard) CodeTheme.dimens.grid.x8 else CodeTheme.dimens.grid.x2
+        // Only the tip card's inset is animated. Everywhere else the inset's one and only change is
+        // 0 -> the management row's measured height, which lands a frame after the bill composes;
+        // animating it slid the card up from behind the send/cancel pills half a second after it had
+        // already appeared over them. Snapping puts the card at its final position while the enter
+        // spring is still carrying it up from off-screen, so there is nothing to see.
         val billBottomInset by animateDpAsState(
             targetValue = managementHeight + offset,
-            animationSpec = tween(durationMillis = modalSpeed.duration, delayMillis = modalSpeed.delay),
+            animationSpec = if (isTipCard) {
+                tween(durationMillis = modalSpeed.duration, delayMillis = modalSpeed.delay)
+            } else {
+                snap()
+            },
             label = "billBottomInset",
         )
         val billVerticalBias by animateFloatAsState(
