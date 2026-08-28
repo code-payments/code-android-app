@@ -134,6 +134,7 @@ fun appEntryProvider(
     }
 
     // User Profile Management
+
     annotatedEntry<AppRoute.UpdateUserProfile> { key ->
         UpdateUserProfileFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }

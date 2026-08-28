@@ -8,6 +8,7 @@ import com.flipcash.app.bills.share.TipCodePreviewCache
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.DisplayNameSource
+import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.share.TipCodeExportFormat
@@ -168,6 +169,9 @@ internal class MenuScreenViewModel @Inject constructor(
         /** The checklist's photo row — opens the photo step of the profile flow on its own. */
         data object SetProfilePicture : Event
 
+        /** The checklist's minimum-tip row — opens the amount entry for the DM-init fee. */
+        data object SetMinimumTip : Event
+
         /** The progress card's tap — claim a handle, or explain why it can't be claimed yet. */
         data object ClaimUsername : Event
         /** The claim prompt's CTA — collect a display name so the account gets a real card. */
@@ -323,11 +327,7 @@ internal class MenuScreenViewModel @Inject constructor(
                         Event.OpenScreen(
                             AppRoute.UpdateUserProfile(
                                 origin = AppRoute.Sheets.Menu,
-                                // Inert: the name step is skipped, but the route asks for a source.
-                                nameSource = DisplayNameSource.TipCardSetup,
-                                includeName = false,
-                                includePhoto = false,
-                                includeUsername = true,
+                                steps = listOf(UpdateProfileStep.Username),
                             )
                         )
                     )
@@ -374,10 +374,8 @@ internal class MenuScreenViewModel @Inject constructor(
                     Event.OpenScreen(
                         AppRoute.UpdateUserProfile(
                             origin = AppRoute.Sheets.Menu,
-                            nameSource = DisplayNameSource.TipCardSetup,
-                            includeName = true,
-                            // Explicitly false: a name is all a tip card needs.
-                            includePhoto = false,
+                            // A name is all a tip card needs.
+                            steps = listOf(UpdateProfileStep.Name(DisplayNameSource.TipCardSetup)),
                         )
                     )
                 )
@@ -391,12 +389,23 @@ internal class MenuScreenViewModel @Inject constructor(
                     Event.OpenScreen(
                         AppRoute.UpdateUserProfile(
                             origin = AppRoute.Sheets.Menu,
-                            nameSource = DisplayNameSource.MyAccount,
-                            // Photo only: the account already has a name and a card by the time
-                            // this checklist is drawn, so the flow reduces to the one step.
-                            includeName = false,
-                            includePhoto = true,
-                            includeUsername = false,
+                            // The account already has a name and a card by the time this
+                            // checklist is drawn, so the flow reduces to the one step.
+                            steps = listOf(UpdateProfileStep.Photo),
+                        )
+                    )
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.SetMinimumTip>()
+            .onEach {
+                dispatchEvent(
+                    Event.OpenScreen(
+                        AppRoute.UpdateUserProfile(
+                            origin = AppRoute.Sheets.Menu,
+                            steps = listOf(UpdateProfileStep.MinimumTip),
                         )
                     )
                 )
@@ -567,6 +576,7 @@ internal class MenuScreenViewModel @Inject constructor(
                 Event.ClaimTipCard,
                 Event.ClaimUsername,
                 Event.SetProfilePicture,
+                Event.SetMinimumTip,
                 Event.ShareTipCard,
                 Event.CopyTipLink,
                 Event.DownloadTipCard,

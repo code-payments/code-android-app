@@ -85,10 +85,8 @@ sealed interface TutorialItem {
     }
 
     /**
-     * Drawn but inert. Nothing backs a user-set minimum tip yet: the amount comes from
-     * server-supplied regional presets, no field for it exists on the profile or the tip-card
-     * customization message, and iOS has no implementation either. The row is in the design, so
-     * it is drawn — and it never completes, which is the state node 9641:17019 shows.
+     * The fee another user has to pay to open a DM, stored on the profile as `minDmChatInitFee`.
+     * Completes once one is set; the row stays outstanding while the server default applies.
      */
     class MinimumTip(override val isCompleted: Boolean = false) : Profile {
         override val title: String

@@ -144,21 +144,20 @@ sealed interface AppRoute : NavKey, Parcelable {
 
     @Serializable
     @Parcelize
+    /**
+     * The profile editor, as an ordered list of the [steps] the caller wants. Each step carries its
+     * own parameters, so asking for a subset costs nothing beyond a shorter list.
+     */
     data class UpdateUserProfile(
         val origin: AppRoute,
-        val nameSource: DisplayNameSource,
-        val includeName: Boolean = true,
-        val includePhoto: Boolean = true,
-        // Off by default: the username step is gated on a minimum balance and is never part of
-        // onboarding, so only the surfaces that qualify the account ask for it.
-        val includeUsername: Boolean = false,
+        val steps: List<UpdateProfileStep>,
         val target: AppRoute? = null,
         // When false, the first step has no back affordance and system back is swallowed —
         // used in onboarding where display-name entry is a mandatory, non-dismissable step.
         val allowBack: Boolean = true,
     ): AppRoute, FlowRouteWithResult<UpdateProfileResult> {
         override val initialStack: List<NavKey>
-            get() = buildUpdateUserProfileStack(includeName, includeUsername, includePhoto)
+            get() = steps
     }
 
     @Serializable
@@ -371,16 +370,6 @@ private fun buildVerificationInitialStack(
 
 // Ordered list of the steps the flow should walk (via FlowNavigator.proceed()) — name, then
 // username, then photo. In edit mode only the requested step(s) are included.
-private fun buildUpdateUserProfileStack(
-    includeName: Boolean,
-    includeUsername: Boolean,
-    includePhoto: Boolean,
-): List<NavKey> = buildList {
-    if (includeName) add(UpdateProfileStep.Name)
-    if (includeUsername) add(UpdateProfileStep.Username)
-    if (includePhoto) add(UpdateProfileStep.Photo)
-}
-
 /** Where a display-name entry flow was launched from. Reported as the `Source` analytics property. */
 @Serializable
 enum class DisplayNameSource { Onboarding, MyAccount, TipCardSetup }

@@ -3,6 +3,7 @@ package com.flipcash.app.menu.internal
 import com.flipcash.app.core.ui.onboarding.TutorialItem
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.MediaItem
+import com.getcode.opencode.model.financial.Fiat
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -14,12 +15,13 @@ class ProfileTutorialTest {
     // "a picture is set" without needing a mocking library in this module.
     private val anyPicture = MediaItem(renditions = emptyList())
 
-    private fun profile(picture: MediaItem?) = UserProfile(
+    private fun profile(picture: MediaItem? = null, minimumTip: Fiat? = null) = UserProfile(
         displayName = "Brandon",
         socialAccounts = emptyList(),
         phoneNumber = null,
         email = null,
         profilePicture = picture,
+        minDmChatInitFee = minimumTip,
     )
 
     @Test
@@ -28,8 +30,8 @@ class ProfileTutorialTest {
     }
 
     @Test
-    fun `a profile without a picture leaves both steps outstanding`() {
-        val items = profileTutorialItems(profile(picture = null))
+    fun `a bare profile leaves both steps outstanding`() {
+        val items = profileTutorialItems(profile())
         assertEquals(2, items?.size)
         assertTrue(items!!.none { it.isCompleted })
     }
@@ -42,8 +44,14 @@ class ProfileTutorialTest {
     }
 
     @Test
-    fun `the minimum tip step never completes`() {
-        val items = profileTutorialItems(profile(picture = anyPicture))
-        assertTrue(items!!.none { it is TutorialItem.MinimumTip && it.isCompleted })
+    fun `a saved minimum tip completes only the minimum tip step`() {
+        val items = profileTutorialItems(profile(minimumTip = Fiat(1.0)))
+        assertEquals(1, items?.count { it.isCompleted })
+        assertTrue(items!!.first { it is TutorialItem.MinimumTip }.isCompleted)
+    }
+
+    @Test
+    fun `a picture and a minimum tip take the checklist away entirely`() {
+        assertNull(profileTutorialItems(profile(picture = anyPicture, minimumTip = Fiat(1.0))))
     }
 }
