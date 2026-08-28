@@ -24,6 +24,17 @@ class EventStreamingController @Inject constructor(
     private val _blobUpdates = Channel<BlobUpdate>(capacity = Channel.UNLIMITED)
     val blobUpdates: Flow<BlobUpdate> = _blobUpdates.receiveAsFlow()
 
+    // Conflated: the signal is "there is no stream any more", which two failures state no better
+    // than one, and it has to survive being emitted while the consumer is between waits.
+    private val _streamFailures = Channel<Unit>(capacity = Channel.CONFLATED)
+
+    /**
+     * Emits when a stream ends with nothing retrying it — a status outside the reconnect loop's
+     * retryable set, or the loop exhausting its attempts. Reopening is the consumer's call; this
+     * only says the connection is gone, so a supervisor need not poll to find out.
+     */
+    val streamFailures: Flow<Unit> = _streamFailures.receiveAsFlow()
+
     // Guards all reads/writes of [streamRef]. open()/close() are invoked
     // concurrently from multiple triggers (login, lifecycle onStart, network
     // reconnect, feature-flag, heartbeat) on the multi-threaded IO scope, so
@@ -42,6 +53,10 @@ class EventStreamingController @Inject constructor(
             trace("EventStreamingController: Stream already open, skipping")
             return true
         }
+
+        // A pending failure describes the stream being replaced here. Left queued, it would wake
+        // the supervisor against the new stream before it has had a chance to connect.
+        while (_streamFailures.tryReceive().isSuccess) Unit
 
         val owner = userManager.accountCluster?.authority?.keyPair ?: run {
             trace("EventStreamingController: No account cluster, cannot open stream")
@@ -66,7 +81,10 @@ class EventStreamingController @Inject constructor(
                 // event creates a fresh stream. Only clear if it is still THIS
                 // stream — never null out a newer ref opened after us.
                 synchronized(lock) {
-                    if (streamRef === openedRef) streamRef = null
+                    if (streamRef === openedRef) {
+                        streamRef = null
+                        _streamFailures.trySend(Unit)
+                    }
                 }
             },
         )

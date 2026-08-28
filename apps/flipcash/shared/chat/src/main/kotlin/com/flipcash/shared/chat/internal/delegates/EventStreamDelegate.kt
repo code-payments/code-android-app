@@ -29,17 +29,21 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -86,6 +90,8 @@ class EventStreamDelegate @Inject constructor(
     companion object {
         private const val TAG = "EventStreamDelegate"
         private val GAP_FILL_DELAY = 2.seconds
+        private val HEARTBEAT_INTERVAL = 30.seconds
+        private val REOPEN_BACKOFF_BASE = 1.seconds
     }
 
     sealed interface Event {
@@ -164,20 +170,55 @@ class EventStreamDelegate @Inject constructor(
         eventStreamingController.close()
     }
 
+    /**
+     * Supervises the stream: whenever it is found down, syncs the feed and reopens it.
+     *
+     * Each pass waits for whichever comes first, a [HEARTBEAT_INTERVAL] tick or
+     * [EventStreamingController.streamFailures] reporting a stream that ended with nothing
+     * retrying it. The failure signal is what keeps such a stream from costing a whole interval:
+     * a status outside the reconnect loop's retryable set, or a ping timeout, is never retried by
+     * the loop, and the tick was the only thing that noticed.
+     *
+     * Reopening backs off from the second consecutive attempt on, so a stream that fails as soon
+     * as it opens cannot spin the loop. The backoff tops out at [HEARTBEAT_INTERVAL], which is
+     * where every failure used to wait.
+     */
     internal fun startHeartbeat(onReconnect: () -> Unit) {
         val scope = scope ?: return
         stopHeartbeat()
         heartbeatJob = scope.launch {
+            var consecutiveReopens = 0
+
             while (true) {
-                delay(30.seconds)
-                if (!eventStreamingController.isStreamActive) {
-                    trace(tag = TAG, message = "Heartbeat: event stream dead, syncing feed and reconnecting", type = TraceType.Process)
-                    onReconnect()
-                    eventStreamingController.close()
-                    open()
+                // A failures flow that completes means no signal is coming, not that one just
+                // arrived — waiting out the tick keeps this a supervisor rather than a spin.
+                val failed = withTimeoutOrNull(HEARTBEAT_INTERVAL) {
+                    eventStreamingController.streamFailures.firstOrNull() ?: awaitCancellation()
+                } != null
+
+                // Only the failure-driven wake can arrive back to back; the tick already spaces
+                // itself out. Liveness is read after the wait, so a stream another trigger
+                // reopened in the meantime is left alone.
+                if (failed) delay(reopenBackoff(consecutiveReopens))
+
+                if (eventStreamingController.isStreamActive) {
+                    consecutiveReopens = 0
+                    continue
                 }
+                consecutiveReopens++
+
+                trace(tag = TAG, message = "Event stream down, syncing feed and reconnecting", type = TraceType.Process)
+                onReconnect()
+                eventStreamingController.close()
+                open()
             }
         }
+    }
+
+    private fun reopenBackoff(consecutiveReopens: Int): Duration = when {
+        consecutiveReopens <= 0 -> Duration.ZERO
+        else -> (REOPEN_BACKOFF_BASE * (1 shl (consecutiveReopens - 1).coerceAtMost(5)))
+            .coerceAtMost(HEARTBEAT_INTERVAL)
     }
 
     internal fun stopHeartbeat() {
