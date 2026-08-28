@@ -28,6 +28,8 @@ import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -235,6 +237,22 @@ class MessagingDelegate @Inject constructor(
         return messagingController.advancePointer(chatId, PointerType.READ, messageId)
     }
 
+    /**
+     * Re-sends a READ pointer the server never took, without touching the local copy or the
+     * analytics that go with a genuine read — both already happened when the message was seen.
+     */
+    internal suspend fun reportReadPointer(chatId: ChatId, messageId: Long) {
+        messagingController.advancePointer(chatId, PointerType.READ, messageId)
+            .onFailure {
+                trace(
+                    tag = TAG,
+                    message = "Re-reporting read pointer $messageId failed",
+                    type = TraceType.Error,
+                    error = it,
+                )
+            }
+    }
+
     override suspend fun markAsRead(chatId: ChatId): Result<Unit> {
         val messageId = stateHolder.current.feed
             .firstOrNull { it.chatId == chatId }
@@ -292,4 +310,8 @@ class MessagingDelegate @Inject constructor(
     }
 
     // endregion
+
+    private companion object {
+        const val TAG = "MessagingDelegate"
+    }
 }

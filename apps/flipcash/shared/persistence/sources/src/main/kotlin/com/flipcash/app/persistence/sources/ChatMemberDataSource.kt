@@ -69,19 +69,44 @@ class ChatMemberDataSource @Inject constructor(
         }
     }
 
+    /**
+     * Moves [pointer]'s member forward in [chatId], whether or not that member has synced yet.
+     * A pointer already ahead of [pointer] stays where it is.
+     *
+     * The read-merge-write runs inside the DAO so a feed sync landing between the two halves
+     * cannot be lost.
+     */
     suspend fun updatePointers(chatId: ChatId, pointer: MessagePointer) {
         val dao = db?.chatMemberDao() ?: return
-        val chatIdHex = mapper.chatIdHex(chatId)
-        val userIdHex = mapper.userIdHex(pointer.userId)
+        dao.advancePointer(
+            chatIdHex = mapper.chatIdHex(chatId),
+            userIdHex = mapper.userIdHex(pointer.userId),
+            pointer = mapper.pointerSerialized(pointer),
+        )
+    }
 
-        val existing = dao.getMember(chatIdHex, userIdHex)
-        val existingPointers = existing?.pointersJson ?: emptyList()
+    /**
+     * Replaces a chat's membership with [members], keeping the rows that survive instead of
+     * clearing the table first. A wipe takes each member's pointers with it, and the refresh
+     * that follows can only restore what the server knew at fetch time — so a read the client
+     * has advanced locally but not yet reported would be lost.
+     */
+    suspend fun replaceMembers(chatId: ChatId, members: List<ChatMember>) {
+        if (members.isEmpty()) {
+            deleteForChat(chatId)
+            return
+        }
 
-        val merged = existingPointers
-            .filter { it.type != pointer.type.name }
-            .plus(mapper.pointerSerialized(pointer))
-
-        dao.updatePointers(chatIdHex, userIdHex, mapper.pointersToJson(merged))
+        val database = db ?: return
+        val hex = mapper.chatIdHex(chatId)
+        database.withTransaction {
+            database.userProfileDao().upsertFull(members.map { mapper.toProfileEntity(it) })
+            database.chatMemberDao().upsert(members.map { mapper.toEntity(hex, it) })
+            database.chatMemberDao().deleteMembersNotIn(
+                chatIdHex = hex,
+                keepUserIdHexes = members.map { mapper.userIdHex(it.userId) },
+            )
+        }
     }
 
     suspend fun deleteForChat(chatId: ChatId) {

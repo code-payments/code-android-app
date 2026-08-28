@@ -176,4 +176,17 @@ class BidirectionalStreamReference<Request, Response>(
     fun activateStream() {
         isStreamActive = true
     }
+
+    /**
+     * Reports the stream down without tearing the reference down.
+     *
+     * [cancel] and [destroy] both cancel [coroutineScope], which on this reference is where
+     * the reconnect loop itself runs, so neither can express "no live stream right now, still
+     * retrying". Callers poll [isActive] to decide whether to step in and reopen; without this,
+     * liveness stays stuck at whatever the last successful activation set and they sit out the
+     * whole retry window.
+     */
+    fun deactivateStream() {
+        isStreamActive = false
+    }
 }

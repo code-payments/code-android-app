@@ -4,6 +4,7 @@ package com.getcode.opencode.internal.bidi
 
 import io.grpc.Status
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -11,6 +12,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TestTimeSource
@@ -254,6 +256,55 @@ class OpenBidirectionalStreamTest {
 
         assertEquals(5, attemptCount, "Healthy resets should let it survive past maxReconnectAttempts")
         assertTrue(errors.last() is IllegalArgumentException)
+
+        streamRef.destroy()
+    }
+
+    /**
+     * Liveness must describe the stream that exists right now, not the last one that ever
+     * connected. The loop retries internally, so between a failure and the next activation
+     * there is no stream — and every external recovery trigger (the chat heartbeat, lifecycle
+     * resume, network reconnect) reads this flag to decide whether to step in.
+     *
+     * Here the stream activates, fails with UNAVAILABLE, and the retry never emits. The
+     * reference must report inactive while the loop is parked waiting on that attempt.
+     */
+    @Test
+    fun `stream reports inactive while the reconnect loop is between attempts`() = runTest {
+        var attemptCount = 0
+
+        val streamRef = BidirectionalStreamReference<String, String>(this, "test-stream")
+        streamRef.retain()
+
+        openBidirectionalStream<String, String, BidirectionalStreamReference<String, String>>(
+            streamRef = streamRef,
+            apiCall = { requestFlow ->
+                attemptCount++
+                flow {
+                    requestFlow.first()
+                    if (attemptCount == 1) {
+                        emit("activation")
+                        throw Status.UNAVAILABLE.asRuntimeException()
+                    }
+                    // The reconnect never gets a response — the stream is down.
+                    awaitCancellation()
+                }
+            },
+            initialRequest = { "req" },
+            responseHandler = { _: String, _: (String) -> Unit -> },
+            onError = { },
+            reconnectOnUnavailable = true,
+            maxReconnectAttempts = 3,
+            reconnectDelayMs = 0,
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(2, attemptCount, "Should have reconnected once after UNAVAILABLE")
+        assertFalse(
+            streamRef.isActive,
+            "Reference reports a live stream while the loop is still waiting to reconnect"
+        )
 
         streamRef.destroy()
     }

@@ -65,6 +65,12 @@ fun <Request, Response, StreamRef> openBidirectionalStream(
         var attempt = 0
 
         while (attempt++ <= maxReconnectAttempts) {
+            // Nothing is connected until this attempt's first response activates it. The flag
+            // has to say so for the whole gap — backoff included — because the callers that
+            // poll it (the chat heartbeat, lifecycle resume) use it to decide whether the
+            // stream needs reopening, and a stale `true` makes every one of them a no-op.
+            streamRef.deactivateStream()
+
             val backoffMs = computeBackoffMs(attempt, reconnectDelayMs, maxReconnectDelayMs)
             if (backoffMs > 0) {
                 delay(backoffMs)
