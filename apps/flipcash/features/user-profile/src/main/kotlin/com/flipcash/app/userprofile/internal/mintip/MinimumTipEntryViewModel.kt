@@ -9,6 +9,7 @@ import com.flipcash.shared.amountentry.AmountEntryDelegate
 import com.flipcash.shared.amountentry.AmountEntryLabel
 import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.payments.TipPaymentDelegate
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -33,8 +34,8 @@ import javax.inject.Inject
 import kotlin.math.abs
 
 /**
- * Backs the minimum-tip entry screen (nodes 9541:10951, 9553:113170) — the fee another user has to
- * pay to open a DM, which the profile carries as `minDmChatInitFee`.
+ * Backs the minimum-tip entry screen — the fee another user has to pay to open a DM, which the
+ * profile carries as `minDmChatInitFee`.
  *
  * Two things separate it from the send-side tip entry: there is no ceiling, since a user can ask
  * for any amount regardless of what anyone can afford, so the preset minimum is the only bound and
@@ -70,6 +71,12 @@ internal class MinimumTipEntryViewModel @Inject constructor(
 
         /** User asked to save the currently entered amount. */
         data object ConfirmRequested : Event
+
+        /**
+         * The entry cleared validation and, when one was already stored, the user confirmed
+         * replacing it. This is what actually writes to the profile.
+         */
+        data class CommitRequested(val amount: Fiat) : Event
 
         data class UpdateSavingState(
             val loading: Boolean = false,
@@ -151,15 +158,41 @@ internal class MinimumTipEntryViewModel @Inject constructor(
 
                 val min = minimumAmount.value
                 if (min != null && amount.valueLessThan(min)) {
-                    BottomBarManager.showAlert(
+                    // Info, not alert: nothing has gone wrong and nothing is being destroyed —
+                    // the entry is just under the floor and needs raising.
+                    BottomBarManager.showInfo(
                         title = resources.getString(R.string.error_title_minimumTip, min.formatted()),
                         message = resources.getString(R.string.error_description_minimumTip),
                     )
                     return@onEach
                 }
 
+                // Replacing a stored fee asks first; a first one has nothing to overwrite. Asked
+                // after validation so a rejected amount never gets a confirmation dialog.
+                if (stateFlow.value.saved == null) {
+                    dispatchEvent(Event.CommitRequested(amount))
+                    return@onEach
+                }
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_changeMinimumTip),
+                    message = resources.getString(R.string.prompt_description_changeMinimumTip),
+                    actions = listOf(
+                        BottomBarAction(resources.getString(R.string.action_changeMinimumTip)) {
+                            dispatchEvent(Event.CommitRequested(amount))
+                        }
+                    ),
+                    showCancel = true,
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.CommitRequested>()
+            .onEach { event ->
+                if (!stateFlow.value.saving.isIdle) return@onEach
+
                 dispatchEvent(Event.UpdateSavingState(loading = true))
-                profileController.setMinDmChatInitFee(amount)
+                profileController.setMinDmChatInitFee(event.amount)
                     .onSuccess {
                         viewModelScope.launch {
                             dispatchEvent(Event.UpdateSavingState(success = true))
@@ -207,6 +240,7 @@ internal class MinimumTipEntryViewModel @Inject constructor(
                     )
                 }
                 is Event.ConfirmRequested -> { state -> state }
+                is Event.CommitRequested -> { state -> state }
                 is Event.Saved -> { state -> state }
             }
         }

@@ -122,7 +122,7 @@ private fun NameEntryScreenContent(
                 isSuccess = state.processingState.success,
                 onClick = {
                     keyboard.hideIfVisible {
-                        dispatchEvent(NameEntryViewModel.Event.CheckName(source))
+                        dispatchEvent(NameEntryViewModel.Event.ConfirmNameChange(source))
                     }
                 },
             )
@@ -150,7 +150,7 @@ private fun NameEntryScreenContent(
                 ),
                 onKeyboardAction = {
                     keyboard.hideIfVisible {
-                        dispatchEvent(NameEntryViewModel.Event.CheckName(source))
+                        dispatchEvent(NameEntryViewModel.Event.ConfirmNameChange(source))
                     }
                 },
             )

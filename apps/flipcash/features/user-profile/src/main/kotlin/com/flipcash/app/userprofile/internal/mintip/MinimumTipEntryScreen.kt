@@ -16,8 +16,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 /**
- * Minimum-tip entry (nodes 9541:10951, 9553:113170). Leaving without saving discards the entry —
- * there is no draft to keep, so a changed-but-abandoned amount just doesn't reach the profile.
+ * Minimum-tip entry. Leaving without saving discards the entry — there is no draft to keep, so a
+ * changed-but-abandoned amount just doesn't reach the profile.
  *
  * @param isLastStep whether the flow ends here, which is the only thing that decides between
  * "Save" and "Next".

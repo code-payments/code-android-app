@@ -124,7 +124,7 @@ private fun PhotoSelectionScreenContent(
                     isLoading = state.processingState.loading,
                     isSuccess = state.processingState.success,
                     onClick = {
-                        dispatchEvent(PhotoSelectionViewModel.Event.CheckImage)
+                        dispatchEvent(PhotoSelectionViewModel.Event.ConfirmImageChange)
                     },
                 )
             }
