@@ -70,7 +70,8 @@ class ChatMemberDataSource @Inject constructor(
     }
 
     /**
-     * Records [pointer] for its member in [chatId], whether or not that member has synced yet.
+     * Moves [pointer]'s member forward in [chatId], whether or not that member has synced yet.
+     * A pointer already ahead of [pointer] stays where it is.
      *
      * The read-merge-write runs inside the DAO so a feed sync landing between the two halves
      * cannot be lost.

@@ -73,14 +73,17 @@ interface ChatMemberDao {
     suspend fun getChatIdForMember(userIdHex: String, chatType: String): String?
 
     /**
-     * Records [pointer] for [userIdHex] in [chatIdHex], creating the member row if it is not
-     * there yet.
+     * Moves [userIdHex]'s pointer of [pointer]'s type forward in [chatIdHex], creating the member
+     * row if it is not there yet. The member's other pointers carry over.
      *
      * The row is not a given at this point. A read is written the moment a message is on screen,
      * and a pointer update can arrive off the event stream for a member the feed has not written
      * yet — the bare `UPDATE` this replaces matched nothing in either case and dropped the
-     * pointer silently. Only the member's pointer of the same type is displaced; the rest carry
-     * over.
+     * pointer silently.
+     *
+     * Forward only, on the same reasoning as [mergePointers]: the stream echoes a member's
+     * pointer as the server last saw it, which can be behind a local advance that has not been
+     * reported yet, and applying it would put the chat back to unread.
      */
     @Transaction
     suspend fun advancePointer(
@@ -89,6 +92,9 @@ interface ChatMemberDao {
         pointer: MessagePointerSerialized,
     ) {
         val existing = getMember(chatIdHex, userIdHex)?.pointersJson.orEmpty()
+        val current = existing.firstOrNull { it.type == pointer.type }
+        if (current != null && current.value >= pointer.value) return
+
         insertOrReplace(
             ChatMemberEntity(
                 chatIdHex = chatIdHex,

@@ -103,6 +103,16 @@ class ChatMemberDaoTest {
     }
 
     @Test
+    fun `advancePointer does not lower a pointer that is already ahead`() = runTest {
+        dao.advancePointer(CHAT_HEX, SELF_HEX, readPointer(9))
+
+        // The stream echoes our own READ pointer as the server last saw it, behind the local one.
+        dao.advancePointer(CHAT_HEX, SELF_HEX, readPointer(4))
+
+        assertEquals(9L, dao.getMember(CHAT_HEX, SELF_HEX)?.pointersJson?.single()?.value)
+    }
+
+    @Test
     fun `deleteMembersNotIn drops departed members and leaves the rest intact`() = runTest {
         dao.upsert(member(readPointer(9)))
         dao.upsert(member(readPointer(4, OTHER_HEX)).copy(userIdHex = OTHER_HEX))
