@@ -964,6 +964,23 @@
     <string name="error_title_usernameCheckFailed">Something Went Wrong</string>
     <string name="error_description_usernameCheckFailed">Please try again</string>
 
+    <!-- Confirmation before a profile edit is committed. Only shown on a change: a first display
+         name, username, picture, or minimum tip overwrites nothing, so there is nothing to warn
+         about. Username carries the extra sentence because the old handle is released on change
+         and someone else can claim it. -->
+    <string name="prompt_title_changeDisplayName">Change Display Name?</string>
+    <string name="prompt_description_changeDisplayName">Are you sure you want to permanently change your display name?</string>
+    <string name="action_changeDisplayName">Change Display Name</string>
+    <string name="prompt_title_changeUsername">Change Username?</string>
+    <string name="prompt_description_changeUsername">Are you sure you want to permanently change your username? You might not be able to get your old username back</string>
+    <string name="action_changeUsername">Change Username</string>
+    <string name="prompt_title_changeProfilePicture">Change Profile Picture?</string>
+    <string name="prompt_description_changeProfilePicture">Are you sure you want to permanently change your profile picture?</string>
+    <string name="action_changeProfilePicture">Change Profile Picture</string>
+    <string name="prompt_title_changeMinimumTip">Change Minimum Tip?</string>
+    <string name="prompt_description_changeMinimumTip">Are you sure you want to permanently change your minimum tip?</string>
+    <string name="action_changeMinimumTip">Change Minimum Tip</string>
+
     <!-- A tapped `flipcash.com/{username}` link that resolves to nothing. -->
     <string name="error_title_usernameNotFound">No Such Account</string>
     <string name="error_description_usernameNotFound">Nobody has claimed \@%1$s</string>

@@ -114,7 +114,7 @@ private fun UsernameEntryScreenContent(
                 isSuccess = state.processingState.success,
                 onClick = {
                     keyboard.hideIfVisible {
-                        dispatchEvent(UsernameEntryViewModel.Event.CheckUsername)
+                        dispatchEvent(UsernameEntryViewModel.Event.ConfirmUsernameChange)
                     }
                 },
             )
@@ -140,7 +140,7 @@ private fun UsernameEntryScreenContent(
                 ),
                 onKeyboardAction = {
                     keyboard.hideIfVisible {
-                        dispatchEvent(UsernameEntryViewModel.Event.CheckUsername)
+                        dispatchEvent(UsernameEntryViewModel.Event.ConfirmUsernameChange)
                     }
                 },
                 inputTransformation = UsernameInputTransformation,

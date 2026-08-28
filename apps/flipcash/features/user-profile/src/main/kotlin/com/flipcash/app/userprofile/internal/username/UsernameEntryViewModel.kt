@@ -12,6 +12,7 @@ import com.flipcash.services.models.MinUsernameLength
 import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.SetUsernameError
 import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.errors.ValidationException
 import com.getcode.opencode.model.financial.Fiat
@@ -71,6 +72,12 @@ class UsernameEntryViewModel @Inject constructor(
     }
 
     sealed interface Event {
+        /**
+         * Save was pressed. Changing a claimed handle asks first — the old one is released and
+         * anyone can take it — while a first claim goes straight to [CheckUsername].
+         */
+        data object ConfirmUsernameChange : Event
+
         data object CheckUsername : Event
         data class UpdateProcessingState(
             val loading: Boolean = false,
@@ -104,6 +111,25 @@ class UsernameEntryViewModel @Inject constructor(
                 if (pristine) {
                     stateFlow.value.usernameFieldState.setTextAndPlaceCursorAtEnd(username)
                 }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ConfirmUsernameChange>()
+            .onEach {
+                if (stateFlow.value.savedUsername.isBlank()) {
+                    dispatchEvent(Event.CheckUsername)
+                    return@onEach
+                }
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_changeUsername),
+                    message = resources.getString(R.string.prompt_description_changeUsername),
+                    actions = listOf(
+                        BottomBarAction(resources.getString(R.string.action_changeUsername)) {
+                            dispatchEvent(Event.CheckUsername)
+                        }
+                    ),
+                    showCancel = true,
+                )
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -225,6 +251,7 @@ class UsernameEntryViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
+                Event.ConfirmUsernameChange -> { state -> state }
                 Event.CheckUsername -> { state -> state }
                 is Event.OnSavedUsernameLoaded -> { state ->
                     state.copy(savedUsername = event.username)
