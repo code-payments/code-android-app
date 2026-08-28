@@ -415,6 +415,61 @@ class AmountEntryDelegateTest {
         assertIs<AmountEntryHint.Error>(delegate.config.value.hint)
     }
 
+    @Test
+    fun `standing hint Floor states the minimum even when a maximum exists`() = runTest {
+        val max = MutableStateFlow<Fiat?>(Fiat(100.0, CurrencyCode.USD))
+        val min = MutableStateFlow<Fiat?>(Fiat(5.0, CurrencyCode.USD))
+        val delegate = createDelegate(
+            style = AmountEntryStyle(
+                actionLabel = AmountEntryLabel.Plain("Swipe to Tip"),
+                infoHint = { "Up to $it" },
+                overMaxHint = { "Over $it" },
+                belowMinHint = { "Min is $it" },
+                standingHint = AmountEntryStyle.StandingHint.Floor,
+            ),
+            maxAmount = max,
+            minimumAmount = min,
+        )
+        delegate.onCurrencyChanged(usd)
+
+        // Resting, and at a valid amount, the floor holds the line rather than the ceiling.
+        val resting = delegate.config.value.hint
+        assertIs<AmountEntryHint.Info>(resting)
+        assertTrue(resting.text.startsWith("Min is"))
+
+        delegate.onNumber(9)
+        val valid = delegate.config.value.hint
+        assertIs<AmountEntryHint.Info>(valid)
+        assertTrue(valid.text.startsWith("Min is"))
+
+        // Errors still report the bound that was actually broken.
+        delegate.onBackspace()
+        delegate.onNumber(2)
+        assertIs<AmountEntryHint.Error>(delegate.config.value.hint)
+    }
+
+    @Test
+    fun `standing hint Ceiling is the default and keeps the maximum`() = runTest {
+        val max = MutableStateFlow<Fiat?>(Fiat(100.0, CurrencyCode.USD))
+        val min = MutableStateFlow<Fiat?>(Fiat(5.0, CurrencyCode.USD))
+        val delegate = createDelegate(
+            style = AmountEntryStyle(
+                actionLabel = AmountEntryLabel.Plain("Next"),
+                infoHint = { "Up to $it" },
+                overMaxHint = { "Over $it" },
+                belowMinHint = { "Min is $it" },
+            ),
+            maxAmount = max,
+            minimumAmount = min,
+        )
+        delegate.onCurrencyChanged(usd)
+        delegate.onNumber(9)
+
+        val hint = delegate.config.value.hint
+        assertIs<AmountEntryHint.Info>(hint)
+        assertTrue(hint.text.startsWith("Up to"))
+    }
+
     // ---------------------------------------------------------------
     // Config derivation — confirmEnabled
     // ---------------------------------------------------------------
