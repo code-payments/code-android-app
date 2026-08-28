@@ -171,13 +171,31 @@ internal class AppRouter(
     }
 
     private fun classifyOrThrow(deepLink: DeepLink): DeeplinkType? {
-        return when {
-            // A jump link is a wrapper, never a destination. Unwrap once and classify the inner
-            // URL; a jump pointing at another jump is malformed and drops to null rather than
-            // recursing. Mirrors iOS DeepLinkController.
-            deepLink.isJump() -> deepLink.unwrapJumpTarget()
+        // A jump link may carry the real URL percent-encoded in `#source=`. Unwrap once and
+        // classify that; a jump pointing at another jump is malformed and falls through rather
+        // than recursing. Mirrors iOS DeepLinkController.
+        if (deepLink.isJump()) {
+            deepLink.unwrapJumpTarget()
                 ?.takeUnless { it.isJump() }
-                ?.let { classifyOrThrow(it) }
+                ?.let { return classifyOrThrow(it) }
+        }
+        return deepLink.classifyByPath()
+    }
+
+    /**
+     * Classify a link by its path. Every route below is matched on path alone except
+     * [DeepLink.isProfileLink], which is host-gated to [PROFILE_HOST] because only the bare host
+     * gives a person's handle a whole path segment.
+     *
+     * That is why an unwrappable jump link lands here too: [JUMP_HOST] is a redirector the app
+     * claims whole, and it mirrors the app's path space rather than owning one of its own. The
+     * website's tip interstitial sends `jump.flipcash.com/tip/{id}` with no fragment at all, and
+     * a fragment-only reading would drop it — the link opens the app and nothing happens, since
+     * [unrouted] hands only [PROFILE_HOST] back to the browser.
+     */
+    private fun DeepLink.classifyByPath(): DeeplinkType? {
+        val deepLink = this
+        return when {
             deepLink.isLogin() -> deepLink.handleLoginLink()
             deepLink.isCashLink() -> deepLink.handleCashLink()
             deepLink.isToken() -> deepLink.handleTokenLink()

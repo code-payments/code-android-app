@@ -866,10 +866,51 @@ class AppRouterTest {
     }
 
     @Test
-    fun `jump link with no source fragment classifies to null`() {
+    fun `jump link with no source fragment and no path classifies to null`() {
         assertNull(router.classify(DeepLink("https://jump.flipcash.com/")))
         assertNull(router.classify(DeepLink("https://jump.flipcash.com/#other=1")))
         assertNull(router.classify(DeepLink("https://jump.flipcash.com/#source=")))
+    }
+
+    @Test
+    fun `jump link carrying a route on its own path is classified by that path`() {
+        // What the website's tip interstitial navigates to from "Open in Flipcash" — a bare
+        // redirector path, no `#source=` fragment.
+        val userId = "11111111-1111-1111-1111-111111111111"
+        val type = router.classify(DeepLink("https://jump.flipcash.com/tip/$userId"))
+
+        assertIs<DeeplinkType.Tipcard>(type)
+        assertEquals(UUID.fromString(userId).bytes, type.userId)
+    }
+
+    @Test
+    fun `jump link path routes dispatch like the same path on an app host`() {
+        loggedIn()
+        currentUserId = UUID.fromString("22222222-2222-2222-2222-222222222222").bytes
+
+        val userId = "11111111-1111-1111-1111-111111111111"
+        val action = router.dispatch(DeepLink("https://jump.flipcash.com/tip/$userId"))
+
+        assertIs<DeeplinkAction.PresentTipCard>(action)
+        assertEquals(TipCardOwner.ById(UUID.fromString(userId).bytes), action.owner)
+    }
+
+    @Test
+    fun `a source fragment still wins over the jump link's own path`() {
+        val type = router.classify(
+            DeepLink(
+                "https://jump.flipcash.com/tip/11111111-1111-1111-1111-111111111111#source=" +
+                    URLEncoder.encode("https://app.flipcash.com/token/$MINT", "UTF-8")
+            )
+        )
+        assertIs<DeeplinkType.TokenInfo>(type)
+    }
+
+    @Test
+    fun `jump link does not claim a handle the way the bare host does`() {
+        // isProfileLink is host-gated: only flipcash.com gives a person a whole path segment,
+        // so `jump.flipcash.com/sally` is not a tip card by handle.
+        assertNull(router.classify(DeepLink("https://jump.flipcash.com/sally_streamer")))
     }
 
     @Test
