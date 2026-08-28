@@ -258,9 +258,8 @@ internal class ChatViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     }
 
-    // The amount entry adapts to the chat type: a tip DM swipes to *tip*, a contact DM to *send*.
-    // Whether there is a minimum to enforce is a separate question — see [minAmountFlow] — and the
-    // style degrades to the "enter up to" ceiling hint on its own when there is none.
+    // Only the payment that opens a tip DM is a tip — it buys the conversation, and it is the one
+    // the recipient's fee applies to. Everything after it, and every contact DM, is a plain send.
     private fun amountStyle(isTip: Boolean) = AmountEntryStyle(
         actionLabel = AmountEntryLabel.Plain(
             resources.getString(
@@ -288,13 +287,9 @@ internal class ChatViewModel @Inject constructor(
         .map { it.participant as? ChatParticipant.TipUser }
         .distinctUntilChanged()
 
-    private val isTipFlow = tipRecipientFlow
-        .map { it != null }
-        .distinctUntilChanged()
-
     private val amountStyleFlow by lazy {
-        isTipFlow
-            .map { amountStyle(isTip = it) }
+        openingTipRecipientFlow
+            .map { amountStyle(isTip = it != null) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), amountStyle(isTip = false))
     }
 
@@ -314,6 +309,19 @@ internal class ChatViewModel @Inject constructor(
     }
 
     /**
+     * The user this payment would open a tip DM with — null once the conversation exists, and null
+     * for a contact DM. It decides both the floor and the word the entry uses: the fee, and calling
+     * the payment a tip, belong to the one that opens the chat.
+     */
+    private val openingTipRecipientFlow by lazy {
+        combine(tipRecipientFlow, isChatInitialized) { recipient, initialized ->
+            recipient?.takeUnless { initialized }
+        }
+            .distinctUntilChanged()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    }
+
+    /**
      * The floor the entry enforces, and only for the payment that opens a tip DM.
      *
      * What the recipient sets is the fee to *open* a DM with them, so it gates that first payment
@@ -322,10 +330,7 @@ internal class ChatViewModel @Inject constructor(
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     private val minAmountFlow by lazy {
-        combine(tipRecipientFlow, isChatInitialized) { recipient, initialized ->
-            recipient?.takeUnless { initialized }
-        }
-            .distinctUntilChanged()
+        openingTipRecipientFlow
             .flatMapLatest { recipient ->
                 if (recipient == null) flowOf(null)
                 else tipPaymentDelegate.minimumToOpenDmWith(recipient.profile)
