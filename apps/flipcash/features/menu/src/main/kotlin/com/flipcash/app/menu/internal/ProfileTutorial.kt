@@ -4,7 +4,7 @@ import com.flipcash.app.core.ui.onboarding.TutorialItem
 import com.flipcash.services.models.UserProfile
 
 /**
- * The "Finish Your Profile" checklist for the "You" tab (node 9544:18140).
+ * The "Finish Your Profile" checklist for the "You" tab.
  *
  * Null while the profile is unresolved, so the card is never drawn against a guess — an account
  * that already has a photo would otherwise flash an outstanding step on the way in. Null again once
