@@ -12,6 +12,7 @@ import com.flipcash.services.models.MinUsernameLength
 import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.SetUsernameError
 import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.errors.ValidationException
 import com.getcode.opencode.model.financial.Fiat
@@ -71,6 +72,13 @@ class UsernameEntryViewModel @Inject constructor(
     }
 
     sealed interface Event {
+        /**
+         * Save was pressed. Checks the length, then, when a handle is already claimed, asks
+         * before replacing it — the old one is released and anyone can take it. A first claim
+         * that clears the length check goes straight to [CheckUsername].
+         */
+        data object ConfirmUsernameChange : Event
+
         data object CheckUsername : Event
         data class UpdateProcessingState(
             val loading: Boolean = false,
@@ -107,6 +115,36 @@ class UsernameEntryViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.ConfirmUsernameChange>()
+            .onEach {
+                // Length is checked here rather than on the way to the server, so an input that
+                // could never be claimed says why instead of asking the user to confirm claiming
+                // it. Mirrors iOS, whose `submit()` bails on `UsernameValidator.failure(for:)`
+                // before it calls `setUsername`. The charset is already held by the field's input
+                // transformation, so length is all that is left to check locally.
+                lengthComplaint(stateFlow.value.usernameFieldState.text.toString())
+                    ?.let { complaint ->
+                        handleUsernameSetFailure(complaint)
+                        return@onEach
+                    }
+
+                if (stateFlow.value.savedUsername.isBlank()) {
+                    dispatchEvent(Event.CheckUsername)
+                    return@onEach
+                }
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_changeUsername),
+                    message = resources.getString(R.string.prompt_description_changeUsername),
+                    actions = listOf(
+                        BottomBarAction(resources.getString(R.string.action_changeUsername)) {
+                            dispatchEvent(Event.CheckUsername)
+                        }
+                    ),
+                    showCancel = true,
+                )
+            }.launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.DiscardChanges>()
             .onEach {
                 val state = stateFlow.value
@@ -117,11 +155,7 @@ class UsernameEntryViewModel @Inject constructor(
             .filterIsInstance<Event.CheckUsername>()
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
             .map { stateFlow.value.usernameFieldState.text.toString() }
-            .map { username ->
-                lengthComplaint(username)
-                    ?.let { Result.failure(it) }
-                    ?: profileController.setUsername(username)
-            }
+            .map { username -> profileController.setUsername(username) }
             .onResult(
                 onSuccess = {
                     viewModelScope.launch {
@@ -225,6 +259,7 @@ class UsernameEntryViewModel @Inject constructor(
     internal companion object {
         val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
+                Event.ConfirmUsernameChange -> { state -> state }
                 Event.CheckUsername -> { state -> state }
                 is Event.OnSavedUsernameLoaded -> { state ->
                     state.copy(savedUsername = event.username)

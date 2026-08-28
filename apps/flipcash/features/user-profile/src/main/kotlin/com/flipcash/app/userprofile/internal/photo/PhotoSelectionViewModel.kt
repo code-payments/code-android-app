@@ -21,6 +21,7 @@ import com.flipcash.services.models.TextModerationError
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.RejectionReason
 import com.flipcash.services.user.UserManager
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.errors.ValidationException
 import com.getcode.util.resources.ContentReader
@@ -88,6 +89,12 @@ class PhotoSelectionViewModel @Inject constructor(
     }
 
     sealed interface Event {
+        /**
+         * Save was pressed. Replacing a stored picture asks first; a first picture has nothing to
+         * overwrite and goes straight to [CheckImage].
+         */
+        data object ConfirmImageChange : Event
+
         data object CheckImage : Event
 
         /** The stored picture arrived, or changed — including to null when it is unset. */
@@ -123,6 +130,25 @@ class PhotoSelectionViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.UploadPolicyLoaded(it)) }
             .launchIn(viewModelScope)
 
+
+        eventFlow
+            .filterIsInstance<Event.ConfirmImageChange>()
+            .onEach {
+                if (stateFlow.value.savedPicture == null) {
+                    dispatchEvent(Event.CheckImage)
+                    return@onEach
+                }
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_changeProfilePicture),
+                    message = resources.getString(R.string.prompt_description_changeProfilePicture),
+                    actions = listOf(
+                        BottomBarAction(resources.getString(R.string.action_changeProfilePicture)) {
+                            dispatchEvent(Event.CheckImage)
+                        }
+                    ),
+                    showCancel = true,
+                )
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnImageSelected>()
@@ -405,6 +431,7 @@ class PhotoSelectionViewModel @Inject constructor(
 
         internal val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
+                Event.ConfirmImageChange -> { state -> state }
                 Event.CheckImage -> { state -> state }
                 is Event.OnSavedPictureLoaded -> { state ->
                     state.copy(savedPicture = event.picture)

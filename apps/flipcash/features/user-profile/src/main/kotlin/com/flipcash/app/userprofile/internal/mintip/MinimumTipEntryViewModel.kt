@@ -9,6 +9,7 @@ import com.flipcash.shared.amountentry.AmountEntryDelegate
 import com.flipcash.shared.amountentry.AmountEntryLabel
 import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.payments.TipPaymentDelegate
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -70,6 +71,12 @@ internal class MinimumTipEntryViewModel @Inject constructor(
 
         /** User asked to save the currently entered amount. */
         data object ConfirmRequested : Event
+
+        /**
+         * The entry cleared validation and, when one was already stored, the user confirmed
+         * replacing it. This is what actually writes to the profile.
+         */
+        data class CommitRequested(val amount: Fiat) : Event
 
         data class UpdateSavingState(
             val loading: Boolean = false,
@@ -158,8 +165,32 @@ internal class MinimumTipEntryViewModel @Inject constructor(
                     return@onEach
                 }
 
+                // Replacing a stored fee asks first; a first one has nothing to overwrite. Asked
+                // after validation so a rejected amount never gets a confirmation dialog.
+                if (stateFlow.value.saved == null) {
+                    dispatchEvent(Event.CommitRequested(amount))
+                    return@onEach
+                }
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.prompt_title_changeMinimumTip),
+                    message = resources.getString(R.string.prompt_description_changeMinimumTip),
+                    actions = listOf(
+                        BottomBarAction(resources.getString(R.string.action_changeMinimumTip)) {
+                            dispatchEvent(Event.CommitRequested(amount))
+                        }
+                    ),
+                    showCancel = true,
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.CommitRequested>()
+            .onEach { event ->
+                if (!stateFlow.value.saving.isIdle) return@onEach
+
                 dispatchEvent(Event.UpdateSavingState(loading = true))
-                profileController.setMinDmChatInitFee(amount)
+                profileController.setMinDmChatInitFee(event.amount)
                     .onSuccess {
                         viewModelScope.launch {
                             dispatchEvent(Event.UpdateSavingState(success = true))
@@ -207,6 +238,7 @@ internal class MinimumTipEntryViewModel @Inject constructor(
                     )
                 }
                 is Event.ConfirmRequested -> { state -> state }
+                is Event.CommitRequested -> { state -> state }
                 is Event.Saved -> { state -> state }
             }
         }
