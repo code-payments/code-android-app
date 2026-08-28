@@ -59,6 +59,10 @@ internal fun ChatAmountEntryContent(
         controller = amountDelegate,
         onConfirm = onConfirm,
         onChangeCurrency = { navigator.push(AppRoute.Main.RegionSelection) },
+        // Left-aligned v2 header, per the updated design: the amount sits under the app bar at
+        // the screen inset with its hint beneath, and the currency flag goes away with it — the
+        // send is denominated in the preferred currency, changed from settings rather than here.
+        largeHeader = true,
         appBar = {
             AppBarWithTitle(
                 // Same centred pill as the give screen — declare the centring rather than leaning on

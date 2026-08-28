@@ -97,14 +97,18 @@ class AmountEntryDelegate(
         val isOverMax = max != null && !delegateState.isEmpty &&
             Fiat(delegateState.enteredAmount, max.currencyCode).valueGreaterThan(max)
 
+        // The floor as a standing hint rather than only an error: it tells the user the rule
+        // before they break it. Available when there is no ceiling to describe, or when the style
+        // says the floor is the more useful of the two.
+        val hasFloorHint = min != null && currentStyle.belowMinHint != null
+        val floorStands = hasFloorHint &&
+            (max == null || currentStyle.standingHint == AmountEntryStyle.StandingHint.Floor)
+
         val hint = when {
             isBelowMin -> AmountEntryHint.Error(currentStyle.belowMinHint!!(min!!.formatted()))
             isOverMax -> AmountEntryHint.Error(currentStyle.overMaxHint(max!!.formatted()))
+            floorStands -> AmountEntryHint.Info(currentStyle.belowMinHint!!(min!!.formatted()))
             max != null -> AmountEntryHint.Info(currentStyle.infoHint(max.formatted()))
-            // No ceiling to describe, so the floor is the standing hint rather than only an
-            // error — it tells the user the rule before they break it.
-            min != null && currentStyle.belowMinHint != null ->
-                AmountEntryHint.Info(currentStyle.belowMinHint!!(min.formatted()))
             else -> AmountEntryHint.None
         }
 
