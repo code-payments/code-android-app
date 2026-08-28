@@ -7,6 +7,7 @@ import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.WalletRevealCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
@@ -55,6 +56,10 @@ class WalletMilestoneGatingTest {
         every { hasAnyBalance } returns flowOf(true)
     }
 
+    private val walletReveal: WalletRevealCoordinator = mockk(relaxed = true) {
+        every { pending } returns MutableStateFlow(null)
+    }
+
     private lateinit var dispatchers: TestDispatchers
 
     private fun createViewModel() = WalletViewModel(
@@ -66,6 +71,7 @@ class WalletMilestoneGatingTest {
         chatCoordinator = chatCoordinator,
         feedCoordinator = feedCoordinator,
         tokenCoordinator = tokenCoordinator,
+        walletReveal = walletReveal,
     )
 
     @Test

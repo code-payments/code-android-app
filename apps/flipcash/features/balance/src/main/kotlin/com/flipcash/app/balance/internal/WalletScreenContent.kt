@@ -21,8 +21,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -33,8 +37,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.cardexpand.LocalCardExpansion
 import com.flipcash.app.core.AppRoute
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 import com.flipcash.app.core.ui.AppreciationStyle
 import com.flipcash.app.core.ui.TokenCardStack
 import com.flipcash.app.balance.internal.components.BalanceHeader
@@ -95,6 +102,30 @@ internal fun WalletScreenContent(
         return
     }
 
+    // A claim the user just accepted, held for a beat so the money arrives on screen rather than
+    // being there already. Reported as displayed *after* the loading gate above, so a slow tab
+    // doesn't spend the hold behind a spinner.
+    val reveal = balanceState.reveal
+    LaunchedEffect(reveal != null) {
+        if (reveal != null) dispatchEvent(WalletViewModel.Event.OnRevealDisplayed)
+    }
+
+    // The card the reveal is withholding. Outlives the reveal on purpose: the deck can only animate
+    // the card in once it is allowed to draw it, which is the moment the reveal ends.
+    var enteringMint by remember { mutableStateOf<Mint?>(null) }
+    LaunchedEffect(reveal?.mint, reveal?.isNewToken) {
+        val mint = reveal?.mint ?: return@LaunchedEffect
+        if (reveal.isNewToken) enteringMint = mint
+    }
+    LaunchedEffect(enteringMint) {
+        if (enteringMint == null) return@LaunchedEffect
+        // Long enough to cover the deck's own entry; clearing it stops a later return to the tab
+        // replaying the animation.
+        delay(EntryRetention)
+        enteringMint = null
+    }
+    val withheldMint = reveal?.mint?.takeIf { reveal.isNewToken }
+
     val listState = rememberLazyListState()
     // Px the token stack has scrolled above the viewport top, read live so the stack collapses (then
     // releases and scrolls off) as the list scrolls. A lambda so the stack reads it in its placement
@@ -137,7 +168,10 @@ internal fun WalletScreenContent(
                     .fillMaxWidth()
                     // Fade the balance out as the deck parts behind the opening card (iOS deckOpacity).
                     .graphicsLayer { alpha = 1f - heroProgress() },
-                balance = tokenState.totalBalance,
+                // AnimatedNumberText rolls whichever digits change, so opening on the pre-claim
+                // total is all the tick-up needs.
+                balance = reveal?.let { LocalFiat.fromUsd(it.totalBefore, tokenState.rate) }
+                    ?: tokenState.totalBalance,
                 appreciation = tokenState.aggregateAppreciation,
                 topPadding = 96.dp,
                 bottomPadding = 44.dp,
@@ -171,10 +205,32 @@ internal fun WalletScreenContent(
             }
         }
 
-        tokenState.tokens?.takeIf { it.isNotEmpty() }?.let { tokens ->
+        tokenState.tokens
+            ?.let { tokens ->
+                when {
+                    // A currency the wallet didn't hold: keep its card out of the deck until the
+                    // reveal ends, so it can animate in rather than being there on arrival.
+                    withheldMint != null -> tokens.filterNot { it.token.address == withheldMint }
+                    // One it did: hold the card's own number back too, so it rolls in step with the
+                    // total above it instead of sitting there already updated.
+                    reveal != null -> tokens.map { entry ->
+                        if (entry.token.address != reveal.mint) entry
+                        else entry.copy(
+                            balance = LocalFiat.fromUsd(
+                                usdf = reveal.mintBalanceBefore,
+                                rate = tokenState.rate,
+                                mint = reveal.mint,
+                            )
+                        )
+                    }
+                    else -> tokens
+                }
+            }
+            ?.takeIf { it.isNotEmpty() }?.let { tokens ->
             item(key = TokenStackKey) {
                 TokenCardStack(
                     tokens = tokens,
+                    enteringMint = enteringMint,
                     modifier = Modifier.fillMaxWidth(),
                     pinInset = statusBarInset + CodeTheme.dimens.grid.x2,
                     scrolledPast = scrolledPast,
@@ -294,3 +350,9 @@ internal fun WalletScreenContent(
         }
     }
 }
+
+/**
+ * How long a newly-claimed mint stays flagged as entering — the deck's own entry animation plus
+ * slack, after which the card is just another card in the deck.
+ */
+private val EntryRetention = 1.seconds

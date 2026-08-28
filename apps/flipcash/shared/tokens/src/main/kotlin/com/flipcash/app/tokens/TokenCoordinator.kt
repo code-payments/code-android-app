@@ -286,6 +286,20 @@ class TokenCoordinator @Inject constructor(
         .map { state -> state.balances.values.sum() }
         .distinctUntilChanged()
 
+    /** Synchronous, network-free read of [observeTotalBalance]'s current value. */
+    fun currentTotalBalance(): Fiat = _state.value.balances.values.sum()
+
+    /** Synchronous, network-free read of what this account holds in [mint]. */
+    fun currentBalance(mint: Mint): Fiat = _state.value.balances[mint] ?: Fiat.Zero
+
+    /**
+     * Whether [mint] currently reads as a held balance — i.e. whether the wallet's card deck already
+     * has a card for it. Dust that rounds away in the UI counts as *not* held, matching the deck's
+     * own `hasDisplayableValue` filter rather than [hasAnyBalance]'s "holds anything at all".
+     */
+    fun holdsDisplayableBalance(mint: Mint): Boolean =
+        _state.value.balances[mint]?.hasDisplayableValue == true
+
     suspend fun add(token: Token, fiat: LocalFiat) {
         val rate = exchange.rateToUsd(fiat.rate.currency)
         val amount = rate?.let { fiat.nativeAmount.convertingTo(it) }

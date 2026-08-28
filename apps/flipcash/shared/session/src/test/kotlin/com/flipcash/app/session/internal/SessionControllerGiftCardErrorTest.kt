@@ -13,6 +13,7 @@ import com.flipcash.app.shareable.ShareResult
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.WalletRevealCoordinator
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.session.R
@@ -50,6 +51,7 @@ class SessionControllerGiftCardErrorTest {
     private val userManager = mockk<UserManager>(relaxed = true)
     private val resources = FakeResourceHelper()
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
+    private val walletReveal = mockk<WalletRevealCoordinator>(relaxed = true)
     private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
     private val networkObserver = mockk<NetworkConnectivityListener>(relaxed = true)
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
@@ -78,6 +80,7 @@ class SessionControllerGiftCardErrorTest {
             stateHolder = stateHolder,
             toastController = mockk(relaxed = true),
             tokenCoordinator = tokenCoordinator,
+            walletReveal = walletReveal,
             analytics = analytics,
             vibrator = mockk(relaxed = true),
             resources = resources,
@@ -90,6 +93,7 @@ class SessionControllerGiftCardErrorTest {
             stateHolder = stateHolder,
             billController = billController,
             tokenCoordinator = tokenCoordinator,
+            walletReveal = walletReveal,
             analytics = analytics,
             vibrator = mockk(relaxed = true),
             userManager = userManager,

@@ -8,6 +8,7 @@ import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.session.internal.SessionStateHolder
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.WalletRevealCoordinator
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.internal.manager.VerifiedState
@@ -45,6 +46,7 @@ class DelegateEventEmissionTest {
     private val userManager = mockk<UserManager>(relaxed = true)
     private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
+    private val walletReveal = mockk<WalletRevealCoordinator>(relaxed = true)
     private val networkObserver = mockk<NetworkConnectivityListener>(relaxed = true)
     private val resources = mockk<ResourceHelper>(relaxed = true)
     private val dispatchers = TestDispatcherProvider(UnconfinedTestDispatcher())
@@ -73,6 +75,7 @@ class DelegateEventEmissionTest {
             stateHolder = stateHolder,
             toastController = mockk(relaxed = true),
             tokenCoordinator = tokenCoordinator,
+            walletReveal = walletReveal,
             analytics = analytics,
             vibrator = mockk(relaxed = true),
             resources = resources,
@@ -118,6 +121,7 @@ class DelegateEventEmissionTest {
             stateHolder = stateHolder,
             toastController = mockk(relaxed = true),
             tokenCoordinator = tokenCoordinator,
+            walletReveal = walletReveal,
             analytics = analytics,
             vibrator = mockk(relaxed = true),
             resources = resources,
@@ -177,6 +181,7 @@ class DelegateEventEmissionTest {
                 stateHolder = stateHolder,
                 billController = billController,
                 tokenCoordinator = tokenCoordinator,
+                walletReveal = walletReveal,
                 analytics = analytics,
                 vibrator = mockk(relaxed = true),
                 userManager = userManager,

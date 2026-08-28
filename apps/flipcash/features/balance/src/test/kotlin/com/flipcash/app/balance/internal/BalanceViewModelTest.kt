@@ -8,6 +8,7 @@ import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.WalletRevealCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -17,6 +18,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -49,6 +51,10 @@ class BalanceViewModelTest {
         every { hasAnyBalance } returns flowOf(false)
     }
 
+    private val walletReveal: WalletRevealCoordinator = mockk(relaxed = true) {
+        every { pending } returns MutableStateFlow(null)
+    }
+
     private lateinit var dispatchers: TestDispatchers
 
     private fun createViewModel() = WalletViewModel(
@@ -60,6 +66,7 @@ class BalanceViewModelTest {
         chatCoordinator = chatCoordinator,
         feedCoordinator = feedCoordinator,
         tokenCoordinator = tokenCoordinator,
+        walletReveal = walletReveal,
     )
 
     @Test

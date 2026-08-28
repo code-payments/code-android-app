@@ -6,16 +6,22 @@ import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.session.internal.SessionStateHolder
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.WalletRevealCoordinator
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.OpenCodePayload
+import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.core.PayloadKind
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
 import com.getcode.util.vibration.Vibrator
 import com.kik.kikx.models.ScannableKikCode
+import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -39,6 +45,7 @@ class CodeScanDelegateTest {
     private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
     private val vibrator = mockk<Vibrator>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
+    private val walletReveal = mockk<WalletRevealCoordinator>(relaxed = true)
     private val dispatchers = TestDispatcherProvider(UnconfinedTestDispatcher())
 
     private val stateHolder = SessionStateHolder()
@@ -53,6 +60,7 @@ class CodeScanDelegateTest {
             stateHolder = stateHolder,
             billController = billController,
             tokenCoordinator = tokenCoordinator,
+            walletReveal = walletReveal,
             analytics = analytics,
             vibrator = vibrator,
             userManager = userManager,
@@ -219,6 +227,36 @@ class CodeScanDelegateTest {
                 onGrabbed = any(),
                 onError = any(),
             )
+        }
+    }
+
+    // --- the grab callback ---
+
+    @Test
+    fun `a grabbed bill is snapshotted for the wallet before it is credited`() = runTest {
+        val onGrabbed = slot<suspend (Token, LocalFiat, VerifiedState?) -> Unit>()
+        every {
+            billController.attemptGrab(
+                owner = any(),
+                payload = any(),
+                onGrabbed = capture(onGrabbed),
+                onError = any(),
+            )
+        } answers {}
+
+        val delegate = createDelegate()
+        delegate.onCodeScan(remoteKikCode())
+
+        val token = mockk<Token>(relaxed = true)
+        val amount = mockk<LocalFiat>(relaxed = true)
+        onGrabbed.captured.invoke(token, amount, null)
+
+        // Order is the whole feature: the credit lands here, at grab time, but the wallet is not
+        // shown until the user taps "Put in Wallet". Capture after it and there is nothing left
+        // for the balance to tick up from.
+        coVerifyOrder {
+            walletReveal.capture(token.address)
+            tokenCoordinator.add(token, amount)
         }
     }
 

@@ -7,6 +7,7 @@ import com.flipcash.app.core.internal.bill.BillController
 import com.flipcash.app.session.CodeScanOperations
 import com.flipcash.app.session.internal.SessionStateHolder
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.WalletRevealCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
@@ -45,6 +46,7 @@ class CodeScanDelegate @Inject constructor(
     private val stateHolder: SessionStateHolder,
     private val billController: BillController,
     private val tokenCoordinator: TokenCoordinator,
+    private val walletReveal: WalletRevealCoordinator,
     private val analytics: FlipcashAnalyticsService,
     private val vibrator: Vibrator,
     private val userManager: UserManager,
@@ -115,6 +117,10 @@ class CodeScanDelegate @Inject constructor(
             owner = owner,
             payload = payload,
             onGrabbed = { token, amount, verifiedState ->
+                // Take the wallet's "before" picture first: the credit below lands here, at grab
+                // time, but the user doesn't reach the wallet until they tap "Put in Wallet". Snapshot
+                // it afterwards and there is nothing left for the balance to tick up from.
+                walletReveal.capture(token.address)
                 tokenCoordinator.add(token, amount)
                 val grabStart = scannedRendezvous[payload.rendezvous.publicKey]
                 val grabTime = grabStart?.let {
