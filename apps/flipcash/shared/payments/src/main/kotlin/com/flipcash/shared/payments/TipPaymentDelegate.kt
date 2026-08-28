@@ -4,6 +4,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.controllers.ResolverController
 import com.flipcash.services.models.TipOrigin
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.buildTipDmPaymentMetadata
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ChatCoordinator
@@ -21,10 +22,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
@@ -116,12 +120,38 @@ class TipPaymentDelegate @Inject constructor(
     /**
      * The smallest tippable amount — the presets' [com.flipcash.services.models.TipPresets.minimum]
      * in the user's preferred currency. This is the dedicated minimum, NOT the lowest tier (`low`),
-     * which typically sits above it. The amount entry surfaces it as a "minimum tip" hint and blocks
-     * custom amounts below it. Null until presets resolve.
+     * which typically sits above it. Null until presets resolve.
+     *
+     * The regional floor, which applies to a recipient who has set no minimum of their own — an
+     * amount entry asks [minimumTipFor] for the floor to enforce, not this.
      */
     val minTipAmount: StateFlow<Fiat?> =
         resolvedPresets.map { it?.minimum }
             .stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * The floor for the tip that *opens* a DM with [recipient]: the fee they charge to be written
+     * to, expressed in the sender's preferred currency, or the regional [minTipAmount] when they
+     * charge none — the server applies its own default in that case, and that preset is what it is.
+     *
+     * The fee is stored in whatever currency the recipient set it in, so it is converted through USD
+     * to the currency the sender is entering in. A missing rate for either side falls back to the
+     * preset rather than stating a floor in a currency the entry isn't using.
+     */
+    fun minimumToOpenDmWith(recipient: UserProfile?): Flow<Fiat?> =
+        combine(minTipAmount, exchange.observePreferredRate()) { preset, rate ->
+            recipient?.minDmChatInitFee?.inCurrency(rate.currency) ?: preset
+        }
+
+    /**
+     * The floor for a tip to [userId]. The fee buys the conversation, so only the tip that opens it
+     * pays [minimumToOpenDmWith]; once a DM with them exists, every tip after it sits on the system
+     * [minTipAmount] like any other.
+     */
+    fun minimumTipFor(userId: ID, recipient: UserProfile?): Flow<Fiat?> = flow {
+        val opensTheChat = chatCoordinator.getChatId(userId).isFailure
+        emitAll(if (opensTheChat) minimumToOpenDmWith(recipient) else minTipAmount)
+    }
 
     /**
      * Whether [amount] exceeds the per-transaction send limit for its currency — the amount entry
@@ -169,6 +199,17 @@ class TipPaymentDelegate @Inject constructor(
                 }
                 canonicalChatId
             }
+    }
+
+    /**
+     * This amount in [target], routed through USD — the only rate every currency has. Null when
+     * either leg has no rate, which is the caller's cue to fall back rather than mix currencies.
+     */
+    private fun Fiat.inCurrency(target: CurrencyCode): Fiat? {
+        if (currencyCode == target) return this
+        val usd = exchange.rateToUsd(currencyCode)?.let { convertingTo(it) } ?: return null
+        if (target == CurrencyCode.USD) return usd.rounded()
+        return exchange.rateFor(target)?.let { usd.convertingTo(it).rounded() }
     }
 
     /**

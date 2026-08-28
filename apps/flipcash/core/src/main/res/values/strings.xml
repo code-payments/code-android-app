@@ -1005,9 +1005,9 @@
     <string name="label_of">of</string>
     <string name="action_swipeToTip">Swipe to Tip</string>
     <string name="content_description_customTipAmount">Enter a custom amount</string>
-    <string name="subtitle_tipHintMinimum">Minimum tip %1$s</string>
-    <string name="error_title_tipMinimum">%1$s Minimum</string>
-    <string name="error_description_tipMinimum">Increase the amount to send</string>
+    <string name="subtitle_tipHintMinimum">%1$s minimum</string>
+    <string name="error_title_tipMinimum">%1$s Minimum Tip</string>
+    <string name="error_description_tipMinimum">Please enter a higher amount</string>
     <string name="label_viaTipCard">via Tip Card</string>
 
     <!-- Minimum-tip entry (nodes 9541:10951, 9553:113170). Backed by the profile's

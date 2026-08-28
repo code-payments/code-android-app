@@ -92,6 +92,10 @@ class TippingCoordinator @Inject constructor(
 
     private val _userId = MutableStateFlow<ID?>(null)
 
+    // The resolved card owner's profile, kept because it carries the fee they charge to open a DM
+    // with them — the floor a first tip has to clear. Set alongside _userId when a card resolves.
+    private val _recipient = MutableStateFlow<UserProfile?>(null)
+
     // Whether the viewer can afford at least the minimum tip, evaluated when a tip
     // card is resolved. Surfaced through [selection] so the scanner can hide the tip
     // modal and prompt to add money without re-checking balance itself.
@@ -113,8 +117,19 @@ class TippingCoordinator @Inject constructor(
     /** The largest tippable amount (send-limit ∧ balance), surfaced by the amount entry. */
     val maxTipAmount: StateFlow<Fiat?> get() = tipPaymentDelegate.maxTipAmount
 
-    /** The smallest tippable amount (lowest preset tier), surfaced by the amount entry. */
-    val minTipAmount: StateFlow<Fiat?> get() = tipPaymentDelegate.minTipAmount
+    /**
+     * The smallest tippable amount for the card on screen: the fee its owner charges to open a DM
+     * when this tip would open one, and the system minimum otherwise. Surfaced by the amount entry
+     * as a standing hint and enforced by [confirmTip].
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val minTipAmount: StateFlow<Fiat?> =
+        combine(_userId, _recipient) { userId, recipient -> userId to recipient }
+            .flatMapLatest { (userId, recipient) ->
+                if (userId == null) tipPaymentDelegate.minTipAmount
+                else tipPaymentDelegate.minimumTipFor(userId, recipient)
+            }
+            .stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** The combined tip selection (amount chosen in the modal + app-global token + send state). */
     override val selection: StateFlow<TipSelectionState> =
@@ -130,7 +145,15 @@ class TippingCoordinator @Inject constructor(
                 )
             },
             tipPaymentDelegate.tipPresets,
-        ) { state, presets -> state.copy(presets = presets) }
+            // A preset below the recipient's floor would be rejected on send, so it isn't offered.
+            // Presets normally all clear it; the floor only rises above them when the recipient has
+            // set a minimum of their own that high.
+        ) { state, presets ->
+            val floor = state.minimum
+            state.copy(
+                presets = presets.filter { floor == null || !it.valueLessThan(floor) },
+            )
+        }
             .stateIn(scope, SharingStarted.WhileSubscribed(5_000), TipSelectionState())
 
     init {
@@ -161,6 +184,18 @@ class TippingCoordinator @Inject constructor(
         scope.launch {
             setSendState(LoadingSuccessState(loading = true))
             val token = selectedToken.firstOrNull() ?: return@launch
+
+            // The floor, checked here as well as in the amount entry: a preset chip never passes
+            // through that entry.
+            val floor = minTipAmount.value
+            if (floor != null && amount.value.valueLessThan(floor)) {
+                setSendState(LoadingSuccessState())
+                BottomBarManager.showInfo(
+                    title = resources.getString(R.string.error_title_tipMinimum, floor.formatted()),
+                    message = resources.getString(R.string.error_description_tipMinimum),
+                )
+                return@launch
+            }
 
             // Fast-fail before the loading state if the tip exceeds the token balance:
             // prompt to add money (or enter a smaller amount) instead of attempting a send.
@@ -298,7 +333,7 @@ class TippingCoordinator @Inject constructor(
      */
     suspend fun resolveTipCard(userId: ID): Result<Scannable.TipCard> =
         resolveProfile(userId)
-            .onSuccess { onCardResolved(userId) }
+            .onSuccess { onCardResolved(userId, it) }
             .map { tipCard(userId, it) }
 
     /**
@@ -321,7 +356,7 @@ class TippingCoordinator @Inject constructor(
                 // link lands. The id off the wire has no such window.
                 // Mirrors iOS TipFlow.prepare's `guard userID != session.userID`.
                 if (userId == currentUserId) throw OwnTipCard(username)
-                onCardResolved(userId)
+                onCardResolved(userId, profile)
                 tipCard(userId, profile)
             }
 
@@ -331,9 +366,10 @@ class TippingCoordinator @Inject constructor(
      * minimum-tip and per-amount affordability are enforced downstream — the amount entry's
      * below-min / over-balance gates and confirmTip.
      */
-    private suspend fun onCardResolved(userId: ID) {
+    private suspend fun onCardResolved(userId: ID, profile: UserProfile) {
         _canTip.value = tokenCoordinator.hasGiveableBalance()
         _userId.value = userId
+        _recipient.value = profile
         vibrator.vibrate()
     }
 

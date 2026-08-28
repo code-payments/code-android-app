@@ -89,10 +89,13 @@ internal class TipAmountEntryViewModel @Inject constructor(
                 val entered = amountDelegate.state.value.enteredAmount
                 if (entered <= 0.0) return@onEach
                 val amount = Fiat(entered, stateFlow.value.currency)
-                // Floor at the lowest preset — a custom amount can't undercut the presets.
+                // The floor the coordinator resolved for this card: the recipient's own minimum
+                // when this tip opens the DM, the system minimum once one exists.
                 val min = tippingCoordinator.minTipAmount.value
                 if (min != null && amount.valueLessThan(min)) {
-                    BottomBarManager.showAlert(
+                    // Info, not an alert: nothing failed, the amount is just under the floor —
+                    // matching the same prompt in the chat and tip-card paths.
+                    BottomBarManager.showInfo(
                         title = resources.getString(R.string.error_title_tipMinimum, min.formatted()),
                         message = resources.getString(R.string.error_description_tipMinimum),
                     )
