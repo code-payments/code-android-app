@@ -72,8 +72,31 @@ interface ChatMemberDao {
     )
     suspend fun getChatIdForMember(userIdHex: String, chatType: String): String?
 
-    @Query("UPDATE chat_members SET pointers_json = :pointersJson WHERE chat_id_hex = :chatIdHex AND user_id_hex = :userIdHex")
-    suspend fun updatePointers(chatIdHex: String, userIdHex: String, pointersJson: String)
+    /**
+     * Records [pointer] for [userIdHex] in [chatIdHex], creating the member row if it is not
+     * there yet.
+     *
+     * The row is not a given at this point. A read is written the moment a message is on screen,
+     * and a pointer update can arrive off the event stream for a member the feed has not written
+     * yet — the bare `UPDATE` this replaces matched nothing in either case and dropped the
+     * pointer silently. Only the member's pointer of the same type is displaced; the rest carry
+     * over.
+     */
+    @Transaction
+    suspend fun advancePointer(
+        chatIdHex: String,
+        userIdHex: String,
+        pointer: MessagePointerSerialized,
+    ) {
+        val existing = getMember(chatIdHex, userIdHex)?.pointersJson.orEmpty()
+        insertOrReplace(
+            ChatMemberEntity(
+                chatIdHex = chatIdHex,
+                userIdHex = userIdHex,
+                pointersJson = existing.filterNot { it.type == pointer.type } + pointer,
+            )
+        )
+    }
 
     @Query("DELETE FROM chat_members WHERE chat_id_hex = :chatIdHex")
     suspend fun deleteForChat(chatIdHex: String)

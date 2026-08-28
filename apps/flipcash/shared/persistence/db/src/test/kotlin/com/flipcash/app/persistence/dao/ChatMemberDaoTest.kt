@@ -53,11 +53,7 @@ class ChatMemberDaoTest {
     @Test
     fun `upsert does not rewind a locally advanced read pointer`() = runTest {
         dao.upsert(member(readPointer(1)))
-        dao.updatePointers(
-            CHAT_HEX,
-            SELF_HEX,
-            """[{"type":"READ","userIdHex":"$SELF_HEX","value":9,"timestampEpochSeconds":0}]""",
-        )
+        dao.advancePointer(CHAT_HEX, SELF_HEX, readPointer(9))
 
         // A feed sync issued before the advance reached the server carries the old pointer.
         dao.upsert(member(readPointer(1)))
@@ -85,6 +81,25 @@ class ChatMemberDaoTest {
         val pointers = dao.getMember(CHAT_HEX, SELF_HEX)?.pointersJson.orEmpty()
         assertEquals(9L, pointers.single { it.userIdHex == SELF_HEX }.value)
         assertEquals(7L, pointers.single { it.userIdHex == OTHER_HEX }.value)
+    }
+
+    @Test
+    fun `advancePointer records a read for a member that has not synced yet`() = runTest {
+        // The chat is open and a message is on screen before the feed writes the membership.
+        dao.advancePointer(CHAT_HEX, SELF_HEX, readPointer(4))
+
+        assertEquals(4L, dao.getMember(CHAT_HEX, SELF_HEX)?.pointersJson?.single()?.value)
+    }
+
+    @Test
+    fun `advancePointer leaves the member's other pointers alone`() = runTest {
+        dao.upsert(member(readPointer(2), MessagePointerSerialized("DELIVERED", SELF_HEX, 5)))
+
+        dao.advancePointer(CHAT_HEX, SELF_HEX, readPointer(6))
+
+        val pointers = dao.getMember(CHAT_HEX, SELF_HEX)?.pointersJson.orEmpty()
+        assertEquals(6L, pointers.single { it.type == "READ" }.value)
+        assertEquals(5L, pointers.single { it.type == "DELIVERED" }.value)
     }
 
     @Test

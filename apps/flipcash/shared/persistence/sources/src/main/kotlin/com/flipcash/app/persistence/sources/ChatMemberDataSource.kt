@@ -69,19 +69,19 @@ class ChatMemberDataSource @Inject constructor(
         }
     }
 
+    /**
+     * Records [pointer] for its member in [chatId], whether or not that member has synced yet.
+     *
+     * The read-merge-write runs inside the DAO so a feed sync landing between the two halves
+     * cannot be lost.
+     */
     suspend fun updatePointers(chatId: ChatId, pointer: MessagePointer) {
         val dao = db?.chatMemberDao() ?: return
-        val chatIdHex = mapper.chatIdHex(chatId)
-        val userIdHex = mapper.userIdHex(pointer.userId)
-
-        val existing = dao.getMember(chatIdHex, userIdHex)
-        val existingPointers = existing?.pointersJson ?: emptyList()
-
-        val merged = existingPointers
-            .filter { it.type != pointer.type.name }
-            .plus(mapper.pointerSerialized(pointer))
-
-        dao.updatePointers(chatIdHex, userIdHex, mapper.pointersToJson(merged))
+        dao.advancePointer(
+            chatIdHex = mapper.chatIdHex(chatId),
+            userIdHex = mapper.userIdHex(pointer.userId),
+            pointer = mapper.pointerSerialized(pointer),
+        )
     }
 
     /**
