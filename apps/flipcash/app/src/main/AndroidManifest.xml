@@ -76,6 +76,16 @@
             android:name="com.bugsnag.android.API_KEY"
             android:value="${BUGSNAG_API_KEY}" />
 
+        <!--
+             bugsnag-android reads the build UUID from manifest meta-data only. The Gradle
+             plugin's generated string resource is never read, and resource shrinking removes
+             it. Both this value and the one attached to the uploaded ProGuard mapping come
+             from `bugsnagBuildId` in build.gradle.kts.
+        -->
+        <meta-data
+            android:name="com.bugsnag.android.BUILD_UUID"
+            android:value="${BUGSNAG_BUILD_UUID}" />
+
         <activity
             android:name="com.flipcash.app.MainActivity"
             android:exported="true"
