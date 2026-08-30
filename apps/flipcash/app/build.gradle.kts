@@ -26,6 +26,17 @@ fun gitVersionCode(): Int {
     return result.toInt().also { println("VersionCode $it") }
 }
 
+// Bugsnag joins an uploaded mapping file to an incoming event on build UUID, falling back
+// to applicationId + versionName + versionCode. Neither side was supplying one: the Gradle
+// plugin emits the UUID as a string resource that bugsnag-android never reads (it looks for
+// manifest meta-data only) and that resource shrinking strips anyway, and the mapping upload
+// omits `build-uuid` unless the `bugsnag` block below sets it. The commit SHA gives both
+// sides the same value — the app build and the upload task run against the same HEAD in the
+// release workflow — and going through the manifest keeps it out of the shrinker's reach.
+val bugsnagBuildId: String = providers.exec {
+    commandLine("git", "rev-parse", "HEAD")
+}.standardOutput.asText.get().trim()
+
 val contributorsSigningConfig = ContributorsSignatory(rootDir)
 val appNamespace = "${Gradle.flipcashNamespace}.app.android"
 
@@ -50,6 +61,7 @@ android {
         buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
 
         manifestPlaceholders["BUGSNAG_API_KEY"] = tryReadProperty(rootProject.rootDir, "BUGSNAG_API_KEY")
+        manifestPlaceholders["BUGSNAG_BUILD_UUID"] = bugsnagBuildId
     }
 
     signingConfigs {
@@ -127,6 +139,7 @@ bugsnag {
     variants {
         release {
             autoCreateBuild = true
+            buildUuid = bugsnagBuildId
         }
         debug {
             enabled = false
