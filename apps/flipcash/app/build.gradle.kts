@@ -1,6 +1,7 @@
 import com.android.build.api.variant.BuildConfigField
 import com.bugsnag.gradle.dsl.debug
 import com.bugsnag.gradle.dsl.release
+import org.gradle.api.provider.Property
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -30,7 +31,7 @@ fun gitVersionCode(): Int {
 // to applicationId + versionName + versionCode. Neither side was supplying one: the Gradle
 // plugin emits the UUID as a string resource that bugsnag-android never reads (it looks for
 // manifest meta-data only) and that resource shrinking strips anyway, and the mapping upload
-// omits `build-uuid` unless the `bugsnag` block below sets it. The commit SHA gives both
+// omits `build-uuid` unless it is set on the upload task below. The commit SHA gives both
 // sides the same value — the app build and the upload task run against the same HEAD in the
 // release workflow — and going through the manifest keeps it out of the shrinker's reach.
 val bugsnagBuildId: String = providers.exec {
@@ -139,12 +140,26 @@ bugsnag {
     variants {
         release {
             autoCreateBuild = true
-            buildUuid = bugsnagBuildId
         }
         debug {
             enabled = false
         }
     }
+}
+
+// The build UUID goes on the mapping upload alone, not through `buildUuid` in the block
+// above. That property feeds two bugsnag-cli calls: `upload android-proguard`, which takes
+// `--build-uuid`, and `create-build`, which has never accepted it — not in the 3.10.2 that
+// bugsnag-gradle-plugin 1.2.0 embeds, nor in 3.10.5, the current release. Setting it there
+// fails the release build with `unknown flag --build-uuid`, so set it on the one task that
+// wants it and leave create-build on its working default. The plugin only writes this
+// property when the DSL supplies a value, so it will not overwrite what is set here whichever
+// order the two configuration actions run in. UploadMappingTask is internal to the plugin,
+// hence the lookup by task name.
+tasks.matching { it.name == "bugsnagUploadReleaseProguardMapping" }.configureEach {
+    @Suppress("UNCHECKED_CAST")
+    val buildUuid = javaClass.getMethod("getBuildUuid").invoke(this) as Property<String>
+    buildUuid.set(bugsnagBuildId)
 }
 
 composeCompiler {
