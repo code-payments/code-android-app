@@ -1,11 +1,20 @@
 # Preserve source file names and line numbers for stack traces (call site tracking, Bugsnag)
 -keepattributes SourceFile,LineNumberTable
 
-# Keep AppRoute class names. `annotatedEntry` derives each screen's root test tag
-# from the route's simple name (NavMetadata.screenRootTag), so obfuscating these
-# renames every screen-root resource-id the UI tests address.
--keepnames class com.flipcash.app.core.AppRoute
--keepnames class com.flipcash.app.core.AppRoute$**
+# Keep every navigation route class. `annotatedEntry` derives each screen's root test
+# tag from `T::class.simpleName` (NavMetadata.screenRootTag), and `getSimpleName()` on a
+# nested class reads the `InnerClasses` attribute, which R8 emits only for classes matched
+# by a full -keep. Under -keepnames the binary name survives but the attribute does not, so
+# `AppRoute.Main.Scanner` reports `AppRoute$Main$Scanner` and the tag becomes
+# `app_route$main$scanner_screen`. The global -keepattributes InnerClasses does not change
+# that, and neither does reading the binary name in Kotlin: routes outside AppRoute, such as
+# `OnboardingStep`, need their names kept regardless. Matching on the NavKey supertype covers
+# both hierarchies and any future one. Class-only, with no member wildcard, so members stay
+# shrinkable and renameable; the whole rule costs 137 classes and 16 KB.
+#
+# Only builds with BuildConfig.UI_TESTABLE expose these tags as resource-ids, so this buys
+# nothing for the shipping release — it lets Maestro run against a minified build.
+-keep class * implements androidx.navigation3.runtime.NavKey
 
 # Protobuf keep rules ship with the contract packages themselves, from 0.3.0 on:
 # com.flipcash:{ocp,flipcash2}-client-protocol carry them in META-INF/proguard/, which
