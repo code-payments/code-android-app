@@ -7,15 +7,13 @@
 -keepnames class com.flipcash.app.core.AppRoute
 -keepnames class com.flipcash.app.core.AppRoute$**
 
-# Protobuf — keep all generated message classes and their builders.
-# Using type-hierarchy rules so new packages / updated gRPC stubs are
-# caught automatically instead of listing every gen package.
--keep class * extends com.google.protobuf.GeneratedMessageLite { *; }
--keep class * extends com.google.protobuf.GeneratedMessageLite$Builder { *; }
+# Protobuf keep rules ship with the contract packages themselves, from 0.3.0 on:
+# com.flipcash:{ocp,flipcash2}-client-protocol carry them in META-INF/proguard/, which
+# R8 reads straight out of the jar. Downgrading either pin below 0.3.0 silently removes
+# the app's only protobuf keep rule.
 
-# gRPC — keep generated service stubs (abstract + concrete)
+# gRPC — keep the generated client stubs
 -keep class * extends io.grpc.stub.AbstractStub { *; }
--keep class * implements io.grpc.BindableService { *; }
 
 # Keep our scan classes that interact with native. The scanner's JNI constructs
 # these from C++ by name (FindClass("com/kik/scan/UsernameKikCode"), GetMethodID
