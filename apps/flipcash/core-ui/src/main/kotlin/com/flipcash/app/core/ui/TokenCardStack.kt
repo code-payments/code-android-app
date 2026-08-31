@@ -1,6 +1,7 @@
 package com.flipcash.app.core.ui
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
@@ -53,12 +54,16 @@ import com.getcode.solana.keys.Mint
  * parting deck) but **in-layer** while closing, so on the way back it re-inserts at its natural deck
  * z-order and slides under its neighbours instead of landing on top and snapping under.
  *
- * ## Card entry
- * [enteringMint] names a card that has just joined the deck (a claim in a currency the wallet did not
- * hold), and the deck opens a slot for it: it starts overlapped with its neighbour and fades in as the
- * gap widens to the full [fannedReveal]. The caller names the card rather than the stack diffing its
- * own token list, because the case that most needs the animation — a wallet that held nothing, so the
- * stack was not composed at all — is exactly the one a diff cannot see.
+ * ## Card arrival
+ * [arrivingMint] names a card that has just joined the deck (a claim in a currency the wallet did not
+ * hold). It rises [ArrivalRise] into its slot and fades up; the deck's layout is final from the first
+ * frame, so nothing around it moves — matching iOS's own `arrivalProgress` effect. [arrivalHeld] keeps
+ * it off-stage until the caller is ready, which is how the wallet waits for the bill it was claimed
+ * from to leave before the card is seen to land.
+ *
+ * The caller names the card rather than the stack diffing its own token list, because the case that
+ * most needs the animation — a wallet that held nothing, so the stack was not composed at all — is
+ * exactly the one a diff cannot see.
  */
 @Composable
 fun TokenCardStack(
@@ -73,23 +78,21 @@ fun TokenCardStack(
     expandProgress: () -> Float = { 0f },
     heroTarget: Rect? = null,
     pullOffset: () -> Float = { 0f },
-    enteringMint: Mint? = null,
+    arrivingMint: Mint? = null,
+    arrivalHeld: Boolean = false,
     onCardClick: (TokenWithLocalizedBalance, Rect) -> Unit = { _, _ -> },
 ) {
     val tappedIndex = remember(expandingMint, tokens) {
         if (expandingMint == null) -1 else tokens.indexOfFirst { it.token.address == expandingMint }
     }
-    val enteringIndex = remember(enteringMint, tokens) {
-        if (enteringMint == null) -1 else tokens.indexOfFirst { it.token.address == enteringMint }
+    // Seeded off-stage only when there is a card to let in, so an ordinary deck draws at rest on its
+    // first frame instead of rising into place.
+    val arrival = remember(arrivingMint) {
+        Animatable(if (arrivingMint == null) 1f else 0f)
     }
-    // Seeded closed only when there is a card to let in, so an ordinary deck draws at rest on its
-    // first frame instead of popping open.
-    val entryAnim = remember(enteringMint) {
-        Animatable(if (enteringMint == null) 1f else 0f)
-    }
-    LaunchedEffect(enteringMint, enteringIndex) {
-        if (enteringIndex >= 0) {
-            entryAnim.animateTo(1f, tween(EntryDurationMillis))
+    LaunchedEffect(arrivingMint, arrivalHeld) {
+        if (arrivingMint != null && !arrivalHeld) {
+            arrival.animateTo(1f, tween(ArrivalDurationMillis, easing = FastOutSlowInEasing))
         }
     }
 
@@ -105,7 +108,7 @@ fun TokenCardStack(
         content = {
             tokens.forEachIndexed { index, token ->
                 val isTapped = index == tappedIndex
-                val isEntering = index == enteringIndex
+                val isArriving = token.token.address == arrivingMint
                 val cardBounds = remember(token.token.address) { mutableStateOf(Rect.Zero) }
                 TokenCard(
                     tokenWithBalance = token,
@@ -117,7 +120,14 @@ fun TokenCardStack(
                         // neighbours) and carries the hand-off on collapse without a z snap. The other
                         // cards part around it: above slide off the top, below off the bottom, dissolving.
                         .graphicsLayer {
-                            if (isTapped) {
+                            if (isArriving && arrival.value < 1f) {
+                                // Rises into its slot and fades up, on its own — the deck around it
+                                // is already laid out where it will end. Ahead of the expand
+                                // branches, as on iOS: a card still arriving cannot also be the one
+                                // being opened.
+                                translationY = ArrivalRise.toPx() * (1f - arrival.value)
+                                alpha = arrival.value
+                            } else if (isTapped) {
                                 val src = cardBounds.value
                                 val tgt = heroTarget
                                 val p = expandProgress()
@@ -163,11 +173,6 @@ fun TokenCardStack(
                                     translationY = (clearedTop - cardBounds.value.top) * hp
                                     alpha = 1f - hp
                                 }
-                            } else if (isEntering) {
-                                // Fades in over the first half of the slot opening, so the card has
-                                // arrived by the time it is fully uncovered. Last branch on purpose:
-                                // a card-expand in flight owns the whole deck's opacity.
-                                alpha = (entryAnim.value * 2f).coerceIn(0f, 1f)
                             }
                         },
                     height = cardHeight,
@@ -191,11 +196,6 @@ fun TokenCardStack(
         // the deck pin `pinInset` px below its own top, pushing the front card past the bottom of the
         // item and under the following row (the wallet's "Recent" section overlapping a lone card).
         val collapseComplete = (placeables.size - 1) * (fannedPx - collapsedPx) - pinInsetPx
-        // The slot the entering card is taking, 0 (closed, overlapped) → fannedPx (open). Cards
-        // *below* the new one carry the shift; only when it joins at the back does it move itself,
-        // sliding down out from under its predecessor.
-        val entering = enteringIndex
-        val shiftFrom = if (entering == placeables.lastIndex) entering else entering + 1
         layout(constraints.maxWidth, height) {
             // Read scroll offset HERE (placement) — not in the measure scope — so scrolling only
             // re-places the cards; reading it while measuring would re-run each card's SubcomposeLayout.
@@ -204,12 +204,8 @@ fun TokenCardStack(
             // negative — at rest the stack sits below the top chrome, and that negative keeps `pinnedY`
             // under `fannedY` so every card (including the last) stays fanned instead of collapsing.
             val past = scrolledPast().coerceAtMost(collapseComplete.toFloat())
-            // Read in placement like `scrolledPast`, so the entry only re-places cards.
-            val entryClosed =
-                if (entering < 0 || shiftFrom <= 0) 0
-                else (fannedPx * (1f - entryAnim.value)).toInt()
             placeables.forEachIndexed { index, placeable ->
-                val fannedY = index * fannedPx - if (index >= shiftFrom) entryClosed else 0
+                val fannedY = index * fannedPx
                 val pinnedY = (past + pinInsetPx + index * collapsedPx).toInt()
                 placeable.placeRelative(0, maxOf(fannedY, pinnedY))
             }
@@ -217,5 +213,8 @@ fun TokenCardStack(
     }
 }
 
-/** How long a newly-claimed card takes to open its slot in the deck. */
-private const val EntryDurationMillis = 450
+/** How far below its slot an arriving card starts. Matches iOS's `arrivalRise`. */
+private val ArrivalRise = 40.dp
+
+/** How long a newly-claimed card takes to rise into the deck. Matches iOS's own arrival. */
+private const val ArrivalDurationMillis = 900

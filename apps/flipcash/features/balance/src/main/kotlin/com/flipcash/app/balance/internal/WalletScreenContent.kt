@@ -41,7 +41,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.milliseconds
 import com.flipcash.app.core.ui.AppreciationStyle
 import com.flipcash.app.core.ui.TokenCardStack
 import com.flipcash.app.balance.internal.components.BalanceHeader
@@ -110,22 +110,22 @@ internal fun WalletScreenContent(
         if (reveal != null) dispatchEvent(WalletViewModel.Event.OnRevealDisplayed)
     }
 
-    // The card the reveal is withholding. Outlives the reveal on purpose: the deck can only animate
-    // the card in once it is allowed to draw it, which is the moment the reveal ends.
-    var enteringMint by remember { mutableStateOf<Mint?>(null) }
+    // A card in a currency the wallet did not hold. Set while the reveal is up so the deck has it in
+    // its layout from the first frame — held off-stage, not withheld — and outlives the reveal, which
+    // is the moment it is released to rise into the slot already made for it.
+    var arrivingMint by remember { mutableStateOf<Mint?>(null) }
     LaunchedEffect(reveal?.mint, reveal?.isNewToken) {
         val mint = reveal?.mint ?: return@LaunchedEffect
-        if (reveal.isNewToken) enteringMint = mint
+        if (reveal.isNewToken) arrivingMint = mint
     }
-    LaunchedEffect(enteringMint, reveal == null) {
-        if (enteringMint == null || reveal != null) return@LaunchedEffect
-        // Timed from the reveal ending rather than from the flag being set, because that is the
-        // frame the entry starts on — the hold before it has no fixed length. Long enough to cover
-        // the deck's own entry; clearing it stops a later return to the tab replaying the animation.
-        delay(EntryRetention)
-        enteringMint = null
+    LaunchedEffect(arrivingMint, reveal == null) {
+        if (arrivingMint == null || reveal != null) return@LaunchedEffect
+        // Timed from the reveal ending rather than from the flag being set, because that is the frame
+        // the arrival starts on — the hold before it has no fixed length. Long enough to cover the
+        // rise; clearing it stops a later return to the tab replaying the animation.
+        delay(ArrivalRetention)
+        arrivingMint = null
     }
-    val withheldMint = reveal?.mint?.takeIf { reveal.isNewToken }
 
     val listState = rememberLazyListState()
     // Px the token stack has scrolled above the viewport top, read live so the stack collapses (then
@@ -208,30 +208,28 @@ internal fun WalletScreenContent(
 
         tokenState.tokens
             ?.let { tokens ->
-                when {
-                    // A currency the wallet didn't hold: keep its card out of the deck until the
-                    // reveal ends, so it can animate in rather than being there on arrival.
-                    withheldMint != null -> tokens.filterNot { it.token.address == withheldMint }
-                    // One it did: hold the card's own number back too, so it rolls in step with the
-                    // total above it instead of sitting there already updated.
-                    reveal != null -> tokens.map { entry ->
-                        if (entry.token.address != reveal.mint) entry
-                        else entry.copy(
-                            balance = LocalFiat.fromUsd(
-                                usdf = reveal.mintBalanceBefore,
-                                rate = tokenState.rate,
-                                mint = reveal.mint,
-                            )
+                // A currency the wallet already held: hold that card's own number back too, so it
+                // rolls in step with the total above it instead of sitting there already updated. A
+                // card that is only now arriving has no earlier number to roll from — it rises into
+                // the deck showing what it holds.
+                if (reveal == null || reveal.isNewToken) tokens
+                else tokens.map { entry ->
+                    if (entry.token.address != reveal.mint) entry
+                    else entry.copy(
+                        balance = LocalFiat.fromUsd(
+                            usdf = reveal.mintBalanceBefore,
+                            rate = tokenState.rate,
+                            mint = reveal.mint,
                         )
-                    }
-                    else -> tokens
+                    )
                 }
             }
             ?.takeIf { it.isNotEmpty() }?.let { tokens ->
             item(key = TokenStackKey) {
                 TokenCardStack(
                     tokens = tokens,
-                    enteringMint = enteringMint,
+                    arrivingMint = arrivingMint,
+                    arrivalHeld = reveal != null,
                     modifier = Modifier.fillMaxWidth(),
                     pinInset = statusBarInset + CodeTheme.dimens.grid.x2,
                     scrolledPast = scrolledPast,
@@ -353,7 +351,7 @@ internal fun WalletScreenContent(
 }
 
 /**
- * How long a newly-claimed mint stays flagged as entering — the deck's own entry animation plus
- * slack, after which the card is just another card in the deck.
+ * How long a newly-claimed mint stays flagged as arriving — the rise plus slack, after which the
+ * card is just another card in the deck.
  */
-private val EntryRetention = 1.seconds
+private val ArrivalRetention = 1500.milliseconds
