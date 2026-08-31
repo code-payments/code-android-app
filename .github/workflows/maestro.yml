@@ -13,6 +13,11 @@ on:
       exclude_tags:
         description: "Maestro exclude-tags (side-effecting flows excluded by default)"
         default: "spends-funds,creates-account"
+      minify:
+        description: "Run against an R8-minified build, an unminified one, or both in turn"
+        type: choice
+        default: "true"
+        options: ["true", "false", "both"]
   schedule:
     - cron: "37 7 * * *" # nightly, off the top of the hour
 
@@ -21,10 +26,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # `minify: both` has to become a matrix before the job starts, and a matrix cannot be
+  # built from an input inline. Scheduled runs get no input, so they fall through to the
+  # minified build — that is the one that catches a broken keep rule.
+  variants:
+    runs-on: ubuntu-latest
+    outputs:
+      minify: ${{ steps.pick.outputs.minify }}
+    steps:
+      - id: pick
+        run: |
+          case "${{ github.event.inputs.minify || 'true' }}" in
+            both)  echo 'minify=["true","false"]' >> "$GITHUB_OUTPUT" ;;
+            false) echo 'minify=["false"]'        >> "$GITHUB_OUTPUT" ;;
+            *)     echo 'minify=["true"]'         >> "$GITHUB_OUTPUT" ;;
+          esac
+
   maestro:
-    name: Maestro E2E (${{ github.event.inputs.tags || 'smoke' }})
+    name: Maestro E2E (${{ github.event.inputs.tags || 'smoke' }}, minify=${{ matrix.minify }})
+    needs: variants
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      # One at a time: every flow signs into the same shared test account, so two runners
+      # would fight over its balance and session.
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        minify: ${{ fromJSON(needs.variants.outputs.minify) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -85,10 +114,16 @@ jobs:
         env:
           MAESTRO_TAGS: ${{ github.event.inputs.tags || 'smoke' }}
           MAESTRO_EXCLUDE_TAGS: ${{ github.event.inputs.exclude_tags || 'spends-funds,creates-account' }}
+          # Read by tryReadProperty in apps/flipcash/app/build.gradle.kts. local.properties
+          # wins over the environment there, and the step above never writes this key, so the
+          # value set here is the one Gradle sees. UI_TESTABLE stays true either way, since it
+          # is off only for the shipping `release` variant.
+          DEBUG_MINIFY: ${{ matrix.minify }}
           # Test-account credentials (map GitHub secrets -> the env vars run.sh reads).
           SEED_PHRASE: ${{ secrets.MAESTRO_SEED_PHRASE }}
           LOGIN_DEEPLINK: ${{ secrets.MAESTRO_LOGIN_DEEPLINK }}
           TIPCARD_DEEPLINK: ${{ secrets.MAESTRO_TIPCARD_DEEPLINK }}
+          LOGIN_USERNAME: ${{ secrets.MAESTRO_LOGIN_USERNAME }}
           USDF_ONLY_DEEPLINK: ${{ secrets.MAESTRO_USDF_ONLY_DEEPLINK }}
           CONTACT_NAME: ${{ secrets.MAESTRO_CONTACT_NAME }}
           CONTACT_PHONE: ${{ secrets.MAESTRO_CONTACT_PHONE }}
@@ -97,7 +132,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: maestro-report
+          name: maestro-report-minify-${{ matrix.minify }}
           path: |
             maestro-report.xml
             ~/.maestro/tests/**
