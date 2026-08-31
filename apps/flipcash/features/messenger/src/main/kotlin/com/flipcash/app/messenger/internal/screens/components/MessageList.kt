@@ -302,12 +302,17 @@ internal fun MessageList(
                     // Always scroll for own messages; only near-bottom for incoming
                     val nearBottom = listState.firstVisibleItemIndex <= 5
                     val newest = messages.peek(0) as? ChatListItem.ContentBubble
-                    if (newest?.isFromSelf == true || nearBottom) {
-                        if (nearBottom) {
-                            listState.animateScrollToItem(0)
-                        } else {
-                            listState.scrollToItem(0)
-                        }
+                    when {
+                        // Own message: anchor the new bubble during the next measure pass
+                        // rather than animating to it. An animated scroll resolves its target
+                        // offset up front, so the previous message's receipt collapsing out
+                        // from under it moves the target mid-flight and the list overshoots
+                        // and corrects — read as the bubble bouncing. iOS never hand-rolls
+                        // this scroll at all: ChatLayout's keepContentOffsetAtBottomOnBatchUpdates
+                        // pins the bottom edge across the one batch that both inserts the new
+                        // cell and reconfigures the old one's receipt away.
+                        newest?.isFromSelf == true -> listState.requestScrollToItem(0, 0)
+                        nearBottom -> listState.animateScrollToItem(0)
                     }
                 }
         }
