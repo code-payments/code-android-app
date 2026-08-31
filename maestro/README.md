@@ -196,9 +196,14 @@ flow deliberately, clear the exclude, e.g. `MAESTRO_TAGS=tipping MAESTRO_EXCLUDE
 - The workflow boots a KVM `x86_64` emulator (`reactivecircus/android-emulator-runner`), sets up
   the same build secrets as the unit-test job, installs the Maestro CLI, runs the lane, and uploads
   the report.
-- Triggers: **`workflow_dispatch`** (choose `tags`/`exclude_tags`) and a **nightly schedule**
-  (smoke). It's real-backend E2E against the shared account, so it's deliberately not on every PR;
-  add a `pull_request:` trigger to gate PRs (won't run on fork PRs, which lack secrets).
+- The run sets `DEBUG_MINIFY`, so the suite exercises an R8-minified debug build by default.
+  That's the build that catches a broken keep rule: screen-root test tags come from
+  `T::class.simpleName`, which needs the route classes kept (see `apps/flipcash/app/proguard-rules.pro`).
+  The `minify` dispatch input takes `true`, `false`, or `both`; `both` runs the two builds in turn
+  (one at a time — every flow signs into the same shared account) and uploads a report per variant.
+- Triggers: **`workflow_dispatch`** (choose `tags`/`exclude_tags`/`minify`) and a **nightly schedule**
+  (smoke, minified). It's real-backend E2E against the shared account, so it's deliberately not on
+  every PR; add a `pull_request:` trigger to gate PRs (won't run on fork PRs, which lack secrets).
 
 Run locally the same way CI does:
 ```bash
