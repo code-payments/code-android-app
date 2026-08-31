@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,16 +16,19 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
@@ -42,6 +46,7 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.theme.ScaffoldBarPlacement
 
 /**
  * The tip DM conversation list — always a step in the tipping [TippingFlowScreen] flow, so it shares
@@ -55,9 +60,31 @@ fun TipsScreen() {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
 
+    val chats = state.tipChats
+    val listState = rememberLazyListState()
+
     CodeScaffold(
+        // The list runs the full height and passes under the title bar, which fades it out against
+        // the background at its own edge — the same treatment the chat screen gives its message
+        // list, rather than cutting the list off at the bar.
+        barPlacement = ScaffoldBarPlacement.Overlay,
         topBar = {
+            val backgroundColor = CodeTheme.colors.background
             AppBarWithTitle(
+                // Drawn behind the bar rather than as a box sized to it, so the scrim's reach past
+                // the bar's bottom edge stays out of the bar's own measurement — which is what the
+                // list is padded by.
+                modifier = Modifier.drawBehind {
+                    val scrimHeight = size.height + ScrimTail.toPx()
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(backgroundColor, Color.Transparent),
+                            startY = 0f,
+                            endY = scrimHeight,
+                        ),
+                        size = size.copy(height = scrimHeight),
+                    )
+                },
                 title = stringResource(R.string.title_chats),
                 // Centred rather than flush-start: an empty leading slot reserves no width, so a
                 // Start title sits at the inset and reads as off-centre against the Add button.
@@ -69,25 +96,28 @@ fun TipsScreen() {
                     AppBarDefaults.Add { navigator.push(AppRoute.Messaging.NewChat) }
                 },
             )
-        }
-    ) { padding ->
-        val chats = state.tipChats
-        val listState = rememberLazyListState()
+        },
+    ) { barPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 // Scroll anchor for UI tests: `send_contact_row` addresses a single row, this
                 // addresses the scrollable list itself.
                 .testTag("chat_list")
-                .padding(padding)
-                // After the padding so the fade lands on the list viewport — flush under the app
-                // bar — rather than on the bar's own space. Rows dissolve into the background at
-                // whichever edge is still scrollable instead of being cut off.
-                .verticalScrollStateGradient(scrollState = listState),
+                // End edge only — the start edge is the bar's scrim now, and a second fade there
+                // would darken rows twice over as they pass under the title.
+                .verticalScrollStateGradient(scrollState = listState, showAtStart = false),
             state = listState,
-            // Clears the hoisted tab bar: keeps the last row reachable and centers the empty state
-            // in the space the bar leaves visible.
-            contentPadding = LocalTabBarPadding.current,
+            contentPadding = PaddingValues(
+                // The bar's height as content padding rather than as a layout inset: the viewport
+                // runs the full height and rows scroll under the bar, but at rest the first row
+                // still sits clear of it.
+                top = barPadding.calculateTopPadding(),
+                // Clears the hoisted tab bar: keeps the last row reachable. Both paddings are
+                // measured out of `fillParentMaxSize`, so the empty state stays centered in the
+                // space the two bars leave visible.
+                bottom = LocalTabBarPadding.current.calculateBottomPadding(),
+            ),
         ) {
             // Once the feed has loaded and there's nothing to show, the list is replaced by a
             // centered prompt.
@@ -101,6 +131,12 @@ fun TipsScreen() {
         }
     }
 }
+
+/**
+ * How far past the bar's bottom edge the scrim reaches before it is fully transparent. Rows begin
+ * dissolving this far below the title rather than only once they meet it.
+ */
+private val ScrimTail = 48.dp
 
 /**
  * The "Chats" tab empty state (node 9340:2746) — bubble mark, title and prompt, centered in the
