@@ -31,10 +31,15 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
 
+/** Figma 9717:14138 — the avatar, the slot that leaves room for the badge's overhang, the badge. */
+private val AvatarSize = 40.dp
+private val AvatarSlotSize = 48.dp
+private val TokenBadgeSize = 20.dp
+
 /**
  * A single row in the "Recent" activity list on the Wallet screen (Figma 8966:1910).
  *
- * Layout: [40dp avatar] · [title + relative time (weight 1)] · [signed amount]
+ * Layout: [48dp avatar slot] · [title + relative time (weight 1)] · [signed amount]
  */
 @Composable
 fun ActivityFeedRow(
@@ -48,20 +53,7 @@ fun ActivityFeedRow(
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val avatarModifier = Modifier
-            .requiredSize(CodeTheme.dimens.staticGrid.x8)
-            .clip(CircleShape)
-
-         when (val a = item.avatar) {
-             is TransactionAvatar.Profile ->
-                 ContactAvatar(userProfile = a.profile, modifier = avatarModifier)
-             is TransactionAvatar.TokenIcon ->
-                 TokenIcon(token = a.token, modifier = avatarModifier)
-             is TransactionAvatar.SwapTokens ->
-                 SwapAvatar(a, modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x8))
-             TransactionAvatar.Generic ->
-                 ContactAvatar(userProfile = UserProfile.Empty, modifier = avatarModifier)
-         }
+        AvatarSlot(item.avatar)
 
         Column(
             modifier = Modifier.weight(1f),
@@ -111,6 +103,46 @@ fun ActivityFeedRow(
                     color = CodeTheme.colors.textMain,
                 )
             }
+        }
+    }
+}
+
+/**
+ * The leading slot: the avatar centred in a box wide enough for the token badge to overhang its
+ * bottom-right corner without pushing the title (Figma 9717:14138 — 40dp avatar in a 48dp slot,
+ * 20dp badge). Every row reserves the full slot, badge or not, so titles line up down the list.
+ */
+@Composable
+private fun AvatarSlot(avatar: TransactionAvatar, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.requiredSize(AvatarSlotSize),
+        contentAlignment = Alignment.Center,
+    ) {
+        val avatarModifier = Modifier
+            .requiredSize(AvatarSize)
+            .clip(CircleShape)
+
+        when (avatar) {
+            is TransactionAvatar.Profile ->
+                ContactAvatar(userProfile = avatar.profile, modifier = avatarModifier)
+            is TransactionAvatar.TokenIcon ->
+                TokenIcon(token = avatar.token, modifier = avatarModifier)
+            is TransactionAvatar.SwapTokens ->
+                SwapAvatar(avatar, modifier = Modifier.requiredSize(AvatarSize))
+            is TransactionAvatar.Generic ->
+                ContactAvatar(userProfile = UserProfile.Empty, modifier = avatarModifier)
+        }
+
+        // Ringed in the page background so the coin reads as sitting over the avatar rather than
+        // being part of it — the same treatment [SwapAvatar] gives its overlapping pair.
+        avatar.badgeToken?.let { token ->
+            TokenIcon(
+                token = token,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .requiredSize(TokenBadgeSize)
+                    .border(CodeTheme.dimens.thickBorder, CodeTheme.colors.background, CircleShape),
+            )
         }
     }
 }

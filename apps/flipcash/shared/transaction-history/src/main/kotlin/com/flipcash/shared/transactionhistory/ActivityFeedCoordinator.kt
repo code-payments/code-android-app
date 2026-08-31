@@ -91,6 +91,19 @@ class ActivityFeedCoordinator @Inject internal constructor(
     // for the same user collapse to a single fetch.
     private val resolvingProfiles = ConcurrentHashMap.newKeySet<String>()
 
+    // Same, for badge mints (see [ensureBadgeToken]).
+    private val resolvingMints = ConcurrentHashMap.newKeySet<Mint>()
+
+    /**
+     * Token metadata for mints the held-token cache will never carry, memoized for the lifetime of
+     * the process.
+     *
+     * [TokenMetadataProvider.observeTokenCache] only ever holds mints the user has an account for,
+     * but a person-shaped row badges the mint it moved in — and a tip commonly arrives in a creator
+     * coin the recipient holds nothing of. Without this those rows would sit un-badged forever.
+     */
+    private val badgeTokens = MutableStateFlow<Map<Mint, Token>>(emptyMap())
+
     private val _syncState = MutableStateFlow(FeedSyncState.Unknown)
 
     /**
@@ -106,7 +119,10 @@ class ActivityFeedCoordinator @Inject internal constructor(
             .map { it.authState.canAccessAuthenticatedApis }
             .distinctUntilChanged()
             .filter { !it }
-            .onEach { _syncState.value = FeedSyncState.Unknown }
+            .onEach {
+                _syncState.value = FeedSyncState.Unknown
+                badgeTokens.value = emptyMap()
+            }
             .launchIn(scope)
     }
 
@@ -164,8 +180,8 @@ class ActivityFeedCoordinator @Inject internal constructor(
      * such mints are never cached, every page emission re-fetched them, so the wallet feed churned
      * network calls and never settled ("locks up when a tip comes into view"). Resolving tokens
      * cache-only here removes the churn entirely; a not-yet-cached counterparty/token simply resolves
-     * later when it lands (or, for an unheld tip coin, stays absent — tips use the profile avatar,
-     * not the token icon).
+     * later when it lands. An unheld mint the row needs for its avatar badge is fetched exactly once
+     * and memoized — see [ensureBadgeToken], which is what keeps that fix from regressing.
      *
      * NB: we intentionally do NOT `.filter` the PagingData — filtering pages makes the presenter keep
      * requesting more pages to fill the viewport (a runaway-load stall). Unresolved rows render with a
@@ -176,20 +192,64 @@ class ActivityFeedCoordinator @Inject internal constructor(
         messages
             .cachedIn(scope)
             .combine(resolvers) { paging, (profiles, tokens) ->
-                paging.map { msg ->
-                    // Resolve-on-miss: a visible row whose counterparty isn't cached triggers a
-                    // background fetch+store; when it lands, observeProfiles re-emits and this row
-                    // re-maps with the resolved avatar + name (no reload).
-                    counterpartyOf(msg.metadata)
-                        ?.takeUnless { profiles.containsKey(it.hexEncodedString()) }
-                        ?.let(::ensureProfile)
-                    val token = msg.amount?.mint?.let { tokens[it] }
-                    val toToken = destinationTokenOf(msg.metadata, tokens)
-                    transactionItemMapper.map(
-                        ActivityFeedMessageWithToken(msg, token, toToken) to profiles
-                    )
-                }
+                paging.map { msg -> resolveRow(msg, profiles, tokens) }
             }
+
+    /**
+     * Maps one feed message to a presentation row against the observed [profiles] and [tokens]
+     * caches, and kicks off resolve-on-miss for whatever the row still needs.
+     *
+     * Both lookups are pure map reads, so this stays safe inside a paging transform; the fetches it
+     * triggers are fire-and-forget and de-duplicated, and when one lands the corresponding cache
+     * re-emits and the visible rows re-map in place (no reload).
+     */
+    private fun resolveRow(
+        msg: ActivityFeedMessage,
+        profiles: Map<String, UserProfile>,
+        tokens: Map<Mint, Token>,
+    ): TransactionListItem {
+        val counterparty = counterpartyOf(msg.metadata)
+        counterparty
+            ?.takeUnless { profiles.containsKey(it.hexEncodedString()) }
+            ?.let(::ensureProfile)
+
+        val mint = msg.amount?.mint
+        val token = mint?.let { tokens[it] }
+        // A row with a counterparty draws that person's face, so the mint only appears as the
+        // avatar's badge — worth a fetch even for a mint the user holds nothing of.
+        if (counterparty != null && mint != null && token == null) ensureBadgeToken(mint)
+
+        return transactionItemMapper.map(
+            ActivityFeedMessageWithToken(
+                message = msg,
+                token = token,
+                toToken = destinationTokenOf(msg.metadata, tokens),
+            ) to profiles
+        )
+    }
+
+    /**
+     * Ensures [badgeTokens] holds metadata for [mint], fetching it once over the network.
+     *
+     * This is the one place the feed goes to the network for token metadata, and it is deliberately
+     * narrow. An earlier design called [TokenMetadataProvider.getTokenMetadata] per item *inside*
+     * the paging transform, with no de-duplication and nowhere to put the answer for an unheld mint:
+     * every page emission re-fetched the same mints, so the wallet churned network calls and never
+     * settled. Here the in-flight set collapses concurrent misses and [badgeTokens] keeps the
+     * result, so a mint costs at most one request. A failed fetch leaves the mint unresolved and is
+     * retried on a later emission — same policy as [ensureProfile].
+     */
+    private fun ensureBadgeToken(mint: Mint) {
+        if (!resolvingMints.add(mint)) return
+        scope.launch {
+            try {
+                val token = tokenProvider.getTokenMetadata(mint).getOrNull()?.token ?: return@launch
+                badgeTokens.update { it + (mint to token) }
+            } finally {
+                resolvingMints.remove(mint)
+            }
+        }
+    }
 
     /**
      * Ensures a cached [UserProfile] exists for each of [userIds], fetching any miss over the network
@@ -241,16 +301,7 @@ class ActivityFeedCoordinator @Inject internal constructor(
      */
     fun recentTransactions(limit: Int): Flow<List<TransactionListItem>> =
         combine(dataSource.observeRecent(limit), resolvers) { messages, (profiles, tokens) ->
-            messages.map { msg ->
-                counterpartyOf(msg.metadata)
-                    ?.takeUnless { profiles.containsKey(it.hexEncodedString()) }
-                    ?.let(::ensureProfile)
-                val token = msg.amount?.mint?.let { tokens[it] }
-                val toToken = destinationTokenOf(msg.metadata, tokens)
-                transactionItemMapper.map(
-                    ActivityFeedMessageWithToken(msg, token, toToken) to profiles
-                )
-            }
+            messages.map { msg -> resolveRow(msg, profiles, tokens) }
         }
 
     /**
@@ -261,26 +312,24 @@ class ActivityFeedCoordinator @Inject internal constructor(
      */
     fun recentTransactions(mint: Mint, limit: Int): Flow<List<TransactionListItem>> =
         combine(dataSource.observeRecent(mint, limit), resolvers) { messages, (profiles, tokens) ->
-            messages.map { msg ->
-                counterpartyOf(msg.metadata)
-                    ?.takeUnless { profiles.containsKey(it.hexEncodedString()) }
-                    ?.let(::ensureProfile)
-                val token = msg.amount?.mint?.let { tokens[it] }
-                val toToken = destinationTokenOf(msg.metadata, tokens)
-                transactionItemMapper.map(
-                    ActivityFeedMessageWithToken(msg, token, toToken) to profiles
-                )
-            }
+            messages.map { msg -> resolveRow(msg, profiles, tokens) }
         }
 
     /**
-     * Observed profile + token caches, paired for a single [combine] against the cached pages. Both
-     * are network-free reads that re-emit as their caches hydrate, so rows resolve reactively from
+     * Observed profile + token caches, paired for a single [combine] against the cached pages. All
+     * three are network-free reads that re-emit as they hydrate, so rows resolve reactively from
      * memory. Started eagerly-cold: it only collects while [recentTransactions] is subscribed.
+     *
+     * Held-token metadata is laid over [badgeTokens] rather than under it: the held cache is
+     * refreshed on every balance update, the badge memo is fetched once and never again.
      */
     private val resolvers: Flow<Pair<Map<String, UserProfile>, Map<Mint, Token>>> =
-        combine(userProfiles.observeProfiles(), tokenProvider.observeTokenCache()) { profiles, tokens ->
-            profiles to tokens
+        combine(
+            userProfiles.observeProfiles(),
+            tokenProvider.observeTokenCache(),
+            badgeTokens,
+        ) { profiles, tokens, badges ->
+            profiles to (badges + tokens)
         }
 
     /**
