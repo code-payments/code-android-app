@@ -58,7 +58,13 @@ private fun ChatSummary.formatPreview(
             }
             is MessageContent.Cash -> {
                 val formatted = content.amount.formatted()
-                val name = content.tokenName.ifBlank { tokensByMint[content.mint]?.name.orEmpty() }
+                // The reserve is branded "Dollars", so naming it reads as "$1.00 of Dollars" —
+                // the amount alone already says it. Every other token still gets named.
+                val name = if (content.mint == Mint.usdf) {
+                    ""
+                } else {
+                    content.tokenName.ifBlank { tokensByMint[content.mint]?.name.orEmpty() }
+                }
                 val label = if (name.isNotBlank()) {
                     resources.getString(R.string.label_chat_preview_cash_suffix, formatted, name)
                 } else {
