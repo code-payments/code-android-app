@@ -7,8 +7,10 @@
 -keepnames class com.flipcash.app.core.AppRoute
 -keepnames class com.flipcash.app.core.AppRoute$**
 
-# Protobuf keep rules ship with the contract packages themselves, in
-# com.flipcash:{ocp,flipcash2}-client-protocol.
+# Protobuf keep rules ship with the contract packages themselves, from 0.3.0 on:
+# com.flipcash:{ocp,flipcash2}-client-protocol carry them in META-INF/proguard/, which
+# R8 reads straight out of the jar. Downgrading either pin below 0.3.0 silently removes
+# the app's only protobuf keep rule.
 
 # gRPC — keep the generated client stubs
 -keep class * extends io.grpc.stub.AbstractStub { *; }
