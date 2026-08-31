@@ -138,7 +138,7 @@ class PhotoSelectionViewModel @Inject constructor(
                     dispatchEvent(Event.CheckImage)
                     return@onEach
                 }
-                BottomBarManager.showAlert(
+                BottomBarManager.showMessage(
                     title = resources.getString(R.string.prompt_title_changeProfilePicture),
                     message = resources.getString(R.string.prompt_description_changeProfilePicture),
                     actions = listOf(

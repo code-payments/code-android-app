@@ -967,18 +967,20 @@
     <!-- Confirmation before a profile edit is committed. Only shown on a change: a first display
          name, username, picture, or minimum tip overwrites nothing, so there is nothing to warn
          about. Username carries the extra sentence because the old handle is released on change
-         and someone else can claim it. -->
+         and someone else can claim it — the only one of the four the user may not be able to undo,
+         so the only one shown in the red banner. The rest state what the change does and confirm in
+         the grey one. -->
     <string name="prompt_title_changeDisplayName">Change Display Name?</string>
-    <string name="prompt_description_changeDisplayName">Are you sure you want to permanently change your display name?</string>
+    <string name="prompt_description_changeDisplayName">This will change your display name</string>
     <string name="action_changeDisplayName">Change Display Name</string>
     <string name="prompt_title_changeUsername">Change Username?</string>
     <string name="prompt_description_changeUsername">Are you sure you want to permanently change your username? You might not be able to get your old username back</string>
     <string name="action_changeUsername">Change Username</string>
     <string name="prompt_title_changeProfilePicture">Change Profile Picture?</string>
-    <string name="prompt_description_changeProfilePicture">Are you sure you want to permanently change your profile picture?</string>
+    <string name="prompt_description_changeProfilePicture">This will change your profile picture</string>
     <string name="action_changeProfilePicture">Change Profile Picture</string>
     <string name="prompt_title_changeMinimumTip">Change Minimum Tip?</string>
-    <string name="prompt_description_changeMinimumTip">Are you sure you want to permanently change your minimum tip?</string>
+    <string name="prompt_description_changeMinimumTip">This will change your minimum tip</string>
     <string name="action_changeMinimumTip">Change Minimum Tip</string>
 
     <!-- A tapped `flipcash.com/{username}` link that resolves to nothing. -->
