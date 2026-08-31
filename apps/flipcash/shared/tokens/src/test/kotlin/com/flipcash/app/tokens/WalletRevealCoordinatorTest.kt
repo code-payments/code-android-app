@@ -89,7 +89,7 @@ class WalletRevealCoordinatorTest {
     }
 
     @Test
-    fun `the reveal is released once the wallet has held it on screen`() = runTest {
+    fun `a wallet that draws straight away still waits for the bill to clear`() = runTest {
         val reveal = coordinator(TestDispatchers(testScheduler))
         wallet(total = Fiat(10), mintBalance = Fiat(4), holdsMint = true)
 
@@ -97,7 +97,29 @@ class WalletRevealCoordinatorTest {
         reveal.arm()
         reveal.onDisplayed()
 
-        advanceTimeBy(WalletRevealCoordinator.HoldDuration - 1.milliseconds)
+        // The wallet has had its beat, but the bill is still coming down over it. Releasing on the
+        // faster clock would run the balance up underneath the bill, where it cannot be seen.
+        advanceTimeBy(WalletRevealCoordinator.MinimumHold + 1.milliseconds)
+        assertEquals(mint, reveal.pending.value?.mint)
+
+        advanceTimeBy(WalletRevealCoordinator.BillClearDelay)
+        assertNull(reveal.pending.value)
+    }
+
+    @Test
+    fun `a wallet that takes longer than the bill still holds the figures on arrival`() = runTest {
+        val reveal = coordinator(TestDispatchers(testScheduler))
+        wallet(total = Fiat(10), mintBalance = Fiat(4), holdsMint = true)
+
+        reveal.capture(mint)
+        reveal.arm()
+
+        // The tab was slow: the bill has long since cleared by the time anything is drawn.
+        advanceTimeBy(WalletRevealCoordinator.BillClearDelay * 2)
+        assertEquals(mint, reveal.pending.value?.mint)
+
+        reveal.onDisplayed()
+        advanceTimeBy(WalletRevealCoordinator.MinimumHold - 1.milliseconds)
         assertEquals(mint, reveal.pending.value?.mint)
 
         advanceTimeBy(2.milliseconds)
@@ -112,8 +134,9 @@ class WalletRevealCoordinatorTest {
         reveal.capture(mint)
         reveal.arm()
 
-        // The user backed out before the wallet drew: no onDisplayed ever arrives.
-        advanceTimeBy(WalletRevealCoordinator.HoldDuration + 1.milliseconds)
+        // The user backed out before the wallet drew: no onDisplayed ever arrives, so the clock
+        // waiting on it never finishes and only the timeout ends the reveal.
+        advanceTimeBy(WalletRevealCoordinator.BillClearDelay + 1.milliseconds)
         assertEquals(mint, reveal.pending.value?.mint)
 
         advanceTimeBy(WalletRevealCoordinator.UnclaimedTimeout)
@@ -129,7 +152,7 @@ class WalletRevealCoordinatorTest {
         reveal.arm()
         reveal.onDisplayed()
 
-        advanceTimeBy(WalletRevealCoordinator.HoldDuration - 1.milliseconds)
+        advanceTimeBy(WalletRevealCoordinator.BillClearDelay - 1.milliseconds)
         reveal.onDisplayed()
 
         advanceTimeBy(2.milliseconds)

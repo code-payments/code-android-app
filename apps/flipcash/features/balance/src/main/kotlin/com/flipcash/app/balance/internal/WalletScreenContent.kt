@@ -102,9 +102,9 @@ internal fun WalletScreenContent(
         return
     }
 
-    // A claim the user just accepted, held for a beat so the money arrives on screen rather than
-    // being there already. Reported as displayed *after* the loading gate above, so a slow tab
-    // doesn't spend the hold behind a spinner.
+    // A claim the user just accepted, held until the bill it came from is off screen so the money
+    // arrives rather than being there already. Reported as displayed *after* the loading gate above,
+    // so a slow tab doesn't spend its share of the hold behind a spinner.
     val reveal = balanceState.reveal
     LaunchedEffect(reveal != null) {
         if (reveal != null) dispatchEvent(WalletViewModel.Event.OnRevealDisplayed)
@@ -117,10 +117,11 @@ internal fun WalletScreenContent(
         val mint = reveal?.mint ?: return@LaunchedEffect
         if (reveal.isNewToken) enteringMint = mint
     }
-    LaunchedEffect(enteringMint) {
-        if (enteringMint == null) return@LaunchedEffect
-        // Long enough to cover the deck's own entry; clearing it stops a later return to the tab
-        // replaying the animation.
+    LaunchedEffect(enteringMint, reveal == null) {
+        if (enteringMint == null || reveal != null) return@LaunchedEffect
+        // Timed from the reveal ending rather than from the flag being set, because that is the
+        // frame the entry starts on — the hold before it has no fixed length. Long enough to cover
+        // the deck's own entry; clearing it stops a later return to the tab replaying the animation.
         delay(EntryRetention)
         enteringMint = null
     }
