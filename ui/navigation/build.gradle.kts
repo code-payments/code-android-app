@@ -27,6 +27,7 @@ dependencies {
     implementation(libs.bundles.hilt)
     ksp(libs.bundles.hilt.compiler)
 
+    api(libs.compose.view.models)
     api(libs.navigation3.runtime)
     api(libs.navigation3.ui)
     api(libs.lifecycle.viewmodel.navigation3)

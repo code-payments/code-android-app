@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -28,8 +30,10 @@ import com.flipcash.app.cardexpand.LocalCardExpansion
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.LocalTabBarVisibility
+import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.navigation.TabBarVisibilityController
 import com.flipcash.app.core.navigation.asNavBarTab
+import com.flipcash.app.core.navigation.destinationRoute
 import com.flipcash.app.core.ui.transitions.CardExpandTransition
 import com.flipcash.app.internal.ui.AppNavigationBar
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBillOverlayEntryDecorator
@@ -38,6 +42,7 @@ import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEn
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavTabBarInsetEntryDecorator
 import com.getcode.navigation.AppNavHost
 import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.decorators.rememberRetainedEntryState
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.scenes.ModalBottomSheetSceneStrategy
 import com.getcode.ui.components.bars.BarManager
@@ -86,6 +91,24 @@ internal fun AppContent(
     // full screen in place, so there's no route change for the visibility rule below to notice.
     val tabBarVisibility = remember { TabBarVisibilityController() }
 
+    // A tab press replaces the whole back stack (tab-bar semantics — see AppNavigationBar), so every
+    // tab home was destroyed and rebuilt on each switch: the wallet re-fetched its balances and the
+    // chat list scrolled back to the top. Hold each tab home's ViewModels and scroll state outside the
+    // back stack so a switch shows what the tab last had. Only the four routes a tab press produces
+    // are held, so variants of a tab route (a resumed Tips, say) still get a fresh screen.
+    val tabHomeKeys = remember {
+        NavBarButton.entries.map { it.destinationRoute().toString() }.toSet()
+    }
+    val entryState = rememberRetainedEntryState { it in tabHomeKeys }
+
+    // Leaving the tabs altogether — signing out — is where held state stops being the user's own. A
+    // push keeps its tab home on the stack, so this fires on a replaceAll away from the tabs.
+    LaunchedEffect(entryState, codeNavigator.backStack) {
+        snapshotFlow {
+            codeNavigator.backStack.any { (it as? AppRoute)?.asNavBarTab() != null }
+        }.collect { onTabs -> if (!onTabs) entryState.releaseAll() }
+    }
+
     // Card-expand (iOS #587): the wallet requests an expansion (via LocalCardExpansion); the detail is
     // drawn by CardExpandHost inside the wallet entry, driven by one progress scalar, so the deck stays
     // composed and reorganises behind it. See CardExpansionController / CurrencyInfoExpansion.
@@ -101,6 +124,7 @@ internal fun AppContent(
             AppNavHost(
                 navigator = codeNavigator,
                 resultStateRegistry = resultStateRegistry,
+                entryState = entryState,
                 decorators = listOf(
                     // First = outermost, and outermost draws last: a bottom bar message is a prompt
                     // that has to be answered, so it sits above everything the entry draws — the

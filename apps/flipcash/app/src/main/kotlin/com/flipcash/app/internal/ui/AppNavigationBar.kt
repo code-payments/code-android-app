@@ -24,7 +24,7 @@ import com.flipcash.app.core.LocalUserManager
 import dev.chrisbanes.haze.HazeState
 import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.navigation.asNavBarTab
-import com.flipcash.app.core.navigation.switchTab
+import com.flipcash.app.core.navigation.destinationRoute
 import com.flipcash.app.core.ui.NavigationBar
 import com.flipcash.app.core.ui.rememberNavigationBarState
 import com.flipcash.app.session.LocalSessionController
@@ -39,9 +39,8 @@ import kotlinx.coroutines.flow.map
 
 /**
  * The hoisted navigation bar — root chrome, not owned by any screen. It renders over whichever
- * top-level route is a tab home and switches tabs by moving the target's home to the top of the
- * backstack (see [switchTab]), keeping the tabs already visited alive rather than rebuilding each
- * one on every press.
+ * top-level route is a tab home and switches tabs by **swapping the current screen** (single
+ * backstack, like a tab bar — hence [CodeNavigator.replaceAll], not a sheet).
  *
  * Only visible when the current route maps to a tab.
  *
@@ -61,12 +60,9 @@ internal fun AppNavigationBar(
     // the expansion doesn't recompose the bar.
     cardExpansion: CardExpansionController? = null,
 ) {
-    // Selection follows the topmost tab home, so it stays correct while a sheet/modal or a pushed
-    // detail sits over it and is right on launch. Read from the top down rather than the bottom up
-    // because the tabs below the active one are the retained ones (see [switchTab]) — the base of
-    // the stack is the tab visited first, not the tab showing. The top route only gates visibility.
-    val selectedTab = navigator.backStack.asReversed()
-        .firstNotNullOfOrNull { (it as? AppRoute)?.asNavBarTab() }
+    // Selection follows the base of the backstack (the tab "home"), so it stays correct while a
+    // sheet/modal sits on top and is right on launch. The top route only gates visibility.
+    val selectedTab = navigator.backStack.firstNotNullOfOrNull { (it as? AppRoute)?.asNavBarTab() }
     val topTab = (navigator.currentRouteKey as? AppRoute)?.asNavBarTab()
 
     // A BottomBar modal (e.g. Add Money) renders in the nav content, above this bar; hide the bar so
@@ -130,7 +126,10 @@ internal fun AppNavigationBar(
                         .padding(horizontal = CodeTheme.dimens.grid.x8)
                         .padding(bottom = CodeTheme.dimens.grid.x3),
                     state = state,
-                    onButtonClick = { button -> navigator.switchTab(button) },
+                    onButtonClick = { button ->
+                        // Tab bar semantics: swap the current screen (single backstack).
+                        navigator.replaceAll(button.destinationRoute())
+                    },
                     hazeState = hazeState,
                     avatar = avatar,
                 )

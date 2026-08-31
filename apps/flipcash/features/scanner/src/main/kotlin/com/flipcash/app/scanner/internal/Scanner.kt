@@ -157,13 +157,8 @@ internal fun Scanner() {
         }
     }
 
-    // The camera runs while nothing covers the scanner. This used to ask whether the scanner was the
-    // only entry on the stack, which stopped meaning the same thing once a tab switch began keeping
-    // the tabs already visited underneath it (see `switchTab`): the scanner tab is reached with those
-    // beneath it, so the stack is never depth-1 and the preview never came up. Depth was only ever a
-    // proxy for "nothing is on top"; ask that instead.
-    LaunchedEffect(navigator.currentRouteKey) {
-        previewing = navigator.currentRouteKey == AppRoute.Main.Scanner
+    LaunchedEffect(navigator.backStack.size) {
+        previewing = navigator.backStack.size <= 1
     }
 
     LaunchedEffect(billState.bill) {

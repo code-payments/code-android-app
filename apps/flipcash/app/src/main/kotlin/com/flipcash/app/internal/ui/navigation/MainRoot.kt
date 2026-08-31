@@ -27,7 +27,6 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.navigation.DeeplinkAction
-import com.flipcash.app.core.navigation.asNavBarTab
 import com.flipcash.app.core.navigation.homeRoute
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.resolveBackStack
@@ -124,7 +123,7 @@ internal fun MainRoot(
                 }
 
                 if (launch != null) {
-                    val current = navigator.backStack.toList().fromActiveTab()
+                    val current = navigator.backStack.toList()
                     val target = launch.resolvedBackStack()
 
                     // Skip if the current stack already matches or extends the target.
@@ -168,19 +167,6 @@ internal data class LaunchNavGraph(
      */
     fun resolvedBackStack(): List<NavKey> =
         resolveBackStack(baseRoutes, deeplinkRoutes)
-}
-
-/**
- * The backstack from the active tab up, dropping the tab homes retained beneath it.
- *
- * A tab switch keeps the tabs already visited on the stack (see `switchTab`), so the base of the
- * stack is the tab visited first, not the one showing. The launch graph only ever describes the
- * active tab and what sits over it, so comparing against the whole stack would read the retained
- * tabs as a mismatch and reset the user to the launch route on any auth/flags re-emission.
- */
-private fun List<NavKey>.fromActiveTab(): List<NavKey> {
-    val active = indexOfLast { (it as? AppRoute)?.asNavBarTab() != null }
-    return if (active > 0) drop(active) else this
 }
 
 /**
