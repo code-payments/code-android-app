@@ -123,6 +123,7 @@ jobs:
           SEED_PHRASE: ${{ secrets.MAESTRO_SEED_PHRASE }}
           LOGIN_DEEPLINK: ${{ secrets.MAESTRO_LOGIN_DEEPLINK }}
           TIPCARD_DEEPLINK: ${{ secrets.MAESTRO_TIPCARD_DEEPLINK }}
+          LOGIN_USERNAME: ${{ secrets.MAESTRO_LOGIN_USERNAME }}
           USDF_ONLY_DEEPLINK: ${{ secrets.MAESTRO_USDF_ONLY_DEEPLINK }}
           CONTACT_NAME: ${{ secrets.MAESTRO_CONTACT_NAME }}
           CONTACT_PHONE: ${{ secrets.MAESTRO_CONTACT_PHONE }}

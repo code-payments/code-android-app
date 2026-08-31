@@ -25,7 +25,11 @@ iOS's `FlipcashUITests`. Flows are plain YAML under `maestro/`; reusable pieces 
    CONTACT_NAME=Brandon McAnsh                  # an on-Flipcash contact for send-to-contact
    CONTACT_PHONE=+15869802333                   # seed this contact into the emulator
    ```
-   The runner (`run.sh`) forwards all of these to Maestro.
+   The runner (`run.sh`) forwards all of these to Maestro. It checks them first: a missing
+   `SEED_PHRASE` or `LOGIN_DEEPLINK` stops the run with the variable named, and the
+   flow-specific ones warn with the flows that read them. Without that check an unset
+   credential reaches Maestro as an empty value and surfaces much later as
+   `wallet_screen is visible` failing inside a login subflow.
 
 ## Running
 
@@ -211,7 +215,7 @@ MAESTRO_TAGS=smoke maestro/run.sh --tags smoke
 ```
 
 **Required GitHub secrets** (test-account creds — the workflow maps them to the env vars
-`run.sh` reads): `MAESTRO_SEED_PHRASE`, `MAESTRO_LOGIN_DEEPLINK`, `MAESTRO_TIPCARD_DEEPLINK`,
+`run.sh` reads): `MAESTRO_SEED_PHRASE`, `MAESTRO_LOGIN_DEEPLINK`, `MAESTRO_LOGIN_USERNAME`, `MAESTRO_TIPCARD_DEEPLINK`,
 `MAESTRO_USDF_ONLY_DEEPLINK`, `MAESTRO_CONTACT_NAME`, `MAESTRO_CONTACT_PHONE` — plus the existing
 build secrets (`FLIPCASH2_GOOGLE_SERVICES`, `FLIPCASH_BUGSNAG_API_KEY`, `FLIPCASH_MIXPANEL_API_KEY`,
 `COINBASE_ONRAMP_API_KEY`, `GOOGLE_CLOUD_PROJECT_NUMBER`).
