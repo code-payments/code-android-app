@@ -22,18 +22,18 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
-import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SinglePaneSceneStrategy
 import androidx.navigation3.ui.NavDisplay
 import com.getcode.animation.LocalSharedTransitionScope
 import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.decorators.RetainedEntryState
 import com.getcode.navigation.decorators.rememberNavResultScopeEntryDecorator
+import com.getcode.navigation.decorators.rememberRetainedEntryState
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.navigation.results.rememberNavResultStateRegistry
 import com.getcode.theme.CodeTheme
@@ -62,6 +62,10 @@ fun AppNavHost(
         popTransitionSpec()
     },
     onBack: (() -> Unit)? = null,
+    // Owns each entry's ViewModel store and rememberSaveable state. Defaults to retaining nothing,
+    // which is Nav3's own behaviour; a host passes one that retains keys whose state should survive
+    // their entry (the tab homes).
+    entryState: RetainedEntryState = rememberRetainedEntryState(),
     entryProvider: (key: NavKey) -> NavEntry<NavKey>,
     decorators: List<NavEntryDecorator<NavKey>> = emptyList(),
 ) {
@@ -102,9 +106,7 @@ fun AppNavHost(
         transitionSpec = transitionSpec,
         popTransitionSpec = popTransitionSpec,
         predictivePopTransitionSpec = predictivePopTransitionSpec,
-        entryDecorators = listOf(
-            rememberSaveableStateHolderNavEntryDecorator(),
-            rememberViewModelStoreNavEntryDecorator(),
+        entryDecorators = entryState.decorators + listOf(
             rememberNavResultScopeEntryDecorator(
                 backStack = navigator.backStack,
                 navResultStore = navigator.resultStore,
