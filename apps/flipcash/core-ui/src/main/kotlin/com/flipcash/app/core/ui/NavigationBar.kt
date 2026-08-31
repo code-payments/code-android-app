@@ -88,10 +88,10 @@ fun NavigationBar(
     state: NavigationBarState,
     onButtonClick: (NavBarButton) -> Unit = {},
     hazeState: HazeState? = null,
-    // The You tab wears the account's own photo in place of its glyph once one is set (node
-    // 9641:17130). This module sits below the profile layer, so the caller supplies the avatar and
-    // passes null when there is no photo. The modifier handed back already sizes, clips and fades
-    // the slot; the avatar only has to fill it.
+    // The You tab wears the account's own photo in place of its glyph once one is set (nodes
+    // 9641:17130 and 9713:664). This module sits below the profile layer, so the caller supplies the
+    // avatar and passes null when there is no photo. The modifier handed back already sizes, clips
+    // and fades the slot; the avatar only has to fill it.
     avatar: (@Composable (Modifier) -> Unit)? = null,
 ) {
     val order = NavBarButton.tabs
@@ -181,6 +181,18 @@ fun NavigationBar(
                 ) {
                     Box {
                         if (button == NavBarButton.TipCard && avatar != null) {
+                            // The photo slot has its own unselected state (node 9713:664): the ring
+                            // thins from 2dp to 1dp and drops to white at 50%, which the slot's
+                            // 0.5 alpha then halves again. The photo itself keeps its size — the
+                            // ring is inset, and the padding around it does not change.
+                            val ringWidth by animateDpAsState(
+                                targetValue = if (selected) {
+                                    CodeTheme.dimens.thickBorder
+                                } else {
+                                    CodeTheme.dimens.border
+                                },
+                                label = "navBarAvatarRingWidth",
+                            )
                             Box(
                                 modifier = Modifier
                                     .size(iconSize)
@@ -189,13 +201,15 @@ fun NavigationBar(
                             ) {
                                 avatar(Modifier.fillMaxSize().clip(CircleShape))
                                 // Drawn over the photo rather than behind it, so the ring survives
-                                // whatever background the avatar paints for itself.
+                                // whatever background the avatar paints for itself. iconAlpha is
+                                // the ring's own fade, on top of the slot's — the two compose to
+                                // the 25% the unselected ring reads at.
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .border(
-                                            CodeTheme.dimens.thickBorder,
-                                            Color.White,
+                                            ringWidth,
+                                            Color.White.copy(alpha = iconAlpha),
                                             CircleShape,
                                         ),
                                 )
@@ -260,5 +274,31 @@ private fun NavigationBarPreview() {
     NavigationBar(
         state = rememberNavigationBarState(tipUnreadCount = 100),
         onButtonClick = { }
+    )
+}
+
+/**
+ * The You tab's photo slot in both of its states (node 9713:664) — a flat fill stands in for the
+ * photo, since a preview has no profile to read.
+ */
+@Preview(name = "Avatar, You tab unselected")
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun NavigationBarAvatarUnselectedPreview() {
+    NavigationBar(
+        state = rememberNavigationBarState(selectedTab = NavBarButton.Wallet),
+        onButtonClick = { },
+        avatar = { modifier -> Box(modifier.background(Color(0xFF8E6E5B))) },
+    )
+}
+
+@Preview(name = "Avatar, You tab selected")
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun NavigationBarAvatarSelectedPreview() {
+    NavigationBar(
+        state = rememberNavigationBarState(selectedTab = NavBarButton.TipCard),
+        onButtonClick = { },
+        avatar = { modifier -> Box(modifier.background(Color(0xFF8E6E5B))) },
     )
 }
