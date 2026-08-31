@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,7 +18,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.ui.TokenIcon
 import com.getcode.opencode.model.financial.Token
 import com.flipcash.shared.common.ui.ContactAvatar
@@ -31,15 +29,10 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-/** Figma 9717:14138 — the avatar, the slot that leaves room for the badge's overhang, the badge. */
-private val AvatarSize = 40.dp
-private val AvatarSlotSize = 48.dp
-private val TokenBadgeSize = 20.dp
-
 /**
  * A single row in the "Recent" activity list on the Wallet screen (Figma 8966:1910).
  *
- * Layout: [48dp avatar slot] · [title + relative time (weight 1)] · [signed amount]
+ * Layout: [avatar slot] · [title + relative time (weight 1)] · [signed amount]
  */
 @Composable
 fun ActivityFeedRow(
@@ -109,17 +102,24 @@ fun ActivityFeedRow(
 
 /**
  * The leading slot: the avatar centred in a box wide enough for the token badge to overhang its
- * bottom-right corner without pushing the title (Figma 9717:14138 — 40dp avatar in a 48dp slot,
- * 20dp badge). Every row reserves the full slot, badge or not, so titles line up down the list.
+ * bottom-right corner without pushing the title (Figma 9717:14138). Every row reserves the full
+ * slot, badge or not, so titles line up down the list.
+ *
+ * Sized off the static 5pt grid rather than the design's raw pixels: the avatar and badge land on it
+ * exactly (x8 = 40dp, x4 = 20dp), and the slot takes x10 = 50dp, which is one grid step of overhang
+ * on each side. That is 2dp wider than the 48dp Figma draws — the cost of keeping the row on-grid,
+ * and it moves the title by the same 2dp on every row rather than unevenly.
  */
 @Composable
 private fun AvatarSlot(avatar: TransactionAvatar, modifier: Modifier = Modifier) {
+    val grid = CodeTheme.dimens.staticGrid
+    val avatarSize = grid.x8
     Box(
-        modifier = modifier.requiredSize(AvatarSlotSize),
+        modifier = modifier.requiredSize(grid.x10),
         contentAlignment = Alignment.Center,
     ) {
         val avatarModifier = Modifier
-            .requiredSize(AvatarSize)
+            .requiredSize(avatarSize)
             .clip(CircleShape)
 
         when (avatar) {
@@ -128,7 +128,7 @@ private fun AvatarSlot(avatar: TransactionAvatar, modifier: Modifier = Modifier)
             is TransactionAvatar.TokenIcon ->
                 TokenIcon(token = avatar.token, modifier = avatarModifier)
             is TransactionAvatar.SwapTokens ->
-                SwapAvatar(avatar, modifier = Modifier.requiredSize(AvatarSize))
+                SwapAvatar(avatar, modifier = Modifier.requiredSize(avatarSize))
             is TransactionAvatar.Generic ->
                 ContactAvatar(userProfile = UserProfile.Empty, modifier = avatarModifier)
         }
@@ -140,7 +140,7 @@ private fun AvatarSlot(avatar: TransactionAvatar, modifier: Modifier = Modifier)
                 token = token,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .requiredSize(TokenBadgeSize)
+                    .requiredSize(grid.x4)
                     .border(CodeTheme.dimens.thickBorder, CodeTheme.colors.background, CircleShape),
             )
         }
