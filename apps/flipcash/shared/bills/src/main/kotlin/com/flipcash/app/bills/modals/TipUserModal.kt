@@ -38,6 +38,7 @@ import com.flipcash.app.core.tipping.LocalTipCoordinator
 import com.flipcash.app.core.tipping.TipAmount
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.TokenSelectionPill
+import com.flipcash.app.core.util.abbreviated
 import com.flipcash.shared.bills.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.financial.Fiat
@@ -194,7 +195,9 @@ private fun RowScope.TipAmount(
     ) {
         if (fiat != null) {
             Text(
-                text = fiat.formatted(rule = Fiat.FormattingRule.Truncated),
+                // Abbreviated so a high-denomination currency (Rp332K, ₫526K) still fits the
+                // button; the full amount stays in the content description.
+                text = fiat.abbreviated(),
                 style = CodeTheme.typography.textLarge,
                 color = foregroundColor,
                 textAlign = TextAlign.Center,
