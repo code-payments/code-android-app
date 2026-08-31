@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,12 +40,14 @@ import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.core.verticalScrollStateGradient
 import com.getcode.ui.theme.CodeScaffold
 
 /**
  * The tip DM conversation list — always a step in the tipping [TippingFlowScreen] flow, so it shares
- * the flow's [TipFlowViewModel]. It is the "Chats" root tab: a flush large title over the list, no
- * dismiss affordance (the root nav bar is the chrome); the tip card lives on its own tab.
+ * the flow's [TipFlowViewModel]. It is the "Chats" root tab: the standard centred screen title over
+ * the list, no dismiss affordance (the root nav bar is the chrome); the tip card lives on its own
+ * tab.
  */
 @Composable
 fun TipsScreen() {
@@ -56,7 +59,9 @@ fun TipsScreen() {
         topBar = {
             AppBarWithTitle(
                 title = stringResource(R.string.title_chats),
-                titleTextStyle = CodeTheme.typography.screenTitleLarge,
+                // Centred rather than flush-start: an empty leading slot reserves no width, so a
+                // Start title sits at the inset and reads as off-centre against the Add button.
+                titleAlignment = Alignment.CenterHorizontally,
                 // Node 9442:5779 — the only way to start a chat with someone who has never paid
                 // you. A pushed route, not a step of this flow: this list is a tab home, and a step
                 // pushed inside it would leave the tab bar over the entry screen.
@@ -67,13 +72,19 @@ fun TipsScreen() {
         }
     ) { padding ->
         val chats = state.tipChats
+        val listState = rememberLazyListState()
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 // Scroll anchor for UI tests: `send_contact_row` addresses a single row, this
                 // addresses the scrollable list itself.
                 .testTag("chat_list")
-                .padding(padding),
+                .padding(padding)
+                // After the padding so the fade lands on the list viewport — flush under the app
+                // bar — rather than on the bar's own space. Rows dissolve into the background at
+                // whichever edge is still scrollable instead of being cut off.
+                .verticalScrollStateGradient(scrollState = listState),
+            state = listState,
             // Clears the hoisted tab bar: keeps the last row reachable and centers the empty state
             // in the space the bar leaves visible.
             contentPadding = LocalTabBarPadding.current,
