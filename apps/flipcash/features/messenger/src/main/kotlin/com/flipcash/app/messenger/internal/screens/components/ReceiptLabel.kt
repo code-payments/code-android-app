@@ -84,9 +84,10 @@ internal fun ReceiptLabel(
     ) {
         AnimatedVisibility(
             visible = deliveredVisible,
+            // Expand + opacity, no scale: iOS un-hides the label and cross-fades its text in,
+            // letting the cell self-size. The line itself never scales.
             enter = if (animateEntrance) {
-                expandVertically() +
-                        scaleIn(deliveredSpec, initialScale = 0.95f) + fadeIn(deliveredSpec)
+                expandVertically() + fadeIn(deliveredSpec)
             } else {
                 expandVertically(snap()) + fadeIn(snap())
             },
