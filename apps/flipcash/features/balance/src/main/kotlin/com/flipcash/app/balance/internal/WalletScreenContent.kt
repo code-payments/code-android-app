@@ -43,6 +43,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 import com.flipcash.app.core.ui.AppreciationStyle
+import com.flipcash.app.core.ui.TokenCardArrival
+import com.flipcash.app.core.ui.TokenCardExpansion
 import com.flipcash.app.core.ui.TokenCardStack
 import com.flipcash.app.balance.internal.components.BalanceHeader
 import com.flipcash.app.core.ui.onboarding.NewUserTutorial
@@ -228,15 +230,18 @@ internal fun WalletScreenContent(
             item(key = TokenStackKey) {
                 TokenCardStack(
                     tokens = tokens,
-                    arrivingMint = arrivingMint,
-                    arrivalHeld = reveal != null,
+                    arrival = arrivingMint?.let { TokenCardArrival(mint = it, held = reveal != null) },
                     modifier = Modifier.fillMaxWidth(),
                     pinInset = statusBarInset + CodeTheme.dimens.grid.x2,
                     scrolledPast = scrolledPast,
-                    expandingMint = expandingMint,
-                    expandProgress = heroProgress,
-                    heroTarget = cardExpansion?.heroBounds,
-                    pullOffset = { cardExpansion?.pullOffset ?: 0f },
+                    expansion = expandingMint?.let { mint ->
+                        TokenCardExpansion(
+                            mint = mint,
+                            heroTarget = cardExpansion?.heroBounds,
+                            progress = heroProgress,
+                            pullOffset = { cardExpansion?.pullOffset ?: 0f },
+                        )
+                    },
                     onCardClick = { token, bounds ->
                         // Expand the tapped card's currency-info as an overlay (app-level host draws it);
                         // the deck reorganises here in step with the shared progress scalar.

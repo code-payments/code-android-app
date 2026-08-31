@@ -5,6 +5,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -22,6 +23,41 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.mutableStateOf
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.solana.keys.Mint
+
+/**
+ * The card [TokenCardStack] is opening, and the shared scalars the deck reorganises against.
+ *
+ * One holder rather than four parameters because the four are never independently meaningful: three of
+ * them say nothing at all unless a card is expanding, so passing them separately let a caller describe a
+ * deck mid-expand with no card named. Here that state cannot be spelled.
+ *
+ * [progress] and [pullOffset] stay lambdas — the deck reads them in its placement and draw phases, so a
+ * scrub moves the cards without recomposing them. Read them there, never while composing.
+ *
+ * @param mint the expanding card's currency.
+ * @param heroTarget window-space bounds of the expanded hero frame, once the overlay has measured it.
+ * @param progress 0 (collapsed into the deck) → 1 (fully expanded).
+ * @param pullOffset the overlay hero's pull-to-close translation, px downward.
+ */
+@Immutable
+data class TokenCardExpansion(
+    val mint: Mint,
+    val heroTarget: Rect?,
+    val progress: () -> Float,
+    val pullOffset: () -> Float,
+)
+
+/**
+ * A card that has just joined the deck and has yet to be seen landing in it.
+ *
+ * @param mint the arriving card's currency.
+ * @param held keeps the card off-stage until the caller is ready for it to rise.
+ */
+@Immutable
+data class TokenCardArrival(
+    val mint: Mint,
+    val held: Boolean = false,
+)
 
 /**
  * A vertical stack of [TokenCard]s that fans out (each card revealing its [fannedReveal] header) and
@@ -44,7 +80,7 @@ import com.getcode.solana.keys.Mint
  * hero (shared-bounds overlay). The tapped card is hosted in the overlay, so it keeps its natural
  * opacity while the rest of the wallet fades.
  *
- * [expandingMint] + [expandProgress] drive the **deck reorganisation** around the tapped card as the
+ * [expansion] drives the **deck reorganisation** around the tapped card as the
  * push progresses (0 → 1), ported from iOS: cards **above** the tapped one gather onto exactly the spot
  * it lands (collapsing into its slot underneath it), cards **below** run off the bottom, and both fade
  * out linearly. Because each card reads its own current top, this holds at any scroll position. The
@@ -55,11 +91,11 @@ import com.getcode.solana.keys.Mint
  * z-order and slides under its neighbours instead of landing on top and snapping under.
  *
  * ## Card arrival
- * [arrivingMint] names a card that has just joined the deck (a claim in a currency the wallet did not
+ * [arrival] names a card that has just joined the deck (a claim in a currency the wallet did not
  * hold). It rises [ArrivalRise] into its slot and fades up; the deck's layout is final from the first
- * frame, so nothing around it moves — matching iOS's own `arrivalProgress` effect. [arrivalHeld] keeps
- * it off-stage until the caller is ready, which is how the wallet waits for the bill it was claimed
- * from to leave before the card is seen to land.
+ * frame, so nothing around it moves — matching iOS's own `arrivalProgress` effect.
+ * [TokenCardArrival.held] keeps it off-stage until the caller is ready, which is how the wallet waits
+ * for the bill it was claimed from to leave before the card is seen to land.
  *
  * The caller names the card rather than the stack diffing its own token list, because the case that
  * most needs the animation — a wallet that held nothing, so the stack was not composed at all — is
@@ -74,25 +110,23 @@ fun TokenCardStack(
     collapsedReveal: Dp = 0.dp,
     pinInset: Dp = 0.dp,
     scrolledPast: () -> Float = { 0f },
-    expandingMint: Mint? = null,
-    expandProgress: () -> Float = { 0f },
-    heroTarget: Rect? = null,
-    pullOffset: () -> Float = { 0f },
-    arrivingMint: Mint? = null,
-    arrivalHeld: Boolean = false,
+    expansion: TokenCardExpansion? = null,
+    arrival: TokenCardArrival? = null,
     onCardClick: (TokenWithLocalizedBalance, Rect) -> Unit = { _, _ -> },
 ) {
-    val tappedIndex = remember(expandingMint, tokens) {
-        if (expandingMint == null) -1 else tokens.indexOfFirst { it.token.address == expandingMint }
+    val tappedIndex = remember(expansion?.mint, tokens) {
+        val mint = expansion?.mint
+        if (mint == null) -1 else tokens.indexOfFirst { it.token.address == mint }
     }
     // Seeded off-stage only when there is a card to let in, so an ordinary deck draws at rest on its
-    // first frame instead of rising into place.
-    val arrival = remember(arrivingMint) {
-        Animatable(if (arrivingMint == null) 1f else 0f)
+    // first frame instead of rising into place. Keyed on the mint rather than the holder, so a caller
+    // rebuilding it every recomposition does not restart the rise.
+    val arrivalProgress = remember(arrival?.mint) {
+        Animatable(if (arrival == null) 1f else 0f)
     }
-    LaunchedEffect(arrivingMint, arrivalHeld) {
-        if (arrivingMint != null && !arrivalHeld) {
-            arrival.animateTo(1f, tween(ArrivalDurationMillis, easing = FastOutSlowInEasing))
+    LaunchedEffect(arrival?.mint, arrival?.held) {
+        if (arrival != null && !arrival.held) {
+            arrivalProgress.animateTo(1f, tween(ArrivalDurationMillis, easing = FastOutSlowInEasing))
         }
     }
 
@@ -108,7 +142,7 @@ fun TokenCardStack(
         content = {
             tokens.forEachIndexed { index, token ->
                 val isTapped = index == tappedIndex
-                val isArriving = token.token.address == arrivingMint
+                val isArriving = token.token.address == arrival?.mint
                 val cardBounds = remember(token.token.address) { mutableStateOf(Rect.Zero) }
                 TokenCard(
                     tokenWithBalance = token,
@@ -120,17 +154,17 @@ fun TokenCardStack(
                         // neighbours) and carries the hand-off on collapse without a z snap. The other
                         // cards part around it: above slide off the top, below off the bottom, dissolving.
                         .graphicsLayer {
-                            if (isArriving && arrival.value < 1f) {
+                            if (isArriving && arrivalProgress.value < 1f) {
                                 // Rises into its slot and fades up, on its own — the deck around it
                                 // is already laid out where it will end. Ahead of the expand
                                 // branches, as on iOS: a card still arriving cannot also be the one
                                 // being opened.
-                                translationY = ArrivalRise.toPx() * (1f - arrival.value)
-                                alpha = arrival.value
-                            } else if (isTapped) {
+                                translationY = ArrivalRise.toPx() * (1f - arrivalProgress.value)
+                                alpha = arrivalProgress.value
+                            } else if (isTapped && expansion != null) {
                                 val src = cardBounds.value
-                                val tgt = heroTarget
-                                val p = expandProgress()
+                                val tgt = expansion.heroTarget
+                                val p = expansion.progress()
                                 if (tgt != null && tgt.width > 0f && src.width > 0f) {
                                     transformOrigin = TransformOrigin(0f, 0f)
                                     val scale = lerp(1f, tgt.width / src.width, p)
@@ -139,7 +173,7 @@ fun TokenCardStack(
                                     translationX = (tgt.left - src.left) * p
                                     // Match the overlay hero's pull-to-close translation so the two stay
                                     // coincident (no second card during a pull or the release).
-                                    translationY = (tgt.top - src.top) * p + pullOffset()
+                                    translationY = (tgt.top - src.top) * p + expansion.pullOffset()
                                 }
                                 // Opacity backing for the overlay hero's cross-fade. It reaches full
                                 // opacity well before the slot (so it's a solid, opaque backing under the
@@ -147,9 +181,9 @@ fun TokenCardStack(
                                 // bleeds through), yet is fully hidden at the expanded frame (p→1) so it
                                 // never doubles the overlay hero while expanded or during a pull-to-close.
                                 alpha = ((1f - p) * 2.5f).coerceIn(0f, 1f)
-                            } else if (tappedIndex >= 0) {
-                                val hp = expandProgress()
-                                val tgt = heroTarget
+                            } else if (tappedIndex >= 0 && expansion != null) {
+                                val hp = expansion.progress()
+                                val tgt = expansion.heroTarget
                                 if (hp > 0f && tgt != null) {
                                     // Deck reorganisation, ported from iOS `TokenCardStack.visualEffect`.
                                     // Every non-hero card interpolates LINEARLY from its rest position to a
