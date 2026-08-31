@@ -110,7 +110,7 @@ class NameEntryViewModel @Inject constructor(
                     dispatchEvent(Event.CheckName(event.source))
                     return@onEach
                 }
-                BottomBarManager.showAlert(
+                BottomBarManager.showMessage(
                     title = resources.getString(R.string.prompt_title_changeDisplayName),
                     message = resources.getString(R.string.prompt_description_changeDisplayName),
                     actions = listOf(

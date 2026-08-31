@@ -173,7 +173,7 @@ internal class MinimumTipEntryViewModel @Inject constructor(
                     dispatchEvent(Event.CommitRequested(amount))
                     return@onEach
                 }
-                BottomBarManager.showAlert(
+                BottomBarManager.showMessage(
                     title = resources.getString(R.string.prompt_title_changeMinimumTip),
                     message = resources.getString(R.string.prompt_description_changeMinimumTip),
                     actions = listOf(
