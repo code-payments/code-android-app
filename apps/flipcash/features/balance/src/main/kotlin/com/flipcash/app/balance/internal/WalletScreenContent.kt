@@ -21,8 +21,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -33,8 +37,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.cardexpand.LocalCardExpansion
 import com.flipcash.app.core.AppRoute
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.solana.keys.Mint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 import com.flipcash.app.core.ui.AppreciationStyle
 import com.flipcash.app.core.ui.TokenCardStack
 import com.flipcash.app.balance.internal.components.BalanceHeader
@@ -95,6 +102,31 @@ internal fun WalletScreenContent(
         return
     }
 
+    // A claim the user just accepted, held until the bill it came from is off screen so the money
+    // arrives rather than being there already. Reported as displayed *after* the loading gate above,
+    // so a slow tab doesn't spend its share of the hold behind a spinner.
+    val reveal = balanceState.reveal
+    LaunchedEffect(reveal != null) {
+        if (reveal != null) dispatchEvent(WalletViewModel.Event.OnRevealDisplayed)
+    }
+
+    // A card in a currency the wallet did not hold. Set while the reveal is up so the deck has it in
+    // its layout from the first frame — held off-stage, not withheld — and outlives the reveal, which
+    // is the moment it is released to rise into the slot already made for it.
+    var arrivingMint by remember { mutableStateOf<Mint?>(null) }
+    LaunchedEffect(reveal?.mint, reveal?.isNewToken) {
+        val mint = reveal?.mint ?: return@LaunchedEffect
+        if (reveal.isNewToken) arrivingMint = mint
+    }
+    LaunchedEffect(arrivingMint, reveal == null) {
+        if (arrivingMint == null || reveal != null) return@LaunchedEffect
+        // Timed from the reveal ending rather than from the flag being set, because that is the frame
+        // the arrival starts on — the hold before it has no fixed length. Long enough to cover the
+        // rise; clearing it stops a later return to the tab replaying the animation.
+        delay(ArrivalRetention)
+        arrivingMint = null
+    }
+
     val listState = rememberLazyListState()
     // Px the token stack has scrolled above the viewport top, read live so the stack collapses (then
     // releases and scrolls off) as the list scrolls. A lambda so the stack reads it in its placement
@@ -137,7 +169,10 @@ internal fun WalletScreenContent(
                     .fillMaxWidth()
                     // Fade the balance out as the deck parts behind the opening card (iOS deckOpacity).
                     .graphicsLayer { alpha = 1f - heroProgress() },
-                balance = tokenState.totalBalance,
+                // AnimatedNumberText rolls whichever digits change, so opening on the pre-claim
+                // total is all the tick-up needs.
+                balance = reveal?.let { LocalFiat.fromUsd(it.totalBefore, tokenState.rate) }
+                    ?: tokenState.totalBalance,
                 appreciation = tokenState.aggregateAppreciation,
                 topPadding = 96.dp,
                 bottomPadding = 44.dp,
@@ -171,10 +206,30 @@ internal fun WalletScreenContent(
             }
         }
 
-        tokenState.tokens?.takeIf { it.isNotEmpty() }?.let { tokens ->
+        tokenState.tokens
+            ?.let { tokens ->
+                // A currency the wallet already held: hold that card's own number back too, so it
+                // rolls in step with the total above it instead of sitting there already updated. A
+                // card that is only now arriving has no earlier number to roll from — it rises into
+                // the deck showing what it holds.
+                if (reveal == null || reveal.isNewToken) tokens
+                else tokens.map { entry ->
+                    if (entry.token.address != reveal.mint) entry
+                    else entry.copy(
+                        balance = LocalFiat.fromUsd(
+                            usdf = reveal.mintBalanceBefore,
+                            rate = tokenState.rate,
+                            mint = reveal.mint,
+                        )
+                    )
+                }
+            }
+            ?.takeIf { it.isNotEmpty() }?.let { tokens ->
             item(key = TokenStackKey) {
                 TokenCardStack(
                     tokens = tokens,
+                    arrivingMint = arrivingMint,
+                    arrivalHeld = reveal != null,
                     modifier = Modifier.fillMaxWidth(),
                     pinInset = statusBarInset + CodeTheme.dimens.grid.x2,
                     scrolledPast = scrolledPast,
@@ -294,3 +349,9 @@ internal fun WalletScreenContent(
         }
     }
 }
+
+/**
+ * How long a newly-claimed mint stays flagged as arriving — the rise plus slack, after which the
+ * card is just another card in the deck.
+ */
+private val ArrivalRetention = 1500.milliseconds

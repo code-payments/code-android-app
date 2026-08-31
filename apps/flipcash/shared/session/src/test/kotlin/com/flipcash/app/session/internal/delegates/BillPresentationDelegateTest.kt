@@ -9,6 +9,7 @@ import com.flipcash.app.session.PutInWallet
 import com.flipcash.app.session.internal.SessionStateHolder
 import com.flipcash.app.session.internal.toast.SessionToastController
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.WalletRevealCoordinator
 import com.flipcash.core.R
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.user.UserManager
@@ -30,6 +31,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -45,6 +47,7 @@ class BillPresentationDelegateTest {
     private val analytics = mockk<FlipcashAnalyticsService>(relaxed = true)
     private val resources = mockk<ResourceHelper>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
+    private val walletReveal = mockk<WalletRevealCoordinator>(relaxed = true)
     private val networkObserver = mockk<NetworkConnectivityListener>(relaxed = true)
     private val vibrator = mockk<Vibrator>(relaxed = true)
     private val toastController = mockk<SessionToastController>(relaxed = true)
@@ -58,6 +61,7 @@ class BillPresentationDelegateTest {
             stateHolder = stateHolder,
             toastController = toastController,
             tokenCoordinator = tokenCoordinator,
+            walletReveal = walletReveal,
             analytics = analytics,
             vibrator = vibrator,
             resources = resources,
@@ -80,6 +84,47 @@ class BillPresentationDelegateTest {
     @After
     fun tearDown() {
         BottomBarManager.clear()
+    }
+
+    // --- claiming received funds ---
+
+    @Test
+    fun `claiming a scanned bill arms the wallet reveal and asks to be routed`() = runTest {
+        every { walletReveal.arm() } returns true
+
+        val stateHolder = SessionStateHolder()
+        val delegate = createDelegate(stateHolder)
+
+        assertTrue(delegate.claimReceivedFunds())
+
+        verify { billController.reset() }
+        assertEquals(PutInWallet, stateHolder.state.value.billResult)
+    }
+
+    @Test
+    fun `claiming funds that were never scanned dismisses without routing`() = runTest {
+        // A cash link is claimed from a link rather than from the scanner, so nothing was
+        // snapshotted and there is no reveal to take the user to.
+        every { walletReveal.arm() } returns false
+
+        val stateHolder = SessionStateHolder()
+        val delegate = createDelegate(stateHolder)
+
+        assertFalse(delegate.claimReceivedFunds())
+
+        verify { billController.reset() }
+        assertEquals(PutInWallet, stateHolder.state.value.billResult)
+    }
+
+    @Test
+    fun `the other PutInWallet dismissals leave the reveal alone`() = runTest {
+        val delegate = createDelegate()
+
+        // A grab timeout, a cancel, and a swipe-away all land here; none of them is the user
+        // asking to be taken to their wallet.
+        delegate.dismissBill(PutInWallet)
+
+        verify(exactly = 0) { walletReveal.arm() }
     }
 
     // --- showBill guards ---

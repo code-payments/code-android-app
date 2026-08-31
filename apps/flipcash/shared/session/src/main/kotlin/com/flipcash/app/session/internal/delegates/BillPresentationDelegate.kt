@@ -14,6 +14,7 @@ import com.flipcash.app.session.PutInWallet
 import com.flipcash.app.session.internal.SessionStateHolder
 import com.flipcash.app.session.internal.toast.SessionToastController
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.WalletRevealCoordinator
 import com.flipcash.core.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
@@ -57,6 +58,7 @@ class BillPresentationDelegate @Inject constructor(
     private val stateHolder: SessionStateHolder,
     private val toastController: SessionToastController,
     private val tokenCoordinator: TokenCoordinator,
+    private val walletReveal: WalletRevealCoordinator,
     private val analytics: FlipcashAnalyticsService,
     private val vibrator: Vibrator,
     private val resources: ResourceHelper,
@@ -125,6 +127,12 @@ class BillPresentationDelegate @Inject constructor(
         // No grab/await, no valuation: just place the card in the container.
         billController.update { it.copy(bill = tipCard, valuation = null) }
         stateHolder.update { it.copy(billResult = Grabbed) }
+    }
+
+    override fun claimReceivedFunds(): Boolean {
+        val armed = walletReveal.arm()
+        dismissBill(PutInWallet)
+        return armed
     }
 
     override fun dismissBill(action: BillDeterminationResult) {

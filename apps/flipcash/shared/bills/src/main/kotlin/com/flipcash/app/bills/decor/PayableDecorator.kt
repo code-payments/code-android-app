@@ -18,9 +18,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.bills.BillManagementOptions
 import com.flipcash.app.bills.modals.ReceivedFundsConfirmation
+import com.flipcash.app.session.LocalSessionController
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.core.measured
 import com.getcode.ui.utils.AnimationUtils
 import kotlinx.coroutines.delay
@@ -37,6 +41,8 @@ internal data class PayableDecorator(private val bill: Scannable.Payable) : Scan
     @Composable
     override fun BoxScope.Content(context: ScannableDecoratorContext) {
         val billState = context.billState
+        val session = LocalSessionController.current
+        val navigator = LocalCodeNavigator.current
 
         // Bill management options
         AnimatedScannableDecorator(
@@ -85,7 +91,17 @@ internal data class PayableDecorator(private val bill: Scannable.Payable) : Scan
             ) {
                 ReceivedFundsConfirmation(
                     bill = bill,
-                    onClaim = { context.onDismiss() }
+                    // Claiming is a distinct outcome from the dismissals `onDismiss` covers: a
+                    // scanned bill hands the user to the wallet, where the reveal armed here rolls
+                    // the balance up from the pre-claim total. The funds were already credited at
+                    // grab time. A cash link is claimed from a link rather than from the scanner,
+                    // so it has no snapshot to reveal and stays where it is.
+                    onClaim = {
+                        if (session == null) context.onDismiss()
+                        else if (session.claimReceivedFunds()) {
+                            navigator.navigateAll(listOf(AppRoute.Sheets.Wallet))
+                        }
+                    }
                 )
             }
         }

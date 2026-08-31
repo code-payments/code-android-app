@@ -164,13 +164,7 @@ class SelectTokenViewModel @Inject constructor(
                                 }
                             )
                         }
-                        .sortedWith(
-                            // Match iOS (Session.balances): descending by exact value, then
-                            // alphabetical by name (not by mint address, which reordered equal-value
-                            // tokens like LaunchIt/Teddies differently than iOS).
-                            compareByDescending<TokenWithLocalizedBalance> { it.balance.nativeAmount }
-                                .thenBy { it.token.name }
-                        )
+                        .sortedWith(BalanceOrder)
                         .filter {
                             val hasBalance = it.balance.nativeAmount.hasDisplayableValue
                             when (purpose) {
@@ -235,6 +229,22 @@ class SelectTokenViewModel @Inject constructor(
     }
 
     companion object {
+        /**
+         * Descending by displayed value, then alphabetical by name (not by mint address, which
+         * reordered equal-value tokens like LaunchIt/Teddies differently than iOS).
+         *
+         * Compared at display precision rather than on the raw [Fiat], which carries six decimal
+         * places against the two USD shows. Two cards both reading $1.00 differ in digits nobody can
+         * see, and a launchpad currency's value moves in those digits on every price refresh — so an
+         * exact comparison had Dollars and Dad Cash trading places under the user while the deck was
+         * on screen. Rounding first means cards showing the same figure hold a stable order.
+         *
+         * iOS (Session.balances) still sorts on the exact value and has the same swap latent in it.
+         */
+        val BalanceOrder: Comparator<TokenWithLocalizedBalance> =
+            compareByDescending<TokenWithLocalizedBalance> { it.balance.nativeAmount.toDouble() }
+                .thenBy { it.token.name }
+
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnRateChanged -> { state ->

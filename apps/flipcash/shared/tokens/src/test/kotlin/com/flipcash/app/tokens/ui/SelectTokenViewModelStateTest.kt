@@ -28,6 +28,38 @@ class SelectTokenViewModelStateTest {
         )
     }
 
+    private fun namedTokenWorth(name: String, nativeUsd: Double): TokenWithLocalizedBalance =
+        tokenWorth(nativeUsd).let { it.copy(token = it.token.copy(name = name)) }
+
+    /**
+     * Both cards read $1.00, so nothing the user can see decides which sits above the other — but
+     * `Fiat` carries six decimal places, and a launchpad currency's value moves in the digits below
+     * the cent on every price refresh. Comparing raw values let that noise reorder the deck: Dollars
+     * and Dad Cash traded places while the wallet was on screen. Order by the displayed figure and
+     * the name breaks the tie instead, the same way on every refresh.
+     */
+    @Test
+    fun `cards showing the same figure keep a stable order as sub-cent values move`() {
+        val dollars = namedTokenWorth("Dollars", 1.0)
+        val dadCashLow = namedTokenWorth("Dad Cash", 0.999_6)
+        val dadCashHigh = namedTokenWorth("Dad Cash", 1.000_4)
+
+        // Every card here displays $1.00; only the invisible digits differ between the two refreshes.
+        val before = listOf(dollars, dadCashLow).sortedWith(SelectTokenViewModel.BalanceOrder)
+        val after = listOf(dollars, dadCashHigh).sortedWith(SelectTokenViewModel.BalanceOrder)
+
+        assertEquals(listOf("Dad Cash", "Dollars"), before.map { it.token.name })
+        assertEquals(listOf("Dad Cash", "Dollars"), after.map { it.token.name })
+    }
+
+    @Test
+    fun `a difference the user can see still orders the deck`() {
+        val sorted = listOf(namedTokenWorth("Dollars", 1.0), namedTokenWorth("Dad Cash", 1.01))
+            .sortedWith(SelectTokenViewModel.BalanceOrder)
+
+        assertEquals(listOf("Dad Cash", "Dollars"), sorted.map { it.token.name })
+    }
+
     /**
      * The wallet total must be round(sum(x)), not sum(round(x)): rounding each token to cents first
      * drifts the total by up to a penny and diverged from iOS (ExchangedFiat.total sums unrounded).

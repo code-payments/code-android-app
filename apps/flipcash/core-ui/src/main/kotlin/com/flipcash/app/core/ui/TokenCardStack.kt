@@ -1,7 +1,11 @@
 package com.flipcash.app.core.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -49,6 +53,17 @@ import com.getcode.solana.keys.Mint
  * The flying card is hosted in the transition overlay while **opening** (so it lifts cleanly above the
  * parting deck) but **in-layer** while closing, so on the way back it re-inserts at its natural deck
  * z-order and slides under its neighbours instead of landing on top and snapping under.
+ *
+ * ## Card arrival
+ * [arrivingMint] names a card that has just joined the deck (a claim in a currency the wallet did not
+ * hold). It rises [ArrivalRise] into its slot and fades up; the deck's layout is final from the first
+ * frame, so nothing around it moves — matching iOS's own `arrivalProgress` effect. [arrivalHeld] keeps
+ * it off-stage until the caller is ready, which is how the wallet waits for the bill it was claimed
+ * from to leave before the card is seen to land.
+ *
+ * The caller names the card rather than the stack diffing its own token list, because the case that
+ * most needs the animation — a wallet that held nothing, so the stack was not composed at all — is
+ * exactly the one a diff cannot see.
  */
 @Composable
 fun TokenCardStack(
@@ -63,11 +78,24 @@ fun TokenCardStack(
     expandProgress: () -> Float = { 0f },
     heroTarget: Rect? = null,
     pullOffset: () -> Float = { 0f },
+    arrivingMint: Mint? = null,
+    arrivalHeld: Boolean = false,
     onCardClick: (TokenWithLocalizedBalance, Rect) -> Unit = { _, _ -> },
 ) {
     val tappedIndex = remember(expandingMint, tokens) {
         if (expandingMint == null) -1 else tokens.indexOfFirst { it.token.address == expandingMint }
     }
+    // Seeded off-stage only when there is a card to let in, so an ordinary deck draws at rest on its
+    // first frame instead of rising into place.
+    val arrival = remember(arrivingMint) {
+        Animatable(if (arrivingMint == null) 1f else 0f)
+    }
+    LaunchedEffect(arrivingMint, arrivalHeld) {
+        if (arrivingMint != null && !arrivalHeld) {
+            arrival.animateTo(1f, tween(ArrivalDurationMillis, easing = FastOutSlowInEasing))
+        }
+    }
+
     // Screen height, so cards below the selected one travel off the bottom edge (read live in the reorg
     // layer; changes rarely).
     val windowHeightPx = with(LocalDensity.current) {
@@ -80,6 +108,7 @@ fun TokenCardStack(
         content = {
             tokens.forEachIndexed { index, token ->
                 val isTapped = index == tappedIndex
+                val isArriving = token.token.address == arrivingMint
                 val cardBounds = remember(token.token.address) { mutableStateOf(Rect.Zero) }
                 TokenCard(
                     tokenWithBalance = token,
@@ -91,7 +120,14 @@ fun TokenCardStack(
                         // neighbours) and carries the hand-off on collapse without a z snap. The other
                         // cards part around it: above slide off the top, below off the bottom, dissolving.
                         .graphicsLayer {
-                            if (isTapped) {
+                            if (isArriving && arrival.value < 1f) {
+                                // Rises into its slot and fades up, on its own — the deck around it
+                                // is already laid out where it will end. Ahead of the expand
+                                // branches, as on iOS: a card still arriving cannot also be the one
+                                // being opened.
+                                translationY = ArrivalRise.toPx() * (1f - arrival.value)
+                                alpha = arrival.value
+                            } else if (isTapped) {
                                 val src = cardBounds.value
                                 val tgt = heroTarget
                                 val p = expandProgress()
@@ -176,3 +212,9 @@ fun TokenCardStack(
         }
     }
 }
+
+/** How far below its slot an arriving card starts. Matches iOS's `arrivalRise`. */
+private val ArrivalRise = 40.dp
+
+/** How long a newly-claimed card takes to rise into the deck. Matches iOS's own arrival. */
+private const val ArrivalDurationMillis = 900

@@ -10,6 +10,8 @@ import com.flipcash.shared.transactionhistory.FeedSyncState
 import com.flipcash.shared.transactionhistory.TransactionListItem
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.WalletReveal
+import com.flipcash.app.tokens.WalletRevealCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.services.internal.model.thirdparty.OnRampProvider
@@ -37,6 +39,7 @@ internal class WalletViewModel @Inject constructor(
     chatCoordinator: ChatCoordinator,
     feedCoordinator: ActivityFeedCoordinator,
     tokenCoordinator: TokenCoordinator,
+    walletReveal: WalletRevealCoordinator,
 ) : BaseViewModel<WalletViewModel.State, WalletViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -73,6 +76,12 @@ internal class WalletViewModel @Inject constructor(
         val feedSyncState: FeedSyncState = FeedSyncState.Unknown,
         /** Whether the account currently holds a balance in any token (see [isAwaitingActivity]). */
         val holdsBalance: Boolean = false,
+        /**
+         * The wallet as it stood before a claim the user has just accepted, or null to draw live
+         * values. Present only for the moment after "Put in Wallet" hands the user here, so the
+         * balance can roll up to the money that already landed rather than opening on it.
+         */
+        val reveal: WalletReveal? = null,
     ) {
         val hasReceivedMoney: Boolean
             get() = onboardingItems?.find { it is TutorialItem.AddMoney }?.isCompleted == true
@@ -119,6 +128,11 @@ internal class WalletViewModel @Inject constructor(
         data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider.Defined?) : Event
         data class OnFeedSyncStateChanged(val syncState: FeedSyncState) : Event
 
+        data class OnRevealChanged(val reveal: WalletReveal?) : Event
+
+        /** The screen has drawn [State.reveal]; starts the hold before the balance rolls up. */
+        data object OnRevealDisplayed : Event
+
         data object OpenCurrencySelection : Event
 
         data class OpenScreen(val screen: AppRoute) : Event
@@ -126,6 +140,18 @@ internal class WalletViewModel @Inject constructor(
     }
 
     init {
+        // A claim the user accepted with "Put in Wallet". The balance was credited when the bill was
+        // grabbed, so what arrives here is the *pre-claim* picture to open on.
+        walletReveal.pending
+            .onEach { dispatchEvent(Event.OnRevealChanged(it)) }
+            .launchIn(viewModelScope)
+
+        // The hold is timed from the screen, not from the tap, so a slow entry doesn't eat it.
+        eventFlow
+            .filterIsInstance<Event.OnRevealDisplayed>()
+            .onEach { walletReveal.onDisplayed() }
+            .launchIn(viewModelScope)
+
         // Preview of recent activity (bounded to RECENT_PREVIEW_COUNT by the coordinator).
         feedCoordinator.recentTransactions(limit = RECENT_PREVIEW_COUNT)
             .onEach { dispatchEvent(Event.OnTransactionsUpdated(it)) }
@@ -191,6 +217,8 @@ internal class WalletViewModel @Inject constructor(
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 Event.OpenCurrencySelection -> { state -> state }
+                is Event.OnRevealChanged -> { state -> state.copy(reveal = event.reveal) }
+                Event.OnRevealDisplayed -> { state -> state }
                 is Event.OnPreferredOnRampProviderChanged -> { state ->
                     state.copy(preferredOnRampProvider = event.provider)
                 }

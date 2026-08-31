@@ -25,6 +25,20 @@ interface BillOperations {
     val billState: StateFlow<BillState>
     fun showBill(bill: Scannable.Payable)
     fun dismissBill(action: BillDeterminationResult)
+
+    /**
+     * The user accepted funds they just received ("Put in Wallet"). Dismisses the bill and arms the
+     * wallet reveal, so the tab they land on can tick the balance up from where it stood before the
+     * claim rather than opening on a number that already moved.
+     *
+     * Separate from `dismissBill(PutInWallet)` because that same result also covers a grab timeout,
+     * a cancel, and a swipe-away — none of which are the user asking to be shown their wallet.
+     *
+     * Returns whether the caller should take the user to their wallet. Only a scanned bill is
+     * snapshotted, so a cash link, claimed from a link rather than from the scanner, dismisses
+     * without routing.
+     */
+    fun claimReceivedFunds(): Boolean
 }
 
 interface CodeScanOperations {
