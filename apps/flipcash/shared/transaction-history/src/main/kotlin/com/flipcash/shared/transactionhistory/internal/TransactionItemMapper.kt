@@ -32,12 +32,15 @@ internal class TransactionItemMapper @Inject constructor(
         val counterparty = userIdOf(meta)?.let { profiles[it.hexEncodedString()] }
         val convert = convertOf(meta)
         val avatar: TransactionAvatar = when {
-            counterparty != null -> TransactionAvatar.Profile(counterparty)
+            // A face says who, not what, so the mint rides along as a badge (see [badgeToken]).
+            counterparty != null -> TransactionAvatar.Profile(counterparty, badgeToken = token)
             // A convert always draws both sides, even before both tokens have resolved.
             convert != null -> TransactionAvatar.SwapTokens(from = token, to = source.toToken)
             (hasNoCounterparty(meta) || isUnidentifiedBill(meta)) && token != null ->
                 TransactionAvatar.TokenIcon(token)
-            else -> TransactionAvatar.Generic
+            // Also person-shaped — a named counterparty whose profile hasn't landed yet — so it
+            // carries the badge too, and the row gains only the face when the profile resolves.
+            else -> TransactionAvatar.Generic(badgeToken = token)
         }
 
         val prefix: String? = when {

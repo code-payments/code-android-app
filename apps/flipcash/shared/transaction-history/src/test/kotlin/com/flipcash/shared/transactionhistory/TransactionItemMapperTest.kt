@@ -97,7 +97,7 @@ class TransactionItemMapperTest {
         val msg = feedMessage(metadata = MessageMetadata.DirectlySentCrypto(userId = knownUserId))
         val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to emptyMap())
 
-        assertEquals(TransactionAvatar.Generic, item.avatar)
+        assertEquals(TransactionAvatar.Generic(), item.avatar)
         assertEquals("-", item.signedAmountPrefix)
     }
 
@@ -222,6 +222,47 @@ class TransactionItemMapperTest {
     }
 
     @Test
+    fun `sent tip badges the profile avatar with the token it moved in`() {
+        val token = usdfToken()
+        val msg = feedMessage(metadata = MessageMetadata.DirectlySentCrypto(userId = knownUserId))
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token) to cached)
+
+        assertEquals(TransactionAvatar.Profile(knownProfile, badgeToken = token), item.avatar)
+    }
+
+    @Test
+    fun `received tip badges the profile avatar with the token it moved in`() {
+        val token = usdfToken()
+        val msg = feedMessage(metadata = MessageMetadata.ReceivedCrypto(userId = knownUserId))
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token) to cached)
+
+        assertEquals(TransactionAvatar.Profile(knownProfile, badgeToken = token), item.avatar)
+    }
+
+    /** Token metadata arrives reactively; until it does the row draws the bare avatar. */
+    @Test
+    fun `profile avatar carries no badge until the token resolves`() {
+        val msg = feedMessage(metadata = MessageMetadata.ReceivedCrypto(userId = knownUserId))
+        val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to cached)
+
+        assertEquals(null, item.avatar.badgeToken)
+    }
+
+    /** A token-shaped avatar already names the token, so a badge would only repeat it. */
+    @Test
+    fun `token and swap avatars carry no badge`() {
+        val token = usdfToken()
+        val deposit = mapper.map(
+            ActivityFeedMessageWithToken(
+                feedMessage(metadata = MessageMetadata.DepositedCrypto),
+                token,
+            ) to emptyMap()
+        )
+
+        assertEquals(null, deposit.avatar.badgeToken)
+    }
+
+    @Test
     fun `deposit uses the token icon and a plus prefix`() {
         val token = usdfToken()
         val msg = feedMessage(metadata = MessageMetadata.DepositedCrypto, amountUsd = 30.0)
@@ -264,14 +305,18 @@ class TransactionItemMapperTest {
         assertEquals("+", item.signedAmountPrefix)
     }
 
-    /** A named counterparty is still coming, so the row waits for it rather than showing the token. */
+    /**
+     * A named counterparty is still coming, so the avatar stays a silhouette rather than becoming
+     * the token's icon — but the badge is already the token's, so the row gains only the face when
+     * the profile lands.
+     */
     @Test
-    fun `send to a named but unresolved user keeps the generic avatar`() {
+    fun `send to a named but unresolved user keeps the generic avatar, badged with the token`() {
         val token = usdfToken()
         val msg = feedMessage(metadata = MessageMetadata.DirectlySentCrypto(userId = knownUserId))
         val item = mapper.map(ActivityFeedMessageWithToken(msg, token) to emptyMap())
 
-        assertEquals(TransactionAvatar.Generic, item.avatar)
+        assertEquals(TransactionAvatar.Generic(badgeToken = token), item.avatar)
     }
 
     @Test
@@ -280,7 +325,7 @@ class TransactionItemMapperTest {
         val msg = feedMessage(metadata = MessageMetadata.DirectlySentCrypto(phoneNumber = "+15555550123"))
         val item = mapper.map(ActivityFeedMessageWithToken(msg, token) to emptyMap())
 
-        assertEquals(TransactionAvatar.Generic, item.avatar)
+        assertEquals(TransactionAvatar.Generic(badgeToken = token), item.avatar)
     }
 
     /** No token has resolved from the mint cache yet, so there is no icon to draw. */
@@ -289,7 +334,7 @@ class TransactionItemMapperTest {
         val msg = feedMessage(metadata = MessageMetadata.DirectlySentCrypto())
         val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to cached)
 
-        assertEquals(TransactionAvatar.Generic, item.avatar)
+        assertEquals(TransactionAvatar.Generic(), item.avatar)
     }
 
     @Test
@@ -309,7 +354,7 @@ class TransactionItemMapperTest {
         val item = mapper.map(ActivityFeedMessageWithToken(msg, token = null) to emptyMap())
 
         assertEquals(null, item.signedAmountPrefix)
-        assertEquals(TransactionAvatar.Generic, item.avatar)
+        assertEquals(TransactionAvatar.Generic(), item.avatar)
     }
 
     @Test

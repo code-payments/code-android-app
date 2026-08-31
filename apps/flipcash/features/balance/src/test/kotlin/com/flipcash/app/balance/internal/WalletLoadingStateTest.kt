@@ -25,7 +25,7 @@ class WalletLoadingStateTest {
         id = "1",
         title = "Received",
         timestamp = Instant.fromEpochSeconds(0),
-        avatar = TransactionAvatar.Generic,
+        avatar = TransactionAvatar.Generic(),
         signedAmountPrefix = "+",
         amount = null,
         fee = null,

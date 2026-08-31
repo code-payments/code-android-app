@@ -15,7 +15,23 @@ import kotlin.time.Instant
  * - [Generic] — a counterparty that is named but not yet resolved, or unknown metadata.
  */
 sealed interface TransactionAvatar {
-    data class Profile(val profile: UserProfile) : TransactionAvatar
+    /**
+     * The mint this entry moved in, drawn as a small coin over the avatar's bottom-right corner
+     * (Figma 9717:14138).
+     *
+     * Only person-shaped avatars carry one: a face says who, not what, so without the badge the row
+     * never names the token — every tip reads the same whether it was dollars or a creator coin.
+     * [TokenIcon] and [SwapTokens] already *are* the token, so badging them would just repeat it.
+     *
+     * Null until the mint's metadata resolves; the row draws the bare avatar until then.
+     */
+    val badgeToken: Token? get() = null
+
+    data class Profile(
+        val profile: UserProfile,
+        override val badgeToken: Token? = null,
+    ) : TransactionAvatar
+
     data class TokenIcon(val token: Token) : TransactionAvatar
 
     /**
@@ -23,7 +39,8 @@ sealed interface TransactionAvatar {
      * row draws a placeholder for a missing one rather than switching avatar shape mid-hydration.
      */
     data class SwapTokens(val from: Token?, val to: Token?) : TransactionAvatar
-    data object Generic : TransactionAvatar
+
+    data class Generic(override val badgeToken: Token? = null) : TransactionAvatar
 }
 
 data class TransactionListItem(
