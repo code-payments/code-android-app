@@ -24,8 +24,10 @@ import com.getcode.theme.CodeTheme
 fun FlagWithFiat(
     fiat: Fiat,
     modifier: Modifier = Modifier,
+    extraPrefix: String? = null,
     suffix: @Composable (CurrencyCode) -> String? = { null },
     iconSize: Dp = CodeTheme.dimens.staticGrid.x4,
+    spacing: Dp = CodeTheme.dimens.grid.x2,
     textStyle: TextStyle = CodeTheme.typography.textMedium,
     textColor: Color = CodeTheme.colors.textMain,
 ) {
@@ -39,7 +41,7 @@ fun FlagWithFiat(
         flag?.let {
             Image(
                 modifier = Modifier
-                    .padding(end = CodeTheme.dimens.grid.x2)
+                    .padding(end = spacing)
                     .height(iconSize)
                     .width(iconSize)
                     .clip(CircleShape),
@@ -49,7 +51,7 @@ fun FlagWithFiat(
         }
 
         Text(
-            text = fiat.formatted(),
+            text = fiat.formatted(extraPrefix = extraPrefix),
             style = textStyle,
             color = textColor,
         )

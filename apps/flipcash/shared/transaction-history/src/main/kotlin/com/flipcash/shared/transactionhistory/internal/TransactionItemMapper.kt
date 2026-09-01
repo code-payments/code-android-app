@@ -60,7 +60,7 @@ internal class TransactionItemMapper @Inject constructor(
             timestamp = msg.timestamp,
             avatar = avatar,
             signedAmountPrefix = prefix,
-            amount = msg.amount?.nativeAmount,
+            amount = msg.amount,
             fee = convert?.fee,
             canCancel = (meta as? MessageMetadata.IndirectlySentCrypto)?.canCancel == true,
         )

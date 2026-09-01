@@ -2,6 +2,7 @@ package com.flipcash.shared.transactionhistory
 
 import com.flipcash.services.models.UserProfile
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import kotlin.time.Instant
 
@@ -49,7 +50,9 @@ data class TransactionListItem(
     val timestamp: Instant,
     val avatar: TransactionAvatar,
     val signedAmountPrefix: String?,     // "-", "+", or null (for metadata == null)
-    val amount: Fiat?,                   // message.amount.nativeAmount, or null if non-financial
+    // The whole exchanged amount, not just its native side: the row restates it in the viewer's
+    // own currency, which needs the entry's USD value and mint as well (see `forViewer`).
+    val amount: LocalFiat?,              // message.amount, or null if non-financial
     val fee: Fiat?,                      // converts only: what the swap cost, shown under the amount
     val canCancel: Boolean,
 )
