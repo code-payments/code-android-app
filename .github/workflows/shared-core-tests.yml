@@ -1,0 +1,131 @@
+name: SharedCore tests
+
+# The Swift facade in `kmp/shared-core/spm` and the Kotlin/Native halves of the modules it
+# exports both need Xcode, so neither runs in the Ubuntu `CI` workflow. This is the macOS lane
+# that covers them. Path-filtered rather than folded into `CI`: a macOS runner is expensive and
+# nothing outside these directories can change the answer.
+on:
+  pull_request:
+    paths:
+      - 'kmp/shared-core/**'
+      - 'libs/codes/kikcode/**'
+      - 'libs/encryption/**'
+      - 'gradle/libs.versions.toml'
+      - '.github/workflows/shared-core-tests.yml'
+
+concurrency:
+  group: shared-core-tests-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+
+jobs:
+  shared-core-tests:
+    name: Run SharedCore tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # Cheap supply-chain guard: fails the run if gradle/wrapper/gradle-wrapper.jar
+      # is not a byte-for-byte match for a jar published by Gradle.
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Setup Java env
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+          cache: 'gradle'
+
+      # Gradle configures every project in the build, and the Android app applies the secrets
+      # plugin, which fails configuration outright when `local.properties` is absent. This lane
+      # only builds the KMP modules — nothing here compiles the app or talks to any of these
+      # services — so obviously-fake values are enough to get through configuration. Same
+      # placeholders the publish workflow writes.
+      - name: Write placeholder local.properties
+        run: |
+          set -euo pipefail
+          {
+            echo 'BUGSNAG_API_KEY="00000000000000000000000000000000"'
+            echo 'GOOGLE_CLOUD_PROJECT_NUMBER=000000000000'
+            echo 'MIXPANEL_API_KEY="00000000000000000000000000000000"'
+            echo 'COINBASE_ONRAMP_API_KEY=00000000-0000-0000-0000-000000000000'
+          } > ./local.properties
+
+      # commonTest runs on the JVM in the Ubuntu lane, which says nothing about the Kotlin/Native
+      # halves — ed25519's actual is cinterop over vendored C, and the rest go through a different
+      # compiler backend. These compile anyway as part of the XCFramework below; running them is
+      # nearly free from here.
+      - name: Run the Kotlin tests on the iOS simulator target
+        run: |
+          ./gradlew \
+            :libs:codes:kikcode:iosSimulatorArm64Test \
+            :libs:encryption:base58:iosSimulatorArm64Test \
+            :libs:encryption:ed25519:iosSimulatorArm64Test \
+            :libs:encryption:hmac:iosSimulatorArm64Test \
+            :libs:encryption:sha256:iosSimulatorArm64Test \
+            :libs:encryption:sha512:iosSimulatorArm64Test
+
+      # The facade suite has to run against the Kotlin in this checkout, not against the last
+      # published release, or a facade written for an unreleased Kotlin change is untested until
+      # after the release that would have caught it.
+      - name: Assemble the XCFramework
+        run: ./gradlew :kmp:shared-core:assembleSharedCoreReleaseXCFramework
+
+      # Named simulators come and go with the runner image, so pick whatever iPhone this one has
+      # rather than pinning a name that silently stops existing.
+      - name: Pick a simulator
+        id: sim
+        run: |
+          set -euo pipefail
+          udid=$(xcrun simctl list devices available -j \
+            | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for r in sorted(d, reverse=True) for x in d[r] if x['name'].startswith('iPhone')))")
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          echo "Using simulator $udid"
+
+      # The package is iOS-only and the XCFramework has no host slice, so `swift test` cannot
+      # run this suite — it goes through a simulator destination. FLIPCASH_SHARED_CORE_LOCAL is
+      # the same override the local loop uses; see docs/proto-local-development.md's sibling,
+      # shared-core-local-development.md, in the orchestrator repo.
+      - name: Run the SharedCoreKit tests
+        working-directory: kmp/shared-core/spm
+        env:
+          FLIPCASH_SHARED_CORE_LOCAL: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          xcodebuild test \
+            -scheme SharedCore \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
+            -resultBundlePath "$RUNNER_TEMP/SharedCoreKit.xcresult" \
+            -quiet
+
+      # `-quiet` prints nothing on success, so a run that executed no tests at all reads exactly
+      # like a run that passed all of them — the one failure mode a gate must not have. Print the
+      # counts and fail on zero.
+      - name: Report the test counts
+        if: always()
+        run: |
+          set -euo pipefail
+          bundle="$RUNNER_TEMP/SharedCoreKit.xcresult"
+          if [ ! -d "$bundle" ]; then
+            echo "no result bundle at $bundle — the test step never got as far as running"
+            exit 1
+          fi
+          xcrun xcresulttool get test-results summary --path "$bundle" --format json \
+            > "$RUNNER_TEMP/summary.json"
+          python3 -c "
+          import json, sys
+          summary = json.load(open(sys.argv[1]))
+          total = summary.get('totalTestCount', 0)
+          print(total, 'tests:',
+                summary.get('passedTests', 0), 'passed,',
+                summary.get('failedTests', 0), 'failed,',
+                summary.get('skippedTests', 0), 'skipped')
+          if total == 0:
+              sys.exit('the suite executed no tests')
+          " "$RUNNER_TEMP/summary.json"
