@@ -9,11 +9,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.flipcash.app.core.feed.ActivityFeedMessage
-import com.flipcash.app.core.ui.FlagWithFiat
+import com.flipcash.app.core.ui.ActivityAmount
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 import com.getcode.ui.core.noRippleClickable
@@ -66,11 +65,9 @@ internal fun FeedItemSummary(
         }
 
         message.amount?.let { amount ->
-            Column(
-                horizontalAlignment = Alignment.End
-            ) {
-                FlagWithFiat(fiat = amount.nativeAmount)
-            }
+            // Flagged on both lines here: this screen has always flagged the one amount it shows,
+            // so the viewer's own currency keeps its flag rather than losing it to the new line.
+            ActivityAmount(amount = amount, showViewerFlag = true)
         }
     }
 }

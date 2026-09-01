@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import com.flipcash.app.core.ui.ActivityAmount
 import com.flipcash.app.core.ui.TokenIcon
 import com.getcode.opencode.model.financial.Token
 import com.flipcash.shared.common.ui.ContactAvatar
@@ -76,7 +77,7 @@ fun ActivityFeedRow(
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
             ) {
                 Text(
-                    text = amount.formatted(),
+                    text = amount.nativeAmount.formatted(),
                     style = CodeTheme.typography.textMedium,
                     color = CodeTheme.colors.textMain,
                     maxLines = 1,
@@ -90,10 +91,9 @@ fun ActivityFeedRow(
             }
         } else {
             amount?.let { fiat ->
-                Text(
-                    text = fiat.formatted(extraPrefix = item.signedAmountPrefix?.ifEmpty { null }),
-                    style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textMain,
+                ActivityAmount(
+                    amount = fiat,
+                    signPrefix = item.signedAmountPrefix?.ifEmpty { null },
                 )
             }
         }
