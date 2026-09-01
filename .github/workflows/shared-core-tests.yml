@@ -101,4 +101,31 @@ jobs:
             -scheme SharedCore \
             -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
             -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm" \
+            -resultBundlePath "$RUNNER_TEMP/SharedCoreKit.xcresult" \
             -quiet
+
+      # `-quiet` prints nothing on success, so a run that executed no tests at all reads exactly
+      # like a run that passed all of them — the one failure mode a gate must not have. Print the
+      # counts and fail on zero.
+      - name: Report the test counts
+        if: always()
+        run: |
+          set -euo pipefail
+          bundle="$RUNNER_TEMP/SharedCoreKit.xcresult"
+          if [ ! -d "$bundle" ]; then
+            echo "no result bundle at $bundle — the test step never got as far as running"
+            exit 1
+          fi
+          xcrun xcresulttool get test-results summary --path "$bundle" --format json \
+            > "$RUNNER_TEMP/summary.json"
+          python3 -c "
+          import json, sys
+          summary = json.load(open(sys.argv[1]))
+          total = summary.get('totalTestCount', 0)
+          print(total, 'tests:',
+                summary.get('passedTests', 0), 'passed,',
+                summary.get('failedTests', 0), 'failed,',
+                summary.get('skippedTests', 0), 'skipped')
+          if total == 0:
+              sys.exit('the suite executed no tests')
+          " "$RUNNER_TEMP/summary.json"
