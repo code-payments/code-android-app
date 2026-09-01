@@ -73,7 +73,8 @@ let package = Package(
         ),
         .testTarget(
             name: "SharedCoreKitTests",
-            dependencies: ["SharedCoreKit"]
+            dependencies: ["SharedCoreKit"],
+            resources: [.copy("Fixtures")]
         ),
     ]
 )

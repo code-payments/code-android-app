@@ -21,7 +21,8 @@ import kotlinx.cinterop.UByteVar
  *
  * Sizes (from ed25519.h):
  *   publicKey  = 32 bytes
- *   privateKey = 64 bytes  (seed || public key, orlp convention)
+ *   privateKey = 64 bytes  (the clamped SHA-512 expansion of the seed, orlp convention —
+ *                            not `seed || publicKey`; the seed is not recoverable from it)
  *   signature  = 64 bytes
  */
 @OptIn(ExperimentalForeignApi::class)

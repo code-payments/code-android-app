@@ -18,6 +18,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
+                implementation(libs.kotlincrypto.hash.sha2)
                 implementation(libs.kotlincrypto.macs.hmac.sha2)
             }
         }
