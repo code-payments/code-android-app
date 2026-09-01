@@ -1,0 +1,3 @@
+# Left behind by `swift package` / `xcodebuild` runs against this package.
+.build/
+.swiftpm/
