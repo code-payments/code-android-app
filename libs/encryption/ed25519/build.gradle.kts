@@ -3,6 +3,13 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 plugins {
     kotlin("multiplatform")
     id("com.android.kotlin.multiplatform.library")
+    alias(libs.plugins.flipcash.kmp.test.fixtures)
+}
+
+// Compiles `src/commonTest/resources` into a generated `TestFixtures.kt` on `commonTest`, readable
+// from every target -- see the `flipcash.kmp.test.fixtures` convention plugin.
+testFixtures {
+    packageName = "com.getcode.ed25519kmp"
 }
 
 // ── C source paths ────────────────────────────────────────────────────────────
