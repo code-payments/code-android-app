@@ -139,15 +139,15 @@ internal fun MessageList(
             // it, so the sheet snaps back instead of dismissing. Dismiss here comes from the
             // header/handle drag, scrim tap, and back — all gated by that same allowDismiss flag.
             modifier = modifier
-                // While an edit is open the transcript is behind the backdrop, so a tap on it
-                // leaves the edit rather than reaching the message it landed on — the same exit
-                // iOS gives its held blur.
-                .pointerInput(state.editing != null) {
+                // The backdrop is modal. While a message is selected or being edited the rest of
+                // the transcript sits behind it, so a tap there dismisses what is up rather than
+                // reaching the message it landed on — the exit iOS gives its held blur.
+                .pointerInput(state.selection != null, state.editing != null) {
                     detectTapGestures {
-                        if (state.editing != null) {
-                            onAction(ChatAction.CancelEdit)
-                        } else {
-                            keyboard.hide()
+                        when {
+                            state.editing != null -> onAction(ChatAction.CancelEdit)
+                            state.selection != null -> onAction(ChatAction.ClearSelection)
+                            else -> keyboard.hide()
                         }
                     }
                 },
@@ -251,10 +251,10 @@ internal fun MessageList(
                             }
                         }
                         .then(
-                            // No row gestures while an edit is open: the rows sit behind the
-                            // backdrop, and a long-press there would swap the selection out from
-                            // under the message the composer is editing.
-                            if (bubble == null || state.editing != null) Modifier else Modifier
+                            // No row gestures while the backdrop is up: the rows are behind it,
+                            // and a press there would move the selection out from under the message
+                            // the bar — or the composer — is already acting on.
+                            if (bubble == null || selecting) Modifier else Modifier
                                 // Long-press is the whole row's gesture, not the bubble's: a
                                 // bubble-sized target is harder to hit, and the top bar is what
                                 // reports the selection, so nothing about the row has to change.
@@ -267,16 +267,9 @@ internal fun MessageList(
                                             onAction(ChatAction.ToggleSelection(bubble))
                                         }
                                     } else null,
-                                    onClick = {
-                                        when {
-                                            // In selection mode a tap continues the selection
-                                            // rather than dismissing the keyboard.
-                                            state.selection == null -> keyboard.hide()
-                                            bubble.isSelectable ->
-                                                onAction(ChatAction.ToggleSelection(bubble))
-                                            else -> onAction(ChatAction.ClearSelection)
-                                        }
-                                    },
+                                    // Only reachable with the backdrop down, so the tap has
+                                    // nothing to dismiss but the keyboard.
+                                    onClick = { keyboard.hide() },
                                 )
                         ),
                 ) {
