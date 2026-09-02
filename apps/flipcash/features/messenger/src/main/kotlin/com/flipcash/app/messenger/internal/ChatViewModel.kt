@@ -162,6 +162,14 @@ internal class ChatViewModel @Inject constructor(
         val selection: ChatListItem.ContentBubble? = null,
         /** The message the composer is editing, or `null` when it is composing a new one. */
         val editing: EditingMessage? = null,
+        /**
+         * True while the delete confirmation is up.
+         *
+         * The sheet is modal, so nothing behind it should still read as the focus: the selected
+         * message falls back behind the backdrop with the rest of the transcript until the sheet
+         * closes, rather than sitting sharp and half-clipped at the sheet's own edge.
+         */
+        val confirmingDelete: Boolean = false,
     ) {
         // Opening the participant's profile (the entry point to blocking) is only available for tip DMs.
         val canViewProfile: Boolean
@@ -1162,13 +1170,21 @@ internal class ChatViewModel @Inject constructor(
                 is Event.ChatDeactivated -> { state -> state.copy(isAnonymous = event.isReadOnly) }
                 is Event.ToggleMessageSelection -> { state ->
                     val alreadySelected = state.selection?.itemKey == event.bubble.itemKey
-                    state.copy(selection = event.bubble.takeUnless { alreadySelected })
+                    state.copy(
+                        selection = event.bubble.takeUnless { alreadySelected },
+                        confirmingDelete = false,
+                    )
                 }
-                Event.ClearMessageSelection -> { state -> state.copy(selection = null) }
-                is Event.CopyMessage -> { state -> state.copy(selection = null) }
+                Event.ClearMessageSelection -> { state ->
+                    state.copy(selection = null, confirmingDelete = false)
+                }
+                is Event.CopyMessage -> { state ->
+                    state.copy(selection = null, confirmingDelete = false)
+                }
                 is Event.EditMessage -> { state ->
                     state.copy(
                         selection = null,
+                        confirmingDelete = false,
                         editing = EditingMessage(
                             messageId = event.messageId,
                             originalText = event.text,
@@ -1179,8 +1195,9 @@ internal class ChatViewModel @Inject constructor(
                         ),
                     )
                 }
-                // Selection survives the confirmation sheet; the delete action clears it.
-                is Event.DeleteMessage -> { state -> state }
+                // Selection survives the confirmation sheet, but the focus does not: the sheet is
+                // modal, so the transcript behind it goes uniformly dim until the sheet closes.
+                is Event.DeleteMessage -> { state -> state.copy(confirmingDelete = true) }
                 Event.SubmitEdit -> { state -> state }
                 Event.CancelEdit -> { state -> state }
                 Event.EditingEnded -> { state -> state.copy(editing = null) }

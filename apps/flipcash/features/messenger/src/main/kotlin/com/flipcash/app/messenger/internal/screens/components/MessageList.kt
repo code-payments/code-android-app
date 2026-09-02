@@ -205,6 +205,10 @@ internal fun MessageList(
                 // leaving the one message sharp — the same treatment iOS holds from its context
                 // menu through the edit that can follow it.
                 val focused = when {
+                    // The delete confirmation is modal, so nothing behind it is the focus: the
+                    // selected message drops back with the rest rather than sitting sharp and
+                    // half-clipped where the sheet cuts across it.
+                    state.confirmingDelete -> false
                     state.editing != null -> bubble?.messageId == state.editing.messageId
                     state.selection != null -> bubble?.itemKey == state.selection.itemKey
                     else -> true

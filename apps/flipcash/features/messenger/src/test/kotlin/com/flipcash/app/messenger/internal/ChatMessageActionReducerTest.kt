@@ -6,9 +6,11 @@ import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatListItem
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
@@ -95,9 +97,9 @@ class ChatMessageActionReducerTest {
     }
 
     @Test
-    fun `the selection is held while the delete confirmation is up`() {
-        // The message stays focused behind the sheet, so raising the confirmation changes nothing.
-        // Clearing it is the sheet's close — confirmed or cancelled — which the handler drives.
+    fun `the delete confirmation holds the selection but drops the focus`() {
+        // The bar still has its message, so the sheet's Cancel has something to return to. The
+        // focus goes because the sheet is modal — a sharp bubble behind it reads as still live.
         val target = bubble(1)
         val selected = reduce(
             ChatViewModel.State(),
@@ -107,6 +109,22 @@ class ChatMessageActionReducerTest {
         val state = reduce(selected, ChatViewModel.Event.DeleteMessage(target.messageId))
 
         assertSame(target, state.selection)
+        assertTrue(state.confirmingDelete)
+    }
+
+    @Test
+    fun `closing the delete confirmation returns the transcript to rest`() {
+        // Confirmed or cancelled, the sheet's close is ClearMessageSelection, which the handler
+        // drives. Leaving confirmingDelete set would hold the whole transcript behind the backdrop.
+        val confirming = reduce(
+            reduce(ChatViewModel.State(), ChatViewModel.Event.ToggleMessageSelection(bubble(1))),
+            ChatViewModel.Event.DeleteMessage(1),
+        )
+
+        val state = reduce(confirming, ChatViewModel.Event.ClearMessageSelection)
+
+        assertNull(state.selection)
+        assertFalse(state.confirmingDelete)
     }
 
     @Test
