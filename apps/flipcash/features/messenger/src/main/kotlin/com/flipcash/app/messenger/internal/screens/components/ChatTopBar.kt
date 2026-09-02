@@ -46,6 +46,7 @@ import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.core.measured
 import com.getcode.ui.core.unboundedClickable
+import com.getcode.ui.utils.KeyboardController
 import com.getcode.ui.utils.rememberKeyboardController
 
 @Composable
@@ -57,6 +58,10 @@ internal fun ChatTopBar(
 ) {
     var titleHeight by remember { mutableStateOf(0.dp) }
     val bgColor = CodeTheme.colors.background
+    // Held here rather than in the selection bar: KeyboardController.visible only starts tracking
+    // from the composition it is created in, and the bar is composed after a long-press that leaves
+    // the IME already up — a controller created there would read it as hidden.
+    val keyboard = rememberKeyboardController()
     Box {
         Box(
             modifier = Modifier
@@ -90,7 +95,7 @@ internal fun ChatTopBar(
             when (target) {
                 TopBarMode.Conversation -> ConversationTitleBar(navigator, state, chatActionHandler)
                 TopBarMode.Editing -> EditingBar(dispatch)
-                is TopBarMode.Selecting -> MessageSelectionBar(target.selection, dispatch)
+                is TopBarMode.Selecting -> MessageSelectionBar(target.selection, keyboard, dispatch)
             }
         }
     }
@@ -180,13 +185,11 @@ private fun ConversationTitleBar(
 @Composable
 private fun MessageSelectionBar(
     selection: ChatListItem.ContentBubble,
+    keyboard: KeyboardController,
     dispatch: (ChatViewModel.Event) -> Unit,
 ) {
     val capabilities = selection.capabilities
     val body = selection.plainText
-    // The long-press leaves the IME up, and the confirmation is a bottom sheet, so it would open
-    // underneath the keyboard.
-    val keyboard = rememberKeyboardController()
 
     AppBarWithTitle(
         leftIcon = {
