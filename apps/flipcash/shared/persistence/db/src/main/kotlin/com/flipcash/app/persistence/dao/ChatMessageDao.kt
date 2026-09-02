@@ -46,6 +46,9 @@ interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex LIMIT 1")
     suspend fun getByClientId(chatIdHex: String, clientIdHex: String): ChatMessageEntity?
 
+    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId LIMIT 1")
+    suspend fun getMessage(chatIdHex: String, messageId: Long): ChatMessageEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: ChatMessageEntity)
 

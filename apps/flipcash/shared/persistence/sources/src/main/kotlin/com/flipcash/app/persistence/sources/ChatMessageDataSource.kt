@@ -124,6 +124,10 @@ class ChatMessageDataSource @Inject constructor(
     suspend fun getLatestMessageId(chatId: ChatId): Long? =
         db?.chatMessageDao()?.getLatest(mapper.chatIdHex(chatId))?.messageId
 
+    /** The locally-stored copy of a single message, or `null` if this device has never seen it. */
+    suspend fun getMessage(chatId: ChatId, messageId: Long): ChatMessage? =
+        db?.chatMessageDao()?.getMessage(mapper.chatIdHex(chatId), messageId)?.let { toChatMessage(it) }
+
     suspend fun getInboundMessagesInRange(
         chatId: ChatId,
         selfId: ID,
