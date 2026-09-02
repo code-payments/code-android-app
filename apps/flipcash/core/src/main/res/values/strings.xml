@@ -906,7 +906,7 @@
     <string name="action_delete">Delete</string>
     <string name="action_moreMessageActions">More message actions</string>
     <string name="action_clearMessageSelection">Clear selection</string>
-    <string name="action_deleteForEveryone">Delete for everyone</string>
+    <string name="action_deleteForEveryone">Delete For Everyone</string>
     <string name="action_cancelEdit">Cancel edit</string>
     <string name="action_confirmEdit">Confirm edit</string>
     <string name="title_deleteMessage">Delete message?</string>

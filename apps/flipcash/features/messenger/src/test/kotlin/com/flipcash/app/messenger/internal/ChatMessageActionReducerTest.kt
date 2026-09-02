@@ -95,9 +95,9 @@ class ChatMessageActionReducerTest {
     }
 
     @Test
-    fun `the selection survives the delete confirmation`() {
-        // Cancelling the sheet has to land back on the bar it was opened from, so only the
-        // confirmed delete clears the selection.
+    fun `the selection is held while the delete confirmation is up`() {
+        // The message stays focused behind the sheet, so raising the confirmation changes nothing.
+        // Clearing it is the sheet's close — confirmed or cancelled — which the handler drives.
         val target = bubble(1)
         val selected = reduce(
             ChatViewModel.State(),

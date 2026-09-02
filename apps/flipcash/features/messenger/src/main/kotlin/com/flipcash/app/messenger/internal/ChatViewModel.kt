@@ -743,9 +743,6 @@ internal class ChatViewModel @Inject constructor(
                         BottomBarAction(
                             text = resources.getString(R.string.action_deleteForEveryone),
                         ) {
-                            // The selection bar stays up behind the sheet, so cancelling returns
-                            // to it with the message still selected; only deleting ends selection.
-                            dispatchEvent(Event.ClearMessageSelection)
                             viewModelScope.launch {
                                 chatCoordinator.deleteMessage(chatId, event.messageId)
                                     .onFailure { cause ->
@@ -759,6 +756,10 @@ internal class ChatViewModel @Inject constructor(
                         },
                     ),
                     showCancel = true,
+                    // Closing the sheet ends the selection either way. Cancelling would otherwise
+                    // leave the message alone behind the backdrop with a bar the user just backed
+                    // out of, which reads as a second confirmation still pending.
+                    onDismiss = { dispatchEvent(Event.ClearMessageSelection) },
                 )
             }
             .launchIn(viewModelScope)
