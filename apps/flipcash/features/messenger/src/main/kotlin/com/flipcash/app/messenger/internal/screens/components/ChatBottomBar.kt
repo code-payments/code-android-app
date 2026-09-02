@@ -49,6 +49,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.ChatInput
+import com.getcode.ui.components.chat.ChatInputSubmit
 import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.measured
@@ -197,14 +198,18 @@ internal fun UserControlBottomBar(
                             focusRequester = focusRequester,
                             hint = "Message",
                             state = state.chatInputState,
-                            isEditing = state.editing != null,
-                            onSendMessage = {
-                                if (state.editing != null) {
+                            // One read of the edit state decides both the glyph and what the tap
+                            // does, so the composer cannot show a checkmark and send a new message.
+                            submit = if (state.editing != null) {
+                                ChatInputSubmit.ConfirmEdit {
                                     dispatch(ChatViewModel.Event.SubmitEdit)
-                                } else {
-                                    dispatch(ChatViewModel.Event.SendMessage)
+                                    keyboard.restartInput()
                                 }
-                                keyboard.restartInput()
+                            } else {
+                                ChatInputSubmit.Send {
+                                    dispatch(ChatViewModel.Event.SendMessage)
+                                    keyboard.restartInput()
+                                }
                             },
                         )
 
