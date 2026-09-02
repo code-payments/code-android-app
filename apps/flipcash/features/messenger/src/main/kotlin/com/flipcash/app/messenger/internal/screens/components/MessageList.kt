@@ -139,8 +139,17 @@ internal fun MessageList(
             // it, so the sheet snaps back instead of dismissing. Dismiss here comes from the
             // header/handle drag, scrim tap, and back — all gated by that same allowDismiss flag.
             modifier = modifier
-                .pointerInput(Unit) {
-                    detectTapGestures { keyboard.hide() }
+                // While an edit is open the transcript is behind the backdrop, so a tap on it
+                // leaves the edit rather than reaching the message it landed on — the same exit
+                // iOS gives its held blur.
+                .pointerInput(state.editing != null) {
+                    detectTapGestures {
+                        if (state.editing != null) {
+                            onAction(ChatAction.CancelEdit)
+                        } else {
+                            keyboard.hide()
+                        }
+                    }
                 },
             state = listState,
             reverseLayout = true,
@@ -242,7 +251,10 @@ internal fun MessageList(
                             }
                         }
                         .then(
-                            if (bubble == null) Modifier else Modifier
+                            // No row gestures while an edit is open: the rows sit behind the
+                            // backdrop, and a long-press there would swap the selection out from
+                            // under the message the composer is editing.
+                            if (bubble == null || state.editing != null) Modifier else Modifier
                                 // Long-press is the whole row's gesture, not the bubble's: a
                                 // bubble-sized target is harder to hit, and the top bar is what
                                 // reports the selection, so nothing about the row has to change.

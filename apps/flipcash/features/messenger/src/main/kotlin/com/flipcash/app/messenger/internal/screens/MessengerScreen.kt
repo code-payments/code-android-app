@@ -72,6 +72,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.ClearMessageSelection)
             }
 
+            ChatAction.CancelEdit -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.CancelEdit)
+            }
+
             is ChatAction.ViewProfile -> {
                 // The triggers (top-bar tap, contact-card chevron) are only clickable for tip DMs
                 // (see State.canViewProfile), so no gating is needed here.

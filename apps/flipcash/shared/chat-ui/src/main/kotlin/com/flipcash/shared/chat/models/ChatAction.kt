@@ -21,6 +21,9 @@ sealed interface ChatAction {
 
     /** Leaves selection mode without acting on anything. */
     data object ClearSelection : ChatAction
+
+    /** Abandons an edit in progress, as a tap on the backdrop behind the edited message does. */
+    data object CancelEdit : ChatAction
 }
 
 typealias ChatActionHandler = (ChatAction) -> Unit
