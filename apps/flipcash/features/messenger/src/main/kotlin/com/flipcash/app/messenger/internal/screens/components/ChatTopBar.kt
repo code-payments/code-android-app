@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.features.messenger.R
@@ -39,11 +40,13 @@ import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.shared.chat.models.ChatListItem
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraLarge
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.core.measured
 import com.getcode.ui.core.unboundedClickable
+import com.getcode.ui.utils.rememberKeyboardController
 
 @Composable
 internal fun ChatTopBar(
@@ -68,22 +71,57 @@ internal fun ChatTopBar(
                     )
                 )
         )
-        // Selecting a message takes over the bar rather than stacking a second one over it, so the
-        // conversation's own actions can't be reached while a message action is pending.
+        // A message action takes the bar over rather than stacking a second one over it, so the
+        // conversation's own actions can't be reached while one is pending. The takeover holds
+        // through the edit that a selection can lead to: dropping back to the title bar mid-edit
+        // would offer the profile and leave back as the only way out.
+        val mode: TopBarMode = when {
+            state.editing != null -> TopBarMode.Editing
+            state.selection != null -> TopBarMode.Selecting(state.selection)
+            else -> TopBarMode.Conversation
+        }
         AnimatedContent(
             modifier = Modifier.measured { titleHeight = it.height },
-            targetState = state.selection,
-            contentKey = { it != null },
+            targetState = mode,
+            contentKey = { it::class },
             transitionSpec = { fadeIn() togetherWith fadeOut() },
             label = "chat top bar",
-        ) { selection ->
-            if (selection == null) {
-                ConversationTitleBar(navigator, state, chatActionHandler)
-            } else {
-                MessageSelectionBar(selection, dispatch)
+        ) { target ->
+            when (target) {
+                TopBarMode.Conversation -> ConversationTitleBar(navigator, state, chatActionHandler)
+                TopBarMode.Editing -> EditingBar(dispatch)
+                is TopBarMode.Selecting -> MessageSelectionBar(target.selection, dispatch)
             }
         }
     }
+}
+
+/** What the bar is showing. The payload rides along so a crossfade-out still has it. */
+private sealed interface TopBarMode {
+    data object Conversation : TopBarMode
+    data object Editing : TopBarMode
+    data class Selecting(val selection: ChatListItem.ContentBubble) : TopBarMode
+}
+
+/** Bare back arrow: the composer holds the edit's own cancel and confirm. */
+@Composable
+private fun EditingBar(dispatch: (ChatViewModel.Event) -> Unit) {
+    AppBarWithTitle(
+        leftIcon = {
+            CircularIconButton(
+                onClick = { dispatch(ChatViewModel.Event.CancelEdit) },
+                testTag = "action_cancel_edit_from_bar",
+            ) { size ->
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = stringResource(R.string.action_cancelEdit),
+                    tint = Color.White,
+                    modifier = Modifier.requiredSize(size),
+                )
+            }
+        },
+        title = { },
+    )
 }
 
 @Composable
@@ -146,6 +184,9 @@ private fun MessageSelectionBar(
 ) {
     val capabilities = selection.capabilities
     val body = selection.plainText
+    // The long-press leaves the IME up, and the confirmation is a bottom sheet, so it would open
+    // underneath the keyboard.
+    val keyboard = rememberKeyboardController()
 
     AppBarWithTitle(
         leftIcon = {
@@ -161,15 +202,17 @@ private fun MessageSelectionBar(
                 )
             }
         },
-        title = {
-            // One message at a time today, but the count is what the bar shows and what a later
-            // multi-selection would change, so it renders as a count rather than a fixed label.
-            AppBarDefaults.Title(text = "1")
-        },
+        // Nothing in the title slot: one message is selected at a time, so a count would only ever
+        // read "1" and the back arrow already says the bar is a selection.
+        title = { },
         rightContents = {
             if (MessageCapability.Delete in capabilities) {
                 CircularIconButton(
-                    onClick = { dispatch(ChatViewModel.Event.DeleteMessage(selection.messageId)) },
+                    onClick = {
+                        keyboard.hideIfVisible {
+                            dispatch(ChatViewModel.Event.DeleteMessage(selection.messageId))
+                        }
+                    },
                     testTag = "action_delete_message",
                 ) { size ->
                     Icon(
@@ -208,6 +251,10 @@ private fun MessageOverflow(
         DropdownMenu(
             expanded = expanded,
             containerColor = CodeTheme.colors.brandLight,
+            // Rounded to the sheet corner and dropped clear of the button, so the menu reads as its
+            // own surface rather than an extension of the circular icon it hangs from.
+            shape = CodeTheme.shapes.extraLarge,
+            offset = DpOffset(x = 0.dp, y = CodeTheme.dimens.grid.x2),
             onDismissRequest = { expanded = false },
         ) {
             if (canCopy) {

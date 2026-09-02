@@ -2,13 +2,14 @@ package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import com.flipcash.app.messenger.internal.screens.ChatAnimations
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,14 +32,13 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
@@ -190,37 +190,62 @@ internal fun MessageList(
                 }
 
                 val bubble = item as? ChatListItem.ContentBubble
-                val isSelected = bubble != null && state.selection?.itemKey == bubble.itemKey
-                val bandColor by animateColorAsState(
-                    targetValue = if (isSelected) {
-                        CodeTheme.colors.chat.outgoingBubble.background.copy(alpha = 0.35f)
-                    } else {
-                        Color.Transparent
-                    },
-                    label = "selectionBand",
-                )
-                val bandBleed = CodeTheme.dimens.inset
                 val interactionSource = remember { MutableInteractionSource() }
+
+                // Selecting or editing a message pushes the rest of the transcript behind a blur,
+                // leaving the one message sharp — the same treatment iOS holds from its context
+                // menu through the edit that can follow it.
+                val focused = when {
+                    state.editing != null -> bubble?.messageId == state.editing.messageId
+                    state.selection != null -> bubble?.itemKey == state.selection.itemKey
+                    else -> true
+                }
+                val dimAlpha by animateFloatAsState(
+                    targetValue = if (focused) 1f else 0.4f,
+                    label = "messageDim",
+                )
+                val dimBlur by animateDpAsState(
+                    targetValue = if (focused) 0.dp else 8.dp,
+                    label = "messageBlur",
+                )
+
+                // The row answers the finger before the long-press resolves: it dips while held,
+                // then springs up and stays lifted for as long as it is the selected message.
+                val pressed by interactionSource.collectIsPressedAsState()
+                val selecting = state.selection != null || state.editing != null
+                val lift by animateFloatAsState(
+                    targetValue = when {
+                        selecting && focused -> 1.04f
+                        pressed && bubble?.isSelectable == true -> 0.97f
+                        else -> 1f
+                    },
+                    animationSpec = ChatAnimations.lift,
+                    label = "messageLift",
+                )
 
                 Box(
                     modifier = Modifier
                         .padding(bottom = bottomSpacing)
+                        // Unbounded: the rectangle treatment would clip the blur at the row's own
+                        // edges and leave a hard seam between neighbouring rows.
+                        .blur(dimBlur, BlurredEdgeTreatment.Unbounded)
+                        .graphicsLayer {
+                            alpha = dimAlpha
+                            scaleX = lift
+                            scaleY = lift
+                            // Anchored to the bubble's own edge, as the insertion animation is, so
+                            // the lift grows the bubble in place instead of sliding it inward.
+                            transformOrigin = if (isOutgoing) {
+                                TransformOrigin(1f, 0.5f)
+                            } else {
+                                TransformOrigin(0f, 0.5f)
+                            }
+                        }
                         .then(
                             if (bubble == null) Modifier else Modifier
-                                .drawBehind {
-                                    if (bandColor == Color.Transparent) return@drawBehind
-                                    // The list insets its content, so the band is drawn back out
-                                    // into that inset to reach both edges of the screen.
-                                    val bleed = bandBleed.toPx()
-                                    drawRect(
-                                        color = bandColor,
-                                        topLeft = Offset(-bleed, 0f),
-                                        size = Size(size.width + bleed * 2, size.height),
-                                    )
-                                }
-                                // Long-press is the whole row's gesture, not the bubble's: the
-                                // selection band covers the row, and a target that small is worse
-                                // to hit than the one the user already sees highlighted.
+                                // Long-press is the whole row's gesture, not the bubble's: a
+                                // bubble-sized target is harder to hit, and the top bar is what
+                                // reports the selection, so nothing about the row has to change.
                                 .combinedClickable(
                                     interactionSource = interactionSource,
                                     indication = null,
