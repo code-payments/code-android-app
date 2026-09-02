@@ -1,8 +1,14 @@
 package com.getcode.ui.components.chat
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,6 +47,24 @@ import com.getcode.theme.inputColors
 import com.getcode.ui.components.R
 import com.getcode.ui.components.TextInput
 
+/**
+ * What the composer will do with the text it holds, and the action that does it.
+ *
+ * Editing an existing message reuses this composer rather than opening one of its own, so the submit
+ * control has to say which of the two it is about to do. Pairing the glyph with the action here
+ * means a caller cannot put up a checkmark that sends a new message, and leaves it reading its own
+ * edit state once rather than once per parameter.
+ */
+sealed interface ChatInputSubmit {
+    val perform: () -> Unit
+
+    /** Sends the field's text as a new message. */
+    data class Send(override val perform: () -> Unit) : ChatInputSubmit
+
+    /** Confirms an edit of a message already in the transcript. */
+    data class ConfirmEdit(override val perform: () -> Unit) : ChatInputSubmit
+}
+
 @Composable
 fun ChatInput(
     modifier: Modifier = Modifier,
@@ -46,7 +72,7 @@ fun ChatInput(
     hint: String = "",
     state: TextFieldState = rememberTextFieldState(),
     focusRequester: FocusRequester = remember { FocusRequester() },
-    onSendMessage: () -> Unit,
+    submit: ChatInputSubmit,
 ) {
     val shape = CodeTheme.shapes.medium
     val sendVisible = state.text.isNotEmpty()
@@ -97,9 +123,8 @@ fun ChatInput(
                 unfocusedBorderColor = Color.Transparent,
             ),
             trailingIcon = {
-                Icon(
+                Box(
                     modifier = Modifier
-                        .testTag("chat_send_icon")
                         .graphicsLayer {
                             alpha = sendAlpha
                             scaleX = sendScale
@@ -112,13 +137,46 @@ fun ChatInput(
                             shape = CodeTheme.shapes.extraSmall
                         )
                         .clip(CodeTheme.shapes.extraSmall)
-                        .clickable(enabled = sendVisible) { onSendMessage() }
-                        .padding(CodeTheme.dimens.staticGrid.x1)
-                        .size(CodeTheme.dimens.staticGrid.x5),
-                    painter = painterResource(R.drawable.ic_arrow_up),
-                    tint = Color.Black,
-                    contentDescription = "Send message"
-                )
+                        // Reads the current submit rather than the one the crossfade happens to
+                        // be showing, so a tap mid-transition does what the composer is now for.
+                        .clickable(enabled = sendVisible) { submit.perform() }
+                        .padding(CodeTheme.dimens.staticGrid.x1),
+                ) {
+                    // The button stays put and only its glyph changes, so entering and leaving edit
+                    // mode reads as the same control changing meaning rather than two controls
+                    // swapping places.
+                    AnimatedContent(
+                        targetState = submit,
+                        // Keyed by kind, not by value: each submit carries a fresh lambda, so
+                        // equality alone would restart the crossfade on every recomposition.
+                        contentKey = { it::class },
+                        transitionSpec = {
+                            (fadeIn(sendSpec) + scaleIn(sendSpec, initialScale = 0.6f)) togetherWith
+                                    (fadeOut(sendSpec) + scaleOut(sendSpec, targetScale = 0.6f))
+                        },
+                        label = "send glyph",
+                    ) { target ->
+                        if (target is ChatInputSubmit.ConfirmEdit) {
+                            Icon(
+                                modifier = Modifier
+                                    .testTag("chat_confirm_edit_icon")
+                                    .size(CodeTheme.dimens.staticGrid.x5),
+                                imageVector = Icons.Rounded.Check,
+                                tint = Color.Black,
+                                contentDescription = "Confirm edit",
+                            )
+                        } else {
+                            Icon(
+                                modifier = Modifier
+                                    .testTag("chat_send_icon")
+                                    .size(CodeTheme.dimens.staticGrid.x5),
+                                painter = painterResource(R.drawable.ic_arrow_up),
+                                tint = Color.Black,
+                                contentDescription = "Send message",
+                            )
+                        }
+                    }
+                }
             }
         )
     }
@@ -131,7 +189,7 @@ private fun Preview_ChatInput_Empty() {
         Box(modifier = Modifier.background(Color(0xFF19191A))) {
             ChatInput(
                 modifier = Modifier.padding(15.dp),
-                onSendMessage = {},
+                submit = ChatInputSubmit.Send {},
             )
         }
     }
@@ -144,8 +202,22 @@ private fun Preview_ChatInput_Typing() {
         Box(modifier = Modifier.background(Color(0xFF19191A))) {
             ChatInput(
                 modifier = Modifier.padding(15.dp),
-                onSendMessage = {},
+                submit = ChatInputSubmit.Send {},
                 state = TextFieldState("That’s very kind of you. I ha")
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun Preview_ChatInput_Editing() {
+    DesignSystem {
+        Box(modifier = Modifier.background(Color(0xFF19191A))) {
+            ChatInput(
+                modifier = Modifier.padding(15.dp),
+                submit = ChatInputSubmit.ConfirmEdit {},
+                state = TextFieldState("That’s very kind of you. I have")
             )
         }
     }

@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
@@ -56,9 +57,28 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             is ChatAction.ViewToken -> {
                 keyboard.hideIfVisible {
                     viewModel.dispatchEvent(
-                        ChatViewModel.Event.OpenScreen(AppRoute.Token.Info(action.mint))
+                        ChatViewModel.Event.OpenScreen(
+                            // A drill-in from the transcript, so push it: the fade-in-place
+                            // expand is the wallet card growing into its own detail, and there
+                            // is no card here for it to grow from.
+                            AppRoute.Token.Info(action.mint, asPush = true)
+                        )
                     )
                 }
+            }
+
+            is ChatAction.ToggleSelection -> {
+                viewModel.dispatchEvent(
+                    ChatViewModel.Event.ToggleMessageSelection(action.bubble)
+                )
+            }
+
+            ChatAction.ClearSelection -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.ClearMessageSelection)
+            }
+
+            ChatAction.CancelEdit -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.CancelEdit)
             }
 
             is ChatAction.ViewProfile -> {
@@ -75,13 +95,22 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         Unit
     }
 
+    // Back unwinds the message actions before it leaves the conversation, innermost first: an edit
+    // in progress, then the selection bar.
+    BackHandler(enabled = state.editing != null) {
+        viewModel.dispatchEvent(ChatViewModel.Event.CancelEdit)
+    }
+    BackHandler(enabled = state.editing == null && state.selection != null) {
+        viewModel.dispatchEvent(ChatViewModel.Event.ClearMessageSelection)
+    }
+
     CodeScaffold(
         // The input bar rides the keyboard; the message list is inset by it either way.
         modifier = Modifier.imePadding(),
         // The list runs the full height and passes under both bars, each of which fades it out
         // against the background at its own edge.
         barPlacement = ScaffoldBarPlacement.Overlay,
-        topBar = { ChatTopBar(navigator, state, chatActionHandler) },
+        topBar = { ChatTopBar(navigator, state, chatActionHandler, viewModel::dispatchEvent) },
         bottomBar = {
             UserControlBottomBar(
                 state = state,

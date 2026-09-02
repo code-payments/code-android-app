@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.text.appendInlineContent
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Text
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.runtime.Composable
@@ -77,6 +76,7 @@ fun ContentBubble(
     item: ChatListItem.ContentBubble,
     position: BubblePosition,
     modifier: Modifier = Modifier,
+    interactive: Boolean = true,
 ) {
     val actionHandler = LocalChatActionHandler.current
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -129,9 +129,14 @@ fun ContentBubble(
                     action = content.action,
                     position = position,
                     maxWidth = bubbleMaxWidth,
-                    onClick = {
-                        actionHandler(ChatAction.ViewToken(content.mint))
-                    }
+                    // Dropped rather than ignored while the transcript is behind a backdrop: with
+                    // no click installed the tap reaches the backdrop and dismisses it, which is
+                    // what a tap anywhere else on the dimmed transcript already does.
+                    onClick = if (interactive) {
+                        { actionHandler(ChatAction.ViewToken(content.mint)) }
+                    } else {
+                        null
+                    },
                 )
 
                 // TODO
@@ -215,16 +220,15 @@ private fun TextBubble(
             emptyMap()
         }
 
-        val bodyText = @Composable {
-            Text(
-                text = laidOut,
-                inlineContent = inlineContent,
-                style = bodyStyle,
-                color = bodyColor,
-            )
-        }
-
-        if (isTombstone) bodyText() else SelectionContainer { bodyText() }
+        // No SelectionContainer: long-press is the transcript's selection gesture, and a text
+        // selection handle inside the bubble would consume it before the row ever sees it. Copying
+        // a message is the selection bar's Copy action instead — the same trade WhatsApp makes.
+        Text(
+            text = laidOut,
+            inlineContent = inlineContent,
+            style = bodyStyle,
+            color = bodyColor,
+        )
 
         if (isEdited) {
             Text(
@@ -246,7 +250,7 @@ private fun CashBubble(
     position: BubblePosition,
     maxWidth: Dp,
     action: MessageContent.Cash.Action = MessageContent.Cash.Action.SENT,
-    onClick: () -> Unit = { },
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Bubble(

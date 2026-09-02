@@ -27,6 +27,10 @@ internal object ChatAnimations {
     // Delivered -> Read label swap — scale + opacity.
     val readSwap: SpringSpec<Float> = spring(dampingRatio = 0.74f, stiffness = Spring.StiffnessHigh)
 
+    // Long-press lift — the row dips under the finger, then springs up while it stands selected.
+    // Matches the scale UIKit's context menu gives its preview on iOS.
+    val lift: SpringSpec<Float> = spring(dampingRatio = 0.68f, stiffness = 600f)
+
     // Receipt label exit when a new message is sent — fade out + collapse.
     private val deliveredIntSize: SpringSpec<IntSize> = spring(dampingRatio = 0.88f, stiffness = 250f)
     val receiptExit: ExitTransition = shrinkVertically(deliveredIntSize) + fadeOut(delivered)

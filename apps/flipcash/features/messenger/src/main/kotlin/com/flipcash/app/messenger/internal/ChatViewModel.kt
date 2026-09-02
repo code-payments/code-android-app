@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal
 
+import android.content.ClipboardManager
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshotFlow
@@ -15,7 +16,11 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.contacts.DeviceContact
+import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.ui.ConfirmationStyle
+import com.flipcash.shared.chat.MessageCapability
+import com.flipcash.shared.chat.applying
+import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
@@ -105,6 +110,7 @@ internal class ChatViewModel @Inject constructor(
     private val userManager: UserManager,
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalyticsService,
+    private val clipboardManager: ClipboardManager,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -146,11 +152,46 @@ internal class ChatViewModel @Inject constructor(
         // open would be missed by the bottom bar before it subscribes, whereas state is durable
         // until the input is actually composed and can consume it.
         val messageInputRequested: Boolean = false,
+        /**
+         * The message the selection bar is acting on, or `null` when the ordinary title bar is up.
+         *
+         * One message at a time: every capability the transcript resolves — copy, edit, delete —
+         * applies to a single message, so a multi-selection would only ever be a bar with most of
+         * its actions disabled.
+         */
+        val selection: ChatListItem.ContentBubble? = null,
+        /** The message the composer is editing, or `null` when it is composing a new one. */
+        val editing: EditingMessage? = null,
+        /**
+         * True while the delete confirmation is up.
+         *
+         * The sheet is modal, so nothing behind it should still read as the focus: the selected
+         * message falls back behind the backdrop with the rest of the transcript until the sheet
+         * closes, rather than sitting sharp and half-clipped at the sheet's own edge.
+         */
+        val confirmingDelete: Boolean = false,
     ) {
         // Opening the participant's profile (the entry point to blocking) is only available for tip DMs.
         val canViewProfile: Boolean
             get() = chatType == ChatType.TIP_DM
+
+        /** What the selection bar may offer, straight from what the transcript already resolved. */
+        val selectionCapabilities: Set<MessageCapability>
+            get() = selection?.capabilities.orEmpty()
     }
+
+    /**
+     * An edit in progress.
+     *
+     * [stashedDraft] is whatever the composer held when the edit began; leaving edit mode — by
+     * confirming, cancelling, or backing out — puts it back, so starting an edit never costs the
+     * user a half-written message.
+     */
+    data class EditingMessage(
+        val messageId: Long,
+        val originalText: String,
+        val stashedDraft: String,
+    )
 
     sealed interface Event {
         data class OnChatOpened(val identifier: ChatIdentifier) : Event
@@ -194,12 +235,36 @@ internal class ChatViewModel @Inject constructor(
         data class LimitsChanged(val limits: Limits?) : Event
         data class AdvanceReadPointer(val messageId: Long) : Event
         data class ChatDeactivated(val isReadOnly: Boolean) : Event
+
+        /** Selects [bubble], or leaves selection mode if it is already the selected one. */
+        data class ToggleMessageSelection(val bubble: ChatListItem.ContentBubble) : Event
+        data object ClearMessageSelection : Event
+
+        // The message actions carry what they act on rather than reading it back off the selection:
+        // the reducer runs before the handlers do, so an action that dismisses the selection bar
+        // would otherwise have cleared its own subject before the handler saw it.
+        data class CopyMessage(val text: String) : Event
+        data class EditMessage(val messageId: Long, val text: String) : Event
+        data class DeleteMessage(val messageId: Long) : Event
+
+        data object SubmitEdit : Event
+        data object CancelEdit : Event
+        data object EditingEnded : Event
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val messageStream = stateFlow.mapNotNull { it.chatId }
         .distinctUntilChanged()
         .flatMapLatest { chatCoordinator.observeMessagesPaged(it) }
+        // Cached here rather than after the mapping below so the overlay composes over the page
+        // cache: an edit or delete awaiting the server re-runs the mapping without re-fetching.
+        .cachedIn(viewModelScope)
+
+    /** Edits and deletes the server has not answered yet, composed over the stored transcript. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val pendingMutations = stateFlow.mapNotNull { it.chatId }
+        .distinctUntilChanged()
+        .flatMapLatest { chatCoordinator.observePendingMutations(it) }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val otherReadPointer = stateFlow.mapNotNull { it.chatId }
@@ -208,9 +273,10 @@ internal class ChatViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val messages: Flow<PagingData<ChatListItem>> = messageStream
-        .map { pagingData ->
-            pagingData.flatMap { message ->
+    val messages: Flow<PagingData<ChatListItem>> =
+        combine(messageStream, pendingMutations) { pagingData, mutations ->
+            pagingData.flatMap { stored ->
+                val message = stored.applying(mutations[stored.messageId])
                 message.content.mapIndexed { index, content ->
                     val enriched = if (content is MessageContent.Cash && content.tokenName.isBlank()) {
                         val token = tokenCoordinator.getTokenMetadata(content.mint).getOrNull()?.token
@@ -239,6 +305,10 @@ internal class ChatViewModel @Inject constructor(
                         // A null author is a moderation removal, which reads as someone else's.
                         deletedByViewer = (enriched as? MessageContent.Deleted)?.deletedBy
                             ?.let { it == userManager.accountId } == true,
+                        // Resolved once, here, so no menu re-derives it: a later group-role
+                        // taxonomy becomes another input to the resolver rather than a branch at
+                        // each action site.
+                        capabilities = resolveCapabilities(message),
                     )
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->
@@ -247,7 +317,7 @@ internal class ChatViewModel @Inject constructor(
                     ChatListItem.DateSeparator(before.timestamp)
                 } else null
             }
-        }.cachedIn(viewModelScope)
+        }
 
     private val maxAmountFlow by lazy {
         combine(
@@ -364,6 +434,7 @@ internal class ChatViewModel @Inject constructor(
             initTokenAndExchangeObservers()
             initTypingHandlers()
             initSendHandlers()
+            initMessageActionHandlers()
         }
     }
 
@@ -621,6 +692,91 @@ internal class ChatViewModel @Inject constructor(
             }
             .onEach { dispatchEvent(Event.TypingEnabled(it)) }
             .launchIn(viewModelScope)
+    }
+
+    private fun initMessageActionHandlers() {
+        eventFlow.filterIsInstance<Event.CopyMessage>()
+            .onEach { event ->
+                clipboardManager.setText(
+                    text = event.text,
+                    label = resources.getString(R.string.title_clipboardLabelMessage),
+                )
+            }
+            .launchIn(viewModelScope)
+
+        // Pre-filling the composer writes to the live TextFieldState, so it runs on the main
+        // thread for the same reason clearing it after a send does.
+        eventFlow.filterIsInstance<Event.EditMessage>()
+            .onEach { event -> stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd(event.text) }
+            .flowOn(Dispatchers.Main.immediate)
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.SubmitEdit>()
+            .onEach {
+                val editing = stateFlow.value.editing ?: return@onEach
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                val text = stateFlow.value.chatInputState.text.toString()
+                finishEditing(editing)
+
+                // Confirming an unchanged edit is still a way out of edit mode; it just isn't a
+                // request. An empty body isn't an edit either — deleting is the other action.
+                if (text.isBlank() || text == editing.originalText) return@onEach
+
+                viewModelScope.launch {
+                    chatCoordinator.editMessage(chatId, editing.messageId, text)
+                        .onFailure { cause ->
+                            trace("failed to edit message - ${cause.localizedMessage}")
+                            BottomBarManager.showError(
+                                title = resources.getString(R.string.title_messageNotEdited),
+                                message = resources.getString(R.string.description_messageNotEdited),
+                            )
+                        }
+                }
+            }
+            .flowOn(Dispatchers.Main.immediate)
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.CancelEdit>()
+            .onEach { finishEditing(stateFlow.value.editing ?: return@onEach) }
+            .flowOn(Dispatchers.Main.immediate)
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.DeleteMessage>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                BottomBarManager.showAlert(
+                    title = resources.getString(R.string.title_deleteMessage),
+                    message = resources.getString(R.string.description_deleteMessage),
+                    actions = listOf(
+                        BottomBarAction(
+                            text = resources.getString(R.string.action_deleteForEveryone),
+                        ) {
+                            viewModelScope.launch {
+                                chatCoordinator.deleteMessage(chatId, event.messageId)
+                                    .onFailure { cause ->
+                                        trace("failed to delete message - ${cause.localizedMessage}")
+                                        BottomBarManager.showError(
+                                            title = resources.getString(R.string.title_messageNotDeleted),
+                                            message = resources.getString(R.string.description_messageNotDeleted),
+                                        )
+                                    }
+                            }
+                        },
+                    ),
+                    showCancel = true,
+                    // Closing the sheet ends the selection either way. Cancelling would otherwise
+                    // leave the message alone behind the backdrop with a bar the user just backed
+                    // out of, which reads as a second confirmation still pending.
+                    onDismiss = { dispatchEvent(Event.ClearMessageSelection) },
+                )
+            }
+            .launchIn(viewModelScope)
+    }
+
+    /** Leaves edit mode, restoring the draft the edit interrupted. */
+    private fun finishEditing(editing: EditingMessage) {
+        stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd(editing.stashedDraft)
+        dispatchEvent(Event.EditingEnded)
     }
 
     private fun initSendHandlers() {
@@ -1012,6 +1168,39 @@ internal class ChatViewModel @Inject constructor(
                 is Event.LimitsChanged -> { state -> state.copy(limits = event.limits) }
                 is Event.AdvanceReadPointer -> { state -> state }
                 is Event.ChatDeactivated -> { state -> state.copy(isAnonymous = event.isReadOnly) }
+                is Event.ToggleMessageSelection -> { state ->
+                    val alreadySelected = state.selection?.itemKey == event.bubble.itemKey
+                    state.copy(
+                        selection = event.bubble.takeUnless { alreadySelected },
+                        confirmingDelete = false,
+                    )
+                }
+                Event.ClearMessageSelection -> { state ->
+                    state.copy(selection = null, confirmingDelete = false)
+                }
+                is Event.CopyMessage -> { state ->
+                    state.copy(selection = null, confirmingDelete = false)
+                }
+                is Event.EditMessage -> { state ->
+                    state.copy(
+                        selection = null,
+                        confirmingDelete = false,
+                        editing = EditingMessage(
+                            messageId = event.messageId,
+                            originalText = event.text,
+                            // Starting a second edit before the first ends must not stash the
+                            // first edit's text as if it were the user's draft.
+                            stashedDraft = state.editing?.stashedDraft
+                                ?: state.chatInputState.text.toString(),
+                        ),
+                    )
+                }
+                // Selection survives the confirmation sheet, but the focus does not: the sheet is
+                // modal, so the transcript behind it goes uniformly dim until the sheet closes.
+                is Event.DeleteMessage -> { state -> state.copy(confirmingDelete = true) }
+                Event.SubmitEdit -> { state -> state }
+                Event.CancelEdit -> { state -> state }
+                Event.EditingEnded -> { state -> state.copy(editing = null) }
             }
         }
     }

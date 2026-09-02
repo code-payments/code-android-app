@@ -2,9 +2,14 @@ package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import com.flipcash.app.messenger.internal.screens.ChatAnimations
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,10 +32,13 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
@@ -47,6 +55,7 @@ import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.rememberKeyboardController
 import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.flow.collectLatest
@@ -56,6 +65,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun MessageList(
     modifier: Modifier = Modifier,
@@ -107,6 +117,10 @@ internal fun MessageList(
         // across item disposal so scrolling away and back doesn't replay.
         val animatedKeys = remember { mutableSetOf<Any>() }
 
+        // The backdrop, read once for everything it covers: the rows, the bubbles' own targets,
+        // and the contact card at the start of history all stop taking taps together.
+        val selecting = state.selection != null || state.editing != null
+
         // Track when the initial Paging refresh has truly completed (Loading → NotLoading).
         // This avoids showing the ContactInfoContainer before messages arrive,
         // which would cause the list to start scrolled to the wrong position.
@@ -130,8 +144,17 @@ internal fun MessageList(
             // it, so the sheet snaps back instead of dismissing. Dismiss here comes from the
             // header/handle drag, scrim tap, and back — all gated by that same allowDismiss flag.
             modifier = modifier
-                .pointerInput(Unit) {
-                    detectTapGestures { keyboard.hide() }
+                // The backdrop is modal. While a message is selected or being edited the rest of
+                // the transcript sits behind it, so a tap there dismisses what is up rather than
+                // reaching the message it landed on — the exit iOS gives its held blur.
+                .pointerInput(state.selection != null, state.editing != null) {
+                    detectTapGestures {
+                        when {
+                            state.editing != null -> onAction(ChatAction.CancelEdit)
+                            state.selection != null -> onAction(ChatAction.ClearSelection)
+                            else -> keyboard.hide()
+                        }
+                    }
                 },
             state = listState,
             reverseLayout = true,
@@ -180,9 +203,82 @@ internal fun MessageList(
                     }
                 }
 
+                val bubble = item as? ChatListItem.ContentBubble
+                val interactionSource = remember { MutableInteractionSource() }
+
+                // Selecting or editing a message pushes the rest of the transcript behind a blur,
+                // leaving the one message sharp — the same treatment iOS holds from its context
+                // menu through the edit that can follow it.
+                val focused = when {
+                    // The delete confirmation is modal, so nothing behind it is the focus: the
+                    // selected message drops back with the rest rather than sitting sharp and
+                    // half-clipped where the sheet cuts across it.
+                    state.confirmingDelete -> false
+                    state.editing != null -> bubble?.messageId == state.editing.messageId
+                    state.selection != null -> bubble?.itemKey == state.selection.itemKey
+                    else -> true
+                }
+                val dimAlpha by animateFloatAsState(
+                    targetValue = if (focused) 1f else 0.4f,
+                    label = "messageDim",
+                )
+                val dimBlur by animateDpAsState(
+                    targetValue = if (focused) 0.dp else 8.dp,
+                    label = "messageBlur",
+                )
+
+                // The row answers the finger before the long-press resolves: it dips while held,
+                // then springs up and stays lifted for as long as it is the selected message.
+                val pressed by interactionSource.collectIsPressedAsState()
+                val lift by animateFloatAsState(
+                    targetValue = when {
+                        selecting && focused -> 1.04f
+                        pressed && bubble?.isSelectable == true -> 0.97f
+                        else -> 1f
+                    },
+                    animationSpec = ChatAnimations.lift,
+                    label = "messageLift",
+                )
+
                 Box(
                     modifier = Modifier
-                        .padding(bottom = bottomSpacing),
+                        .padding(bottom = bottomSpacing)
+                        // Unbounded: the rectangle treatment would clip the blur at the row's own
+                        // edges and leave a hard seam between neighbouring rows.
+                        .blur(dimBlur, BlurredEdgeTreatment.Unbounded)
+                        .graphicsLayer {
+                            alpha = dimAlpha
+                            scaleX = lift
+                            scaleY = lift
+                            // Anchored to the bubble's own edge, as the insertion animation is, so
+                            // the lift grows the bubble in place instead of sliding it inward.
+                            transformOrigin = if (isOutgoing) {
+                                TransformOrigin(1f, 0.5f)
+                            } else {
+                                TransformOrigin(0f, 0.5f)
+                            }
+                        }
+                        // No row gestures while the backdrop is up: the rows are behind it, and a
+                        // press there would move the selection out from under the message the bar —
+                        // or the composer — is already acting on.
+                        .addIf(bubble != null && !selecting) {
+                            // Long-press is the whole row's gesture, not the bubble's: a
+                            // bubble-sized target is harder to hit, and the top bar is what reports
+                            // the selection, so nothing about the row has to change.
+                            Modifier.combinedClickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onLongClick = bubble?.takeIf { it.isSelectable }?.let { target ->
+                                    {
+                                        vibrator.tick()
+                                        onAction(ChatAction.ToggleSelection(target))
+                                    }
+                                },
+                                // Only reachable with the backdrop down, so the tap has nothing to
+                                // dismiss but the keyboard.
+                                onClick = { keyboard.hide() },
+                            )
+                        },
                 ) {
                     when (item) {
                         is ChatListItem.DateSeparator -> Box(insertionModifier) {
@@ -207,6 +303,10 @@ internal fun MessageList(
                                 Box(insertionModifier) {
                                     ContentBubble(
                                         item = item,
+                                        // The bubble's own targets go with the row's: a cash
+                                        // bubble behind the backdrop would otherwise open token
+                                        // info from under the bar.
+                                        interactive = !selecting,
                                         position = bubblePositionOf(
                                             index,
                                             item,
@@ -280,7 +380,7 @@ internal fun MessageList(
                             onRefreshContact = { onAction(ChatAction.RefreshContact) },
                             // null hides the chevron and makes the card non-tappable when the
                             // profile isn't viewable (non-tip-DM chats).
-                            onOpenProfile = if (canViewProfile) {
+                            onOpenProfile = if (canViewProfile && !selecting) {
                                 { onAction(ChatAction.ViewProfile) }
                             } else {
                                 null

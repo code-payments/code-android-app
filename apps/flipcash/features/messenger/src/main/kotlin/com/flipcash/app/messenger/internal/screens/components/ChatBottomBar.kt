@@ -9,15 +9,22 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,7 +35,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -40,6 +49,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.ChatInput
+import com.getcode.ui.components.chat.ChatInputSubmit
 import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.core.drawWithGradient
 import com.getcode.ui.core.measured
@@ -154,16 +164,25 @@ internal fun UserControlBottomBar(
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                     verticalAlignment = Alignment.Bottom,
                 ) {
-                    SendCashButton(
-                        state = state,
-                        hazeState = hazeState,
-                        hazeMaterial = material,
-                        onClick = {
-                            keyboard.hideIfVisible {
-                                dispatch(ChatViewModel.Event.OnSendCash)
+                    // Editing swaps the leading control rather than adding a banner above the bar:
+                    // send-cash is not reachable mid-edit anyway, and cancel is what the slot is
+                    // for while the edit is open.
+                    if (state.editing != null) {
+                        CancelEditButton(
+                            onClick = { dispatch(ChatViewModel.Event.CancelEdit) },
+                        )
+                    } else {
+                        SendCashButton(
+                            state = state,
+                            hazeState = hazeState,
+                            hazeMaterial = material,
+                            onClick = {
+                                keyboard.hideIfVisible {
+                                    dispatch(ChatViewModel.Event.OnSendCash)
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
 
                     if (canType) {
                         ChatInput(
@@ -179,11 +198,29 @@ internal fun UserControlBottomBar(
                             focusRequester = focusRequester,
                             hint = "Message",
                             state = state.chatInputState,
-                            onSendMessage = {
-                                dispatch(ChatViewModel.Event.SendMessage)
-                                keyboard.restartInput()
+                            // One read of the edit state decides both the glyph and what the tap
+                            // does, so the composer cannot show a checkmark and send a new message.
+                            submit = if (state.editing != null) {
+                                ChatInputSubmit.ConfirmEdit {
+                                    dispatch(ChatViewModel.Event.SubmitEdit)
+                                    keyboard.restartInput()
+                                }
+                            } else {
+                                ChatInputSubmit.Send {
+                                    dispatch(ChatViewModel.Event.SendMessage)
+                                    keyboard.restartInput()
+                                }
                             },
                         )
+
+                        // An edit starts from a long-press, which leaves the keyboard down, so the
+                        // composer has to claim focus itself or the pre-filled text sits unreachable.
+                        LaunchedEffect(state.editing?.messageId) {
+                            if (state.editing != null) {
+                                focusRequester.requestFocus()
+                                keyboard.show()
+                            }
+                        }
 
                         // Restores the pre-#1075 behavior: when OnStartMessageInput raises
                         // state.messageInputRequested (returning from amount entry after a send, or a
@@ -201,6 +238,29 @@ internal fun UserControlBottomBar(
                 }
             }
         }
+    }
+}
+
+/** Leaves edit mode. Sized to the send-cash button it stands in for so the bar doesn't reflow. */
+@Composable
+private fun CancelEditButton(onClick: () -> Unit) {
+    val shape = CodeTheme.shapes.medium
+    Box(
+        modifier = Modifier
+            .defaultMinSize(minWidth = 54.dp, minHeight = 54.dp)
+            .clip(shape)
+            .background(Color.White.copy(alpha = 0.1f), shape)
+            .border(CodeTheme.dimens.border, CodeTheme.colors.divider, shape)
+            .clickable(onClick = onClick)
+            .testTag("chat_cancel_edit"),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Close,
+            contentDescription = stringResource(R.string.action_cancelEdit),
+            tint = Color.White,
+            modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5),
+        )
     }
 }
 
