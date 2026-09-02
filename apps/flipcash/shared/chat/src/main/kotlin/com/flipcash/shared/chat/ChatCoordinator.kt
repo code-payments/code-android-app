@@ -152,6 +152,29 @@ interface MessagingOperations {
     /** Retries a failed pending message: resets to SENDING and re-sends to the server. */
     suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage>
 
+    /**
+     * Replaces [messageId]'s body with [text], optimistically.
+     *
+     * The change is visible immediately as a [PendingMutation] over the stored row; the row itself
+     * is only written once the server agrees. Returns the server's version of the message.
+     */
+    suspend fun editMessage(chatId: ChatId, messageId: Long, text: String): Result<ChatMessage>
+
+    /**
+     * Deletes [messageId] for everyone, optimistically.
+     *
+     * "For everyone" is the only delete the wire models — there is no local-only variant to choose
+     * between. Same overlay-then-reconcile path as [editMessage].
+     */
+    suspend fun deleteMessage(chatId: ChatId, messageId: Long): Result<ChatMessage>
+
+    /**
+     * Emits the edits and deletes in [chatId] that the server has not answered yet, keyed by
+     * message id, for composing over the stored transcript with
+     * [applying][com.flipcash.shared.chat.applying].
+     */
+    fun observePendingMutations(chatId: ChatId): Flow<Map<Long, PendingMutation>>
+
     /** Advances the local and remote read pointer for [chatId] to [messageId]. */
     suspend fun advanceReadPointer(chatId: ChatId, messageId: Long): Result<Unit>
 

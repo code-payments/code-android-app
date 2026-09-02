@@ -23,18 +23,24 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.DeleteMessageError
+import com.flipcash.services.models.EditMessageError
 import com.flipcash.shared.chat.ChatHydrationState
 import com.flipcash.shared.chat.MessagingOperations
+import com.flipcash.shared.chat.PendingMutation
 import com.flipcash.shared.chat.internal.ChatStateHolder
+import com.flipcash.shared.chat.replacingText
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
@@ -67,6 +73,15 @@ class MessagingDelegate @Inject constructor(
     private val stateHolder: ChatStateHolder,
     private val analytics: FlipcashAnalyticsService,
 ) : MessagingOperations {
+
+    /**
+     * Edits and deletes awaiting a server answer, per chat, keyed by message id.
+     *
+     * In memory on purpose. The database is the server's version of the transcript; a mutation the
+     * server has not confirmed does not belong in it, and keeping it out means a rollback is a map
+     * removal rather than a compensating write.
+     */
+    private val pendingMutations = MutableStateFlow<Map<ChatId, Map<Long, PendingMutation>>>(emptyMap())
 
     // region MessagingOperations
 
@@ -216,6 +231,55 @@ class MessagingDelegate @Inject constructor(
             }
     }
 
+    override fun observePendingMutations(chatId: ChatId): Flow<Map<Long, PendingMutation>> =
+        pendingMutations.map { it[chatId].orEmpty() }.distinctUntilChanged()
+
+    override suspend fun editMessage(chatId: ChatId, messageId: Long, text: String): Result<ChatMessage> {
+        val edited = text.trim()
+        if (edited.isBlank()) {
+            return Result.failure(IllegalArgumentException("Cannot edit a message to be blank"))
+        }
+
+        val stored = messageDataSource.getMessage(chatId, messageId)
+            ?: return Result.failure(IllegalStateException("No local copy of message $messageId"))
+
+        // Read the stored body rather than building a bare text message, so anything wrapping the
+        // text — a reply citation, once replies ship — survives the edit.
+        val content = stored.content.replacingText(edited)
+        val expectedSequence = stored.eventSequence
+
+        putMutation(
+            chatId = chatId,
+            mutation = PendingMutation(
+                messageId = messageId,
+                expectedSequence = expectedSequence,
+                kind = PendingMutation.Kind.Edited(edited, Clock.System.now()),
+            ),
+        )
+
+        return messagingController.editMessage(chatId, messageId, content, expectedSequence)
+            .reconcile(chatId, messageId) { it is EditMessageError.Conflict }
+    }
+
+    override suspend fun deleteMessage(chatId: ChatId, messageId: Long): Result<ChatMessage> {
+        val stored = messageDataSource.getMessage(chatId, messageId)
+            ?: return Result.failure(IllegalStateException("No local copy of message $messageId"))
+
+        val expectedSequence = stored.eventSequence
+
+        putMutation(
+            chatId = chatId,
+            mutation = PendingMutation(
+                messageId = messageId,
+                expectedSequence = expectedSequence,
+                kind = PendingMutation.Kind.Deleted(Clock.System.now(), userManager.accountId),
+            ),
+        )
+
+        return messagingController.deleteMessage(chatId, messageId, expectedSequence)
+            .reconcile(chatId, messageId) { it is DeleteMessageError.Conflict }
+    }
+
     override suspend fun advanceReadPointer(chatId: ChatId, messageId: Long): Result<Unit> {
         val selfId = userManager.accountId ?: return Result.failure(
             IllegalStateException("No account")
@@ -303,7 +367,61 @@ class MessagingDelegate @Inject constructor(
         }
     }
 
+    /**
+     * Settles a mutation against the server's answer, then drops the overlay either way.
+     *
+     * Ordering matters on success: persist first, drop second. Room publishes asynchronously, and
+     * the `eventSequence` guard in `applying` retires the overlay the moment the newer row lands,
+     * so the reader never sees a gap. Dropping first would flash the pre-edit text.
+     *
+     * A conflict means someone else moved the message first. There is no automatic retry — the
+     * user's edit was written against a version that no longer exists, and silently re-applying it
+     * over whatever replaced it is how you clobber someone. Re-read instead so the transcript shows
+     * what is actually there, and let the caller tell the user.
+     *
+     * Any other failure reverts. A delete that did not happen means the message is still there, and
+     * showing it again is the truth.
+     */
+    private suspend fun Result<ChatMessage>.reconcile(
+        chatId: ChatId,
+        messageId: Long,
+        isConflict: (Throwable) -> Boolean,
+    ): Result<ChatMessage> = this
+        .onSuccess { serverMessage ->
+            messageDataSource.upsert(chatId, listOf(serverMessage))
+            clearMutation(chatId, messageId)
+        }
+        .onFailure { cause ->
+            if (isConflict(cause)) {
+                messagingController.getMessage(chatId, messageId)
+                    .onSuccess { messageDataSource.upsert(chatId, listOf(it)) }
+                    .onFailure {
+                        trace(
+                            tag = TAG,
+                            message = "Re-reading conflicted message $messageId failed",
+                            type = TraceType.Error,
+                            error = it,
+                        )
+                    }
+            }
+            clearMutation(chatId, messageId)
+        }
+
+    private fun putMutation(chatId: ChatId, mutation: PendingMutation) {
+        pendingMutations.update { all ->
+            all + (chatId to (all[chatId].orEmpty() + (mutation.messageId to mutation)))
+        }
+    }
+
+    private fun clearMutation(chatId: ChatId, messageId: Long) {
+        pendingMutations.update { all ->
+            val remaining = all[chatId].orEmpty() - messageId
+            if (remaining.isEmpty()) all - chatId else all + (chatId to remaining)
+        }
+    }
+
     internal suspend fun clear() {
+        pendingMutations.value = emptyMap()
         metadataDataSource.clear()
         messageDataSource.clear()
         memberDataSource.clear()
