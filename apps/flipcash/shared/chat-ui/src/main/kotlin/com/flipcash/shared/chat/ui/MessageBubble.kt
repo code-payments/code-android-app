@@ -76,6 +76,7 @@ fun ContentBubble(
     item: ChatListItem.ContentBubble,
     position: BubblePosition,
     modifier: Modifier = Modifier,
+    interactive: Boolean = true,
 ) {
     val actionHandler = LocalChatActionHandler.current
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -128,9 +129,14 @@ fun ContentBubble(
                     action = content.action,
                     position = position,
                     maxWidth = bubbleMaxWidth,
-                    onClick = {
-                        actionHandler(ChatAction.ViewToken(content.mint))
-                    }
+                    // Dropped rather than ignored while the transcript is behind a backdrop: with
+                    // no click installed the tap reaches the backdrop and dismisses it, which is
+                    // what a tap anywhere else on the dimmed transcript already does.
+                    onClick = if (interactive) {
+                        { actionHandler(ChatAction.ViewToken(content.mint)) }
+                    } else {
+                        null
+                    },
                 )
 
                 // TODO
@@ -244,7 +250,7 @@ private fun CashBubble(
     position: BubblePosition,
     maxWidth: Dp,
     action: MessageContent.Cash.Action = MessageContent.Cash.Action.SENT,
-    onClick: () -> Unit = { },
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Bubble(

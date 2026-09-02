@@ -55,6 +55,7 @@ import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.rememberKeyboardController
 import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.flow.collectLatest
@@ -115,6 +116,10 @@ internal fun MessageList(
         // Keys that have already played their insertion animation — persists
         // across item disposal so scrolling away and back doesn't replay.
         val animatedKeys = remember { mutableSetOf<Any>() }
+
+        // The backdrop, read once for everything it covers: the rows, the bubbles' own targets,
+        // and the contact card at the start of history all stop taking taps together.
+        val selecting = state.selection != null || state.editing != null
 
         // Track when the initial Paging refresh has truly completed (Loading → NotLoading).
         // This avoids showing the ContactInfoContainer before messages arrive,
@@ -225,7 +230,6 @@ internal fun MessageList(
                 // The row answers the finger before the long-press resolves: it dips while held,
                 // then springs up and stays lifted for as long as it is the selected message.
                 val pressed by interactionSource.collectIsPressedAsState()
-                val selecting = state.selection != null || state.editing != null
                 val lift by animateFloatAsState(
                     targetValue = when {
                         selecting && focused -> 1.04f
@@ -254,28 +258,27 @@ internal fun MessageList(
                                 TransformOrigin(0f, 0.5f)
                             }
                         }
-                        .then(
-                            // No row gestures while the backdrop is up: the rows are behind it,
-                            // and a press there would move the selection out from under the message
-                            // the bar — or the composer — is already acting on.
-                            if (bubble == null || selecting) Modifier else Modifier
-                                // Long-press is the whole row's gesture, not the bubble's: a
-                                // bubble-sized target is harder to hit, and the top bar is what
-                                // reports the selection, so nothing about the row has to change.
-                                .combinedClickable(
-                                    interactionSource = interactionSource,
-                                    indication = null,
-                                    onLongClick = if (bubble.isSelectable) {
-                                        {
-                                            vibrator.tick()
-                                            onAction(ChatAction.ToggleSelection(bubble))
-                                        }
-                                    } else null,
-                                    // Only reachable with the backdrop down, so the tap has
-                                    // nothing to dismiss but the keyboard.
-                                    onClick = { keyboard.hide() },
-                                )
-                        ),
+                        // No row gestures while the backdrop is up: the rows are behind it, and a
+                        // press there would move the selection out from under the message the bar —
+                        // or the composer — is already acting on.
+                        .addIf(bubble != null && !selecting) {
+                            // Long-press is the whole row's gesture, not the bubble's: a
+                            // bubble-sized target is harder to hit, and the top bar is what reports
+                            // the selection, so nothing about the row has to change.
+                            Modifier.combinedClickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onLongClick = bubble?.takeIf { it.isSelectable }?.let { target ->
+                                    {
+                                        vibrator.tick()
+                                        onAction(ChatAction.ToggleSelection(target))
+                                    }
+                                },
+                                // Only reachable with the backdrop down, so the tap has nothing to
+                                // dismiss but the keyboard.
+                                onClick = { keyboard.hide() },
+                            )
+                        },
                 ) {
                     when (item) {
                         is ChatListItem.DateSeparator -> Box(insertionModifier) {
@@ -300,6 +303,10 @@ internal fun MessageList(
                                 Box(insertionModifier) {
                                     ContentBubble(
                                         item = item,
+                                        // The bubble's own targets go with the row's: a cash
+                                        // bubble behind the backdrop would otherwise open token
+                                        // info from under the bar.
+                                        interactive = !selecting,
                                         position = bubblePositionOf(
                                             index,
                                             item,
@@ -373,7 +380,7 @@ internal fun MessageList(
                             onRefreshContact = { onAction(ChatAction.RefreshContact) },
                             // null hides the chevron and makes the card non-tappable when the
                             // profile isn't viewable (non-tip-DM chats).
-                            onOpenProfile = if (canViewProfile) {
+                            onOpenProfile = if (canViewProfile && !selecting) {
                                 { onAction(ChatAction.ViewProfile) }
                             } else {
                                 null
