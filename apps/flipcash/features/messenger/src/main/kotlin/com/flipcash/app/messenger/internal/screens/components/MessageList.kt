@@ -2,9 +2,13 @@ package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import com.flipcash.app.messenger.internal.screens.ChatAnimations
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +31,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -56,6 +64,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun MessageList(
     modifier: Modifier = Modifier,
@@ -180,9 +189,59 @@ internal fun MessageList(
                     }
                 }
 
+                val bubble = item as? ChatListItem.ContentBubble
+                val isSelected = bubble != null && state.selection?.itemKey == bubble.itemKey
+                val bandColor by animateColorAsState(
+                    targetValue = if (isSelected) {
+                        CodeTheme.colors.chat.outgoingBubble.background.copy(alpha = 0.35f)
+                    } else {
+                        Color.Transparent
+                    },
+                    label = "selectionBand",
+                )
+                val bandBleed = CodeTheme.dimens.inset
+                val interactionSource = remember { MutableInteractionSource() }
+
                 Box(
                     modifier = Modifier
-                        .padding(bottom = bottomSpacing),
+                        .padding(bottom = bottomSpacing)
+                        .then(
+                            if (bubble == null) Modifier else Modifier
+                                .drawBehind {
+                                    if (bandColor == Color.Transparent) return@drawBehind
+                                    // The list insets its content, so the band is drawn back out
+                                    // into that inset to reach both edges of the screen.
+                                    val bleed = bandBleed.toPx()
+                                    drawRect(
+                                        color = bandColor,
+                                        topLeft = Offset(-bleed, 0f),
+                                        size = Size(size.width + bleed * 2, size.height),
+                                    )
+                                }
+                                // Long-press is the whole row's gesture, not the bubble's: the
+                                // selection band covers the row, and a target that small is worse
+                                // to hit than the one the user already sees highlighted.
+                                .combinedClickable(
+                                    interactionSource = interactionSource,
+                                    indication = null,
+                                    onLongClick = if (bubble.isSelectable) {
+                                        {
+                                            vibrator.tick()
+                                            onAction(ChatAction.ToggleSelection(bubble))
+                                        }
+                                    } else null,
+                                    onClick = {
+                                        when {
+                                            // In selection mode a tap continues the selection
+                                            // rather than dismissing the keyboard.
+                                            state.selection == null -> keyboard.hide()
+                                            bubble.isSelectable ->
+                                                onAction(ChatAction.ToggleSelection(bubble))
+                                            else -> onAction(ChatAction.ClearSelection)
+                                        }
+                                    },
+                                )
+                        ),
                 ) {
                     when (item) {
                         is ChatListItem.DateSeparator -> Box(insertionModifier) {

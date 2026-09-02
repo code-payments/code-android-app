@@ -116,6 +116,7 @@ class ChatIdentityScreenshotTest {
                                 },
                             ),
                             chatActionHandler = {},
+                            dispatch = {},
                         )
                     }
                 }

@@ -900,6 +900,23 @@
     <string name="label_messageDeleted">This message was deleted</string>
     <string name="label_chat_preview_deletedMessage">Message deleted</string>
 
+    <!-- Chat message selection bar and its actions -->
+    <string name="action_copy">Copy</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_moreMessageActions">More message actions</string>
+    <string name="action_clearMessageSelection">Clear selection</string>
+    <string name="action_deleteForEveryone">Delete for everyone</string>
+    <string name="action_cancelEdit">Cancel edit</string>
+    <string name="action_confirmEdit">Confirm edit</string>
+    <string name="title_deleteMessage">Delete message?</string>
+    <string name="description_deleteMessage">This can\'t be undone.</string>
+    <string name="title_messageNotEdited">Message Not Edited</string>
+    <string name="description_messageNotEdited">Your change couldn\'t be saved, so the message is unchanged.</string>
+    <string name="title_messageNotDeleted">Message Not Deleted</string>
+    <string name="description_messageNotDeleted">The message couldn\'t be deleted, so it is still visible to everyone.</string>
+    <string name="title_clipboardLabelMessage">Message</string>
+
     <string name="label_unknownContact">Unknown Contact</string>
     <string name="title_allowFullContactAccess">Allow Full Contact Access</string>
     <string name="subtitle_allowFullContactAccess">Make sure you can send cash and identify people you know</string>
