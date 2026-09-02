@@ -35,6 +35,7 @@ import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import androidx.compose.runtime.CompositionLocalProvider
 import com.flipcash.shared.chat.models.ChatAction
@@ -401,10 +402,18 @@ private fun HandleMessageReads(
     }
 }
 
+/**
+ * A tombstone anchors nothing. The receipt describes the delivery of a message that is no longer
+ * there, so leaving it attached would caption a deleted bubble with "Read".
+ */
+private val ChatListItem.ContentBubble.carriesReceipt: Boolean
+    get() = isFromSelf && content !is MessageContent.Deleted
+
 private fun effectiveReceiptStatus(
     bubble: ChatListItem.ContentBubble,
     otherReadPointer: MessagePointer?,
 ): ReceiptStatus? {
+    if (!bubble.carriesReceipt) return null
     val base = bubble.receiptStatus ?: return null
     val pointerValue = otherReadPointer?.value ?: 0L
     if (base == ReceiptStatus.SENT && bubble.messageId in 1..pointerValue) {
@@ -421,20 +430,33 @@ private fun effectiveReceiptStatus(
  * At group boundaries, labels are suppressed when the nearest self-group
  * below already shows the same status (avoids duplicate "Read" labels).
  */
+/** The nearest bubble below [index], stepping over the viewer's own tombstones. */
+private fun receiptNeighbourBelow(
+    index: Int,
+    messages: LazyPagingItems<ChatListItem>,
+): ChatListItem.ContentBubble? {
+    for (i in (index - 1) downTo 0) {
+        val bubble = messages.peek(i) as? ChatListItem.ContentBubble ?: return null
+        if (bubble.isFromSelf && bubble.content is MessageContent.Deleted) continue
+        return bubble
+    }
+    return null
+}
+
 private fun shouldShowReceiptLabel(
     index: Int,
     item: ChatListItem.ContentBubble,
     messages: LazyPagingItems<ChatListItem>,
     otherReadPointer: MessagePointer?,
 ): Boolean {
-    if (!item.isFromSelf) return false
+    if (!item.carriesReceipt) return false
     val status = effectiveReceiptStatus(item, otherReadPointer) ?: return false
     if (status == ReceiptStatus.FAILED) return true
     if (status != ReceiptStatus.SENT && status != ReceiptStatus.READ) return false
 
-    // index - 1 is the item below (newer) in reverseLayout
-    val below = if (index > 0) messages.peek(index - 1) else null
-    val belowBubble = below as? ChatListItem.ContentBubble
+    // index - 1 is the item below (newer) in reverseLayout. A tombstone still belongs to the self
+    // group for bubble shaping, so it is stepped over here rather than treated as a group boundary.
+    val belowBubble = receiptNeighbourBelow(index, messages)
 
     // Within a self-group: show at intra-group status boundaries only
     if (belowBubble != null && belowBubble.isFromSelf) {
@@ -461,7 +483,7 @@ private fun shouldShowReceiptLabel(
     for (i in (index - 1) downTo 0) {
         val peek = messages.peek(i) ?: break
         val bubble = peek as? ChatListItem.ContentBubble ?: continue
-        if (bubble.isFromSelf) return effectiveReceiptStatus(bubble, otherReadPointer) != status
+        if (bubble.carriesReceipt) return effectiveReceiptStatus(bubble, otherReadPointer) != status
     }
     return true
 }

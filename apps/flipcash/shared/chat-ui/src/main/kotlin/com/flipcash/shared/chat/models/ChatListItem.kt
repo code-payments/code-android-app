@@ -22,12 +22,20 @@ sealed interface ChatListItem {
         val timestamp: Instant,
         val receiptStatus: ReceiptStatus? = null,
         val pendingClientIdHex: String? = null,
+        /** Drives the corner-pinned "Edited" marker. */
+        val isEdited: Boolean = false,
+        /** Chooses between "You deleted this message" and "This message was deleted". */
+        val deletedByViewer: Boolean = false,
     ) : ChatListItem {
         override val itemKey: Any = pendingClientIdHex ?: "$messageId-$contentIndex"
+
+        // A tombstone shares the text bubble's content type on purpose: deleting a message is an
+        // in-place update of a row the list already holds, and giving it a type of its own would
+        // make the list drop that row and insert a new one.
         override val itemContentType: Any = when (content) {
             is MessageContent.Text -> "text-bubble"
+            is MessageContent.Deleted -> "text-bubble"
             is MessageContent.Cash -> "cash-bubble"
-            is MessageContent.Deleted -> "deleted-message"
             is MessageContent.Media -> "media"
             is MessageContent.Reply -> "reply-message"
             is MessageContent.System -> "system-message"

@@ -20,21 +20,31 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
@@ -59,6 +69,7 @@ import com.getcode.ui.core.addIf
 enum class BubblePosition { Solo, First, Middle, Last }
 
 private const val BUBBLE_MAX_WIDTH_FRACTION = 0.78f
+private val EDITED_MARKER_GAP = 6.dp
 private const val CASH_BUBBLE_MAX_WIDTH_FRACTION = 0.64f
 
 @Composable
@@ -72,7 +83,7 @@ fun ContentBubble(
         val bubbleMaxWidth = when (item.content) {
             is MessageContent.Text -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
             is MessageContent.Cash -> maxWidth * CASH_BUBBLE_MAX_WIDTH_FRACTION
-            is MessageContent.Deleted -> maxWidth
+            is MessageContent.Deleted -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
             is MessageContent.Media -> maxWidth * CASH_BUBBLE_MAX_WIDTH_FRACTION
             is MessageContent.Reply -> maxWidth * BUBBLE_MAX_WIDTH_FRACTION
             is MessageContent.System -> maxWidth
@@ -89,6 +100,24 @@ fun ContentBubble(
                     isFromSelf = item.isFromSelf,
                     position = position,
                     maxWidth = bubbleMaxWidth,
+                    isEdited = item.isEdited,
+                )
+
+                // A tombstone is a text bubble with different words. Rendering it through the same
+                // composable is what makes a delete an in-place update of the row already on screen.
+                is MessageContent.Deleted -> TextBubble(
+                    modifier = modifier,
+                    text = stringResource(
+                        if (item.deletedByViewer) {
+                            R.string.label_messageDeletedByYou
+                        } else {
+                            R.string.label_messageDeleted
+                        }
+                    ),
+                    isFromSelf = item.isFromSelf,
+                    position = position,
+                    maxWidth = bubbleMaxWidth,
+                    isTombstone = true,
                 )
 
                 is MessageContent.Cash -> CashBubble(
@@ -106,7 +135,6 @@ fun ContentBubble(
                 )
 
                 // TODO
-                is MessageContent.Deleted -> Unit
                 is MessageContent.Media -> Unit
                 is MessageContent.Reply -> Unit
                 is MessageContent.System -> Unit
@@ -115,6 +143,8 @@ fun ContentBubble(
     }
 }
 
+private const val EDITED_MARKER_SLOT = "edited-marker"
+
 @Composable
 private fun TextBubble(
     text: String,
@@ -122,23 +152,86 @@ private fun TextBubble(
     position: BubblePosition,
     maxWidth: Dp,
     modifier: Modifier = Modifier,
+    isEdited: Boolean = false,
+    isTombstone: Boolean = false,
 ) {
     Bubble(isFromSelf, position, maxWidth, modifier) {
         val linkStyle = SpanStyle(
             color = CodeTheme.colors.textMain,
             textDecoration = TextDecoration.Underline,
         )
-        val richText = rememberRichText(
-            text = text,
-            annotators = listOf(UrlAnnotator(linkStyle)),
+        // A tombstone carries no link and nothing worth selecting; it is a notice, not a message.
+        val body = if (isTombstone) {
+            AnnotatedString(text)
+        } else {
+            rememberRichText(text = text, annotators = listOf(UrlAnnotator(linkStyle)))
+        }
+        val bodyStyle = CodeTheme.typography.textMedium.copy(
+            fontWeight = FontWeight.Medium,
+            fontStyle = if (isTombstone) FontStyle.Italic else FontStyle.Normal,
         )
-        SelectionContainer {
+        val bodyColor = if (isTombstone) {
+            CodeTheme.colors.textSecondary
+        } else {
+            CodeTheme.colors.textMain
+        }
+
+        val markerLabel = stringResource(R.string.label_edited)
+        val markerStyle = CodeTheme.typography.caption
+
+        // The marker is pinned to the bubble's bottom-trailing corner rather than laid out after
+        // the text, so the body has to leave a hole of exactly the marker's width. An empty
+        // placeholder in the text flow does that: it sits on the last line where there is room and
+        // wraps onto its own line where there isn't, without dragging the last word along with it.
+        // It draws nothing and holds no text, so selection and the accessibility tree see only the
+        // real marker below.
+        val measurer = rememberTextMeasurer()
+        val density = LocalDensity.current
+        val reservation = remember(markerLabel, markerStyle, density) {
+            with(density) {
+                (measurer.measure(markerLabel, markerStyle).size.width.toDp() + EDITED_MARKER_GAP).toSp()
+            }
+        }
+
+        val laidOut = if (isEdited) {
+            buildAnnotatedString {
+                append(body)
+                appendInlineContent(EDITED_MARKER_SLOT, "\u2007")
+            }
+        } else {
+            body
+        }
+        val inlineContent = if (isEdited) {
+            mapOf(
+                EDITED_MARKER_SLOT to InlineTextContent(
+                    Placeholder(
+                        width = reservation,
+                        height = 1.sp,
+                        placeholderVerticalAlign = PlaceholderVerticalAlign.TextBottom,
+                    ),
+                ) { },
+            )
+        } else {
+            emptyMap()
+        }
+
+        val bodyText = @Composable {
             Text(
-                text = richText,
-                style = CodeTheme.typography.textMedium.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = CodeTheme.colors.textMain,
+                text = laidOut,
+                inlineContent = inlineContent,
+                style = bodyStyle,
+                color = bodyColor,
+            )
+        }
+
+        if (isTombstone) bodyText() else SelectionContainer { bodyText() }
+
+        if (isEdited) {
+            Text(
+                modifier = Modifier.align(Alignment.BottomEnd),
+                text = markerLabel,
+                style = markerStyle,
+                color = CodeTheme.colors.textSecondary,
             )
         }
     }
@@ -408,6 +501,45 @@ private fun Preview_TextBubble_Incoming() {
         isFromSelf = false,
         position = BubblePosition.Solo,
         maxWidth = 300.dp,
+    )
+}
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_TextBubble_Edited() {
+    TextBubble(
+        text = "Hey! How's it going?",
+        isFromSelf = true,
+        position = BubblePosition.Solo,
+        maxWidth = 300.dp,
+        isEdited = true,
+    )
+}
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_TextBubble_EditedLongMessage() {
+    TextBubble(
+        text = "A long enough message that the last line has no room left for the marker, so the reservation wraps onto a line of its own and the bubble grows to fit it.",
+        isFromSelf = true,
+        position = BubblePosition.Solo,
+        maxWidth = 300.dp,
+        isEdited = true,
+    )
+}
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_TextBubble_Tombstone() {
+    TextBubble(
+        text = "You deleted this message",
+        isFromSelf = true,
+        position = BubblePosition.Solo,
+        maxWidth = 300.dp,
+        isTombstone = true,
     )
 }
 
