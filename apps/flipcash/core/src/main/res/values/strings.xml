@@ -895,6 +895,11 @@
     <string name="label_chat_preview_sentMessage">You: %1$s</string>
     <string name="label_isTyping">Is Typing…</string>
 
+    <string name="label_edited">Edited</string>
+    <string name="label_messageDeletedByYou">You deleted this message</string>
+    <string name="label_messageDeleted">This message was deleted</string>
+    <string name="label_chat_preview_deletedMessage">Message deleted</string>
+
     <string name="label_unknownContact">Unknown Contact</string>
     <string name="title_allowFullContactAccess">Allow Full Contact Access</string>
     <string name="subtitle_allowFullContactAccess">Make sure you can send cash and identify people you know</string>

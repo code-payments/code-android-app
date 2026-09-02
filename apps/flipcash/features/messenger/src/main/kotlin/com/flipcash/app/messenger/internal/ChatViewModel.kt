@@ -235,6 +235,10 @@ internal class ChatViewModel @Inject constructor(
                         timestamp = message.timestamp,
                         receiptStatus = receiptStatus,
                         pendingClientIdHex = message.pendingClientIdHex,
+                        isEdited = message.lastEditedTs != null,
+                        // A null author is a moderation removal, which reads as someone else's.
+                        deletedByViewer = (enriched as? MessageContent.Deleted)?.deletedBy
+                            ?.let { it == userManager.accountId } == true,
                     )
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->

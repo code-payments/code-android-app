@@ -23,4 +23,5 @@ dependencies {
     implementation(project(":apps:flipcash:shared:theme"))
 
     testImplementation(libs.robolectric)
+    testImplementation(libs.bundles.unit.testing)
 }

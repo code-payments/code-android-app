@@ -79,8 +79,12 @@ private fun ChatSummary.formatPreview(
                 resources.getString(previewRes, label)
             }
 
+            // The conversation list says a message is gone rather than going blank, which would
+            // otherwise read as the whole conversation having no messages.
+            is MessageContent.Deleted ->
+                resources.getString(R.string.label_chat_preview_deletedMessage)
+
             // TODO:
-            is MessageContent.Deleted -> null
             is MessageContent.Media -> null
             is MessageContent.Reply -> null
             is MessageContent.System -> null
