@@ -7,6 +7,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,7 +15,9 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -29,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -179,8 +183,10 @@ private fun ConversationTitleBar(
 /**
  * The bar a long-press puts up, offering exactly what the transcript resolved for that message.
  *
- * Delete sits inline and the rest go under the overflow, following WhatsApp: the destructive action
- * is the one worth a dedicated target, and burying it would make the common case a two-tap one.
+ * The actions render as icons for as far as the bar's action budget reaches, and whatever is left
+ * over goes under an overflow. Which ones that is falls out of the width rather than being named
+ * here, so the same set sits flat on a phone and collapses on a narrow one — and an action added
+ * later takes its place in the order without a layout decision attached.
  */
 @Composable
 private fun MessageSelectionBar(
@@ -190,6 +196,49 @@ private fun MessageSelectionBar(
 ) {
     val capabilities = selection.capabilities
     val body = selection.plainText
+
+    // Order is priority: the first actions keep their icons when the bar runs out of room. Delete
+    // leads because burying the one action with a confirmation behind a menu makes it a three-tap
+    // job, and it is the action WhatsApp keeps inline too.
+    val actions = buildList {
+        if (MessageCapability.Delete in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_delete),
+                    icon = Icons.Outlined.Delete,
+                    testTag = "action_delete_message",
+                    onClick = {
+                        keyboard.hideIfVisible {
+                            dispatch(ChatViewModel.Event.DeleteMessage(selection.messageId))
+                        }
+                    },
+                )
+            )
+        }
+        // Copy and edit both act on the message's text, so a bubble without any is offered neither.
+        if (body != null && MessageCapability.Copy in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_copy),
+                    icon = Icons.Outlined.ContentCopy,
+                    testTag = "action_copy_message",
+                    onClick = { dispatch(ChatViewModel.Event.CopyMessage(body)) },
+                )
+            )
+        }
+        if (body != null && MessageCapability.Edit in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_edit),
+                    icon = Icons.Outlined.Edit,
+                    testTag = "action_edit_message",
+                    onClick = {
+                        dispatch(ChatViewModel.Event.EditMessage(selection.messageId, body))
+                    },
+                )
+            )
+        }
+    }
 
     AppBarWithTitle(
         leftIcon = {
@@ -208,45 +257,68 @@ private fun MessageSelectionBar(
         // Nothing in the title slot: one message is selected at a time, so a count would only ever
         // read "1" and the back arrow already says the bar is a selection.
         title = { },
-        rightContents = {
-            if (MessageCapability.Delete in capabilities) {
-                CircularIconButton(
-                    onClick = {
-                        keyboard.hideIfVisible {
-                            dispatch(ChatViewModel.Event.DeleteMessage(selection.messageId))
-                        }
-                    },
-                    testTag = "action_delete_message",
-                ) { size ->
+        rightContents = { MessageActions(actions) },
+    )
+}
+
+/** One thing the selection bar can do to the selected message. */
+private data class MessageAction(
+    val label: String,
+    val icon: ImageVector,
+    val testTag: String,
+    val onClick: () -> Unit,
+)
+
+/**
+ * The share of the bar the actions may occupy before they start collapsing into the overflow.
+ *
+ * A share rather than a slot count, so the answer tracks the screen: at 40dp a button and 10dp
+ * between them, a normal phone fits all three actions and a compact one keeps the first inline
+ * with the rest a tap away. It stays a minority of the bar so the cluster still reads as trailing
+ * and leaves room for a title, should the selection bar ever grow one.
+ */
+private const val ActionBudgetFraction = 0.35f
+
+@Composable
+private fun MessageActions(actions: List<MessageAction>) {
+    if (actions.isEmpty()) return
+
+    // Both match what the app bar itself uses, so the budget is measured in the widths that will
+    // actually be laid out.
+    val buttonSize = CodeTheme.dimens.staticGrid.x8
+    val spacing = CodeTheme.dimens.grid.x2
+
+    BoxWithConstraints {
+        // n buttons cost n widths and n-1 gaps, so adding one gap to both sides makes it a division.
+        val capacity = ((maxWidth * ActionBudgetFraction + spacing) / (buttonSize + spacing))
+            .toInt()
+            .coerceAtLeast(1)
+        // The overflow needs a slot of its own, so it only pays for itself when it is holding
+        // something — the last action is not displaced by a menu that would contain only it.
+        val inline = if (actions.size <= capacity) actions else actions.take(capacity - 1)
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(spacing),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            inline.forEach { action ->
+                CircularIconButton(onClick = action.onClick, testTag = action.testTag) { size ->
                     Icon(
-                        imageVector = Icons.Outlined.Delete,
-                        contentDescription = stringResource(R.string.action_delete),
+                        imageVector = action.icon,
+                        contentDescription = action.label,
                         tint = Color.White,
                         modifier = Modifier.requiredSize(size),
                     )
                 }
             }
-
-            if (body != null) {
-                MessageOverflow(
-                    capabilities = capabilities,
-                    onCopy = { dispatch(ChatViewModel.Event.CopyMessage(body)) },
-                    onEdit = { dispatch(ChatViewModel.Event.EditMessage(selection.messageId, body)) },
-                )
-            }
-        },
-    )
+            MessageOverflow(actions.drop(inline.size))
+        }
+    }
 }
 
 @Composable
-private fun MessageOverflow(
-    capabilities: Set<MessageCapability>,
-    onCopy: () -> Unit,
-    onEdit: () -> Unit,
-) {
-    val canCopy = MessageCapability.Copy in capabilities
-    val canEdit = MessageCapability.Edit in capabilities
-    if (!canCopy && !canEdit) return
+private fun MessageOverflow(actions: List<MessageAction>) {
+    if (actions.isEmpty()) return
 
     var expanded by remember { mutableStateOf(false) }
     Box {
@@ -260,21 +332,12 @@ private fun MessageOverflow(
             offset = DpOffset(x = 0.dp, y = CodeTheme.dimens.grid.x2),
             onDismissRequest = { expanded = false },
         ) {
-            if (canCopy) {
+            actions.forEach { action ->
                 DropdownMenuItem(
-                    text = { OverflowLabel(stringResource(R.string.action_copy)) },
+                    text = { OverflowLabel(action.label) },
                     onClick = {
                         expanded = false
-                        onCopy()
-                    },
-                )
-            }
-            if (canEdit) {
-                DropdownMenuItem(
-                    text = { OverflowLabel(stringResource(R.string.action_edit)) },
-                    onClick = {
-                        expanded = false
-                        onEdit()
+                        action.onClick()
                     },
                 )
             }
