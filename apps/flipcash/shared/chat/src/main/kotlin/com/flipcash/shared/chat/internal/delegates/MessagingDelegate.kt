@@ -318,10 +318,13 @@ class MessagingDelegate @Inject constructor(
     }
 
     override suspend fun markAsRead(chatId: ChatId): Result<Unit> {
-        val messageId = stateHolder.current.feed
-            .firstOrNull { it.chatId == chatId }
-            ?.lastMessage?.messageId
-            ?: messageDataSource.getLatestMessageId(chatId)
+        // The stored newest id, tombstones included — the feed's own `lastMessage` skips them so
+        // the list can preview the last message with content, and reading it here would park the
+        // pointer below a deleted message and leave the chat permanently unread.
+        val messageId = messageDataSource.getLatestMessageId(chatId)
+            ?: stateHolder.current.feed
+                .firstOrNull { it.chatId == chatId }
+                ?.lastMessage?.messageId
             ?: return Result.success(Unit)
         return advanceReadPointer(chatId, messageId)
             .also { dismissNotifications(chatId) }

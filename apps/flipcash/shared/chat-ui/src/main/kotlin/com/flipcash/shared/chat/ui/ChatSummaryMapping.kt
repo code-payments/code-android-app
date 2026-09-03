@@ -79,10 +79,10 @@ private fun ChatSummary.formatPreview(
                 resources.getString(previewRes, label)
             }
 
-            // The conversation list says a message is gone rather than going blank, which would
-            // otherwise read as the whole conversation having no messages.
-            is MessageContent.Deleted ->
-                resources.getString(R.string.label_chat_preview_deletedMessage)
+            // The feed carries the newest message that still has content, so a tombstone only
+            // reaches here when every message in the chat is deleted — and then there is nothing
+            // to preview.
+            is MessageContent.Deleted -> null
 
             // TODO:
             is MessageContent.Media -> null

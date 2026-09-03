@@ -92,8 +92,9 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 28, to = 29, spec = FlipcashDatabase.Migration28To29::class),
         AutoMigration(from = 29, to = 30), // chat_metadata.analytics_counted_through
         AutoMigration(from = 30, to = 31), // user_profiles.username (nullable)
+        AutoMigration(from = 31, to = 32, spec = FlipcashDatabase.Migration31To32::class),
     ],
-    version = 31,
+    version = 32,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
@@ -211,6 +212,26 @@ abstract class FlipcashDatabase : RoomDatabase() {
     class Migration28To29 : AutoMigrationSpec {
         override fun onPostMigrate(connection: SQLiteConnection) {
             connection.execSQL("DELETE FROM messages")
+        }
+    }
+
+    /**
+     * Adds `chat_messages.is_deleted` and backfills it for rows cached before the column existed.
+     *
+     * The flag is written from the domain content at map time, so only pre-existing rows need the
+     * one-shot repair, and the serialized discriminator is the only evidence they carry. A text
+     * message quoting that literal string would be misread as a tombstone here — a preview
+     * falling back one message, and only until the server resends the row. That is the reason the
+     * flag is a column at all rather than this match being the permanent query.
+     */
+    class Migration31To32 : AutoMigrationSpec {
+        override fun onPostMigrate(connection: SQLiteConnection) {
+            connection.execSQL(BACKFILL_TOMBSTONES)
+        }
+
+        companion object {
+            const val BACKFILL_TOMBSTONES =
+                "UPDATE chat_messages SET is_deleted = 1 WHERE content_json LIKE '%\"type\":\"deleted\"%'"
         }
     }
 

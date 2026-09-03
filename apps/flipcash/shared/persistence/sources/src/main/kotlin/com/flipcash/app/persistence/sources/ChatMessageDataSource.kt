@@ -118,6 +118,10 @@ class ChatMessageDataSource @Inject constructor(
     suspend fun getLatest(chatIdHex: String): ChatMessage? =
         db?.chatMessageDao()?.getLatest(chatIdHex)?.let { toChatMessage(it) }
 
+    /** The newest message that isn't a tombstone — what the conversation list previews. */
+    suspend fun getLatestVisible(chatIdHex: String): ChatMessage? =
+        db?.chatMessageDao()?.getLatestVisible(chatIdHex)?.let { toChatMessage(it) }
+
     suspend fun hasMessages(chatId: ChatId): Boolean =
         db?.chatMessageDao()?.getLatest(mapper.chatIdHex(chatId)) != null
 

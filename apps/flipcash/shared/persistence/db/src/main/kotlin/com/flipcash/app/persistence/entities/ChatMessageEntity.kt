@@ -26,4 +26,12 @@ data class ChatMessageEntity(
     @ColumnInfo(name = "event_sequence", defaultValue = "0") val eventSequence: Long = 0,
     @ColumnInfo(name = "last_edited_ts_epoch_ms") val lastEditedTsEpochMs: Long? = null,
     @ColumnInfo(name = "reactions_json") val reactionsJson: String? = null,
+    /**
+     * The row is a tombstone — the message was deleted and its content is gone.
+     *
+     * Kept as a column rather than derived from [contentJson] so the feed's "newest *visible*
+     * message" query can filter in SQL. Matching on the serialized discriminator would work until
+     * someone sends a message whose text happens to contain it.
+     */
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
 )

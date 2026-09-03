@@ -104,6 +104,7 @@ class ChatEntityMapper @Inject constructor() {
             reactionsJson = message.reactions?.toSerialized()?.let {
                 kotlinx.serialization.json.Json.encodeToString(it)
             },
+            isDeleted = message.content.any { it is MessageContent.Deleted },
         )
     }
 

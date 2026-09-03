@@ -898,7 +898,6 @@
     <string name="label_edited">Edited</string>
     <string name="label_messageDeletedByYou">You deleted this message</string>
     <string name="label_messageDeleted">This message was deleted</string>
-    <string name="label_chat_preview_deletedMessage">Message deleted</string>
 
     <!-- Chat message selection bar and its actions -->
     <string name="action_copy">Copy</string>

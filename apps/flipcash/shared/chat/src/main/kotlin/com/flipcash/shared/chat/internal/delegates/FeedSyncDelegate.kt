@@ -223,8 +223,12 @@ class FeedSyncDelegate @Inject constructor(
     ): List<ChatMetadata> {
         return metadataEntities.map { entity ->
             val members = membersByChat[entity.chatIdHex] ?: emptyList()
+            // Deliberately the newest *visible* message, not the newest row: deleting the newest
+            // message drops the feed back to the one before it, so the preview reads that message
+            // instead of "Message deleted" and its unread splat clears with it (the fallback sits
+            // at or below the read pointer whenever the deleted message was the only unread one).
             val lastMessage = entity.lastMessageId?.let {
-                messageDataSource.getLatest(entity.chatIdHex)
+                messageDataSource.getLatestVisible(entity.chatIdHex)
             }
             metadataDataSource.toMetadata(entity, members, lastMessage)
         }
