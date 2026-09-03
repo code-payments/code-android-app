@@ -200,21 +200,21 @@ internal fun UserControlBottomBar(
                             state = state.chatInputState,
                             // One read of the edit state decides both the glyph and what the tap
                             // does, so the composer cannot show a checkmark and send a new message.
+                            //
+                            // Confirming ends the edit, so the composer stops being an open field:
+                            // hiding the keyboard clears focus too, so it does not come straight
+                            // back onto the draft `finishEditing` restores into the same input.
                             submit = if (state.editing != null) {
-                                ChatInputSubmit.ConfirmEdit {
-                                    // Confirming ends the edit, so the composer stops being an
-                                    // open field: take the keyboard down first, which also clears
-                                    // focus so it does not come straight back onto the draft
-                                    // `finishEditing` restores into the same input.
-                                    keyboard.hideIfVisible {
-                                        dispatch(ChatViewModel.Event.SubmitEdit)
-                                    }
-                                }
+                                ChatInputSubmit.ConfirmEdit(
+                                    perform = { keyboard.hideIfVisible { dispatch(ChatViewModel.Event.SubmitEdit) } },
+                                )
                             } else {
-                                ChatInputSubmit.Send {
-                                    dispatch(ChatViewModel.Event.SendMessage)
-                                    keyboard.restartInput()
-                                }
+                                ChatInputSubmit.Send(
+                                    perform = {
+                                        dispatch(ChatViewModel.Event.SendMessage)
+                                        keyboard.restartInput()
+                                    },
+                                )
                             },
                         )
 
