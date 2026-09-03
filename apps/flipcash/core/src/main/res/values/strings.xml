@@ -912,7 +912,7 @@
     <string name="title_deleteMessage">Delete message?</string>
     <string name="description_deleteMessage">This can\'t be undone</string>
     <string name="title_messageNotEdited">Message Not Edited</string>
-    <string name="description_messageNotEdited">Your change couldn\'t be saved, so the message is unchanged.</string>
+    <string name="description_messageNotEdited">Your change couldn\'t be saved, so the message is unchanged</string>
     <string name="title_messageNotDeleted">Message Not Deleted</string>
     <string name="description_messageNotDeleted">The message couldn\'t be deleted, so it is still visible to everyone.</string>
     <string name="title_messageEditExpired">Couldn\'t Edit Message</string>

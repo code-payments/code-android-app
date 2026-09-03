@@ -202,8 +202,13 @@ internal fun UserControlBottomBar(
                             // does, so the composer cannot show a checkmark and send a new message.
                             submit = if (state.editing != null) {
                                 ChatInputSubmit.ConfirmEdit {
-                                    dispatch(ChatViewModel.Event.SubmitEdit)
-                                    keyboard.restartInput()
+                                    // Confirming ends the edit, so the composer stops being an
+                                    // open field: take the keyboard down first, which also clears
+                                    // focus so it does not come straight back onto the draft
+                                    // `finishEditing` restores into the same input.
+                                    keyboard.hideIfVisible {
+                                        dispatch(ChatViewModel.Event.SubmitEdit)
+                                    }
                                 }
                             } else {
                                 ChatInputSubmit.Send {
