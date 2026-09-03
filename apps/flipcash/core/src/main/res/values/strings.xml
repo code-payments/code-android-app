@@ -914,7 +914,7 @@
     <string name="title_messageNotEdited">Message Not Edited</string>
     <string name="description_messageNotEdited">Your change couldn\'t be saved, so the message is unchanged</string>
     <string name="title_messageNotDeleted">Message Not Deleted</string>
-    <string name="description_messageNotDeleted">The message couldn\'t be deleted, so it is still visible to everyone.</string>
+    <string name="description_messageNotDeleted">The message couldn\'t be deleted, so it is still visible to everyone</string>
     <string name="title_messageEditExpired">Couldn\'t Edit Message</string>
     <string name="description_messageEditExpired">Messages can only be edited for a short time after they\'re sent.</string>
     <string name="title_messageDeleteExpired">Couldn\'t Delete Message</string>
