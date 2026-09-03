@@ -1,7 +1,5 @@
 package com.getcode.crypt
 
-import com.getcode.model.Domain
-
 class DerivePath(val indexes: List<Index>, val password: String? = null) {
     fun stringRepresentation(): String {
         val components = indexes.joinToString(separator) { it.stringRepresentation() }
@@ -10,9 +8,7 @@ class DerivePath(val indexes: List<Index>, val password: String? = null) {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as DerivePath
+        if (other !is DerivePath) return false
 
         if (indexes != other.indexes) return false
 
@@ -45,23 +41,6 @@ class DerivePath(val indexes: List<Index>, val password: String? = null) {
             return DerivePath(indexes, password)
         }
 
-        // Primary      - m/44'/501'/0/0
-        //
-        // Incoming     - m/44'/501'/0/0/i/2
-        // Outgoing     - m/44'/501'/0/0/i/3
-        //
-        // Relationship - m/44'/501'/0/0/0/0
-        // Swap         - m/44'/501'/0/0/1/0  *
-        // etc.         - m/44'/501'/0/0/2/0  *
-        //
-        // Bucket1      - m/44'/501'/0/0/0/1
-        // Bucket10     - m/44'/501'/0/0/0/10
-        // Bucket100    - m/44'/501'/0/0/0/100
-        // Bucket1k     - m/44'/501'/0/0/0/1000
-        // Bucket10k    - m/44'/501'/0/0/0/10000
-        // Bucket100k   - m/44'/501'/0/0/0/100000
-        // Bucket1m     - m/44'/501'/0/0/0/1000000
-
         val bucket1    = newInstance("m/44'/501'/0'/0'/0'/1")!!
         val bucket10   = newInstance("m/44'/501'/0'/0'/0'/10")!!
         val bucket100  = newInstance("m/44'/501'/0'/0'/0'/100")!!
@@ -86,10 +65,6 @@ class DerivePath(val indexes: List<Index>, val password: String? = null) {
 
         fun getPoolRendezvous(index: Long): DerivePath {
             return newInstance("m/44'/501'/0'/0'/2335'/$index'")!!
-        }
-
-        fun relationship(domain: Domain): DerivePath {
-            return newInstance("m/44'/501'/0'/0'/0'/0", password = domain.relationshipHost)!!
         }
 
         private const val identifier = "m"
