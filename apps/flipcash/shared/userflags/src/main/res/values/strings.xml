@@ -23,4 +23,8 @@
     <string name="hint_flag_minHolderAmount">Enter amount</string>
     <string name="label_flag_tipPresets">Tip Presets</string>
     <string name="label_flag_usernameMinBalance">Username Minimum Balance</string>
+    <string name="label_flag_messageEditWindow">Message Edit Window</string>
+    <string name="hint_flag_messageEditWindow">Enter time in seconds</string>
+    <string name="label_flag_messageDeleteWindow">Message Delete Window</string>
+    <string name="hint_flag_messageDeleteWindow">Enter time in seconds</string>
 </resources>

@@ -53,6 +53,8 @@ class UserFlagsCoordinator @Inject constructor(
         val preferredUsdcOnRampLiquidityPool: FieldOverride<UsdcLiquidtyPool>,
         val minimumHolderAmountForLeaderboard: FieldOverride<Fiat>,
         val requireCoinbaseEmailVerification: FieldOverride<Boolean>,
+        val messageEditWindow: FieldOverride<Duration?>,
+        val messageDeleteWindow: FieldOverride<Duration?>,
     ) {
         companion object {
             val None = Overrides(
@@ -66,6 +68,8 @@ class UserFlagsCoordinator @Inject constructor(
                 preferredUsdcOnRampLiquidityPool = FieldOverride.None,
                 minimumHolderAmountForLeaderboard = FieldOverride.None,
                 requireCoinbaseEmailVerification = FieldOverride.None,
+                messageEditWindow = FieldOverride.None,
+                messageDeleteWindow = FieldOverride.None,
             )
         }
     }
@@ -110,6 +114,8 @@ class UserFlagsCoordinator @Inject constructor(
             preferredUsdcOnRampLiquidityPool = prefs.readOverride(Field.PreferredUsdcOnRampLiquidityPool),
             minimumHolderAmountForLeaderboard = prefs.readOverride(Field.MinimumHolderAmountForLeaderboard),
             requireCoinbaseEmailVerification = prefs.readOverride(Field.RequireCoinbaseEmailVerification),
+            messageEditWindow = prefs.readOverride(Field.MessageEditWindow),
+            messageDeleteWindow = prefs.readOverride(Field.MessageDeleteWindow),
         )
     }.stateIn(scope, SharingStarted.Eagerly, Overrides.None)
 

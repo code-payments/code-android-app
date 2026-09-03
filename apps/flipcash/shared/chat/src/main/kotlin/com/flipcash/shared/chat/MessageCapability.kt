@@ -29,12 +29,17 @@ enum class MessageCapability {
 /**
  * Client-side limits on what may be done to a message.
  *
- * @param editWindow how long after sending a message stays editable, or `null` for no limit. The
- *   server does not publish a window today, so the default leaves edit open and lets `CANNOT_EDIT`
- *   be the authority.
+ * Both windows come from `UserFlags` (`message_edit_window`, `message_delete_window`), which sends
+ * them with explicit presence: an unset field is no limit rather than a zero-length one. The
+ * defaults are therefore both `null`, which leaves `CANNOT_EDIT` / `CANNOT_DELETE` as the
+ * authority for a build that has not seen the flags yet.
+ *
+ * @param editWindow how long after sending a message stays editable, or `null` for no limit.
+ * @param deleteWindow how long after sending a message stays deletable, or `null` for no limit.
  */
 data class MessagePolicy(
     val editWindow: Duration? = null,
+    val deleteWindow: Duration? = null,
 ) {
     companion object {
         val Default = MessagePolicy()
@@ -46,8 +51,9 @@ data class MessagePolicy(
  *
  * | Message | Capabilities |
  * |---|---|
- * | Own text, confirmed, within the edit window | Copy, Reply, Edit, Delete |
- * | Own text, confirmed, outside a configured window | Copy, Reply, Delete |
+ * | Own text, confirmed, inside both windows | Copy, Reply, Edit, Delete |
+ * | Own text, confirmed, past the edit window | Copy, Reply, Delete |
+ * | Own text, confirmed, past both windows | Copy, Reply |
  * | Own text, unconfirmed (`eventSequence == 0`) | none |
  * | Another participant's text | Copy, Reply |
  * | Any cash or tip message | Reply |
@@ -85,14 +91,33 @@ fun resolveCapabilities(
         if (hasText) add(MessageCapability.Copy)
         add(MessageCapability.Reply)
         if (message.isFromSelf) {
-            if (hasText && policy.allowsEdit(message, now)) add(MessageCapability.Edit)
+            if (hasText) add(MessageCapability.Edit)
             add(MessageCapability.Delete)
         }
+    }.withinWindows(message.timestamp, policy, now)
+}
+
+/**
+ * Drops the capabilities of a message sent at [sentAt] whose window has since closed.
+ *
+ * Split out of [resolveCapabilities] because resolution happens once, when the transcript is
+ * mapped, and the windows keep running afterwards: a menu opened a minute later would otherwise
+ * still offer an edit the server is about to answer `CANNOT_EDIT`. A surface holding an
+ * already-resolved set re-applies this when it acts on it, and gets the same answer the resolver
+ * would give — the rule lives in one place either way.
+ */
+fun Set<MessageCapability>.withinWindows(
+    sentAt: Instant,
+    policy: MessagePolicy,
+    now: Instant = Clock.System.now(),
+): Set<MessageCapability> = filterTo(mutableSetOf()) { capability ->
+    when (capability) {
+        MessageCapability.Edit -> policy.editWindow.stillOpen(sentAt, now)
+        MessageCapability.Delete -> policy.deleteWindow.stillOpen(sentAt, now)
+        MessageCapability.Copy, MessageCapability.Reply -> true
     }
 }
 
-/** True while [message] is still inside the configured edit window, or always if there is none. */
-private fun MessagePolicy.allowsEdit(message: ChatMessage, now: Instant): Boolean {
-    val window = editWindow ?: return true
-    return now - message.timestamp <= window
-}
+/** True while a message sent at [sentAt] is inside this window, or always if there is none. */
+private fun Duration?.stillOpen(sentAt: Instant, now: Instant): Boolean =
+    this == null || now - sentAt <= this

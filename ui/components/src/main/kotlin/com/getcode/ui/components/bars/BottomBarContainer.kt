@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Icon
 import androidx.compose.material.LocalContentColor
@@ -157,8 +158,13 @@ fun BottomBarContainer(
     }
 
     AnimatedContent(
+        // The bar rides the keyboard. Every screen is drawn edge to edge, so the window is not
+        // resized when the IME opens and a bottom-aligned bar would otherwise slide up underneath
+        // it — a chat error, raised while the composer still has focus, arrived invisible. The
+        // scrim above deliberately keeps covering the whole window, keyboard included.
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .clipToBounds(),
         targetState = bottomBarVisibleState.targetState,
         transitionSpec = {

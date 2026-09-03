@@ -8,6 +8,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
@@ -136,6 +137,74 @@ class MessageCapabilityTest {
         assertEquals(
             setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Delete),
             resolveCapabilities(text(), policy, now = sentAt + 16.minutes),
+        )
+    }
+
+    @Test
+    fun `a delete window drops Delete once it lapses and leaves Edit alone`() {
+        val policy = MessagePolicy(deleteWindow = 60.minutes)
+
+        assertEquals(
+            setOf(
+                MessageCapability.Copy,
+                MessageCapability.Reply,
+                MessageCapability.Edit,
+                MessageCapability.Delete,
+            ),
+            resolveCapabilities(text(), policy, now = sentAt + 59.minutes),
+        )
+
+        // Edit survives: this policy sets no edit window, and an unset window is no limit.
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Edit),
+            resolveCapabilities(text(), policy, now = sentAt + 61.minutes),
+        )
+    }
+
+    @Test
+    fun `the windows run independently, so the shorter one lapses first`() {
+        val policy = MessagePolicy(editWindow = 15.minutes, deleteWindow = 60.minutes)
+
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Delete),
+            resolveCapabilities(text(), policy, now = sentAt + 30.minutes),
+        )
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply),
+            resolveCapabilities(text(), policy, now = sentAt + 90.minutes),
+        )
+    }
+
+    @Test
+    fun `an unset window leaves its capability open`() {
+        assertEquals(
+            setOf(
+                MessageCapability.Copy,
+                MessageCapability.Reply,
+                MessageCapability.Edit,
+                MessageCapability.Delete,
+            ),
+            resolveCapabilities(text(), MessagePolicy.Default, now = sentAt + 365.days),
+        )
+    }
+
+    /**
+     * The transcript resolves once, when it is mapped; the menu re-applies the windows when it
+     * opens. Both go through the same rule, so a set narrowed after the fact matches what the
+     * resolver would have returned at that instant.
+     */
+    @Test
+    fun `re-applying the windows to a resolved set matches resolving at that instant`() {
+        val policy = MessagePolicy(editWindow = 15.minutes, deleteWindow = 60.minutes)
+        val atSend = resolveCapabilities(text(), policy, now = sentAt)
+
+        assertEquals(
+            resolveCapabilities(text(), policy, now = sentAt + 30.minutes),
+            atSend.withinWindows(sentAt, policy, now = sentAt + 30.minutes),
+        )
+        assertEquals(
+            resolveCapabilities(text(), policy, now = sentAt + 90.minutes),
+            atSend.withinWindows(sentAt, policy, now = sentAt + 90.minutes),
         )
     }
 }
