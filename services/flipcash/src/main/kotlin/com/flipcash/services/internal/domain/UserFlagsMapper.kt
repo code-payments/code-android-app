@@ -22,7 +22,9 @@ internal class UserFlagsMapper @Inject constructor():
             preferredOnRampProvider = from.preferredOnRampProvider.toDomain().takeIf { it != OnRampProvider.Unknown },
             supportedOnRampProviders = from.supportedOnRampProvidersList.map { it.toDomain() },
             minimumVersion = from.minBuildNumber,
-            billExchangeDataTimeout = from.billExchangeDataTimeout.seconds.toDuration(DurationUnit.SECONDS),
+            billExchangeDataTimeout = if (from.hasBillExchangeDataTimeout()) {
+                from.billExchangeDataTimeout.seconds.toDuration(DurationUnit.SECONDS)
+            } else null,
             newCurrencyPurchaseAmount = Fiat(quarks = from.newCurrencyPurchaseAmount),
             newCurrencyFeeAmount = Fiat(quarks = from.newCurrencyFeeAmount),
             withdrawalFeeAmount = Fiat(quarks = from.withdrawalFeeAmount),
