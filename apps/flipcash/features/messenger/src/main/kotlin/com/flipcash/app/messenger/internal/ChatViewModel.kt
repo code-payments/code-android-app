@@ -19,6 +19,7 @@ import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.shared.chat.MessageCapability
+import com.flipcash.shared.chat.MessagePolicy
 import com.flipcash.shared.chat.applying
 import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.models.ChatListItem
@@ -26,6 +27,7 @@ import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
@@ -71,6 +73,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -82,6 +85,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.min
+import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -108,6 +112,7 @@ internal class ChatViewModel @Inject constructor(
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val purchaseMethodController: PurchaseMethodController,
     private val userManager: UserManager,
+    userFlags: UserFlagsCoordinator,
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalyticsService,
     private val clipboardManager: ClipboardManager,
@@ -272,9 +277,62 @@ internal class ChatViewModel @Inject constructor(
         .flatMapLatest { chatCoordinator.observeOtherReadPointer(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    /**
+     * The edit/delete windows the transcript gates on.
+     *
+     * `resolvedFlags` is a `StateFlow` seeded with `UserFlags.Default`, and falls back to it
+     * whenever the server flags are absent — a failed fetch, or the window before the first one
+     * lands. `UserFlags.Default` carries `null` for both windows, so the failed-fetch case arrives
+     * here as the same `null` an explicitly-unset server field would, and [MessagePolicy.from]
+     * substitutes the fallback window for both without a second branch.
+     */
+    private val messagePolicy = userFlags.resolvedFlags
+        .map {
+            MessagePolicy.from(
+                editWindow = it.messageEditWindow.effectiveValue,
+                deleteWindow = it.messageDeleteWindow.effectiveValue,
+            )
+        }
+        .distinctUntilChanged()
+
+    /**
+     * Drives re-resolution of capabilities so a row loses Edit and Delete when its window closes.
+     *
+     * Capabilities are resolved once per mapping pass, so without this a message resolved at send
+     * time keeps Edit forever: nothing upstream re-emits when a window merely lapses. With a
+     * 15-minute default edit window that is an ordinary session, not a corner case — leave a chat
+     * open, scroll back, and the menu offers an edit the server will reject.
+     *
+     * A poll rather than a timer armed at each message's expiry: the transcript is paged, so the
+     * set of loaded messages (and therefore the next expiry) changes as the user scrolls, and
+     * tracking that is more machinery than the problem is worth. The cost of the poll is bounded —
+     * it re-runs the mapping, not the fetch, because [messageStream] is cached above it, and the
+     * token metadata the mapping enriches with is memory-cached. The cost of the interval is up to
+     * [CapabilityRefreshInterval] of staleness at each boundary, during which a lapsed row still
+     * offers its action and the server answers `CANNOT_EDIT` / `CANNOT_DELETE`. That is the same
+     * race the gating cannot close anyway: a menu resolved a moment before expiry is stale by the
+     * time it is tapped whatever the interval.
+     *
+     * This covers the transcript, not an already-open selection bar — `State.selection` holds the
+     * bubble captured at long-press, and keeps the capabilities it was captured with. Selection is
+     * a few seconds of user attention rather than a row parked on screen, so it is left to the
+     * server error.
+     */
+    private val capabilityClock = flow {
+        while (true) {
+            emit(Clock.System.now())
+            delay(CapabilityRefreshInterval)
+        }
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val messages: Flow<PagingData<ChatListItem>> =
-        combine(messageStream, pendingMutations) { pagingData, mutations ->
+        combine(
+            messageStream,
+            pendingMutations,
+            messagePolicy,
+            capabilityClock,
+        ) { pagingData, mutations, policy, now ->
             pagingData.flatMap { stored ->
                 val message = stored.applying(mutations[stored.messageId])
                 message.content.mapIndexed { index, content ->
@@ -305,10 +363,11 @@ internal class ChatViewModel @Inject constructor(
                         // A null author is a moderation removal, which reads as someone else's.
                         deletedByViewer = (enriched as? MessageContent.Deleted)?.deletedBy
                             ?.let { it == userManager.accountId } == true,
-                        // Resolved once, here, so no menu re-derives it: a later group-role
-                        // taxonomy becomes another input to the resolver rather than a branch at
-                        // each action site.
-                        capabilities = resolveCapabilities(message),
+                        // Resolved here, so no menu re-derives it: a later group-role taxonomy
+                        // becomes another input to the resolver rather than a branch at each
+                        // action site. Re-resolved on every pass rather than once per message,
+                        // because `policy` and `now` both move — see `capabilityClock`.
+                        capabilities = resolveCapabilities(message, policy, now),
                     )
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->
@@ -1082,6 +1141,15 @@ internal class ChatViewModel @Inject constructor(
     }
 
     companion object {
+        /**
+         * How often the transcript re-resolves capabilities so lapsed windows drop their actions.
+         *
+         * Coarse on purpose. It bounds how long a lapsed row keeps offering an action, and the
+         * shortest window it has to bound is the 15-minute edit default, so seconds of slack cost
+         * nothing a user can act on faster than the server can answer.
+         */
+        private val CapabilityRefreshInterval = 30.seconds
+
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnChatOpened -> { state ->
