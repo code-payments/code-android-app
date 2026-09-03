@@ -25,7 +25,7 @@ class MnemonicPhrase(val kind: Kind, val words: List<String>) {
 
         mnemonicCode.check(words)
 
-        return Derive.path(mnemonicSeed, path)
+        return Ed25519.createKeyPair(Derive.derivedKey(mnemonicSeed, path).encodeBase64())
     }
 
     val wordString: String
