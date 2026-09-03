@@ -67,6 +67,7 @@ jobs:
             :libs:encryption:base58:iosSimulatorArm64Test \
             :libs:encryption:ed25519:iosSimulatorArm64Test \
             :libs:encryption:hmac:iosSimulatorArm64Test \
+            :libs:encryption:mnemonic:iosSimulatorArm64Test \
             :libs:encryption:sha256:iosSimulatorArm64Test \
             :libs:encryption:sha512:iosSimulatorArm64Test
 

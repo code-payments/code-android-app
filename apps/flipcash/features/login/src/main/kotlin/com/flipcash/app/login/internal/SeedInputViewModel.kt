@@ -62,7 +62,7 @@ internal class SeedInputViewModel @Inject constructor(
         if (isLoading || isSuccess) return
 
         val userWordList = wordsString.lowercase(Locale.CANADA).split(" ")
-        val wordCount = getValidCount(userWordList, mnemonicCode.wordList)
+        val wordCount = getValidCount(userWordList, mnemonicCode.getWordList())
         uiFlow.update {
             it.copy(
                 wordsString = wordsString,

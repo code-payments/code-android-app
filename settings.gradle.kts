@@ -294,8 +294,14 @@ val kmpUnitTestModules = setOf(
     // parity is gated via the iOS cinterop path (macOS) instead — so it's excluded here.
     ":libs:encryption:utils",
 )
-// ed25519 excluded: its only test is a JNI host vector test that can't run on Linux CI (see kmpUnitTestModules).
-val noUnitTestModules = setOf(":apps:flipcash:benchmark", ":kmp:shared-core", ":libs:encryption:ed25519")
+// ed25519 and mnemonic excluded: both pull in the JNI-backed Ed25519Kmp Android actual for their
+// host vector tests, which can't load on the Linux CI runner (see kmpUnitTestModules).
+val noUnitTestModules = setOf(
+    ":apps:flipcash:benchmark",
+    ":kmp:shared-core",
+    ":libs:encryption:ed25519",
+    ":libs:encryption:mnemonic",
+)
 val unitTestCandidates = includedProjectPaths.filter { path ->
     unitTestPaths.any { path == it || path.startsWith("$it:") } && path !in noUnitTestModules
 }

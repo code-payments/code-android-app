@@ -54,7 +54,8 @@ let binaryTarget: Target = sharedCoreLocalRoot.map {
 let package = Package(
     name: packageName,
     platforms: [
-        .iOS(.v15)
+        .iOS(.v15),
+        .macOS(.v14),
     ],
     products: [
         // The only product on purpose. Callers get Swift types; the Kotlin framework's
