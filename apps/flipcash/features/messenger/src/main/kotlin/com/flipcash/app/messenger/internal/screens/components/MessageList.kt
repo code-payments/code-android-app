@@ -1,43 +1,61 @@
 package com.flipcash.app.messenger.internal.screens.components
 
-import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import com.flipcash.app.messenger.internal.screens.ChatAnimations
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
+import androidx.compose.runtime.CompositionLocalProvider
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.ui.ContentBubble
 import com.flipcash.shared.chat.models.LocalChatActionHandler
+import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
+import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.addIf
 import com.getcode.ui.utils.rememberKeyboardController
 import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.flow.collectLatest
@@ -47,6 +65,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun MessageList(
     modifier: Modifier = Modifier,
@@ -102,28 +121,6 @@ internal fun MessageList(
         // and the contact card at the start of history all stop taking taps together.
         val selecting = state.selection != null || state.editing != null
 
-        // A message can be long-pressed while it is running under the top bar, which the fade
-        // there makes easy to do — and the bar then swaps to the actions for it, so the row the
-        // backdrop leaves sharp sits behind the buttons acting on it. Bring it down level with the
-        // bar's lower edge before that happens. Selecting and then editing is one focus, not two,
-        // so the key doesn't change across that step and the row isn't scrolled twice.
-        val focusedMessageId = state.editing?.messageId ?: state.selection?.messageId
-        LaunchedEffect(focusedMessageId) {
-            if (focusedMessageId == null) return@LaunchedEffect
-            val buried = -listState.layoutInfo.headroomAbove(messages, focusedMessageId)
-            if (buried > 0) listState.animateScrollBy(buried.toFloat())
-        }
-
-        // Holds the focused message at the position it was long-pressed at, against the keyboard
-        // shortening the list from below — whether the keyboard came up for the edit or because the
-        // composer was tapped with the selection bar still showing. See FocusPin.
-        val imeInsets = WindowInsets.ime
-        val listBottomPad = CodeTheme.dimens.grid.x2 + contentPadding.calculateBottomPadding()
-        val listBottomPadPx = with(LocalDensity.current) { listBottomPad.roundToPx() }
-        val focusPin = rememberFocusPin(listState, messages, focusedMessageId, imeInsets, listBottomPadPx)
-        // Read live from the auto-scroll effect below, which outlives the composition it launched in.
-        val editingMessageId by rememberUpdatedState(state.editing?.messageId)
-
         // Track when the initial Paging refresh has truly completed (Loading → NotLoading).
         // This avoids showing the ContactInfoContainer before messages arrive,
         // which would cause the list to start scrolled to the wrong position.
@@ -139,12 +136,13 @@ internal fun MessageList(
         }
 
         LazyColumn(
-            // NB: no sheetResignmentBehavior, unlike every other scrolling list in the app. The
-            // conversation is a full-screen destination, not a sheet, so there is no dismiss drag
-            // for the guard to hand the gesture back to — back is the only way out. It would also
-            // read this list wrong: the guard expects a top-anchored list, where index0/offset0 is
-            // the edge a downward drag overscrolls past, and this one is reverseLayout, where
-            // index0/offset0 is the resting position and a downward drag scrolls into history.
+            // NB: no sheetResignmentBehavior here. That guard is built for top-anchored lists,
+            // where index0/offset0 is the scroll edge that abuts the sheet's downward dismiss drag.
+            // This list is reverseLayout=true, so index0/offset0 is the *resting* position (newest),
+            // and a downward drag there scrolls into history rather than overscrolling. Applying the
+            // guard would flip the sheet's allowDismiss to false at rest and never cleanly re-enable
+            // it, so the sheet snaps back instead of dismissing. Dismiss here comes from the
+            // header/handle drag, scrim tap, and back — all gated by that same allowDismiss flag.
             modifier = modifier
                 // The backdrop is modal. While a message is selected or being edited the rest of
                 // the transcript sits behind it, so a tap there dismisses what is up rather than
@@ -157,18 +155,12 @@ internal fun MessageList(
                             else -> keyboard.hide()
                         }
                     }
-                }
-                .holdFocusedMessageInPlace(focusPin, imeInsets, listBottomPadPx),
+                },
             state = listState,
             reverseLayout = true,
-            // The transcript can't be dragged for as long as the backdrop is up — selection and
-            // edit alike. It is behind the same scrim the taps above dismiss, so a drag there has
-            // no more business reaching it than a tap does. Arriving messages still move it — see
-            // the auto-scroll effect below, which caps how far.
-            userScrollEnabled = !selecting,
             contentPadding = PaddingValues(
                 top = CodeTheme.dimens.inset + contentPadding.calculateTopPadding(),
-                bottom = listBottomPad,
+                bottom = CodeTheme.dimens.grid.x2 + contentPadding.calculateBottomPadding(),
                 start = CodeTheme.dimens.inset,
                 end = CodeTheme.dimens.inset,
             ),
@@ -179,13 +171,41 @@ internal fun MessageList(
                 key = messages.itemKey { it.itemKey }
             ) { index ->
                 val item = messages[index] ?: return@items
+                val bottomSpacing = bottomSpacingFor(index, item, messages, separatorConfig)
 
-                // Cross-item bookkeeping, so it stays with the list rather than the row: a message
-                // animates in once, the first time it is laid out after the initial page.
-                val animateInsertion = index == 0 && hasLoaded && item.itemKey !in animatedKeys
-                if (animateInsertion) animatedKeys.add(item.itemKey)
+                val isOutgoing = (item as? ChatListItem.ContentBubble)?.isFromSelf ?: false
+
+                // Message insertion animation — scale from 0.95 + opacity with edge anchor.
+                // Only animate genuinely new messages (index 0 after initial load).
+                val shouldAnimate = index == 0 && hasLoaded && item.itemKey !in animatedKeys
+                if (shouldAnimate) animatedKeys.add(item.itemKey)
+                var appeared by remember(item.itemKey) { mutableStateOf(!shouldAnimate) }
+                LaunchedEffect(Unit) { if (!appeared) appeared = true }
+                val insertionAlpha by animateFloatAsState(
+                    targetValue = if (appeared) 1f else 0f,
+                    animationSpec = ChatAnimations.insertion,
+                    label = "insertAlpha",
+                )
+                val insertionScale by animateFloatAsState(
+                    targetValue = if (appeared) 1f else 0.95f,
+                    animationSpec = ChatAnimations.insertion,
+                    label = "insertScale",
+                )
+
+                val insertionModifier = Modifier.graphicsLayer {
+                    alpha = insertionAlpha
+                    scaleX = insertionScale
+                    scaleY = insertionScale
+                    transformOrigin = if (isOutgoing) {
+                        TransformOrigin(1f, 0.5f) // anchor trailing
+                    } else {
+                        TransformOrigin(0f, 0.5f) // anchor leading
+                    }
+                }
 
                 val bubble = item as? ChatListItem.ContentBubble
+                val interactionSource = remember { MutableInteractionSource() }
+
                 // Selecting or editing a message pushes the rest of the transcript behind a blur,
                 // leaving the one message sharp — the same treatment iOS holds from its context
                 // menu through the edit that can follow it.
@@ -198,17 +218,125 @@ internal fun MessageList(
                     state.selection != null -> bubble?.itemKey == state.selection.itemKey
                     else -> true
                 }
-
-                MessageRow(
-                    index = index,
-                    item = item,
-                    messages = messages,
-                    separatorConfig = separatorConfig,
-                    otherReadPointer = otherReadPointer,
-                    selecting = selecting,
-                    focused = focused,
-                    animateInsertion = animateInsertion,
+                val dimAlpha by animateFloatAsState(
+                    targetValue = if (focused) 1f else 0.4f,
+                    label = "messageDim",
                 )
+                val dimBlur by animateDpAsState(
+                    targetValue = if (focused) 0.dp else 8.dp,
+                    label = "messageBlur",
+                )
+
+                // The row answers the finger before the long-press resolves: it dips while held,
+                // then springs up and stays lifted for as long as it is the selected message.
+                val pressed by interactionSource.collectIsPressedAsState()
+                val lift by animateFloatAsState(
+                    targetValue = when {
+                        selecting && focused -> 1.04f
+                        pressed && bubble?.isSelectable == true -> 0.97f
+                        else -> 1f
+                    },
+                    animationSpec = ChatAnimations.lift,
+                    label = "messageLift",
+                )
+
+                Box(
+                    modifier = Modifier
+                        .padding(bottom = bottomSpacing)
+                        // Unbounded: the rectangle treatment would clip the blur at the row's own
+                        // edges and leave a hard seam between neighbouring rows.
+                        .blur(dimBlur, BlurredEdgeTreatment.Unbounded)
+                        .graphicsLayer {
+                            alpha = dimAlpha
+                            scaleX = lift
+                            scaleY = lift
+                            // Anchored to the bubble's own edge, as the insertion animation is, so
+                            // the lift grows the bubble in place instead of sliding it inward.
+                            transformOrigin = if (isOutgoing) {
+                                TransformOrigin(1f, 0.5f)
+                            } else {
+                                TransformOrigin(0f, 0.5f)
+                            }
+                        }
+                        // No row gestures while the backdrop is up: the rows are behind it, and a
+                        // press there would move the selection out from under the message the bar —
+                        // or the composer — is already acting on.
+                        .addIf(bubble != null && !selecting) {
+                            // Long-press is the whole row's gesture, not the bubble's: a
+                            // bubble-sized target is harder to hit, and the top bar is what reports
+                            // the selection, so nothing about the row has to change.
+                            Modifier.combinedClickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onLongClick = bubble?.takeIf { it.isSelectable }?.let { target ->
+                                    {
+                                        vibrator.tick()
+                                        onAction(ChatAction.ToggleSelection(target))
+                                    }
+                                },
+                                // Only reachable with the backdrop down, so the tap has nothing to
+                                // dismiss but the keyboard.
+                                onClick = { keyboard.hide() },
+                            )
+                        },
+                ) {
+                    when (item) {
+                        is ChatListItem.DateSeparator -> Box(insertionModifier) {
+                            DateSeparatorRow(item.timestamp)
+                        }
+
+                        is ChatListItem.ContentBubble -> {
+                            val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
+                            // Track whether this item was ever seen as SENDING so we
+                            // can animate the receipt label entrance on the
+                            // SENDING→SENT transition. This remember persists across
+                            // recompositions of the same item (keyed by LazyColumn),
+                            // surviving the status change that gates the label.
+                            var wasSending by remember { mutableStateOf(false) }
+                            if (item.receiptStatus == ReceiptStatus.SENDING) {
+                                wasSending = true
+                            }
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
+                            ) {
+                                Box(insertionModifier) {
+                                    ContentBubble(
+                                        item = item,
+                                        // The bubble's own targets go with the row's: a cash
+                                        // bubble behind the backdrop would otherwise open token
+                                        // info from under the bar.
+                                        interactive = !selecting,
+                                        position = bubblePositionOf(
+                                            index,
+                                            item,
+                                            messages,
+                                            separatorConfig
+                                        ),
+                                    )
+                                }
+                                val showReceipt =
+                                    shouldShowReceiptLabel(index, item, messages, otherReadPointer)
+                                AnimatedVisibility(
+                                    visible = showReceipt && effectiveStatus != null,
+                                    enter = EnterTransition.None,
+                                    exit = ChatAnimations.receiptExit,
+                                ) {
+                                    if (effectiveStatus != null) {
+                                        ReceiptLabel(
+                                            status = effectiveStatus,
+                                            readPointer = otherReadPointer,
+                                            animateEntrance = wasSending,
+                                            onRetryFailed = if (effectiveStatus == ReceiptStatus.FAILED) {
+                                                { onAction(ChatAction.RetryMessage(item)) }
+                                            } else null,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             // Show trailing separator and contact info once messages are available
@@ -275,20 +403,6 @@ internal fun MessageList(
                     // Always scroll for own messages; only near-bottom for incoming
                     val nearBottom = listState.firstVisibleItemIndex <= 5
                     val newest = messages.peek(0) as? ChatListItem.ContentBubble
-                    val editing = editingMessageId
-                    if (editing != null) {
-                        // A message arriving mid-edit still moves the transcript, or it would land
-                        // off the bottom edge with nothing to say it had arrived. What it can't do
-                        // is carry the row being edited away: the scroll stops at the point that
-                        // row would pass under the top bar, and the pin holds it there.
-                        if (newest?.isFromSelf == true || nearBottom) {
-                            val room = listState.layoutInfo.headroomAbove(messages, editing)
-                            // Negative is toward index 0. The list settles on the newest message by
-                            // itself if that comes before the cap.
-                            if (room > 0) listState.animateScrollBy(-room.toFloat())
-                        }
-                        return@collectLatest
-                    }
                     when {
                         // Own message: anchor the new bubble during the next measure pass
                         // rather than animating to it. An animated scroll resolves its target
@@ -317,5 +431,160 @@ internal fun MessageList(
                 listState.requestScrollToItem(0, 0)
             }
         }
+
     } // CompositionLocalProvider
 }
+
+@Composable
+private fun bottomSpacingFor(
+    index: Int,
+    item: ChatListItem,
+    messages: LazyPagingItems<ChatListItem>,
+    config: SeparatorConfig,
+): Dp {
+    val tight = CodeTheme.dimens.grid.x1
+    val normal = CodeTheme.dimens.grid.x2
+    val wide = CodeTheme.dimens.grid.x3
+    // index-1 is the item below (newer) in reverseLayout
+    val itemBelow = (if (index > 0) messages.peek(index - 1) else null) ?: return tight
+
+    // Separator adjacent → normal gap
+    if (item is ChatListItem.DateSeparator || itemBelow is ChatListItem.DateSeparator) {
+        return normal
+    }
+
+    val current = item as? ChatListItem.ContentBubble ?: return tight
+    val below = itemBelow as? ChatListItem.ContentBubble ?: return tight
+
+    return when {
+        // Different sender → wide
+        current.isFromSelf != below.isFromSelf -> wide
+        // Same sender, outside grouping window → normal
+        !config.isGrouped(current.timestamp, below.timestamp) -> normal
+        // Same sender, close together → tight
+        else -> tight
+    }
+}
+
+@Composable
+private fun HandleMessageReads(
+    listState: LazyListState,
+    messages: LazyPagingItems<ChatListItem>,
+) {
+    val actionHandler = LocalChatActionHandler.current
+    var lastAdvanced by remember { mutableLongStateOf(0L) }
+
+    LaunchedEffect(listState, messages) {
+        snapshotFlow {
+            val layout = listState.layoutInfo
+            val count = messages.itemCount
+            val visibleRange = layout.visibleItemsInfo
+            if (visibleRange.isEmpty() || count == 0) return@snapshotFlow null
+
+            var highestId = 0L
+            for (info in visibleRange) {
+                if (info.index !in 0 until count) continue
+                val bubble = messages.peek(info.index) as? ChatListItem.ContentBubble ?: continue
+                if (!bubble.isFromSelf && bubble.messageId > highestId) {
+                    highestId = bubble.messageId
+                }
+            }
+            if (highestId > 0L) highestId else null
+        }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collectLatest { messageId ->
+                if (messageId > lastAdvanced) {
+                    lastAdvanced = messageId
+                    actionHandler(ChatAction.AdvanceReadPointer(messageId))
+                }
+            }
+    }
+}
+
+/**
+ * A tombstone anchors nothing. The receipt describes the delivery of a message that is no longer
+ * there, so leaving it attached would caption a deleted bubble with "Read".
+ */
+private val ChatListItem.ContentBubble.carriesReceipt: Boolean
+    get() = isFromSelf && content !is MessageContent.Deleted
+
+private fun effectiveReceiptStatus(
+    bubble: ChatListItem.ContentBubble,
+    otherReadPointer: MessagePointer?,
+): ReceiptStatus? {
+    if (!bubble.carriesReceipt) return null
+    val base = bubble.receiptStatus ?: return null
+    val pointerValue = otherReadPointer?.value ?: 0L
+    if (base == ReceiptStatus.SENT && bubble.messageId in 1..pointerValue) {
+        return ReceiptStatus.READ
+    }
+    return base
+}
+
+/**
+ * Show a receipt label below a self-message only within the last 2 contiguous
+ * self-message groups. In reverseLayout, index 0 is the newest message.
+ *
+ * Within a group, labels appear at status boundaries (SENT↔READ).
+ * At group boundaries, labels are suppressed when the nearest self-group
+ * below already shows the same status (avoids duplicate "Read" labels).
+ */
+/** The nearest bubble below [index], stepping over the viewer's own tombstones. */
+private fun receiptNeighbourBelow(
+    index: Int,
+    messages: LazyPagingItems<ChatListItem>,
+): ChatListItem.ContentBubble? {
+    for (i in (index - 1) downTo 0) {
+        val bubble = messages.peek(i) as? ChatListItem.ContentBubble ?: return null
+        if (bubble.isFromSelf && bubble.content is MessageContent.Deleted) continue
+        return bubble
+    }
+    return null
+}
+
+private fun shouldShowReceiptLabel(
+    index: Int,
+    item: ChatListItem.ContentBubble,
+    messages: LazyPagingItems<ChatListItem>,
+    otherReadPointer: MessagePointer?,
+): Boolean {
+    if (!item.carriesReceipt) return false
+    val status = effectiveReceiptStatus(item, otherReadPointer) ?: return false
+    if (status == ReceiptStatus.FAILED) return true
+    if (status != ReceiptStatus.SENT && status != ReceiptStatus.READ) return false
+
+    // index - 1 is the item below (newer) in reverseLayout. A tombstone still belongs to the self
+    // group for bubble shaping, so it is stepped over here rather than treated as a group boundary.
+    val belowBubble = receiptNeighbourBelow(index, messages)
+
+    // Within a self-group: show at intra-group status boundaries only
+    if (belowBubble != null && belowBubble.isFromSelf) {
+        return effectiveReceiptStatus(belowBubble, otherReadPointer) != status
+    }
+
+    // At a group boundary — count which self-group this is.
+    var selfGroups = 0
+    var prevWasSelf = false
+    for (i in 0 until index) {
+        val peek = messages.peek(i) ?: break
+        val bubble = peek as? ChatListItem.ContentBubble
+        val isSelf = bubble != null && bubble.isFromSelf
+        if (isSelf && !prevWasSelf) selfGroups++
+        prevWasSelf = isSelf
+    }
+    if (!prevWasSelf) selfGroups++ // current item starts a new group
+    if (selfGroups > 2) return false
+
+    // Bottommost self-group always shows its label
+    if (selfGroups == 1) return true
+
+    // For group 2: show only if status differs from the nearest self-group below
+    for (i in (index - 1) downTo 0) {
+        val peek = messages.peek(i) ?: break
+        val bubble = peek as? ChatListItem.ContentBubble ?: continue
+        if (bubble.carriesReceipt) return effectiveReceiptStatus(bubble, otherReadPointer) != status
+    }
+    return true
+}
+

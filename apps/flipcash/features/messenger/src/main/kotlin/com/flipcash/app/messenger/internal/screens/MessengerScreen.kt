@@ -96,8 +96,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     }
 
     // Back unwinds the message actions before it leaves the conversation, innermost first: an edit
-    // in progress, then the selection bar. Registered here rather than around the whole flow so
-    // they are the innermost handlers and take the gesture before it pops the conversation.
+    // in progress, then the selection bar.
     BackHandler(enabled = state.editing != null) {
         viewModel.dispatchEvent(ChatViewModel.Event.CancelEdit)
     }

@@ -34,12 +34,6 @@ internal class UserFlagsMapper @Inject constructor():
             requireCoinbaseEmailVerification = from.requireCoinbaseEmailVerification,
             tipPresets = from.tipPresetsList.map { it.toDomain() },
             usernameMinBalance = Fiat(quarks = from.usernameMinBalance),
-            messageEditWindow = if (from.hasMessageEditWindow()) {
-                from.messageEditWindow.seconds.toDuration(DurationUnit.SECONDS)
-            } else null,
-            messageDeleteWindow = if (from.hasMessageDeleteWindow()) {
-                from.messageDeleteWindow.seconds.toDuration(DurationUnit.SECONDS)
-            } else null,
         )
     }
 }

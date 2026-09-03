@@ -37,8 +37,6 @@ data class ResolvedUserFlags(
     val requireCoinbaseEmailVerification: ResolvedFlag<Boolean>,
     val tipPresets: ResolvedFlag<List<TipPresets>>,
     val usernameMinBalance: ResolvedFlag<Fiat>,
-    val messageEditWindow: ResolvedFlag<Duration?>,
-    val messageDeleteWindow: ResolvedFlag<Duration?>,
 )
 
 internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = ResolvedUserFlags(
@@ -58,7 +56,4 @@ internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = Resolv
     requireCoinbaseEmailVerification = ResolvedFlag(requireCoinbaseEmailVerification, overrides.requireCoinbaseEmailVerification),
     tipPresets = ResolvedFlag(tipPresets, FieldOverride.None),
     usernameMinBalance = ResolvedFlag(usernameMinBalance, FieldOverride.None),
-    // Read-only for now — no debug override support until the edit/delete UI lands.
-    messageEditWindow = ResolvedFlag(messageEditWindow, FieldOverride.None),
-    messageDeleteWindow = ResolvedFlag(messageDeleteWindow, FieldOverride.None),
 )

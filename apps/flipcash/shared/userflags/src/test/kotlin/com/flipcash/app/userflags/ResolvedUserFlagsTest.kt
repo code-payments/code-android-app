@@ -36,8 +36,6 @@ class ResolvedUserFlagsTest {
         assertEquals(true, resolved.requireCoinbaseEmailVerification.effectiveValue)
         assertEquals(ServerFlags.tipPresets, resolved.tipPresets.effectiveValue)
         assertEquals(Fiat(quarks = 5_000_000L), resolved.usernameMinBalance.effectiveValue)
-        assertEquals(15.seconds, resolved.messageEditWindow.effectiveValue)
-        assertEquals(60.seconds, resolved.messageDeleteWindow.effectiveValue)
     }
 
     @Test
@@ -144,8 +142,6 @@ private val ServerFlags = UserFlags(
         TipPresets(region = "US", minimum = 1.0, low = 2.0, medium = 3.0, high = 4.0),
     ),
     usernameMinBalance = Fiat(quarks = 5_000_000L),
-    messageEditWindow = 15.seconds,
-    messageDeleteWindow = 60.seconds,
 )
 
 // Every value here differs from the matching server value above, so a flag that reads the

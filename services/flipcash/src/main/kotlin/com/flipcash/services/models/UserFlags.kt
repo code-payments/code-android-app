@@ -26,12 +26,6 @@ data class UserFlags(
     val tipPresets: List<TipPresets>,
     // USDF that must be held across all currencies before a username can be set.
     val usernameMinBalance: Fiat,
-    // Duration after message creation when a message can be edited. Absent when
-    // the server hasn't set a window (not the same as a zero-length window).
-    val messageEditWindow: Duration?,
-    // Duration after message creation when a message can be deleted. Absent when
-    // the server hasn't set a window (not the same as a zero-length window).
-    val messageDeleteWindow: Duration?,
 ) {
     companion object {
         val Default = UserFlags(
@@ -51,8 +45,6 @@ data class UserFlags(
             requireCoinbaseEmailVerification = false,
             tipPresets = emptyList(),
             usernameMinBalance = Fiat.Zero,
-            messageEditWindow = null,
-            messageDeleteWindow = null,
         )
     }
 }
