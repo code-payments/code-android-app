@@ -36,6 +36,8 @@ val appleTargetDefs = listOf(
     AppleTarget("iosArm64",          "iphoneos",        "arm64"),
     AppleTarget("iosSimulatorArm64", "iphonesimulator", "arm64"),
     AppleTarget("iosX64",            "iphonesimulator", "x86_64"),
+    AppleTarget("macosArm64",        "macosx",          "arm64"),
+    AppleTarget("macosX64",          "macosx",          "x86_64"),
 )
 
 appleTargetDefs.forEach { target ->
@@ -81,6 +83,8 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
     iosX64()
+    macosArm64()
+    macosX64()
 
     // ── Cinterop + linker wiring for each Apple target ────────────────────────
     targets.withType<KotlinNativeTarget>().configureEach {

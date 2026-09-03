@@ -25,7 +25,7 @@ kotlin {
         minSdk = 29
     }
     
-    val appleTargets = listOf(iosArm64(), iosSimulatorArm64(), iosX64())
+    val appleTargets = listOf(iosArm64(), iosSimulatorArm64(), iosX64(), macosArm64(), macosX64())
     appleTargets.forEach {
         it.binaries.framework {
             baseName = "SharedCore"
@@ -67,5 +67,6 @@ kmmbridge {
     // with a custom file it's `spm/Package.swift` that decides, so keep the two in step.
     spm(spmDirectory = spmPackageDir, useCustomPackageFile = true, swiftToolVersion = "5.9") {
         iOS { v("15") }
+        macOS { v("14") }
     }
 }

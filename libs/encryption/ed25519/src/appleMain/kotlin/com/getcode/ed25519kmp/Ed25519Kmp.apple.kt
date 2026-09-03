@@ -13,7 +13,7 @@ import kotlinx.cinterop.toCValues
 import kotlinx.cinterop.UByteVar
 
 /**
- * iOS actual: calls the vendored orlp/ed25519 C library directly via Kotlin/Native cinterop.
+ * Apple actual (iOS + macOS): calls the vendored orlp/ed25519 C library directly via Kotlin/Native cinterop.
  *
  * Memory safety:
  * - All byte arrays are pinned or copied into C-managed memory inside [memScoped].
