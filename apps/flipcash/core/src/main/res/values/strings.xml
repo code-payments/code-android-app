@@ -909,7 +909,7 @@
     <string name="action_deleteForEveryone">Delete For Everyone</string>
     <string name="action_cancelEdit">Cancel edit</string>
     <string name="action_confirmEdit">Confirm edit</string>
-    <string name="title_deleteMessage">Delete message?</string>
+    <string name="title_deleteMessage">Delete Message?</string>
     <string name="description_deleteMessage">This can\'t be undone</string>
     <string name="title_messageNotEdited">Message Not Edited</string>
     <string name="description_messageNotEdited">Your change couldn\'t be saved, so the message is unchanged.</string>
