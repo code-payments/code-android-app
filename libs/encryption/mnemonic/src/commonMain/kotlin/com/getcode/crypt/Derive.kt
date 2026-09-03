@@ -1,37 +1,38 @@
 package com.getcode.crypt
 
-import com.getcode.ed25519.Ed25519
-import com.getcode.utils.encodeBase64
 import com.getcode.utils.subByteArray
-import java.nio.ByteBuffer
 
-
+/// Deterministic wallet generation for ED25519 curve using SLIP-0010 spec
+/// Reference: https://github.com/satoshilabs/slips/blob/master/slip-0010.md
 object Derive {
     private const val curve = "ed25519 seed"
     private const val algorithm = "HmacSHA512"
-    private const val hardenedOffset = 0x80000000
+    private const val hardenedOffset = 0x80000000L
 
-    fun path(seed: ByteArray, path: DerivePath? = null): Ed25519.KeyPair {
+    /** Derives the raw 32-byte private key for [path] (defaults to [DerivePath.primary]) from [seed]. */
+    fun derivedKey(seed: ByteArray, path: DerivePath? = null): ByteArray {
+        val indexes = (path?.indexes ?: DerivePath.primary.indexes).map { hardenedOffset + it.value }
+        return derivedKey(seed, indexes.toLongArray())
+    }
+
+    /** Derives the raw 32-byte private key by walking [hardenedIndexes] (each already offset by 0x80000000) from [seed]. */
+    fun derivedKey(seed: ByteArray, hardenedIndexes: LongArray): ByteArray {
         var descriptor = masterKey(seed)
-        (path?.indexes?.map { it } ?: DerivePath.primary.indexes).forEach { index ->
-            descriptor = CKDPriv(
-                keyDescriptor = descriptor,
-                index = hardenedOffset + index.value
-            )
+        hardenedIndexes.forEach { index ->
+            descriptor = CKDPriv(keyDescriptor = descriptor, index = index)
         }
-
-        return Ed25519.createKeyPair(descriptor.key.encodeBase64())
+        return descriptor.key
     }
 
     private fun CKDPriv(keyDescriptor: KeyDescriptor, index: Long): KeyDescriptor {
+        val i = index.toInt()
         val entropy = mutableListOf<Byte>()
         entropy.add(0)
         entropy.addAll(keyDescriptor.key.toList())
-
-        ByteBuffer.allocate(Int.SIZE_BYTES).apply {
-            putInt(index.toInt())
-            entropy.addAll(array().toList())
-        }
+        entropy.add((i ushr 24).toByte())
+        entropy.add((i ushr 16).toByte())
+        entropy.add((i ushr 8).toByte())
+        entropy.add(i.toByte())
 
         return split32(
             hmac(key = keyDescriptor.chain, message = entropy.toByteArray())
@@ -39,7 +40,7 @@ object Derive {
     }
 
     private fun masterKey(seed: ByteArray): KeyDescriptor {
-        val descriptor = hmac(curve.toByteArray(), seed)
+        val descriptor = hmac(curve.encodeToByteArray(), seed)
         return split32(descriptor)
     }
 
@@ -57,9 +58,7 @@ object Derive {
     data class KeyDescriptor(val key: ByteArray, val chain: ByteArray) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
-            if (javaClass != other?.javaClass) return false
-
-            other as KeyDescriptor
+            if (other !is KeyDescriptor) return false
 
             if (!key.contentEquals(other.key)) return false
             if (!chain.contentEquals(other.chain)) return false
