@@ -188,4 +188,6 @@ private fun ResolvedUserFlags.editableEntries(): List<EditableEntry<*>> = listOf
     EditableEntry(Field.PreferredUsdcOnRampLiquidityPool, usdcOnRampLiquidityPool),
     EditableEntry(Field.MinimumHolderAmountForLeaderboard, minimumHolderAmountForLeaderboard),
     EditableEntry(Field.RequireCoinbaseEmailVerification, requireCoinbaseEmailVerification),
+    EditableEntry(Field.MessageEditWindow, messageEditWindow),
+    EditableEntry(Field.MessageDeleteWindow, messageDeleteWindow),
 )

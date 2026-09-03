@@ -100,6 +100,45 @@ sealed class Field<Stored, Domain>(
         },
     )
 
+    /**
+     * Both message windows are entered in seconds, like the bill timeout above, because the values
+     * worth testing are short: the point of overriding one is to watch a menu narrow while the
+     * transcript is open, not to reproduce the server's hour.
+     */
+    data object MessageEditWindow : Field<Long, Duration?>(
+        longPreferencesKey("override_message_edit_window"),
+        encode = { it?.inWholeMilliseconds ?: -1L },
+        decode = { if (it < 0) null else it.milliseconds },
+        label = R.string.label_flag_messageEditWindow,
+        hint = R.string.hint_flag_messageEditWindow,
+        format = { it?.let { "${it.inWholeSeconds}s" } ?: "None" },
+        editFormat = { it?.inWholeSeconds?.toString() ?: "" },
+        editor = FieldEditor.TextInput(
+            keyboard = KeyboardType.Number,
+            parse = { it.toLongOrNull()?.let { secs -> (secs * 1000).milliseconds } },
+        ),
+        inputTransformation = InputTransformation {
+            if (!asCharSequence().all { it.isDigit() }) revertAllChanges()
+        },
+    )
+
+    data object MessageDeleteWindow : Field<Long, Duration?>(
+        longPreferencesKey("override_message_delete_window"),
+        encode = { it?.inWholeMilliseconds ?: -1L },
+        decode = { if (it < 0) null else it.milliseconds },
+        label = R.string.label_flag_messageDeleteWindow,
+        hint = R.string.hint_flag_messageDeleteWindow,
+        format = { it?.let { "${it.inWholeSeconds}s" } ?: "None" },
+        editFormat = { it?.inWholeSeconds?.toString() ?: "" },
+        editor = FieldEditor.TextInput(
+            keyboard = KeyboardType.Number,
+            parse = { it.toLongOrNull()?.let { secs -> (secs * 1000).milliseconds } },
+        ),
+        inputTransformation = InputTransformation {
+            if (!asCharSequence().all { it.isDigit() }) revertAllChanges()
+        },
+    )
+
     data object NewCurrencyPurchaseAmount : Field<Long, Fiat>(
         longPreferencesKey("override_new_currency_amount"),
         encode = { it.quarks },

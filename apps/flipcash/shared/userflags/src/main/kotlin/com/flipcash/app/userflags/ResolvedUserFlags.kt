@@ -58,7 +58,6 @@ internal fun UserFlags.resolve(overrides: Overrides): ResolvedUserFlags = Resolv
     requireCoinbaseEmailVerification = ResolvedFlag(requireCoinbaseEmailVerification, overrides.requireCoinbaseEmailVerification),
     tipPresets = ResolvedFlag(tipPresets, FieldOverride.None),
     usernameMinBalance = ResolvedFlag(usernameMinBalance, FieldOverride.None),
-    // Read-only for now — no debug override support until the edit/delete UI lands.
-    messageEditWindow = ResolvedFlag(messageEditWindow, FieldOverride.None),
-    messageDeleteWindow = ResolvedFlag(messageDeleteWindow, FieldOverride.None),
+    messageEditWindow = ResolvedFlag(messageEditWindow, overrides.messageEditWindow),
+    messageDeleteWindow = ResolvedFlag(messageDeleteWindow, overrides.messageDeleteWindow),
 )
