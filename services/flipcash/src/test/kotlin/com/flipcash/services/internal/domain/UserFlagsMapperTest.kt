@@ -180,4 +180,27 @@ class UserFlagsMapperTest {
 
         assertTrue(result.tipPresets.isEmpty())
     }
+
+    @Test
+    fun `maps message edit and delete windows when set`() {
+        val proto = FlipcashAccountService.UserFlags.newBuilder()
+            .setMessageEditWindow(com.google.protobuf.Duration.newBuilder().setSeconds(15).build())
+            .setMessageDeleteWindow(com.google.protobuf.Duration.newBuilder().setSeconds(60).build())
+            .build()
+
+        val result = mapper.map(proto)
+
+        assertEquals(15.seconds, result.messageEditWindow)
+        assertEquals(60.seconds, result.messageDeleteWindow)
+    }
+
+    @Test
+    fun `message edit and delete windows are null when unset, not zero`() {
+        val proto = userFlags { }
+
+        val result = mapper.map(proto)
+
+        assertNull(result.messageEditWindow)
+        assertNull(result.messageDeleteWindow)
+    }
 }

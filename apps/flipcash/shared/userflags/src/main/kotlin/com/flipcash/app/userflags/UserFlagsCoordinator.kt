@@ -182,6 +182,8 @@ private data class CachedFlags(
     val requireCoinbaseEmailVerification: Boolean,
     val tipPresets: List<CachedTipPresets> = emptyList(),
     val usernameMinBalance: CachedFiat = CachedFiat(quarks = 0),
+    val messageEditWindowMillis: Long? = null,
+    val messageDeleteWindowMillis: Long? = null,
 ) {
     fun toDomain(): UserFlags = UserFlags(
         isStaff = isStaff,
@@ -202,6 +204,8 @@ private data class CachedFlags(
         requireCoinbaseEmailVerification = requireCoinbaseEmailVerification,
         tipPresets = tipPresets.map { it.toDomain() },
         usernameMinBalance = usernameMinBalance.toDomain(),
+        messageEditWindow = messageEditWindowMillis?.milliseconds,
+        messageDeleteWindow = messageDeleteWindowMillis?.milliseconds,
     )
 
     companion object {
@@ -226,6 +230,8 @@ private data class CachedFlags(
             requireCoinbaseEmailVerification = flags.requireCoinbaseEmailVerification,
             tipPresets = flags.tipPresets.map { CachedTipPresets.fromDomain(it) },
             usernameMinBalance = CachedFiat.fromDomain(flags.usernameMinBalance),
+            messageEditWindowMillis = flags.messageEditWindow?.inWholeMilliseconds,
+            messageDeleteWindowMillis = flags.messageDeleteWindow?.inWholeMilliseconds,
         )
     }
 }
