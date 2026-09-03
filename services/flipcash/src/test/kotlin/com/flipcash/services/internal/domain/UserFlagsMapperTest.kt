@@ -117,6 +117,15 @@ class UserFlagsMapperTest {
     }
 
     @Test
+    fun `bill exchange data timeout is null when unset, not zero`() {
+        val proto = userFlags { }
+
+        val result = mapper.map(proto)
+
+        assertNull(result.billExchangeDataTimeout)
+    }
+
+    @Test
     fun `maps new currency purchase amount`() {
         val proto = userFlags {
             newCurrencyPurchaseAmount = 5_000_000L

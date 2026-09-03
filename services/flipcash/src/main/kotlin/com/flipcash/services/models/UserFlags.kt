@@ -12,6 +12,9 @@ data class UserFlags(
     val preferredOnRampProvider: OnRampProvider?,
     val supportedOnRampProviders: List<OnRampProvider>,
     val minimumVersion: Int?,
+    // How long a verified exchange rate stays usable for a bill. Absent when the
+    // server hasn't set a timeout (not the same as a zero-length one, which
+    // disables verified exchange data entirely).
     val billExchangeDataTimeout: Duration?,
     val newCurrencyPurchaseAmount: Fiat,
     val newCurrencyFeeAmount: Fiat,
