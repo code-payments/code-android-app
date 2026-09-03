@@ -55,14 +55,17 @@ import com.getcode.ui.components.TextInput
  * means a caller cannot put up a checkmark that sends a new message, and leaves it reading its own
  * edit state once rather than once per parameter.
  */
-sealed interface ChatInputSubmit {
-    val perform: () -> Unit
+data class ChatInputSubmit(
+    val mode: Mode,
+    val perform: () -> Unit,
+) {
+    enum class Mode {
+        /** Sends the field's text as a new message. */
+        Send,
 
-    /** Sends the field's text as a new message. */
-    data class Send(override val perform: () -> Unit) : ChatInputSubmit
-
-    /** Confirms an edit of a message already in the transcript. */
-    data class ConfirmEdit(override val perform: () -> Unit) : ChatInputSubmit
+        /** Confirms an edit of a message already in the transcript. */
+        ConfirmEdit,
+    }
 }
 
 @Composable
@@ -146,18 +149,17 @@ fun ChatInput(
                     // mode reads as the same control changing meaning rather than two controls
                     // swapping places.
                     AnimatedContent(
-                        targetState = submit,
-                        // Keyed by kind, not by value: each submit carries a fresh lambda, so
-                        // equality alone would restart the crossfade on every recomposition.
-                        contentKey = { it::class },
+                        // The mode, not the whole submit: each one carries a fresh lambda, so
+                        // animating on the value would restart the crossfade every recomposition.
+                        targetState = submit.mode,
                         transitionSpec = {
                             (fadeIn(sendSpec) + scaleIn(sendSpec, initialScale = 0.6f)) togetherWith
                                     (fadeOut(sendSpec) + scaleOut(sendSpec, targetScale = 0.6f))
                         },
                         label = "send glyph",
                     ) { target ->
-                        if (target is ChatInputSubmit.ConfirmEdit) {
-                            Icon(
+                        when (target) {
+                            ChatInputSubmit.Mode.ConfirmEdit -> Icon(
                                 modifier = Modifier
                                     .testTag("chat_confirm_edit_icon")
                                     .size(CodeTheme.dimens.staticGrid.x5),
@@ -165,8 +167,8 @@ fun ChatInput(
                                 tint = Color.Black,
                                 contentDescription = "Confirm edit",
                             )
-                        } else {
-                            Icon(
+
+                            ChatInputSubmit.Mode.Send -> Icon(
                                 modifier = Modifier
                                     .testTag("chat_send_icon")
                                     .size(CodeTheme.dimens.staticGrid.x5),
@@ -189,7 +191,7 @@ private fun Preview_ChatInput_Empty() {
         Box(modifier = Modifier.background(Color(0xFF19191A))) {
             ChatInput(
                 modifier = Modifier.padding(15.dp),
-                submit = ChatInputSubmit.Send {},
+                submit = ChatInputSubmit(ChatInputSubmit.Mode.Send) {},
             )
         }
     }
@@ -202,7 +204,7 @@ private fun Preview_ChatInput_Typing() {
         Box(modifier = Modifier.background(Color(0xFF19191A))) {
             ChatInput(
                 modifier = Modifier.padding(15.dp),
-                submit = ChatInputSubmit.Send {},
+                submit = ChatInputSubmit(ChatInputSubmit.Mode.Send) {},
                 state = TextFieldState("That’s very kind of you. I ha")
             )
         }
@@ -216,7 +218,7 @@ private fun Preview_ChatInput_Editing() {
         Box(modifier = Modifier.background(Color(0xFF19191A))) {
             ChatInput(
                 modifier = Modifier.padding(15.dp),
-                submit = ChatInputSubmit.ConfirmEdit {},
+                submit = ChatInputSubmit(ChatInputSubmit.Mode.ConfirmEdit) {},
                 state = TextFieldState("That’s very kind of you. I have")
             )
         }

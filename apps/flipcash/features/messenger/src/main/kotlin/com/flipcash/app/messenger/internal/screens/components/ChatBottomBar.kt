@@ -205,11 +205,13 @@ internal fun UserControlBottomBar(
                             // hiding the keyboard clears focus too, so it does not come straight
                             // back onto the draft `finishEditing` restores into the same input.
                             submit = if (state.editing != null) {
-                                ChatInputSubmit.ConfirmEdit(
+                                ChatInputSubmit(
+                                    mode = ChatInputSubmit.Mode.ConfirmEdit,
                                     perform = { keyboard.hideIfVisible { dispatch(ChatViewModel.Event.SubmitEdit) } },
                                 )
                             } else {
-                                ChatInputSubmit.Send(
+                                ChatInputSubmit(
+                                    mode = ChatInputSubmit.Mode.Send,
                                     perform = {
                                         dispatch(ChatViewModel.Event.SendMessage)
                                         keyboard.restartInput()
