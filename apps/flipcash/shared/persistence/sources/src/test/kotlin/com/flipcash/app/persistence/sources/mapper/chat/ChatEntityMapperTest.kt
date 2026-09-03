@@ -6,6 +6,8 @@ import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.handle
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
@@ -90,6 +92,31 @@ class ChatEntityMapperTest {
         )
 
         assertEquals("@sally_streamer", readBack.userProfile.handle)
+    }
+
+    /**
+     * `is_deleted` is what the conversation list's "newest message that still has content" query
+     * filters on, and the mapper is the only thing that ever writes it. If a tombstone were stored
+     * with the flag clear, the list would preview "Message deleted" again.
+     */
+    @Test
+    fun `a tombstone is flagged deleted and a text message is not`() {
+        fun entity(content: MessageContent) = mapper.toEntity(
+            CHAT_HEX,
+            ChatMessage(
+                messageId = 1,
+                senderId = listOf(0xAB.toByte()),
+                content = listOf(content),
+                timestamp = Instant.fromEpochSeconds(1_000),
+                unreadSeq = 1,
+            ),
+        )
+
+        assertEquals(
+            true,
+            entity(MessageContent.Deleted(deletedTs = Instant.fromEpochSeconds(2_000), deletedBy = listOf(0xAB.toByte()))).isDeleted,
+        )
+        assertEquals(false, entity(MessageContent.Text("still here")).isDeleted)
     }
 
     private companion object {

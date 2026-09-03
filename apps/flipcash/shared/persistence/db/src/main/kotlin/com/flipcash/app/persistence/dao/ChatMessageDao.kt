@@ -29,6 +29,18 @@ interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms DESC LIMIT 1")
     suspend fun getLatest(chatIdHex: String): ChatMessageEntity?
 
+    /**
+     * The newest message that still has content — tombstones skipped.
+     *
+     * This is what the conversation list previews and what its unread check reads, so deleting the
+     * newest message falls the row back to the one before it instead of reading "Message deleted".
+     * Deliberately separate from [getLatest]: identity-keyed anchors (mark-read, receive buzz) need
+     * the newest id including tombstones, or a delete would regress the read pointer and leave the
+     * chat unread forever.
+     */
+    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 ORDER BY timestamp_epoch_ms DESC LIMIT 1")
+    suspend fun getLatestVisible(chatIdHex: String): ChatMessageEntity?
+
     @Query(
         "SELECT * FROM chat_messages " +
             "WHERE chat_id_hex = :chatIdHex " +
