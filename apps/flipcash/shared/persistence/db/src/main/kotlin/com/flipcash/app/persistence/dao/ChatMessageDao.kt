@@ -103,11 +103,18 @@ interface ChatMessageDao {
     @Query("DELETE FROM chat_messages WHERE chat_id_hex = :chatIdHex AND status = 'SENDING'")
     suspend fun deleteAllPending(chatIdHex: String)
 
+    /**
+     * The optimistic row is written before the server has stamped the message, so every
+     * server-assigned field is written here — `event_sequence` included. Leaving it at the pending
+     * row's 0 would keep a sent message looking unacknowledged until some later fetch of the chat
+     * overwrote the row, which is what the edit/delete guards and last-writer-wins read it for.
+     */
     @Query("""
         UPDATE chat_messages
         SET message_id = :newMessageId,
             timestamp_epoch_ms = :newTimestampMs,
             unread_seq = :newUnreadSeq,
+            event_sequence = :newEventSequence,
             status = 'SENT'
         WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex
     """)
@@ -117,6 +124,7 @@ interface ChatMessageDao {
         newMessageId: Long,
         newTimestampMs: Long,
         newUnreadSeq: Long,
+        newEventSequence: Long,
     )
 
     @Transaction
@@ -127,6 +135,7 @@ interface ChatMessageDao {
             newMessageId = serverMessage.messageId,
             newTimestampMs = serverMessage.timestampEpochMs,
             newUnreadSeq = serverMessage.unreadSeq,
+            newEventSequence = serverMessage.eventSequence,
         )
     }
 

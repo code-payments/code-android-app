@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.converters.MessageContentSerialized
 import com.flipcash.app.persistence.entities.ChatMessageEntity
+import com.flipcash.app.persistence.entities.MessageStatus
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -47,6 +48,17 @@ class ChatMessageDaoTest {
         contentJson = listOf(MessageContentSerialized.Text(body)),
         timestampEpochMs = messageId * 1_000,
         unreadSeq = messageId,
+    )
+
+    private fun pending(body: String) = ChatMessageEntity(
+        chatIdHex = CHAT_HEX,
+        messageId = -1,
+        senderIdHex = SENDER_HEX,
+        contentJson = listOf(MessageContentSerialized.Text(body)),
+        timestampEpochMs = 1,
+        unreadSeq = 0,
+        status = MessageStatus.SENDING,
+        pendingClientIdHex = CLIENT_HEX,
     )
 
     private fun tombstone(messageId: Long) = text(messageId, "gone").copy(
@@ -103,9 +115,32 @@ class ChatMessageDaoTest {
         assertEquals(2L, dao.getLatestVisible(CHAT_HEX)?.messageId)
     }
 
+    /**
+     * The optimistic row is written with no event sequence, because the client has none to write:
+     * the server stamps it. Confirming has to carry the echo's stamp onto the row, or the message
+     * stays at sequence 0 until something else refetches the chat — and everything keyed on the
+     * stamp (edit, delete, last-writer-wins) treats it as unacknowledged in the meantime.
+     */
+    @Test
+    fun `confirming a pending message carries the server's event sequence`() = runTest {
+        dao.upsert(pending("hello"))
+
+        dao.confirmPendingMessage(
+            CHAT_HEX,
+            CLIENT_HEX,
+            text(7, "hello").copy(eventSequence = 42, unreadSeq = 3),
+        )
+
+        val stored = dao.getMessage(CHAT_HEX, 7)!!
+        assertEquals(42L, stored.eventSequence)
+        assertEquals(MessageStatus.SENT, stored.status)
+        assertEquals(3L, stored.unreadSeq)
+    }
+
     private companion object {
         const val CHAT_HEX = "aabb"
         const val OTHER_HEX = "ccdd"
         const val SENDER_HEX = "1122"
+        const val CLIENT_HEX = "eeff"
     }
 }
