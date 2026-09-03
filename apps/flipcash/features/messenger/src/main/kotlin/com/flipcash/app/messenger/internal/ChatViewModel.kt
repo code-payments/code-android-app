@@ -19,6 +19,8 @@ import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.shared.chat.MessageCapability
+import com.flipcash.shared.chat.MessagePolicy
+import com.flipcash.shared.chat.withinWindows
 import com.flipcash.shared.chat.applying
 import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.models.ChatListItem
@@ -26,6 +28,7 @@ import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
@@ -111,6 +114,7 @@ internal class ChatViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalyticsService,
     private val clipboardManager: ClipboardManager,
+    private val userFlags: UserFlagsCoordinator,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -170,6 +174,14 @@ internal class ChatViewModel @Inject constructor(
          * closes, rather than sitting sharp and half-clipped at the sheet's own edge.
          */
         val confirmingDelete: Boolean = false,
+        /**
+         * The edit and delete windows the server publishes through `UserFlags`.
+         *
+         * Held in state rather than read straight off the coordinator because the reducer needs
+         * it: a selection has to be narrowed to what is still open at the moment it is made, and
+         * the reducer is where the selection is set.
+         */
+        val messagePolicy: MessagePolicy = MessagePolicy.Default,
     ) {
         // Opening the participant's profile (the entry point to blocking) is only available for tip DMs.
         val canViewProfile: Boolean
@@ -235,6 +247,7 @@ internal class ChatViewModel @Inject constructor(
         data class LimitsChanged(val limits: Limits?) : Event
         data class AdvanceReadPointer(val messageId: Long) : Event
         data class ChatDeactivated(val isReadOnly: Boolean) : Event
+        data class MessagePolicyChanged(val policy: MessagePolicy) : Event
 
         /** Selects [bubble], or leaves selection mode if it is already the selected one. */
         data class ToggleMessageSelection(val bubble: ChatListItem.ContentBubble) : Event
@@ -272,9 +285,15 @@ internal class ChatViewModel @Inject constructor(
         .flatMapLatest { chatCoordinator.observeOtherReadPointer(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    /**
+     * Re-runs the transcript mapping when the windows change, so a message resolved under the
+     * defaults (both open, before the flags arrive) narrows as soon as the server's answer lands.
+     */
+    private val messagePolicy = stateFlow.map { it.messagePolicy }.distinctUntilChanged()
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val messages: Flow<PagingData<ChatListItem>> =
-        combine(messageStream, pendingMutations) { pagingData, mutations ->
+        combine(messageStream, pendingMutations, messagePolicy) { pagingData, mutations, policy ->
             pagingData.flatMap { stored ->
                 val message = stored.applying(mutations[stored.messageId])
                 message.content.mapIndexed { index, content ->
@@ -308,7 +327,7 @@ internal class ChatViewModel @Inject constructor(
                         // Resolved once, here, so no menu re-derives it: a later group-role
                         // taxonomy becomes another input to the resolver rather than a branch at
                         // each action site.
-                        capabilities = resolveCapabilities(message),
+                        capabilities = resolveCapabilities(message, policy),
                     )
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->
@@ -439,6 +458,19 @@ internal class ChatViewModel @Inject constructor(
     }
 
     private fun initChatHandlers() {
+        // Ahead of the transcript, so the first mapping already has the real windows rather than
+        // the defaults, which leave both edit and delete open.
+        userFlags.resolvedFlags
+            .map {
+                MessagePolicy(
+                    editWindow = it.messageEditWindow.effectiveValue,
+                    deleteWindow = it.messageDeleteWindow.effectiveValue,
+                )
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.MessagePolicyChanged(it)) }
+            .launchIn(viewModelScope)
+
         // Unified chat open handler — resolves chatId and contact from the identifier
         eventFlow
             .filterIsInstance<Event.OnChatOpened>()
@@ -1168,10 +1200,20 @@ internal class ChatViewModel @Inject constructor(
                 is Event.LimitsChanged -> { state -> state.copy(limits = event.limits) }
                 is Event.AdvanceReadPointer -> { state -> state }
                 is Event.ChatDeactivated -> { state -> state.copy(isAnonymous = event.isReadOnly) }
+                is Event.MessagePolicyChanged -> { state -> state.copy(messagePolicy = event.policy) }
                 is Event.ToggleMessageSelection -> { state ->
                     val alreadySelected = state.selection?.itemKey == event.bubble.itemKey
+                    // The transcript resolved this bubble when it was mapped, which may have been
+                    // well inside a window that has since closed. Narrow it again here so the bar
+                    // offers what is open now rather than what was open when the row was built.
+                    val selected = event.bubble.takeUnless { alreadySelected }?.let { bubble ->
+                        bubble.copy(
+                            capabilities = bubble.capabilities
+                                .withinWindows(bubble.timestamp, state.messagePolicy),
+                        )
+                    }
                     state.copy(
-                        selection = event.bubble.takeUnless { alreadySelected },
+                        selection = selected,
                         confirmingDelete = false,
                     )
                 }
