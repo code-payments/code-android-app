@@ -29,6 +29,8 @@ import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.DeleteMessageError
+import com.flipcash.services.models.EditMessageError
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
@@ -785,9 +787,22 @@ internal class ChatViewModel @Inject constructor(
                     chatCoordinator.editMessage(chatId, editing.messageId, text)
                         .onFailure { cause ->
                             trace("failed to edit message - ${cause.localizedMessage}")
+                            // The client gate hides Edit once the window closes, but it cannot
+                            // close the gap between opening the composer inside the window and
+                            // submitting outside it. `CANNOT_EDIT` is the server's answer for
+                            // exactly that race, and it is the one failure here with a cause worth
+                            // naming: nothing went wrong and retrying will not help, which the
+                            // generic "couldn't be saved" copy does not convey.
+                            val expired = cause is EditMessageError.CannotEdit
                             BottomBarManager.showError(
-                                title = resources.getString(R.string.title_messageNotEdited),
-                                message = resources.getString(R.string.description_messageNotEdited),
+                                title = resources.getString(
+                                    if (expired) R.string.title_messageEditExpired
+                                    else R.string.title_messageNotEdited,
+                                ),
+                                message = resources.getString(
+                                    if (expired) R.string.description_messageEditExpired
+                                    else R.string.description_messageNotEdited,
+                                ),
                             )
                         }
                 }
@@ -814,9 +829,18 @@ internal class ChatViewModel @Inject constructor(
                                 chatCoordinator.deleteMessage(chatId, event.messageId)
                                     .onFailure { cause ->
                                         trace("failed to delete message - ${cause.localizedMessage}")
+                                        // Same race as the edit path: the sheet can be sitting open
+                                        // when the delete window closes. `CANNOT_DELETE` names it.
+                                        val expired = cause is DeleteMessageError.CannotDelete
                                         BottomBarManager.showError(
-                                            title = resources.getString(R.string.title_messageNotDeleted),
-                                            message = resources.getString(R.string.description_messageNotDeleted),
+                                            title = resources.getString(
+                                                if (expired) R.string.title_messageDeleteExpired
+                                                else R.string.title_messageNotDeleted,
+                                            ),
+                                            message = resources.getString(
+                                                if (expired) R.string.description_messageDeleteExpired
+                                                else R.string.description_messageNotDeleted,
+                                            ),
                                         )
                                     }
                             }
