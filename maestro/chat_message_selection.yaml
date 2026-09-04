@@ -1,0 +1,63 @@
+appId: com.flipcash.app.android
+name: "Chat — long-press selection bar"
+tags:
+  - smoke
+  - chat
+---
+# The bar a long-press puts up over the conversation title: it offers the actions the message
+# allows, and both the back arrow and the Back gesture drop it without touching the message.
+#
+# Fund-safe. Leaves the message it sends in the transcript, like tip_chat.yaml.
+- runFlow:
+    file: subflows/login_with_flags.yaml
+    env:
+      BETA_FLAGS: ""
+- runFlow: subflows/open_tip_chat.yaml
+
+# Stamped per run so a run that aborts part-way can't leave behind a message a later run
+# long-presses instead of its own.
+- evalScript: ${output.body = 'e2e select ' + Date.now()}
+- tapOn: { id: chat_message_input }
+- inputText: "${output.body}"
+- tapOn: { id: chat_send_icon }
+- extendedWaitUntil: { visible: "${output.body}", timeout: 10000 }
+
+# The composer keeps focus after a send, and an open IME swallows the Back gesture below before
+# the conversation's handler ever sees it. A tap on the transcript is how the app itself puts the
+# keyboard away, so use that rather than spending a Back on it.
+- tapOn: "${output.body}"
+
+# Own confirmed text: copy, edit and delete, whether inline or under the overflow.
+- runFlow:
+    file: subflows/select_own_message.yaml
+    env:
+      MESSAGE_BODY: "${output.body}"
+- runFlow:
+    file: subflows/assert_message_action.yaml
+    env:
+      ACTION_ID: action_delete_message
+      ACTION_LABEL: "Delete"
+- runFlow:
+    file: subflows/assert_message_action.yaml
+    env:
+      ACTION_ID: action_copy_message
+      ACTION_LABEL: "Copy"
+- runFlow:
+    file: subflows/assert_message_action.yaml
+    env:
+      ACTION_ID: action_edit_message
+      ACTION_LABEL: "Edit"
+
+# The back arrow drops the selection and leaves the message alone.
+- tapOn: { id: action_clear_message_selection }
+- assertNotVisible: { id: action_clear_message_selection }
+- assertVisible: "${output.body}"
+
+# Back is registered inside the conversation, so it unwinds the bar rather than popping the chat.
+- runFlow:
+    file: subflows/select_own_message.yaml
+    env:
+      MESSAGE_BODY: "${output.body}"
+- back
+- assertNotVisible: { id: action_clear_message_selection }
+- assertVisible: { id: chat_screen }

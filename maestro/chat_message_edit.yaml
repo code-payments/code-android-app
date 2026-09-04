@@ -1,0 +1,75 @@
+appId: com.flipcash.app.android
+name: "Chat — edit a message, and the draft it interrupts"
+tags:
+  - smoke
+  - chat
+---
+# Editing takes the composer over: the leading control becomes cancel, the send glyph becomes a
+# checkmark, and whatever the composer held is stashed and handed back when the edit ends.
+#
+# Fund-safe. The edit runs against a message this flow just sent, so it stays inside
+# `message_edit_window` if the server sets one; a very short window would make this flaky here
+# and unusable in the app.
+- runFlow:
+    file: subflows/login_with_flags.yaml
+    env:
+      BETA_FLAGS: ""
+- runFlow: subflows/open_tip_chat.yaml
+
+- evalScript: ${output.body = 'e2e edit ' + Date.now()}
+- evalScript: ${output.draft = 'e2e draft ' + Date.now()}
+- tapOn: { id: chat_message_input }
+- inputText: "${output.body}"
+- tapOn: { id: chat_send_icon }
+- extendedWaitUntil: { visible: "${output.body}", timeout: 10000 }
+
+# An unsent draft in the composer, for the edit to displace.
+- tapOn: { id: chat_message_input }
+- inputText: "${output.draft}"
+- assertVisible: "${output.draft}"
+
+# Starting an edit swaps the bar for the edit controls and stashes the draft. The draft text is
+# the discriminating assertion: the message body is in the transcript either way.
+- runFlow:
+    file: subflows/select_own_message.yaml
+    env:
+      MESSAGE_BODY: "${output.body}"
+- runFlow:
+    file: subflows/tap_message_action.yaml
+    env:
+      ACTION_ID: action_edit_message
+      ACTION_LABEL: "Edit"
+- assertVisible: { id: chat_cancel_edit }
+- assertVisible: { id: chat_confirm_edit_icon }
+- assertNotVisible: { id: chat_send_icon }
+- assertNotVisible: "${output.draft}"
+
+# Cancelling hands the draft back untouched.
+- tapOn: { id: chat_cancel_edit }
+- assertNotVisible: { id: chat_cancel_edit }
+- assertVisible: "${output.draft}"
+- assertVisible: { id: chat_send_icon }
+
+# Edit for real this time. The composer already claims focus, so the text goes straight in.
+- runFlow:
+    file: subflows/select_own_message.yaml
+    env:
+      MESSAGE_BODY: "${output.body}"
+- runFlow:
+    file: subflows/tap_message_action.yaml
+    env:
+      ACTION_ID: action_edit_message
+      ACTION_LABEL: "Edit"
+- inputText: " edited"
+- tapOn: { id: chat_confirm_edit_icon }
+
+# The transcript carries the new body, the composer is back to sending, and the draft survived
+# the confirm as well as it survived the cancel.
+#
+# The body needs a trailing `.*`: an edited bubble appends an inline placeholder to reserve room
+# for the "Edited" marker, and the placeholder's alternate text — a figure space — lands in the
+# accessibility text. Maestro matches the whole string, so the body on its own misses.
+- extendedWaitUntil: { visible: "${output.body} edited.*", timeout: 10000 }
+- assertNotVisible: { id: chat_cancel_edit }
+- assertVisible: { id: chat_send_icon }
+- assertVisible: "${output.draft}"

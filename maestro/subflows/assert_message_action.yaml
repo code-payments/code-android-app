@@ -1,0 +1,20 @@
+# Asserts one selection-bar action is offered, wherever the width put it.
+# Requires env: ACTION_ID, ACTION_LABEL. Leaves the bar as it found it.
+appId: com.flipcash.app.android
+---
+- evalScript: ${output.actionWasInline = false}
+- runFlow:
+    when:
+      visible:
+        id: "${ACTION_ID}"
+    commands:
+      - evalScript: ${output.actionWasInline = true}
+- runFlow:
+    when:
+      true: ${output.actionWasInline == false}
+    commands:
+      # The menu is the only place left it could be, so opening it is the assertion.
+      - tapOn: { id: action_message_overflow }
+      - assertVisible: "${ACTION_LABEL}"
+      - back
+      - assertVisible: { id: action_clear_message_selection }

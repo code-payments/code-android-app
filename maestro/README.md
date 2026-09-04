@@ -91,6 +91,11 @@ Two anchors exist purely for the tests and are worth knowing about:
   otherwise be unaddressable. They carry `nav_scanner`, `nav_wallet`, `nav_chats` and
   `nav_tipcard` (`NavigationBar.kt`). Tabs are *replaced* on a single root back stack, so Back
   never unwinds between them — `helpers/close_open_sheet.yaml` is how flows get home.
+- **`action_message_overflow`** is on the message selection bar's overflow button. The bar keeps
+  as many actions inline as its width budget allows and puts the rest behind that button, so a
+  test cannot know from the flow whether a given action is an icon or a menu item.
+  `subflows/assert_message_action.yaml` and `subflows/tap_message_action.yaml` probe the icon
+  first and fall back to the menu, which is why both take an `ACTION_ID` and an `ACTION_LABEL`.
 - **`token_info_screen`** is on both the pushed currency-info screen *and* the expanded-card
   overlay (`CurrencyInfoExpansion.kt`). Tapping a card in the wallet expands it in place rather
   than pushing a screen, so the overlay carries the same anchor and flows don't care which
@@ -132,6 +137,12 @@ maestro/run.sh maestro/tipping_setup.yaml
 - `deposit.yaml` — menu → Add Money → Other Wallet → USDC deposit (fund-safe)
 - `tipping_setup.yaml` — create account → set up tip card → tip card renders
 - `tip_chat.yaml` — open the tip conversation from the Chats tab and send a message
+- `chat_message_selection.yaml` — long-press a sent message: the selection bar offers Delete,
+  Copy and Edit, and both the back arrow and the Back gesture drop it without touching the message
+- `chat_message_edit.yaml` — edit a sent message: the composer swaps send for cancel/confirm, and
+  the unsent draft the edit displaced comes back on cancel and on confirm alike
+- `chat_message_delete.yaml` — delete for everyone: the confirmation sheet, Back leaving the
+  message alone, and confirming taking it out of the transcript
 - `blocking.yaml` — block a chat participant from their profile, verify in My Account →
   Blocked, then unblock (leaves the account clean)
 - `tip_deeplink.yaml` — open a tip-card deeplink (`TIPCARD_DEEPLINK`) → presents the tip flow
