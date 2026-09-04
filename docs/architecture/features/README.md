@@ -36,6 +36,7 @@ Two recurring shapes show up in the **Pattern** column:
 | **scanner** | Camera capture of a peer's Kik Code (e.g. on a cash bill) | `scanner/ScannerScreen.kt` | Screen-local; uses `:ui:scanner`, routes scans through `Router.classify` |
 | **withdrawal** | Withdraw funds on-chain | `withdrawal/WithdrawalFlowScreen.kt` · `withdrawal/WithdrawalViewModel` | **Flow** (`AppRoute.Transfers.Withdrawal`); entry → destination → confirmation |
 | **deposit** | Add funds via on-ramp / deposit address | `deposit/DepositFlowScreen.kt` · `…/internal/DepositViewModel` | **Flow** (`FlowRouteWithResult<DepositResult>`); USDC deposit info, Coinbase on-ramp |
+| **tipping** | Tip card, tip chats, and tip amount entry | `tipping/TippingFlowScreen.kt`, `tipping/TipCardScreen.kt` · `…/internal/TipFlowViewModel` | **Flow** (`AppRoute.Sheets.Tips`); intro → tip card → tips steps |
 | **transactions** | Activity / transaction history | `transactions/TransactionHistoryScreen.kt` · `…/internal/TransactionHistoryViewModel` | **VM-driven**; Paging-backed list from persistence ([05](../05-persistence.md)) |
 
 ## C. Currencies & tokens
@@ -52,17 +53,18 @@ Two recurring shapes show up in the **Pattern** column:
 |---------|---------|--------------------|-----------------------|
 | **myaccount** | Account screen + user profile | `myaccount/MyAccountScreen.kt`, `myaccount/UserProfileScreen.kt` · `…/internal/MyAccountScreenViewModel` | **VM-driven**; reactive feature-flag / staff binding, event-driven nav |
 | **messenger** | In-app chat & chat-amount entry | `messenger/ChatFlowScreen.kt` · `…/internal/ChatViewModel` | **Flow** (`AppRoute.Messaging.Chat`); Paging-backed messages |
-| **appsettings** | App preferences | `apps/flipcash/features/appsettings/…` | **VM-driven**; backed by `AppSettingsCoordinator` (`LocalAppSettings`) |
+| **menu** | The "You" tab — own tip card, share / download, and the settings list | `menu/MenuScreen.kt` · `…/internal/MenuScreenViewModel` | **VM-driven**; pushes the `AppRoute.Menu.*` rows (My Account, Advanced, Blocked, …) |
+| **user-profile** | Edit display name, `@handle`, photo, and minimum DM tip | `userprofile/UserProfileSetupFlowScreen.kt` · `…/internal/name/NameEntryViewModel`, `…/username/UsernameEntryViewModel` | **Flow** (`FlowRouteWithResult<UpdateProfileResult>`); caller picks which `UpdateProfileStep`s to run |
 | **invite / shareapp** | Invite & share flows | `apps/flipcash/features/invite`, `…/shareapp` | Screen-local; use `InviteController` / `ShareSheetController` locals |
 | **device-logs / lab / advanced** | Debug & internal tooling | `apps/flipcash/features/device-logs`, `…/lab`, `…/advanced` | Internal; surface trace logs and feature-flag overrides |
 
 ## Full module list
 
-The 25 feature directories: `advanced`, `appsettings`, `appupdates`, `backupkey`,
-`balance`, `bill-customization`, `cash`, `contact-verification`, `currency-creator`,
-`deposit`, `device-logs`, `discovery`, `invite`, `lab`, `login`,
-`menu`, `messenger`, `myaccount`, `purchase`, `scanner`, `shareapp`, `tokens`,
-`transactions`, `userflags`, `withdrawal`.
+The 26 feature directories: `advanced`, `appupdates`, `backupkey`, `balance`,
+`bill-customization`, `cash`, `contact-verification`, `currency-creator`, `deposit`,
+`device-logs`, `discovery`, `invite`, `lab`, `login`, `menu`, `messenger`,
+`myaccount`, `purchase`, `scanner`, `shareapp`, `tipping`, `tokens`, `transactions`,
+`user-profile`, `userflags`, `withdrawal`.
 
 > Keep this catalog representative, not exhaustive — when you add a feature, add a
 > row to the relevant category if it introduces a new user-facing capability or a
