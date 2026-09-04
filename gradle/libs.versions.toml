@@ -106,7 +106,7 @@ bugsnag = "6.27.0"
 bugsnag-gradle-plugin = "1.2.0"
 rinku = "1.6.0"
 compose-unstyled = "2.9.2"
-haze = "2.0.0-beta01"
+haze = "2.0.0-beta02"
 phantom-connect-kmp = "2.0.2-1.0.1"
 vico = "3.3.1"
 
