@@ -112,6 +112,31 @@ class ChatMetadataMapperTest {
     }
 
     @Test
+    fun `member profile takes the member's user id when the nested profile omits it`() {
+        val result = mapper.map(metadata { addMembers(member(userIdByte = 9)) })
+        assertEquals(
+            ByteArray(16) { 9 }.toList(),
+            result.members[0].userProfile.userId,
+        )
+    }
+
+    @Test
+    fun `member profile keeps its own user id when the server sets one`() {
+        val withProfileId = ChatModel.Member.newBuilder(member(userIdByte = 9))
+            .setUserProfile(
+                ProfileModel.UserProfile.newBuilder()
+                    .setDisplayName("User")
+                    .setUserId(userId(3))
+            )
+            .build()
+        val result = mapper.map(metadata { addMembers(withProfileId) })
+        assertEquals(
+            ByteArray(16) { 3 }.toList(),
+            result.members[0].userProfile.userId,
+        )
+    }
+
+    @Test
     fun `maps last message when present`() {
         val result = mapper.map(metadata { setLastMessage(message(text = "hey")) })
         assertNotNull(result.lastMessage)

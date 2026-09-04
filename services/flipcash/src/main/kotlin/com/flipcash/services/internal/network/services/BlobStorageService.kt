@@ -12,6 +12,7 @@ import com.flipcash.services.models.GetUploadPolicyError
 import com.flipcash.services.models.InitiateExternalUploadError
 import com.flipcash.services.models.blob.UploadPolicy
 import com.flipcash.services.models.blob.UploadReservation
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.BlobState
 import com.flipcash.services.models.chat.BlobStatus
@@ -101,8 +102,9 @@ internal class BlobStorageService @Inject constructor(
     suspend fun getBlobs(
         blobIds: List<BlobId>,
         owner: Ed25519.KeyPair,
+        context: BlobAccessContext,
     ): Result<List<BlobState>> {
-        return runCatching { api.getBlobs(blobIds, owner) }
+        return runCatching { api.getBlobs(blobIds, owner, context) }
             .foldWithSuppression(
                 onSuccess = { response ->
                     when (response.result) {

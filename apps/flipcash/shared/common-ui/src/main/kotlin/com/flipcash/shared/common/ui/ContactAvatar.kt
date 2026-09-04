@@ -1,5 +1,6 @@
 package com.flipcash.shared.common.ui
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,11 +34,15 @@ import coil3.asImage
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import coil3.request.error
 import coil3.request.placeholder
 import com.flipcash.app.core.contacts.DeviceContact
+import com.flipcash.app.core.media.rememberMediaUrl
 import com.flipcash.services.models.HandlePrefix
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.MediaItem
+import com.getcode.opencode.model.core.ID
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 
@@ -103,13 +108,22 @@ fun ContactAvatar(
     }
 }
 
+/**
+ * [userId] identifies whose profile this is, which is what authorizes re-minting the picture's
+ * expired download URL. It defaults to the profile's own id and only needs passing where the
+ * caller holds a more reliable one — a chat member's profile, for instance, arrives with the id
+ * on the member rather than inside the nested profile.
+ */
 @Composable
 fun ContactAvatar(
     userProfile: UserProfile,
     modifier: Modifier = Modifier,
+    userId: ID? = userProfile.userId,
 ) {
     ProfileAvatar(
         image = userProfile.profilePicture,
+        // The picture belongs to this profile, so the profile is what authorizes re-minting it.
+        access = BlobAccessContext.profile(userId),
         modifier = modifier,
         fallback = { UnknownContactAvatar(includeBorder = true) },
     )
@@ -122,16 +136,22 @@ fun ContactAvatar(
  * display sizes) so the image is never grainy or over-fetched, and bridges the load with the
  * item's BlurHash plus any already-cached smaller rendition. Falls back to [displayName]'s
  * initials when there's no picture.
+ *
+ * [access] is the surface the picture is being read from. A stored download URL expires, and
+ * re-minting one for a blob the caller doesn't own is only authorized by naming that surface —
+ * [BlobAccessContext.profile] covers every avatar, given the id of the profile it belongs to.
  */
 @Composable
 fun ContactAvatar(
     image: MediaItem?,
     displayName: String,
+    access: BlobAccessContext,
     modifier: Modifier = Modifier,
     blurred: Boolean = false,
 ) {
     ProfileAvatar(
         image = image,
+        access = access,
         modifier = modifier,
         blurred = blurred,
         fallback = { InitialsText(displayName) },
@@ -141,6 +161,7 @@ fun ContactAvatar(
 @Composable
 private fun ProfileAvatar(
     image: MediaItem?,
+    access: BlobAccessContext,
     modifier: Modifier,
     blurred: Boolean = false,
     fallback: @Composable BoxWithConstraintsScope.() -> Unit,
@@ -150,23 +171,21 @@ private fun ProfileAvatar(
             Brush.linearGradient(CodeTheme.colors.contactAvatar.colors)
         )
     ) {
+        // Decoded once for the whole avatar, not just the loading state: it is the placeholder
+        // while the rendition downloads, what stays on screen while a stale URL is re-minted, and
+        // what's left if the load never succeeds — anything is a better likeness of the person than
+        // the grey Person glyph.
+        // Kept as the decoded Bitmap rather than either wrapper: the two consumers want different
+        // ones (Compose's ImageBitmap here, Coil's Image in the request), and decoding is the
+        // expensive half.
+        val blurBitmap = remember(image) {
+            BlurHash.decode(image?.blurhash(), width = 24, height = 24)
+        }
         if (blurred) {
             // Blocked users are shown intentionally obscured — render the media item's self-contained
             // BlurHash preview instead of the real image, so the avatar stays blurred on every API
             // level (Modifier.blur needs API 31+) without ever fetching the sharp photo.
-            val blurBitmap = remember(image) {
-                BlurHash.decode(image?.blurhash(), width = 24, height = 24)?.asImageBitmap()
-            }
-            if (blurBitmap != null) {
-                Image(
-                    bitmap = blurBitmap,
-                    contentDescription = null,
-                    modifier = Modifier.matchParentSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            } else {
-                fallback()
-            }
+            BlurHashOr(blurBitmap, fallback)
             return@BoxWithConstraints
         }
         // Pick the rendition by the avatar's actual pixel size — the longest bounded side of the
@@ -176,9 +195,13 @@ private fun ProfileAvatar(
             val h = if (constraints.hasBoundedHeight) constraints.maxHeight else 0
             maxOf(w, h).takeIf { it > 0 } ?: Int.MAX_VALUE
         }
-        val photoUri = remember(image, targetPx) { image?.urlForSize(targetPx) }
+        // Not `image.urlForSize(targetPx)` directly: the stored download URL expires, and a
+        // persisted profile picture is routinely past it by the time it's rendered. The resolver
+        // hands back a re-minted URL when that's the case, and again if a load fails anyway.
+        val media = rememberMediaUrl(image, targetPx, access)
+        val photoUri = media.url
         if (image != null && photoUri != null) {
-            var isError by rememberSaveable(photoUri) { mutableStateOf(false) }
+            val isError = media.hasFailed
             if (!isError) {
                 val context = LocalContext.current
                 // Two progressively better placeholders bridge the load so we never flash a blank
@@ -187,9 +210,7 @@ private fun ProfileAvatar(
                 //   2. the next-smaller rendition — if another surface already cached it (e.g. the
                 //      list loaded the 160 this 320 avatar sits above), Coil shows it immediately
                 //      (see placeholderMemoryCacheKey) and upgrades in place.
-                val blurHash = remember(image) {
-                    BlurHash.decode(image.blurhash(), width = 24, height = 24)?.asImage()
-                }
+                val blurHash = remember(blurBitmap) { blurBitmap?.asImage() }
                 // Cache identity is the durable blob id, NOT the download URL: the server re-mints
                 // and expires `download_url` on every fetch, so a URL-keyed cache misses on the next
                 // fetch even though the bytes are immutable — every load would re-download and flash
@@ -211,7 +232,14 @@ private fun ProfileAvatar(
                         .memoryCacheKey(cacheKey)
                         .diskCacheKey(cacheKey)
                         .apply {
-                            blurHash?.let { placeholder(it) }
+                            blurHash?.let {
+                                placeholder(it)
+                                // `placeholder` only covers the load itself. A failed load draws
+                                // the error drawable, so without this the avatar blanks the moment
+                                // an expired URL 403s — including for the whole re-mint round trip,
+                                // which is exactly when the BlurHash is worth the most.
+                                error(it)
+                            }
                             previewKey?.let { placeholderMemoryCacheKey(it) }
                         }
                         .build()
@@ -224,15 +252,38 @@ private fun ProfileAvatar(
                     // AsyncImage infers the Coil request scale from this, so the request is fine.
                     contentScale = ContentScale.Crop,
                     contentDescription = null,
-                    onError = { isError = true },
+                    onError = { media.onLoadFailed() },
                 )
             }
             if (isError) {
-                fallback()
+                BlurHashOr(blurBitmap, fallback)
             }
         } else {
-            fallback()
+            BlurHashOr(blurBitmap, fallback)
         }
+    }
+}
+
+/**
+ * The [blurBitmap] preview if the media carried a BlurHash, otherwise [fallback]. Preferred over
+ * the initials/Person fallback wherever a hash exists: it is the real photo's colours, and it is
+ * already in hand — no fetch, no expiry, nothing to fail.
+ */
+@Composable
+private fun BoxWithConstraintsScope.BlurHashOr(
+    blurBitmap: Bitmap?,
+    fallback: @Composable BoxWithConstraintsScope.() -> Unit,
+) {
+    val bitmap = remember(blurBitmap) { blurBitmap?.asImageBitmap() }
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.Crop,
+        )
+    } else {
+        fallback()
     }
 }
 

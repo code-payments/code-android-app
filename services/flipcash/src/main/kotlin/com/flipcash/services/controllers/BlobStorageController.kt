@@ -4,11 +4,14 @@ import com.flipcash.services.BlobUploader
 import com.flipcash.services.models.BlobNotReadyException
 import com.flipcash.services.models.BlobRejectedException
 import com.flipcash.services.models.blob.UploadPolicy
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.BlobId
+import com.flipcash.services.models.chat.BlobMetadata
 import com.flipcash.services.models.chat.BlobState
 import com.flipcash.services.repository.BlobStorageRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.ed25519.Ed25519
+import com.getcode.utils.base58
 import kotlinx.coroutines.delay
 import javax.inject.Inject
 import kotlin.time.Duration
@@ -58,11 +61,38 @@ class BlobStorageController @Inject constructor(
         return awaitReady(reservation.blobId, owner)
     }
 
+    /**
+     * Re-resolves [blobIds] to freshly minted [BlobMetadata] — the recovery `DownloadUrl.expires_at`
+     * calls for. A blob's bytes are immutable but its `download_url` is per-fetch and expiring, so
+     * any metadata that has been held a while (persisted profile pictures, chat media) needs this
+     * before its URL can be fetched again.
+     *
+     * Returns only the ids that came back READY, keyed by base58 blob id — ids still processing or
+     * rejected are simply absent, leaving the caller's existing metadata in place.
+     *
+     * [context] names the surface the blobs are being read from. It is what authorizes ids the
+     * caller does not own — another user's avatar resolves only through
+     * [BlobAccessContext.Profile], chat media only through [BlobAccessContext.Chat] — and without
+     * it the server omits them from the response rather than failing, so a wrong context looks
+     * exactly like a blob that isn't ready yet.
+     */
+    suspend fun refreshMetadata(
+        blobIds: List<BlobId>,
+        context: BlobAccessContext,
+    ): Result<Map<String, BlobMetadata>> {
+        if (blobIds.isEmpty()) return Result.success(emptyMap())
+        val owner = owner() ?: return noAccount()
+        return repository.getBlobs(blobIds, owner, context).map { blobs ->
+            blobs.filterIsInstance<BlobState.Ready>()
+                .associate { it.id.bytes.base58 to it.metadata }
+        }
+    }
+
     private suspend fun awaitReady(blobId: BlobId, owner: Ed25519.KeyPair): Result<BlobId> {
         var elapsed: Duration = Duration.ZERO
         while (elapsed < POLL_TIMEOUT) {
             // A single-id query resolves to at most one blob, so first() is the one we asked for.
-            val blob = repository.getBlobs(listOf(blobId), owner)
+            val blob = repository.getBlobs(listOf(blobId), owner, BlobAccessContext.Owned)
                 .getOrElse { return Result.failure(it) }
                 .firstOrNull()
 

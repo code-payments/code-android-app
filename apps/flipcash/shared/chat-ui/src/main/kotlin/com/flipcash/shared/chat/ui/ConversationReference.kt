@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat.ui
 
+import com.getcode.opencode.model.core.ID
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.nameOrHandle
@@ -8,6 +9,12 @@ import kotlin.time.Instant
 /** Presentation state derived from an existing DM with a contact. */
 data class ConversationReference(
     val chatId: ChatId,
+    /**
+     * Counterparty account id, when the chat has a resolved member. Rows need it to re-mint
+     * [image]'s download URL: the picture is not the caller's, so only that user's profile
+     * authorizes reading it.
+     */
+    val userId: ID? = null,
     /** Counterparty display name — used when the row has no separate contact (e.g. tip DMs). */
     val displayName: String? = null,
     /**

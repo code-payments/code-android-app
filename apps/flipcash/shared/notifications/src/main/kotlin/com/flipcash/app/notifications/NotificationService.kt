@@ -22,6 +22,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
+import com.flipcash.app.core.media.MediaUrlResolver
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.ContactResolver
@@ -41,6 +42,7 @@ import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
 import com.flipcash.services.models.PushChatMetadata
 import com.flipcash.services.models.Substitution
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.notifications.R
@@ -81,6 +83,9 @@ class NotificationService : FirebaseMessagingService(),
 
     @Inject
     lateinit var pushController: PushController
+
+    @Inject
+    lateinit var mediaUrlResolver: MediaUrlResolver
 
     @Inject
     lateinit var notificationManager: NotificationManagerCompat
@@ -267,9 +272,18 @@ class NotificationService : FirebaseMessagingService(),
         // the tiny 32px one looks grainy on the notification's person icon.
         val avatarPx = resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
         val avatar = e164?.let { resolveContactPhoto(it) }
-            ?: member?.userProfile?.profilePicture
-                ?.urlForSize(avatarPx)
-                ?.let { loadRemoteAvatar(it) }
+            ?: member?.userProfile?.profilePicture?.let { picture ->
+                // Through the resolver, not `picture.urlForSize` — the stored download URL expires
+                // and the profile it came from may have been persisted days ago.
+                mediaUrlResolver.urlForSize(
+                    media = picture,
+                    targetLongestSidePx = avatarPx,
+                    // The counterparty's picture, so their profile is what authorizes a re-mint.
+                    access = BlobAccessContext.profile(member?.userId),
+                )?.let { url ->
+                    loadRemoteAvatar(url, picture.cacheKeyForSize(avatarPx))
+                }
+            }
 
         trace(
             tag = "NotificationService",
@@ -317,11 +331,17 @@ class NotificationService : FirebaseMessagingService(),
      * notification. Returns `null` on timeout or failure (the notification then
      * posts with the name monogram).
      */
-    private suspend fun loadRemoteAvatar(url: String): Bitmap? =
+    private suspend fun loadRemoteAvatar(url: String, cacheKey: String?): Bitmap? =
         withTimeoutOrNull(AVATAR_FETCH_TIMEOUT_MS.milliseconds) {
             runCatching {
                 val request = ImageRequest.Builder(this@NotificationService)
                     .data(url)
+                    // Keyed on the durable blob id like the in-app avatars, so a notification hits
+                    // the rendition they already cached instead of re-downloading under a URL that
+                    // is different on every mint.
+                    .apply {
+                        cacheKey?.let { memoryCacheKey(it); diskCacheKey(it) }
+                    }
                     .allowHardware(false) // notification icons require a software bitmap
                     .build()
                 val result = SingletonImageLoader.get(this@NotificationService).execute(request)

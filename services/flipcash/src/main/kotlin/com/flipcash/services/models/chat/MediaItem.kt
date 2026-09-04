@@ -1,7 +1,7 @@
 package com.flipcash.services.models.chat
 
 import android.os.Parcelable
-import com.getcode.utils.base58
+import kotlin.time.Instant
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 
@@ -91,6 +91,31 @@ data class MediaItem(
     fun blurhash(): String? =
         renditions.firstNotNullOfOrNull { it.blob?.image?.blurhash?.takeIf(String::isNotEmpty) }
 
+    /**
+     * The rendition [renditionForSize] resolves to, if its download URL has expired at [now] and
+     * so needs re-minting through `GetBlobs` before it can be fetched. Null when the URL is still
+     * good, when there is no rendition for the size, or when the metadata carries no expiry.
+     */
+    fun expiredRenditionForSize(targetLongestSidePx: Int, now: Instant): MediaItemRendition? =
+        renditionForSize(targetLongestSidePx)?.takeIf { it.isDownloadUrlExpired(now) }
+
+    /**
+     * A copy with every rendition whose [MediaItemRendition.cacheKey] appears in [fresh] carrying
+     * that re-minted metadata instead. Renditions absent from [fresh] are left untouched, so a
+     * partial refresh (only the sizes a surface actually needed) is safe to apply.
+     *
+     * Keyed by the base58 cache key rather than [BlobId]: BlobId wraps a ByteArray, so its
+     * equality is referential and it cannot be used as a map key.
+     */
+    fun withRefreshedBlobs(fresh: Map<String, BlobMetadata>): MediaItem {
+        if (fresh.isEmpty()) return this
+        return copy(
+            renditions = renditions.map { rendition ->
+                fresh[rendition.cacheKey]?.let { rendition.copy(blob = it) } ?: rendition
+            }
+        )
+    }
+
     /** Available, non-ORIGINAL renditions paired with their longest side, in list order. */
     private fun sizedRenditions(): List<Pair<MediaItemRendition, Int>> =
         renditions
@@ -108,9 +133,5 @@ data class MediaItem(
         /** Longest image side (px) of a rendition, or null if it has no image dimensions. */
         private val MediaItemRendition.longestSide: Int?
             get() = blob?.image?.let { maxOf(it.width, it.height) }
-
-        /** Stable, URL-independent cache key for a rendition — its durable blob id, base58-encoded. */
-        private val MediaItemRendition.cacheKey: String
-            get() = blobId.bytes.base58
     }
 }

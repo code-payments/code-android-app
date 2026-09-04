@@ -22,7 +22,12 @@ class ChatMetadataMapper @Inject constructor(
             members = from.membersList.map { member ->
                 ChatMember(
                     userId = member.userId.toId(),
-                    userProfile = userProfileMapper.map(member.userProfile),
+                    // The server sets the id on the member and usually not again inside the nested
+                    // profile, and this profile is by definition that member's. Leaving it null
+                    // costs callers the id that authorizes re-minting the profile picture's
+                    // download URL, so the avatar can never recover once the stored URL expires.
+                    userProfile = userProfileMapper.map(member.userProfile)
+                        .let { if (it.userId == null) it.copy(userId = member.userId.toId()) else it },
                     pointers = member.pointersList.map { it.toPointer() },
                 )
             },

@@ -121,6 +121,7 @@ class SessionControllerEventRoutingTest {
             chatCoordinator = mockk(relaxed = true),
             blocklistCoordinator = mockk(relaxed = true),
             blobStorageCoordinator = mockk(relaxed = true),
+            mediaUrlResolver = mockk(relaxed = true),
             featureFlagController = featureFlagController,
             appSettingsCoordinator = appSettingsCoordinator,
             dispatchers = dispatchers,

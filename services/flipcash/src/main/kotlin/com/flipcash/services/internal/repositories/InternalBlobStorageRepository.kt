@@ -3,6 +3,7 @@ package com.flipcash.services.internal.repositories
 import com.flipcash.services.internal.network.services.BlobStorageService
 import com.flipcash.services.models.blob.UploadPolicy
 import com.flipcash.services.models.blob.UploadReservation
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.BlobState
 import com.flipcash.services.models.chat.BlobStatus
@@ -34,6 +35,7 @@ internal class InternalBlobStorageRepository(
     override suspend fun getBlobs(
         blobIds: List<BlobId>,
         owner: Ed25519.KeyPair,
-    ): Result<List<BlobState>> = service.getBlobs(blobIds, owner)
+        context: BlobAccessContext,
+    ): Result<List<BlobState>> = service.getBlobs(blobIds, owner, context)
         .onFailure { ErrorUtils.handleError(it) }
 }
