@@ -42,7 +42,7 @@ compose-view-models = "2.11.0"
 compose-paging = "3.5.1"
 compose-webview = "2.0.3"
 compose-accompanist = "0.36.0"
-compose-coil = "3.5.0"
+compose-coil = "3.6.1"
 
 hilt = "2.59.2"
 hilt-jetpack = "1.4.0"
