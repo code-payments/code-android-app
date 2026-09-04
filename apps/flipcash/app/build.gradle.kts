@@ -295,6 +295,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.work)
     implementation(libs.androidx.webkit)
+    // Resources only: Theme.Code in res/values/themes.xml extends Theme.MaterialComponents.
+    implementation(libs.google.material)
 
     //hilt dependency injection
     implementation(libs.hilt.android)
