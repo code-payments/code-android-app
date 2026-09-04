@@ -37,7 +37,6 @@ plugins {
     alias(libs.plugins.firebase.perf) apply false
     alias(libs.plugins.bugsnag.gradle) apply false
     alias(libs.plugins.secrets) apply false
-    alias(libs.plugins.navigation.safeargs) apply false
     alias(libs.plugins.androidx.room) apply false
     alias(libs.plugins.screenshot) apply false
     alias(libs.plugins.kover)
