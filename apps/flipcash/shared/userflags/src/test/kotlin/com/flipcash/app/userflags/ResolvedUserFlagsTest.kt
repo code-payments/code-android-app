@@ -211,4 +211,16 @@ private val OverrideCases: List<OverrideCase<*>> = listOf(
         set = { copy(requireCoinbaseEmailVerification = it) },
         select = { it.requireCoinbaseEmailVerification },
     ),
+    OverrideCase(
+        name = "messageEditWindow",
+        overrideValue = 45.seconds,
+        set = { copy(messageEditWindow = it) },
+        select = { it.messageEditWindow },
+    ),
+    OverrideCase(
+        name = "messageDeleteWindow",
+        overrideValue = 120.seconds,
+        set = { copy(messageDeleteWindow = it) },
+        select = { it.messageDeleteWindow },
+    ),
 )
