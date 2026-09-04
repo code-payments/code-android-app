@@ -61,7 +61,7 @@ grpc = "1.83.1"
 grpc-okhttp = "1.83.1"
 grpc-kotlin = "1.5.0"
 protobuf = "4.36.0"
-protovalidate-kt = "0.1.1"
+protovalidate-kt = "0.1.2"
 
 # Generated client SDKs for the two backend contracts. Separate versions on purpose: the
 # protos are independent (flipcash2 does not import ocp), so the packages move on their own
@@ -69,7 +69,7 @@ protovalidate-kt = "0.1.1"
 # 0.3.0 is the first release of either package to ship R8 keep rules for its generated
 # messages, which is what lets proguard-rules.pro drop its own.
 ocp-client-protocol = "0.3.0"
-flipcash2-client-protocol = "0.4.0"
+flipcash2-client-protocol = "0.4.1"
 
 # The Android port is the ONLY libphonenumber this app depends on, deliberately. Google's
 # `com.googlecode` artifact used to sit alongside it; the two ship separate copies of the metadata,

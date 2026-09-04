@@ -92,24 +92,15 @@ internal class BlobStorageApi @Inject constructor(
                     .addAllBlobIds(blobIds.map { it.toProto() })
             )
             .apply { setAuth(authenticate(owner)) }
+            // Omitted for Owned: the server resolves the caller's own blobs without one, and a
+            // scope the caller can't claim would only narrow the read.
+            .apply { context.toProto()?.let { setContext(it) } }
             .build()
 
-        // Validated before the context is attached, because AccessContext cannot pass client-side
-        // validation: the generated validator asserts BOTH oneof arms are set
-        // (`checkRequired(scopeCase == CHAT, "chat")` and the same for `profile`), so any scope
-        // fails as `context.chat: value is required`. The rule the proto declares — required *if
-        // selected* — is what the server enforces, and every other rule on the request is still
-        // checked here. Drop this split once the validator generator handles oneof members.
         request.validate().orThrow()
 
-        // Omitted for Owned: the server resolves the caller's own blobs without one, and a scope
-        // the caller can't claim would only narrow the read.
-        val authorized = context.toProto()
-            ?.let { request.toBuilder().setContext(it).build() }
-            ?: request
-
         return withContext(Dispatchers.IO) {
-            api.getBlobs(authorized)
+            api.getBlobs(request)
         }
     }
 
