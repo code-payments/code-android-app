@@ -53,5 +53,14 @@ fun WalletScreen() {
                 .onEach { navigator.push(it) }
                 .launchIn(this)
         }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<WalletViewModel.Event.SwitchTab>()
+                .map { it.tab }
+                // Same call the nav bar makes, so the tab arrives with the stack replaced.
+                .onEach { navigator.replaceAll(it) }
+                .launchIn(this)
+        }
     }
 }

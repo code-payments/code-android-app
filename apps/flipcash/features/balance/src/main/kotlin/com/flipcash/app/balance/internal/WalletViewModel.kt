@@ -136,6 +136,13 @@ internal class WalletViewModel @Inject constructor(
         data object OpenCurrencySelection : Event
 
         data class OpenScreen(val screen: AppRoute) : Event
+
+        /**
+         * Switch to a tab home, which replaces the stack rather than stacking on it. Distinct from
+         * [OpenScreen]: pushing a tab home leaves the wallet underneath it, so Back returns here
+         * instead of behaving like the nav bar.
+         */
+        data class SwitchTab(val tab: AppRoute.Tabs) : Event
         data object PresentDepositOptions: Event
     }
 
@@ -237,6 +244,7 @@ internal class WalletViewModel @Inject constructor(
                 }
                 Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
+                is Event.SwitchTab -> { state -> state }
             }
         }
     }
