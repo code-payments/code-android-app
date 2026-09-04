@@ -80,7 +80,7 @@ flipcash2-client-protocol = "0.4.1"
 lib-phone-number-port = "9.0.36"
 zxing = "3.5.4"
 
-androidx-benchmark-macro = "1.5.0-rc01"
+androidx-benchmark-macro = "1.5.0-rc02"
 androidx-profileinstaller = "1.4.1"
 androidx-test-runner = "1.7.0"
 junit = "4.13.2"
