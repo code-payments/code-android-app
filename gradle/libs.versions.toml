@@ -25,7 +25,6 @@ androidx-core = "1.19.0"
 androidx-datastore = "1.2.1"
 androidx-exif = "1.4.2"
 androidx-lifecycle = "2.11.0"
-androidx-navigation = "2.9.8"
 navigation3 = "1.1.4"
 navigation3-lifecycle = "2.11.0"
 androidx-browser = "1.10.0"
@@ -56,6 +55,7 @@ play-service-ml-barcode = "18.3.1"
 play-services-auth-api-phone = "18.3.1"
 google-play-billing = "9.1.0"
 google-play-updates = "2.1.0"
+google-material = "1.4.0"
 
 grpc = "1.83.1"
 grpc-okhttp = "1.83.1"
@@ -142,8 +142,6 @@ androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", vers
 androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "androidx-lifecycle" }
-androidx-navigation-fragment = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "androidx-navigation" }
-androidx-navigation-ui = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "androidx-navigation" }
 navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "navigation3" }
 navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
 lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "navigation3-lifecycle" }
@@ -248,6 +246,7 @@ google-play-billing-runtime = { module = "com.android.billingclient:billing", ve
 google-play-billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "google-play-billing" }
 google-play-app-updates-runtime = { module = "com.google.android.play:app-update", version.ref = "google-play-updates" }
 google-play-app-updates-ktx = { module = "com.google.android.play:app-update-ktx", version.ref = "google-play-updates" }
+google-material = { module = "com.google.android.material:material", version.ref = "google-material" }
 
 # Kin
 kin-sdk = { module = "org.kin.sdk.android:base", version.ref = "kin-sdk" }
@@ -357,7 +356,6 @@ google-services = { id = "com.google.gms.google-services", version.ref = "google
 firebase-perf = { id = "com.google.firebase.firebase-perf", version.ref = "firebase-perf-plugin" }
 bugsnag-gradle = { id = "com.bugsnag.gradle", version.ref = "bugsnag-gradle-plugin" }
 secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secrets-gradle-plugin" }
-navigation-safeargs = { id = "androidx.navigation.safeargs.kotlin", version.ref = "androidx-navigation" }
 androidx-room = { id = "androidx.room", version.ref = "androidx-room" }
 androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidx-benchmark-macro" }
 screenshot = { id = "com.android.compose.screenshot", version.ref = "screenshot" }

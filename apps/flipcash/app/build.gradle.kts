@@ -9,7 +9,6 @@ plugins {
     id("org.jetbrains.kotlin.plugin.parcelize")
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.plugin.serialization")
-    alias(libs.plugins.navigation.safeargs)
     id("dagger.hilt.android.plugin")
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.perf)
@@ -294,9 +293,10 @@ dependencies {
     implementation(libs.androidx.core)
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.lifecycle.viewmodel)
-    implementation(libs.androidx.navigation.ui)
     implementation(libs.androidx.work)
     implementation(libs.androidx.webkit)
+    // Resources only: Theme.Code in res/values/themes.xml extends Theme.MaterialComponents.
+    implementation(libs.google.material)
 
     //hilt dependency injection
     implementation(libs.hilt.android)
