@@ -34,7 +34,6 @@ Two recurring shapes show up in the **Pattern** column:
 |---------|---------|--------------------|-----------------------|
 | **cash** | Amount entry for a device-to-device cash bill (sends the selected token — a launchpad currency or USDF) | `cash/CashScreen.kt` · `…/internal/CashScreenViewModel` | **VM-driven**; combines token + balance + rate flows, emits `PresentBill`, calls `SessionController.showBill` |
 | **scanner** | Camera capture of a peer's Kik Code (e.g. on a cash bill) | `scanner/ScannerScreen.kt` | Screen-local; uses `:ui:scanner`, routes scans through `Router.classify` |
-| **direct-send** | Send to a contact / phone number | `directsend/SendFlowScreen.kt` · `…/internal/SendFlowViewModel` | **Flow**; contact list + phone gate steps |
 | **withdrawal** | Withdraw funds on-chain | `withdrawal/WithdrawalFlowScreen.kt` · `withdrawal/WithdrawalViewModel` | **Flow** (`AppRoute.Transfers.Withdrawal`); entry → destination → confirmation |
 | **deposit** | Add funds via on-ramp / deposit address | `deposit/DepositFlowScreen.kt` · `…/internal/DepositViewModel` | **Flow** (`FlowRouteWithResult<DepositResult>`); USDC deposit info, Coinbase on-ramp |
 | **transactions** | Activity / transaction history | `transactions/TransactionHistoryScreen.kt` · `…/internal/TransactionHistoryViewModel` | **VM-driven**; Paging-backed list from persistence ([05](../05-persistence.md)) |
@@ -59,9 +58,9 @@ Two recurring shapes show up in the **Pattern** column:
 
 ## Full module list
 
-The 26 feature directories: `advanced`, `appsettings`, `appupdates`, `backupkey`,
+The 25 feature directories: `advanced`, `appsettings`, `appupdates`, `backupkey`,
 `balance`, `bill-customization`, `cash`, `contact-verification`, `currency-creator`,
-`deposit`, `device-logs`, `direct-send`, `discovery`, `invite`, `lab`, `login`,
+`deposit`, `device-logs`, `discovery`, `invite`, `lab`, `login`,
 `menu`, `messenger`, `myaccount`, `purchase`, `scanner`, `shareapp`, `tokens`,
 `transactions`, `userflags`, `withdrawal`.
 
