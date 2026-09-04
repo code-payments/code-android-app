@@ -7,7 +7,7 @@ android {
 }
 
 dependencies {
-    implementation("org.jsoup:jsoup:1.23.1")
+    implementation("org.jsoup:jsoup:1.23.2")
     implementation(project(":libs:coroutines"))
     implementation(project(":libs:encryption:utils"))
 
