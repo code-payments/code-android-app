@@ -10,4 +10,4 @@ import com.flipcash.app.core.AppRoute
  * [com.getcode.navigation.core.NavOptions.PopUpTo.ClearAll], exactly like a tab switch from the
  * nav bar.
  */
-val homeRoute: AppRoute = AppRoute.Sheets.Wallet
+val homeRoute: AppRoute = AppRoute.Tabs.Wallet

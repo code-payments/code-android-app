@@ -13,23 +13,23 @@ class NavBarRoutesTest {
 
     @Test
     fun `the TipCard (You) tab routes to the menu`() {
-        assertEquals(AppRoute.Sheets.Menu, NavBarButton.TipCard.destinationRoute())
+        assertEquals(AppRoute.Tabs.Menu, NavBarButton.TipCard.destinationRoute())
     }
 
     @Test
     fun `the menu route belongs to the TipCard (You) tab`() {
-        assertEquals(NavBarButton.TipCard, AppRoute.Sheets.Menu.asNavBarTab())
+        assertEquals(NavBarButton.TipCard, AppRoute.Tabs.Menu.asNavBarTab())
     }
 
     @Test
     fun `the Chats tab still routes through the tipping flow`() {
-        assertEquals(AppRoute.Sheets.Tips(resumed = false), NavBarButton.Chats.destinationRoute())
+        assertEquals(AppRoute.Tabs.Tips(resumed = false), NavBarButton.Chats.destinationRoute())
     }
 
     @Test
     fun `the tipping flow maps back to the Chats tab, never TipCard`() {
         // Even the post-setup resumed form is the Chats tab now — the tip card moved to the You tab.
-        assertEquals(NavBarButton.Chats, AppRoute.Sheets.Tips(resumed = true).asNavBarTab())
-        assertEquals(NavBarButton.Chats, AppRoute.Sheets.Tips(resumed = false).asNavBarTab())
+        assertEquals(NavBarButton.Chats, AppRoute.Tabs.Tips(resumed = true).asNavBarTab())
+        assertEquals(NavBarButton.Chats, AppRoute.Tabs.Tips(resumed = false).asNavBarTab())
     }
 }

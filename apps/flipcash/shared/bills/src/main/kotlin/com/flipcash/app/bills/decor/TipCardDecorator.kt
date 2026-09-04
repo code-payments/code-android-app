@@ -81,7 +81,7 @@ internal data class TipCardDecorator(private val tipCard: Scannable.TipCard) : S
                     is TipEvent.LaunchChat -> {
                         navigator.navigateAll(
                             listOf(
-                                AppRoute.Sheets.Tips(),
+                                AppRoute.Tabs.Tips(),
                                 AppRoute.Messaging.Chat(event.identifier, openKeyboard = true),
                             ),
                         )

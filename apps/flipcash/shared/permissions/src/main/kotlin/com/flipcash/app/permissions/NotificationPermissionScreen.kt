@@ -25,7 +25,7 @@ fun NotificationPermissionScreen(fromOnboarding: Boolean = false) {
                 analytics.action(Button.AllowPush)
                 if (fromOnboarding) analytics.action(Action.CompletedOnboarding)
                 navigator.navigate(
-                    route = AppRoute.Main.Scanner,
+                    route = AppRoute.Tabs.Scanner,
                     options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll)
                 )
             }
@@ -42,7 +42,7 @@ fun NotificationPermissionScreen(fromOnboarding: Boolean = false) {
     LaunchedEffect(permissionState.status) {
         when (permissionState.status) {
             PermissionResult.Granted -> navigator.navigate(
-                route = AppRoute.Main.Scanner,
+                route = AppRoute.Tabs.Scanner,
                 options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll)
             )
             PermissionResult.PermanentlyDenied -> navigator.push(
@@ -61,7 +61,7 @@ fun NotificationPermissionScreen(fromOnboarding: Boolean = false) {
         onSkip = {
             analytics.action(Button.SkipPush)
             navigator.navigate(
-                route = AppRoute.Main.Scanner,
+                route = AppRoute.Tabs.Scanner,
                 options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll)
             )
         }
@@ -77,7 +77,7 @@ fun NotificationPermissionRationaleScreen(permanentlyDenied: Boolean = false) {
         permanentlyDenied = permanentlyDenied,
         onComplete = {
             navigator.navigate(
-                route = AppRoute.Main.Scanner,
+                route = AppRoute.Tabs.Scanner,
                 options = NavOptions(popUpTo = NavOptions.PopUpTo.ClearAll)
             )
         },

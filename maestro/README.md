@@ -73,9 +73,9 @@ Every routed screen is addressable by a stable `<name>_screen` resource-id. Thes
 
 - The tag defaults to one **derived from the route type name** (`screenRootTag` in
   `NavMetadata.kt`): `AppRoute.Menu.MyAccount` → `my_account_screen`,
-  `AppRoute.Main.Scanner` → `scanner_screen`.
+  `AppRoute.Tabs.Scanner` → `scanner_screen`.
 - Pass an explicit `testTag` only when a route needs a different id than its type name, e.g.
-  `annotatedEntry<AppRoute.Sheets.Give>(testTag = "cash_screen") { ... }`.
+  `annotatedEntry<AppRoute.Main.Give>(testTag = "cash_screen") { ... }`.
 
 Because the tag lives with the route registration, adding a screen tags it automatically and
 the anchors can't drift out of sync with the UI. Screens that are **not** nav entries (the

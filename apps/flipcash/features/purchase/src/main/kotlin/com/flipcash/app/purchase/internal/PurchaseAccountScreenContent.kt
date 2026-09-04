@@ -51,7 +51,7 @@ fun PurchaseAccountScreen(viewModel: PurchaseAccountViewModel) {
         viewModel.eventFlow
             .filterIsInstance<PurchaseAccountViewModel.Event.OnAccountCreated>()
             .onEach {
-                navigator.replaceAll(AppRoute.Main.Scanner)
+                navigator.replaceAll(AppRoute.Tabs.Scanner)
             }.launchIn(this)
     }
 

@@ -118,7 +118,7 @@ internal class AppRouter(
             is DeeplinkType.TokenInfo -> DeeplinkAction.OpenToken(
                 mint = type.mint,
                 routes = listOf(
-                    AppRoute.Sheets.Wallet,
+                    AppRoute.Tabs.Wallet,
                     AppRoute.Token.Info(type.mint, fromDeeplink = true),
                 ),
             )
@@ -126,7 +126,7 @@ internal class AppRouter(
             is DeeplinkType.EmailVerification -> resolveEmailVerification(type)
 
             is DeeplinkType.TipChat -> DeeplinkAction.Navigate(
-                listOf(AppRoute.Sheets.Tips(), AppRoute.Messaging.Chat(type.identifier))
+                listOf(AppRoute.Tabs.Tips(), AppRoute.Messaging.Chat(type.identifier))
             )
 
             is DeeplinkType.Tipcard -> tipCard(TipCardOwner.ById(type.userId))
@@ -138,7 +138,7 @@ internal class AppRouter(
     /**
      * Where a tip card link goes. Your own leads nowhere payable, so instead of presenting a card
      * that can't be acted on it lands on the You tab — the surface that owns your tip card (see
-     * NavBarRoutes: NavBarButton.TipCard -> Sheets.Menu).
+     * NavBarRoutes: NavBarButton.TipCard -> Tabs.Menu).
      *
      * The self-check belongs here and not after resolution: the session announces a self-tip
      * through a replay-less event that only the scanner collects, so a link opened onto any other
@@ -147,7 +147,7 @@ internal class AppRouter(
     private fun tipCard(owner: TipCardOwner): DeeplinkAction {
         val self = currentUserProvider()
         return if (owner.isSelf(self.id, self.username)) {
-            DeeplinkAction.Navigate(listOf(AppRoute.Sheets.Menu))
+            DeeplinkAction.Navigate(listOf(AppRoute.Tabs.Menu))
         } else {
             DeeplinkAction.PresentTipCard(owner)
         }
@@ -250,7 +250,7 @@ internal class AppRouter(
 
             EmailDeeplinkOrigin.MyAccount ->
                 listOf(
-                    AppRoute.Sheets.Menu,
+                    AppRoute.Tabs.Menu,
                     AppRoute.Menu.MyAccount
                 ) + AppRoute.Verification(
                     origin = AppRoute.Menu.MyAccount,

@@ -82,32 +82,34 @@ fun appEntryProvider(
         OnboardingFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
 
-    // Main
+    // Main — pushed onto whatever stack the user is already on
+    annotatedEntry<AppRoute.Main.AppRestricted> { key -> AppRestrictedScreen(key.restrictionType) }
+    annotatedEntry<AppRoute.Main.RegionSelection> { RegionSelectionScreen() }
+    // Route type is `Give` but the screen is the Cash/Give screen the flows call cash_screen.
+    annotatedEntry<AppRoute.Main.Give>(testTag = "cash_screen") { key -> CashScreen(key.mint, key.fromTokenInfo) }
+    annotatedEntry<AppRoute.Main.ActivityHistory> { ActivityHistoryScreen() }
+    annotatedEntry<AppRoute.Main.TransactionDetails> { key -> TransactionDetailsScreen(key.id) }
+    annotatedEntry<AppRoute.Main.InviteContact> { key -> InviteContactScreen(key.phoneNumber) }
     annotatedEntry<AppRoute.Main.Sheet> { key ->
         SheetContent(key, resultStateRegistry, barManager)
     }
-    annotatedEntry<AppRoute.Main.AppRestricted> { key -> AppRestrictedScreen(key.restrictionType) }
-    annotatedEntry<AppRoute.Main.Scanner> { ScannerScreen() }
-    annotatedEntry<AppRoute.Main.RegionSelection> { RegionSelectionScreen() }
-    annotatedEntry<AppRoute.Main.InviteContact> { key -> InviteContactScreen(key.phoneNumber) }
 
-    // Sheets (inner content — wrapped in Main.Sheet by navigateTo())
-    // Route type is `Give` but the screen is the Cash/Give screen the flows call cash_screen.
-    annotatedEntry<AppRoute.Sheets.Give>(testTag = "cash_screen") { key -> CashScreen(key.mint, key.fromTokenInfo) }
-    annotatedEntry<AppRoute.Sheets.Tips> { key ->
-        TippingFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
-    }
-    annotatedEntry<AppRoute.Sheets.TokenSelection> { key -> TokenSelectScreen(key.purpose) }
-    annotatedEntry<AppRoute.Sheets.TipAmountEntry> { TipAmountEntryScreen() }
-    annotatedEntry<AppRoute.Sheets.Wallet> {
+    // Tabs — the nav bar's four homes; entering one replaces the stack
+    annotatedEntry<AppRoute.Tabs.Scanner> { ScannerScreen() }
+    annotatedEntry<AppRoute.Tabs.Wallet> {
         // The wallet hosts the card-expand overlay in-entry so a pushed action (Give/Convert/Withdraw)
         // covers the expanded currency-info with correct z-order (iOS WalletScreen structure).
         CardExpandHost { WalletScreen() }
     }
+    annotatedEntry<AppRoute.Tabs.Tips> { key ->
+        TippingFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
+    }
+    annotatedEntry<AppRoute.Tabs.Menu> { MenuScreen() }
+
+    // Sheets — inner content, wrapped in Main.Sheet by resolveRoutes
+    annotatedEntry<AppRoute.Sheets.TokenSelection> { key -> TokenSelectScreen(key.purpose) }
+    annotatedEntry<AppRoute.Sheets.TipAmountEntry> { TipAmountEntryScreen() }
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
-    annotatedEntry<AppRoute.Sheets.ActivityHistory> { ActivityHistoryScreen() }
-    annotatedEntry<AppRoute.Sheets.TransactionDetails> { key -> TransactionDetailsScreen(key.id) }
-    annotatedEntry<AppRoute.Sheets.Menu> { MenuScreen() }
 
     // Messaging
     annotatedEntry<AppRoute.Messaging.Chat> { key ->

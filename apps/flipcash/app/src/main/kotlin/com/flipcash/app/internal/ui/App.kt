@@ -280,7 +280,7 @@ internal fun App(
                                             // gives. Pushing it instead reads as a modal on a stack
                                             // the user never navigated. Mirrors iOS
                                             // DeepLinkController's requestedCardMint.
-                                            codeNavigator.navigateAll(listOf(AppRoute.Sheets.Wallet))
+                                            codeNavigator.navigateAll(listOf(AppRoute.Tabs.Wallet))
                                             cardExpansion.beginExpanded(action.mint)
                                         }
 

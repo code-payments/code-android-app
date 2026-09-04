@@ -23,7 +23,7 @@ import com.getcode.ui.utils.rememberKeyboardController
 
 @Composable
 fun TippingFlowScreen(
-    route: AppRoute.Sheets.Tips,
+    route: AppRoute.Tabs.Tips,
     resultStateRegistry: NavResultStateRegistry,
 ) {
     val sheetDismiss = LocalBottomSheetDismissDispatcher.current

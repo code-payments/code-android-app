@@ -70,7 +70,7 @@ fun DepositFlowScreen(
                 )
                 when (result) {
                     DepositResult.Success -> {
-                        outerNavigator.popUntil { it == AppRoute.Sheets.Menu }
+                        outerNavigator.popUntil { it == AppRoute.Tabs.Menu }
                     }
                     DepositResult.Canceled -> {
                         outerNavigator.pop()

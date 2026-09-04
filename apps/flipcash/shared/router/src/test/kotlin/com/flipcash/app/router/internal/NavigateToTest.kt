@@ -39,11 +39,11 @@ class NavigateToTest {
 
     @Test
     fun `navigateTo without existing sheet navigates directly`() {
-        val navigator = createNavigator(AppRoute.Main.Scanner)
+        val navigator = createNavigator(AppRoute.Tabs.Scanner)
         val mint = Mint("So11111111111111111111111111111111111111112")
 
         navigator.navigateAll(
-            listOf(AppRoute.Sheets.ActivityHistory, AppRoute.Token.Info(mint)),
+            listOf(AppRoute.Sheets.TipAmountEntry, AppRoute.Token.Info(mint)),
             options = quietOptions,
         )
 
@@ -55,8 +55,8 @@ class NavigateToTest {
     @Test
     fun `navigateTo non-sheet routes navigates directly even with existing sheet`() {
         val navigator = createNavigator(
-            AppRoute.Main.Scanner,
-            AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
+            AppRoute.Tabs.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.TipAmountEntry),
         )
 
         navigator.navigateAll(listOf(AppRoute.Menu.MyAccount), options = quietOptions)
@@ -71,13 +71,13 @@ class NavigateToTest {
     @Test
     fun `navigateTo with existing sheet sets pendingSheetDismiss`() {
         val navigator = createNavigator(
-            AppRoute.Main.Scanner,
-            AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
+            AppRoute.Tabs.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.TipAmountEntry),
         )
         val mint = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
 
         navigator.navigateAll(
-            listOf(AppRoute.Sheets.ActivityHistory, AppRoute.Token.Info(mint)),
+            listOf(AppRoute.Sheets.TipAmountEntry, AppRoute.Token.Info(mint)),
             options = quietOptions,
         )
 
@@ -89,12 +89,12 @@ class NavigateToTest {
     @Test
     fun `pendingSheetDismiss callback increments sheetGeneration`() {
         val navigator = createNavigator(
-            AppRoute.Main.Scanner,
-            AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
+            AppRoute.Tabs.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.TipAmountEntry),
         )
         val initialGeneration = navigator.sheetGeneration
 
-        navigator.navigateAll(listOf(AppRoute.Sheets.ActivityHistory), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Sheets.TipAmountEntry), options = quietOptions)
 
         // Simulate what ModalBottomSheetScene does: remove old sheet, then invoke callback
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
@@ -106,13 +106,13 @@ class NavigateToTest {
     @Test
     fun `pendingSheetDismiss callback navigates to new routes`() {
         val navigator = createNavigator(
-            AppRoute.Main.Scanner,
-            AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
+            AppRoute.Tabs.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.TipAmountEntry),
         )
         val mint = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
 
         navigator.navigateAll(
-            listOf(AppRoute.Sheets.ActivityHistory, AppRoute.Token.Info(mint)),
+            listOf(AppRoute.Sheets.TipAmountEntry, AppRoute.Token.Info(mint)),
             options = quietOptions,
         )
 
@@ -122,25 +122,25 @@ class NavigateToTest {
 
         val last = navigator.backStack.last()
         assertIs<AppRoute.Main.Sheet>(last)
-        assertEquals(AppRoute.Sheets.ActivityHistory, last.initialRoute)
+        assertEquals(AppRoute.Sheets.TipAmountEntry, last.initialRoute)
         assertIs<AppRoute.Token.Info>(last.innerRoutes.single())
     }
 
     @Test
     fun `repeated dismiss-then-replace increments generation each time`() {
         val navigator = createNavigator(
-            AppRoute.Main.Scanner,
-            AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
+            AppRoute.Tabs.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.TipAmountEntry),
         )
 
         // First replace
-        navigator.navigateAll(listOf(AppRoute.Sheets.ActivityHistory), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Sheets.TipAmountEntry), options = quietOptions)
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
         navigator.pendingSheetDismiss!!.invoke()
         assertEquals(1, navigator.sheetGeneration)
 
         // Second replace
-        navigator.navigateAll(listOf(AppRoute.Sheets.ActivityHistory), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Sheets.TipAmountEntry), options = quietOptions)
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
         navigator.pendingSheetDismiss!!.invoke()
         assertEquals(2, navigator.sheetGeneration)
@@ -152,7 +152,7 @@ class NavigateToTest {
 
     @Test
     fun `empty routes is a no-op`() {
-        val navigator = createNavigator(AppRoute.Main.Scanner)
+        val navigator = createNavigator(AppRoute.Tabs.Scanner)
 
         navigator.navigateAll(emptyList(), options = quietOptions)
 
@@ -164,15 +164,15 @@ class NavigateToTest {
     fun `same token dismiss-then-replace works`() {
         val mint = Mint("So11111111111111111111111111111111111111112")
         val navigator = createNavigator(
-            AppRoute.Main.Scanner,
+            AppRoute.Tabs.Scanner,
             AppRoute.Main.Sheet(
-                AppRoute.Sheets.ActivityHistory,
+                AppRoute.Sheets.TipAmountEntry,
                 listOf(AppRoute.Token.Info(mint, fromDeeplink = true)),
             ),
         )
 
         navigator.navigateAll(
-            listOf(AppRoute.Sheets.ActivityHistory, AppRoute.Token.Info(mint, fromDeeplink = true)),
+            listOf(AppRoute.Sheets.TipAmountEntry, AppRoute.Token.Info(mint, fromDeeplink = true)),
             options = quietOptions,
         )
 
@@ -187,11 +187,11 @@ class NavigateToTest {
         // backstack. The callback's navigate() must not produce a duplicate Sheet key
         // (which would crash SaveableStateProvider).
         val navigator = createNavigator(
-            AppRoute.Main.Scanner,
-            AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
+            AppRoute.Tabs.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.TipAmountEntry),
         )
 
-        navigator.navigateAll(listOf(AppRoute.Sheets.ActivityHistory), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Sheets.TipAmountEntry), options = quietOptions)
 
         // Simulate: a route is pushed during the dismiss animation
         navigator.backStack.add(AppRoute.Menu.MyAccount)
@@ -210,18 +210,18 @@ class NavigateToTest {
     @Test
     fun `dismiss-replace increments sheetGeneration for composition scoping`() {
         val navigator = createNavigator(
-            AppRoute.Main.Scanner,
-            AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
+            AppRoute.Tabs.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.TipAmountEntry),
         )
 
-        navigator.navigateAll(listOf(AppRoute.Sheets.ActivityHistory), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Sheets.TipAmountEntry), options = quietOptions)
 
         // Simulate ModalBottomSheetScene dismiss: remove old sheet, then fire callback
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
         navigator.pendingSheetDismiss!!.invoke()
 
         val newSheet = navigator.backStack.filterIsInstance<AppRoute.Main.Sheet>().single()
-        assertEquals(AppRoute.Sheets.ActivityHistory, newSheet.initialRoute)
+        assertEquals(AppRoute.Sheets.TipAmountEntry, newSheet.initialRoute)
         assert(navigator.sheetGeneration > 0) {
             "Expected sheetGeneration > 0 after dismiss-replace, got ${navigator.sheetGeneration}"
         }
@@ -229,19 +229,19 @@ class NavigateToTest {
 
     @Test
     fun `navigate deduplicates identical sheet that was not removed by onBack`() {
-        // Reproduces the production crash: a stale Sheet(ActivityHistory,[]) remains on the
+        // Reproduces the production crash: a stale Sheet(TipAmountEntry,[]) remains on the
         // backstack after onBack removed the wrong entry during a dismiss animation.
         // A subsequent navigate for the same Sheet must not produce a duplicate.
         val navigator = createNavigator(
-            AppRoute.Main.Scanner,
-            AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
+            AppRoute.Tabs.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.TipAmountEntry),
         )
 
         // Simulate: something pushed on top during dismiss, onBack removed that
         // instead of the sheet, so the old sheet is still here.
         // Now navigate to the same sheet again.
         navigator.navigate(
-            AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
+            AppRoute.Main.Sheet(AppRoute.Sheets.TipAmountEntry),
             NavOptions(debugRouting = false),
         )
 
@@ -252,16 +252,16 @@ class NavigateToTest {
     @Test
     fun `double navigateTo with pending dismiss does not produce duplicate sheets`() {
         val navigator = createNavigator(
-            AppRoute.Main.Scanner,
-            AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
+            AppRoute.Tabs.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.TipAmountEntry),
         )
 
         // First navigate sets pendingSheetDismiss
-        navigator.navigateAll(listOf(AppRoute.Sheets.Menu), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Tabs.Menu), options = quietOptions)
         assertNotNull(navigator.pendingSheetDismiss)
 
         // Second navigate overwrites pendingSheetDismiss
-        navigator.navigateAll(listOf(AppRoute.Sheets.Menu), options = quietOptions)
+        navigator.navigateAll(listOf(AppRoute.Tabs.Menu), options = quietOptions)
 
         // Simulate: onBack removes old sheet, then callback fires
         navigator.backStack.removeAt(navigator.backStack.lastIndex)
@@ -269,7 +269,7 @@ class NavigateToTest {
 
         // Simulate a stale callback also firing navigate for the same sheet
         navigator.navigate(
-            AppRoute.Main.Sheet(AppRoute.Sheets.Menu),
+            AppRoute.Main.Sheet(AppRoute.Tabs.Menu),
             NavOptions(debugRouting = false),
         )
 
@@ -284,8 +284,8 @@ class NavigateToTest {
     @Test
     fun `openAsSheet with existing sheet sets pendingSheetDismiss`() {
         val navigator = createNavigator(
-            AppRoute.Main.Scanner,
-            AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
+            AppRoute.Tabs.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.TipAmountEntry),
         )
 
         navigator.openAsSheet(AppRoute.Sheets.ShareApp)
@@ -298,8 +298,8 @@ class NavigateToTest {
     @Test
     fun `openAsSheet callback navigates to new sheet after dismiss`() {
         val navigator = createNavigator(
-            AppRoute.Main.Scanner,
-            AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
+            AppRoute.Tabs.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.TipAmountEntry),
         )
 
         navigator.openAsSheet(AppRoute.Sheets.ShareApp)
@@ -316,8 +316,8 @@ class NavigateToTest {
     @Test
     fun `openAsSheet increments sheetGeneration on dismiss-replace`() {
         val navigator = createNavigator(
-            AppRoute.Main.Scanner,
-            AppRoute.Main.Sheet(AppRoute.Sheets.ActivityHistory),
+            AppRoute.Tabs.Scanner,
+            AppRoute.Main.Sheet(AppRoute.Sheets.TipAmountEntry),
         )
         val initialGeneration = navigator.sheetGeneration
 
@@ -332,7 +332,7 @@ class NavigateToTest {
 
     @Test
     fun `openAsSheet without existing sheet navigates directly`() {
-        val navigator = createNavigator(AppRoute.Main.Scanner)
+        val navigator = createNavigator(AppRoute.Tabs.Scanner)
 
         navigator.openAsSheet(AppRoute.Sheets.ShareApp)
 

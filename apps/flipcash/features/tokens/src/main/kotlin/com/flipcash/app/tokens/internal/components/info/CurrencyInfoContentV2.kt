@@ -242,7 +242,7 @@ internal fun CurrencyInfoContentV2(
                         onItemClick = { item ->
                             dispatch(
                                 TokenInfoViewModel.Event.OpenScreen(
-                                    AppRoute.Sheets.TransactionDetails(item.messageId)
+                                    AppRoute.Main.TransactionDetails(item.messageId)
                                 )
                             )
                         },
@@ -352,7 +352,7 @@ private fun CurrencyActionTiles(
             onClick = {
                 dispatch(
                     TokenInfoViewModel.Event.OpenScreen(
-                        AppRoute.Sheets.Give(mint = tokenMint, fromTokenInfo = true)
+                        AppRoute.Main.Give(mint = tokenMint, fromTokenInfo = true)
                     )
                 )
             },

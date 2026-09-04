@@ -66,7 +66,7 @@ fun ActivityHistoryScreen() {
                 ActivityFeedRow(
                     item = item,
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { navigator.push(AppRoute.Sheets.TransactionDetails(item.messageId)) },
+                    onClick = { navigator.push(AppRoute.Main.TransactionDetails(item.messageId)) },
                 )
             }
 
