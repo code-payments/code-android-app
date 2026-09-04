@@ -5,7 +5,10 @@ import com.codeinc.flipcash.gen.blob.v1.BlobStorageService as RpcBlobStorageServ
 import com.codeinc.flipcash.gen.blob.v1.Model
 import com.codeinc.flipcash.gen.blob.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
+import com.flipcash.services.internal.network.extensions.asChatId
+import com.flipcash.services.internal.network.extensions.asUserId
 import com.flipcash.services.internal.network.extensions.authenticate
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.BlobId
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -81,6 +84,7 @@ internal class BlobStorageApi @Inject constructor(
     suspend fun getBlobs(
         blobIds: List<BlobId>,
         owner: Ed25519.KeyPair,
+        context: BlobAccessContext,
     ): RpcBlobStorageService.GetBlobsResponse {
         val request = RpcBlobStorageService.GetBlobsRequest.newBuilder()
             .setBlobIds(
@@ -90,13 +94,33 @@ internal class BlobStorageApi @Inject constructor(
             .apply { setAuth(authenticate(owner)) }
             .build()
 
+        // Validated before the context is attached, because AccessContext cannot pass client-side
+        // validation: the generated validator asserts BOTH oneof arms are set
+        // (`checkRequired(scopeCase == CHAT, "chat")` and the same for `profile`), so any scope
+        // fails as `context.chat: value is required`. The rule the proto declares — required *if
+        // selected* — is what the server enforces, and every other rule on the request is still
+        // checked here. Drop this split once the validator generator handles oneof members.
         request.validate().orThrow()
 
+        // Omitted for Owned: the server resolves the caller's own blobs without one, and a scope
+        // the caller can't claim would only narrow the read.
+        val authorized = context.toProto()
+            ?.let { request.toBuilder().setContext(it).build() }
+            ?: request
+
         return withContext(Dispatchers.IO) {
-            api.getBlobs(request)
+            api.getBlobs(authorized)
         }
     }
 
     private fun BlobId.toProto(): Model.BlobId =
         Model.BlobId.newBuilder().setValue(bytes.toByteString()).build()
+
+    private fun BlobAccessContext.toProto(): Model.AccessContext? = when (this) {
+        BlobAccessContext.Owned -> null
+        is BlobAccessContext.Profile ->
+            Model.AccessContext.newBuilder().setProfile(userId.asUserId()).build()
+        is BlobAccessContext.Chat ->
+            Model.AccessContext.newBuilder().setChat(chatId.asChatId()).build()
+    }
 }

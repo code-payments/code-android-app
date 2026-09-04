@@ -30,6 +30,7 @@ fun ChatSummary.toConversationReference(
     val other = metadata.members.firstOrNull { it.userId != selfId }
     return ConversationReference(
         chatId = metadata.chatId,
+        userId = other?.userId,
         displayName = other?.userProfile?.displayName,
         handle = other?.userProfile?.handle,
         image = other?.userProfile?.profilePicture,

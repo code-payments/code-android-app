@@ -214,6 +214,12 @@ internal fun com.codeinc.flipcash.gen.blob.v1.Model.BlobMetadata.toBlobMetadata(
         sizeBytes = sizeBytes,
         downloadUrl = downloadUrl.url,
         image = if (hasImage()) image.toImageMetadata() else null,
+        // Carried, not dropped: this metadata gets persisted (profile pictures live in
+        // `user_profiles`), so without the expiry a stored copy hands Coil a URL that has long
+        // since 403'd, with nothing able to tell that it should re-resolve the id first.
+        expiresAtMillis = downloadUrl.takeIf { it.hasExpiresAt() }
+            ?.expiresAt
+            ?.let { it.seconds * 1_000 + it.nanos / 1_000_000 },
     )
 }
 
@@ -377,7 +383,12 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
                         phoneNumber = phoneNumber.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
                         email = emailAddress.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
                         profilePicture = if (hasProfilePicture()) profilePicture.toMediaItem() else null,
-                        userId = if (hasUserId()) userId.toId() else null,
+                        // Falls back to the member's own id: the server sets it on the member but
+                        // usually not again inside the nested profile, and this profile is by
+                        // definition that member's. Dropping it here leaves callers unable to name
+                        // the profile that authorizes re-minting the picture's download URL, so the
+                        // avatar can never recover once the stored URL expires.
+                        userId = if (hasUserId()) userId.toId() else member.userId.toId(),
                         username = if (hasUsername()) username.value else null,
                     )
                 },

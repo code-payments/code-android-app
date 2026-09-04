@@ -41,6 +41,7 @@ import com.flipcash.app.core.ui.transitions.sharedBoundsTransition
 import com.flipcash.app.core.userprofile.UpdateProfileResult
 import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.core.R
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
@@ -183,6 +184,7 @@ private fun PhotoSelectionScreenContent(
                                 ContactAvatar(
                                     image = state.savedPicture,
                                     displayName = state.name,
+                                    access = BlobAccessContext.Owned,
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }

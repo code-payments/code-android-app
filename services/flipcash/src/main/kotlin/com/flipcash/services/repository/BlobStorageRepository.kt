@@ -2,6 +2,7 @@ package com.flipcash.services.repository
 
 import com.flipcash.services.models.blob.UploadPolicy
 import com.flipcash.services.models.blob.UploadReservation
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.BlobState
 import com.flipcash.services.models.chat.BlobStatus
@@ -18,5 +19,9 @@ interface BlobStorageRepository {
 
     suspend fun completeExternalUpload(blobId: BlobId, owner: Ed25519.KeyPair): Result<BlobStatus>
 
-    suspend fun getBlobs(blobIds: List<BlobId>, owner: Ed25519.KeyPair): Result<List<BlobState>>
+    suspend fun getBlobs(
+        blobIds: List<BlobId>,
+        owner: Ed25519.KeyPair,
+        context: BlobAccessContext,
+    ): Result<List<BlobState>>
 }

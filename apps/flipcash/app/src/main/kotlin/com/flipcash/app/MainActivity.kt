@@ -22,6 +22,8 @@ import com.flipcash.app.billing.BillingClient
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.LocalContactCoordinator
 import com.flipcash.app.core.LocalUserManager
+import com.flipcash.app.core.media.LocalMediaUrlResolver
+import com.flipcash.app.core.media.MediaUrlResolver
 import com.flipcash.app.core.tipping.LocalTipCoordinator
 import com.flipcash.app.core.toast.LocalToastController
 import com.flipcash.app.core.toast.ToastController
@@ -142,6 +144,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var tippingCoordinator: TippingCoordinator
 
+    @Inject
+    lateinit var mediaUrlResolver: MediaUrlResolver
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -177,6 +182,7 @@ class MainActivity : FragmentActivity() {
                 LocalToastController provides toastController,
                 LocalCoinbaseOnRampController provides coinbaseOnRampController,
                 LocalTipCoordinator provides tippingCoordinator,
+                LocalMediaUrlResolver provides mediaUrlResolver,
                 LocalUiTesting provides intent.getBooleanExtra(UI_TEST, false),
             ) {
                 ProvidePermissionChecker(permissionChecker) {

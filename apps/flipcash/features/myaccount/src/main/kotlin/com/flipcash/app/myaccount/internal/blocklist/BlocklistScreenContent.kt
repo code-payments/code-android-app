@@ -33,6 +33,7 @@ import androidx.paging.compose.itemKey
 import kotlinx.coroutines.delay
 import com.flipcash.app.core.blocklist.BlockedUserProfile
 import com.flipcash.features.myaccount.R
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
@@ -113,6 +114,7 @@ private fun BlockedUserRow(
         ContactAvatar(
             image = user.profilePicture,
             displayName = user.name.orEmpty(),
+            access = BlobAccessContext.profile(user.userId),
             // Blocked users are shown obscured, per the design.
             blurred = true,
             modifier = Modifier

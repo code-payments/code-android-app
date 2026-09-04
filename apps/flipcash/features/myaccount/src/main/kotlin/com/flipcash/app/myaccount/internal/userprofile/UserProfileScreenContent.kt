@@ -63,6 +63,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.sp
 import com.flipcash.app.core.util.abbreviatedLink
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.getcode.theme.White05
 import com.getcode.theme.extraSmall
 import com.getcode.ui.core.verticalScrollStateGradient
@@ -323,6 +324,8 @@ private fun ProfileHeader(
         ContactAvatar(
             image = profilePicture,
             displayName = displayName,
+            // This screen is the account's own public profile, so it owns the picture's blobs.
+            access = BlobAccessContext.Owned,
             modifier = Modifier
                 .size(96.dp)
                 .clip(CircleShape),

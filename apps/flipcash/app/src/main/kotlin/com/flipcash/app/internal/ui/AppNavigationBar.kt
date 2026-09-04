@@ -28,6 +28,7 @@ import com.flipcash.app.core.navigation.destinationRoute
 import com.flipcash.app.core.ui.NavigationBar
 import com.flipcash.app.core.ui.rememberNavigationBarState
 import com.flipcash.app.session.LocalSessionController
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.user.AuthState
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.manager.BottomBarManager
@@ -157,5 +158,13 @@ private fun rememberProfileAvatar(): (@Composable (Modifier) -> Unit)? {
 
     val picture = profile?.profilePicture ?: return null
     val displayName = profile?.displayName.orEmpty()
-    return { modifier -> ContactAvatar(picture, displayName, modifier) }
+    // The account's own picture, so its blobs are the caller's own — no access context needed.
+    return { modifier ->
+        ContactAvatar(
+            image = picture,
+            displayName = displayName,
+            access = BlobAccessContext.Owned,
+            modifier = modifier,
+        )
+    }
 }

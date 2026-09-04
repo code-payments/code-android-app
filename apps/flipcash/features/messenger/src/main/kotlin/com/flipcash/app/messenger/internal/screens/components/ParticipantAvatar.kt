@@ -20,7 +20,14 @@ internal fun ParticipantAvatar(
 ) {
     when (participant) {
         is ChatParticipant.Contact -> ContactAvatar(contact = participant.contact, modifier = modifier)
-        is ChatParticipant.TipUser -> ContactAvatar(userProfile = participant.profile, modifier = modifier)
+        // The member's own id, not profile.userId: the server sets the id on the chat member and
+        // leaves it unset inside the nested profile, and without it the picture's expired download
+        // URL cannot be re-minted.
+        is ChatParticipant.TipUser -> ContactAvatar(
+            userProfile = participant.profile,
+            modifier = modifier,
+            userId = participant.userId,
+        )
         null -> ContactAvatar(contact = null, modifier = modifier)
     }
 }
