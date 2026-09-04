@@ -9,13 +9,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
  * The selection bar and the composer takeover are both plain state, so the reducer is where their
  * rules live: one message selected at a time, and an edit that never costs the user their draft.
+ *
+ * Selection is asserted by value, not identity: the reducer re-narrows the bubble's capabilities to
+ * the windows open now, so what it stores is a copy of the bubble it was handed.
  */
 class ChatMessageActionReducerTest {
 
@@ -52,7 +54,7 @@ class ChatMessageActionReducerTest {
             ChatViewModel.Event.ToggleMessageSelection(target),
         )
 
-        assertSame(target, state.selection)
+        assertEquals(target, state.selection)
         assertEquals(target.capabilities, state.selectionCapabilities)
     }
 
@@ -81,7 +83,7 @@ class ChatMessageActionReducerTest {
 
         val state = reduce(selected, ChatViewModel.Event.ToggleMessageSelection(second))
 
-        assertSame(second, state.selection)
+        assertEquals(second, state.selection)
     }
 
     @Test
@@ -108,7 +110,7 @@ class ChatMessageActionReducerTest {
 
         val state = reduce(selected, ChatViewModel.Event.DeleteMessage(target.messageId))
 
-        assertSame(target, state.selection)
+        assertEquals(target, state.selection)
         assertTrue(state.confirmingDelete)
     }
 
