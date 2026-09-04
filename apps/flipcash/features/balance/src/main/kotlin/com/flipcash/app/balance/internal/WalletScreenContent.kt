@@ -272,6 +272,11 @@ internal fun WalletScreenContent(
                         dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Sheets.ActivityHistory))
                     }
                     .padding(top = grid.x4, bottom = grid.x1),
+                onItemClick = { item ->
+                    dispatchEvent(
+                        WalletViewModel.Event.OpenScreen(AppRoute.Sheets.TransactionDetails(item.messageId))
+                    )
+                },
             )
         }
 

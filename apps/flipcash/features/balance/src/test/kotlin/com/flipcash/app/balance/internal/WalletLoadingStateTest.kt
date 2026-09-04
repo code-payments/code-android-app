@@ -23,6 +23,7 @@ class WalletLoadingStateTest {
 
     private val aTransaction = TransactionListItem(
         id = "1",
+        messageId = listOf<Byte>(1),
         title = "Received",
         timestamp = Instant.fromEpochSeconds(0),
         avatar = TransactionAvatar.Generic(),

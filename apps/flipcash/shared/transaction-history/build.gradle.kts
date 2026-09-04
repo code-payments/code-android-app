@@ -21,5 +21,10 @@ dependencies {
     implementation(project(":libs:datetime"))
 
     testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.robolectric)
     testImplementation(testFixtures(project(":ui:resources")))
+    // Screenshot renders only: FlipcashPreview for the theme, ExchangeStub for the currency flag
+    // LocalExchange would otherwise resolve to ExchangeNull.
+    testImplementation(project(":apps:flipcash:shared:theme"))
+    testImplementation(project(":services:opencode-compose"))
 }

@@ -35,6 +35,19 @@ class MessageDataSource @Inject constructor(
         return messageEntityMapper.map(result)
     }
 
+    /**
+     * Observes a single message as a domain model, null while the id isn't cached. Same
+     * DB-readiness handling as [observeRecent] — the per-user DB is created at login, after
+     * singletons have built their flow graphs.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun observeById(id: ID): Flow<ActivityFeedMessage?> =
+        FlipcashDatabase.observeInstance().flatMapLatest { database ->
+            database?.messageDao()?.observeMessageById(id)?.map { entity ->
+                entity?.let { messageEntityMapper.map(it) }
+            } ?: flowOf(null)
+        }
+
     override suspend fun get(): List<ActivityFeedMessage> {
         val result = db?.messageDao()?.getAllMessages() ?: return emptyList()
         return result.map { messageEntityMapper.map(it) }

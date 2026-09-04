@@ -10,4 +10,50 @@
     <string name="title_activity_convert">%1$s → %2$s</string>
     <!-- Fee line beneath a convert's amount in the activity feed; %1$s is the formatted fee. -->
     <string name="label_activity_convertFee">-%1$s Fee</string>
+
+    <!-- Nav bar title of the transaction details screen. -->
+    <string name="title_txnDetails">Details</string>
+
+    <!-- Transaction details headings: what the entry was, stated in the user's own voice. -->
+    <string name="title_txnDetails_youTipped">You tipped</string>
+    <string name="title_txnDetails_youReceived">You received</string>
+    <string name="title_txnDetails_youSent">You sent</string>
+    <string name="title_txnDetails_youGaveCash">You gave cash</string>
+    <string name="title_txnDetails_youReceivedCash">You received cash</string>
+    <string name="title_txnDetails_youSentCashLink">You sent a cash link</string>
+    <string name="title_txnDetails_buy">Buy</string>
+    <string name="title_txnDetails_sell">Sell</string>
+    <string name="title_txnDetails_withdraw">Withdraw</string>
+    <string name="title_txnDetails_deposit">Deposit</string>
+    <string name="title_txnDetails_convert">Convert</string>
+    <string name="title_txnDetails_poolPayment">Pool payment</string>
+    <string name="title_txnDetails_unknown">Transaction</string>
+
+    <!-- Transaction details receipt row labels. -->
+    <!-- The line under the details heading: the other side of the movement. -->
+    <string name="label_txnDetails_inPerson">In Person</string>
+    <string name="label_txnDetails_paidWith">with %1$s</string>
+    <string name="label_txnDetails_soldFor">for %1$s</string>
+    <!-- Receipt-row labels for the account a withdrawal left for / a deposit arrived from. -->
+    <string name="label_txnDetails_to">To</string>
+    <string name="label_txnDetails_from">From</string>
+    <string name="label_txnDetails_currency">Currency</string>
+    <string name="label_txnDetails_exchangeRate">Exchange Rate</string>
+    <string name="label_txnDetails_date">Date</string>
+    <string name="label_txnDetails_tokens">Tokens</string>
+    <string name="label_txnDetails_fee">Fee</string>
+    <string name="label_txnDetails_received">Received</string>
+    <string name="label_txnDetails_status">Status</string>
+    <string name="label_txnDetails_id">ID</string>
+
+    <!-- Transaction settlement states, as the Status row phrases them. -->
+    <string name="label_txnDetails_status_pending">Pending</string>
+    <string name="label_txnDetails_status_completed">Completed</string>
+    <string name="label_txnDetails_status_failed">Failed</string>
+    <string name="label_txnDetails_status_unknown">Unknown</string>
+
+    <!-- Transaction details actions. -->
+    <string name="action_txnDetails_viewInChat">View in Chat</string>
+    <string name="action_txnDetails_copyId">Copy transaction ID</string>
+    <string name="action_txnDetails_cancel">Cancel</string>
 </resources>

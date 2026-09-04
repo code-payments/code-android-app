@@ -55,6 +55,7 @@ internal class TransactionItemMapper @Inject constructor(
             // row to the literal key "null". Duplicate keys wedge the LazyColumn under the app's
             // SharedTransitionLayout lookahead (whole-app freeze as a duplicate-keyed row scrolls in).
             id = msg.id.hexEncodedString(),
+            messageId = msg.id,
             title = convertTitle(resources, source)
                 ?: resolveTitle(resources, meta, msg.text, msg.textSubstitutions, counterparty, profiles),
             timestamp = msg.timestamp,
@@ -146,9 +147,9 @@ private fun resolveTitle(
  * gets. Matching it is safe while `localized_text` is English-only; a localized feed would need the
  * distinction promoted into the notification metadata.
  */
-private fun String.isTipVerb(): Boolean = trim().startsWith("tip", ignoreCase = true)
+internal fun String.isTipVerb(): Boolean = trim().startsWith("tip", ignoreCase = true)
 
-private fun userIdOf(meta: MessageMetadata?): ID? = when (meta) {
+internal fun userIdOf(meta: MessageMetadata?): ID? = when (meta) {
     is MessageMetadata.DirectlySentCrypto -> meta.userId
     is MessageMetadata.ReceivedCrypto -> meta.userId
     else -> null
@@ -165,13 +166,13 @@ private fun userIdOf(meta: MessageMetadata?): ID? = when (meta) {
  * Deliberately narrow: a peer payment whose profile simply hasn't landed yet *does* carry an
  * identifier, so it stays generic and swaps in the real avatar when the profile arrives.
  */
-private fun isUnidentifiedBill(meta: MessageMetadata?): Boolean = when (meta) {
+internal fun isUnidentifiedBill(meta: MessageMetadata?): Boolean = when (meta) {
     is MessageMetadata.DirectlySentCrypto -> meta.userId == null && meta.phoneNumber == null
     is MessageMetadata.ReceivedCrypto -> meta.userId == null && meta.phoneNumber == null
     else -> false
 }
 
-private fun hasNoCounterparty(meta: MessageMetadata?): Boolean = when (meta) {
+internal fun hasNoCounterparty(meta: MessageMetadata?): Boolean = when (meta) {
     MessageMetadata.DepositedCrypto,
     is MessageMetadata.WithdrewCrypto,
     MessageMetadata.BoughtToken,

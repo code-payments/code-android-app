@@ -1,29 +1,22 @@
 package com.flipcash.shared.transactionhistory
 
 import android.text.format.DateFormat
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.app.core.ui.ActivityAmount
-import com.flipcash.app.core.ui.TokenIcon
-import com.getcode.opencode.model.financial.Token
-import com.flipcash.shared.common.ui.ContactAvatar
-import com.flipcash.services.models.UserProfile
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.core.addIf
 import com.getcode.util.formatLocalized
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -34,20 +27,26 @@ import kotlin.time.Instant
  * A single row in the "Recent" activity list on the Wallet screen (Figma 8966:1910).
  *
  * Layout: [avatar slot] · [title + relative time (weight 1)] · [signed amount]
+ *
+ * @param onClick Opens the entry's details (Figma node 9708:105260). Null leaves the row inert —
+ * the wallet's preview and the full history both pass one, but a row can also be drawn purely as a
+ * summary.
  */
 @Composable
 fun ActivityFeedRow(
     item: TransactionListItem,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .addIf(onClick != null) { Modifier.clickable(onClick = onClick!!) }
             .padding(vertical = CodeTheme.dimens.grid.x2),
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AvatarSlot(item.avatar)
+        TransactionAvatarImage(item.avatar)
 
         Column(
             modifier = Modifier.weight(1f),
@@ -101,97 +100,12 @@ fun ActivityFeedRow(
 }
 
 /**
- * The leading slot: the avatar centred in a box wide enough for the token badge to overhang its
- * bottom-right corner without pushing the title (Figma 9717:14138). Every row reserves the full
- * slot, badge or not, so titles line up down the list.
- *
- * Sized off the static 5pt grid rather than the design's raw pixels: the avatar and badge land on it
- * exactly (x8 = 40dp, x4 = 20dp), and the slot takes x10 = 50dp, which is one grid step of overhang
- * on each side. That is 2dp wider than the 48dp Figma draws — the cost of keeping the row on-grid,
- * and it moves the title by the same 2dp on every row rather than unevenly.
- */
-@Composable
-private fun AvatarSlot(avatar: TransactionAvatar, modifier: Modifier = Modifier) {
-    val grid = CodeTheme.dimens.staticGrid
-    val avatarSize = grid.x8
-    Box(
-        modifier = modifier.requiredSize(grid.x10),
-        contentAlignment = Alignment.Center,
-    ) {
-        val avatarModifier = Modifier
-            .requiredSize(avatarSize)
-            .clip(CircleShape)
-
-        when (avatar) {
-            is TransactionAvatar.Profile ->
-                ContactAvatar(userProfile = avatar.profile, modifier = avatarModifier)
-            is TransactionAvatar.TokenIcon ->
-                TokenIcon(token = avatar.token, modifier = avatarModifier)
-            is TransactionAvatar.SwapTokens ->
-                SwapAvatar(avatar, modifier = Modifier.requiredSize(avatarSize))
-            is TransactionAvatar.Generic ->
-                ContactAvatar(userProfile = UserProfile.Empty, modifier = avatarModifier)
-        }
-
-        // Ringed in the page background so the coin reads as sitting over the avatar rather than
-        // being part of it — the same treatment [SwapAvatar] gives its overlapping pair.
-        avatar.badgeToken?.let { token ->
-            TokenIcon(
-                token = token,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .requiredSize(grid.x4)
-                    .border(CodeTheme.dimens.thickBorder, CodeTheme.colors.background, CircleShape),
-            )
-        }
-    }
-}
-
-/**
- * A convert's two tokens as overlapping coins — the destination sits over the source, ringed in the
- * page background so the overlap reads as depth. Mirrors iOS's `swapAvatar` in `ActivityRow.swift`.
- */
-@Composable
-private fun SwapAvatar(
-    avatar: TransactionAvatar.SwapTokens,
-    modifier: Modifier = Modifier,
-) {
-    val coin = CodeTheme.dimens.staticGrid.x5
-    Box(modifier = modifier) {
-        TokenCoin(
-            token = avatar.from,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .requiredSize(coin),
-        )
-        TokenCoin(
-            token = avatar.to,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .requiredSize(coin)
-                .border(CodeTheme.dimens.thickBorder, CodeTheme.colors.background, CircleShape),
-        )
-    }
-}
-
-/** One coin of a [SwapAvatar]; an unresolved side draws the shared placeholder. */
-@Composable
-private fun TokenCoin(token: Token?, modifier: Modifier) {
-    val shaped = modifier.clip(CircleShape)
-    if (token != null) {
-        TokenIcon(token = token, modifier = shaped)
-    } else {
-        TokenIcon(image = null, modifier = shaped)
-    }
-}
-
-/**
  * Returns a human-readable relative timestamp, matching the behaviour of
  * `formatLastActivity` in `:shared:chat-ui` (but without depending on that module,
  * which would create a circular dep via chat → tokens → transaction-history).
  */
 @Composable
-private fun formatActivityTimestamp(instant: Instant): String {
+internal fun formatActivityTimestamp(instant: Instant): String {
     val context = LocalContext.current
     val is24Hour = DateFormat.is24HourFormat(context)
     val tz = TimeZone.currentSystemDefault()
