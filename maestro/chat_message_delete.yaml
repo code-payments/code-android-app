@@ -1,0 +1,55 @@
+appId: com.flipcash.app.android
+name: "Chat — delete a message for everyone"
+tags:
+  - smoke
+  - chat
+---
+# Delete is the one message action behind a confirmation. Closing the sheet ends the selection
+# either way, so the flow checks both the cancel and the confirm.
+#
+# Fund-safe, and self-cleaning: the message it deletes is the one it sent.
+- runFlow:
+    file: subflows/login_with_flags.yaml
+    env:
+      BETA_FLAGS: ""
+- runFlow: subflows/open_tip_chat.yaml
+
+- evalScript: ${output.body = 'e2e delete ' + Date.now()}
+- tapOn: { id: chat_message_input }
+- inputText: "${output.body}"
+- tapOn: { id: chat_send_icon }
+- extendedWaitUntil: { visible: "${output.body}", timeout: 10000 }
+
+# Backing out of the confirmation leaves the message alone — and drops the selection with it,
+# so the user isn't left behind the sheet with a bar they just backed out of.
+- runFlow:
+    file: subflows/select_own_message.yaml
+    env:
+      MESSAGE_BODY: "${output.body}"
+- runFlow:
+    file: subflows/tap_message_action.yaml
+    env:
+      ACTION_ID: action_delete_message
+      ACTION_LABEL: "Delete"
+- extendedWaitUntil: { visible: "Delete Message?", timeout: 5000 }
+- assertVisible: "This can't be undone"
+- back
+- assertNotVisible: "Delete Message?"
+- assertNotVisible: { id: action_clear_message_selection }
+- assertVisible: "${output.body}"
+
+# Confirming takes it out of the transcript.
+- runFlow:
+    file: subflows/select_own_message.yaml
+    env:
+      MESSAGE_BODY: "${output.body}"
+- runFlow:
+    file: subflows/tap_message_action.yaml
+    env:
+      ACTION_ID: action_delete_message
+      ACTION_LABEL: "Delete"
+- extendedWaitUntil: { visible: "Delete For Everyone", timeout: 5000 }
+- tapOn: "Delete For Everyone"
+- extendedWaitUntil: { notVisible: "${output.body}", timeout: 10000 }
+- assertNotVisible: { id: action_clear_message_selection }
+- assertVisible: { id: chat_screen }

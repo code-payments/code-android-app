@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -322,7 +323,12 @@ private fun MessageOverflow(actions: List<MessageAction>) {
 
     var expanded by remember { mutableStateOf(false) }
     Box {
-        AppBarDefaults.Overflow(onClick = { expanded = true })
+        // Which actions end up under here falls out of the width, so a UI test cannot know whether
+        // to reach for the icon or the menu. Tagging the button lets it ask.
+        AppBarDefaults.Overflow(
+            modifier = Modifier.testTag("action_message_overflow"),
+            onClick = { expanded = true },
+        )
         DropdownMenu(
             expanded = expanded,
             containerColor = CodeTheme.colors.brandLight,

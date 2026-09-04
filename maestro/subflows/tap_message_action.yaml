@@ -1,0 +1,22 @@
+# Taps one selection-bar action wherever it ended up. Requires env: ACTION_ID, ACTION_LABEL.
+#
+# The bar keeps as many actions inline as its width budget allows and puts the rest under an
+# overflow, so which of the two a given action is behind depends on the screen. The result of the
+# visibility check is latched before the tap, because tapping the action closes the bar and would
+# otherwise make a second `notVisible` branch fire as well.
+appId: com.flipcash.app.android
+---
+- evalScript: ${output.actionWasInline = false}
+- runFlow:
+    when:
+      visible:
+        id: "${ACTION_ID}"
+    commands:
+      - evalScript: ${output.actionWasInline = true}
+      - tapOn: { id: "${ACTION_ID}" }
+- runFlow:
+    when:
+      true: ${output.actionWasInline == false}
+    commands:
+      - tapOn: { id: action_message_overflow }
+      - tapOn: "${ACTION_LABEL}"

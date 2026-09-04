@@ -1,0 +1,12 @@
+# Long-presses a message and waits for the selection bar. Requires env: MESSAGE_BODY.
+#
+# Retried because a just-sent message is not selectable yet: resolveCapabilities returns nothing
+# while eventSequence is 0, and the text is in the transcript before the server acknowledges it.
+# The long-press is a one-shot, so waiting has to wrap the press rather than follow it.
+appId: com.flipcash.app.android
+---
+- retry:
+    maxRetries: 4
+    commands:
+      - longPressOn: "${MESSAGE_BODY}"
+      - assertVisible: { id: action_clear_message_selection }

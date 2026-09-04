@@ -1,0 +1,14 @@
+# Chats tab → the contact's tip conversation. Requires env: CONTACT_NAME.
+appId: com.flipcash.app.android
+---
+# The list is ordered by recency and carries the account's own self-tip chat, so index 0 is not
+# stably the contact — open it by name.
+- tapOn: { id: nav_chats }
+- extendedWaitUntil: { visible: { id: tips_screen }, timeout: 8000 }
+- assertVisible: { id: send_contact_row }
+- scrollUntilVisible:
+    element: "${CONTACT_NAME}"
+    direction: DOWN
+- tapOn: "${CONTACT_NAME}"
+- extendedWaitUntil: { visible: { id: chat_screen }, timeout: 8000 }
+- assertVisible: { id: chat_message_input }
