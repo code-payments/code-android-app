@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal
 import androidx.compose.foundation.text.input.TextFieldState
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.MessageCapability
+import com.flipcash.shared.chat.MessagePolicy
 import com.flipcash.shared.chat.models.ChatListItem
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -10,6 +11,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
@@ -56,6 +58,36 @@ class ChatMessageActionReducerTest {
 
         assertEquals(target, state.selection)
         assertEquals(target.capabilities, state.selectionCapabilities)
+    }
+
+    @Test
+    fun `selecting a bubble past its edit window drops Edit`() {
+        // The transcript resolved this bubble when it was mapped, which may have been well inside a
+        // window that has since closed. Offering Edit anyway costs a round-trip the server answers
+        // CANNOT_EDIT. sentAt is decades old, so any finite window here has closed.
+        val state = reduce(
+            ChatViewModel.State(messagePolicy = MessagePolicy(editWindow = 5.minutes)),
+            ChatViewModel.Event.ToggleMessageSelection(bubble(1)),
+        )
+
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Delete),
+            state.selectionCapabilities,
+        )
+    }
+
+    @Test
+    fun `selecting a bubble past its delete window drops Delete`() {
+        // Separate from the case above so a window wired to the wrong capability cannot pass both.
+        val state = reduce(
+            ChatViewModel.State(messagePolicy = MessagePolicy(deleteWindow = 5.minutes)),
+            ChatViewModel.Event.ToggleMessageSelection(bubble(1)),
+        )
+
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Edit),
+            state.selectionCapabilities,
+        )
     }
 
     @Test
