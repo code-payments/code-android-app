@@ -31,11 +31,13 @@ import com.getcode.util.resources.R
  * @param modifier caller-owned modifier for the header row (padding + `clickable`); full-width is applied
  *   internally.
  * @param itemPadding padding applied to each activity row (e.g. the screen's horizontal inset).
+ * @param onItemClick opens one entry's details; null leaves the rows inert.
  */
 fun LazyListScope.recentActivitySection(
     transactions: List<TransactionListItem>,
     modifier: Modifier = Modifier,
     itemPadding: PaddingValues = PaddingValues(),
+    onItemClick: ((TransactionListItem) -> Unit)? = null,
 ) {
     item(key = "recent_activity_header", contentType = "recent_activity_header") {
         RecentActivityHeader(modifier = modifier)
@@ -46,6 +48,7 @@ fun LazyListScope.recentActivitySection(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(itemPadding),
+            onClick = onItemClick?.let { click -> { click(item) } },
         )
     }
 }

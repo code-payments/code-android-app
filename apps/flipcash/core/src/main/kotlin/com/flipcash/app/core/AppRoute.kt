@@ -24,6 +24,7 @@ import com.flipcash.app.core.withdrawal.WithdrawalStep
 import com.getcode.navigation.flow.FlowRoute
 import com.getcode.navigation.flow.FlowRouteWithResult
 import com.getcode.navigation.flow.FlowStep
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.core.RestrictionType
@@ -185,6 +186,16 @@ sealed interface AppRoute : NavKey, Parcelable {
         /** Full unified paged activity history — the "dive in" from the wallet's recent-activity preview. */
         @Serializable
         data object ActivityHistory : Sheets
+
+        /**
+         * One activity entry, opened from its row (Figma node 9708:105260).
+         *
+         * Carries the entry's id rather than the row that was tapped: the screen re-reads the entry
+         * and stays live on it, so a cash link cancelled from this screen's own app bar redraws the
+         * screen the cancel was issued from.
+         */
+        @Serializable
+        data class TransactionDetails(val id: ID) : Sheets
 
         @Serializable
         data object Menu : Sheets

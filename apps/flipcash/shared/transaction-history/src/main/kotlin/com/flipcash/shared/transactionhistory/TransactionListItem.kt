@@ -1,6 +1,7 @@
 package com.flipcash.shared.transactionhistory
 
 import com.flipcash.services.models.UserProfile
+import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -46,6 +47,9 @@ sealed interface TransactionAvatar {
 
 data class TransactionListItem(
     val id: String,                      // stable paging key (message.id hex-encoded)
+    // The raw id, for opening the entry's details. Carried alongside [id] rather than decoded back
+    // out of it: [id] exists to be a paging key, and hex has no decoder in the app.
+    val messageId: ID,
     val title: String,                   // server-provided message.text
     val timestamp: Instant,
     val avatar: TransactionAvatar,

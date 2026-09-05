@@ -17,6 +17,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
+import com.flipcash.app.core.AppRoute
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
@@ -62,7 +63,11 @@ fun ActivityHistoryScreen() {
                 key = items.itemKey { it.id },
             ) { index ->
                 val item = items[index] ?: return@items
-                ActivityFeedRow(item = item, modifier = Modifier.fillMaxWidth())
+                ActivityFeedRow(
+                    item = item,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { navigator.push(AppRoute.Sheets.TransactionDetails(item.messageId)) },
+                )
             }
 
             item {

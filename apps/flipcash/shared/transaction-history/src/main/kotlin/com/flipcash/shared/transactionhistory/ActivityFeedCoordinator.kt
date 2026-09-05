@@ -23,6 +23,7 @@ import com.flipcash.services.models.NotificationState
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.transactionhistory.internal.TransactionDetailsMapper
 import com.flipcash.shared.transactionhistory.internal.TransactionItemMapper
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
@@ -79,6 +80,7 @@ class ActivityFeedCoordinator @Inject internal constructor(
     private val userManager: UserManager,
     private val tokenProvider: TokenMetadataProvider,
     private val transactionItemMapper: TransactionItemMapper,
+    private val transactionDetailsMapper: TransactionDetailsMapper,
     private val userProfiles: UserProfileDataSource,
     private val profileController: ProfileController,
 ) {
@@ -314,6 +316,59 @@ class ActivityFeedCoordinator @Inject internal constructor(
         combine(dataSource.observeRecent(mint, limit), resolvers) { messages, (profiles, tokens) ->
             messages.map { msg -> resolveRow(msg, profiles, tokens) }
         }
+
+    /**
+     * One entry, resolved for the details screen, and kept resolved.
+     *
+     * Observed rather than read once because the screen outlives the state it opened on: cancelling
+     * a cash link from its own app bar lands as a feed update, and the screen has to redraw from
+     * that rather than from what was tapped. Null while the id isn't cached — the same thing the
+     * screen shows before the first read lands.
+     */
+    fun transactionDetails(id: ID): Flow<ResolvedTransaction?> =
+        combine(dataSource.observeById(id), resolvers) { message, (profiles, tokens) ->
+            message?.let { resolveDetails(it, profiles, tokens) }
+        }
+
+    /**
+     * [resolveRow]'s work for a single entry, with the resolve-on-miss opened up.
+     *
+     * A row badges the mint only on a person-shaped avatar, so it fetches unheld metadata only
+     * there. The details screen names the mint on every kind — under the amount, and again as the
+     * token quantity on the receipt — so an unheld mint is worth the one memoized fetch whatever
+     * the entry was, and a convert's destination mint is worth it too.
+     */
+    private fun resolveDetails(
+        msg: ActivityFeedMessage,
+        profiles: Map<String, UserProfile>,
+        tokens: Map<Mint, Token>,
+    ): ResolvedTransaction {
+        val counterparty = counterpartyOf(msg.metadata)
+        counterparty
+            ?.takeUnless { profiles.containsKey(it.hexEncodedString()) }
+            ?.let(::ensureProfile)
+
+        val mint = msg.amount?.mint
+        val token = mint?.let { tokens[it] }
+        if (mint != null && token == null) ensureBadgeToken(mint)
+
+        val destinationMint = convertOf(msg.metadata)?.toMint?.let { Mint(it.bytes) }
+        val destinationToken = destinationMint?.let { tokens[it] }
+        if (destinationMint != null && destinationToken == null) ensureBadgeToken(destinationMint)
+
+        return ResolvedTransaction(
+            details = transactionDetailsMapper.map(
+                ActivityFeedMessageWithToken(
+                    message = msg,
+                    token = token,
+                    toToken = destinationToken,
+                ) to profiles
+            ),
+            message = msg,
+            counterpartyId = counterparty,
+            counterparty = counterparty?.let { profiles[it.hexEncodedString()] },
+        )
+    }
 
     /**
      * Observed profile + token caches, paired for a single [combine] against the cached pages. All

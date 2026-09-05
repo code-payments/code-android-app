@@ -49,6 +49,7 @@ import com.flipcash.app.tokens.SwapFlowScreen
 import com.flipcash.app.tokens.TokenInfoScreen
 import com.flipcash.app.tokens.TokenSelectScreen
 
+import com.flipcash.app.transactions.TransactionDetailsScreen
 import com.flipcash.app.transactions.TransactionHistoryScreen
 import com.flipcash.app.userflags.UserFlagsScreen
 import com.flipcash.app.userprofile.UpdateUserProfileFlowScreen
@@ -105,6 +106,7 @@ fun appEntryProvider(
     }
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
     annotatedEntry<AppRoute.Sheets.ActivityHistory> { ActivityHistoryScreen() }
+    annotatedEntry<AppRoute.Sheets.TransactionDetails> { key -> TransactionDetailsScreen(key.id) }
     annotatedEntry<AppRoute.Sheets.Menu> { MenuScreen() }
 
     // Messaging

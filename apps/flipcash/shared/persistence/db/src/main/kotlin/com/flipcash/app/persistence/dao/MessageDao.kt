@@ -20,6 +20,19 @@ interface MessageDao {
         return getMessageById(id.base58)
     }
 
+    /**
+     * One message, observed — the transaction details screen, which stays open across the entry's
+     * own state changes: a cash link cancelled from the screen's own app bar completes as a feed
+     * update, and the screen has to redraw from it rather than from what it opened on.
+     *
+     * Emits null while the id isn't cached, which is the same thing the screen shows before the
+     * first read lands.
+     */
+    @Query("SELECT * FROM messages WHERE idBase58 = :idBase58")
+    fun observeMessageById(idBase58: String): Flow<MessageEntity?>
+
+    fun observeMessageById(id: List<Byte>): Flow<MessageEntity?> = observeMessageById(id.base58)
+
     @RawQuery
     suspend fun queryDirectly(query: SupportSQLiteQuery): List<MessageEntity>
 

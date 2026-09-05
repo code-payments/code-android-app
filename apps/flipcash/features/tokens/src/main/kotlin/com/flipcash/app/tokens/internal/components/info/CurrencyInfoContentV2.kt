@@ -239,6 +239,13 @@ internal fun CurrencyInfoContentV2(
                             .padding(horizontal = inset)
                             .padding(top = grid.x5, bottom = grid.x1),
                         itemPadding = PaddingValues(horizontal = inset),
+                        onItemClick = { item ->
+                            dispatch(
+                                TokenInfoViewModel.Event.OpenScreen(
+                                    AppRoute.Sheets.TransactionDetails(item.messageId)
+                                )
+                            )
+                        },
                     )
                 }
 
