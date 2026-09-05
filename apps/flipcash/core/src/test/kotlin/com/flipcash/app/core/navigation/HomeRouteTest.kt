@@ -12,7 +12,7 @@ class HomeRouteTest {
 
     @Test
     fun `home is the wallet tab`() {
-        assertEquals(AppRoute.Sheets.Wallet, homeRoute)
+        assertEquals(AppRoute.Tabs.Wallet, homeRoute)
     }
 
     @Test

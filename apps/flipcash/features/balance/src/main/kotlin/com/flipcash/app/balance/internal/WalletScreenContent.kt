@@ -201,7 +201,7 @@ internal fun WalletScreenContent(
                             dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
                         }
                         is TutorialItem.ScanTipCard -> {
-                            dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Main.Scanner))
+                            dispatchEvent(WalletViewModel.Event.SwitchTab(AppRoute.Tabs.Scanner))
                         }
                     }
                 }
@@ -269,12 +269,12 @@ internal fun WalletScreenContent(
                 modifier = Modifier
                     .padding(top = grid.x2)
                     .clickable {
-                        dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Sheets.ActivityHistory))
+                        dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Main.ActivityHistory))
                     }
                     .padding(top = grid.x4, bottom = grid.x1),
                 onItemClick = { item ->
                     dispatchEvent(
-                        WalletViewModel.Event.OpenScreen(AppRoute.Sheets.TransactionDetails(item.messageId))
+                        WalletViewModel.Event.OpenScreen(AppRoute.Main.TransactionDetails(item.messageId))
                     )
                 },
             )

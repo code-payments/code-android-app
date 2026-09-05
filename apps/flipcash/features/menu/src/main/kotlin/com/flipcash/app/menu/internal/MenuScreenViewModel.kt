@@ -326,7 +326,7 @@ internal class MenuScreenViewModel @Inject constructor(
                     UsernameProgress.Unlocked -> dispatchEvent(
                         Event.OpenScreen(
                             AppRoute.UpdateUserProfile(
-                                origin = AppRoute.Sheets.Menu,
+                                origin = AppRoute.Tabs.Menu,
                                 steps = listOf(UpdateProfileStep.Username),
                             )
                         )
@@ -373,7 +373,7 @@ internal class MenuScreenViewModel @Inject constructor(
                 dispatchEvent(
                     Event.OpenScreen(
                         AppRoute.UpdateUserProfile(
-                            origin = AppRoute.Sheets.Menu,
+                            origin = AppRoute.Tabs.Menu,
                             // A name is all a tip card needs.
                             steps = listOf(UpdateProfileStep.Name(DisplayNameSource.TipCardSetup)),
                         )
@@ -388,7 +388,7 @@ internal class MenuScreenViewModel @Inject constructor(
                 dispatchEvent(
                     Event.OpenScreen(
                         AppRoute.UpdateUserProfile(
-                            origin = AppRoute.Sheets.Menu,
+                            origin = AppRoute.Tabs.Menu,
                             // The account already has a name and a card by the time this
                             // checklist is drawn, so the flow reduces to the one step.
                             steps = listOf(UpdateProfileStep.Photo),
@@ -404,7 +404,7 @@ internal class MenuScreenViewModel @Inject constructor(
                 dispatchEvent(
                     Event.OpenScreen(
                         AppRoute.UpdateUserProfile(
-                            origin = AppRoute.Sheets.Menu,
+                            origin = AppRoute.Tabs.Menu,
                             steps = listOf(UpdateProfileStep.MinimumTip),
                         )
                     )

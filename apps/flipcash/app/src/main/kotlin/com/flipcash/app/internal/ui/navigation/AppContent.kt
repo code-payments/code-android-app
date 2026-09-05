@@ -63,7 +63,7 @@ private fun isTokenInfoKey(key: Any?): Boolean {
 }
 
 /**
- * True when a scene key belongs to [AppRoute.Sheets.Give] (the give/cash screen, which is pushed
+ * True when a scene key belongs to [AppRoute.Main.Give] (the give/cash screen, which is pushed
  * rather than presented as a sheet). Same stringified-key match as [isTokenInfoKey].
  */
 private fun isGiveKey(key: Any?): Boolean =

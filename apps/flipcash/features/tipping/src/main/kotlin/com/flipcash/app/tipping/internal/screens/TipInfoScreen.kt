@@ -56,14 +56,14 @@ internal fun TipInfoScreen() {
                 onClick = {
                     flowNavigator.navigate(
                         AppRoute.UpdateUserProfile(
-                            origin = AppRoute.Sheets.Tips(),
+                            origin = AppRoute.Tabs.Tips(),
                             // A card only needs a name, and only if the account hasn't got one.
                             steps = if (userManager?.profile?.displayName.isNullOrEmpty()) {
                                 listOf(UpdateProfileStep.Name(DisplayNameSource.TipCardSetup))
                             } else {
                                 emptyList()
                             },
-                            target = AppRoute.Sheets.Tips(resumed = true),
+                            target = AppRoute.Tabs.Tips(resumed = true),
                         )
                     )
                 },

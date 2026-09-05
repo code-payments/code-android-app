@@ -23,7 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.billing.IapProduct
 import com.flipcash.app.billing.ProductPrice
-import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.navigation.homeRoute
 import com.flipcash.app.core.ui.BrandedGradientIcon
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.features.purchase.R
@@ -51,7 +51,8 @@ fun PurchaseAccountScreen(viewModel: PurchaseAccountViewModel) {
         viewModel.eventFlow
             .filterIsInstance<PurchaseAccountViewModel.Event.OnAccountCreated>()
             .onEach {
-                navigator.replaceAll(AppRoute.Main.Scanner)
+                // Releases to the same home the app launches on, like the rest of onboarding.
+                navigator.replaceAll(homeRoute)
             }.launchIn(this)
     }
 

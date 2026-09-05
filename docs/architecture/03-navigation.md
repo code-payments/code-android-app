@@ -54,9 +54,21 @@ sealed interface AppRoute : NavKey, Parcelable {
     sealed interface Token : AppRoute { /* Info, Swap, ... */ }
     sealed interface Transfers : AppRoute { /* Deposit, Withdrawal */ }
     sealed interface Messaging : AppRoute { /* Chat */ }
-    // Onboarding, Main, Sheets, Menu, ...
+    // Onboarding, Main, Tabs, Sheets, Menu, ...
 }
 ```
+
+Three of those groupings are about *how a route arrives*, and `resolveRoutes` reads
+them directly:
+
+- **`Tabs`** — the four nav-bar homes (`Scanner`, `Wallet`, `Tips`, `Menu`). A list
+  leading with one replaces the stack rather than pushing onto it.
+- **`Sheets`** — modals that host their own inner backstack. `resolveRoutes` wraps
+  one (plus whatever routes follow it) into `Main.Sheet`, seeding the sheet's nested
+  navigator. A modal needing no nested navigation skips this and implements
+  `com.getcode.navigation.Sheet` directly — that marker, not the grouping, is what
+  `ModalBottomSheetSceneStrategy` reads.
+- **`Main`** — ordinary pushes onto whatever stack the user is already on.
 
 Two marker interfaces from `com.getcode.navigation.flow` model multi-screen flows:
 
@@ -109,7 +121,7 @@ via an `entryProvider { … }` builder:
 fun appEntryProvider(/* ... */): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<AppRoute.Loading> { MainRoot(/* ... */) }
     annotatedEntry<AppRoute.OnboardingFlow> { key -> OnboardingFlowScreen(route = key, /* ... */) }
-    annotatedEntry<AppRoute.Sheets.Give> { key -> CashScreen(key.mint, key.fromTokenInfo) }
+    annotatedEntry<AppRoute.Main.Give> { key -> CashScreen(key.mint, key.fromTokenInfo) }
     annotatedEntry<AppRoute.Token.Info> { key -> TokenInfoScreen(mint = key.mint) }
     annotatedEntry<AppRoute.Token.Swap> { key -> SwapFlowScreen(route = key, /* ... */) }
     annotatedEntry<AppRoute.Transfers.Withdrawal> { key -> WithdrawalFlowScreen(route = key, /* ... */) }

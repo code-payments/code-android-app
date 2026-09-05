@@ -97,28 +97,86 @@ sealed interface AppRoute : NavKey, Parcelable {
             }
     }
 
+    /**
+     * Full-screen destinations pushed onto whichever stack the user is already on.
+     *
+     * The distinction that matters at navigation time is how a route arrives: a [Tabs] home
+     * replaces the stack, a [Sheets] route is presented over it in a modal, and everything here
+     * is an ordinary push.
+     */
     @Serializable
     @Parcelize
     sealed interface Main : AppRoute {
 
         @Serializable
         data class AppRestricted(val restrictionType: RestrictionType) : Main
-        @Serializable
-        data object Scanner : Main
 
         // TODO: is there a better place for this to live?
         @Serializable
         data object RegionSelection : Main
 
+        /** The give/cash screen, reached from the wallet tile and from a token's info screen. */
+        @Serializable
+        data class Give(val mint: Mint? = null, val fromTokenInfo: Boolean = false) : Main
+
+        /** Full unified paged activity history — the "dive in" from the wallet's recent-activity preview. */
+        @Serializable
+        data object ActivityHistory : Main
+
+        /**
+         * One activity entry, opened from its row (Figma node 9708:105260).
+         *
+         * Carries the entry's id rather than the row that was tapped: the screen re-reads the entry
+         * and stays live on it, so a cash link cancelled from this screen's own app bar redraws the
+         * screen the cancel was issued from.
+         */
+        @Serializable
+        data class TransactionDetails(val id: ID) : Main
+
+        /**
+         * A modal needing no nested navigation, so it carries the sheet marker directly rather
+         * than going through [Sheets] and [Sheet].
+         */
         @Serializable
         data class InviteContact(val phoneNumber: String) : com.getcode.navigation.Sheet, com.getcode.navigation.WrapContentSheet
 
+        /**
+         * A [Sheets] route hosted in a modal bottom sheet, its nested navigator seeded with
+         * [initialRoute] followed by [innerRoutes].
+         *
+         * Built by `openAsSheet`/`resolveRoutes`; nothing navigates to it directly.
+         */
         @Serializable
         @Parcelize
         data class Sheet(
             val initialRoute: AppRoute,
             val innerRoutes: List<AppRoute> = emptyList(),
         ) : Main, com.getcode.navigation.Sheet
+    }
+
+    /**
+     * The four tab homes the hoisted nav bar swaps between.
+     *
+     * A tab home replaces the current stack rather than stacking on it, which is the whole reason
+     * it is a type and not just a convention — `navigateAll` reads it off
+     * [com.flipcash.app.core.navigation.asNavBarTab], which is total over this hierarchy.
+     */
+    @Serializable
+    @Parcelize
+    sealed interface Tabs : AppRoute {
+        @Serializable
+        data object Scanner : Tabs
+
+        @Serializable
+        data object Wallet : Tabs
+
+        /** Home of the chats tab, seeded at the chats list. */
+        @Serializable
+        data class Tips(val resumed: Boolean = false) : Tabs
+
+        /** The "You" tab: the menu (settings) surface, augmented with the tip card and share. */
+        @Serializable
+        data object Menu : Tabs
     }
 
     @Serializable
@@ -161,17 +219,21 @@ sealed interface AppRoute : NavKey, Parcelable {
             get() = steps
     }
 
+    /**
+     * Modal bottom sheets that host their own inner backstack.
+     *
+     * Membership is what makes `resolveRoutes` wrap the route in [Main.Sheet], seeding that
+     * sheet's nested navigator with whatever routes followed it — that packing is the only thing
+     * this grouping buys, so a modal with no nested navigation does not belong here. Such a
+     * modal implements [com.getcode.navigation.Sheet] directly instead ([Main.InviteContact],
+     * [com.flipcash.app.core.chat.ChatStep.AmountEntry]); that marker, not this interface, is what
+     * the scene strategy reads to present a route as a sheet at all.
+     */
     @Serializable
     @Parcelize
     sealed interface Sheets : AppRoute {
         @Serializable
         data class TokenSelection(val purpose: TokenPurpose) : Sheets
-        @Serializable
-        data class Give(val mint: Mint? = null, val fromTokenInfo: Boolean = false) : Sheets
-
-        @Serializable
-        data class Tips(val resumed: Boolean = false): Sheets {
-        }
 
         /**
          * Custom tip-amount entry, opened over the still-visible tip card + modal. The entered
@@ -181,28 +243,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object TipAmountEntry : Sheets
 
         @Serializable
-        data object Wallet : Sheets
-
-        /** Full unified paged activity history — the "dive in" from the wallet's recent-activity preview. */
-        @Serializable
-        data object ActivityHistory : Sheets
-
-        /**
-         * One activity entry, opened from its row (Figma node 9708:105260).
-         *
-         * Carries the entry's id rather than the row that was tapped: the screen re-reads the entry
-         * and stays live on it, so a cash link cancelled from this screen's own app bar redraws the
-         * screen the cancel was issued from.
-         */
-        @Serializable
-        data class TransactionDetails(val id: ID) : Sheets
-
-        @Serializable
-        data object Menu : Sheets
-
-        @Serializable
         data object ShareApp : Sheets
-
     }
 
     @Serializable
