@@ -1,3 +1,6 @@
+import co.touchlab.kmmbridge.KmmBridgeExtension
+import org.gradle.api.tasks.bundling.Zip
+
 plugins {
     kotlin("multiplatform")
     id("com.android.kotlin.multiplatform.library")
@@ -68,5 +71,35 @@ kmmbridge {
     spm(spmDirectory = spmPackageDir, useCustomPackageFile = true, swiftToolVersion = "5.9") {
         iOS { v("15") }
         macOS { v("14") }
+    }
+}
+
+// KMMBridge 1.2.1's `zipXCFramework` task (a bare Gradle `Zip` task, only registered when
+// `ENABLE_PUBLISHING=true`) dereferences symlinks instead of preserving them. A macOS framework
+// bundle depends entirely on symlinks — `Versions/Current -> A`, and the top-level
+// Headers/Modules/Resources/binary each symlink into `Versions/Current/*` — so the archive it
+// produces for the macOS slice ships three literal duplicate copies of the same content instead of
+// a real `Versions/A` plus symlinks. That breaks codesign for anything that consumes the macOS
+// slice (nested-bundle signing needs the real bundle layout). `matching {}.configureEach {}` is a
+// no-op when the task doesn't exist (i.e. every non-publishing build), and applies once KMMBridge
+// registers it otherwise, regardless of task-registration order.
+tasks.withType<Zip>().matching { it.name == "zipXCFramework" }.configureEach {
+    // Resolved at configuration time — `project` can't be touched inside `doLast` under the
+    // configuration cache, so only plain values and the `ProviderFactory` itself cross into it.
+    val buildType = project.extensions.getByType<KmmBridgeExtension>().buildType.get().getName()
+    val sourceDir = project.layout.buildDirectory.dir("XCFrameworks/$buildType").get().asFile
+    val execOperations = project.providers
+    doLast {
+        val xcframeworkDir = sourceDir.listFiles { file -> file.isDirectory && file.name.endsWith(".xcframework") }
+            ?.singleOrNull()
+            ?: error("Expected exactly one .xcframework under $sourceDir")
+        val zipFile = archiveFile.get().asFile
+        zipFile.delete()
+        // `-y` stores symlinks as symlinks instead of following them (the default `zip` behavior,
+        // and Gradle's `Zip` task, both dereference).
+        execOperations.exec {
+            workingDir = sourceDir
+            commandLine("zip", "-y", "-r", zipFile.absolutePath, xcframeworkDir.name)
+        }.result.get()
     }
 }
