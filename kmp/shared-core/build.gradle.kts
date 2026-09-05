@@ -25,7 +25,7 @@ kotlin {
         minSdk = 29
     }
     
-    val appleTargets = listOf(iosArm64(), iosSimulatorArm64(), iosX64())
+    val appleTargets = listOf(iosArm64(), iosSimulatorArm64(), iosX64(), macosArm64(), macosX64())
     appleTargets.forEach {
         it.binaries.framework {
             baseName = "SharedCore"
@@ -36,6 +36,7 @@ kotlin {
             export(project(":libs:encryption:sha512"))
             export(project(":libs:encryption:hmac"))
             export(project(":libs:encryption:ed25519"))
+            export(project(":libs:encryption:mnemonic"))
         }
     }
 
@@ -48,6 +49,7 @@ kotlin {
                 api(project(":libs:encryption:sha512"))
                 api(project(":libs:encryption:hmac"))
                 api(project(":libs:encryption:ed25519"))
+                api(project(":libs:encryption:mnemonic"))
             }
         }
     }
@@ -65,5 +67,6 @@ kmmbridge {
     // with a custom file it's `spm/Package.swift` that decides, so keep the two in step.
     spm(spmDirectory = spmPackageDir, useCustomPackageFile = true, swiftToolVersion = "5.9") {
         iOS { v("15") }
+        macOS { v("14") }
     }
 }
