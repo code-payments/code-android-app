@@ -12,7 +12,7 @@ data class SharedCurveExchangeResult(val tokens: String, val fx: String)
  * their platform's own decimal type (`java.math.BigDecimal` on Android, `BigDecimal`/`Decimal` on
  * iOS) immediately on either side.
  */
-object SharedDiscreteCurve {
+object SharedBondingCurve {
     private const val MAX_SUPPLY = 21_000_000
 
     fun initialize(pricingTableBytes: ByteArray, cumulativeTableBytes: ByteArray) {

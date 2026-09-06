@@ -2,7 +2,7 @@ package com.flipcash.libs.currency.math.internal.curves
 
 import com.flipcash.libs.currency.math.BondingCurve
 import com.flipcash.libs.currency.math.Valuation
-import com.flipcash.libs.currency.math.curve.SharedDiscreteCurve
+import com.flipcash.libs.currency.math.curve.SharedBondingCurve
 import com.flipcash.libs.currency.math.internal.loader.TableByteLoader
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -21,7 +21,7 @@ internal class RawCurveTable(val size: Int, private val rawAt: (Int) -> String) 
 
 /**
  * Thin adapter delegating pricing to the shared KMP engine (`:libs:currency-math:discrete-curve`)
- * exported through `SharedDiscreteCurve`. All the actual table-lookup/binary-search/step-arithmetic
+ * exported through `SharedBondingCurve`. All the actual table-lookup/binary-search/step-arithmetic
  * logic now lives in that module's `commonMain` -- this object only converts to/from
  * `java.math.BigDecimal` at the boundary and keeps the pre-existing public shape
  * ([BondingCurve], [initialize]/[getOrThrow], and the raw-table/constant members below).
@@ -34,10 +34,10 @@ internal object DiscreteBondingCurve : BondingCurve {
     const val tablePrecision: Int = 18
 
     val pricingTable: RawCurveTable
-        get() = RawCurveTable(SharedDiscreteCurve.pricingTableSize()) { SharedDiscreteCurve.pricingTableRawAt(it) }
+        get() = RawCurveTable(SharedBondingCurve.pricingTableSize()) { SharedBondingCurve.pricingTableRawAt(it) }
 
     val cumulativeTable: RawCurveTable
-        get() = RawCurveTable(SharedDiscreteCurve.cumulativeTableSize()) { SharedDiscreteCurve.cumulativeTableRawAt(it) }
+        get() = RawCurveTable(SharedBondingCurve.cumulativeTableSize()) { SharedBondingCurve.cumulativeTableRawAt(it) }
 
     @Volatile
     private var initialized = false
@@ -51,7 +51,7 @@ internal object DiscreteBondingCurve : BondingCurve {
         }
         synchronized(this) {
             if (!initialized) {
-                SharedDiscreteCurve.initialize(pricingBytes, cumulativeBytes)
+                SharedBondingCurve.initialize(pricingBytes, cumulativeBytes)
                 initialized = true
             }
         }
@@ -64,29 +64,29 @@ internal object DiscreteBondingCurve : BondingCurve {
 
     override fun spotPriceAtSupply(supply: BigDecimal): Result<BigDecimal> = runCatching {
         val supplyInt = supply.setScale(0, RoundingMode.DOWN).toInt()
-        val result = SharedDiscreteCurve.spotPriceAtSupply(supplyInt)
+        val result = SharedBondingCurve.spotPriceAtSupply(supplyInt)
             ?: throw IllegalArgumentException("Supply out of range")
         BigDecimal(result)
     }
 
     override fun tokensToValue(currentSupply: BigDecimal, tokens: BigDecimal): Result<BigDecimal> = runCatching {
-        val result = SharedDiscreteCurve.tokensToValue(currentSupply.toPlainString(), tokens.toPlainString())
+        val result = SharedBondingCurve.tokensToValue(currentSupply.toPlainString(), tokens.toPlainString())
             ?: throw IllegalArgumentException("Cannot sell more tokens than current supply")
         BigDecimal(result)
     }
 
     override fun valueToTokens(currentSupply: BigDecimal, value: BigDecimal): Result<BigDecimal> = runCatching {
         val supplyInt = currentSupply.setScale(0, RoundingMode.DOWN).toInt()
-        val result = SharedDiscreteCurve.valueToTokens(supplyInt, value.toPlainString())
+        val result = SharedBondingCurve.valueToTokens(supplyInt, value.toPlainString())
             ?: throw IllegalArgumentException("At max supply")
         BigDecimal(result)
     }
 
     override fun tokensForValueExchange(currentValue: BigDecimal, value: BigDecimal): Result<Valuation.Tokens> = runCatching {
-        val result = SharedDiscreteCurve.tokensForValueExchange(currentValue.toPlainString(), value.toPlainString())
+        val result = SharedBondingCurve.tokensForValueExchange(currentValue.toPlainString(), value.toPlainString())
             ?: throw IllegalArgumentException("Invalid exchange")
         Valuation.Tokens(tokens = BigDecimal(result.tokens), fx = BigDecimal(result.fx))
     }
 
-    override fun formattedTable(): String = SharedDiscreteCurve.formattedTable()
+    override fun formattedTable(): String = SharedBondingCurve.formattedTable()
 }

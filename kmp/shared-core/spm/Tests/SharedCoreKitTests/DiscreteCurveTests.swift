@@ -2,7 +2,7 @@ import Testing
 import Foundation
 @testable import SharedCoreKit
 
-@Suite("SharedDiscreteCurve")
+@Suite("SharedBondingCurve")
 struct DiscreteCurveTests {
 
     struct Vector: Decodable {
@@ -36,7 +36,7 @@ struct DiscreteCurveTests {
     static let tablesLoaded: Void = {
         let pricing = try! Data(contentsOf: Bundle.module.url(forResource: "discrete_pricing_table", withExtension: "bin", subdirectory: "Fixtures")!)
         let cumulative = try! Data(contentsOf: Bundle.module.url(forResource: "discrete_cumulative_table", withExtension: "bin", subdirectory: "Fixtures")!)
-        SharedDiscreteCurve.initialize(pricingTableBytes: pricing, cumulativeTableBytes: cumulative)
+        SharedBondingCurve.initialize(pricingTableBytes: pricing, cumulativeTableBytes: cumulative)
     }()
 
     @Test("curve matches the canonical vectors")
@@ -46,10 +46,10 @@ struct DiscreteCurveTests {
         #expect(!fixture.vectors.isEmpty)
 
         for v in fixture.vectors {
-            let spot = try #require(SharedDiscreteCurve.spotPriceAtSupply(supply: v.currentSupply))
+            let spot = try #require(SharedBondingCurve.spotPriceAtSupply(supply: v.currentSupply))
             #expect(Decimal(string: spot) == Decimal(string: v.spotPrice), "spotPrice mismatch for \(v.name)")
 
-            let value = try #require(SharedDiscreteCurve.tokensToValue(currentSupply: "\(v.currentSupply)", tokens: "\(v.tokens)"))
+            let value = try #require(SharedBondingCurve.tokensToValue(currentSupply: "\(v.currentSupply)", tokens: "\(v.tokens)"))
             #expect(Decimal(string: value) == Decimal(string: v.value), "tokensToValue mismatch for \(v.name)")
         }
     }
@@ -61,7 +61,7 @@ struct DiscreteCurveTests {
         #expect(!fixture.vectors.isEmpty)
 
         for v in fixture.vectors {
-            let value = try #require(SharedDiscreteCurve.tokensToValue(currentSupply: v.currentSupply, tokens: v.tokens))
+            let value = try #require(SharedBondingCurve.tokensToValue(currentSupply: v.currentSupply, tokens: v.tokens))
             #expect(Decimal(string: value) == Decimal(string: v.value), "tokensToValue mismatch for \(v.name)")
         }
     }
@@ -79,7 +79,7 @@ struct DiscreteCurveTests {
         #expect(!fixture.tokensForValueExchange.isEmpty)
 
         for v in fixture.valueToTokens {
-            let actual = SharedDiscreteCurve.valueToTokens(currentSupply: v.currentSupply, value: v.value)
+            let actual = SharedBondingCurve.valueToTokens(currentSupply: v.currentSupply, value: v.value)
             guard let expected = v.tokens else {
                 #expect(actual == nil, "expected null for \(v.name), got \(actual ?? "nil")")
                 continue
@@ -89,7 +89,7 @@ struct DiscreteCurveTests {
         }
 
         for v in fixture.tokensForValueExchange {
-            let actual = SharedDiscreteCurve.tokensForValueExchange(currentValue: v.currentValue, value: v.value)
+            let actual = SharedBondingCurve.tokensForValueExchange(currentValue: v.currentValue, value: v.value)
             guard let expectedTokens = v.tokens, let expectedFx = v.fx else {
                 #expect(actual == nil, "expected null for \(v.name), got \(String(describing: actual))")
                 continue
