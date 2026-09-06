@@ -173,6 +173,7 @@ include(
     ":libs:crypto:solana",
     ":libs:currency",
     ":libs:currency-math",
+    ":libs:currency-math:discrete-curve",
     ":libs:datetime",
     ":libs:emojis",
     ":libs:encryption:base58",
