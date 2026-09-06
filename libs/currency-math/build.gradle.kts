@@ -17,6 +17,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
 
     implementation(libs.bundles.hilt)
+    implementation(project(":libs:currency-math:discrete-curve"))
 
     testFixturesImplementation(libs.kotlinx.coroutines.core)
 

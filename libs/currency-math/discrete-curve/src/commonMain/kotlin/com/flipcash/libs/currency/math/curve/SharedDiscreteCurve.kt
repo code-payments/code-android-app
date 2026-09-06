@@ -52,4 +52,13 @@ object SharedDiscreteCurve {
         DiscreteCurveEngine.supplyFromTVL(tvlQuarks)
 
     fun formattedTable(): String = DiscreteCurveEngine.formattedTable()
+
+    // Raw scaled-integer (18-decimal fixed point) table access -- exposed only for Android's
+    // pre-existing table-validation regression tests (`DiscreteBondingCurveTests.kt`), which predate
+    // this port and directly inspected the old `LazyBigDecimalTable`-backed representation. Not part
+    // of the pricing API proper; every real call site uses the human-scale methods above instead.
+    fun pricingTableSize(): Int = DiscreteCurveTables.pricingTable.size
+    fun cumulativeTableSize(): Int = DiscreteCurveTables.cumulativeTable.size
+    fun pricingTableRawAt(index: Int): String = DiscreteCurveTables.pricingTable[index].toString()
+    fun cumulativeTableRawAt(index: Int): String = DiscreteCurveTables.cumulativeTable[index].toString()
 }
