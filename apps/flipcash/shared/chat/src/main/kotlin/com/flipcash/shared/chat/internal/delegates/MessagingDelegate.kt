@@ -187,7 +187,11 @@ class MessagingDelegate @Inject constructor(
             }
     }
 
-    override suspend fun sendMessage(chatId: ChatId, content: String): Result<ChatMessage> {
+    override suspend fun sendMessage(
+        chatId: ChatId,
+        content: String,
+        replyToMessageId: Long?,
+    ): Result<ChatMessage> {
         if (content.isBlank()) {
             return Result.failure(IllegalArgumentException("Cannot send a blank message"))
         }
@@ -195,14 +199,19 @@ class MessagingDelegate @Inject constructor(
         val senderId = userManager.accountId
             ?: return Result.failure(IllegalStateException("Cannot send message without an account"))
 
-        val content = listOf(MessageContent.Text(content))
+        val body = listOf(MessageContent.Text(content))
+        // The optimistic row and the request carry the same payload, so the quote renders before
+        // the server answers rather than appearing when it does.
+        val payload = replyToMessageId
+            ?.let { listOf(MessageContent.Reply(repliedMessageId = it, content = body)) }
+            ?: body
         val (_, clientMessageId) = messageDataSource.insertPending(
             chatId = chatId,
-            content = content,
+            content = payload,
             senderId = senderId,
         )
 
-        return messagingController.sendMessage(chatId, content, clientMessageId)
+        return messagingController.sendMessage(chatId, payload, clientMessageId)
             .onSuccess { serverMessage ->
                 messageDataSource.confirmPending(chatId, clientMessageId, serverMessage)
                 advanceReadPointer(chatId, serverMessage.messageId)

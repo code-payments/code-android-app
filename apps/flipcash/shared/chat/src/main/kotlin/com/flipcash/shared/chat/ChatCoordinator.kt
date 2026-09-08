@@ -146,8 +146,18 @@ interface MessagingOperations {
     /** Fetches the full message history for [chatId] from the server and persists locally. */
     suspend fun loadMessages(chatId: ChatId)
 
-    /** Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage]. */
-    suspend fun sendMessage(chatId: ChatId, content: String): Result<ChatMessage>
+    /**
+     * Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage].
+     *
+     * [replyToMessageId] cites a message in the same chat, which wraps the body in
+     * [MessageContent.Reply]. It defaults to `null` so a caller with no message to cite — the
+     * notification quick-reply replies to a conversation, not to a message — is unchanged.
+     */
+    suspend fun sendMessage(
+        chatId: ChatId,
+        content: String,
+        replyToMessageId: Long? = null,
+    ): Result<ChatMessage>
 
     /** Retries a failed pending message: resets to SENDING and re-sends to the server. */
     suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage>
