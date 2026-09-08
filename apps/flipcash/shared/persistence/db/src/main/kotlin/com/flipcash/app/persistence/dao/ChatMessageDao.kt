@@ -13,10 +13,15 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ChatMessageDao {
 
-    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms ASC")
+    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms ASC, message_id ASC")
     fun observeMessages(chatIdHex: String): Flow<List<ChatMessageEntity>>
 
-    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms DESC")
+    /**
+     * `message_id` breaks ties because `timestamp_epoch_ms` alone is not a total order: messages
+     * sent in a burst, or stamped from one server clock read, share a millisecond. A paged read
+     * re-queries per page, so an unstable order there duplicates or skips a row across the seam.
+     */
+    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms DESC, message_id DESC")
     fun observeMessagesPaged(chatIdHex: String): PagingSource<Int, ChatMessageEntity>
 
     /**
@@ -60,6 +65,13 @@ interface ChatMessageDao {
 
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId LIMIT 1")
     suspend fun getMessage(chatIdHex: String, messageId: Long): ChatMessageEntity?
+
+    /**
+     * How many messages in [chatIdHex] are newer than [timestampEpochMs] — the distance back from
+     * the newest message, which is what bounds the walk to a quoted message.
+     */
+    @Query("SELECT COUNT(*) FROM chat_messages WHERE chat_id_hex = :chatIdHex AND timestamp_epoch_ms > :timestampEpochMs")
+    suspend fun countNewerThan(chatIdHex: String, timestampEpochMs: Long): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: ChatMessageEntity)
