@@ -107,6 +107,9 @@ fun TransactionDetailsContent(
                     modifier = Modifier.fillMaxWidth(),
                     text = stringResource(R.string.action_txnDetails_viewInChat),
                     buttonState = ButtonState.Filled05,
+                    // [DetailsCard]'s radius, not CodeButton's default 8dp — the fill alone is
+                    // not enough to read as one more card if the corners disagree.
+                    shape = CodeTheme.shapes.extraSmall,
                     onClick = onViewInChat,
                 )
             }
