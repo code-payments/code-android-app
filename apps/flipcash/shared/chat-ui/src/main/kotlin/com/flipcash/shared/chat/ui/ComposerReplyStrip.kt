@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
@@ -27,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -41,9 +39,8 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.PriceWithFlag
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
 
 /**
  * The quoted original above the composer while a reply is being written: a card carrying a rule in
@@ -54,6 +51,10 @@ import dev.chrisbanes.haze.blur.hazeBlur
  * the transcript rather than as part of the bar. That is also why the dismiss control is a filled
  * disc: the ground behind it samples whatever message is scrolled underneath, and a hairline glyph
  * on its own changed contrast as the transcript moved.
+ *
+ * The glass is the composer's own — the same [HazeMaterials.ultraThin] over the background, the same
+ * hairline in the divider colour, and the same shape as the field and the send-cash button. The
+ * strip sits directly above both, so anything else reads as a second, lighter surface.
  *
  * Deliberately not [ChatQuotePanel], which sits inside a filled bubble and is tinted by the author's
  * colour rather than blurred.
@@ -68,25 +69,16 @@ fun ComposerReplyStrip(
     val rule = quote.accent ?: CodeTheme.colors.tertiary
     val name = quote.nameAccent ?: rule
 
-    val shape = RoundedCornerShape(ComposerReplyStripDefaults.cornerRadius)
-    // Same liquid glass as the nav pill and the app bar's circular buttons: a wide blur plus a tint
-    // toward a grey lifted off the (near-black) background, so the card reads as light frosted glass
-    // above dark content rather than as the background tone. `clip` must precede `hazeBlur` to bound
-    // the blur to the rounded rect. Falls back to a near-opaque fill of the same tint when the host
-    // has no HazeState to sample.
-    val backdrop = CodeTheme.colors.background
-    val glassBlurRadius = CodeTheme.dimens.grid.x4
-    val glassTint = lerp(backdrop, Color.White, 0.18f)
-    // The HazeBlurStyle builder is not a @Composable scope, so theme reads are hoisted above it.
-    val liquidGlass = HazeBlurStyle {
-        blurRadius(glassBlurRadius)
-        backgroundColor(backdrop)
-        colorEffects(listOf(HazeColorEffect.tint(glassTint.copy(alpha = 0.72f))))
-    }
+    val shape = CodeTheme.shapes.medium
+    // The composer's material, not a brighter one: a tint of the background itself rather than of a
+    // grey lifted off it. `clip` must precede `hazeBlur` to bound the blur to the rounded rect.
+    // Falls back to the flat stand-in the bar's other controls use when the host has no HazeState to
+    // sample.
+    val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
     val ground = if (hazeState != null) {
-        Modifier.hazeBlur(HazeInput.Sources(hazeState), liquidGlass)
+        Modifier.hazeBlur(HazeInput.Sources(hazeState), material)
     } else {
-        Modifier.background(glassTint.copy(alpha = 0.9f))
+        Modifier.background(Color.White.copy(alpha = 0.1f))
     }
 
     Row(
@@ -98,7 +90,7 @@ fun ComposerReplyStrip(
             .fillMaxWidth()
             .clip(shape)
             .then(ground)
-            .border(CodeTheme.dimens.border, Color.White.copy(alpha = 0.08f), shape)
+            .border(CodeTheme.dimens.border, CodeTheme.colors.divider, shape)
             .heightIn(min = ComposerReplyStripDefaults.minHeight)
             .height(IntrinsicSize.Min)
             .padding(end = ComposerReplyStripDefaults.trailingPadding),
@@ -211,7 +203,6 @@ private fun QuoteLine(snippet: ChatQuoteSnippet) {
 
 /** Every measurement the strip makes, carried over from iOS. */
 private object ComposerReplyStripDefaults {
-    val cornerRadius = 14.dp
     val ruleWidth = 6.dp
     val gap = 9.dp
     val nameGap = 2.dp
