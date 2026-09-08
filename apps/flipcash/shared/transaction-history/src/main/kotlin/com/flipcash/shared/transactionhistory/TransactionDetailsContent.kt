@@ -106,7 +106,7 @@ fun TransactionDetailsContent(
                 CodeButton(
                     modifier = Modifier.fillMaxWidth(),
                     text = stringResource(R.string.action_txnDetails_viewInChat),
-                    buttonState = ButtonState.Filled10,
+                    buttonState = ButtonState.Filled05,
                     onClick = onViewInChat,
                 )
             }
