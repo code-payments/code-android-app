@@ -14,6 +14,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.HolderMetrics
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.MintMetadata
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.solana.keys.Mint
@@ -48,17 +49,22 @@ class TransactionDetailsMapperTest {
 
     private val vault = PublicKey.fromBase58("11111111111111111111111111111111")
 
+    private fun mint(byte: Byte) = Mint(List(32) { byte })
+
+    private val twentyDollars = LocalFiat(
+        usdf = Fiat(20.0, CurrencyCode.USD),
+        nativeAmount = Fiat(20.0, CurrencyCode.USD),
+    )
+
     private fun feedMessage(
         metadata: MessageMetadata?,
         text: String = "Sent",
         state: MessageState = MessageState.COMPLETED,
+        amount: LocalFiat = twentyDollars,
     ): ActivityFeedMessage = ActivityFeedMessage(
         id = listOf(0x01, 0x02, 0x03).map { it.toByte() },
         text = text,
-        amount = LocalFiat(
-            usdf = Fiat(20.0, CurrencyCode.USD),
-            nativeAmount = Fiat(20.0, CurrencyCode.USD),
-        ),
+        amount = amount,
         timestamp = Instant.fromEpochSeconds(1700000000L),
         state = state,
         metadata = metadata,
@@ -70,17 +76,23 @@ class TransactionDetailsMapperTest {
         state: MessageState = MessageState.COMPLETED,
         token: Token? = null,
         toToken: Token? = null,
+        amount: LocalFiat = twentyDollars,
     ): TransactionDetails = mapper.map(
         ActivityFeedMessageWithToken(
-            feedMessage(metadata, text, state),
+            feedMessage(metadata, text, state, amount),
             token = token,
             toToken = toToken,
         ) to cached
     )
 
-    private fun token(address: Mint, name: String, symbol: String): Token = MintMetadata(
+    private fun token(
+        address: Mint,
+        name: String,
+        symbol: String,
+        decimals: Int = 6,
+    ): Token = MintMetadata(
         address = address,
-        decimals = 6,
+        decimals = decimals,
         name = name,
         symbol = symbol,
         createdAt = null,
@@ -222,4 +234,60 @@ class TransactionDetailsMapperTest {
         // To/From row has nothing to render until one does.
         assertNull(map(MessageMetadata.WithdrewCrypto()).account)
     }
+
+    // region tokens
+
+    @Test
+    fun `the tokens row states the quantity the feed recorded, at the mint's own scale`() {
+        val jeffy = token(mint(1), "Jeffy", "JEFFY", decimals = 10)
+        // 1,204.905 JEFFY as the server sends it: ten-decimal quarks, verbatim.
+        val amount = LocalFiat(
+            underlyingTokenAmount = Fiat(quarks = 12_049_050_000_000L),
+            nativeAmount = Fiat(20.0, CurrencyCode.USD),
+            rate = Rate(fx = 1.0, currency = CurrencyCode.USD),
+            mint = jeffy.address,
+        )
+
+        val details = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId), token = jeffy, amount = amount)
+
+        assertEquals("1,204.905", details.tokenAmount)
+    }
+
+    @Test
+    fun `a mint with no launchpad metadata still states its quantity`() {
+        // The old reading priced the value against `launchpadMetadata.currentCirculatingSupplyQuarks`,
+        // which falls back to a supply of zero when the metadata hasn't resolved. Reading the
+        // recorded quantity has nothing to fall back from.
+        val jeffy = token(mint(1), "Jeffy", "JEFFY", decimals = 10)
+        val amount = LocalFiat(
+            underlyingTokenAmount = Fiat(quarks = 5_000_000_000L),
+            nativeAmount = Fiat(20.0, CurrencyCode.USD),
+            rate = Rate(fx = 1.0, currency = CurrencyCode.USD),
+            mint = jeffy.address,
+        )
+
+        assertNull(jeffy.launchpadMetadata)
+        assertEquals(
+            "0.5",
+            map(MessageMetadata.BoughtToken, token = jeffy, amount = amount).tokenAmount,
+        )
+    }
+
+    @Test
+    fun `the reserve's quantity is its dollars`() {
+        // USDF is one-to-one with its USD value and shares Fiat's six decimals, so the $20 the
+        // header shows is twenty tokens.
+        val details = map(MessageMetadata.DepositedCrypto, token = token(Mint.usdf, "Dollars", "USDF"))
+
+        assertEquals("20", details.tokenAmount)
+    }
+
+    @Test
+    fun `an unresolved mint leaves the tokens row out`() {
+        // Without the mint's decimals there is no scale to state the quarks at, and a wrong
+        // quantity is worse than none.
+        assertNull(map(MessageMetadata.DepositedCrypto, token = null).tokenAmount)
+    }
+
+    // endregion
 }

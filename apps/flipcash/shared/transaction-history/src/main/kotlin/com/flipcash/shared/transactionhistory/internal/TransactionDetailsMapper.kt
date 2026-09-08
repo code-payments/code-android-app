@@ -14,7 +14,7 @@ import com.flipcash.shared.transactionhistory.convertOf
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
-import com.getcode.solana.keys.Mint
+import com.getcode.opencode.model.financial.formattedQuantity
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import com.getcode.utils.hexEncodedString
@@ -163,20 +163,21 @@ private fun statusOf(state: MessageState, swapState: SwapState?): TransactionSta
 }
 
 /**
- * How many tokens the entry moved, formatted to the mint's own precision.
+ * How many tokens the entry moved.
  *
- * The reserve is one-to-one with its USD value, so it needs no curve. Every other mint is priced by
- * the bonding curve, and [Fiat.estimatedTokenAmountIn] prices it against the mint's *current*
- * supply — so this is the quantity that value is worth now, not what it bought at the time. Stating
- * it is still better than leaving the row blank, since the value is the same value the header shows.
+ * This is the quantity the feed recorded, not one re-derived from the mint's current supply. The
+ * server sends it on every entry — `CryptoPaymentAmount.quarks`, which
+ * [com.getcode.opencode.model.financial.LocalFiat.underlyingTokenAmount] carries verbatim: dollars
+ * for the reserve, that mint's own quarks for everything else. Pricing the value through the
+ * bonding curve instead would answer a different question — what it would buy today — and would
+ * drift further from what moved the longer ago the entry was. iOS reads the same field for the
+ * same row (`ExchangedFiat.onChainAmount`), so the two screens state one number.
+ *
+ * Without the mint there is no scale to write the quarks at, and a quantity at the wrong scale is
+ * worse than none — so an unresolved mint leaves the row out until it lands.
  */
 private fun tokenAmountOf(underlying: Fiat?, token: Token?): String? {
     underlying ?: return null
     token ?: return null
-    val quantity = if (token.address == Mint.usdf) {
-        underlying
-    } else {
-        Fiat.tokenBalance(underlying.quarks, token)
-    }
-    return quantity.estimatedTokenAmountIn(token)
+    return token.formattedQuantity(underlying.quarks)
 }

@@ -12,6 +12,10 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import java.math.BigDecimal
+import java.math.RoundingMode
+import java.text.DecimalFormat
+import java.util.Locale
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -177,6 +181,28 @@ data class MintMetadata(
     }
 
     companion object
+}
+
+/**
+ * [quarks] of this mint, written out as a quantity of tokens.
+ *
+ * The unit a quark is a fraction of is the mint's own, so the scale has to come from
+ * [MintMetadata.decimals] rather than a constant: the reserve has six, every launchpad mint has ten
+ * (`DefaultMintQuarksPerUnit`). Ten of them puts a full supply at 2.1e17 quarks, past the range
+ * where a `Double` still counts integers exactly, so the shift is done in [BigDecimal] — roughly
+ * 900,000 tokens is where dividing by a power of ten in floating point starts losing the low
+ * digits.
+ *
+ * Trailing zeros are dropped rather than padded out to [MintMetadata.decimals], since
+ * "1,204.9050000000" states no more than "1,204.905".
+ */
+fun Token.formattedQuantity(quarks: Long): String {
+    val formatter = DecimalFormat.getInstance(Locale.US).apply {
+        maximumFractionDigits = decimals
+        minimumFractionDigits = 0
+        roundingMode = RoundingMode.HALF_UP
+    }
+    return formatter.format(BigDecimal.valueOf(quarks).movePointLeft(decimals))
 }
 
 /**
