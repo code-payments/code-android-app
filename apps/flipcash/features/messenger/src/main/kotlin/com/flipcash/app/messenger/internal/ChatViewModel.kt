@@ -279,6 +279,13 @@ internal class ChatViewModel @Inject constructor(
         data object CancelEdit : Event
         data object EditingEnded : Event
 
+        /**
+         * Asks for a reply to [bubble]. Both entry points — the selection bar and the swipe — land
+         * here rather than on [ReplyToMessage], because turning a bubble into a citation needs the
+         * stored message, and that read belongs in one place.
+         */
+        data class ReplyRequested(val bubble: ChatListItem.ContentBubble) : Event
+
         /** Opens the composer's reply strip on an already-resolved citation. */
         data class ReplyToMessage(val quote: ChatQuote) : Event
         data object CancelReply : Event
@@ -872,6 +879,18 @@ internal class ChatViewModel @Inject constructor(
                 )
             }
             .launchIn(viewModelScope)
+
+        // A bubble is what the UI has; a citation is what the composer needs, and building one
+        // reads the stored message. A message this device never stored drops the request rather
+        // than opening a strip with nothing in it.
+        eventFlow.filterIsInstance<Event.ReplyRequested>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                val stored = chatCoordinator.getMessage(chatId, event.bubble.messageId)
+                    ?: return@onEach
+                dispatchEvent(Event.ReplyToMessage(stored.toQuote()))
+            }
+            .launchIn(viewModelScope)
     }
 
     /** Leaves edit mode, restoring the draft the edit interrupted. */
@@ -1317,6 +1336,11 @@ internal class ChatViewModel @Inject constructor(
                 Event.SubmitEdit -> { state -> state }
                 Event.CancelEdit -> { state -> state }
                 Event.EditingEnded -> { state -> state.copy(editing = null) }
+                // The strip opens on ReplyToMessage, once the citation resolves; all this does is
+                // take the selection bar down so the transcript is legible while that read runs.
+                is Event.ReplyRequested -> { state ->
+                    state.copy(selection = null, confirmingDelete = false)
+                }
                 is Event.ReplyToMessage -> { state ->
                     state.copy(
                         replyingTo = event.quote,

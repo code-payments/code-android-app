@@ -82,8 +82,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
 
             // Both reply entry points land on one event so the citation is resolved in one place;
-            // turning a bubble into a quote needs a database read. Wired in a later change.
-            is ChatAction.ReplyTo -> Unit
+            // turning a bubble into a quote needs a database read.
+            is ChatAction.ReplyTo -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.ReplyRequested(action.bubble))
+            }
 
             ChatAction.CancelReply -> {
                 viewModel.dispatchEvent(ChatViewModel.Event.CancelReply)
