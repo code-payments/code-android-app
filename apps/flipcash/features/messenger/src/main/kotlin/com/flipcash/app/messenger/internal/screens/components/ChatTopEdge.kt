@@ -38,7 +38,7 @@ internal object ChatTopEdge {
      * leaves alpha near a third behind the title. The extra distance both raises alpha there and
      * keeps the falloff from reading as a band across whichever bubble it lands on.
      */
-    private val FadeTail = 16.dp
+    private val FadeTail = 36.dp
 
     /**
      * How far short of the status bar's bottom edge the fade starts, so the strip behind the clock
@@ -48,11 +48,22 @@ internal object ChatTopEdge {
     private val OpaqueInsetTrim = 12.dp
 
     /**
-     * How far past the bar the blur takes to feather back to sharp. Everything above that boundary is
-     * blurred at full strength — iOS's `.soft` edge effect covers its whole region evenly and softens
-     * only at the edge, so a linear ramp from the very top leaves the title's depth barely touched.
+     * How far the blur takes to feather back to sharp. Everything above that falloff is blurred at
+     * full strength — iOS's `.soft` edge effect covers its whole region evenly and softens only at
+     * the edge, so a ramp starting at the very top leaves the title's depth barely touched.
+     *
+     * Long, because this is the distance over which a bubble goes from unreadable to readable and
+     * the eye follows it the whole way. Over a short one the same change of state arrives as an
+     * event rather than as a transition.
      */
-    private val BlurTail = 24.dp
+    private val BlurTail = 64.dp
+
+    /**
+     * How far above the bar's bottom edge the blur starts easing off. Holding full strength right to
+     * that edge means the falloff begins exactly where a bubble emerges, so the two coincide and
+     * read as one hard boundary; starting earlier separates them.
+     */
+    private val BlurHoldTrim = 16.dp
 
     /**
      * Deeper than the bottom bar's `ultraThin` material. The bottom bar sits over ordinary bubbles;
@@ -73,7 +84,19 @@ internal object ChatTopEdge {
     private const val BlurBrightness = 0.6f
 
     /** The region the blur covers at full strength, before the tail feathers it out. */
-    fun blurHold(barHeight: Dp): Dp = barHeight
+    fun blurHold(barHeight: Dp): Dp = (barHeight - BlurHoldTrim).coerceAtLeast(0.dp)
+
+    /**
+     * Where a ramp has got to, a fraction of the way along it.
+     *
+     * Smoothstep rather than a straight line. A linear ramp turns a corner at each end — full
+     * strength one pixel, already dropping the next — and those corners are what the eye picks out
+     * as the edges of a band, however long the ramp between them is. This leaves and arrives flat.
+     */
+    private fun eased(t: Float): Float = t * t * (3f - 2f * t)
+
+    /** Fractions along a ramp at which to sample [eased], enough for the steps not to show. */
+    private val RampSamples = floatArrayOf(0f, 0.15f, 0.3f, 0.45f, 0.6f, 0.75f, 0.9f, 1f)
 
     /**
      * Draws the fade behind the bar: opaque to [containerColor] behind the status bar, then a
@@ -87,16 +110,16 @@ internal object ChatTopEdge {
         val height = size.height + FadeTail.toPx()
         if (height <= 0f) return@drawBehind
         val hold = ((statusBars.toPx() - OpaqueInsetTrim.toPx()) / height).coerceIn(0f, 1f)
+        val stops = Array(RampSamples.size + 1) { index ->
+            if (index == 0) {
+                0f to containerColor
+            } else {
+                val t = RampSamples[index - 1]
+                (hold + t * (1f - hold)) to containerColor.copy(alpha = 1f - eased(t))
+            }
+        }
         drawRect(
-            brush = Brush.verticalGradient(
-                colorStops = arrayOf(
-                    0f to containerColor,
-                    hold to containerColor,
-                    1f to Color.Transparent,
-                ),
-                startY = 0f,
-                endY = height,
-            ),
+            brush = Brush.verticalGradient(colorStops = stops, startY = 0f, endY = height),
             size = Size(size.width, height),
         )
     }
@@ -141,7 +164,10 @@ internal object ChatTopEdge {
         radiusPx: Float,
     ): androidx.compose.ui.graphics.RenderEffect {
         val totalPx = holdPx + tailPx
-        val stops = floatArrayOf(0f, holdPx / totalPx, 1f)
+        val hold = holdPx / totalPx
+        val stops = FloatArray(RampSamples.size + 1) { index ->
+            if (index == 0) 0f else hold + RampSamples[index - 1] * (1f - hold)
+        }
 
         val blurred = RenderEffect.createColorFilterEffect(
             ColorMatrixColorFilter(
@@ -164,13 +190,16 @@ internal object ChatTopEdge {
             verticalMask(totalPx, stops, opaqueFirst = false),
             AndroidBlendMode.DST_IN,
         )
+        // PLUS, not SRC_OVER: the two masks are complements, so adding them weights each pixel
+        // between the copies exactly once. Compositing one over the other would put the lower
+        // through its own mask a second time, dipping the transition darker in the middle.
         return RenderEffect
-            .createBlendModeEffect(sharpRest, blurredTop, AndroidBlendMode.SRC_OVER)
+            .createBlendModeEffect(sharpRest, blurredTop, AndroidBlendMode.PLUS)
             .asComposeRenderEffect()
     }
 
     /**
-     * A mask running the height of the effect: opaque for the hold and falling off across the tail,
+     * A mask running the height of the effect: opaque for the hold and easing off across the tail,
      * or the exact complement of that, so the two together cover every pixel once.
      */
     @RequiresApi(Build.VERSION_CODES.S)
@@ -179,15 +208,13 @@ internal object ChatTopEdge {
         stops: FloatArray,
         opaqueFirst: Boolean,
     ): RenderEffect {
-        val near = if (opaqueFirst) AndroidColor.BLACK else AndroidColor.TRANSPARENT
-        val far = if (opaqueFirst) AndroidColor.TRANSPARENT else AndroidColor.BLACK
+        val colors = IntArray(stops.size) { index ->
+            val covered = if (index == 0) 0f else eased(RampSamples[index - 1])
+            val alpha = if (opaqueFirst) 1f - covered else covered
+            AndroidColor.argb((alpha * 255f).toInt(), 0, 0, 0)
+        }
         return RenderEffect.createShaderEffect(
-            LinearGradient(
-                0f, 0f, 0f, totalPx,
-                intArrayOf(near, near, far),
-                stops,
-                Shader.TileMode.CLAMP,
-            )
+            LinearGradient(0f, 0f, 0f, totalPx, colors, stops, Shader.TileMode.CLAMP)
         )
     }
 }
