@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.screens.components
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -10,12 +11,15 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListLayoutInfo
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -31,6 +35,7 @@ import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.screens.ChatAnimations
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatActionHandler
@@ -40,6 +45,7 @@ import com.flipcash.shared.chat.models.SeparatorConfig
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.rememberKeyboardController
 import com.getcode.util.vibration.LocalVibrator
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.dropWhile
@@ -116,6 +122,25 @@ internal fun MessageList(
             if (buried > 0) listState.animateScrollBy(buried.toFloat())
         }
 
+        // The mark a jump leaves on the message it landed on, so the scroll answers which message
+        // it was for. Held here rather than in ChatViewModel.State: it is a property of this list
+        // having moved, and it has to outlive the jump — jumpTarget is cleared the moment the
+        // scroll settles, and the flash is only starting there.
+        val attention = remember { Animatable(0f) }
+        var attentionId by remember { mutableStateOf<Long?>(null) }
+        // Counted rather than keyed on the id alone: tapping the same quote twice is two jumps, and
+        // an id that did not change would leave the second one dark.
+        var attentionRequest by remember { mutableIntStateOf(0) }
+        LaunchedEffect(attentionRequest) {
+            if (attentionRequest == 0) return@LaunchedEffect
+            attention.snapTo(1f)
+            delay(ChatAnimations.attentionHoldMs)
+            attention.animateTo(0f, ChatAnimations.attentionFade)
+        }
+        // Read in the draw phase, so the fade repaints the one bubble without recomposing the list.
+        // Remembered so the row keeps being handed the same reference and stays skippable.
+        val readAttention: () -> Float = remember { { attention.value } }
+
         // Walking the append path, rather than PagingConfig.jumpThreshold: a jump there routes
         // through PageFetcher::refresh with triggerRemoteRefresh set, so every tap would fire a
         // RemoteMediator refresh — token = null and a fetch of the newest page — to reach a message
@@ -150,7 +175,14 @@ internal fun MessageList(
                 index = indexOf(messages, target)
             }
 
-            index?.let { listState.animateScrollToItem(it) }
+            index?.let {
+                listState.centerItem(it)
+                attentionId = target
+                attentionRequest++
+            }
+            // Last, and it has to be: this clears jumpTarget, which is what this effect is keyed
+            // on, so the coroutine is cancelled here. The flash runs in its own effect for the
+            // same reason.
             onJumpConsumed()
         }
 
@@ -248,6 +280,11 @@ internal fun MessageList(
                     selecting = selecting,
                     focused = focused,
                     animateInsertion = animateInsertion,
+                    attention = if (bubble != null && bubble.messageId == attentionId) {
+                        readAttention
+                    } else {
+                        NoAttention
+                    },
                 )
             }
 
@@ -383,6 +420,56 @@ private fun indexOf(messages: LazyPagingItems<ChatListItem>, messageId: Long): I
     (0 until messages.itemCount).firstOrNull { i ->
         (messages.peek(i) as? ChatListItem.ContentBubble)?.messageId == messageId
     }
+
+/**
+ * Brings [index] to the middle of the transcript, which is where iOS lands a jump too
+ * (`ChatViewController.scrollToRow`, `.centeredVertically`).
+ *
+ * Two scrolls, because the height of the target is not known until something has laid it out. The
+ * first parks its leading edge — visually its bottom, this list is reverseLayout — at the middle,
+ * which is also what measures it; the second corrects by where it actually came to rest. Measuring
+ * rather than assuming is what makes the ends behave: a target close enough to the newest message
+ * that the list cannot scroll it to the middle stops short on the first pass, and the correction is
+ * then computed from where it stopped instead of pushing it further off.
+ *
+ * The correction is small whenever the first pass was free to land where it was asked, so what it
+ * reads as is the scroll settling rather than a second move.
+ */
+private suspend fun LazyListState.centerItem(index: Int) {
+    // Content padding is not transcript a message can sit in: the top of it is under the bar's fade,
+    // and the bottom is behind the composer.
+    val band = layoutInfo.centeringBand()
+    if (band.isEmpty()) {
+        animateScrollToItem(index)
+        return
+    }
+
+    animateScrollToItem(index, scrollOffset = -(band.last - band.first) / 2)
+
+    val landed = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return
+    val delta = centeringDelta(landed.offset, landed.size, layoutInfo.centeringBand())
+    if (delta != 0f) animateScrollBy(delta)
+}
+
+/** The part of the viewport a message can actually be centred in, in item-offset coordinates. */
+private fun LazyListLayoutInfo.centeringBand(): IntRange =
+    (viewportStartOffset + beforeContentPadding)..(viewportEndOffset - afterContentPadding)
+
+/**
+ * How far to scroll to bring an item of [itemHeight] currently at [itemOffset] to the middle of
+ * [band]. Positive is on toward the newest message.
+ *
+ * An item taller than the band cannot be centred, so it is aligned to the band's start instead —
+ * the edge the jump arrives from, since the reply that quoted it sits below it.
+ */
+internal fun centeringDelta(itemOffset: Int, itemHeight: Int, band: IntRange): Float {
+    val height = band.last - band.first
+    if (itemHeight >= height) return (itemOffset - band.first).toFloat()
+    return (itemOffset + itemHeight / 2f) - (band.first + height / 2f)
+}
+
+/** Handed to every row that is not the one a jump just landed on. */
+private val NoAttention: () -> Float = { 0f }
 
 private const val JUMP_PAGE_SIZE = 50
 private const val MAX_JUMP_ITEMS = 5_000
