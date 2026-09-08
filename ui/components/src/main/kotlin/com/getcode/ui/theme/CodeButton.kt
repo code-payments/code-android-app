@@ -62,6 +62,7 @@ import com.getcode.theme.Black50
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.Transparent
 import com.getcode.theme.White
+import com.getcode.theme.White05
 import com.getcode.theme.White10
 import com.getcode.theme.White20
 import com.getcode.theme.White50
@@ -76,6 +77,7 @@ enum class ButtonState {
     Filled50,
     Filled20,
     Filled10,
+    Filled05,
     BgBlur20,
     Subtle,
     ;
@@ -89,6 +91,7 @@ enum class ButtonState {
             Filled50 -> White50
             Filled20 -> White20
             Filled10 -> White10
+            Filled05 -> White05
             Subtle -> White
             BgBlur20 -> White20
         }
@@ -130,6 +133,15 @@ enum class ButtonState {
             Filled10 ->
                 ButtonDefaults.outlinedButtonColors(
                     backgroundColor = White10,
+                    disabledContentColor = White50,
+                    contentColor = textColor.takeOrElse { White },
+                )
+
+            // The card fill, for a button meant to read as one more card in a stack rather than
+            // as a control sitting on top of them.
+            Filled05 ->
+                ButtonDefaults.outlinedButtonColors(
+                    backgroundColor = White05,
                     disabledContentColor = White50,
                     contentColor = textColor.takeOrElse { White },
                 )
