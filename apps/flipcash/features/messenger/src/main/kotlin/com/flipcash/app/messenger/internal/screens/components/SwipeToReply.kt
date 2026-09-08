@@ -15,7 +15,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -27,31 +26,31 @@ internal enum class ReplyDragAnchor { Rest, Reply }
 /**
  * A trailing-ward drag on a message row that dispatches a reply.
  *
- * Ported from the legacy `MessageNode`, including its numbers. The row never settles open —
- * `confirmValueChange` always refuses — so the gesture is a pull that springs back: the haptic fires
- * the moment the threshold is crossed, and the action fires as the row returns, which is what makes
- * an abandoned drag cost nothing.
+ * The row never settles open — `confirmValueChange` always refuses — so the gesture is a pull that
+ * springs back: the haptic fires the moment the threshold is crossed, and the action fires as the
+ * row returns, which is what makes an abandoned drag cost nothing.
+ *
+ * The distances are iOS's, in absolute units rather than the fractions of screen width this was
+ * ported with. They have to be: [progress] is the fraction of the trigger distance travelled, and it
+ * is what draws the affordance, so a threshold that moves with the screen would put the icon at a
+ * different point of its reveal on every device — and on a 411dp screen the old 0.40 fraction put
+ * the trigger at roughly three times iOS's.
  */
 @Composable
 internal fun rememberSwipeToReply(
     enabled: Boolean,
     onReply: () -> Unit,
-): Modifier {
-    if (!enabled) return Modifier
-
+): SwipeToReplyState {
     val density = LocalDensity.current
     val vibrator = LocalVibrator.current
-    // The screen width, not the row's own. A row spans the transcript's full width, and reading it
-    // from BoxWithConstraints would mean building this modifier inside the constraints scope —
-    // which is not where the row's outer Box applies its modifiers.
-    val widthPx = with(density) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
-    val threshold = widthPx * SWIPE_THRESHOLD_FRACTION
+    val maxPx = with(density) { MAX_TRANSLATION.toPx() }
+    val triggerPx = with(density) { TRIGGER_THRESHOLD.toPx() }
     var crossed by remember { mutableStateOf(false) }
 
-    val anchors = remember(threshold) {
+    val anchors = remember(maxPx) {
         DraggableAnchors {
             ReplyDragAnchor.Rest at 0f
-            ReplyDragAnchor.Reply at threshold
+            ReplyDragAnchor.Reply at maxPx
         }
     }
 
@@ -63,7 +62,9 @@ internal fun rememberSwipeToReply(
         AnchoredDraggableState(
             initialValue = ReplyDragAnchor.Rest,
             anchors = anchors,
-            positionalThreshold = { it * 0.9f },
+            // A fraction of the distance between the anchors, so the trigger lands at
+            // TRIGGER_THRESHOLD rather than at the full travel.
+            positionalThreshold = { it * (triggerPx / maxPx) },
             velocityThreshold = { Float.POSITIVE_INFINITY },
             confirmValueChange = { target ->
                 if (target == ReplyDragAnchor.Reply && !crossed) {
@@ -90,18 +91,55 @@ internal fun rememberSwipeToReply(
         }
     }
 
-    return Modifier
-        .anchoredDraggable(
-            state = dragState,
-            orientation = Orientation.Horizontal,
+    // Nothing to drag and nothing to draw, but the hooks above still have to be called in the same
+    // order on every composition, so the disabled case is decided here rather than at the top.
+    if (!enabled) return SwipeToReplyState.Disabled
+
+    return remember(dragState, maxPx, triggerPx) {
+        SwipeToReplyState(
+            modifier = Modifier
+                .anchoredDraggable(
+                    state = dragState,
+                    orientation = Orientation.Horizontal,
+                )
+                .offset {
+                    IntOffset(x = dragState.clampedOffset(maxPx).roundToInt(), y = 0)
+                },
+            // Read through a lambda, not captured: this is sampled inside a graphicsLayer block, so
+            // the affordance redraws on every frame of the drag without recomposing the row.
+            offsetPx = { dragState.clampedOffset(maxPx) },
+            triggerPx = triggerPx,
         )
-        .offset {
-            IntOffset(
-                x = dragState.offset.coerceIn(0f, widthPx * MAX_OFFSET_FRACTION).roundToInt(),
-                y = 0,
-            )
-        }
+    }
 }
 
-private const val SWIPE_THRESHOLD_FRACTION = 0.40f
-private const val MAX_OFFSET_FRACTION = 0.30f
+/**
+ * What a row needs from the gesture: the modifier that carries it, and how far it has travelled, so
+ * the row can draw the affordance the drag is uncovering.
+ */
+internal class SwipeToReplyState(
+    val modifier: Modifier,
+    private val offsetPx: () -> Float,
+    private val triggerPx: Float,
+) {
+    /** How far the drag has come as a fraction of the distance that fires the reply, capped at 1. */
+    fun progress(): Float = (offsetPx() / triggerPx).coerceIn(0f, 1f)
+
+    companion object {
+        val Disabled = SwipeToReplyState(Modifier, { 0f }, 1f)
+    }
+}
+
+/**
+ * The drag's travel, capped at the full translation and never NaN — `offset` has no value until the
+ * anchors have been applied, and a NaN reaching `IntOffset` throws.
+ */
+@Suppress("DEPRECATION")
+private fun AnchoredDraggableState<ReplyDragAnchor>.clampedOffset(maxPx: Float): Float =
+    offset.takeIf { !it.isNaN() }?.coerceIn(0f, maxPx) ?: 0f
+
+/** iOS's `maxTranslation`: how far the row itself can move. */
+private val MAX_TRANSLATION = 64.dp
+
+/** iOS's `triggerThreshold`: the travel that arms the reply and fires the haptic. */
+private val TRIGGER_THRESHOLD = 48.dp

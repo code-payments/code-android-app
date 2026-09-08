@@ -403,6 +403,7 @@ internal class ChatViewModel @Inject constructor(
      */
     private suspend fun ChatMessage.toQuote(): ChatQuote {
         val body = content.firstOrNull()
+        val palette = senderId?.let { generateComplementaryColorPalette(it) }
         return ChatQuote(
             messageId = messageId,
             authorName = if (isFromSelf) {
@@ -429,7 +430,8 @@ internal class ChatViewModel @Inject constructor(
 
                 else -> ChatQuoteSnippet.Text("")
             },
-            accent = senderId?.let { generateComplementaryColorPalette(it)?.first },
+            accent = palette?.first,
+            nameAccent = palette?.second,
         )
     }
 

@@ -10,8 +10,15 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,6 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
@@ -120,6 +129,13 @@ internal fun MessageRow(
         label = "messageLift",
     )
 
+    val swipe = rememberSwipeToReply(
+        enabled = bubble != null &&
+            !selecting &&
+            MessageCapability.Reply in bubble.capabilities,
+        onReply = { bubble?.let { onAction(ChatAction.ReplyTo(it)) } },
+    )
+
     Box(
         modifier = Modifier
             .padding(bottom = bottomSpacing)
@@ -161,14 +177,7 @@ internal fun MessageRow(
             }
             // No swipe with the backdrop up either, and for the same reason: the bar is already
             // acting on a message.
-            .then(
-                rememberSwipeToReply(
-                    enabled = bubble != null &&
-                        !selecting &&
-                        MessageCapability.Reply in bubble.capabilities,
-                    onReply = { bubble?.let { onAction(ChatAction.ReplyTo(it)) } },
-                )
-            ),
+            .then(swipe.modifier),
     ) {
         when (item) {
             is ChatListItem.DateSeparator -> Box(insertionModifier) {
@@ -226,8 +235,60 @@ internal fun MessageRow(
                 }
             }
         }
+
+        SwipeToReplyAffordance(
+            progress = swipe::progress,
+            modifier = Modifier.align(Alignment.CenterStart),
+        )
     }
 }
+
+/**
+ * The mark the swipe uncovers: a circle in the gutter the row is opening, growing and fading in as
+ * the drag approaches the distance that fires the reply.
+ *
+ * Parked at a fixed offset rather than an animated one. The row it sits in is already translated by
+ * the drag, so the two move together, and the constant is iOS's per-frame centre
+ * (`affordanceInset + radius - maxTranslation`) restated as a leading edge, which drops the radius:
+ * the circle lands 20dp from the row's leading edge at full travel, and off that edge — clipped by
+ * the list, and transparent besides — at rest.
+ */
+@Composable
+private fun SwipeToReplyAffordance(
+    progress: () -> Float,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .offset(x = AFFORDANCE_INSET - SWIPE_MAX_TRANSLATION)
+            .size(AFFORDANCE_SIZE)
+            .graphicsLayer {
+                val fraction = progress()
+                alpha = fraction
+                // Never from nothing: the circle is already most of its size when it starts to
+                // show, so it reads as arriving rather than as inflating.
+                scaleX = 0.6f + 0.4f * fraction
+                scaleY = 0.6f + 0.4f * fraction
+            }
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.12f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            modifier = Modifier.size(AFFORDANCE_SIZE - AFFORDANCE_ICON_INSET * 2),
+            imageVector = Icons.AutoMirrored.Filled.Reply,
+            // Decorative: the gesture it marks is already reachable from the selection bar, which
+            // is what a screen reader drives the reply from.
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.75f),
+        )
+    }
+}
+
+private val AFFORDANCE_SIZE = 32.dp
+private val AFFORDANCE_INSET = 20.dp
+private val AFFORDANCE_ICON_INSET = 8.dp
+private val SWIPE_MAX_TRANSLATION = 64.dp
 
 @Composable
 private fun bottomSpacingFor(

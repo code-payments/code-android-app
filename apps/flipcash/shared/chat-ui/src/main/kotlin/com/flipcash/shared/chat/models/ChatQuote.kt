@@ -17,7 +17,8 @@ data class ChatQuote(
     val authorName: String,
     val snippet: ChatQuoteSnippet,
     /**
-     * The cited sender's colour, or `null` when the message carries no sender id.
+     * The cited sender's colour, used for the rule down the citation's leading edge, or `null` when
+     * the message carries no sender id.
      *
      * Nullable because the palette is: `generateComplementaryColorPalette` returns `null` for a
      * message with no id, and the fallback for that case is a theme colour only a composable can
@@ -25,6 +26,14 @@ data class ChatQuote(
      * per frame.
      */
     val accent: Color?,
+    /**
+     * The next stop of the same sender's palette, used for their name in the composer strip.
+     *
+     * Two stops rather than one because iOS draws the rule and the name in different colours, and
+     * the name sits on the bar's own ground where the rule's darker stop reads as muddy. Both come
+     * from the one derivation, so they cannot disagree about whose colour this is.
+     */
+    val nameAccent: Color?,
 )
 
 /** What a quote shows of the message it cites. */

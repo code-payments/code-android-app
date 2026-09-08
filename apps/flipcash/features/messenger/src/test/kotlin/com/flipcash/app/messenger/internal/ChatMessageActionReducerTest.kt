@@ -229,6 +229,7 @@ class ChatMessageActionReducerTest {
         authorName = "Ada",
         snippet = ChatQuoteSnippet.Text("the original"),
         accent = null,
+        nameAccent = null,
     )
 
     @Test

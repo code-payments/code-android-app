@@ -27,11 +27,14 @@ import com.getcode.ui.components.PriceWithFlag
 import com.getcode.ui.core.addIf
 
 /**
- * A citation of another message: an accent bar, the author's name, and a snippet of what they said.
+ * A citation of another message inside a sent bubble: an accent bar, the author's name, and a
+ * snippet of what they said.
  *
- * The same composable serves the composer strip and the panel inside a sent bubble, so the two can
- * never drift. Every styling decision lives here and in [QuotePanelDefaults] — the iOS reply UI is
- * still pending design review, and this keeps that review a one-file change.
+ * The composer's citation is [ComposerReplyStrip], not this. They looked like one component and
+ * were one until the composer half was matched to iOS, which draws a bare strip flush to the
+ * screen's edge rather than a card on a tinted ground. Sharing a composable across the two meant
+ * either padding one of them into the other's shape or carrying a mode flag, so they are separate
+ * and each keeps its styling in its own defaults object.
  */
 @Composable
 fun ChatQuotePanel(

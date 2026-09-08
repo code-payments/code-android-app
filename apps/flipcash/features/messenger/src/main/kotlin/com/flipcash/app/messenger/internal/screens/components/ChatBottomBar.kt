@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -48,8 +49,7 @@ import com.flipcash.app.messenger.internal.screens.ChatAnimations
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
-import com.flipcash.shared.chat.ui.ChatQuotePanel
-import com.getcode.ui.components.CircularIconButton
+import com.flipcash.shared.chat.ui.ComposerReplyStrip
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.ChatInputSubmit
 import com.getcode.ui.components.chat.TypingIndicator
@@ -126,7 +126,8 @@ internal fun UserControlBottomBar(
             AnimatedContent(
                 modifier = Modifier
                     .measured { buttonHeight = it.height }
-                    .padding(horizontal = CodeTheme.dimens.inset)
+                    // The horizontal inset sits on the composer row rather than here, because the
+                    // reply strip is a sibling of that row and has to reach the screen's edge.
                     .padding(vertical = CodeTheme.dimens.grid.x3)
                     .navigationBarsPadding()
                     // typingConstraints.enabled starts false and only resolves a frame or two after
@@ -166,36 +167,37 @@ internal fun UserControlBottomBar(
                     // the composer's text, while a reply's subject is a different message that is very
                     // likely scrolled off screen. Gated on canType so a reply strip never sits above a
                     // bar with nothing to send from.
-                    state.replyingTo?.takeIf { canType }?.let { quote ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = CodeTheme.dimens.grid.x2),
-                            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            ChatQuotePanel(
+                    //
+                    // The bar grows into the strip rather than the strip appearing over the bar, so
+                    // the reveal is a height animation with the content clipped by the edge that is
+                    // moving. `replyingTo` is held past the dismissal by AnimatedVisibility's own
+                    // retention, so the quote is still there to fade out on the way down.
+                    //
+                    // Held one target past the state: cancelling clears `replyingTo` on the frame
+                    // the collapse starts, and reading it directly would shrink an empty strip. It
+                    // still follows a live change, so replying to a second message while the strip
+                    // is up swaps the quote rather than keeping the first.
+                    var lastQuote by remember { mutableStateOf(state.replyingTo) }
+                    state.replyingTo?.let { lastQuote = it }
+                    AnimatedVisibility(
+                        visible = state.replyingTo != null && canType,
+                        enter = ChatAnimations.replySurfaceEnter,
+                        exit = ChatAnimations.replySurfaceExit,
+                    ) {
+                        lastQuote?.let { quote ->
+                            ComposerReplyStrip(
                                 quote = quote,
+                                onDismiss = { dispatch(ChatViewModel.Event.CancelReply) },
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .padding(bottom = CodeTheme.dimens.grid.x2)
                                     .testTag("composer_reply_strip"),
                             )
-                            CircularIconButton(
-                                onClick = { dispatch(ChatViewModel.Event.CancelReply) },
-                                testTag = "action_cancel_reply",
-                            ) { size ->
-                                Icon(
-                                    modifier = Modifier.requiredSize(size),
-                                    imageVector = Icons.Outlined.Close,
-                                    contentDescription = stringResource(R.string.action_cancelReply),
-                                    tint = Color.White,
-                                )
-                            }
                         }
                     }
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .padding(horizontal = CodeTheme.dimens.inset),
                         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                         verticalAlignment = Alignment.Bottom,
                     ) {
