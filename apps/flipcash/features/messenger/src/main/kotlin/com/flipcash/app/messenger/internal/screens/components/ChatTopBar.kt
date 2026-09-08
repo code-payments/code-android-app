@@ -58,17 +58,11 @@ import com.getcode.ui.core.measured
 import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.utils.KeyboardController
 import com.getcode.ui.utils.rememberKeyboardController
-import dev.chrisbanes.haze.HazeInput
-import dev.chrisbanes.haze.HazeProgressive
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.blur.HazeBlurStyle
-import dev.chrisbanes.haze.blur.hazeBlur
 
 @Composable
 internal fun ChatTopBar(
     navigator: CodeNavigator,
     state: ChatViewModel.State,
-    hazeState: HazeState,
     chatActionHandler: ChatActionHandler,
     dispatch: (ChatViewModel.Event) -> Unit,
 ) {
@@ -85,22 +79,7 @@ internal fun ChatTopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(edgeHeight)
-                // Blur first, colour over it: the blur is what stops the transcript being cut at a
-                // hard line under the bar, and the fade is what keeps a cash card's large white
-                // amount — still legible once blurred — from reading over the title.
-                .hazeBlur(
-                    input = HazeInput.Sources(hazeState),
-                    style = ChatTopEdge.blurStyle(bgColor),
-                )
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0f to bgColor,
-                            ChatTopEdge.opaqueStop(statusBars, edgeHeight) to bgColor,
-                            1f to Color.Transparent,
-                        )
-                    )
-                )
+                .background(ChatTopEdge.brush(bgColor, statusBars, titleHeight, edgeHeight))
         )
         // A message action takes the bar over rather than stacking a second one over it, so the
         // conversation's own actions can't be reached while one is pending. The takeover holds
@@ -128,17 +107,21 @@ internal fun ChatTopBar(
 }
 
 /**
- * How the transcript meets the bar: a progressive blur under it, and a fade to the background
- * colour over that.
+ * How the transcript meets the bar: a fade to the background colour, opaque behind the status bar
+ * and clear by the end of the tail.
  *
- * Both halves are carried over from iOS, where the bar has no background of its own — the soft
- * scroll-edge effect blurs what passes under it, and `TranscriptTopFade` takes that content to the
- * background colour, because blur alone leaves a cash card's amount readable over the title.
+ * Carried over from iOS's `TranscriptTopFade`, which exists because the bar has no background of
+ * its own. A cash card's amount is large white text, so without this it reads over the title and up
+ * into the status bar.
  */
 private object ChatTopEdge {
 
-    /** How far the effect runs past the bar's own height. */
-    val Tail = 24.dp
+    /**
+     * How far the fade runs past the bar's own height. The whole of the ramp from [BarEdgeAlpha] to
+     * transparent is spent here, so it is long enough that the ramp's own end doesn't read as a
+     * band across whatever bubble it lands on.
+     */
+    val Tail = 40.dp
 
     /**
      * How far short of the status bar's bottom edge the fade starts, so the strip behind the clock
@@ -146,31 +129,40 @@ private object ChatTopEdge {
      */
     private val OpaqueInsetTrim = 12.dp
 
-    /** Matched to the bottom bar's `ultraThin` material, so both edges soften by the same amount. */
-    private val BlurRadius = 20.dp
-
-    /** The fraction of [edgeHeight] that stays fully opaque before the gradient starts. */
-    fun opaqueStop(statusBars: Dp, edgeHeight: Dp): Float = when {
-        edgeHeight <= 0.dp -> 0f
-        else -> ((statusBars - OpaqueInsetTrim) / edgeHeight).coerceIn(0f, 1f)
-    }
+    /**
+     * How much scrim is left where the bar's own bottom edge is. Nearly all of it: a linear ramp
+     * across the whole region is down to roughly a third by the title's baseline, and white bubble
+     * text reads straight through. The ramp to transparent is spent almost entirely on [Tail],
+     * below the bar, where nothing has to stay legible.
+     */
+    private const val BarEdgeAlpha = 0.9f
 
     /**
-     * Blur only — no tint. The gradient painted over this is the whole of the darkening, and a
-     * material's own wash on top of it would double the scrim where they overlap.
+     * Opaque behind the status bar, still mostly opaque where the bar ends, clear by the end of the
+     * tail. The middle stop is keyed to the bar's own height rather than a fraction of the ramp, so
+     * a taller bar — the selection and editing modes — darkens over its whole height rather than
+     * running out partway down.
      */
-    fun blurStyle(containerColor: Color): HazeBlurStyle = HazeBlurStyle {
-        backgroundColor(containerColor)
-        blurRadius(BlurRadius)
-        // Strongest against the status bar and gone by the tail's end, so the transcript arrives at
-        // the bar already soft instead of crossing a line.
-        progressive(
-            HazeProgressive.verticalGradient(
-                startIntensity = 1f,
-                endIntensity = 0f,
+    fun brush(containerColor: Color, statusBars: Dp, titleHeight: Dp, edgeHeight: Dp): Brush {
+        val hold = opaqueStop(statusBars, edgeHeight)
+        val barEdge = fraction(titleHeight, edgeHeight).coerceIn(hold, 1f)
+        return Brush.verticalGradient(
+            colorStops = arrayOf(
+                0f to containerColor,
+                hold to containerColor,
+                barEdge to containerColor.copy(alpha = BarEdgeAlpha),
+                1f to Color.Transparent,
             )
         )
     }
+
+    /** The fraction of [edgeHeight] that stays fully opaque before the gradient starts. */
+    private fun opaqueStop(statusBars: Dp, edgeHeight: Dp): Float =
+        fraction(statusBars - OpaqueInsetTrim, edgeHeight)
+
+    /** [of] as a fraction of [total], clamped, and 0 before the bar has been measured. */
+    private fun fraction(of: Dp, total: Dp): Float =
+        if (total <= 0.dp) 0f else (of / total).coerceIn(0f, 1f)
 }
 
 /** What the bar is showing. The payload rides along so a crossfade-out still has it. */

@@ -129,7 +129,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             ChatTopBar(
                 navigator = navigator,
                 state = state,
-                hazeState = hazeState,
                 chatActionHandler = chatActionHandler,
                 dispatch = viewModel::dispatchEvent,
             )
