@@ -26,7 +26,12 @@ private const val SwapCoinRatio = 0.625f
 /**
  * A [TransactionAvatar] drawn as an image: the avatar centred in a box wide enough for the token
  * badge to overhang its bottom-right corner without pushing whatever sits beside it (Figma
- * 9717:14138). Every caller reserves the full slot, badge or not, so a list of them lines up.
+ * 9717:14138). Every badged caller reserves the full slot, carrying one or not, so a list of them
+ * lines up.
+ *
+ * [showBadge] turns the badge off for a caller that already names the token in its own right — see
+ * the details screen's header (Figma 9708:117414), where it would only repeat the line under the
+ * amount. The slot collapses to [size] with it, since there is then nothing to overhang.
  *
  * Shared between the activity row and the details screen it opens, at different sizes, so the
  * screen opens on exactly the avatar that was tapped rather than a second rendering of it.
@@ -47,10 +52,11 @@ fun TransactionAvatarImage(
     size: Dp = CodeTheme.dimens.staticGrid.x8,
     slotSize: Dp = CodeTheme.dimens.staticGrid.x10,
     badgeSize: Dp = CodeTheme.dimens.staticGrid.x4,
+    showBadge: Boolean = true,
     iconOverride: @Composable ((Any?) -> Any?) = { it },
 ) {
     Box(
-        modifier = modifier.requiredSize(slotSize),
+        modifier = modifier.requiredSize(if (showBadge) slotSize else size),
         contentAlignment = Alignment.Center,
     ) {
         val avatarModifier = Modifier
@@ -85,7 +91,7 @@ fun TransactionAvatarImage(
 
         // Ringed in the page background so the coin reads as sitting over the avatar rather than
         // being part of it — the same treatment [SwapAvatar] gives its overlapping pair.
-        avatar.badgeToken?.let { token ->
+        avatar.badgeToken?.takeIf { showBadge }?.let { token ->
             TokenIcon(
                 token = token,
                 iconOverride = iconOverride,
