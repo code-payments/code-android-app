@@ -18,9 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.getcode.opencode.compose.LocalExchange
@@ -142,14 +145,47 @@ fun ChatQuotePanel(
     }
 }
 
-/** Every measurement the panel makes, carried over from iOS. */
+/**
+ * The panel's measurements. Its typography and its accent come from iOS; its shape and its padding
+ * come from the bubble it sits in, because those are what read as wrong against the bubble's own
+ * edge rather than against the iOS panel. The rest are iOS's, and have no token to come from.
+ */
 private object QuotePanelDefaults {
-    val shape = RoundedCornerShape(8.dp)
-    val gap = 8.dp
-    val trailingPadding = 8.dp
-    val verticalPadding = 6.dp
+    /**
+     * Concentric with the bubble: an inner corner whose arc is the outer one less the gap between
+     * them holds that gap constant all the way round the turn. That only means anything because
+     * [BubbleDefaults.surroundInset] is the same gap on all three sides the panel touches — a panel
+     * inset by one number down the sides and another at the top has no single arc to parallel.
+     *
+     * Floored at the bubble's own flattened corner. iOS takes the arithmetic straight, but its 3pt
+     * result is a continuous curve; the same number as a circular arc draws a hard rectangle inside
+     * a rounded one, which is the thing being fixed rather than a tighter version of it.
+     */
+    val shape: Shape
+        @Composable get() = RoundedCornerShape(
+            max(
+                BubbleDefaults.cornerLarge - BubbleDefaults.surroundInset,
+                BubbleDefaults.cornerSmall,
+            )
+        )
+
+    /**
+     * One step in from the bubble's own padding on each axis. Matching the bubble exactly is what
+     * makes the panel read as nested, but at the panel's size it also leaves the two short lines
+     * swimming — a citation is glanced at, so it wants to be denser than the body it sits above.
+     * A step down the same grid keeps the relationship without the slack.
+     */
+    val gap: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x2
+    val trailingPadding: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x2
+    val verticalPadding: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x1
+
+    val cashGap: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x1
+
     val nameGap = 1.dp
-    val cashGap = 5.dp
     val accentWidth = 3.dp
     val flagSize = 14.dp
     const val groundAlpha = 0.14f

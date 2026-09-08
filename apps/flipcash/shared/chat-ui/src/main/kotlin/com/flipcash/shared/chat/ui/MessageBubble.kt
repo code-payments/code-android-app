@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -58,6 +59,7 @@ import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatQuote
+import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.SeparatorConfig
@@ -65,6 +67,8 @@ import com.getcode.opencode.compose.ExchangeStub
 import com.getcode.opencode.compose.LocalExchange
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.cornerRadius
+import com.getcode.theme.tiny
 import com.getcode.ui.components.PriceWithFlag
 import com.getcode.ui.core.addIf
 
@@ -193,8 +197,43 @@ private const val EDITED_MARKER_SLOT = "edited-marker"
 /** How white a bubble goes at the peak of the flash a jump leaves on it. */
 private const val ATTENTION_SCRIM_ALPHA = 0.14f
 
-/** Space between a reply's citation and its body. */
-private val QUOTE_GAP = 6.dp
+/**
+ * The citation over the body, with the narrower of the two stretched to the width of the wider.
+ *
+ * A [Column] would leave a short quote hanging inside a wider reply, and the panel is a filled
+ * surface, so the slack reads as a notch cut out of the bubble rather than as a quote that happens
+ * to be short. Filling the width outright is no better: it is the incoming maximum, not the
+ * sibling's width, so every reply would square off against the widest bubble the transcript allows.
+ *
+ * So the body is measured at its own width first and that width becomes the panel's floor. A quote
+ * longer than the reply keeps its own width and carries it out to the bubble, which is what makes
+ * this a floor rather than a fixed width.
+ */
+@Composable
+private fun QuotedBody(
+    gap: Dp,
+    quote: @Composable () -> Unit,
+    body: @Composable () -> Unit,
+) {
+    Layout(contents = listOf(quote, body)) { (quoteMeasurables, bodyMeasurables), constraints ->
+        val gapPx = gap.roundToPx()
+        val bodyPlaceable = bodyMeasurables.first().measure(
+            constraints.copy(minWidth = 0, minHeight = 0),
+        )
+        val quotePlaceable = quoteMeasurables.first().measure(
+            constraints.copy(
+                minWidth = bodyPlaceable.width.coerceAtMost(constraints.maxWidth),
+                minHeight = 0,
+            ),
+        )
+        val width = maxOf(quotePlaceable.width, bodyPlaceable.width)
+        val height = quotePlaceable.height + gapPx + bodyPlaceable.height
+        layout(width, height) {
+            quotePlaceable.place(0, 0)
+            bodyPlaceable.place(0, quotePlaceable.height + gapPx)
+        }
+    }
+}
 
 @Composable
 private fun TextBubble(
@@ -210,7 +249,19 @@ private fun TextBubble(
     onQuoteLongClick: (() -> Unit)? = null,
     attention: () -> Float = { 0f },
 ) {
-    Bubble(isFromSelf, position, maxWidth, modifier, attention = attention) {
+    // A reply hands the bubble the narrower surround, so the citation clears the body's own inset
+    // on both sides; the body then puts the difference back and keeps the inset it has without a
+    // quote. A bubble with no quote never widens, because the two are equal there.
+    val surround = if (quote != null) BubbleDefaults.surroundInset else BubbleDefaults.paddingHorizontal
+    val bodyInset = BubbleDefaults.paddingHorizontal - surround
+    Bubble(
+        isFromSelf,
+        position,
+        maxWidth,
+        modifier,
+        horizontalPadding = surround,
+        attention = attention,
+    ) {
         val linkStyle = SpanStyle(
             color = CodeTheme.colors.textMain,
             textDecoration = TextDecoration.Underline,
@@ -274,22 +325,10 @@ private fun TextBubble(
         // selection handle inside the bubble would consume it before the row ever sees it. Copying
         // a message is the selection bar's Copy action instead — the same trade WhatsApp makes.
         // The citation sits inside the bubble, above the body, so the two move together and the
-        // reply reads as one message rather than as a quote with a message under it. The panel
-        // wraps its content rather than filling the bubble: a one-word reply to a long message
-        // should not stretch to the full bubble width.
-        Column(verticalArrangement = Arrangement.spacedBy(QUOTE_GAP)) {
-            if (quote != null) {
-                ChatQuotePanel(
-                    quote = quote,
-                    onClick = onQuoteClick,
-                    onLongClick = onQuoteLongClick,
-                    // Tagged because the citation repeats the quoted message's own text, so a
-                    // UI test matching on that text cannot tell the two apart.
-                    modifier = Modifier.testTag("bubble_reply_quote"),
-                )
-            }
-
+        // reply reads as one message rather than as a quote with a message under it.
+        val bodyText = @Composable {
             Text(
+                modifier = Modifier.padding(horizontal = bodyInset),
                 text = laidOut,
                 inlineContent = inlineContent,
                 style = bodyStyle,
@@ -297,9 +336,30 @@ private fun TextBubble(
             )
         }
 
+        if (quote == null) {
+            bodyText()
+        } else {
+            QuotedBody(
+                gap = BubbleDefaults.surroundInset,
+                quote = {
+                    ChatQuotePanel(
+                        quote = quote,
+                        onClick = onQuoteClick,
+                        onLongClick = onQuoteLongClick,
+                        // Tagged because the citation repeats the quoted message's own text, so a
+                        // UI test matching on that text cannot tell the two apart.
+                        modifier = Modifier.testTag("bubble_reply_quote"),
+                    )
+                },
+                body = bodyText,
+            )
+        }
+
         if (isEdited) {
             Text(
-                modifier = Modifier.align(Alignment.BottomEnd),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = bodyInset),
                 text = markerLabel,
                 style = markerStyle,
                 color = CodeTheme.colors.textSecondary,
@@ -416,6 +476,39 @@ private fun CashBubble(
     }
 }
 
+/**
+ * The bubble's own geometry. Named rather than inlined because the citation panel inside a reply
+ * has to be laid out against it: a panel that picks its own corner radius and its own padding stops
+ * matching the bubble the moment either of these moves.
+ */
+internal object BubbleDefaults {
+    /** The radius of a corner on the outside of a same-sender run. */
+    val cornerLarge: Dp
+        @Composable get() = CodeTheme.shapes.medium.cornerRadius()
+
+    /** The flattened radius of a corner facing the rest of the run. */
+    val cornerSmall: Dp
+        @Composable get() = CodeTheme.shapes.tiny.cornerRadius()
+
+    val paddingHorizontal: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x3
+
+    val paddingVertical: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x2
+
+    /**
+     * The gap between the citation panel and the bubble, the same on the top, leading and trailing
+     * sides and again between the panel and the body beneath it. One number rather than three, so
+     * the panel's corner has a single surround to be concentric with and the quote, the body and
+     * the bubble's edges sit on one rhythm.
+     *
+     * The bubble's vertical margin, which is the narrower of its two insets: the body keeps the
+     * wider horizontal one, so the panel reaches past the text on both sides the way it does on iOS.
+     */
+    val surroundInset: Dp
+        @Composable get() = paddingVertical
+}
+
 @Composable
 private fun Bubble(
     isFromSelf: Boolean,
@@ -425,6 +518,7 @@ private fun Bubble(
     minWidth: Dp = 0.dp,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
+    horizontalPadding: Dp = BubbleDefaults.paddingHorizontal,
     attention: () -> Float = { 0f },
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -464,7 +558,10 @@ private fun Bubble(
                     onClick = { onClick?.invoke() },
                 )
             }
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(
+                horizontal = horizontalPadding,
+                vertical = BubbleDefaults.paddingVertical,
+            ),
     ) {
         content()
     }
@@ -472,8 +569,8 @@ private fun Bubble(
 
 @Composable
 fun bubbleShape(position: BubblePosition, isFromSelf: Boolean): Shape {
-    val l = 12.dp
-    val s = 4.dp
+    val l = BubbleDefaults.cornerLarge
+    val s = BubbleDefaults.cornerSmall
 
     val cornerSpec = spring<Dp>(dampingRatio = 0.68f, stiffness = 500f)
 
@@ -773,6 +870,53 @@ private fun Preview_Conversation() {
                 TextBubble("Thanks!", true, BubblePosition.Solo, 300.dp)
             }
         }
+    }
+}
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_TextBubble_Reply() {
+    TextBubble(
+        text = "on my way",
+        isFromSelf = true,
+        position = BubblePosition.Solo,
+        maxWidth = 300.dp,
+        quote = ChatQuote(
+            messageId = 1L,
+            authorName = "Alice",
+            snippet = ChatQuoteSnippet.Text("are you still coming tonight?"),
+            accent = Color(0xFF5B8DEF),
+            nameAccent = Color(0xFF8FB4F5),
+        ),
+    )
+}
+
+/**
+ * The citation against the bubble corners it is set into: a run's middle bubble flattens the
+ * corners the panel sits nearest, which is where an inner radius of its own would show.
+ */
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_GroupedBubbles_Reply() {
+    val quote = ChatQuote(
+        messageId = 1L,
+        authorName = "Alice",
+        snippet = ChatQuoteSnippet.Text("are you still coming tonight?"),
+        accent = Color(0xFF5B8DEF),
+        nameAccent = Color(0xFF8FB4F5),
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp), horizontalAlignment = Alignment.End) {
+        TextBubble("First message", true, BubblePosition.First, 300.dp)
+        TextBubble(
+            text = "on my way",
+            isFromSelf = true,
+            position = BubblePosition.Middle,
+            maxWidth = 300.dp,
+            quote = quote,
+        )
+        TextBubble("Third message", true, BubblePosition.Last, 300.dp)
     }
 }
 
