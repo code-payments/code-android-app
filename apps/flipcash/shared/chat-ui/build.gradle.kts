@@ -14,6 +14,8 @@ dependencies {
     implementation(project(":ui:core"))
     implementation(project(":ui:components"))
     implementation(project(":ui:theme"))
+    // CodeTheme.shapes is Material 2's Shapes, so reading it needs the M2 artifact on the classpath.
+    implementation(libs.compose.material)
     implementation(project(":ui:resources"))
     implementation(project(":services:flipcash"))
     implementation(project(":services:opencode-compose"))
