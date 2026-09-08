@@ -53,6 +53,7 @@ import com.getcode.theme.extraLarge
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.CircularIconButton
+import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.topFade
 import com.getcode.ui.core.measured
 import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.utils.KeyboardController
@@ -66,7 +67,6 @@ internal fun ChatTopBar(
     chatActionHandler: ChatActionHandler,
     dispatch: (ChatViewModel.Event) -> Unit,
 ) {
-    var titleHeight by remember { mutableStateOf(0.dp) }
     val bgColor = CodeTheme.colors.background
     val statusBars = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     // Held here rather than in the selection bar: KeyboardController.visible only starts tracking
@@ -74,13 +74,6 @@ internal fun ChatTopBar(
     // the IME already up — a controller created there would read it as hidden.
     val keyboard = rememberKeyboardController()
     Box {
-        val fadeHeight = ChatTopEdge.fadeHeight(titleHeight)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(fadeHeight)
-                .background(ChatTopEdge.fadeBrush(bgColor, statusBars, fadeHeight))
-        )
         // A message action takes the bar over rather than stacking a second one over it, so the
         // conversation's own actions can't be reached while one is pending. The takeover holds
         // through the edit that a selection can lead to: dropping back to the title bar mid-edit
@@ -91,10 +84,9 @@ internal fun ChatTopBar(
             else -> TopBarMode.Conversation
         }
         AnimatedContent(
-            modifier = Modifier.measured {
-                titleHeight = it.height
-                onBarHeightChange(it.height)
-            },
+            modifier = Modifier
+                .topFade(bgColor, statusBars)
+                .measured { onBarHeightChange(it.height) },
             targetState = mode,
             contentKey = { it::class },
             transitionSpec = { fadeIn() togetherWith fadeOut() },

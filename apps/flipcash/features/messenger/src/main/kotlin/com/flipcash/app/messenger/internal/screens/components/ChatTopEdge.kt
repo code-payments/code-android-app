@@ -8,6 +8,8 @@ import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -31,11 +33,12 @@ import android.graphics.Color as AndroidColor
 internal object ChatTopEdge {
 
     /**
-     * How far above the bar's bottom edge the fade finishes. iOS clears 8pt above a 44pt bar; the
-     * point is that the fade is spent by the time the title is passed, not that content is hidden
-     * all the way down. The blur carries the last of the transition.
+     * How far past the bar's bottom edge the fade runs. iOS finishes just short of that edge, which
+     * leaves alpha near a third behind the title — enough there, but not against a cash card's
+     * amount, which is large white text. Carrying the ramp past the bar puts roughly half alpha at
+     * the title instead, and the extra distance keeps the falloff from reading as a band.
      */
-    private val FadeEndInset = 10.dp
+    private val FadeTail = 16.dp
 
     /**
      * How far short of the status bar's bottom edge the fade starts, so the strip behind the clock
@@ -51,30 +54,39 @@ internal object ChatTopEdge {
      */
     private val BlurTail = 24.dp
 
-    /** Matched to the bottom bar's `ultraThin` material, so both edges soften by the same amount. */
-    private val BlurRadius = 20.dp
-
-    /** The region the fade covers, given the bar's measured height. */
-    fun fadeHeight(barHeight: Dp): Dp = (barHeight - FadeEndInset).coerceAtLeast(0.dp)
+    /**
+     * Deeper than the bottom bar's `ultraThin` material. The bottom bar sits over ordinary bubbles;
+     * this one has to hold up against an amount, so it needs the extra radius to stop the digits
+     * resolving through it.
+     */
+    private val BlurRadius = 28.dp
 
     /** The region the blur covers at full strength, before the tail feathers it out. */
     fun blurHold(barHeight: Dp): Dp = barHeight
 
     /**
-     * Opaque behind the status bar, then a straight ramp to transparent — iOS's three stops. Alpha
-     * lands near a third behind the title, which is only legible because the blur is under it.
+     * Draws the fade behind the bar: opaque to [containerColor] behind the status bar, then a
+     * straight ramp to transparent — iOS's three stops, run on past the bar's own bottom edge.
+     *
+     * Drawn rather than laid out because the ramp is longer than the bar. A sibling of that height
+     * would grow the top bar's slot, and the scaffold turns that slot's height into the transcript's
+     * content padding, so a purely visual tail would push every message down.
      */
-    fun fadeBrush(containerColor: Color, statusBars: Dp, fadeHeight: Dp): Brush {
-        val hold = when {
-            fadeHeight <= 0.dp -> 0f
-            else -> ((statusBars - OpaqueInsetTrim) / fadeHeight).coerceIn(0f, 1f)
-        }
-        return Brush.verticalGradient(
-            colorStops = arrayOf(
-                0f to containerColor,
-                hold to containerColor,
-                1f to Color.Transparent,
-            )
+    fun Modifier.topFade(containerColor: Color, statusBars: Dp): Modifier = drawBehind {
+        val height = size.height + FadeTail.toPx()
+        if (height <= 0f) return@drawBehind
+        val hold = ((statusBars.toPx() - OpaqueInsetTrim.toPx()) / height).coerceIn(0f, 1f)
+        drawRect(
+            brush = Brush.verticalGradient(
+                colorStops = arrayOf(
+                    0f to containerColor,
+                    hold to containerColor,
+                    1f to Color.Transparent,
+                ),
+                startY = 0f,
+                endY = height,
+            ),
+            size = Size(size.width, height),
         )
     }
 
