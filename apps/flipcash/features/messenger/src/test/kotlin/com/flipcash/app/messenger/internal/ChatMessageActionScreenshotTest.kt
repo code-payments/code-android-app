@@ -26,6 +26,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 import kotlin.time.Instant
+import dev.chrisbanes.haze.rememberHazeState
 
 /**
  * Renders the selection bar in each capability shape to a PNG so the bar's layout can be checked
@@ -98,6 +99,7 @@ class ChatMessageActionScreenshotTest {
                                 chatType = ChatType.CONTACT_DM,
                                 selection = selection,
                             ),
+                            hazeState = rememberHazeState(),
                             chatActionHandler = {},
                             dispatch = {},
                         )

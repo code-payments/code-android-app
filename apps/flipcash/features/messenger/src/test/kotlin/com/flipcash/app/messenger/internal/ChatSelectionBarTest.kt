@@ -23,6 +23,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.time.Instant
+import dev.chrisbanes.haze.rememberHazeState
 
 /**
  * What the selection bar offers is a function of the selected bubble's capabilities alone. A cash
@@ -59,6 +60,7 @@ class ChatSelectionBarTest {
                         chatType = ChatType.CONTACT_DM,
                         selection = cash,
                     ),
+                    hazeState = rememberHazeState(),
                     chatActionHandler = {},
                     dispatch = {},
                 )

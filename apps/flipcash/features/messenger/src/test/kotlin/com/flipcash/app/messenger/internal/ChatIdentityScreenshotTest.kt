@@ -29,6 +29,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 import kotlin.time.Instant
+import dev.chrisbanes.haze.rememberHazeState
 
 /**
  * Renders the DM info card in each identity state to a PNG so the name-or-handle rule can be
@@ -115,6 +116,7 @@ class ChatIdentityScreenshotTest {
                                     ChatType.CONTACT_DM
                                 },
                             ),
+                            hazeState = rememberHazeState(),
                             chatActionHandler = {},
                             dispatch = {},
                         )

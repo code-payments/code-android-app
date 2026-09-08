@@ -9,9 +9,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -36,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.messenger.internal.ChatViewModel
@@ -54,29 +58,45 @@ import com.getcode.ui.core.measured
 import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.utils.KeyboardController
 import com.getcode.ui.utils.rememberKeyboardController
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.hazeBlur
 
 @Composable
 internal fun ChatTopBar(
     navigator: CodeNavigator,
     state: ChatViewModel.State,
+    hazeState: HazeState,
     chatActionHandler: ChatActionHandler,
     dispatch: (ChatViewModel.Event) -> Unit,
 ) {
     var titleHeight by remember { mutableStateOf(0.dp) }
     val bgColor = CodeTheme.colors.background
+    val statusBars = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     // Held here rather than in the selection bar: KeyboardController.visible only starts tracking
     // from the composition it is created in, and the bar is composed after a long-press that leaves
     // the IME already up — a controller created there would read it as hidden.
     val keyboard = rememberKeyboardController()
     Box {
+        val edgeHeight = titleHeight + ChatTopEdge.Tail
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(titleHeight + 24.dp)
+                .height(edgeHeight)
+                // Blur first, colour over it: the blur is what stops the transcript being cut at a
+                // hard line under the bar, and the fade is what keeps a cash card's large white
+                // amount — still legible once blurred — from reading over the title.
+                .hazeBlur(
+                    input = HazeInput.Sources(hazeState),
+                    style = ChatTopEdge.blurStyle(bgColor),
+                )
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
                             0f to bgColor,
+                            ChatTopEdge.opaqueStop(statusBars, edgeHeight) to bgColor,
                             1f to Color.Transparent,
                         )
                     )
@@ -104,6 +124,52 @@ internal fun ChatTopBar(
                 is TopBarMode.Selecting -> MessageSelectionBar(target.selection, keyboard, dispatch)
             }
         }
+    }
+}
+
+/**
+ * How the transcript meets the bar: a progressive blur under it, and a fade to the background
+ * colour over that.
+ *
+ * Both halves are carried over from iOS, where the bar has no background of its own — the soft
+ * scroll-edge effect blurs what passes under it, and `TranscriptTopFade` takes that content to the
+ * background colour, because blur alone leaves a cash card's amount readable over the title.
+ */
+private object ChatTopEdge {
+
+    /** How far the effect runs past the bar's own height. */
+    val Tail = 24.dp
+
+    /**
+     * How far short of the status bar's bottom edge the fade starts, so the strip behind the clock
+     * and battery is solid background rather than a nearly-opaque scrim with a bubble under it.
+     */
+    private val OpaqueInsetTrim = 12.dp
+
+    /** Matched to the bottom bar's `ultraThin` material, so both edges soften by the same amount. */
+    private val BlurRadius = 20.dp
+
+    /** The fraction of [edgeHeight] that stays fully opaque before the gradient starts. */
+    fun opaqueStop(statusBars: Dp, edgeHeight: Dp): Float = when {
+        edgeHeight <= 0.dp -> 0f
+        else -> ((statusBars - OpaqueInsetTrim) / edgeHeight).coerceIn(0f, 1f)
+    }
+
+    /**
+     * Blur only — no tint. The gradient painted over this is the whole of the darkening, and a
+     * material's own wash on top of it would double the scrim where they overlap.
+     */
+    fun blurStyle(containerColor: Color): HazeBlurStyle = HazeBlurStyle {
+        backgroundColor(containerColor)
+        blurRadius(BlurRadius)
+        // Strongest against the status bar and gone by the tail's end, so the transcript arrives at
+        // the bar already soft instead of crossing a line.
+        progressive(
+            HazeProgressive.verticalGradient(
+                startIntensity = 1f,
+                endIntensity = 0f,
+            )
+        )
     }
 }
 

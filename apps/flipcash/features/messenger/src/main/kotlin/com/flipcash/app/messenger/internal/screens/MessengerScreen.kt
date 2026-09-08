@@ -125,7 +125,15 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         // The list runs the full height and passes under both bars, each of which fades it out
         // against the background at its own edge.
         barPlacement = ScaffoldBarPlacement.Overlay,
-        topBar = { ChatTopBar(navigator, state, chatActionHandler, viewModel::dispatchEvent) },
+        topBar = {
+            ChatTopBar(
+                navigator = navigator,
+                state = state,
+                hazeState = hazeState,
+                chatActionHandler = chatActionHandler,
+                dispatch = viewModel::dispatchEvent,
+            )
+        },
         bottomBar = {
             UserControlBottomBar(
                 state = state,
