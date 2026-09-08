@@ -34,6 +34,20 @@ val Shapes.xxl: CornerBasedShape
 fun Shapes.receipt(step: Dp = CodeTheme.dimens.grid.x2) = TriangleCutShape(step)
 
 /**
+ * This shape's corner radius as a [Dp], for a caller that has to recombine or animate the corners
+ * itself rather than hand the shape straight to a modifier.
+ *
+ * Reads [topStart]: a shape whose corners differ has no single radius to report, so this is for the
+ * uniform tokens in [shapes] and the extensions beside them.
+ */
+@Composable
+fun CornerBasedShape.cornerRadius(): Dp {
+    val density = LocalDensity.current
+    val ref = Size(10_000f, 10_000f)
+    return with(density) { topStart.toPx(ref, this).toDp() }
+}
+
+/**
  * Returns a new [RoundedCornerShape] whose corners are concentric with this shape,
  * inset by [inset]. Useful for nested rounded rectangles (e.g. a thumb inside a track)
  * where the inner corners should run parallel to the outer ones.
