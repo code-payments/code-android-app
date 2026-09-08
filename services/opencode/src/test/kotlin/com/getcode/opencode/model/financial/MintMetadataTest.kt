@@ -1,6 +1,7 @@
 package com.getcode.opencode.model.financial
 
 import com.getcode.opencode.model.ui.WindowedRange
+import com.getcode.solana.keys.Mint
 import com.getcode.opencode.tests.generateRandomPublicKeyForTest
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -80,6 +81,55 @@ class MintMetadataTest {
     fun `deltaForWindow on empty deltas returns 0`() {
         val metrics = HolderMetrics(currentHolders = 50, holderDeltas = emptyList())
         assertEquals(0, metrics.deltaForWindow(WindowedRange.LastDay))
+    }
+
+    // endregion
+
+    // region formattedQuantity
+
+    private fun mint(decimals: Int): Token {
+        val key = generateRandomPublicKeyForTest()
+        return MintMetadata(
+            address = Mint(key.bytes),
+            decimals = decimals,
+            name = "Jeffy",
+            symbol = "JEFFY",
+            createdAt = null,
+            description = "",
+            imageUrl = "",
+            vmMetadata = VmMetadata(vm = key, authority = key, lockDurationInDays = 21),
+            launchpadMetadata = null,
+            billCustomizations = null,
+            socialLinks = emptyList(),
+            holderMetrics = HolderMetrics.None,
+        )
+    }
+
+    @Test
+    fun `quarks are shifted by the mint's own decimals, not a constant`() {
+        // The same number of quarks is a thousandfold difference between a launchpad mint and the
+        // reserve, which is the whole reason the scale comes off the mint.
+        assertEquals("1,204.905", mint(decimals = 10).formattedQuantity(12_049_050_000_000L))
+        assertEquals("12,049,050", mint(decimals = 6).formattedQuantity(12_049_050_000_000L))
+    }
+
+    @Test
+    fun `trailing zeros are dropped`() {
+        assertEquals("0.5", mint(decimals = 10).formattedQuantity(5_000_000_000L))
+        assertEquals("20", mint(decimals = 6).formattedQuantity(20_000_000L))
+        assertEquals("0", mint(decimals = 10).formattedQuantity(0L))
+    }
+
+    @Test
+    fun `a quantity past a Double's exact range keeps its low digits`() {
+        // 1.2e17 quarks is well past 2^53, where a Double stops counting integers one at a time —
+        // shifting this in floating point loses the tail. A launchpad mint holds ten decimals and
+        // supplies run to 21 million tokens, so this is inside the range the screen has to state,
+        // not a contrived edge.
+        assertEquals(
+            "12,345,678.9012345678",
+            mint(decimals = 10).formattedQuantity(123_456_789_012_345_678L),
+        )
     }
 
     // endregion

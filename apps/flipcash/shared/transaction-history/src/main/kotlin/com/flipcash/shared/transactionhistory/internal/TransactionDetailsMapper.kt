@@ -14,13 +14,10 @@ import com.flipcash.shared.transactionhistory.convertOf
 import com.getcode.opencode.mapper.Mapper
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.formattedQuantity
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import com.getcode.utils.hexEncodedString
-import java.math.BigDecimal
-import java.math.RoundingMode
-import java.text.DecimalFormat
-import java.util.Locale
 import javax.inject.Inject
 
 /**
@@ -166,7 +163,7 @@ private fun statusOf(state: MessageState, swapState: SwapState?): TransactionSta
 }
 
 /**
- * How many tokens the entry moved, formatted to the mint's own precision.
+ * How many tokens the entry moved.
  *
  * This is the quantity the feed recorded, not one re-derived from the mint's current supply. The
  * server sends it on every entry — `CryptoPaymentAmount.quarks`, which
@@ -176,17 +173,11 @@ private fun statusOf(state: MessageState, swapState: SwapState?): TransactionSta
  * drift further from what moved the longer ago the entry was. iOS reads the same field for the
  * same row (`ExchangedFiat.onChainAmount`), so the two screens state one number.
  *
- * Trailing zeros are dropped rather than padded to [Token.decimals]: a launchpad mint has ten of
- * them, and "1,204.9050000000" states no more than "1,204.905".
+ * Without the mint there is no scale to write the quarks at, and a quantity at the wrong scale is
+ * worse than none — so an unresolved mint leaves the row out until it lands.
  */
 private fun tokenAmountOf(underlying: Fiat?, token: Token?): String? {
     underlying ?: return null
     token ?: return null
-    val quantity = BigDecimal.valueOf(underlying.quarks).movePointLeft(token.decimals)
-    val formatter = DecimalFormat.getInstance(Locale.US).apply {
-        maximumFractionDigits = token.decimals
-        minimumFractionDigits = 0
-        roundingMode = RoundingMode.HALF_UP
-    }
-    return formatter.format(quantity)
+    return token.formattedQuantity(underlying.quarks)
 }
