@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
@@ -253,7 +254,13 @@ private fun TextBubble(
         // should not stretch to the full bubble width.
         Column(verticalArrangement = Arrangement.spacedBy(QUOTE_GAP)) {
             if (quote != null) {
-                ChatQuotePanel(quote = quote, onClick = onQuoteClick)
+                ChatQuotePanel(
+                    quote = quote,
+                    onClick = onQuoteClick,
+                    // Tagged because the citation repeats the quoted message's own text, so a
+                    // UI test matching on that text cannot tell the two apart.
+                    modifier = Modifier.testTag("bubble_reply_quote"),
+                )
             }
 
             Text(

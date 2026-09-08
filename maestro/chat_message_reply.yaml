@@ -1,0 +1,82 @@
+appId: com.flipcash.app.android
+name: "Chat — reply to a message"
+tags:
+  - smoke
+  - chat
+---
+# Reply has two ways in — the selection bar and a trailing-ward swipe — and both open the same
+# strip above the composer. Where an edit takes the composer over and stashes what was in it, a
+# reply cites a different message and so leaves the draft alone; that is the discriminating
+# assertion here.
+#
+# Fund-safe. Everything it cites and sends is its own, like chat_message_selection.yaml.
+- runFlow:
+    file: subflows/login_with_flags.yaml
+    env:
+      BETA_FLAGS: ""
+- runFlow: subflows/open_tip_chat.yaml
+
+- evalScript: ${output.body = 'e2e reply-to ' + Date.now()}
+- evalScript: ${output.draft = 'e2e draft ' + Date.now()}
+
+- tapOn: { id: chat_message_input }
+- inputText: "${output.body}"
+- tapOn: { id: chat_send_icon }
+- extendedWaitUntil: { visible: "${output.body}", timeout: 10000 }
+
+# An unsent draft for the strip to sit above rather than displace.
+- tapOn: { id: chat_message_input }
+- inputText: "${output.draft}"
+- assertVisible: "${output.draft}"
+
+# Entry point one: the selection bar. Reply leads the bar, so it is inline unless the screen is
+# narrow enough to push it under the overflow — the subflow handles either.
+- runFlow:
+    file: subflows/select_own_message.yaml
+    env:
+      MESSAGE_BODY: "${output.body}"
+- runFlow:
+    file: subflows/tap_message_action.yaml
+    env:
+      ACTION_ID: action_reply_message
+      ACTION_LABEL: "Reply"
+- assertVisible: { id: composer_reply_strip }
+- assertVisible: { id: action_cancel_reply }
+# The composer is still a composer: the draft is untouched and send is still send, neither of
+# which is true during an edit.
+- assertVisible: "${output.draft}"
+- assertVisible: { id: chat_send_icon }
+
+# Taking the strip down leaves the draft where it was.
+- tapOn: { id: action_cancel_reply }
+- assertNotVisible: { id: composer_reply_strip }
+- assertVisible: "${output.draft}"
+
+# Entry point two: the swipe. The row never settles open — it springs back and dispatches on the
+# way home — so there is nothing to undo afterwards, and the strip is the only evidence it fired.
+- swipe:
+    from:
+      text: "${output.body}"
+    direction: RIGHT
+    duration: 400
+- extendedWaitUntil: { visible: { id: composer_reply_strip }, timeout: 5000 }
+
+# Sending with the strip up carries the citation. The draft is what goes out — it has sat through
+# both entry points untouched, so sending it is the same assertion carried one step further. It is
+# also the only way to be sure of what is in the composer: a tap puts the cursor where it lands,
+# so `eraseText` clears back to that point and leaves the rest.
+- tapOn: { id: chat_send_icon }
+
+# The citation renders on the optimistic row, before the server has answered. Asserted by id
+# rather than by the quoted text, which is the original message's own body and so matches the
+# bubble above as well.
+- extendedWaitUntil: { visible: "${output.draft}", timeout: 10000 }
+- assertVisible: { id: bubble_reply_quote }
+- assertNotVisible: { id: composer_reply_strip }
+
+# The citation is live. This transcript is short enough that the cited message is already on
+# screen, so what this checks is that the tap resolves and the walk leaves the chat intact —
+# not the scroll distance.
+- tapOn: { id: bubble_reply_quote }
+- assertVisible: "${output.body}"
+- assertVisible: { id: chat_screen }
