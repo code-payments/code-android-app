@@ -59,7 +59,8 @@ class ChatSelectionBarTest {
                         chatType = ChatType.CONTACT_DM,
                         selection = cash,
                     ),
-                    chatActionHandler = {},
+                        onBarHeightChange = {},
+                chatActionHandler = {},
                     dispatch = {},
                 )
             }

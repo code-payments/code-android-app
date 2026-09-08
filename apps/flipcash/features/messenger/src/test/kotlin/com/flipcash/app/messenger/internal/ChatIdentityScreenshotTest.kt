@@ -115,7 +115,8 @@ class ChatIdentityScreenshotTest {
                                     ChatType.CONTACT_DM
                                 },
                             ),
-                            chatActionHandler = {},
+                                        onBarHeightChange = {},
+                chatActionHandler = {},
                             dispatch = {},
                         )
                     }
