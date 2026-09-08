@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.screens.components
 
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.LinearGradient
 import android.graphics.RenderEffect
 import android.graphics.Shader
@@ -34,9 +35,8 @@ internal object ChatTopEdge {
 
     /**
      * How far past the bar's bottom edge the fade runs. iOS finishes just short of that edge, which
-     * leaves alpha near a third behind the title — enough there, but not against a cash card's
-     * amount, which is large white text. Carrying the ramp past the bar puts roughly half alpha at
-     * the title instead, and the extra distance keeps the falloff from reading as a band.
+     * leaves alpha near a third behind the title. The extra distance both raises alpha there and
+     * keeps the falloff from reading as a band across whichever bubble it lands on.
      */
     private val FadeTail = 16.dp
 
@@ -60,6 +60,17 @@ internal object ChatTopEdge {
      * resolving through it.
      */
     private val BlurRadius = 28.dp
+
+    /**
+     * How much of the blurred copy's brightness survives.
+     *
+     * A blur spreads a pixel's light over its radius, so white text on a dark ground comes back as a
+     * halo covering more area than the glyphs did — the wider the radius, the more it reads as a
+     * glow rather than as something out of focus. Scaling the blurred copy down before compositing
+     * takes the light back out, which is a different job from the fade: the fade mixes towards the
+     * background evenly, while this only touches what the blur lit up.
+     */
+    private const val BlurBrightness = 0.6f
 
     /** The region the blur covers at full strength, before the tail feathers it out. */
     fun blurHold(barHeight: Dp): Dp = barHeight
@@ -115,9 +126,13 @@ internal object ChatTopEdge {
     }
 
     /**
-     * A blurred copy of the layer, masked to the top of it, drawn over the sharp original. The mask is
-     * what shapes the blur: opaque for [holdPx], then falling to nothing across [tailPx], so the
-     * blurred copy shows through completely under the bar and not at all below the tail.
+     * The layer's top swapped for a blurred copy of itself: blurred where the mask is opaque, sharp
+     * where it is clear, crossfading between the two across the tail.
+     *
+     * Both halves have to be masked. Drawing the blurred copy over an untouched original instead
+     * leaves the original showing through it — the transcript's own background is transparent, and
+     * so is a blurred glyph's spread — which reads as a sharp glyph wearing a halo rather than as
+     * one out of focus. On white text over a dark ground that halo is a glow.
      */
     @RequiresApi(Build.VERSION_CODES.S)
     private fun softTopEdgeEffect(
@@ -125,21 +140,54 @@ internal object ChatTopEdge {
         tailPx: Float,
         radiusPx: Float,
     ): androidx.compose.ui.graphics.RenderEffect {
-        val blurred = RenderEffect.createBlurEffect(radiusPx, radiusPx, Shader.TileMode.CLAMP)
         val totalPx = holdPx + tailPx
-        val mask = RenderEffect.createShaderEffect(
+        val stops = floatArrayOf(0f, holdPx / totalPx, 1f)
+
+        val blurred = RenderEffect.createColorFilterEffect(
+            ColorMatrixColorFilter(
+                floatArrayOf(
+                    BlurBrightness, 0f, 0f, 0f, 0f,
+                    0f, BlurBrightness, 0f, 0f, 0f,
+                    0f, 0f, BlurBrightness, 0f, 0f,
+                    0f, 0f, 0f, 1f, 0f,
+                )
+            ),
+            RenderEffect.createBlurEffect(radiusPx, radiusPx, Shader.TileMode.CLAMP),
+        )
+        val blurredTop = RenderEffect.createBlendModeEffect(
+            blurred,
+            verticalMask(totalPx, stops, opaqueFirst = true),
+            AndroidBlendMode.DST_IN,
+        )
+        val sharpRest = RenderEffect.createBlendModeEffect(
+            RenderEffect.createOffsetEffect(0f, 0f),
+            verticalMask(totalPx, stops, opaqueFirst = false),
+            AndroidBlendMode.DST_IN,
+        )
+        return RenderEffect
+            .createBlendModeEffect(sharpRest, blurredTop, AndroidBlendMode.SRC_OVER)
+            .asComposeRenderEffect()
+    }
+
+    /**
+     * A mask running the height of the effect: opaque for the hold and falling off across the tail,
+     * or the exact complement of that, so the two together cover every pixel once.
+     */
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun verticalMask(
+        totalPx: Float,
+        stops: FloatArray,
+        opaqueFirst: Boolean,
+    ): RenderEffect {
+        val near = if (opaqueFirst) AndroidColor.BLACK else AndroidColor.TRANSPARENT
+        val far = if (opaqueFirst) AndroidColor.TRANSPARENT else AndroidColor.BLACK
+        return RenderEffect.createShaderEffect(
             LinearGradient(
                 0f, 0f, 0f, totalPx,
-                intArrayOf(AndroidColor.BLACK, AndroidColor.BLACK, AndroidColor.TRANSPARENT),
-                floatArrayOf(0f, holdPx / totalPx, 1f),
+                intArrayOf(near, near, far),
+                stops,
                 Shader.TileMode.CLAMP,
             )
         )
-        val topOnly =
-            RenderEffect.createBlendModeEffect(blurred, mask, AndroidBlendMode.DST_IN)
-        val sharp = RenderEffect.createOffsetEffect(0f, 0f)
-        return RenderEffect
-            .createBlendModeEffect(sharp, topOnly, AndroidBlendMode.SRC_OVER)
-            .asComposeRenderEffect()
     }
 }
