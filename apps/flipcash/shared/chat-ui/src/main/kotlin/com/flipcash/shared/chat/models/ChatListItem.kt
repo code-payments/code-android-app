@@ -36,19 +36,33 @@ sealed interface ChatListItem {
          * offer, and a later role taxonomy changes the resolver rather than the menu.
          */
         val capabilities: Set<MessageCapability> = emptySet(),
+        /**
+         * The message this one cites, resolved in the transcript pipeline, or `null` when it cites
+         * nothing — or when it cites a message this device has never stored. The absent case
+         * renders the body without a panel rather than an error, so a reply to history that was
+         * never synced still reads as a message.
+         */
+        val quote: ChatQuote? = null,
     ) : ChatListItem {
         /** The body a Copy or an Edit acts on, or `null` for a bubble that carries no text. */
         val plainText: String?
-            get() = (content as? MessageContent.Text)?.text
+            get() = when (val content = content) {
+                is MessageContent.Text -> content.text
+                // Copy and edit act on what the user wrote, not on the citation around it.
+                // PendingMutation.replacingText unwraps the same way when the edit is applied.
+                is MessageContent.Reply ->
+                    content.content.filterIsInstance<MessageContent.Text>().firstOrNull()?.text
+                else -> null
+            }
 
         /**
          * Whether long-pressing this bubble should open the selection bar.
          *
-         * [MessageCapability.Reply] alone is not enough — replies have no surface yet, so a cash
-         * bubble would open a bar with nothing in it.
+         * Any capability is enough. Reply used to be excluded because it had no surface, which left
+         * a cash bubble — whose only capability is Reply — unselectable.
          */
         val isSelectable: Boolean
-            get() = capabilities.any { it != MessageCapability.Reply }
+            get() = capabilities.isNotEmpty()
 
         override val itemKey: Any = pendingClientIdHex ?: "$messageId-$contentIndex"
 

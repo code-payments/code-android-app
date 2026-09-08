@@ -42,11 +42,33 @@ class ChatListItemSelectionTest {
     }
 
     @Test
-    fun `reply alone does not make a bubble selectable`() {
-        // Cash resolves to Reply only, and replies have no surface yet, so a long-press here would
-        // open a bar with nothing in it.
+    fun `a bubble offering only reply is selectable`() {
+        // Cash resolves to Reply only. Excluding Reply here was right while replies had no
+        // surface; now it is the one action a cash bubble offers, so excluding it would leave that
+        // bubble unselectable.
         val cash = bubble(MessageContent.Text("hello"), setOf(MessageCapability.Reply))
-        assertFalse(cash.isSelectable)
+        assertTrue(cash.isSelectable)
+    }
+
+    @Test
+    fun `plainText reads through a reply to the body`() {
+        // Copy and edit act on what the user wrote, not on the wrapper that cites another message.
+        val reply = bubble(
+            MessageContent.Reply(repliedMessageId = 4, content = listOf(MessageContent.Text("sure"))),
+            setOf(MessageCapability.Copy),
+        )
+
+        assertEquals("sure", reply.plainText)
+    }
+
+    @Test
+    fun `plainText is null for a reply with no text in it`() {
+        val reply = bubble(
+            MessageContent.Reply(repliedMessageId = 4, content = emptyList()),
+            setOf(MessageCapability.Copy),
+        )
+
+        assertNull(reply.plainText)
     }
 
     @Test
