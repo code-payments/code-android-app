@@ -32,9 +32,15 @@ internal object TransactionDetailsSamples {
      * test's image loader answers from `src/test/resources/tokens/` — the tokens' own icons,
      * through the same [com.flipcash.app.core.ui.TokenIcon] path the app uses.
      */
-    private fun token(name: String, symbol: String, address: Mint, image: String): Token = MintMetadata(
+    private fun token(
+        name: String,
+        symbol: String,
+        address: Mint,
+        image: String,
+        decimals: Int,
+    ): Token = MintMetadata(
         address = address,
-        decimals = 6,
+        decimals = decimals,
         name = name,
         symbol = symbol,
         createdAt = At,
@@ -47,10 +53,11 @@ internal object TransactionDetailsSamples {
         holderMetrics = HolderMetrics.None,
     )
 
-    val Jeffy: Token = token("Jeffy", "JEFFY", mint(1), "jeffy.png")
+    /** Ten decimals, like every launchpad mint — which is what makes the Tokens row trim its zeros. */
+    val Jeffy: Token = token("Jeffy", "JEFFY", mint(1), "jeffy.png", decimals = 10)
 
     /** The reserve — the real mint, since the screen keys off it the way the rest of the app does. */
-    val Dollars: Token = token("Dollars", "USDF", Mint.usdf, "dollars.webp")
+    val Dollars: Token = token("Dollars", "USDF", Mint.usdf, "dollars.webp", decimals = 6)
 
     /** No profile picture, so the avatar draws her initials — the app's real no-photo state. */
     val Sally = UserProfile.Empty.copy(displayName = "Sally The Streamer")
@@ -114,7 +121,7 @@ internal object TransactionDetailsSamples {
         avatar = TransactionAvatar.TokenIcon(Dollars),
         amount = usd(1.00),
         token = Dollars,
-        tokenAmount = "1.000000",
+        tokenAmount = "1",
         subtitle = "In Person",
         prefix = "+",
     )
@@ -155,7 +162,7 @@ internal object TransactionDetailsSamples {
         avatar = TransactionAvatar.TokenIcon(Dollars),
         amount = usd(120.00),
         token = Dollars,
-        tokenAmount = "120.000000",
+        tokenAmount = "120",
         subtitle = null,
         prefix = "-",
     ).copy(account = TransactionAccount(Account, TransactionAccount.Direction.To))
@@ -165,7 +172,7 @@ internal object TransactionDetailsSamples {
         avatar = TransactionAvatar.TokenIcon(Dollars),
         amount = usd(250.00),
         token = Dollars,
-        tokenAmount = "250.000000",
+        tokenAmount = "250",
         subtitle = null,
         prefix = "+",
     ).copy(account = TransactionAccount(Account, TransactionAccount.Direction.From))
@@ -175,7 +182,7 @@ internal object TransactionDetailsSamples {
         avatar = TransactionAvatar.SwapTokens(from = Dollars, to = Jeffy),
         amount = usd(40.00),
         token = Dollars,
-        tokenAmount = "40.000000",
+        tokenAmount = "40",
         subtitle = "Dollars → Jeffy",
         prefix = "-",
     ).copy(
