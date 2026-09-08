@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
@@ -78,6 +79,9 @@ private const val CASH_BUBBLE_MAX_WIDTH_FRACTION = 0.64f
  * has nothing to select. Only bubbles that install a tap target of their own need it: a gesture the
  * bubble handles is consumed there, so a cash bubble without this swallows the transcript's
  * selection gesture and answers a long press with nothing.
+ * @param attention how strongly this bubble is currently being pointed at, 0f to 1f — the flash a
+ * jump leaves on the message it landed on. A lambda because it is read while drawing: an animation
+ * running through it repaints the bubble without recomposing it or the list carrying it.
  */
 @Composable
 fun ContentBubble(
@@ -86,6 +90,7 @@ fun ContentBubble(
     modifier: Modifier = Modifier,
     interactive: Boolean = true,
     onLongClick: (() -> Unit)? = null,
+    attention: () -> Float = { 0f },
 ) {
     val actionHandler = LocalChatActionHandler.current
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -110,6 +115,7 @@ fun ContentBubble(
                     position = position,
                     maxWidth = bubbleMaxWidth,
                     isEdited = item.isEdited,
+                    attention = attention,
                 )
 
                 // A tombstone is a text bubble with different words. Rendering it through the same
@@ -127,6 +133,7 @@ fun ContentBubble(
                     position = position,
                     maxWidth = bubbleMaxWidth,
                     isTombstone = true,
+                    attention = attention,
                 )
 
                 is MessageContent.Cash -> CashBubble(
@@ -149,6 +156,7 @@ fun ContentBubble(
                     // Gated with the tap, and for the same reason: behind the backdrop the bar is
                     // already acting on a message, and the row drops its own gestures there too.
                     onLongClick = onLongClick?.takeIf { interactive },
+                    attention = attention,
                 )
 
                 // A reply is a text bubble with a citation above the body. Routing it through
@@ -169,6 +177,7 @@ fun ContentBubble(
                         { actionHandler(ChatAction.JumpToMessage(quote.messageId)) }
                     },
                     onQuoteLongClick = onLongClick?.takeIf { interactive },
+                    attention = attention,
                 )
 
                 // TODO
@@ -180,6 +189,9 @@ fun ContentBubble(
 }
 
 private const val EDITED_MARKER_SLOT = "edited-marker"
+
+/** How white a bubble goes at the peak of the flash a jump leaves on it. */
+private const val ATTENTION_SCRIM_ALPHA = 0.14f
 
 /** Space between a reply's citation and its body. */
 private val QUOTE_GAP = 6.dp
@@ -196,8 +208,9 @@ private fun TextBubble(
     quote: ChatQuote? = null,
     onQuoteClick: (() -> Unit)? = null,
     onQuoteLongClick: (() -> Unit)? = null,
+    attention: () -> Float = { 0f },
 ) {
-    Bubble(isFromSelf, position, maxWidth, modifier) {
+    Bubble(isFromSelf, position, maxWidth, modifier, attention = attention) {
         val linkStyle = SpanStyle(
             color = CodeTheme.colors.textMain,
             textDecoration = TextDecoration.Underline,
@@ -307,6 +320,7 @@ private fun CashBubble(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    attention: () -> Float = { 0f },
 ) {
     Bubble(
         isFromSelf = isFromSelf,
@@ -315,7 +329,8 @@ private fun CashBubble(
         maxWidth = maxWidth,
         onClick = onClick,
         onLongClick = onLongClick,
-        modifier = modifier
+        modifier = modifier,
+        attention = attention,
     ) {
         val exchange = LocalExchange.current
 
@@ -410,6 +425,7 @@ private fun Bubble(
     minWidth: Dp = 0.dp,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
+    attention: () -> Float = { 0f },
     content: @Composable BoxScope.() -> Unit,
 ) {
     val bubble = if (isFromSelf) {
@@ -426,6 +442,20 @@ private fun Bubble(
                 Modifier.border(1.dp, bubble.border, shape)
             }
             .background(bubble.background)
+            // Over the content, not under it: a scrim behind the text would be hidden by the
+            // bubble's own fill. Drawn here rather than as a background layer so it also lightens
+            // the words, which is what makes a lit bubble read as one thing.
+            //
+            // Every bubble variant comes through here, so a cash card flashes like a text bubble
+            // does, and the shape is the one already clipped above — corners included, mid-animation
+            // included.
+            .drawWithContent {
+                drawContent()
+                val strength = attention()
+                if (strength > 0f) {
+                    drawRect(Color.White, alpha = ATTENTION_SCRIM_ALPHA * strength)
+                }
+            }
             .addIf(onClick != null || onLongClick != null) {
                 // combinedClickable rather than two modifiers: a bubble that takes the tap takes
                 // the long press with it, so both gestures are reported from the same target.

@@ -58,7 +58,8 @@ import com.getcode.util.vibration.LocalVibrator
  * The row owns what is a function of itself — its insertion animation, its gestures, its spacing to
  * the row below — and takes the rest as flags, because they are decided across the whole list:
  * [selecting] is true for every row while the backdrop is up, [focused] for the single row it leaves
- * sharp, and [animateInsertion] is granted once per message and never again.
+ * sharp, [attention] carries the flash the list points at a jumped-to message, and
+ * [animateInsertion] is granted once per message and never again.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -71,6 +72,7 @@ internal fun MessageRow(
     selecting: Boolean,
     focused: Boolean,
     animateInsertion: Boolean,
+    attention: () -> Float = { 0f },
 ) {
     val onAction = LocalChatActionHandler.current
     val vibrator = LocalVibrator.current
@@ -221,6 +223,7 @@ internal fun MessageRow(
                                 messages,
                                 separatorConfig
                             ),
+                            attention = attention,
                         )
                     }
                     val showReceipt =

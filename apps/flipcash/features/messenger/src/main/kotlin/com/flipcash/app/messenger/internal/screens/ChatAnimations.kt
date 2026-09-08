@@ -3,8 +3,11 @@ package com.flipcash.app.messenger.internal.screens
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
@@ -52,6 +55,15 @@ internal object ChatAnimations {
         expandVertically(replySurfaceIntSize, expandFrom = Alignment.Top)
     val replySurfaceExit: ExitTransition =
         shrinkVertically(replySurfaceIntSize, shrinkTowards = Alignment.Top) + fadeOut(replySurface)
+
+    // The flash a jump leaves on the message it landed on: white at full, held long enough to be
+    // caught by an eye still following the scroll, then faded off.
+    //
+    // A tween rather than a spring, unlike everything above it: this one runs from full to nothing
+    // with no competing target to be interrupted by, so there is no settling for a spring to
+    // express — only a rate, and a linear one is what reads as a light going out.
+    const val attentionHoldMs = 250L
+    val attentionFade: TweenSpec<Float> = tween(durationMillis = 750, easing = LinearEasing)
 
     // Receipt label exit when a new message is sent — fade out + collapse.
     private val deliveredIntSize: SpringSpec<IntSize> = spring(dampingRatio = 0.88f, stiffness = 250f)
