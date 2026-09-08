@@ -182,6 +182,18 @@ internal class ChatViewModel @Inject constructor(
          */
         val replyingTo: ChatQuote? = null,
         /**
+         * A message the transcript has been asked to scroll to, held until the list consumes it.
+         *
+         * State rather than a one-shot event, for the reason [messageInputRequested] is: eventFlow
+         * is replay-0, so a request raised while the list is recomposing would be dropped.
+         */
+        val jumpTarget: Long? = null,
+        /**
+         * How far back [jumpTarget] sits from the newest message, which bounds the walk that loads
+         * it. Set alongside [jumpTarget] and cleared with it.
+         */
+        val jumpBudget: Int? = null,
+        /**
          * True while the delete confirmation is up.
          *
          * The sheet is modal, so nothing behind it should still read as the focus: the selected
@@ -289,6 +301,13 @@ internal class ChatViewModel @Inject constructor(
         /** Opens the composer's reply strip on an already-resolved citation. */
         data class ReplyToMessage(val quote: ChatQuote) : Event
         data object CancelReply : Event
+
+        /** Asks the transcript to scroll to [messageId] — a tap on a quote. */
+        data class JumpToMessage(val messageId: Long) : Event
+
+        /** The same request, once the walk's bound is known. */
+        data class JumpResolved(val messageId: Long, val budget: Int) : Event
+        data object JumpConsumed : Event
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -891,6 +910,18 @@ internal class ChatViewModel @Inject constructor(
                 dispatchEvent(Event.ReplyToMessage(stored.toQuote()))
             }
             .launchIn(viewModelScope)
+
+        // A distance the device cannot measure is a message it never stored, and no walk would
+        // reach it. Resolving here rather than in the list keeps the read off the composition and
+        // gives the walk a bound before it starts.
+        eventFlow.filterIsInstance<Event.JumpToMessage>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                val distance = chatCoordinator.distanceFromNewest(chatId, event.messageId)
+                    ?: return@onEach
+                dispatchEvent(Event.JumpResolved(event.messageId, distance))
+            }
+            .launchIn(viewModelScope)
     }
 
     /** Leaves edit mode, restoring the draft the edit interrupted. */
@@ -1351,6 +1382,13 @@ internal class ChatViewModel @Inject constructor(
                     )
                 }
                 Event.CancelReply -> { state -> state.copy(replyingTo = null) }
+                // The request itself changes nothing: the target is only worth holding once the
+                // walk's bound resolves, and that read is what decides whether it can be reached.
+                is Event.JumpToMessage -> { state -> state }
+                is Event.JumpResolved -> { state ->
+                    state.copy(jumpTarget = event.messageId, jumpBudget = event.budget)
+                }
+                Event.JumpConsumed -> { state -> state.copy(jumpTarget = null, jumpBudget = null) }
             }
         }
     }

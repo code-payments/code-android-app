@@ -91,7 +91,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.CancelReply)
             }
 
-            is ChatAction.JumpToMessage -> Unit
+            is ChatAction.JumpToMessage -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(action.messageId))
+            }
 
             is ChatAction.ViewProfile -> {
                 // The triggers (top-bar tap, contact-card chevron) are only clickable for tip DMs
@@ -144,6 +146,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             otherReadPointer = otherReadPointer,
             onAction = chatActionHandler,
             canViewProfile = state.canViewProfile,
+            onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
         )
     }
 }

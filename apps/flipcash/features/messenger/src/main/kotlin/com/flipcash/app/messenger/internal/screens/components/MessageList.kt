@@ -46,6 +46,7 @@ import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.withTimeoutOrNull
 
 @Composable
 internal fun MessageList(
@@ -57,6 +58,7 @@ internal fun MessageList(
     otherReadPointer: MessagePointer? = null,
     onAction: ChatActionHandler,
     canViewProfile: Boolean,
+    onJumpConsumed: () -> Unit = {},
 ) {
     val keyboard = rememberKeyboardController()
     val listState = rememberLazyListState()
@@ -112,6 +114,44 @@ internal fun MessageList(
             if (focusedMessageId == null) return@LaunchedEffect
             val buried = -listState.layoutInfo.headroomAbove(messages, focusedMessageId)
             if (buried > 0) listState.animateScrollBy(buried.toFloat())
+        }
+
+        // Walking the append path, rather than PagingConfig.jumpThreshold: a jump there routes
+        // through PageFetcher::refresh with triggerRemoteRefresh set, so every tap would fire a
+        // RemoteMediator refresh — token = null and a fetch of the newest page — to reach a message
+        // already in the database. Appending stays local until the PagingSource runs dry.
+        LaunchedEffect(state.jumpTarget) {
+            val target = state.jumpTarget ?: return@LaunchedEffect
+            val budget = (state.jumpBudget?.plus(JUMP_PAGE_SIZE) ?: MAX_JUMP_ITEMS)
+                .coerceAtMost(MAX_JUMP_ITEMS)
+
+            var index = indexOf(messages, target)
+            while (index == null && messages.loadedCount <= budget) {
+                // Touching the last loaded index is what emits the ViewportHint that drives one
+                // more append. One page at a time: with placeholders on, itemCount is the whole
+                // chat, so hinting at the end would append at the far side of history instead.
+                val hint = messages.appendHintIndex
+                if (hint < 0) break
+
+                val before = messages.loadedCount
+                messages[hint]
+
+                // Wait for that append to land rather than for a frame: one frame is not a
+                // guarantee, and a walk that races the pager gives up and scrolls nowhere.
+                // loadedCount grows either way — placeholders on, placeholdersAfter shrinks; off,
+                // itemCount grows.
+                val progressed = withTimeoutOrNull(JUMP_STEP_TIMEOUT_MS) {
+                    snapshotFlow { messages.loadedCount to messages.loadState.append }
+                        .first { (count, append) -> count > before || append.endOfPaginationReached }
+                        .first > before
+                }
+                if (progressed != true) break
+
+                index = indexOf(messages, target)
+            }
+
+            index?.let { listState.animateScrollToItem(it) }
+            onJumpConsumed()
         }
 
         // Holds the focused message at the position it was long-pressed at, against the keyboard
@@ -319,3 +359,31 @@ internal fun MessageList(
         }
     } // CompositionLocalProvider
 }
+
+/**
+ * How many items are actually loaded, as opposed to standing in as placeholders.
+ *
+ * `itemCount` counts placeholders too, so it is the whole chat from the first page onward when
+ * placeholders are enabled — useless as a measure of what a walk has reached.
+ */
+private val LazyPagingItems<ChatListItem>.loadedCount: Int
+    get() = itemSnapshotList.items.size
+
+/**
+ * The first index the pager has nothing for — the hint that drives one more append.
+ *
+ * Clamped into range, so with placeholders off (where it is one past the end) it lands on the last
+ * loaded item instead, which emits the same hint.
+ */
+private val LazyPagingItems<ChatListItem>.appendHintIndex: Int
+    get() = (itemSnapshotList.placeholdersBefore + loadedCount).coerceAtMost(itemCount - 1)
+
+/** The presented index of [messageId], or `null` while it is still unloaded. */
+private fun indexOf(messages: LazyPagingItems<ChatListItem>, messageId: Long): Int? =
+    (0 until messages.itemCount).firstOrNull { i ->
+        (messages.peek(i) as? ChatListItem.ContentBubble)?.messageId == messageId
+    }
+
+private const val JUMP_PAGE_SIZE = 50
+private const val MAX_JUMP_ITEMS = 5_000
+private const val JUMP_STEP_TIMEOUT_MS = 2_000L
