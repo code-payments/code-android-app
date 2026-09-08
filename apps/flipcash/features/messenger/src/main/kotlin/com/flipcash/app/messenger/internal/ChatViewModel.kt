@@ -24,6 +24,7 @@ import com.flipcash.shared.chat.withinWindows
 import com.flipcash.shared.chat.applying
 import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.app.funding.PurchaseMethodController
@@ -167,6 +168,17 @@ internal class ChatViewModel @Inject constructor(
         /** The message the composer is editing, or `null` when it is composing a new one. */
         val editing: EditingMessage? = null,
         /**
+         * The message the composer is citing, or `null` when it is composing an ordinary message.
+         *
+         * Mutually exclusive with [editing]: an edit takes the composer over with the message's own
+         * body, so citing another message from inside one would send a reply that overwrites a
+         * third. Unlike [EditingMessage] this stashes no draft — the draft is the reply.
+         *
+         * Cleared by the send handler rather than by the reducer: dispatchEvent reduces before it
+         * emits, so a reducer that cleared it would empty it before the handler could read it.
+         */
+        val replyingTo: ChatQuote? = null,
+        /**
          * True while the delete confirmation is up.
          *
          * The sheet is modal, so nothing behind it should still read as the focus: the selected
@@ -263,6 +275,10 @@ internal class ChatViewModel @Inject constructor(
         data object SubmitEdit : Event
         data object CancelEdit : Event
         data object EditingEnded : Event
+
+        /** Opens the composer's reply strip on an already-resolved citation. */
+        data class ReplyToMessage(val quote: ChatQuote) : Event
+        data object CancelReply : Event
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -1227,6 +1243,7 @@ internal class ChatViewModel @Inject constructor(
                     state.copy(
                         selection = null,
                         confirmingDelete = false,
+                        replyingTo = null,
                         editing = EditingMessage(
                             messageId = event.messageId,
                             originalText = event.text,
@@ -1243,6 +1260,16 @@ internal class ChatViewModel @Inject constructor(
                 Event.SubmitEdit -> { state -> state }
                 Event.CancelEdit -> { state -> state }
                 Event.EditingEnded -> { state -> state.copy(editing = null) }
+                is Event.ReplyToMessage -> { state ->
+                    state.copy(
+                        replyingTo = event.quote,
+                        selection = null,
+                        confirmingDelete = false,
+                        // Reply and edit both own the composer, so opening one closes the other.
+                        editing = null,
+                    )
+                }
+                Event.CancelReply -> { state -> state.copy(replyingTo = null) }
             }
         }
     }

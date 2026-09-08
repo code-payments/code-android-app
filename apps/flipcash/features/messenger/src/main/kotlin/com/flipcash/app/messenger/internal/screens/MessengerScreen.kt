@@ -81,6 +81,16 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.CancelEdit)
             }
 
+            // Both reply entry points land on one event so the citation is resolved in one place;
+            // turning a bubble into a quote needs a database read. Wired in a later change.
+            is ChatAction.ReplyTo -> Unit
+
+            ChatAction.CancelReply -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.CancelReply)
+            }
+
+            is ChatAction.JumpToMessage -> Unit
+
             is ChatAction.ViewProfile -> {
                 // The triggers (top-bar tap, contact-card chevron) are only clickable for tip DMs
                 // (see State.canViewProfile), so no gating is needed here.
