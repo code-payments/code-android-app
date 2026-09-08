@@ -126,8 +126,6 @@ internal fun UserControlBottomBar(
             AnimatedContent(
                 modifier = Modifier
                     .measured { buttonHeight = it.height }
-                    // The horizontal inset sits on the composer row rather than here, because the
-                    // reply strip is a sibling of that row and has to reach the screen's edge.
                     .padding(vertical = CodeTheme.dimens.grid.x3)
                     .navigationBarsPadding()
                     // typingConstraints.enabled starts false and only resolves a frame or two after
@@ -188,7 +186,11 @@ internal fun UserControlBottomBar(
                             ComposerReplyStrip(
                                 quote = quote,
                                 onDismiss = { dispatch(ChatViewModel.Event.CancelReply) },
+                                hazeState = hazeState,
                                 modifier = Modifier
+                                    // Inset to the composer row's own margins, so the card's edges
+                                    // line up with the field it sits above.
+                                    .padding(horizontal = CodeTheme.dimens.inset)
                                     .padding(bottom = CodeTheme.dimens.grid.x2)
                                     .testTag("composer_reply_strip"),
                             )
