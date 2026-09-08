@@ -863,6 +863,10 @@
     <string name="action_sendCashViaSymbol">Send %1$s</string>
     <string name="action_sendMessage">Send Message</string>
 
+    <!-- Chat composer -->
+    <string name="hint_chatMessage">Message</string>
+    <string name="hint_chatReply">Reply</string>
+
     <string name="subtitle_chatNoLongerAvailable">This user unlinked their phone number and this conversation is no longer available</string>
 
     <string name="subtitle_verb_youSent">You sent</string>
