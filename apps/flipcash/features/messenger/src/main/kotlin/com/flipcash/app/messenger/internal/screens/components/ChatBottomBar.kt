@@ -235,7 +235,10 @@ internal fun UserControlBottomBar(
                                     )
                                     .hazeBlur(HazeInput.Sources(hazeState), material),
                                 focusRequester = focusRequester,
-                                hint = "Message",
+                                hint = stringResource(
+                                    if (state.replyingTo != null) R.string.hint_chatReply
+                                    else R.string.hint_chatMessage
+                                ),
                                 state = state.chatInputState,
                                 // One read of the edit state decides both the glyph and what the tap
                                 // does, so the composer cannot show a checkmark and send a new message.
