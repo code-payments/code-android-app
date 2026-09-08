@@ -1,7 +1,7 @@
 package com.flipcash.shared.chat.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +43,7 @@ fun ChatQuotePanel(
     quote: ChatQuote,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val accent = quote.accent ?: CodeTheme.colors.tertiary
     val name = quote.nameAccent ?: accent
@@ -55,7 +56,14 @@ fun ChatQuotePanel(
             // The author's own colour at low alpha rather than a neutral scrim: the panel sits on a
             // filled bubble, and tinting it to match the rule is what separates the two surfaces.
             .background(accent.copy(alpha = QuotePanelDefaults.groundAlpha))
-            .addIf(onClick != null) { Modifier.clickable { onClick?.invoke() } }
+            // Long-press comes down with the tap: the panel sits inside the bubble, so a press
+            // it takes for its own target is a press the row behind it never sees.
+            .addIf(onClick != null || onLongClick != null) {
+                Modifier.combinedClickable(
+                    onLongClick = onLongClick,
+                    onClick = { onClick?.invoke() },
+                )
+            }
             .height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(QuotePanelDefaults.gap),
         verticalAlignment = Alignment.CenterVertically,

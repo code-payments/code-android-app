@@ -4,7 +4,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -73,12 +73,19 @@ private const val BUBBLE_MAX_WIDTH_FRACTION = 0.78f
 private val EDITED_MARKER_GAP = 6.dp
 private const val CASH_BUBBLE_MAX_WIDTH_FRACTION = 0.64f
 
+/**
+ * @param onLongClick what a long-press on this bubble reports, or `null` where the row behind it
+ * has nothing to select. Only bubbles that install a tap target of their own need it: a gesture the
+ * bubble handles is consumed there, so a cash bubble without this swallows the transcript's
+ * selection gesture and answers a long press with nothing.
+ */
 @Composable
 fun ContentBubble(
     item: ChatListItem.ContentBubble,
     position: BubblePosition,
     modifier: Modifier = Modifier,
     interactive: Boolean = true,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val actionHandler = LocalChatActionHandler.current
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -139,6 +146,9 @@ fun ContentBubble(
                     } else {
                         null
                     },
+                    // Gated with the tap, and for the same reason: behind the backdrop the bar is
+                    // already acting on a message, and the row drops its own gestures there too.
+                    onLongClick = onLongClick?.takeIf { interactive },
                 )
 
                 // A reply is a text bubble with a citation above the body. Routing it through
@@ -158,6 +168,7 @@ fun ContentBubble(
                     onQuoteClick = item.quote?.takeIf { interactive }?.let { quote ->
                         { actionHandler(ChatAction.JumpToMessage(quote.messageId)) }
                     },
+                    onQuoteLongClick = onLongClick?.takeIf { interactive },
                 )
 
                 // TODO
@@ -184,6 +195,7 @@ private fun TextBubble(
     isTombstone: Boolean = false,
     quote: ChatQuote? = null,
     onQuoteClick: (() -> Unit)? = null,
+    onQuoteLongClick: (() -> Unit)? = null,
 ) {
     Bubble(isFromSelf, position, maxWidth, modifier) {
         val linkStyle = SpanStyle(
@@ -257,6 +269,7 @@ private fun TextBubble(
                 ChatQuotePanel(
                     quote = quote,
                     onClick = onQuoteClick,
+                    onLongClick = onQuoteLongClick,
                     // Tagged because the citation repeats the quoted message's own text, so a
                     // UI test matching on that text cannot tell the two apart.
                     modifier = Modifier.testTag("bubble_reply_quote"),
@@ -292,6 +305,7 @@ private fun CashBubble(
     maxWidth: Dp,
     action: MessageContent.Cash.Action = MessageContent.Cash.Action.SENT,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Bubble(
@@ -300,6 +314,7 @@ private fun CashBubble(
         minWidth = maxWidth,
         maxWidth = maxWidth,
         onClick = onClick,
+        onLongClick = onLongClick,
         modifier = modifier
     ) {
         val exchange = LocalExchange.current
@@ -394,6 +409,7 @@ private fun Bubble(
     modifier: Modifier = Modifier,
     minWidth: Dp = 0.dp,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val bubble = if (isFromSelf) {
@@ -410,8 +426,13 @@ private fun Bubble(
                 Modifier.border(1.dp, bubble.border, shape)
             }
             .background(bubble.background)
-            .addIf(onClick != null) {
-                Modifier.clip(shape).clickable { onClick?.invoke() }
+            .addIf(onClick != null || onLongClick != null) {
+                // combinedClickable rather than two modifiers: a bubble that takes the tap takes
+                // the long press with it, so both gestures are reported from the same target.
+                Modifier.clip(shape).combinedClickable(
+                    onLongClick = onLongClick,
+                    onClick = { onClick?.invoke() },
+                )
             }
             .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {

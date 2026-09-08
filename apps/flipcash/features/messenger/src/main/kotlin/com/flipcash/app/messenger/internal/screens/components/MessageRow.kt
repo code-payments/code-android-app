@@ -107,6 +107,15 @@ internal fun MessageRow(
     val bubble = item as? ChatListItem.ContentBubble
     val interactionSource = remember { MutableInteractionSource() }
 
+    // Hoisted because two targets report the same gesture: the row, and any bubble that installs a
+    // tap target of its own and would otherwise consume the press before the row sees it.
+    val select = bubble?.takeIf { it.isSelectable }?.let { target ->
+        {
+            vibrator.tick()
+            onAction(ChatAction.ToggleSelection(target))
+        }
+    }
+
     val dimAlpha by animateFloatAsState(
         targetValue = if (focused) 1f else 0.4f,
         label = "messageDim",
@@ -158,18 +167,14 @@ internal fun MessageRow(
             // press there would move the selection out from under the message the bar —
             // or the composer — is already acting on.
             .addIf(bubble != null && !selecting) {
-                // Long-press is the whole row's gesture, not the bubble's: a
+                // Long-press is the whole row's gesture, not just the bubble's: a
                 // bubble-sized target is harder to hit, and the top bar is what reports
-                // the selection, so nothing about the row has to change.
+                // the selection, so nothing about the row has to change. A bubble that
+                // takes the press for its own tap target reports the same gesture back.
                 Modifier.combinedClickable(
                     interactionSource = interactionSource,
                     indication = null,
-                    onLongClick = bubble?.takeIf { it.isSelectable }?.let { target ->
-                        {
-                            vibrator.tick()
-                            onAction(ChatAction.ToggleSelection(target))
-                        }
-                    },
+                    onLongClick = select,
                     // Only reachable with the backdrop down, so the tap has nothing to
                     // dismiss but the keyboard.
                     onClick = { keyboard.hide() },
@@ -206,6 +211,10 @@ internal fun MessageRow(
                             // bubble behind the backdrop would otherwise open token
                             // info from under the bar.
                             interactive = !selecting,
+                            // A bubble with a tap target of its own consumes the press,
+                            // so the row's long-press never reaches it. Handing it the
+                            // same gesture is what makes a cash bubble selectable.
+                            onLongClick = select,
                             position = bubblePositionOf(
                                 index,
                                 item,
