@@ -25,6 +25,7 @@ import com.flipcash.shared.chat.applying
 import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.ChatQuote
+import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.app.funding.PurchaseMethodController
@@ -34,6 +35,7 @@ import com.flipcash.features.messenger.R
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
@@ -58,6 +60,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
+import com.getcode.ui.utils.generateComplementaryColorPalette
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel
@@ -320,6 +323,16 @@ internal class ChatViewModel @Inject constructor(
                         } else content
                     } else content
 
+                    // Resolved here, next to the token-metadata lookup, because this is the one
+                    // place in the transcript that already does async per-item work. A citation of
+                    // a message this device never stored resolves to null, and the bubble renders
+                    // its body with no panel rather than an error.
+                    val quote = (content as? MessageContent.Reply)?.let { reply ->
+                        stateFlow.value.chatId
+                            ?.let { chatCoordinator.getMessage(it, reply.repliedMessageId) }
+                            ?.toQuote()
+                    }
+
                     val receiptStatus = if (message.isFromSelf) {
                         when (message.deliveryStatus) {
                             DeliveryStatus.SENDING -> ReceiptStatus.SENDING
@@ -344,6 +357,7 @@ internal class ChatViewModel @Inject constructor(
                         // taxonomy becomes another input to the resolver rather than a branch at
                         // each action site.
                         capabilities = resolveCapabilities(message, policy),
+                        quote = quote,
                     )
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->
@@ -353,6 +367,45 @@ internal class ChatViewModel @Inject constructor(
                 } else null
             }
         }
+
+    /**
+     * The citation shown for [this] message.
+     *
+     * The accent comes from the message's own sender id, not from `State.participant`:
+     * [ChatParticipant.Contact] wraps a device contact and carries no user id, so the participant
+     * is not a usable source for a counterparty's colour.
+     */
+    private suspend fun ChatMessage.toQuote(): ChatQuote {
+        val body = content.firstOrNull()
+        return ChatQuote(
+            messageId = messageId,
+            authorName = if (isFromSelf) {
+                resources.getString(R.string.title_you)
+            } else {
+                stateFlow.value.participant?.name.orEmpty()
+            },
+            snippet = when (body) {
+                is MessageContent.Cash -> ChatQuoteSnippet.Cash(
+                    amount = body.amount,
+                    tokenName = body.tokenName.ifBlank {
+                        tokenCoordinator.getTokenMetadata(body.mint)
+                            .getOrNull()?.token?.name.orEmpty()
+                    },
+                )
+
+                is MessageContent.Text -> ChatQuoteSnippet.Text(body.text)
+
+                // A reply to a reply cites the inner body, not the nested citation.
+                is MessageContent.Reply -> ChatQuoteSnippet.Text(
+                    body.content.filterIsInstance<MessageContent.Text>()
+                        .firstOrNull()?.text.orEmpty()
+                )
+
+                else -> ChatQuoteSnippet.Text("")
+            },
+            accent = senderId?.let { generateComplementaryColorPalette(it)?.first },
+        )
+    }
 
     private val maxAmountFlow by lazy {
         combine(
@@ -835,11 +888,15 @@ internal class ChatViewModel @Inject constructor(
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 if (textToSend.isBlank()) return@onEach
                 val chatType = stateFlow.value.chatType
+                // Read here, not in the reducer: the reply strip comes down with the draft, and
+                // both are the composer emptying itself once the message is on its way.
+                val replyToMessageId = stateFlow.value.replyingTo?.messageId
 
                 stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd("")
+                if (replyToMessageId != null) dispatchEvent(Event.CancelReply)
 
                 viewModelScope.launch {
-                    chatCoordinator.sendMessage(chatId, textToSend)
+                    chatCoordinator.sendMessage(chatId, textToSend, replyToMessageId)
                         .onSuccess {
                             trace("message sent successfully")
                             analytics.messageSentInChat(type = chatType)

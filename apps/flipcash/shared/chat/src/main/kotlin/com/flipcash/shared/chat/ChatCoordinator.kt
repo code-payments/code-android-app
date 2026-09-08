@@ -137,6 +137,20 @@ interface MessagingOperations {
     /** Observes messages in [chatId] via Paging 3, with remote-mediated page loads. */
     fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>>
 
+    /**
+     * The stored message [messageId] in [chatId], or `null` if this device has never stored it.
+     *
+     * A local read only. A reply citing a message from before this device's history resolves to
+     * `null`, which the transcript renders as a reply with no citation rather than as an error.
+     */
+    suspend fun getMessage(chatId: ChatId, messageId: Long): ChatMessage?
+
+    /**
+     * How far back [messageId] sits from the newest message in [chatId], or `null` when this
+     * device has not stored it. Bounds the walk that scrolls a quote's citation into view.
+     */
+    suspend fun distanceFromNewest(chatId: ChatId, messageId: Long): Int?
+
     /** Observes the member list for [chatId]. */
     fun observeMembers(chatId: ChatId): Flow<List<ChatMember>>
 

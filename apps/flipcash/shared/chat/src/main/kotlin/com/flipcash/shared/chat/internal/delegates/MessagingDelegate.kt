@@ -152,6 +152,12 @@ class MessagingDelegate @Inject constructor(
         }
     }
 
+    override suspend fun getMessage(chatId: ChatId, messageId: Long): ChatMessage? =
+        messageDataSource.getMessage(chatId, messageId)
+
+    override suspend fun distanceFromNewest(chatId: ChatId, messageId: Long): Int? =
+        messageDataSource.distanceFromNewest(chatId, messageId)
+
     override fun observeMembers(chatId: ChatId): Flow<List<ChatMember>> {
         return memberDataSource.observeMembers(chatId)
     }
