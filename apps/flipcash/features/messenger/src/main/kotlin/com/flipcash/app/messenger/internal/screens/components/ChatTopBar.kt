@@ -34,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -63,6 +62,7 @@ import com.getcode.ui.utils.rememberKeyboardController
 internal fun ChatTopBar(
     navigator: CodeNavigator,
     state: ChatViewModel.State,
+    onBarHeightChange: (Dp) -> Unit,
     chatActionHandler: ChatActionHandler,
     dispatch: (ChatViewModel.Event) -> Unit,
 ) {
@@ -74,12 +74,12 @@ internal fun ChatTopBar(
     // the IME already up — a controller created there would read it as hidden.
     val keyboard = rememberKeyboardController()
     Box {
-        val edgeHeight = titleHeight + ChatTopEdge.Tail
+        val fadeHeight = ChatTopEdge.fadeHeight(titleHeight)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(edgeHeight)
-                .background(ChatTopEdge.brush(bgColor, statusBars, titleHeight, edgeHeight))
+                .height(fadeHeight)
+                .background(ChatTopEdge.fadeBrush(bgColor, statusBars, fadeHeight))
         )
         // A message action takes the bar over rather than stacking a second one over it, so the
         // conversation's own actions can't be reached while one is pending. The takeover holds
@@ -91,7 +91,10 @@ internal fun ChatTopBar(
             else -> TopBarMode.Conversation
         }
         AnimatedContent(
-            modifier = Modifier.measured { titleHeight = it.height },
+            modifier = Modifier.measured {
+                titleHeight = it.height
+                onBarHeightChange(it.height)
+            },
             targetState = mode,
             contentKey = { it::class },
             transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -104,65 +107,6 @@ internal fun ChatTopBar(
             }
         }
     }
-}
-
-/**
- * How the transcript meets the bar: a fade to the background colour, opaque behind the status bar
- * and clear by the end of the tail.
- *
- * Carried over from iOS's `TranscriptTopFade`, which exists because the bar has no background of
- * its own. A cash card's amount is large white text, so without this it reads over the title and up
- * into the status bar.
- */
-private object ChatTopEdge {
-
-    /**
-     * How far the fade runs past the bar's own height. The whole of the ramp from [BarEdgeAlpha] to
-     * transparent is spent here, so it is long enough that the ramp's own end doesn't read as a
-     * band across whatever bubble it lands on.
-     */
-    val Tail = 40.dp
-
-    /**
-     * How far short of the status bar's bottom edge the fade starts, so the strip behind the clock
-     * and battery is solid background rather than a nearly-opaque scrim with a bubble under it.
-     */
-    private val OpaqueInsetTrim = 12.dp
-
-    /**
-     * How much scrim is left where the bar's own bottom edge is. Nearly all of it: a linear ramp
-     * across the whole region is down to roughly a third by the title's baseline, and white bubble
-     * text reads straight through. The ramp to transparent is spent almost entirely on [Tail],
-     * below the bar, where nothing has to stay legible.
-     */
-    private const val BarEdgeAlpha = 0.9f
-
-    /**
-     * Opaque behind the status bar, still mostly opaque where the bar ends, clear by the end of the
-     * tail. The middle stop is keyed to the bar's own height rather than a fraction of the ramp, so
-     * a taller bar — the selection and editing modes — darkens over its whole height rather than
-     * running out partway down.
-     */
-    fun brush(containerColor: Color, statusBars: Dp, titleHeight: Dp, edgeHeight: Dp): Brush {
-        val hold = opaqueStop(statusBars, edgeHeight)
-        val barEdge = fraction(titleHeight, edgeHeight).coerceIn(hold, 1f)
-        return Brush.verticalGradient(
-            colorStops = arrayOf(
-                0f to containerColor,
-                hold to containerColor,
-                barEdge to containerColor.copy(alpha = BarEdgeAlpha),
-                1f to Color.Transparent,
-            )
-        )
-    }
-
-    /** The fraction of [edgeHeight] that stays fully opaque before the gradient starts. */
-    private fun opaqueStop(statusBars: Dp, edgeHeight: Dp): Float =
-        fraction(statusBars - OpaqueInsetTrim, edgeHeight)
-
-    /** [of] as a fraction of [total], clamped, and 0 before the bar has been measured. */
-    private fun fraction(of: Dp, total: Dp): Float =
-        if (total <= 0.dp) 0f else (of / total).coerceIn(0f, 1f)
 }
 
 /** What the bar is showing. The payload rides along so a crossfade-out still has it. */

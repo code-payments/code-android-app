@@ -5,14 +5,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
+import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
+import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.softTopEdge
 import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.app.messenger.internal.screens.components.UserControlBottomBar
 import com.flipcash.shared.chat.models.ChatAction
@@ -31,6 +37,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val navigator = LocalCodeNavigator.current
 
     val hazeState = rememberHazeState()
+    // Measured by the bar and read by the transcript: the blur has to cover the bar's own
+    // height, which the selection and editing modes change.
+    var barHeight by remember { mutableStateOf(0.dp) }
     val keyboard = rememberKeyboardController()
 
     val chatActionHandler = { action: ChatAction ->
@@ -129,6 +138,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             ChatTopBar(
                 navigator = navigator,
                 state = state,
+                onBarHeightChange = { barHeight = it },
                 chatActionHandler = chatActionHandler,
                 dispatch = viewModel::dispatchEvent,
             )
@@ -145,6 +155,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .testTag("chat_message_list")
+                .softTopEdge(ChatTopEdge.blurHold(barHeight))
                 .hazeSource(hazeState),
             state = state,
             contentPadding = overlapPadding,

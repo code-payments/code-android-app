@@ -98,7 +98,8 @@ class ChatMessageActionScreenshotTest {
                                 chatType = ChatType.CONTACT_DM,
                                 selection = selection,
                             ),
-                                        chatActionHandler = {},
+                                        onBarHeightChange = {},
+                chatActionHandler = {},
                             dispatch = {},
                         )
                     }
