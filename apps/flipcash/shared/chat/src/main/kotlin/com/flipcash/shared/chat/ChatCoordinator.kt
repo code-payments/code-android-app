@@ -137,6 +137,20 @@ interface MessagingOperations {
     /** Observes messages in [chatId] via Paging 3, with remote-mediated page loads. */
     fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>>
 
+    /**
+     * The stored message [messageId] in [chatId], or `null` if this device has never stored it.
+     *
+     * A local read only. A reply citing a message from before this device's history resolves to
+     * `null`, which the transcript renders as a reply with no citation rather than as an error.
+     */
+    suspend fun getMessage(chatId: ChatId, messageId: Long): ChatMessage?
+
+    /**
+     * How far back [messageId] sits from the newest message in [chatId], or `null` when this
+     * device has not stored it. Bounds the walk that scrolls a quote's citation into view.
+     */
+    suspend fun distanceFromNewest(chatId: ChatId, messageId: Long): Int?
+
     /** Observes the member list for [chatId]. */
     fun observeMembers(chatId: ChatId): Flow<List<ChatMember>>
 
@@ -146,8 +160,18 @@ interface MessagingOperations {
     /** Fetches the full message history for [chatId] from the server and persists locally. */
     suspend fun loadMessages(chatId: ChatId)
 
-    /** Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage]. */
-    suspend fun sendMessage(chatId: ChatId, content: String): Result<ChatMessage>
+    /**
+     * Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage].
+     *
+     * [replyToMessageId] cites a message in the same chat, which wraps the body in
+     * [MessageContent.Reply]. It defaults to `null` so a caller with no message to cite — the
+     * notification quick-reply replies to a conversation, not to a message — is unchanged.
+     */
+    suspend fun sendMessage(
+        chatId: ChatId,
+        content: String,
+        replyToMessageId: Long? = null,
+    ): Result<ChatMessage>
 
     /** Retries a failed pending message: resets to SENDING and re-sends to the server. */
     suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage>

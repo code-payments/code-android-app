@@ -18,6 +18,8 @@ dependencies {
     implementation(project(":services:flipcash"))
     implementation(project(":services:opencode-compose"))
     implementation(project(":libs:datetime"))
+    // api: ComposerReplyStrip takes the host's HazeState so its card can sample the transcript.
+    api(libs.bundles.haze)
     implementation(libs.androidx.paging.runtime)
     implementation(libs.compose.paging)
     api(project(":apps:flipcash:shared:common-ui"))

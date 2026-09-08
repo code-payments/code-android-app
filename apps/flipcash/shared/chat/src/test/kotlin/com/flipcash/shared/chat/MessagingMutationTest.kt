@@ -1,10 +1,12 @@
 package com.flipcash.shared.chat
 
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
+import com.flipcash.app.persistence.sources.PendingMessage
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.models.EditMessageError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
@@ -12,6 +14,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -169,5 +172,65 @@ class MessagingMutationTest {
         assertTrue(result.isFailure)
         coVerify(exactly = 0) { controller.editMessage(any(), any(), any(), any()) }
         assertTrue(delegate.observePendingMutations(chatId).first().isEmpty())
+    }
+
+    /**
+     * A sender that cites a message wraps the body rather than sending alongside it: the proto
+     * carries one content list, and the reply *is* the message.
+     */
+    @Test
+    fun `a reply wraps the text in Reply content carrying the target id`() = runTest {
+        // Relaxed: sendMessage's success path advances the read pointer through this same
+        // controller, which is not what these tests are asserting on.
+        val controller = mockk<ChatMessagingController>(relaxed = true)
+        val dataSource = mockk<ChatMessageDataSource>(relaxed = true)
+        val sentContent = slot<List<MessageContent>>()
+        coEvery { dataSource.insertPending(any(), any(), any()) } returns
+            PendingMessage(message = stored, clientMessageId = ClientMessageId(byteArrayOf(9)))
+        coEvery { controller.sendMessage(any(), capture(sentContent), any()) } returns
+            Result.success(stored)
+
+        delegateWith(controller, dataSource).sendMessage(chatId, "sure", replyToMessageId = 7)
+
+        val reply = assertIs<MessageContent.Reply>(sentContent.captured.single())
+        assertEquals(7L, reply.repliedMessageId)
+        assertEquals(listOf(MessageContent.Text("sure")), reply.content)
+    }
+
+    @Test
+    fun `an ordinary message is still bare text`() = runTest {
+        // Relaxed: sendMessage's success path advances the read pointer through this same
+        // controller, which is not what these tests are asserting on.
+        val controller = mockk<ChatMessagingController>(relaxed = true)
+        val dataSource = mockk<ChatMessageDataSource>(relaxed = true)
+        val sentContent = slot<List<MessageContent>>()
+        coEvery { dataSource.insertPending(any(), any(), any()) } returns
+            PendingMessage(message = stored, clientMessageId = ClientMessageId(byteArrayOf(9)))
+        coEvery { controller.sendMessage(any(), capture(sentContent), any()) } returns
+            Result.success(stored)
+
+        delegateWith(controller, dataSource).sendMessage(chatId, "hello")
+
+        assertEquals(listOf(MessageContent.Text("hello")), sentContent.captured)
+    }
+
+    /**
+     * The optimistic row carries the same payload as the request, so the quote is on screen before
+     * the server answers rather than appearing when it does.
+     */
+    @Test
+    fun `the optimistic row carries the reply too`() = runTest {
+        // Relaxed: sendMessage's success path advances the read pointer through this same
+        // controller, which is not what these tests are asserting on.
+        val controller = mockk<ChatMessagingController>(relaxed = true)
+        val dataSource = mockk<ChatMessageDataSource>(relaxed = true)
+        val pendingContent = slot<List<MessageContent>>()
+        coEvery { dataSource.insertPending(any(), capture(pendingContent), any()) } returns
+            PendingMessage(message = stored, clientMessageId = ClientMessageId(byteArrayOf(9)))
+        coEvery { controller.sendMessage(any(), any(), any()) } returns Result.success(stored)
+
+        delegateWith(controller, dataSource).sendMessage(chatId, "sure", replyToMessageId = 7)
+
+        assertIs<MessageContent.Reply>(pendingContent.captured.single())
     }
 }

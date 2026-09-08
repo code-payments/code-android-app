@@ -81,6 +81,20 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 viewModel.dispatchEvent(ChatViewModel.Event.CancelEdit)
             }
 
+            // Both reply entry points land on one event so the citation is resolved in one place;
+            // turning a bubble into a quote needs a database read.
+            is ChatAction.ReplyTo -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.ReplyRequested(action.bubble))
+            }
+
+            ChatAction.CancelReply -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.CancelReply)
+            }
+
+            is ChatAction.JumpToMessage -> {
+                viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(action.messageId))
+            }
+
             is ChatAction.ViewProfile -> {
                 // The triggers (top-bar tap, contact-card chevron) are only clickable for tip DMs
                 // (see State.canViewProfile), so no gating is needed here.
@@ -132,6 +146,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             otherReadPointer = otherReadPointer,
             onAction = chatActionHandler,
             canViewProfile = state.canViewProfile,
+            onJumpConsumed = { viewModel.dispatchEvent(ChatViewModel.Event.JumpConsumed) },
         )
     }
 }

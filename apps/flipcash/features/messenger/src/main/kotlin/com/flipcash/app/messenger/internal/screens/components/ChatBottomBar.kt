@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -48,6 +49,7 @@ import com.flipcash.app.messenger.internal.screens.ChatAnimations
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
+import com.flipcash.shared.chat.ui.ComposerReplyStrip
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.ChatInputSubmit
 import com.getcode.ui.components.chat.TypingIndicator
@@ -124,7 +126,6 @@ internal fun UserControlBottomBar(
             AnimatedContent(
                 modifier = Modifier
                     .measured { buttonHeight = it.height }
-                    .padding(horizontal = CodeTheme.dimens.inset)
                     .padding(vertical = CodeTheme.dimens.grid.x3)
                     .navigationBarsPadding()
                     // typingConstraints.enabled starts false and only resolves a frame or two after
@@ -158,80 +159,128 @@ internal fun UserControlBottomBar(
                     )
                 },
             ) { canType ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                    verticalAlignment = Alignment.Bottom,
-                ) {
-                    // Editing swaps the leading control rather than adding a banner above the bar:
-                    // send-cash is not reachable mid-edit anyway, and cancel is what the slot is
-                    // for while the edit is open.
-                    if (state.editing != null) {
-                        CancelEditButton(
-                            onClick = { dispatch(ChatViewModel.Event.CancelEdit) },
-                        )
-                    } else {
-                        SendCashButton(
-                            state = state,
-                            hazeState = hazeState,
-                            hazeMaterial = material,
-                            onClick = {
-                                keyboard.hideIfVisible {
-                                    dispatch(ChatViewModel.Event.OnSendCash)
-                                }
-                            }
-                        )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // A banner, unlike an edit, which swaps the leading control instead. The two differ
+                    // in what the user needs to see: an edit's subject is already in front of them as
+                    // the composer's text, while a reply's subject is a different message that is very
+                    // likely scrolled off screen. Gated on canType so a reply strip never sits above a
+                    // bar with nothing to send from.
+                    //
+                    // The bar grows into the strip rather than the strip appearing over the bar, so
+                    // the reveal is a height animation with the content clipped by the edge that is
+                    // moving. `replyingTo` is held past the dismissal by AnimatedVisibility's own
+                    // retention, so the quote is still there to fade out on the way down.
+                    //
+                    // Held one target past the state: cancelling clears `replyingTo` on the frame
+                    // the collapse starts, and reading it directly would shrink an empty strip. It
+                    // still follows a live change, so replying to a second message while the strip
+                    // is up swaps the quote rather than keeping the first.
+                    var lastQuote by remember { mutableStateOf(state.replyingTo) }
+                    state.replyingTo?.let { lastQuote = it }
+                    AnimatedVisibility(
+                        visible = state.replyingTo != null && canType,
+                        enter = ChatAnimations.replySurfaceEnter,
+                        exit = ChatAnimations.replySurfaceExit,
+                    ) {
+                        lastQuote?.let { quote ->
+                            ComposerReplyStrip(
+                                quote = quote,
+                                onDismiss = { dispatch(ChatViewModel.Event.CancelReply) },
+                                hazeState = hazeState,
+                                modifier = Modifier
+                                    // Inset to the composer row's own margins, so the card's edges
+                                    // line up with the field it sits above.
+                                    .padding(horizontal = CodeTheme.dimens.inset)
+                                    .padding(bottom = CodeTheme.dimens.grid.x2)
+                                    .testTag("composer_reply_strip"),
+                            )
+                        }
                     }
-
-                    if (canType) {
-                        ChatInput(
-                            modifier = Modifier
-                                .testTag("chat_message_input")
-                                .weight(1f)
-                                .border(
-                                    CodeTheme.dimens.border,
-                                    CodeTheme.colors.divider,
-                                    CodeTheme.shapes.medium,
-                                )
-                                .hazeBlur(HazeInput.Sources(hazeState), material),
-                            focusRequester = focusRequester,
-                            hint = "Message",
-                            state = state.chatInputState,
-                            // One read of the edit state decides both the glyph and what the tap
-                            // does, so the composer cannot show a checkmark and send a new message.
-                            submit = if (state.editing != null) {
-                                ChatInputSubmit.ConfirmEdit {
-                                    dispatch(ChatViewModel.Event.SubmitEdit)
-                                    keyboard.restartInput()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = CodeTheme.dimens.inset),
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        // Editing swaps the leading control rather than adding a banner above the bar:
+                        // send-cash is not reachable mid-edit anyway, and cancel is what the slot is
+                        // for while the edit is open.
+                        if (state.editing != null) {
+                            CancelEditButton(
+                                onClick = { dispatch(ChatViewModel.Event.CancelEdit) },
+                            )
+                        } else {
+                            SendCashButton(
+                                state = state,
+                                hazeState = hazeState,
+                                hazeMaterial = material,
+                                onClick = {
+                                    keyboard.hideIfVisible {
+                                        dispatch(ChatViewModel.Event.OnSendCash)
+                                    }
                                 }
-                            } else {
-                                ChatInputSubmit.Send {
-                                    dispatch(ChatViewModel.Event.SendMessage)
-                                    keyboard.restartInput()
-                                }
-                            },
-                        )
-
-                        // An edit starts from a long-press, which leaves the keyboard down, so the
-                        // composer has to claim focus itself or the pre-filled text sits unreachable.
-                        LaunchedEffect(state.editing?.messageId) {
-                            if (state.editing != null) {
-                                focusRequester.requestFocus()
-                                keyboard.show()
-                            }
+                            )
                         }
 
-                        // Restores the pre-#1075 behavior: when OnStartMessageInput raises
-                        // state.messageInputRequested (returning from amount entry after a send, or a
-                        // post-tip open), focus the input and show the keyboard. Co-located with
-                        // ChatInput so focusRequester is guaranteed attached; consumes the request so
-                        // it fires once and a later manual dismiss doesn't re-open it.
-                        LaunchedEffect(state.messageInputRequested) {
-                            if (state.messageInputRequested) {
-                                focusRequester.requestFocus()
-                                keyboard.show()
-                                dispatch(ChatViewModel.Event.OnMessageInputConsumed)
+                        if (canType) {
+                            ChatInput(
+                                modifier = Modifier
+                                    .testTag("chat_message_input")
+                                    .weight(1f)
+                                    .border(
+                                        CodeTheme.dimens.border,
+                                        CodeTheme.colors.divider,
+                                        CodeTheme.shapes.medium,
+                                    )
+                                    .hazeBlur(HazeInput.Sources(hazeState), material),
+                                focusRequester = focusRequester,
+                                hint = "Message",
+                                state = state.chatInputState,
+                                // One read of the edit state decides both the glyph and what the tap
+                                // does, so the composer cannot show a checkmark and send a new message.
+                                submit = if (state.editing != null) {
+                                    ChatInputSubmit.ConfirmEdit {
+                                        dispatch(ChatViewModel.Event.SubmitEdit)
+                                        keyboard.restartInput()
+                                    }
+                                } else {
+                                    ChatInputSubmit.Send {
+                                        dispatch(ChatViewModel.Event.SendMessage)
+                                        keyboard.restartInput()
+                                    }
+                                },
+                            )
+
+                            // An edit starts from a long-press, which leaves the keyboard down, so the
+                            // composer has to claim focus itself or the pre-filled text sits unreachable.
+                            LaunchedEffect(state.editing?.messageId) {
+                                if (state.editing != null) {
+                                    focusRequester.requestFocus()
+                                    keyboard.show()
+                                }
+                            }
+
+                            // A reply starts from a long-press or a swipe, neither of which raises the
+                            // keyboard, so the composer claims focus for the same reason.
+                            LaunchedEffect(state.replyingTo?.messageId) {
+                                if (state.replyingTo != null) {
+                                    focusRequester.requestFocus()
+                                    keyboard.show()
+                                }
+                            }
+
+                            // Restores the pre-#1075 behavior: when OnStartMessageInput raises
+                            // state.messageInputRequested (returning from amount entry after a send, or a
+                            // post-tip open), focus the input and show the keyboard. Co-located with
+                            // ChatInput so focusRequester is guaranteed attached; consumes the request so
+                            // it fires once and a later manual dismiss doesn't re-open it.
+                            LaunchedEffect(state.messageInputRequested) {
+                                if (state.messageInputRequested) {
+                                    focusRequester.requestFocus()
+                                    keyboard.show()
+                                    dispatch(ChatViewModel.Event.OnMessageInputConsumed)
+                                }
                             }
                         }
                     }

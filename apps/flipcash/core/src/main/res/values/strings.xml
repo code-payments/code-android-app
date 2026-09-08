@@ -908,6 +908,9 @@
     <string name="action_clearMessageSelection">Clear selection</string>
     <string name="action_deleteForEveryone">Delete For Everyone</string>
     <string name="action_cancelEdit">Cancel edit</string>
+    <string name="action_reply">Reply</string>
+    <string name="action_cancelReply">Cancel reply</string>
+    <string name="label_replyingTo">Replying to %1$s</string>
     <string name="action_confirmEdit">Confirm edit</string>
     <string name="title_deleteMessage">Delete Message?</string>
     <string name="description_deleteMessage">This can\'t be undone</string>

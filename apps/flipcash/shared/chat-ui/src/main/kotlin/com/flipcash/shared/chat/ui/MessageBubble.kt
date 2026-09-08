@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
@@ -55,6 +56,7 @@ import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.models.ChatAction
+import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.SeparatorConfig
@@ -139,9 +141,27 @@ fun ContentBubble(
                     },
                 )
 
+                // A reply is a text bubble with a citation above the body. Routing it through
+                // the same composable keeps its grouping, edited marker and link handling
+                // identical to any other message, which is what it is.
+                is MessageContent.Reply -> TextBubble(
+                    modifier = modifier,
+                    text = content.content.filterIsInstance<MessageContent.Text>()
+                        .firstOrNull()?.text.orEmpty(),
+                    isFromSelf = item.isFromSelf,
+                    position = position,
+                    maxWidth = bubbleMaxWidth,
+                    isEdited = item.isEdited,
+                    quote = item.quote,
+                    // Dropped with the backdrop up, as the cash bubble's target is: the tap
+                    // should dismiss the backdrop, not jump the transcript out from under it.
+                    onQuoteClick = item.quote?.takeIf { interactive }?.let { quote ->
+                        { actionHandler(ChatAction.JumpToMessage(quote.messageId)) }
+                    },
+                )
+
                 // TODO
                 is MessageContent.Media -> Unit
-                is MessageContent.Reply -> Unit
                 is MessageContent.System -> Unit
             }
         }
@@ -149,6 +169,9 @@ fun ContentBubble(
 }
 
 private const val EDITED_MARKER_SLOT = "edited-marker"
+
+/** Space between a reply's citation and its body. */
+private val QUOTE_GAP = 6.dp
 
 @Composable
 private fun TextBubble(
@@ -159,6 +182,8 @@ private fun TextBubble(
     modifier: Modifier = Modifier,
     isEdited: Boolean = false,
     isTombstone: Boolean = false,
+    quote: ChatQuote? = null,
+    onQuoteClick: (() -> Unit)? = null,
 ) {
     Bubble(isFromSelf, position, maxWidth, modifier) {
         val linkStyle = SpanStyle(
@@ -223,12 +248,28 @@ private fun TextBubble(
         // No SelectionContainer: long-press is the transcript's selection gesture, and a text
         // selection handle inside the bubble would consume it before the row ever sees it. Copying
         // a message is the selection bar's Copy action instead — the same trade WhatsApp makes.
-        Text(
-            text = laidOut,
-            inlineContent = inlineContent,
-            style = bodyStyle,
-            color = bodyColor,
-        )
+        // The citation sits inside the bubble, above the body, so the two move together and the
+        // reply reads as one message rather than as a quote with a message under it. The panel
+        // wraps its content rather than filling the bubble: a one-word reply to a long message
+        // should not stretch to the full bubble width.
+        Column(verticalArrangement = Arrangement.spacedBy(QUOTE_GAP)) {
+            if (quote != null) {
+                ChatQuotePanel(
+                    quote = quote,
+                    onClick = onQuoteClick,
+                    // Tagged because the citation repeats the quoted message's own text, so a
+                    // UI test matching on that text cannot tell the two apart.
+                    modifier = Modifier.testTag("bubble_reply_quote"),
+                )
+            }
+
+            Text(
+                text = laidOut,
+                inlineContent = inlineContent,
+                style = bodyStyle,
+                color = bodyColor,
+            )
+        }
 
         if (isEdited) {
             Text(

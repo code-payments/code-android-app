@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -198,10 +199,21 @@ private fun MessageSelectionBar(
     val capabilities = selection.capabilities
     val body = selection.plainText
 
-    // Order is priority: the first actions keep their icons when the bar runs out of room. Delete
-    // leads because burying the one action with a confirmation behind a menu makes it a three-tap
-    // job, and it is the action WhatsApp keeps inline too.
+    // Order is priority: the first actions keep their icons when the bar runs out of room. Reply
+    // leads because it is the most common action and the only one a cash bubble offers — burying it
+    // is the one choice that would leave that bubble's bar empty. Delete follows: putting the one
+    // action with a confirmation behind a menu makes it a three-tap job.
     val actions = buildList {
+        if (MessageCapability.Reply in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_reply),
+                    icon = Icons.AutoMirrored.Outlined.Reply,
+                    testTag = "action_reply_message",
+                    onClick = { dispatch(ChatViewModel.Event.ReplyRequested(selection)) },
+                )
+            )
+        }
         if (MessageCapability.Delete in capabilities) {
             add(
                 MessageAction(

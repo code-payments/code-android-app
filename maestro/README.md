@@ -143,6 +143,9 @@ maestro/run.sh maestro/tipping_setup.yaml
   the unsent draft the edit displaced comes back on cancel and on confirm alike
 - `chat_message_delete.yaml` — delete for everyone: the confirmation sheet, Back leaving the
   message alone, and confirming taking it out of the transcript
+- `chat_message_reply.yaml` — reply from the selection bar and from a trailing-ward swipe: the
+  strip leaves the draft alone where an edit stashes it, and the sent bubble carries a citation
+  that is tappable
 - `blocking.yaml` — block a chat participant from their profile, verify in My Account →
   Blocked, then unblock (leaves the account clean)
 - `tip_deeplink.yaml` — open a tip-card deeplink (`TIPCARD_DEEPLINK`) → presents the tip flow

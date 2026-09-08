@@ -24,6 +24,8 @@ import com.flipcash.shared.chat.withinWindows
 import com.flipcash.shared.chat.applying
 import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.ChatQuote
+import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.app.funding.PurchaseMethodController
@@ -33,6 +35,7 @@ import com.flipcash.features.messenger.R
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
@@ -57,6 +60,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.SendLimit
 import com.getcode.opencode.model.financial.Token
+import com.getcode.ui.utils.generateComplementaryColorPalette
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel
@@ -167,6 +171,29 @@ internal class ChatViewModel @Inject constructor(
         /** The message the composer is editing, or `null` when it is composing a new one. */
         val editing: EditingMessage? = null,
         /**
+         * The message the composer is citing, or `null` when it is composing an ordinary message.
+         *
+         * Mutually exclusive with [editing]: an edit takes the composer over with the message's own
+         * body, so citing another message from inside one would send a reply that overwrites a
+         * third. Unlike [EditingMessage] this stashes no draft — the draft is the reply.
+         *
+         * Cleared by the send handler rather than by the reducer: dispatchEvent reduces before it
+         * emits, so a reducer that cleared it would empty it before the handler could read it.
+         */
+        val replyingTo: ChatQuote? = null,
+        /**
+         * A message the transcript has been asked to scroll to, held until the list consumes it.
+         *
+         * State rather than a one-shot event, for the reason [messageInputRequested] is: eventFlow
+         * is replay-0, so a request raised while the list is recomposing would be dropped.
+         */
+        val jumpTarget: Long? = null,
+        /**
+         * How far back [jumpTarget] sits from the newest message, which bounds the walk that loads
+         * it. Set alongside [jumpTarget] and cleared with it.
+         */
+        val jumpBudget: Int? = null,
+        /**
          * True while the delete confirmation is up.
          *
          * The sheet is modal, so nothing behind it should still read as the focus: the selected
@@ -263,6 +290,24 @@ internal class ChatViewModel @Inject constructor(
         data object SubmitEdit : Event
         data object CancelEdit : Event
         data object EditingEnded : Event
+
+        /**
+         * Asks for a reply to [bubble]. Both entry points — the selection bar and the swipe — land
+         * here rather than on [ReplyToMessage], because turning a bubble into a citation needs the
+         * stored message, and that read belongs in one place.
+         */
+        data class ReplyRequested(val bubble: ChatListItem.ContentBubble) : Event
+
+        /** Opens the composer's reply strip on an already-resolved citation. */
+        data class ReplyToMessage(val quote: ChatQuote) : Event
+        data object CancelReply : Event
+
+        /** Asks the transcript to scroll to [messageId] — a tap on a quote. */
+        data class JumpToMessage(val messageId: Long) : Event
+
+        /** The same request, once the walk's bound is known. */
+        data class JumpResolved(val messageId: Long, val budget: Int) : Event
+        data object JumpConsumed : Event
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -304,6 +349,16 @@ internal class ChatViewModel @Inject constructor(
                         } else content
                     } else content
 
+                    // Resolved here, next to the token-metadata lookup, because this is the one
+                    // place in the transcript that already does async per-item work. A citation of
+                    // a message this device never stored resolves to null, and the bubble renders
+                    // its body with no panel rather than an error.
+                    val quote = (content as? MessageContent.Reply)?.let { reply ->
+                        stateFlow.value.chatId
+                            ?.let { chatCoordinator.getMessage(it, reply.repliedMessageId) }
+                            ?.toQuote()
+                    }
+
                     val receiptStatus = if (message.isFromSelf) {
                         when (message.deliveryStatus) {
                             DeliveryStatus.SENDING -> ReceiptStatus.SENDING
@@ -328,6 +383,7 @@ internal class ChatViewModel @Inject constructor(
                         // taxonomy becomes another input to the resolver rather than a branch at
                         // each action site.
                         capabilities = resolveCapabilities(message, policy),
+                        quote = quote,
                     )
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->
@@ -337,6 +393,47 @@ internal class ChatViewModel @Inject constructor(
                 } else null
             }
         }
+
+    /**
+     * The citation shown for [this] message.
+     *
+     * The accent comes from the message's own sender id, not from `State.participant`:
+     * [ChatParticipant.Contact] wraps a device contact and carries no user id, so the participant
+     * is not a usable source for a counterparty's colour.
+     */
+    private suspend fun ChatMessage.toQuote(): ChatQuote {
+        val body = content.firstOrNull()
+        val palette = senderId?.let { generateComplementaryColorPalette(it) }
+        return ChatQuote(
+            messageId = messageId,
+            authorName = if (isFromSelf) {
+                resources.getString(R.string.title_you)
+            } else {
+                stateFlow.value.participant?.name.orEmpty()
+            },
+            snippet = when (body) {
+                is MessageContent.Cash -> ChatQuoteSnippet.Cash(
+                    amount = body.amount,
+                    tokenName = body.tokenName.ifBlank {
+                        tokenCoordinator.getTokenMetadata(body.mint)
+                            .getOrNull()?.token?.name.orEmpty()
+                    },
+                )
+
+                is MessageContent.Text -> ChatQuoteSnippet.Text(body.text)
+
+                // A reply to a reply cites the inner body, not the nested citation.
+                is MessageContent.Reply -> ChatQuoteSnippet.Text(
+                    body.content.filterIsInstance<MessageContent.Text>()
+                        .firstOrNull()?.text.orEmpty()
+                )
+
+                else -> ChatQuoteSnippet.Text("")
+            },
+            accent = palette?.first,
+            nameAccent = palette?.second,
+        )
+    }
 
     private val maxAmountFlow by lazy {
         combine(
@@ -803,6 +900,30 @@ internal class ChatViewModel @Inject constructor(
                 )
             }
             .launchIn(viewModelScope)
+
+        // A bubble is what the UI has; a citation is what the composer needs, and building one
+        // reads the stored message. A message this device never stored drops the request rather
+        // than opening a strip with nothing in it.
+        eventFlow.filterIsInstance<Event.ReplyRequested>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                val stored = chatCoordinator.getMessage(chatId, event.bubble.messageId)
+                    ?: return@onEach
+                dispatchEvent(Event.ReplyToMessage(stored.toQuote()))
+            }
+            .launchIn(viewModelScope)
+
+        // A distance the device cannot measure is a message it never stored, and no walk would
+        // reach it. Resolving here rather than in the list keeps the read off the composition and
+        // gives the walk a bound before it starts.
+        eventFlow.filterIsInstance<Event.JumpToMessage>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                val distance = chatCoordinator.distanceFromNewest(chatId, event.messageId)
+                    ?: return@onEach
+                dispatchEvent(Event.JumpResolved(event.messageId, distance))
+            }
+            .launchIn(viewModelScope)
     }
 
     /** Leaves edit mode, restoring the draft the edit interrupted. */
@@ -819,11 +940,15 @@ internal class ChatViewModel @Inject constructor(
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 if (textToSend.isBlank()) return@onEach
                 val chatType = stateFlow.value.chatType
+                // Read here, not in the reducer: the reply strip comes down with the draft, and
+                // both are the composer emptying itself once the message is on its way.
+                val replyToMessageId = stateFlow.value.replyingTo?.messageId
 
                 stateFlow.value.chatInputState.setTextAndPlaceCursorAtEnd("")
+                if (replyToMessageId != null) dispatchEvent(Event.CancelReply)
 
                 viewModelScope.launch {
-                    chatCoordinator.sendMessage(chatId, textToSend)
+                    chatCoordinator.sendMessage(chatId, textToSend, replyToMessageId)
                         .onSuccess {
                             trace("message sent successfully")
                             analytics.messageSentInChat(type = chatType)
@@ -1227,6 +1352,7 @@ internal class ChatViewModel @Inject constructor(
                     state.copy(
                         selection = null,
                         confirmingDelete = false,
+                        replyingTo = null,
                         editing = EditingMessage(
                             messageId = event.messageId,
                             originalText = event.text,
@@ -1243,6 +1369,28 @@ internal class ChatViewModel @Inject constructor(
                 Event.SubmitEdit -> { state -> state }
                 Event.CancelEdit -> { state -> state }
                 Event.EditingEnded -> { state -> state.copy(editing = null) }
+                // The strip opens on ReplyToMessage, once the citation resolves; all this does is
+                // take the selection bar down so the transcript is legible while that read runs.
+                is Event.ReplyRequested -> { state ->
+                    state.copy(selection = null, confirmingDelete = false)
+                }
+                is Event.ReplyToMessage -> { state ->
+                    state.copy(
+                        replyingTo = event.quote,
+                        selection = null,
+                        confirmingDelete = false,
+                        // Reply and edit both own the composer, so opening one closes the other.
+                        editing = null,
+                    )
+                }
+                Event.CancelReply -> { state -> state.copy(replyingTo = null) }
+                // The request itself changes nothing: the target is only worth holding once the
+                // walk's bound resolves, and that read is what decides whether it can be reached.
+                is Event.JumpToMessage -> { state -> state }
+                is Event.JumpResolved -> { state ->
+                    state.copy(jumpTarget = event.messageId, jumpBudget = event.budget)
+                }
+                Event.JumpConsumed -> { state -> state.copy(jumpTarget = null, jumpBudget = null) }
             }
         }
     }

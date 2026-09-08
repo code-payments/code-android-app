@@ -5,6 +5,8 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.MessagePolicy
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.ChatQuote
+import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -220,5 +222,127 @@ class ChatMessageActionReducerTest {
 
         assertNotNull(reduce(editing, ChatViewModel.Event.SubmitEdit).editing)
         assertNotNull(reduce(editing, ChatViewModel.Event.CancelEdit).editing)
+    }
+
+    private fun quote(messageId: Long = 4) = ChatQuote(
+        messageId = messageId,
+        authorName = "Ada",
+        snippet = ChatQuoteSnippet.Text("the original"),
+        accent = null,
+        nameAccent = null,
+    )
+
+    @Test
+    fun `replying opens the strip and clears the selection`() {
+        val target = bubble(1)
+        val selected = reduce(
+            ChatViewModel.State(),
+            ChatViewModel.Event.ToggleMessageSelection(target),
+        )
+
+        val state = reduce(selected, ChatViewModel.Event.ReplyToMessage(quote()))
+
+        assertNull(state.selection)
+        assertEquals(quote(), state.replyingTo)
+    }
+
+    /**
+     * Unlike an edit, a reply leaves the composer alone: the draft is the reply. Stashing it the
+     * way EditingMessage does would take the user's half-written text away at the moment they
+     * decided to send it.
+     */
+    @Test
+    fun `replying leaves the draft in the composer`() {
+        val state = reduce(
+            ChatViewModel.State(chatInputState = TextFieldState("half-written")),
+            ChatViewModel.Event.ReplyToMessage(quote()),
+        )
+
+        assertEquals("half-written", state.chatInputState.text.toString())
+    }
+
+    @Test
+    fun `starting an edit takes the reply strip down`() {
+        val replying = reduce(
+            ChatViewModel.State(),
+            ChatViewModel.Event.ReplyToMessage(quote()),
+        )
+
+        val state = reduce(replying, ChatViewModel.Event.EditMessage(1, "hello"))
+
+        assertNull(state.replyingTo)
+        assertNotNull(state.editing)
+    }
+
+    @Test
+    fun `replying takes an edit down`() {
+        val editing = reduce(
+            ChatViewModel.State(),
+            ChatViewModel.Event.EditMessage(1, "hello"),
+        )
+
+        val state = reduce(editing, ChatViewModel.Event.ReplyToMessage(quote()))
+
+        assertNull(state.editing)
+        assertNotNull(state.replyingTo)
+    }
+
+    @Test
+    fun `cancelling the reply keeps the draft`() {
+        val replying = reduce(
+            ChatViewModel.State(chatInputState = TextFieldState("half-written")),
+            ChatViewModel.Event.ReplyToMessage(quote()),
+        )
+
+        val state = reduce(replying, ChatViewModel.Event.CancelReply)
+
+        assertNull(state.replyingTo)
+        assertEquals("half-written", state.chatInputState.text.toString())
+    }
+
+    /**
+     * The send handler reads the target off state and clears the strip itself, the same way it
+     * clears the composer's text. Clearing it here would empty it before the handler ran and send
+     * the reply as an ordinary message: dispatchEvent reduces before it emits.
+     */
+    @Test
+    fun `sending leaves the reply in place for the handler to read`() {
+        val replying = reduce(
+            ChatViewModel.State(),
+            ChatViewModel.Event.ReplyToMessage(quote()),
+        )
+
+        val state = reduce(replying, ChatViewModel.Event.SendMessage)
+
+        assertEquals(quote(), state.replyingTo)
+    }
+
+    /**
+     * The request only becomes a target once the walk's bound is known — a message this device
+     * never stored resolves to no distance and so never reaches the transcript.
+     */
+    @Test
+    fun `a jump request alone sets no target`() {
+        val state = reduce(ChatViewModel.State(), ChatViewModel.Event.JumpToMessage(7))
+
+        assertNull(state.jumpTarget)
+    }
+
+    @Test
+    fun `a resolved jump carries the target and its bound`() {
+        val state = reduce(ChatViewModel.State(), ChatViewModel.Event.JumpResolved(7, 240))
+
+        assertEquals(7L, state.jumpTarget)
+        assertEquals(240, state.jumpBudget)
+    }
+
+    @Test
+    fun `consuming a jump clears both`() {
+        val jumping = reduce(ChatViewModel.State(), ChatViewModel.Event.JumpResolved(7, 240))
+
+        val state = reduce(jumping, ChatViewModel.Event.JumpConsumed)
+
+        assertNull(state.jumpTarget)
+        assertNull(state.jumpBudget)
     }
 }

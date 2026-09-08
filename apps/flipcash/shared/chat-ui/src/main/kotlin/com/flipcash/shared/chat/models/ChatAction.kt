@@ -24,6 +24,15 @@ sealed interface ChatAction {
 
     /** Abandons an edit in progress, as a tap on the backdrop behind the edited message does. */
     data object CancelEdit : ChatAction
+
+    /** Scrolls the transcript to the message a quote cites. */
+    data class JumpToMessage(val messageId: Long) : ChatAction
+
+    /** Opens the composer's reply strip for [bubble]. */
+    data class ReplyTo(val bubble: ChatListItem.ContentBubble) : ChatAction
+
+    /** Takes the reply strip back down, leaving the draft where it is. */
+    data object CancelReply : ChatAction
 }
 
 typealias ChatActionHandler = (ChatAction) -> Unit

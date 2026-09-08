@@ -47,48 +47,71 @@ private fun ChatSummary.formatPreview(
 ): String? {
     val lastMsg = metadata.lastMessage ?: return null
     val sentBySelf = lastMsg.senderId != null && lastMsg.senderId == selfId
-    return lastMsg.content.firstOrNull()?.let { content ->
-        when (content) {
-            is MessageContent.Text -> {
-                val message = content.text.takeIf { it.isNotEmpty() } ?: return null
-                if (sentBySelf) {
-                    resources.getString(R.string.label_chat_preview_sentMessage, message)
-                } else {
-                    message
-                }
-            }
-            is MessageContent.Cash -> {
-                val formatted = content.amount.formatted()
-                // The reserve is branded "Dollars", so naming it reads as "$1.00 of Dollars" —
-                // the amount alone already says it. Every other token still gets named.
-                val name = if (content.mint == Mint.usdf) {
-                    ""
-                } else {
-                    content.tokenName.ifBlank { tokensByMint[content.mint]?.name.orEmpty() }
-                }
-                val label = if (name.isNotBlank()) {
-                    resources.getString(R.string.label_chat_preview_cash_suffix, formatted, name)
-                } else {
-                    formatted
-                }
-                val previewRes = when (content.action) {
-                    MessageContent.Cash.Action.TIPPED ->
-                        if (sentBySelf) R.string.label_chat_preview_tippedCash else R.string.label_chat_preview_receivedCash
-                    MessageContent.Cash.Action.SENT ->
-                        if (sentBySelf) R.string.label_chat_preview_sentCash else R.string.label_chat_preview_receivedCash
-                }
-                resources.getString(previewRes, label)
-            }
+    return lastMsg.content.firstOrNull()?.previewText(sentBySelf, tokensByMint, resources)
+}
 
-            // The feed carries the newest message that still has content, so a tombstone only
-            // reaches here when every message in the chat is deleted — and then there is nothing
-            // to preview.
-            is MessageContent.Deleted -> null
-
-            // TODO:
-            is MessageContent.Media -> null
-            is MessageContent.Reply -> null
-            is MessageContent.System -> null
+/**
+ * The row's line for one piece of message content, or null when there is nothing worth previewing.
+ *
+ * [depth] bounds the reply unwrap below. Nothing the app sends nests a reply inside a reply, but
+ * this content arrives off the wire, so a malformed chain must not recurse forever.
+ */
+private fun MessageContent.previewText(
+    sentBySelf: Boolean,
+    tokensByMint: Map<Mint, Token>,
+    resources: ResourceHelper,
+    depth: Int = 0,
+): String? = when (this) {
+    is MessageContent.Text -> {
+        val message = text.takeIf { it.isNotEmpty() }
+        when {
+            message == null -> null
+            sentBySelf -> resources.getString(R.string.label_chat_preview_sentMessage, message)
+            else -> message
         }
     }
+
+    is MessageContent.Cash -> {
+        val formatted = amount.formatted()
+        // The reserve is branded "Dollars", so naming it reads as "$1.00 of Dollars" —
+        // the amount alone already says it. Every other token still gets named.
+        val name = if (mint == Mint.usdf) {
+            ""
+        } else {
+            tokenName.ifBlank { tokensByMint[mint]?.name.orEmpty() }
+        }
+        val label = if (name.isNotBlank()) {
+            resources.getString(R.string.label_chat_preview_cash_suffix, formatted, name)
+        } else {
+            formatted
+        }
+        val previewRes = when (action) {
+            MessageContent.Cash.Action.TIPPED ->
+                if (sentBySelf) R.string.label_chat_preview_tippedCash else R.string.label_chat_preview_receivedCash
+            MessageContent.Cash.Action.SENT ->
+                if (sentBySelf) R.string.label_chat_preview_sentCash else R.string.label_chat_preview_receivedCash
+        }
+        resources.getString(previewRes, label)
+    }
+
+    // A reply wraps what the sender actually typed, so it previews as that content would have
+    // without the citation. The row has no room to say what was cited, and the reply's own body is
+    // the part that changed. The "You:" prefix comes from the inner content, so it lands once
+    // rather than once per layer.
+    is MessageContent.Reply -> if (depth >= MAX_REPLY_UNWRAP_DEPTH) {
+        null
+    } else {
+        content.firstOrNull()?.previewText(sentBySelf, tokensByMint, resources, depth + 1)
+    }
+
+    // The feed carries the newest message that still has content, so a tombstone only
+    // reaches here when every message in the chat is deleted — and then there is nothing
+    // to preview.
+    is MessageContent.Deleted -> null
+
+    // TODO:
+    is MessageContent.Media -> null
+    is MessageContent.System -> null
 }
+
+private const val MAX_REPLY_UNWRAP_DEPTH = 4

@@ -1,6 +1,7 @@
 package com.flipcash.app.persistence.dao
 
 import android.content.Context
+import androidx.paging.PagingSource
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.flipcash.app.persistence.FlipcashDatabase
@@ -135,6 +136,51 @@ class ChatMessageDaoTest {
         assertEquals(42L, stored.eventSequence)
         assertEquals(MessageStatus.SENT, stored.status)
         assertEquals(3L, stored.unreadSeq)
+    }
+
+    /**
+     * Two messages can share a millisecond — a burst send, or a server batch stamped from one clock
+     * read. `timestamp_epoch_ms DESC` alone leaves their order to SQLite, so a paged read that
+     * re-queries per page can hand back the same row twice or skip one. The tie-breaker makes the
+     * order total.
+     */
+    @Test
+    fun `messages sharing a timestamp order by message id, newest first`() = runTest {
+        val sameMs = 5_000L
+        dao.upsert(
+            listOf(
+                text(1, "first").copy(timestampEpochMs = sameMs),
+                text(2, "second").copy(timestampEpochMs = sameMs),
+                text(3, "third").copy(timestampEpochMs = sameMs),
+            )
+        )
+
+        val page = dao.observeMessagesPaged(CHAT_HEX).load(
+            PagingSource.LoadParams.Refresh(null, 10, false)
+        ) as PagingSource.LoadResult.Page
+
+        assertEquals(listOf(3L, 2L, 1L), page.data.map { it.messageId })
+    }
+
+    /**
+     * How far back a message sits from the newest, which is what bounds the jump walk. Counts
+     * strictly newer rows, so the newest message is at distance 0.
+     */
+    @Test
+    fun `countNewerThan measures the distance back to a message`() = runTest {
+        dao.upsert((1L..5L).map { text(it, "m$it") })
+
+        assertEquals(0, dao.countNewerThan(CHAT_HEX, 5 * 1_000))
+        assertEquals(2, dao.countNewerThan(CHAT_HEX, 3 * 1_000))
+        assertEquals(4, dao.countNewerThan(CHAT_HEX, 1 * 1_000))
+    }
+
+    @Test
+    fun `countNewerThan ignores other chats`() = runTest {
+        dao.upsert((1L..5L).map { text(it, "m$it") })
+        dao.upsert(text(9, "elsewhere").copy(chatIdHex = OTHER_HEX))
+
+        assertEquals(2, dao.countNewerThan(CHAT_HEX, 3 * 1_000))
     }
 
     private companion object {
