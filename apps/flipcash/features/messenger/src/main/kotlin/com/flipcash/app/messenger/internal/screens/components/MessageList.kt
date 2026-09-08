@@ -425,15 +425,13 @@ private fun indexOf(messages: LazyPagingItems<ChatListItem>, messageId: Long): I
  * Brings [index] to the middle of the transcript, which is where iOS lands a jump too
  * (`ChatViewController.scrollToRow`, `.centeredVertically`).
  *
- * Two scrolls, because the height of the target is not known until something has laid it out. The
- * first parks its leading edge — visually its bottom, this list is reverseLayout — at the middle,
- * which is also what measures it; the second corrects by where it actually came to rest. Measuring
- * rather than assuming is what makes the ends behave: a target close enough to the newest message
- * that the list cannot scroll it to the middle stops short on the first pass, and the correction is
- * then computed from where it stopped instead of pushing it further off.
+ * One animation, and it has to be one: a second scroll to correct the first starts from a
+ * standstill, so what it reads as is the list moving, stopping, and moving again rather than as one
+ * move to the message.
  *
- * The correction is small whenever the first pass was free to land where it was asked, so what it
- * reads as is the scroll settling rather than a second move.
+ * That leaves the target's height, which decides how far past its leading edge — visually its
+ * bottom, this list is reverseLayout — the message extends, and which nothing knows until the
+ * message has been laid out. [measuredHeight] lays it out without showing it.
  */
 private suspend fun LazyListState.centerItem(index: Int) {
     // Content padding is not transcript a message can sit in: the top of it is under the bar's fade,
@@ -444,29 +442,43 @@ private suspend fun LazyListState.centerItem(index: Int) {
         return
     }
 
-    animateScrollToItem(index, scrollOffset = -(band.last - band.first) / 2)
-
-    val landed = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return
-    val delta = centeringDelta(landed.offset, landed.size, layoutInfo.centeringBand())
-    if (delta != 0f) animateScrollBy(delta)
+    val height = measuredHeight(index) ?: 0
+    animateScrollToItem(index, scrollOffset = centeringOffset(band.last - band.first, height))
 }
 
-/** The part of the viewport a message can actually be centred in, in item-offset coordinates. */
-private fun LazyListLayoutInfo.centeringBand(): IntRange =
-    (viewportStartOffset + beforeContentPadding)..(viewportEndOffset - afterContentPadding)
+/**
+ * The laid-out height of [index], by putting it on screen and taking it straight back off.
+ *
+ * Both scrolls are the non-animated kind, which force a remeasure and return without suspending, so
+ * they run inside one dispatch and the list is back where it started before anything is drawn. What
+ * is left behind is the measurement.
+ */
+private suspend fun LazyListState.measuredHeight(index: Int): Int? {
+    layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }?.let { return it.size }
+
+    val anchorIndex = firstVisibleItemIndex
+    val anchorOffset = firstVisibleItemScrollOffset
+    scrollToItem(index)
+    val size = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }?.size
+    scrollToItem(anchorIndex, anchorOffset)
+    return size
+}
 
 /**
- * How far to scroll to bring an item of [itemHeight] currently at [itemOffset] to the middle of
- * [band]. Positive is on toward the newest message.
+ * The `scrollOffset` that lands an item of [itemHeight] in the middle of a band [bandHeight] tall.
+ *
+ * `animateScrollToItem` positions the item's leading edge at `-scrollOffset` from the band's start,
+ * so centring is half the room the message leaves over, negated.
  *
  * An item taller than the band cannot be centred, so it is aligned to the band's start instead —
  * the edge the jump arrives from, since the reply that quoted it sits below it.
  */
-internal fun centeringDelta(itemOffset: Int, itemHeight: Int, band: IntRange): Float {
-    val height = band.last - band.first
-    if (itemHeight >= height) return (itemOffset - band.first).toFloat()
-    return (itemOffset + itemHeight / 2f) - (band.first + height / 2f)
-}
+internal fun centeringOffset(bandHeight: Int, itemHeight: Int): Int =
+    -((bandHeight - itemHeight) / 2).coerceAtLeast(0)
+
+/** The part of the viewport a message can actually be centred in, in item-offset coordinates. */
+private fun LazyListLayoutInfo.centeringBand(): IntRange =
+    (viewportStartOffset + beforeContentPadding)..(viewportEndOffset - afterContentPadding)
 
 /** Handed to every row that is not the one a jump just landed on. */
 private val NoAttention: () -> Float = { 0f }

@@ -4,43 +4,41 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * The jump centres the message it lands on, and it does that in two scrolls: one that parks the
- * target's leading edge mid-band and measures it, and one that corrects by where it actually came
- * to rest. This is the correction — the only part of the landing that can be checked without a
- * laid-out list.
+ * The jump centres the message it lands on in one scroll, and the whole of that scroll is one
+ * number: the `scrollOffset` handed to `animateScrollToItem`, which positions the target's leading
+ * edge at `-scrollOffset` from the start of the band.
  *
- * The band is what is left of the viewport once content padding is off it, in the coordinates
- * `LazyListItemInfo.offset` is reported in.
+ * The band is what is left of the viewport once content padding is off it.
  */
 class JumpCenteringTest {
 
-    private val band = 100..1100 // a 1000px band starting 100px in
+    private val band = 1000 // a 1000px band
 
     @Test
-    fun `an item already centred needs no correction`() {
-        // Spans 500..700, so its centre is at 600 — the middle of the band.
-        assertEquals(0f, centeringDelta(itemOffset = 500, itemHeight = 200, band = band))
+    fun `a message is offset by half the room it leaves over`() {
+        // 200px in a 1000px band leaves 800, so its leading edge goes 400 in and its middle at 500.
+        assertEquals(-400, centeringOffset(bandHeight = band, itemHeight = 200))
     }
 
     @Test
-    fun `an item short of the middle is scrolled on`() {
-        // The first pass parks the leading edge at the middle, so this is the usual case: the item
-        // sits half its own height past centre and comes back by exactly that.
-        assertEquals(100f, centeringDelta(itemOffset = 600, itemHeight = 200, band = band))
+    fun `a message filling half the band still centres`() {
+        assertEquals(-250, centeringOffset(bandHeight = band, itemHeight = 500))
     }
 
     @Test
-    fun `an item past the middle is scrolled back`() {
-        assertEquals(-150f, centeringDelta(itemOffset = 350, itemHeight = 200, band = band))
+    fun `a message too tall to centre is aligned to the band's start`() {
+        assertEquals(0, centeringOffset(bandHeight = band, itemHeight = 2000))
     }
 
     @Test
-    fun `an item too tall to centre is aligned to the band's start`() {
-        assertEquals(400f, centeringDelta(itemOffset = 500, itemHeight = 2000, band = band))
+    fun `a message exactly as tall as the band is aligned to it too`() {
+        assertEquals(0, centeringOffset(bandHeight = band, itemHeight = band))
     }
 
     @Test
-    fun `an item exactly as tall as the band is aligned to it too`() {
-        assertEquals(400f, centeringDelta(itemOffset = 500, itemHeight = 1000, band = band))
+    fun `a height that could not be measured puts the leading edge on the middle`() {
+        // centerItem falls back to 0 when the target never reported a size. Half a message off is
+        // the worst it can then be, and it is off toward the top, where there is transcript to see.
+        assertEquals(-500, centeringOffset(bandHeight = band, itemHeight = 0))
     }
 }
