@@ -4,6 +4,7 @@ import com.flipcash.services.models.chat.BlobRejection
 import com.getcode.solana.keys.Checksum
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
+import com.getcode.utils.UnreportedError
 
 sealed class LoginError(
     override val message: String? = null,
@@ -374,7 +375,12 @@ sealed class GetMessagesError(
     override val cause: Throwable? = null
 ): CodeServerError(message, cause) {
     class Denied : GetMessagesError("Denied")
-    class NotFound : GetMessagesError("Not found")
+
+    /**
+     * The chat has no messages to return. Opening a conversation nobody has written in yet is a
+     * normal outcome, not a fault, so callers render an empty transcript and it is not reported.
+     */
+    class NotFound : GetMessagesError("Not found"), UnreportedError
     class Unrecognized : GetMessagesError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : GetMessagesError(message = cause?.message, cause = cause), NotifiableError
 }
