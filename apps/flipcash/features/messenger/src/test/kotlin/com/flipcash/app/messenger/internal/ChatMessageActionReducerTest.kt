@@ -315,4 +315,33 @@ class ChatMessageActionReducerTest {
 
         assertEquals(quote(), state.replyingTo)
     }
+
+    /**
+     * The request only becomes a target once the walk's bound is known — a message this device
+     * never stored resolves to no distance and so never reaches the transcript.
+     */
+    @Test
+    fun `a jump request alone sets no target`() {
+        val state = reduce(ChatViewModel.State(), ChatViewModel.Event.JumpToMessage(7))
+
+        assertNull(state.jumpTarget)
+    }
+
+    @Test
+    fun `a resolved jump carries the target and its bound`() {
+        val state = reduce(ChatViewModel.State(), ChatViewModel.Event.JumpResolved(7, 240))
+
+        assertEquals(7L, state.jumpTarget)
+        assertEquals(240, state.jumpBudget)
+    }
+
+    @Test
+    fun `consuming a jump clears both`() {
+        val jumping = reduce(ChatViewModel.State(), ChatViewModel.Event.JumpResolved(7, 240))
+
+        val state = reduce(jumping, ChatViewModel.Event.JumpConsumed)
+
+        assertNull(state.jumpTarget)
+        assertNull(state.jumpBudget)
+    }
 }
