@@ -1,6 +1,7 @@
 package com.flipcash.services.models
 
 import com.getcode.utils.CodeServerError
+import com.getcode.utils.UnreportedError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -145,6 +146,11 @@ class ErrorsTest {
         assertIs<CodeServerError>(GetMessagesError.NotFound())
         assertIs<CodeServerError>(GetMessagesError.Unrecognized())
         assertIs<CodeServerError>(GetMessagesError.Other())
+    }
+
+    @Test
+    fun `GetMessagesError NotFound is not reported`() {
+        assertIs<UnreportedError>(GetMessagesError.NotFound())
     }
 
     // -- SendMessageError --

@@ -61,11 +61,7 @@ object ErrorUtils {
             )
         }
 
-        if (
-            BuildConfig.NOTIFY_ERRORS &&
-            ignoredErrors.none { it.isInstance(throwable) } &&
-            ignoredErrors.none { it.isInstance(throwableCause) }
-        ) {
+        if (BuildConfig.NOTIFY_ERRORS && shouldReport(throwable, throwableCause)) {
             val isNotifiable = when {
                 throwable is ConditionallyNotifiable -> throwable.isNotifiable
                 throwableCause is ConditionallyNotifiable -> throwableCause.isNotifiable
@@ -75,6 +71,17 @@ object ErrorUtils {
             reporters.forEach { it.report(throwable, throwableCause, isNotifiable) }
         }
     }
+
+    /**
+     * Whether [throwable] is worth handing to the reporters at all. [UnreportedError] marks an
+     * expected server result the caller already handles, so it stays in the log without opening a
+     * Bugsnag error group.
+     */
+    internal fun shouldReport(throwable: Throwable, cause: Throwable): Boolean =
+        throwable !is UnreportedError &&
+                cause !is UnreportedError &&
+                ignoredErrors.none { it.isInstance(throwable) } &&
+                ignoredErrors.none { it.isInstance(cause) }
 
     private fun isNetworkError(throwable: Throwable): Boolean =
         throwable is TimeoutException ||
