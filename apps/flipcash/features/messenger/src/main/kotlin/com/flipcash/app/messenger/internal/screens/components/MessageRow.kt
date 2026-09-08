@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import com.flipcash.app.messenger.internal.screens.ChatAnimations
 import com.flipcash.services.models.chat.MessagePointer
+import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LocalChatActionHandler
@@ -157,7 +158,17 @@ internal fun MessageRow(
                     // dismiss but the keyboard.
                     onClick = { keyboard.hide() },
                 )
-            },
+            }
+            // No swipe with the backdrop up either, and for the same reason: the bar is already
+            // acting on a message.
+            .then(
+                rememberSwipeToReply(
+                    enabled = bubble != null &&
+                        !selecting &&
+                        MessageCapability.Reply in bubble.capabilities,
+                    onReply = { bubble?.let { onAction(ChatAction.ReplyTo(it)) } },
+                )
+            ),
     ) {
         when (item) {
             is ChatListItem.DateSeparator -> Box(insertionModifier) {
