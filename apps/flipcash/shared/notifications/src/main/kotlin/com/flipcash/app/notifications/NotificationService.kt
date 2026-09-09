@@ -135,52 +135,73 @@ class NotificationService : FirebaseMessagingService(),
         val title = message.data[KEY_TITLE]?.ifEmpty { message.notification?.title }
         val body = message.data[KEY_BODY]?.ifEmpty { message.notification?.body }
 
+        val payload = message.data.getOrDefault(KEY_PAYLOAD, "")
+            .takeIf { it.isNotEmpty() }
+            ?.let { NotificationPayload.fromEncoded(it) }
+
+        val actions = planPushHandling(
+            title = title,
+            body = body,
+            payload = payload,
+            silentSyncEnabled = false,
+        )
+
         trace(
             message = "onMessageReceived",
             type = TraceType.Process,
             metadata = {
                 "title" to title
                 "body" to body
+                "actions" to actions.size
             }
         )
 
-        if (title == null) return
+        if (actions.isEmpty()) return
 
-        val payload = message.data.getOrDefault(KEY_PAYLOAD, "")
-            .takeIf { it.isNotEmpty() }
-            ?.let { NotificationPayload.fromEncoded(it) }
+        execute(actions)
+    }
 
-        if (payload?.navigation is NavigationTrigger.CurrencyInfo) {
+    /** Runs a planned action list. Sync work starts immediately; posting a
+     *  notification waits for authentication, as it always has. */
+    private fun execute(actions: List<PushAction>) {
+        if (PushAction.UpdateTokens in actions) {
             launch { tokenCoordinator.update() }
         }
 
-        if (payload?.category == NotificationCategory.CONTACT_JOIN) {
+        val chatActions = actions.filter {
+            it is PushAction.RefreshFeed || it is PushAction.LoadMessages
+        }
+        if (chatActions.isNotEmpty()) {
             launch {
-                chatCoordinator.refreshFeed()
+                chatActions.forEach { action ->
+                    when (action) {
+                        is PushAction.RefreshFeed -> chatCoordinator.refreshFeed()
+                        is PushAction.LoadMessages -> chatCoordinator.loadMessages(chatId = action.chatId)
+                        else -> Unit
+                    }
+                }
             }
         }
 
-        when (val trigger = payload?.navigation) {
-            is NavigationTrigger.Chat.ById -> {
-                launch {
-                    chatCoordinator.refreshFeed()
-                    chatCoordinator.loadMessages(chatId = trigger.chatId)
-                }
-            }
-            else -> Unit
-        }
+        val post = actions.filterIsInstance<PushAction.PostNotification>().firstOrNull()
+        val syncContacts = actions.any { it is PushAction.SyncContacts }
+
+        if (post == null && !syncContacts) return
 
         authenticateIfNeeded {
             launch {
                 try {
-                    if (payload?.category == NotificationCategory.CONTACT_JOIN) {
-                        launch { contactCoordinator.sync() }
+                    if (syncContacts) launch { contactCoordinator.sync() }
+                    if (post != null) {
+                        val resolvedTitle =
+                            applySubstitutions(post.title, post.payload?.titleSubstitutions.orEmpty())
+                        val resolvedBody = post.body?.let {
+                            applySubstitutions(it, post.payload?.bodySubstitutions.orEmpty())
+                        }
+                        postNotification(resolvedTitle, resolvedBody, post.payload)
                     }
-                    val resolvedTitle = applySubstitutions(title, payload?.titleSubstitutions.orEmpty())
-                    val resolvedBody = body?.let { applySubstitutions(it, payload?.bodySubstitutions.orEmpty()) }
-                    postNotification(resolvedTitle, resolvedBody, payload)
                 } catch (e: Exception) {
-                    trace(tag = "NotificationService", message = "Failed to post notification", error = e)
+                    trace(tag = "NotificationService", message = "Failed to handle push", error = e)
                 }
             }
         }
