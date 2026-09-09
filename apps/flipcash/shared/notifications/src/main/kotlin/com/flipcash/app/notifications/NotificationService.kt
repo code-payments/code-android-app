@@ -71,6 +71,11 @@ class NotificationService : FirebaseMessagingService(),
         private const val KEY_BODY = "push_notification_body"
         private const val KEY_PAYLOAD = "flipcash_payload"
 
+        // Spike-only correlation id. The bucket matrix sends a known sequence
+        // number with every push so a missing delivery and a late delivery can
+        // be told apart in the log; nothing in production sets it.
+        private const val KEY_SPIKE_SEQ = "spike_seq"
+
         // Upper bound on how long we'll wait for a remote avatar before posting
         // without one. A memory/disk cache hit returns well under this; the
         // bound only caps the cold-cache network fetch so the notification isn't
@@ -159,8 +164,11 @@ class NotificationService : FirebaseMessagingService(),
             message = "onMessageReceived",
             type = TraceType.Process,
             metadata = {
-                "title" to title
-                "body" to body
+                // MetadataBuilder.to takes a non-null Any, so passing a String?
+                // silently resolves to kotlin.to, builds a Pair and discards it.
+                // Every value here must be non-null or it will not be recorded.
+                "seq" to message.data[KEY_SPIKE_SEQ].orEmpty()
+                "has_body" to (body != null)
                 "actions" to actions.size
                 "silent" to (title == null)
                 "bucket" to bucket
