@@ -26,6 +26,8 @@ import com.flipcash.app.core.media.MediaUrlResolver
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.ContactResolver
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.app.tokens.TokenCoordinator
@@ -54,6 +56,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import java.security.SecureRandom
 import javax.inject.Inject
@@ -108,6 +111,9 @@ class NotificationService : FirebaseMessagingService(),
     @Inject
     lateinit var userProfileDataSource: UserProfileDataSource
 
+    @Inject
+    lateinit var featureFlags: FeatureFlagController
+
     // TODO(firebase-messaging): 25.1.0 deprecated onNewToken in favor of FID-based onRegistered().
     //  Migrate once Firebase ships a stable guide and the backend accepts FID registration.
     //  Tracking: https://github.com/firebase/firebase-android-sdk/issues/8087
@@ -143,7 +149,7 @@ class NotificationService : FirebaseMessagingService(),
             title = title,
             body = body,
             payload = payload,
-            silentSyncEnabled = false,
+            silentSyncEnabled = runBlocking { featureFlags.get(FeatureFlag.PushSilentSync) },
         )
 
         trace(

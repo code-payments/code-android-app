@@ -21,9 +21,9 @@ fun planPushHandling(
     payload: NotificationPayload?,
     silentSyncEnabled: Boolean,
 ): List<PushAction> {
-    // Today a data-only push is dropped before its payload is read. Task 4
-    // replaces this early return with the silent branch.
-    if (title == null) return emptyList()
+    if (title == null) {
+        return if (silentSyncEnabled) syncActionsFor(payload) else emptyList()
+    }
 
     val actions = mutableListOf<PushAction>()
     actions += syncActionsFor(payload)

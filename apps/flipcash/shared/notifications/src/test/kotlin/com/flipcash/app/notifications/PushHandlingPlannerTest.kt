@@ -92,6 +92,49 @@ class PushHandlingPlannerTest {
 
     // endregion
 
+    // region Silent sync enabled
+
+    @Test
+    fun `no title still syncs chat when silent sync is enabled`() {
+        val chatId = ChatId("aa09")
+        val actions = planPushHandling(
+            title = null,
+            body = null,
+            payload = payload(navigation = NavigationTrigger.Chat.ById(chatId)),
+            silentSyncEnabled = true,
+        )
+        assertEquals(listOf(PushAction.RefreshFeed, PushAction.LoadMessages(chatId)), actions)
+    }
+
+    @Test
+    fun `silent push never posts a notification`() {
+        val actions = planPushHandling(
+            title = null,
+            body = null,
+            payload = payload(navigation = NavigationTrigger.CurrencyInfo(mint = TEST_MINT)),
+            silentSyncEnabled = true,
+        )
+        assertTrue(actions.none { it is PushAction.PostNotification })
+        assertEquals(listOf(PushAction.UpdateTokens), actions)
+    }
+
+    @Test
+    fun `silent push with no payload does nothing`() {
+        val actions = planPushHandling(null, null, payload = null, silentSyncEnabled = true)
+        assertEquals(emptyList(), actions)
+    }
+
+    @Test
+    fun `enabling silent sync does not change a titled push`() {
+        val p = payload(navigation = NavigationTrigger.Chat.ById(ChatId("0c")))
+        assertEquals(
+            planPushHandling("Title", "Body", p, silentSyncEnabled = false),
+            planPushHandling("Title", "Body", p, silentSyncEnabled = true),
+        )
+    }
+
+    // endregion
+
     companion object {
         private val TEST_MINT = Mint.usdc
     }
