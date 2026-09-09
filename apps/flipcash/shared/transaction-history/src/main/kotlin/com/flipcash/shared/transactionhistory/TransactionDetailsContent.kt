@@ -147,8 +147,7 @@ private fun Header(
             TransactionAvatarImage(
                 avatar = details.avatar,
                 size = CodeTheme.dimens.staticGrid.x16,
-                slotSize = CodeTheme.dimens.staticGrid.x18,
-                badgeSize = CodeTheme.dimens.staticGrid.x6,
+                showBadge = false,
                 iconOverride = iconOverride,
             )
 
