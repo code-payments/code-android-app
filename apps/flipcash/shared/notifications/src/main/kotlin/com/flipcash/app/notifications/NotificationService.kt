@@ -152,6 +152,9 @@ class NotificationService : FirebaseMessagingService(),
             silentSyncEnabled = runBlocking { featureFlags.get(FeatureFlag.PushSilentSync) },
         )
 
+        val latencyMs = System.currentTimeMillis() - message.sentTime
+        val bucket = applicationContext.currentStandbyBucket()
+
         trace(
             message = "onMessageReceived",
             type = TraceType.Process,
@@ -159,6 +162,11 @@ class NotificationService : FirebaseMessagingService(),
                 "title" to title
                 "body" to body
                 "actions" to actions.size
+                "silent" to (title == null)
+                "bucket" to bucket
+                "latency_ms" to latencyMs
+                "priority" to message.priority
+                "original_priority" to message.originalPriority
             }
         )
 
