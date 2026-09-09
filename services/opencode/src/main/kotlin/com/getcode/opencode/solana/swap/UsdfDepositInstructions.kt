@@ -97,7 +97,6 @@ internal fun buildUsdfDepositInstructions(
                 fromMint = Mint.usdc,
                 toMint = Mint.usdf,
                 user = sender,
-                whitelist = swapAccounts.whitelist,
                 amountIn = amount,
                 minAmountOut = amount, // 1:1 stable pair
             ).instruction()

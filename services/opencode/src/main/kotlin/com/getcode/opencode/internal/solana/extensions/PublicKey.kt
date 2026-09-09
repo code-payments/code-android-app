@@ -172,13 +172,6 @@ internal fun PublicKey.Companion.deriveCoinbaseVaultTokenAccountAddress(vault: P
     )
 }
 
-internal fun PublicKey.Companion.deriveCoinbaseWhitelistAddress(): ProgramDerivedAccount {
-    return findProgramAddress(
-        seeds = listOf("address_whitelist".toByteArray(Charsets.UTF_8)),
-        programId = CoinbaseStableSwapperProgram.address,
-    )
-}
-
 /// FindProgramAddress mirrors the implementation of the Solana SDK's FindProgramAddress. Its primary
 /// use case (for Kin and Agora) is for deriving associated accounts.
 ///
