@@ -106,7 +106,7 @@ internal class GooglePlayBillingClient(
             metadata = {
                 "code" to billingResult.responseCode
                 "message" to billingResult.debugMessage
-                "purchases" to purchases?.count()
+                "purchases" to (purchases?.count() ?: -1)
             }
         )
 

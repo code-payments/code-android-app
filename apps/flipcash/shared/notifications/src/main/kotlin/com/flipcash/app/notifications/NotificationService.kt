@@ -139,8 +139,10 @@ class NotificationService : FirebaseMessagingService(),
             message = "onMessageReceived",
             type = TraceType.Process,
             metadata = {
-                "title" to title
-                "body" to body
+                // Push content is not recorded: TraceType.Process is forwarded to
+                // breadcrumb sinks, and message text does not belong in Bugsnag.
+                "silent" to (title == null)
+                "has_body" to (body != null)
             }
         )
 
