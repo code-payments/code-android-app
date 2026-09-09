@@ -50,14 +50,19 @@ class VerifiedProtoManager internal constructor(
     private val reserveStates = MutableStateFlow<Map<Mint, OcpCurrencyService.VerifiedLaunchpadCurrencyReserveState>>(emptyMap())
 
     fun saveRates(exchangeData: List<OcpCurrencyService.VerifiedCoreMintFiatExchangeRate>) {
-        val incoming = exchangeData.mapNotNull { data ->
-            CurrencyCode.tryValueOf(data.exchangeRate.currencyCode)?.let { it to data }
-        }.toMap()
+        val incoming = exchangeData
+            .filterNot { isExpired(it.exchangeRate.timestamp) }
+            .mapNotNull { data ->
+                CurrencyCode.tryValueOf(data.exchangeRate.currencyCode)?.let { it to data }
+            }
+            .toMap()
         this.exchangeData.update { it + incoming }
     }
 
     fun saveReserveStates(reserveStates: List<OcpCurrencyService.VerifiedLaunchpadCurrencyReserveState>) {
-        val incoming = reserveStates.associateBy { it.reserveState.mint.toMint() }
+        val incoming = reserveStates
+            .filterNot { isExpired(it.reserveState.timestamp) }
+            .associateBy { it.reserveState.mint.toMint() }
         this.reserveStates.update { it + incoming }
     }
 

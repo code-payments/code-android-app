@@ -232,6 +232,39 @@ class VerifiedProtoManagerTest {
         assertNull(state.reserveProto)
     }
 
+    @Test
+    fun `saveRates ignores a rate that is already older than 13 minutes`() {
+        manager.saveRates(listOf(rateProto("USD", fx = 1.0, timestamp = start - 14.minutes)))
+
+        assertNull(manager.getVerifiedStateFor(CurrencyCode.USD, Mint.usdf))
+        assertNull(manager.rateFor(CurrencyCode.USD))
+    }
+
+    @Test
+    fun `saveRates keeps the fresh rates in a batch that also contains an expired one`() {
+        manager.saveRates(
+            listOf(
+                rateProto("USD", fx = 1.0, timestamp = start - 14.minutes),
+                rateProto("EUR", fx = 0.85),
+            )
+        )
+
+        assertNull(manager.rateFor(CurrencyCode.USD))
+        assertEquals(Rate(fx = 0.85, currency = CurrencyCode.EUR), manager.rateFor(CurrencyCode.EUR))
+    }
+
+    @Test
+    fun `saveReserveStates ignores a reserve state that is already older than 13 minutes`() {
+        val mint = Mint(List(32) { 7.toByte() })
+        manager.saveRates(listOf(rateProto("USD")))
+        manager.saveReserveStates(listOf(reserveProto(mint, timestamp = start - 14.minutes)))
+
+        val state = manager.getVerifiedStateFor(CurrencyCode.USD, mint)
+
+        assertNotNull(state)
+        assertNull(state.reserveProto)
+    }
+
     // endregion
 
     // region helpers
