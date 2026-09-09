@@ -1,12 +1,17 @@
 package com.getcode.opencode.internal.manager
 
 import app.cash.turbine.test
+import com.codeinc.opencode.gen.common.v1.solanaAccountId
 import com.codeinc.opencode.gen.currency.v1.OcpCurrencyService
 import com.codeinc.opencode.gen.currency.v1.coreMintFiatExchangeRate
+import com.codeinc.opencode.gen.currency.v1.launchpadCurrencyReserveState
 import com.codeinc.opencode.gen.currency.v1.verifiedCoreMintFiatExchangeRate
+import com.codeinc.opencode.gen.currency.v1.verifiedLaunchpadCurrencyReserveState
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
+import com.google.protobuf.ByteString
+import com.google.protobuf.Timestamp
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
@@ -14,14 +19,25 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 class VerifiedProtoManagerTest {
 
+    private class FakeClock(var current: Instant) : Clock {
+        override fun now(): Instant = current
+    }
+
+    private val start = Instant.fromEpochSeconds(1_757_433_600)
+    private lateinit var clock: FakeClock
     private lateinit var manager: VerifiedProtoManager
 
     @Before
     fun setUp() {
-        manager = VerifiedProtoManager()
+        clock = FakeClock(start)
+        manager = VerifiedProtoManager(clock)
     }
 
     // region saveRates / getVerifiedStateFor
@@ -173,19 +189,83 @@ class VerifiedProtoManagerTest {
 
     // endregion
 
+    // region expiry
+
+    @Test
+    fun `getVerifiedStateFor returns state while the rate is at most 13 minutes old`() {
+        manager.saveRates(listOf(rateProto("USD")))
+        clock.current = start + 13.minutes
+
+        assertNotNull(manager.getVerifiedStateFor(CurrencyCode.USD, Mint.usdf))
+    }
+
+    @Test
+    fun `getVerifiedStateFor returns null once the rate is older than 13 minutes`() {
+        manager.saveRates(listOf(rateProto("USD")))
+        clock.current = start + 13.minutes + 1.seconds
+
+        assertNull(manager.getVerifiedStateFor(CurrencyCode.USD, Mint.usdf))
+    }
+
+    @Test
+    fun `getVerifiedStateFor evicts an expired rate from the cache`() {
+        manager.saveRates(listOf(rateProto("USD", fx = 1.0)))
+        clock.current = start + 14.minutes
+
+        manager.getVerifiedStateFor(CurrencyCode.USD, Mint.usdf)
+
+        assertNull(manager.rateFor(CurrencyCode.USD))
+    }
+
+    @Test
+    fun `getVerifiedStateFor drops an expired reserve state but keeps a fresh rate`() {
+        val mint = Mint(List(32) { 7.toByte() })
+        manager.saveRates(listOf(rateProto("USD")))
+        manager.saveReserveStates(listOf(reserveProto(mint)))
+        clock.current = start + 10.minutes
+        manager.saveRates(listOf(rateProto("USD")))
+        clock.current = start + 14.minutes
+
+        val state = manager.getVerifiedStateFor(CurrencyCode.USD, mint)
+
+        assertNotNull(state)
+        assertNull(state.reserveProto)
+    }
+
+    // endregion
+
     // region helpers
 
     private fun rateProto(
         code: String,
         fx: Double = 0.0,
+        timestamp: Instant = clock.now(),
     ): OcpCurrencyService.VerifiedCoreMintFiatExchangeRate {
         return verifiedCoreMintFiatExchangeRate {
             exchangeRate = coreMintFiatExchangeRate {
                 currencyCode = code
                 exchangeRate = fx
+                this.timestamp = timestamp.toProto()
             }
         }
     }
+
+    private fun reserveProto(
+        mint: Mint,
+        timestamp: Instant = clock.now(),
+    ): OcpCurrencyService.VerifiedLaunchpadCurrencyReserveState {
+        return verifiedLaunchpadCurrencyReserveState {
+            reserveState = launchpadCurrencyReserveState {
+                this.mint = solanaAccountId { value = ByteString.copyFrom(mint.bytes.toByteArray()) }
+                this.timestamp = timestamp.toProto()
+            }
+        }
+    }
+
+    private fun Instant.toProto(): Timestamp = Timestamp.newBuilder()
+        .setSeconds(epochSeconds)
+        .setNanos(nanosecondsOfSecond)
+        .build()
 
     // endregion
 }
