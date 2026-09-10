@@ -192,7 +192,9 @@ class NotificationService : FirebaseMessagingService(),
         }
 
         val chatActions = actions.filter {
-            it is PushAction.RefreshFeed || it is PushAction.LoadMessages
+            it is PushAction.RefreshFeed ||
+                it is PushAction.LoadMessages ||
+                it is PushAction.ApplyMessage
         }
         if (chatActions.isNotEmpty()) {
             launch {
@@ -200,6 +202,10 @@ class NotificationService : FirebaseMessagingService(),
                     when (action) {
                         is PushAction.RefreshFeed -> chatCoordinator.refreshFeed()
                         is PushAction.LoadMessages -> chatCoordinator.loadMessages(chatId = action.chatId)
+                        is PushAction.ApplyMessage -> chatCoordinator.applyPushedMessage(
+                            chatId = action.chatId,
+                            message = action.message,
+                        )
                         else -> Unit
                     }
                 }

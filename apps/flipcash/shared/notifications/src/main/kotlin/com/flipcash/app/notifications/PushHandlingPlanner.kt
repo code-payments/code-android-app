@@ -35,10 +35,10 @@ fun planPushHandling(
  * The sync work an event class implies, independent of where the push
  * navigates.
  *
- * Adding an event class is an entry in this table rather than a branch in
- * [syncActionsFor]. The key is [NotificationCategory] until
- * `flipcash.push.v1.Payload` carries the event field the shared taxonomy needs;
- * when it does, the key type changes and the shape does not.
+ * `flipcash.push.v1.Payload.category` is the event taxonomy — there is no
+ * separate event field coming, so this table is keyed on the taxonomy already.
+ * Adding an event class is an entry here rather than a branch in
+ * [syncActionsFor].
  *
  * A category absent from the table plans no sync of its own, which is every
  * category but one today.
@@ -52,12 +52,21 @@ private val syncByCategory: Map<NotificationCategory, List<PushAction>> = mapOf(
  *
  * This stays a `when` rather than joining the table above: each arm reads data
  * off the trigger it matched, so the actions cannot be written down in advance.
+ *
+ * A push at a named chat resolves to one of two shapes. When the payload
+ * inlines the message, [PushAction.ApplyMessage] writes it locally; when it
+ * does not — the field is optional and the body is size-limited — the plan
+ * falls back to the [PushAction.LoadMessages] fetch it has always used.
  */
-private fun syncForNavigation(navigation: NavigationTrigger?): List<PushAction> =
-    when (navigation) {
+private fun syncForNavigation(payload: NotificationPayload): List<PushAction> =
+    when (val navigation = payload.navigation) {
         is NavigationTrigger.CurrencyInfo -> listOf(PushAction.UpdateTokens)
-        is NavigationTrigger.Chat.ById ->
-            listOf(PushAction.RefreshFeed, PushAction.LoadMessages(navigation.chatId))
+        is NavigationTrigger.Chat.ById -> listOf(
+            PushAction.RefreshFeed,
+            payload.chatMetadata?.message
+                ?.let { PushAction.ApplyMessage(navigation.chatId, it) }
+                ?: PushAction.LoadMessages(navigation.chatId),
+        )
         is NavigationTrigger.Chat.ByContact -> emptyList()
         null -> emptyList()
     }
@@ -71,6 +80,6 @@ private fun syncForNavigation(navigation: NavigationTrigger?): List<PushAction> 
  */
 private fun syncActionsFor(payload: NotificationPayload?): List<PushAction> {
     if (payload == null) return emptyList()
-    return (syncByCategory[payload.category].orEmpty() + syncForNavigation(payload.navigation))
+    return (syncByCategory[payload.category].orEmpty() + syncForNavigation(payload))
         .distinct()
 }

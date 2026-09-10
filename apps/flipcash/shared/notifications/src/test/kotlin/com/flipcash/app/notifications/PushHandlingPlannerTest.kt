@@ -3,8 +3,13 @@ package com.flipcash.app.notifications
 import com.flipcash.services.models.NavigationTrigger
 import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
+import com.flipcash.services.models.PushChatMetadata
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.MessageContent
 import com.getcode.solana.keys.Mint
+import kotlin.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -14,9 +19,26 @@ class PushHandlingPlannerTest {
     private fun payload(
         navigation: NavigationTrigger? = null,
         category: NotificationCategory = NotificationCategory.DEFAULT,
+        chatMetadata: PushChatMetadata? = null,
     ) = NotificationPayload(
         navigation = navigation,
         category = category,
+        chatMetadata = chatMetadata,
+    )
+
+    private fun inlinedMessage(messageId: Long = 42L, eventSequence: Long = 7L) = ChatMessage(
+        messageId = messageId,
+        senderId = null,
+        content = listOf(MessageContent.Text("hello")),
+        timestamp = Instant.fromEpochSeconds(1_757_000_000),
+        unreadSeq = 1L,
+        eventSequence = eventSequence,
+    )
+
+    private fun chatMetadata(message: ChatMessage?) = PushChatMetadata(
+        sendingUserId = null,
+        chatType = ChatType.CONTACT_DM,
+        message = message,
     )
 
     // region Today's behaviour: a titleless push is dropped entirely
@@ -72,6 +94,55 @@ class PushHandlingPlannerTest {
             listOf(PushAction.RefreshFeed, PushAction.LoadMessages(chatId)),
             actions.filterNot { it is PushAction.PostNotification },
         )
+    }
+
+    @Test
+    fun `a chat push carrying its message applies it instead of fetching`() {
+        val chatId = ChatId("aa08")
+        val message = inlinedMessage()
+        val p = payload(
+            navigation = NavigationTrigger.Chat.ById(chatId),
+            chatMetadata = chatMetadata(message),
+        )
+        val actions = planPushHandling("Title", "Body", p, silentSyncEnabled = { false })
+        assertEquals(
+            listOf(PushAction.RefreshFeed, PushAction.ApplyMessage(chatId, message)),
+            actions.filterNot { it is PushAction.PostNotification },
+        )
+    }
+
+    @Test
+    fun `chat metadata without a message falls back to fetching`() {
+        val chatId = ChatId("aa09")
+        val p = payload(
+            navigation = NavigationTrigger.Chat.ById(chatId),
+            chatMetadata = chatMetadata(message = null),
+        )
+        val actions = planPushHandling("Title", "Body", p, silentSyncEnabled = { false })
+        assertEquals(
+            listOf(PushAction.RefreshFeed, PushAction.LoadMessages(chatId)),
+            actions.filterNot { it is PushAction.PostNotification },
+        )
+    }
+
+    @Test
+    fun `an inlined message on a push that names no chat plans nothing to apply`() {
+        val p = payload(chatMetadata = chatMetadata(inlinedMessage()))
+        val actions = planPushHandling("Title", null, p, silentSyncEnabled = { false })
+        assertEquals(listOf(PushAction.PostNotification("Title", null, p)), actions)
+    }
+
+    @Test
+    fun `a silent chat push with an inlined message needs no network`() {
+        val chatId = ChatId("aa10")
+        val message = inlinedMessage()
+        val p = payload(
+            navigation = NavigationTrigger.Chat.ById(chatId),
+            chatMetadata = chatMetadata(message),
+        )
+        val actions = planPushHandling(null, null, p, silentSyncEnabled = { true })
+        assertTrue(PushAction.ApplyMessage(chatId, message) in actions)
+        assertTrue(actions.none { it is PushAction.LoadMessages })
     }
 
     @Test
