@@ -609,3 +609,74 @@ cells have to be silent, and therefore depend on `PushSilentSync` being on.
 background the app. HOME is a wake key, so on a screen-off phone it lit the display and restarted
 the idle countdown. Skipped under `natural`, where the device is already asleep and the app already
 backgrounded.
+
+## Sizing the preload against the 2% ceiling
+
+The killer's rule is a budget: 2% of a 300 s window is **6000 ms of CPU**, and a cached process that
+spends more than that is SIGKILLed. How many pushes fit is that budget minus what the process costs
+while nothing is happening, divided by what one push costs. The regression above produced both terms
+from log volume. One of them has now been read directly.
+
+### An untouched cached process costs nothing, because it is frozen
+
+Sampling `/proc/<pid>/stat` utime+stime once a minute for **906 s**, with the app cached, the screen
+off and the phone physically unplugged, the counters do not move at all:
+
+| | |
+|---|---|
+| Samples | 16, at 60 s |
+| Span | 906 s |
+| `oom_score_adj` | 910 throughout (the kills were at 905) |
+| `cgroup.freeze` | `/sys/fs/cgroup/apps/uid_10309/pid_5303/cgroup.freeze` = 1 |
+| utime + stime | 2221 + 199 ticks at the first sample, and at all fifteen after it |
+| Delta | **0 ticks** |
+
+`CLK_TCK` is 100, so a tick is 10 ms and zero ticks over 906 s bounds idle at under 11 µs per second
+— under 10 ms of the 6000 ms allowance, whichever 300 s window you take. The mechanism is in the
+third row: the process is frozen, so it is not sleeping cheaply, it is not running at all.
+
+**That is not the quantity the regression called idle.** Its ~0.5 ms per idle second was fitted
+across windows in which pushes arrived every 180 s, so it is the residue either side of a burst —
+thaw, timer catch-up, the stream's ping timer — attributed to the gap it sat in. Measured with
+nothing arriving, the floor is zero. The practical consequence is that the budget has one term: the
+whole 6000 ms is available to push work, and the answer depends only on what a push costs.
+
+### The answer, at the cost we have
+
+The per-push term is still the regression's **~6.7 s**, and it is an upper bound rather than a
+reading. `TraceManager.includeRpcBodies` was on for the capture build — it follows `BuildConfig.DEBUG`
+and `ReleaseStage.Internal` — so `LoggingClientCallListener` built a full proto `toString()` for every
+RPC in every burst, roughly 55 KB of string per push that production never builds.
+
+Taken at that bound, with idle at zero:
+
+| | |
+|---|---|
+| Budget per 300 s window | 6000 ms |
+| Cost of one push | ~6700 ms |
+| Pushes per five minutes | **0.90** |
+| Break-even cadence | 335 s |
+
+**The app cannot absorb even one push per five minutes.** That is the same conclusion the regression
+reached, and removing the idle term does not soften it: idle was never spending the budget, so there
+is nothing there to reclaim. A push has to come in under 6000 ms of CPU to survive one per window at
+all, under 3000 ms for two, and under 1500 ms for the four-per-five-minutes a chat preload would
+imply. The measured cost misses the first of those thresholds by 12% and the last by 4.5x.
+
+### What this does not establish
+
+The per-push number was not re-measured. `scripts/spike/measure-push-cpu.sh` is the instrument for
+it: the same `/proc` bracket used above, applied around each send, with a push-free window first for
+the idle term. It needs the device's FCM registration token, which `scripts/fcm.sh` takes as its
+first argument, and it has not been run.
+
+Two things that run would settle. The first is how much of 6.7 s is the RPC-body logging: the
+`benchmark` variant is `initWith(debug)` with `isDebuggable = false`, which turns `BuildConfig.DEBUG`
+off, and it shares the `contributors` signing key with `debug`, so it installs over the existing
+build and keeps the login and the stored flag value. Running the same cell on both variants
+attributes the difference. The second is whether the four fixes listed above move the number, since
+each of them targets work inside the first 7.7 s of a burst, which is where 95% of it is.
+
+Generality is unchanged from the rest of this document: one device, one OEM, one Android version.
+The idle measurement adds one caveat of its own — the phone was at `deep=INACTIVE`, not in Doze.
+Doze would only make idle cheaper, so the zero holds as a floor for the deeper states too.
