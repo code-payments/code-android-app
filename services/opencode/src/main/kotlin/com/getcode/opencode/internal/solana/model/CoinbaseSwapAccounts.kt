@@ -4,6 +4,7 @@ import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.extensions.deriveCoinbasePoolAddress
 import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseTokenVaultAddress
 import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseVaultTokenAccountAddress
+import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseWhitelistAddress
 import com.getcode.solana.keys.PublicKey
 
 internal data class CoinbaseSwapAccounts(
@@ -12,6 +13,7 @@ internal data class CoinbaseSwapAccounts(
     val outVault: PublicKey,
     val inVaultTokenAccount: PublicKey,
     val outVaultTokenAccount: PublicKey,
+    val whitelist: PublicKey,
 ) {
     fun feeRecipientTokenAccount(feeRecipient: PublicKey, fromMint: PublicKey): PublicKey {
         return PublicKey.deriveAssociatedAccount(
@@ -27,6 +29,7 @@ internal data class CoinbaseSwapAccounts(
             val outVault = PublicKey.deriveCoinbaseTokenVaultAddress(pool, toMint).publicKey
             val inVaultTokenAccount = PublicKey.deriveCoinbaseVaultTokenAccountAddress(inVault).publicKey
             val outVaultTokenAccount = PublicKey.deriveCoinbaseVaultTokenAccountAddress(outVault).publicKey
+            val whitelist = PublicKey.deriveCoinbaseWhitelistAddress().publicKey
 
             return CoinbaseSwapAccounts(
                 pool = pool,
@@ -34,6 +37,7 @@ internal data class CoinbaseSwapAccounts(
                 outVault = outVault,
                 inVaultTokenAccount = inVaultTokenAccount,
                 outVaultTokenAccount = outVaultTokenAccount,
+                whitelist = whitelist,
             )
         }
     }
