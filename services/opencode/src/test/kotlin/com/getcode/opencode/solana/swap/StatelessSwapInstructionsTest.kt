@@ -4,6 +4,7 @@ import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.extensions.deriveCoinbasePoolAddress
 import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseTokenVaultAddress
 import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseVaultTokenAccountAddress
+import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseWhitelistAddress
 import com.getcode.opencode.internal.solana.extensions.deriveDepositAccount
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram
@@ -293,6 +294,13 @@ class StatelessSwapInstructionsTest {
         val ix = buildInstructions()[4]
         assertEquals(owner, ix.accounts[11].publicKey)
         assertTrue(ix.accounts[11].isSigner)
+    }
+
+    @Test
+    fun `swap instruction has correct whitelist PDA`() {
+        val ix = buildInstructions()[4]
+        val expectedWhitelist = PublicKey.deriveCoinbaseWhitelistAddress().publicKey
+        assertEquals(expectedWhitelist, ix.accounts[12].publicKey)
     }
 
     // --- CreateIdempotent and Swap destination linkage ---

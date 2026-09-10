@@ -111,6 +111,7 @@ internal fun buildStatelessSwapInstructions(
                 fromMint = fromMint.address,
                 toMint = toMint.address,
                 user = owner,
+                whitelist = swapAccounts.whitelist,
                 amountIn = amount,
                 minAmountOut = amount, // 1:1 stable pair
             ).instruction()
