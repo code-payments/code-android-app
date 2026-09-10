@@ -13,22 +13,16 @@ import com.flipcash.services.models.NotificationPayload
  * @param title resolved push title, null for a data-only push
  * @param body resolved push body, may be null even for a visible push
  * @param payload decoded [NotificationPayload], null when absent or undecodable
- * @param silentSyncEnabled reads the `PushSilentSync` feature flag. Passed as a
- *   function because only a data-only push consults it, and the call site's
- *   read is a blocking DataStore lookup on the FCM dispatch thread — a visible
- *   push should not pay for a flag that cannot change its outcome.
  */
 fun planPushHandling(
     title: String?,
     body: String?,
     payload: NotificationPayload?,
-    silentSyncEnabled: () -> Boolean,
 ): List<PushAction> {
-    if (title == null) {
-        return if (silentSyncEnabled()) syncActionsFor(payload) else emptyList()
-    }
+    val sync = syncActionsFor(payload)
 
-    return syncActionsFor(payload) + PushAction.PostNotification(title, body, payload)
+    // The sync half is the same either way; a title only adds the notification on top.
+    return if (title == null) sync else sync + PushAction.PostNotification(title, body, payload)
 }
 
 /**

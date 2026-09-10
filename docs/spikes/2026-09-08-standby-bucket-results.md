@@ -312,16 +312,17 @@ push woke the process — a wake effect, not push handling.
 **The natural cell's silence was an app that was never asked.** Not a network it was denied: see
 the section above for why the two look different in the capture.
 
-**Silent preload is gated on a flag that ships off.** `planPushHandling` consults `PushSilentSync`
-only when the title is null, and the flag's default is `false` (`FeatureFlag.kt:123`). A data-only
-push does nothing on a default build, however well formed its payload. The flag is on for the
-device under test — established by sending one silent push carrying a payload and reading
-`actions=2` back, against `actions=0` for all 139 committed sends.
+**Silent preload was gated on a flag while these cells ran.** `planPushHandling` consulted
+`PushSilentSync` when the title was null, and the flag defaulted to `false`, so a data-only push
+did nothing on a default build however well formed its payload. The flag was on for the device
+under test — established by sending one silent push carrying a payload and reading `actions=2`
+back, against `actions=0` for all 139 committed sends. The flag has since been removed and a
+data-only push plans its sync unconditionally, so a re-run needs no flag setup; every number below
+was still measured with it on.
 
-This also constrains how the remaining cells can be run. A visible push cannot measure Doze:
+This also constrained how the remaining cells could be run. A visible push cannot measure Doze:
 posting the notification lights the screen, and screen-on ends deep idle. One visible smoke push
-took the device from `IDLE` to `ACTIVE`. So a Doze cell has to be silent, which makes it depend on
-`PushSilentSync` being on — the flag is part of the measurement setup, not an incidental detail.
+took the device from `IDLE` to `ACTIVE`. So a Doze cell has to be silent.
 
 ## Re-run with a payload the app acts on — four samples, then the phone went away
 
@@ -605,7 +606,7 @@ present in every trace line the earlier cells were read from.
 
 **A visible push cannot be used to measure Doze.** Posting the notification lights the screen and
 screen-on ends deep idle; one visible smoke push took the device from `IDLE` to `ACTIVE`. Doze
-cells have to be silent, and therefore depend on `PushSilentSync` being on.
+cells have to be silent, which on the build these cells ran against meant `PushSilentSync` on.
 
 **`DOZE=natural` woke the device it was waiting on.** The setup pressed `KEYCODE_HOME` to
 background the app. HOME is a wake key, so on a screen-off phone it lit the display and restarted

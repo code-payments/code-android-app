@@ -117,17 +117,6 @@ sealed interface FeatureFlag<T: Any> {
         override val persistLogOut: Boolean = false
     }
 
-    @FeatureFlagMarker
-    data object PushSilentSync: FeatureFlag<Boolean> {
-        override val key: String = "push_silent_sync_enabled"
-        override val default: Boolean = false
-        override val launched: Boolean = false
-        override val visible: Boolean = true
-        override val persistLogOut: Boolean = false
-        override val onboarding: Boolean = false
-        override val minTrack: FeatureTrack = FeatureTrack.Internal
-    }
-
     companion object {
         val entries: List<FeatureFlag<*>>
             get() = FeatureFlagEntries.entries
@@ -150,7 +139,6 @@ val FeatureFlag<*>.title: String
         FeatureFlag.ContactPickerMode -> "Contact Picker Mode"
         FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
         FeatureFlag.FrostedTipCard -> "Frosted Tip Card"
-        FeatureFlag.PushSilentSync -> "Push Silent Sync"
     }
 
 val FeatureFlag<*>.message: String
@@ -164,7 +152,6 @@ val FeatureFlag<*>.message: String
         FeatureFlag.ContactPickerMode -> "When enabled, contacts will be accessed via the system contact picker instead of requesting full READ_CONTACTS permission"
         FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
         FeatureFlag.FrostedTipCard -> "When enabled, the tip card in the scanner renders as frosted glass over a blurred snapshot of the camera instead of a solid card"
-        FeatureFlag.PushSilentSync -> "When enabled, data-only pushes trigger background sync work without posting a visible notification"
     }
 
 
