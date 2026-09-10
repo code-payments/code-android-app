@@ -40,6 +40,9 @@ class ChatMetadataDataSource @Inject constructor(
         db?.chatMetadataDao()?.updateLastActivity(mapper.chatIdHex(chatId), epochMs)
     }
 
+    suspend fun getLastMessageId(chatId: ChatId): Long? =
+        db?.chatMetadataDao()?.getLastMessageId(mapper.chatIdHex(chatId))
+
     suspend fun updateLastMessageId(chatId: ChatId, messageId: Long) {
         db?.chatMetadataDao()?.updateLastMessageId(mapper.chatIdHex(chatId), messageId)
     }

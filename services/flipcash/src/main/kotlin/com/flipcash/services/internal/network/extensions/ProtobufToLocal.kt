@@ -110,6 +110,7 @@ internal fun PushModels.Payload.asPayload(): NotificationPayload {
         PushChatMetadata(
             sendingUserId = if (chatMetadata.hasSendingUserId()) chatMetadata.sendingUserId.toId() else null,
             chatType = chatMetadata.type.toChatType(),
+            message = if (chatMetadata.hasMessage()) chatMetadata.message.toChatMessage() else null,
         )
     } else null
 

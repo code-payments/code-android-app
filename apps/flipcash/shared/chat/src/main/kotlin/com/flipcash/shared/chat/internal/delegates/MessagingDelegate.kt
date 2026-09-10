@@ -193,6 +193,20 @@ class MessagingDelegate @Inject constructor(
             }
     }
 
+    override suspend fun applyPushedMessage(chatId: ChatId, message: ChatMessage) {
+        // The DAO's upsert already drops a copy older than the stored row, so the only
+        // ordering this has to protect is the metadata below it.
+        messageDataSource.upsert(chatId, listOf(message))
+
+        // Deliberately not advancing the event-log cursor. A push carries one message, not
+        // a page, so seating the cursor at its sequence would let a later catch-up resume
+        // from a frontier it never actually fetched and skip whatever it missed in between.
+        if (message.messageId > (metadataDataSource.getLastMessageId(chatId) ?: 0L)) {
+            metadataDataSource.updateLastMessageId(chatId, message.messageId)
+            metadataDataSource.updateLastActivity(chatId, message.timestamp.toEpochMilliseconds())
+        }
+    }
+
     override suspend fun sendMessage(
         chatId: ChatId,
         content: String,

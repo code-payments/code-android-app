@@ -161,6 +161,15 @@ interface MessagingOperations {
     suspend fun loadMessages(chatId: ChatId)
 
     /**
+     * Persists a message the server delivered inside a push payload, without an RPC.
+     *
+     * Idempotent on `eventSequence`: a copy that is not newer than the stored row is
+     * dropped, so re-delivery of the same push and a following [loadMessages] converge
+     * on the same transcript.
+     */
+    suspend fun applyPushedMessage(chatId: ChatId, message: ChatMessage)
+
+    /**
      * Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage].
      *
      * [replyToMessageId] cites a message in the same chat, which wraps the body in
