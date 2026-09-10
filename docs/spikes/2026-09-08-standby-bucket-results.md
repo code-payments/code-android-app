@@ -439,11 +439,13 @@ Regressing each kill's CPU against the app-owned log lines inside its own 300 s 
 | 6266 | 11:45:15–11:50:15 (aborted cell) | 7,240 ms | 808 | 8.96 |
 
 The two windows from the same run agree to within 1%. Solving them for a per-burst cost and an idle
-rate gives **~6.7 s of CPU per push and ~0.5 ms per idle second, about 0.05%** — a fortieth of the
-limit. Cached and untouched, this app costs nothing measurable.
+rate gives **~6.7 s of CPU per push**, plus a residual of ~0.5 ms per idle second. Only the first
+term survived direct measurement — a frozen process reads zero ticks, and the residual turned out to
+be burst edges attributed to the gap beside them. See *An untouched cached process costs nothing,
+because it is frozen* below.
 
 That reverses the cadence caveat. 6.7 s is 2.24% of a five-minute window on its own, so **one push
-per five minutes already exceeds the 2% limit**, and break-even is a push every ~336 s. The 180 s
+per five minutes already exceeds the 2% limit**, and break-even is a push every ~335 s. The 180 s
 cadence decides how fast the kill arrives, not whether it arrives.
 
 Within a burst the work is front-loaded. Taking pid 3633's 13:36:31 push, 435 lines over ~88 s:
@@ -513,11 +515,11 @@ full-resyncing on every wake — does not depend on the logging.
   The preload design does not need the app to stay resident.
 - **The CPU killer is a real constraint, and it is the push path that trips it.** Three kills in
   two cells, at 2.2–4.4% average CPU while cached. Each push costs ~6.7 s of CPU, which is 2.24% of
-  a five-minute window on its own, against a measured idle cost of ~0.05%. The cadence accelerates
-  the kill rather than causing it, and the ten `Event stream timed out` errors and 24
-  `flipcash-stream => CONNECTING` transitions are not work running alongside the pushes — they are
-  two reconnects per push, triggered by the wake. Preload work would land inside a window that is
-  already over budget.
+  a five-minute window on its own, against an idle cost of zero, since a cached process is frozen
+  rather than merely quiet. The cadence accelerates the kill rather than causing it, and the ten
+  `Event stream timed out` errors and 24 `flipcash-stream => CONNECTING` transitions are not work
+  running alongside the pushes — they are two reconnects per push, triggered by the wake. Preload
+  work would land inside a window that is already over budget.
 - **`actions=2` is the plan, not the outcome.** It is what `planPushHandling` returned. The feed
   RPCs prove `RefreshFeed` ran; `SyncContacts` was refused by the backend. Neither is instrumented
   to report completion.
