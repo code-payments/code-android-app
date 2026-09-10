@@ -1,0 +1,47 @@
+appId: com.flipcash.app.android
+name: "Spike: log in with PushSilentSync enabled"
+tags:
+  - spike
+---
+# Login plus flag enablement in one launch, so the flag is set in onCreate
+# and no relaunch is needed to make it stick. Run with:
+#   BETA_FLAGS=push_silent_sync_enabled DEVICE=<serial> maestro/run.sh maestro/spike_login.yaml
+#
+# The device must be unlocked. A locked screen lets launchApp succeed behind
+# the keyguard, so the failure surfaces later as "Element not found: Log in".
+#
+# This inlines subflows/login.yaml instead of calling it, because a real device
+# with a Google account raises a Password Manager autofill sheet over the seed
+# screen that the CI emulator never shows. The "No thanks" taps are optional so
+# the flow still runs where no sheet appears.
+- clearState
+- launchApp:
+    arguments:
+      isUiTest: true
+      betaFlags: ${BETA_FLAGS}
+- extendedWaitUntil:
+    visible: "Log in"
+    timeout: 30000
+- tapOn: "Log in"
+- tapOn:
+    text: "No thanks"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: seed_input_screen
+    timeout: 20000
+- tapOn:
+    id: "seed_input_field"
+- tapOn:
+    text: "No thanks"
+    optional: true
+- inputText: ${SEED_PHRASE}
+- tapOn:
+    text: "(?i)Log ?In"
+- tapOn:
+    text: "No thanks"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "wallet_screen"
+    timeout: 60000
