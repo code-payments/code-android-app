@@ -32,6 +32,7 @@ import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
@@ -1075,12 +1076,22 @@ internal class ChatViewModel @Inject constructor(
                     // sends one. Every later send comes from the money button beside a composer
                     // that only exists once the thread is unlocked, and stays a plain send.
                     //
-                    // `TIPCARD` is how a tip is asked for: `TipDmPayment.Location` has two values,
-                    // and the server reads them as the verb ("Tipped" vs "Sent") rather than as a
-                    // place. Sending `CHAT` here would title the payment "Sent" in the recipient's
-                    // activity feed, under a button that promised a tip.
-                    val isTip = stateFlow.value.chatType == ChatType.TIP_DM &&
+                    // This is the one place that decides it, and both `TipDmPayment.action` (the
+                    // verb the server renders — "Tipped" vs "Sent") and the analytics event below
+                    // are read off this single value rather than each re-deriving "is this a tip."
+                    // `origin`/`location` keeps being computed off the same condition as before —
+                    // this change doesn't touch what byte it sends. The server reads it in exactly
+                    // one place, as the fallback when `action` is `DEFAULT`, so leaving it alone is
+                    // what keeps a server that predates `action` resolving the same verb as one
+                    // that reads it.
+                    val tipAction = if (
+                        stateFlow.value.chatType == ChatType.TIP_DM &&
                         !stateFlow.value.typingConstraints.enabled
+                    ) {
+                        TipAction.TIP
+                    } else {
+                        TipAction.SEND
+                    }
 
                     val result = when (val participant = stateFlow.value.participant) {
                         is ChatParticipant.Contact -> contactPaymentDelegate.send(
@@ -1095,7 +1106,8 @@ internal class ChatViewModel @Inject constructor(
                             verifiedFiat = verifiedFiat,
                             token = token,
                             source = source,
-                            origin = if (isTip) TipOrigin.TIPCARD else TipOrigin.CHAT,
+                            origin = if (tipAction == TipAction.TIP) TipOrigin.TIPCARD else TipOrigin.CHAT,
+                            action = tipAction,
                         )
                         null -> {
                             dispatchEvent(Event.SendStateUpdated())
@@ -1103,11 +1115,12 @@ internal class ChatViewModel @Inject constructor(
                         }
                     }
 
-                    // Report what was sent, on the same line `TipDmPayment.Location` draws: the
-                    // tip call to action above is a tip, and every other send from this screen —
-                    // contact DM or unlocked tip DM — is a plain cash send.
+                    // Report what was sent — the tip call to action above is a tip, and every
+                    // other send from this screen (contact DM or unlocked tip DM) is a plain cash
+                    // send. Same `tipAction` the wire `action` above was set from, not a second
+                    // "is this a tip" check that could drift from it.
                     val transferEvent =
-                        if (isTip) Analytics.Transfer.SentTip else Analytics.Transfer.SentCash
+                        if (tipAction == TipAction.TIP) Analytics.Transfer.SentTip else Analytics.Transfer.SentCash
 
                     result.onSuccess {
                         dispatchEvent(Event.SendStateUpdated(success = true))

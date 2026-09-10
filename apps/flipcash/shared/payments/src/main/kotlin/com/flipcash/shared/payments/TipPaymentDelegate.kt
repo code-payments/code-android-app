@@ -3,6 +3,7 @@ package com.flipcash.shared.payments
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.services.controllers.ResolverController
+import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.buildTipDmPaymentMetadata
@@ -167,8 +168,10 @@ class TipPaymentDelegate @Inject constructor(
      * Sends [verifiedFiat] of [token] from [source] to the user identified by [userId] as a tip DM:
      * derives the canonical tip chat, resolves the recipient's on-chain owner, attaches tip-DM app
      * metadata, transfers, debits the local balance, and syncs the chat feed. [origin] records
-     * where the tip was initiated (a tip card vs. an in-chat send). Returns the canonical tip
-     * [ChatId] (for message reload / navigation), or null if it couldn't be derived.
+     * where the tip was initiated (a tip card vs. an in-chat send); [action] is the verb the
+     * server renders for it ("Tipped" vs "Sent") and is always explicit — see [TipAction]. Returns
+     * the canonical tip [ChatId] (for message reload / navigation), or null if it couldn't be
+     * derived.
      */
     suspend fun send(
         userId: ID,
@@ -176,9 +179,14 @@ class TipPaymentDelegate @Inject constructor(
         token: Token,
         source: AccountCluster,
         origin: TipOrigin,
+        action: TipAction,
     ): Result<ChatId?> {
         val canonicalChatId = chatCoordinator.generateChatId(userId = userId).getOrNull()
-        val appMetadataBytes = buildTipDmPaymentMetadata(chatId = canonicalChatId, origin = origin)
+        val appMetadataBytes = buildTipDmPaymentMetadata(
+            chatId = canonicalChatId,
+            origin = origin,
+            action = action,
+        )
 
         return resolverController.resolve(userId = userId)
             .mapCatching { destination ->
