@@ -3,7 +3,6 @@ package com.getcode.opencode.solana.swap
 import com.getcode.opencode.internal.solana.extensions.deriveCoinbasePoolAddress
 import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseTokenVaultAddress
 import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseVaultTokenAccountAddress
-import com.getcode.opencode.internal.solana.extensions.deriveCoinbaseWhitelistAddress
 import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram
 import com.getcode.opencode.internal.solana.programs.CoinbaseStableSwapperProgram
@@ -252,13 +251,6 @@ class CoinbaseStablecoinSwapperInstructionsTest {
         val ix = buildInstructions()[7]
         assertEquals(swapAuthority, ix.accounts[11].publicKey)
         assertTrue(ix.accounts[11].isSigner)
-    }
-
-    @Test
-    fun `swap instruction has correct whitelist PDA`() {
-        val ix = buildInstructions()[7]
-        val expectedWhitelist = PublicKey.deriveCoinbaseWhitelistAddress().publicKey
-        assertEquals(expectedWhitelist, ix.accounts[12].publicKey)
     }
 
     // --- CloseAccount verification ---

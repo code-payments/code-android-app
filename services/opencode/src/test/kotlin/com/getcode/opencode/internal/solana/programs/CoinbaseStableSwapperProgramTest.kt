@@ -32,7 +32,7 @@ class CoinbaseStableSwapperProgramTest {
             userFromTokenAccount = testKey(6), toTokenAccount = testKey(7),
             feeRecipientTokenAccount = testKey(8), feeRecipient = testKey(9),
             fromMint = testKey(10), toMint = testKey(11),
-            user = testKey(12), whitelist = testKey(13),
+            user = testKey(12),
             amountIn = 0L, minAmountOut = 0L,
         )
         val encoded = ix.encode()
@@ -57,7 +57,7 @@ class CoinbaseStableSwapperProgramTest {
             userFromTokenAccount = testKey(6), toTokenAccount = testKey(7),
             feeRecipientTokenAccount = testKey(8), feeRecipient = testKey(9),
             fromMint = testKey(10), toMint = testKey(11),
-            user = testKey(12), whitelist = testKey(13),
+            user = testKey(12),
             amountIn = 1000L, minAmountOut = 900L,
         )
         // 8 bytes discriminator + 8 bytes amountIn + 8 bytes minAmountOut = 24
@@ -72,7 +72,7 @@ class CoinbaseStableSwapperProgramTest {
             userFromTokenAccount = testKey(6), toTokenAccount = testKey(7),
             feeRecipientTokenAccount = testKey(8), feeRecipient = testKey(9),
             fromMint = testKey(10), toMint = testKey(11),
-            user = testKey(12), whitelist = testKey(13),
+            user = testKey(12),
             amountIn = 1_000_000L, minAmountOut = 999_000L,
         )
         val encoded = ix.encode()
@@ -93,17 +93,17 @@ class CoinbaseStableSwapperProgramTest {
     // --- Swap instruction accounts ---
 
     @Test
-    fun swapInstructionHas16Accounts() {
+    fun swapInstructionHas15Accounts() {
         val ix = CoinbaseStableSwapperProgram_Swap(
             pool = testKey(1), inVault = testKey(2), outVault = testKey(3),
             inVaultTokenAccount = testKey(4), outVaultTokenAccount = testKey(5),
             userFromTokenAccount = testKey(6), toTokenAccount = testKey(7),
             feeRecipientTokenAccount = testKey(8), feeRecipient = testKey(9),
             fromMint = testKey(10), toMint = testKey(11),
-            user = testKey(12), whitelist = testKey(13),
+            user = testKey(12),
             amountIn = 1000L, minAmountOut = 900L,
         )
-        assertEquals(16, ix.instruction().accounts.size)
+        assertEquals(15, ix.instruction().accounts.size)
     }
 
     @Test
@@ -114,7 +114,7 @@ class CoinbaseStableSwapperProgramTest {
             userFromTokenAccount = testKey(6), toTokenAccount = testKey(7),
             feeRecipientTokenAccount = testKey(8), feeRecipient = testKey(9),
             fromMint = testKey(10), toMint = testKey(11),
-            user = testKey(12), whitelist = testKey(13),
+            user = testKey(12),
             amountIn = 1000L, minAmountOut = 900L,
         )
         assertEquals(CoinbaseStableSwapperProgram.address, ix.instruction().program)
@@ -122,20 +122,20 @@ class CoinbaseStableSwapperProgramTest {
 
     @Test
     fun swapAccountOrder() {
-        val keys = (1..13).map { testKey(it) }
+        val keys = (1..12).map { testKey(it) }
         val ix = CoinbaseStableSwapperProgram_Swap(
             pool = keys[0], inVault = keys[1], outVault = keys[2],
             inVaultTokenAccount = keys[3], outVaultTokenAccount = keys[4],
             userFromTokenAccount = keys[5], toTokenAccount = keys[6],
             feeRecipientTokenAccount = keys[7], feeRecipient = keys[8],
             fromMint = keys[9], toMint = keys[10],
-            user = keys[11], whitelist = keys[12],
+            user = keys[11],
             amountIn = 1000L, minAmountOut = 900L,
         )
         val accounts = ix.instruction().accounts
 
         // Verify account order matches server: pool, inVault, outVault, inVaultTA, outVaultTA,
-        // userFromTA, toTA, feeRecipientTA, feeRecipient, fromMint, toMint, user, whitelist,
+        // userFromTA, toTA, feeRecipientTA, feeRecipient, fromMint, toMint, user,
         // tokenProgram, associatedTokenProgram, systemProgram
         assertEquals(keys[0], accounts[0].publicKey)   // pool
         assertEquals(keys[1], accounts[1].publicKey)   // inVault
@@ -149,10 +149,9 @@ class CoinbaseStableSwapperProgramTest {
         assertEquals(keys[9], accounts[9].publicKey)   // fromMint
         assertEquals(keys[10], accounts[10].publicKey)  // toMint
         assertEquals(keys[11], accounts[11].publicKey)  // user
-        assertEquals(keys[12], accounts[12].publicKey)  // whitelist
-        assertEquals(TokenProgram.address, accounts[13].publicKey)
-        assertEquals(AssociatedTokenProgram.address, accounts[14].publicKey)
-        assertEquals(SystemProgram.address, accounts[15].publicKey)
+        assertEquals(TokenProgram.address, accounts[12].publicKey)
+        assertEquals(AssociatedTokenProgram.address, accounts[13].publicKey)
+        assertEquals(SystemProgram.address, accounts[14].publicKey)
     }
 
     @Test
@@ -163,7 +162,7 @@ class CoinbaseStableSwapperProgramTest {
             userFromTokenAccount = testKey(6), toTokenAccount = testKey(7),
             feeRecipientTokenAccount = testKey(8), feeRecipient = testKey(9),
             fromMint = testKey(10), toMint = testKey(11),
-            user = testKey(12), whitelist = testKey(13),
+            user = testKey(12),
             amountIn = 1000L, minAmountOut = 900L,
         )
         val accounts = ix.instruction().accounts
@@ -186,7 +185,7 @@ class CoinbaseStableSwapperProgramTest {
             userFromTokenAccount = testKey(6), toTokenAccount = testKey(7),
             feeRecipientTokenAccount = testKey(8), feeRecipient = testKey(9),
             fromMint = testKey(10), toMint = testKey(11),
-            user = testKey(12), whitelist = testKey(13),
+            user = testKey(12),
             amountIn = 1000L, minAmountOut = 900L,
         )
         val accounts = ix.instruction().accounts

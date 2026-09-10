@@ -103,7 +103,6 @@ internal fun buildUsdcToUsdfSwapInstructions(
                         fromMint = Mint.usdc,
                         toMint = Mint.usdf,
                         user = sender,
-                        whitelist = swapAccounts.whitelist,
                         amountIn = amount,
                         minAmountOut = 0,
                     ).instruction()
