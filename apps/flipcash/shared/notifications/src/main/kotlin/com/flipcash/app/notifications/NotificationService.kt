@@ -71,9 +71,10 @@ class NotificationService : FirebaseMessagingService(),
         private const val KEY_BODY = "push_notification_body"
         private const val KEY_PAYLOAD = "flipcash_payload"
 
-        // Spike-only correlation id. The bucket matrix sends a known sequence
-        // number with every push so a missing delivery and a late delivery can
-        // be told apart in the log; nothing in production sets it.
+        // Correlation id for measurement runs. scripts/spike/ sends a known
+        // sequence number with every push so a missing delivery and a late one
+        // can be told apart in the log rather than reading as the same silence.
+        // No production sender sets it, so `seq` is empty in the field.
         private const val KEY_SPIKE_SEQ = "spike_seq"
 
         // Upper bound on how long we'll wait for a remote avatar before posting
@@ -154,7 +155,7 @@ class NotificationService : FirebaseMessagingService(),
             title = title,
             body = body,
             payload = payload,
-            silentSyncEnabled = runBlocking { featureFlags.get(FeatureFlag.PushSilentSync) },
+            silentSyncEnabled = { runBlocking { featureFlags.get(FeatureFlag.PushSilentSync) } },
         )
 
         val latencyMs = System.currentTimeMillis() - message.sentTime
