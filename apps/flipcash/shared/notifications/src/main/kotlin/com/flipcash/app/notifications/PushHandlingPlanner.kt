@@ -13,44 +13,64 @@ import com.flipcash.services.models.NotificationPayload
  * @param title resolved push title, null for a data-only push
  * @param body resolved push body, may be null even for a visible push
  * @param payload decoded [NotificationPayload], null when absent or undecodable
- * @param silentSyncEnabled whether the `PushSilentSync` feature flag is on
+ * @param silentSyncEnabled reads the `PushSilentSync` feature flag. Passed as a
+ *   function because only a data-only push consults it, and the call site's
+ *   read is a blocking DataStore lookup on the FCM dispatch thread — a visible
+ *   push should not pay for a flag that cannot change its outcome.
  */
 fun planPushHandling(
     title: String?,
     body: String?,
     payload: NotificationPayload?,
-    silentSyncEnabled: Boolean,
+    silentSyncEnabled: () -> Boolean,
 ): List<PushAction> {
     if (title == null) {
-        return if (silentSyncEnabled) syncActionsFor(payload) else emptyList()
+        return if (silentSyncEnabled()) syncActionsFor(payload) else emptyList()
     }
 
-    val actions = mutableListOf<PushAction>()
-    actions += syncActionsFor(payload)
-    actions += PushAction.PostNotification(title, body, payload)
-    return actions
+    return syncActionsFor(payload) + PushAction.PostNotification(title, body, payload)
 }
 
-/** The sync work implied by [payload], independent of visibility. */
+/**
+ * The sync work an event class implies, independent of where the push
+ * navigates.
+ *
+ * Adding an event class is an entry in this table rather than a branch in
+ * [syncActionsFor]. The key is [NotificationCategory] until
+ * `flipcash.push.v1.Payload` carries the event field the shared taxonomy needs;
+ * when it does, the key type changes and the shape does not.
+ *
+ * A category absent from the table plans no sync of its own, which is every
+ * category but one today.
+ */
+private val syncByCategory: Map<NotificationCategory, List<PushAction>> = mapOf(
+    NotificationCategory.CONTACT_JOIN to listOf(PushAction.RefreshFeed, PushAction.SyncContacts),
+)
+
+/**
+ * The sync work a navigation target implies.
+ *
+ * This stays a `when` rather than joining the table above: each arm reads data
+ * off the trigger it matched, so the actions cannot be written down in advance.
+ */
+private fun syncForNavigation(navigation: NavigationTrigger?): List<PushAction> =
+    when (navigation) {
+        is NavigationTrigger.CurrencyInfo -> listOf(PushAction.UpdateTokens)
+        is NavigationTrigger.Chat.ById ->
+            listOf(PushAction.RefreshFeed, PushAction.LoadMessages(navigation.chatId))
+        is NavigationTrigger.Chat.ByContact -> emptyList()
+        null -> emptyList()
+    }
+
+/**
+ * The sync work implied by [payload], independent of visibility.
+ *
+ * `distinct()` is what lets the two sources overlap without the caller
+ * knowing: a contact-join push that also names a chat asks for
+ * [PushAction.RefreshFeed] from both and gets one.
+ */
 private fun syncActionsFor(payload: NotificationPayload?): List<PushAction> {
     if (payload == null) return emptyList()
-
-    val actions = mutableListOf<PushAction>()
-
-    if (payload.navigation is NavigationTrigger.CurrencyInfo) {
-        actions += PushAction.UpdateTokens
-    }
-
-    if (payload.category == NotificationCategory.CONTACT_JOIN) {
-        actions += PushAction.RefreshFeed
-        actions += PushAction.SyncContacts
-    }
-
-    val navigation = payload.navigation
-    if (navigation is NavigationTrigger.Chat.ById) {
-        if (PushAction.RefreshFeed !in actions) actions += PushAction.RefreshFeed
-        actions += PushAction.LoadMessages(navigation.chatId)
-    }
-
-    return actions
+    return (syncByCategory[payload.category].orEmpty() + syncForNavigation(payload.navigation))
+        .distinct()
 }
