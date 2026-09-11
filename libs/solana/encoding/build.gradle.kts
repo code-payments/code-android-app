@@ -1,6 +1,13 @@
 plugins {
     kotlin("multiplatform")
     id("com.android.kotlin.multiplatform.library")
+    alias(libs.plugins.flipcash.kmp.test.fixtures)
+}
+
+// Compiles `src/commonTest/resources` into a generated `TestFixtures.kt` on `commonTest` --
+// see the `flipcash.kmp.test.fixtures` convention plugin.
+testFixtures {
+    packageName = "com.getcode.opencode.solana"
 }
 
 kotlin {
@@ -33,6 +40,7 @@ kotlin {
         commonTest {
             dependencies {
                 implementation(kotlin("test"))
+                implementation(libs.kotlinx.serialization.json)
             }
         }
     }

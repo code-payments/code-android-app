@@ -3,6 +3,7 @@ package com.getcode.opencode.solana
 import com.getcode.solana.keys.AccountMeta
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.hexEncodedString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
@@ -18,7 +19,9 @@ import kotlin.test.assertTrue
  * byte-identical transaction messages (a divergence = a transaction one platform builds that the chain
  * or the other platform would reject). Reference implements the canonical Solana legacy wire format.
  *
- * Pure-JVM unit test (serialization has no Android/JNI deps). Fixture synced from `code/test-vectors/`.
+ * Runs on every target this module targets (JVM host + Kotlin/Native). Fixture compiled in from
+ * `src/commonTest/resources/solana_message.json` (synced from `code/test-vectors/`) by the
+ * `flipcash.kmp.test.fixtures` convention plugin — see `readTestResource`.
  */
 class SolanaMessageVectorTest {
 
@@ -35,7 +38,7 @@ class SolanaMessageVectorTest {
 
     @Test
     fun message_matches_canonical_vectors() {
-        val text = javaClass.getResourceAsStream("/solana_message.json")!!.bufferedReader().use { it.readText() }
+        val text = readTestResource("solana_message.json")
         val vectors = Json.parseToJsonElement(text).jsonObject["vectors"]!!.jsonArray
         assertTrue(vectors.isNotEmpty(), "no vectors loaded")
 
@@ -64,4 +67,4 @@ class SolanaMessageVectorTest {
 private fun String.hexToBytes(): List<Byte> =
     if (isEmpty()) emptyList() else chunked(2).map { it.toInt(16).toByte() }
 
-private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
+private fun ByteArray.toHex(): String = toList().hexEncodedString()

@@ -34,8 +34,8 @@ impl must reproduce the fixtures before the native duplicates are deleted.
 | `base58.json` | `:libs:encryption:base58` → `testAndroidHostTest` (host JVM) **and** `iosSimulatorArm64Test` (Kotlin/Native) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
 | `slip10.json` | `:libs:encryption:mnemonic` androidTest → `connectedAndroidTest` (device, wordlist + JNI) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
 | `curve.json` | `:libs:currency-math` androidTest → `connectedAndroidTest` (device, loads .bin tables) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
-| `solana_message.json` | `:services:opencode` → `testDebugUnitTest` (host JVM) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
-| `compact_message.json` | `:services:opencode` → `testDebugUnitTest` (host JVM) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
+| `solana_message.json` | `:libs:solana:encoding` → `testAndroidHostTest` (host JVM) **and** `iosSimulatorArm64Test`/`macosArm64Test` (Kotlin/Native) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
+| `compact_message.json` | `:libs:solana:encoding` → `testAndroidHostTest` (host JVM) **and** `iosSimulatorArm64Test`/`macosArm64Test` (Kotlin/Native) — **green** | `FlipcashCoreVectors` → xcodebuild on iOS Simulator — **green** |
 | `kikcode.json` + `kikcode_golden.svg` | `:libs:codes:kikcode` → `testAndroidHostTest` (host JVM) — **green** | *same Kotlin source* → `iosSimulatorArm64Test` (Kotlin/Native) — **green** |
 
 Why the iOS split: **ed25519** lives in the standalone `CodeCurves` C package → host `swift test`.
@@ -125,8 +125,9 @@ legacy wire format: `header(3B) ‖ shortvec(pubkeys) ‖ blockhash(32B) ‖ sho
 with the canonical account sort (payer → signer → writable → lex) and compact-u16 lengths. Data-driven:
 the fixture carries the inputs, both apps rebuild the message and assert byte-equality. Covers the
 account sort, message header, shortvec, and compiled-instruction (programIndex + account indexes + data)
-layers in one shot. Both sides are pure serialization (host-runnable): Android `:services:opencode`
-`src/test` (JVM), iOS `FlipcashCore` on the simulator. Gates **C3** (transaction serialization).
+layers in one shot. Both sides are pure serialization (host-runnable): Android `:libs:solana:encoding`
+`commonTest` (JVM host + Kotlin/Native), iOS `FlipcashCore` on the simulator. Gates **C3** (transaction
+serialization).
 
 ## compact_message (`compact_message.json`) — C3 intent signing
 
@@ -190,8 +191,8 @@ cp test-vectors/base58.json         libs/encryption/base58/src/commonTest/resour
 cp test-vectors/slip10.json         libs/encryption/mnemonic/src/androidTest/assets/
 cp test-vectors/curve.json          libs/currency-math/src/androidTest/assets/
 cp test-vectors/curve_fractional.json libs/currency-math/src/androidTest/assets/
-cp test-vectors/solana_message.json services/opencode/src/test/resources/
-cp test-vectors/compact_message.json services/opencode/src/test/resources/
+cp test-vectors/solana_message.json libs/solana/encoding/src/commonTest/resources/
+cp test-vectors/compact_message.json libs/solana/encoding/src/commonTest/resources/
 cp test-vectors/kikcode.json test-vectors/kikcode_golden.svg \
      libs/codes/kikcode/src/commonTest/resources/   # KMP: one copy serves both platforms
 
