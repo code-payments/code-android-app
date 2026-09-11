@@ -1,8 +1,8 @@
 package com.getcode.opencode.solana
 
 import com.getcode.opencode.internal.solana.ShortVec
-import com.getcode.opencode.internal.solana.utils.DataSlice.consume
-import com.getcode.opencode.internal.solana.utils.DataSlice.prefix
+import com.getcode.utils.DataSlice.consume
+import com.getcode.utils.DataSlice.prefix
 import com.getcode.solana.keys.AccountMeta
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58

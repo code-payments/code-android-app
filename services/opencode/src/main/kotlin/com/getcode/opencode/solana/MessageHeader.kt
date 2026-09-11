@@ -1,6 +1,6 @@
 package com.getcode.opencode.solana
 
-import com.getcode.opencode.internal.solana.utils.DataSlice.byteToUnsignedInt
+import com.getcode.utils.DataSlice.byteToUnsignedInt
 
 
 open class MessageHeader(

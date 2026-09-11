@@ -2,10 +2,10 @@ package com.getcode.opencode.solana
 
 import com.getcode.opencode.internal.solana.ShortVec
 import com.getcode.opencode.internal.solana.model.MessageAddressLookupTable
-import com.getcode.opencode.internal.solana.utils.DataSlice.byteToUnsignedInt
-import com.getcode.opencode.internal.solana.utils.DataSlice.consume
-import com.getcode.opencode.internal.solana.utils.DataSlice.prefix
-import com.getcode.opencode.internal.solana.utils.DataSlice.tail
+import com.getcode.utils.DataSlice.byteToUnsignedInt
+import com.getcode.utils.DataSlice.consume
+import com.getcode.utils.DataSlice.prefix
+import com.getcode.utils.DataSlice.tail
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.LENGTH_32
 import com.getcode.solana.keys.PublicKey

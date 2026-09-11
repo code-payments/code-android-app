@@ -1,6 +1,6 @@
 package com.getcode.opencode.internal.solana
 
-import com.getcode.opencode.internal.solana.utils.DataSlice.tail
+import com.getcode.utils.DataSlice.tail
 import java.io.ByteArrayInputStream
 
 internal object ShortVec {

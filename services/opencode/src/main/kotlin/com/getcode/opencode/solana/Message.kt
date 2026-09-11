@@ -1,7 +1,7 @@
 package com.getcode.opencode.solana
 
 import com.getcode.opencode.internal.solana.model.MessageAddressLookupTable
-import com.getcode.opencode.internal.solana.utils.DataSlice.byteToUnsignedInt
+import com.getcode.utils.DataSlice.byteToUnsignedInt
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 import kotlin.math.abs

@@ -1,9 +1,9 @@
 package com.getcode.opencode.solana
 
 import com.getcode.opencode.internal.solana.ShortVec
-import com.getcode.opencode.internal.solana.utils.DataSlice.chunk
-import com.getcode.opencode.internal.solana.utils.DataSlice.consume
-import com.getcode.opencode.internal.solana.utils.DataSlice.tail
+import com.getcode.utils.DataSlice.chunk
+import com.getcode.utils.DataSlice.consume
+import com.getcode.utils.DataSlice.tail
 import com.getcode.solana.keys.AccountMeta
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.filterUniqueAccounts

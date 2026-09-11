@@ -1,8 +1,8 @@
-package com.getcode.opencode.internal.solana.utils
+package com.getcode.utils
 
 import kotlin.math.min
 
-internal object DataSlice {
+object DataSlice {
     data class ByteListConsume(val consumed: List<Byte>, val remaining: List<Byte>)
 
     fun List<Byte>.canConsume(length: Int): Boolean {

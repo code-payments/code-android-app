@@ -3,8 +3,8 @@ package com.getcode.opencode.solana
 import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.solana.ShortVec
 import com.getcode.opencode.internal.solana.model.MessageAddressLookupTable
-import com.getcode.opencode.internal.solana.utils.DataSlice.chunk
-import com.getcode.opencode.internal.solana.utils.DataSlice.tail
+import com.getcode.utils.DataSlice.chunk
+import com.getcode.utils.DataSlice.tail
 import com.getcode.opencode.internal.solana.utils.printDiff
 import com.getcode.opencode.internal.solana.utils.printMatch
 import com.getcode.opencode.model.transactions.AddressLookupTable
