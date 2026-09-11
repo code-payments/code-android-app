@@ -46,7 +46,11 @@ val skipExpensiveReleaseTasks = providers.gradleProperty("skipExpensiveReleaseTa
 android {
     // static namespace
     namespace = appNamespace
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    compileSdk {
+        version = release(libs.versions.android.compileSdk.get().toInt()) {
+            minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt()
+        }
+    }
 
     defaultConfig {
         versionCode = Packaging.Flipcash.versionCode ?: gitVersionCode()

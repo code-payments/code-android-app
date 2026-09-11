@@ -24,7 +24,11 @@ val spmPackageDir = findProperty("spmRepoDir") as String?
 kotlin {
     android {
         namespace = "com.flipcash.shared"
-        compileSdk = 37
+        compileSdk {
+            version = release(libs.versions.android.compileSdk.get().toInt()) {
+                minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt()
+            }
+        }
         minSdk = 29
     }
     
