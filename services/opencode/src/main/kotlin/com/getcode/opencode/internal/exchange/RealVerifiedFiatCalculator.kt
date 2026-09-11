@@ -171,7 +171,7 @@ internal class RealVerifiedFiatCalculator @Inject constructor(
                 "original currency fx" to rate.fx
                 "requested amount" to amount.formatted()
                 "requested quarks (in USD)" to usdValue.quarks * 1_000_000
-                "balance quarks (in USD)" to balance?.quarks?.times(1_000_000)
+                "balance quarks (in USD)" to (balance?.quarks?.times(1_000_000) ?: "none")
                 "capped quarks (in USD)" to cappedValue.quarks * 1_000_000
                 "supply of ${token.symbol}" to supply
                 "calculated quarks" to quarks

@@ -16,6 +16,7 @@ import com.getcode.opencode.model.accounts.entropy
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import com.getcode.utils.trace
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -148,7 +149,10 @@ internal class GiftCardFundingWorker @AssistedInject constructor(
                             tag = "GiftCardFundingWorker",
                             message = "Successfully funded gift card",
                             metadata = {
-                                "giftCard" to giftCard.entropy
+                                // The vault address identifies the gift card without
+                                // exposing its entropy, which is the seed controlling
+                                // its funds. This trace reaches breadcrumb sinks.
+                                "giftCardVault" to giftCard.cluster.vaultPublicKey.base58()
                             }
                         )
                         cont.resume(kotlin.Result.success(it))
@@ -158,7 +162,7 @@ internal class GiftCardFundingWorker @AssistedInject constructor(
                             tag = "GiftCardFundingWorker",
                             message = "Failed to fund gift card",
                             metadata = {
-                                "giftCard" to giftCard.entropy
+                                "giftCardVault" to giftCard.cluster.vaultPublicKey.base58()
                             },
                             error = it
                         )
