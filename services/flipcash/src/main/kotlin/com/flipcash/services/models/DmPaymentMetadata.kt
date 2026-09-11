@@ -29,20 +29,36 @@ fun buildDmPaymentMetadata(
         ).build().toByteArray()
 }
 
-/** Where in the app a tip DM payment was initiated, reported to the backend. */
+/** Where in the app a tip DM payment was initiated, reported to the backend as `location`. */
 enum class TipOrigin { TIPCARD, CHAT }
+
+/**
+ * The verb the client intends for a tip DM payment, reported to the backend as `action`.
+ *
+ * There is no `DEFAULT` case here on purpose. `action` is proto3, so an unset field reads back
+ * as its zero value — which is `DEFAULT`, the same number as `location`'s zero value (`TIPCARD`).
+ * That makes an unset `action` alongside a `TIPCARD` location indistinguishable from a client
+ * deliberately declaring a tip. This client always sets one of the two real actions
+ * explicitly, so `DEFAULT` never leaves it — a type that cannot express `DEFAULT` is how that
+ * stays true.
+ */
+enum class TipAction { SEND, TIP }
 
 /**
  * Builds the serialized Flipcash `AppMetadata` proto bytes for a tip DM payment.
  *
  * Unlike a contact DM payment there is no phone source/destination — a tip DM is
- * between two user IDs, which map directly to/from public keys. [origin] records
- * where the tip was sent from (a tip card vs. an in-chat send). Returns `null` when
+ * between two user IDs, which map directly to/from public keys. [origin] records where the tip
+ * was sent from (a tip card vs. an in-chat send) and drives `location`, which the server reads
+ * only as the fallback for an unset [action]. [action] is the always-explicit verb, and it is
+ * what the server resolves the payment to — the title on the sender's activity feed, the message
+ * injected into the DM, and which validation rules the intent is held to. Returns `null` when
  * [chatId] is missing so the caller can pass the result through unconditionally.
  */
 fun buildTipDmPaymentMetadata(
     chatId: ChatId?,
     origin: TipOrigin,
+    action: TipAction,
 ): ByteArray? {
     if (chatId == null) return null
     return FlipcashIntentModel.AppMetadata.newBuilder()
@@ -57,6 +73,14 @@ fun buildTipDmPaymentMetadata(
                                     FlipcashIntentModel.ChatMetadata.TipDmPayment.Location.TIPCARD
                                 TipOrigin.CHAT ->
                                     FlipcashIntentModel.ChatMetadata.TipDmPayment.Location.CHAT
+                            }
+                        )
+                        .setAction(
+                            when (action) {
+                                TipAction.SEND ->
+                                    FlipcashIntentModel.ChatMetadata.TipDmPayment.Action.SEND
+                                TipAction.TIP ->
+                                    FlipcashIntentModel.ChatMetadata.TipDmPayment.Action.TIP
                             }
                         )
                 )

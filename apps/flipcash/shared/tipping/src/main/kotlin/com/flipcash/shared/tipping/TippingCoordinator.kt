@@ -13,6 +13,7 @@ import com.flipcash.app.currency.PreferredCurrencyController
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ProfileController
+import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.UserManager
@@ -239,6 +240,8 @@ class TippingCoordinator @Inject constructor(
                 token = token,
                 source = source,
                 origin = TipOrigin.TIPCARD,
+                // A tip card is always a genuine tip — there is no "send cash" path through it.
+                action = TipAction.TIP,
             ).onSuccess { canonicalChatId ->
                 setSendState(LoadingSuccessState(success = true))
                 delay(400.milliseconds)
