@@ -55,7 +55,7 @@ play-service-ml-barcode = "18.3.1"
 play-services-auth-api-phone = "18.3.1"
 google-play-billing = "9.1.0"
 google-play-updates = "2.1.0"
-google-material = "1.4.0"
+google-material = "1.14.0"
 
 grpc = "1.83.1"
 grpc-okhttp = "1.83.1"
