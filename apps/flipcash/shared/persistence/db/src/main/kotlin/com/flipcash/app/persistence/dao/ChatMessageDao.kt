@@ -87,8 +87,16 @@ interface ChatMessageDao {
 
     @Transaction
     suspend fun upsert(entity: ChatMessageEntity) {
-        // Event-sequence guard: skip if stored sequence is newer (last-writer-wins).
-        // Passthrough when eventSequence == 0 (legacy messages).
+        // Event-sequence guard: skip if the stored sequence is strictly newer (last-writer-wins).
+        // messaging.v1 tells clients to ignore a copy at or below the version they hold; the
+        // comparison here is strict instead, because a confirmed send needs the equal case.
+        // confirmPendingMessage stamps the server's event_sequence onto the optimistic row without
+        // replacing the content written locally, so the server's canonical copy of that message
+        // arrives at a sequence equal to the one already stored. Dropping it would pin the
+        // optimistic content forever.
+        //
+        // Passthrough when eventSequence == 0: a legacy row or an optimistic one the server has
+        // not echoed yet. The server cannot send 0 — messaging.v1 constrains event_sequence to >= 1.
         if (entity.eventSequence > 0) {
             val stored = getEventSequence(entity.chatIdHex, entity.messageId)
             if (stored != null && stored > entity.eventSequence) return

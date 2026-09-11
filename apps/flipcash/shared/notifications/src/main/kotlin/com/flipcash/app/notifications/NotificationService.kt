@@ -68,6 +68,12 @@ class NotificationService : FirebaseMessagingService(),
         private const val KEY_BODY = "push_notification_body"
         private const val KEY_PAYLOAD = "flipcash_payload"
 
+        // Correlation id for measurement runs. scripts/spike/ sends a known
+        // sequence number with every push so a missing delivery and a late one
+        // can be told apart in the log rather than reading as the same silence.
+        // No production sender sets it, so `seq` is empty in the field.
+        private const val KEY_SPIKE_SEQ = "spike_seq"
+
         // Upper bound on how long we'll wait for a remote avatar before posting
         // without one. A memory/disk cache hit returns well under this; the
         // bound only caps the cold-cache network fetch so the notification isn't
@@ -135,54 +141,88 @@ class NotificationService : FirebaseMessagingService(),
         val title = message.data[KEY_TITLE]?.ifEmpty { message.notification?.title }
         val body = message.data[KEY_BODY]?.ifEmpty { message.notification?.body }
 
+        val payload = message.data.getOrDefault(KEY_PAYLOAD, "")
+            .takeIf { it.isNotEmpty() }
+            ?.let { NotificationPayload.fromEncoded(it) }
+
+        val actions = planPushHandling(
+            title = title,
+            body = body,
+            payload = payload,
+        )
+
+        val latencyMs = System.currentTimeMillis() - message.sentTime
+        val bucket = applicationContext.currentStandbyBucket()
+
         trace(
             message = "onMessageReceived",
             type = TraceType.Process,
             metadata = {
                 // Push content is not recorded: TraceType.Process is forwarded to
                 // breadcrumb sinks, and message text does not belong in Bugsnag.
-                "silent" to (title == null)
+                "seq" to message.data[KEY_SPIKE_SEQ].orEmpty()
                 "has_body" to (body != null)
+                "actions" to actions.size
+                "silent" to (title == null)
+                "bucket" to bucket
+                "latency_ms" to latencyMs
+                "priority" to message.priority
+                "original_priority" to message.originalPriority
             }
         )
 
-        if (title == null) return
+        if (actions.isEmpty()) return
 
-        val payload = message.data.getOrDefault(KEY_PAYLOAD, "")
-            .takeIf { it.isNotEmpty() }
-            ?.let { NotificationPayload.fromEncoded(it) }
+        execute(actions)
+    }
 
-        if (payload?.navigation is NavigationTrigger.CurrencyInfo) {
+    /** Runs a planned action list. Sync work starts immediately; posting a
+     *  notification waits for authentication, as it always has. */
+    private fun execute(actions: List<PushAction>) {
+        if (PushAction.UpdateTokens in actions) {
             launch { tokenCoordinator.update() }
         }
 
-        if (payload?.category == NotificationCategory.CONTACT_JOIN) {
+        val chatActions = actions.filter {
+            it is PushAction.RefreshFeed ||
+                it is PushAction.LoadMessages ||
+                it is PushAction.ApplyMessage
+        }
+        if (chatActions.isNotEmpty()) {
             launch {
-                chatCoordinator.refreshFeed()
+                chatActions.forEach { action ->
+                    when (action) {
+                        is PushAction.RefreshFeed -> chatCoordinator.refreshFeed()
+                        is PushAction.LoadMessages -> chatCoordinator.loadMessages(chatId = action.chatId)
+                        is PushAction.ApplyMessage -> chatCoordinator.applyPushedMessage(
+                            chatId = action.chatId,
+                            message = action.message,
+                        )
+                        else -> Unit
+                    }
+                }
             }
         }
 
-        when (val trigger = payload?.navigation) {
-            is NavigationTrigger.Chat.ById -> {
-                launch {
-                    chatCoordinator.refreshFeed()
-                    chatCoordinator.loadMessages(chatId = trigger.chatId)
-                }
-            }
-            else -> Unit
-        }
+        val post = actions.filterIsInstance<PushAction.PostNotification>().firstOrNull()
+        val syncContacts = actions.any { it is PushAction.SyncContacts }
+
+        if (post == null && !syncContacts) return
 
         authenticateIfNeeded {
             launch {
                 try {
-                    if (payload?.category == NotificationCategory.CONTACT_JOIN) {
-                        launch { contactCoordinator.sync() }
+                    if (syncContacts) launch { contactCoordinator.sync() }
+                    if (post != null) {
+                        val resolvedTitle =
+                            applySubstitutions(post.title, post.payload?.titleSubstitutions.orEmpty())
+                        val resolvedBody = post.body?.let {
+                            applySubstitutions(it, post.payload?.bodySubstitutions.orEmpty())
+                        }
+                        postNotification(resolvedTitle, resolvedBody, post.payload)
                     }
-                    val resolvedTitle = applySubstitutions(title, payload?.titleSubstitutions.orEmpty())
-                    val resolvedBody = body?.let { applySubstitutions(it, payload?.bodySubstitutions.orEmpty()) }
-                    postNotification(resolvedTitle, resolvedBody, payload)
                 } catch (e: Exception) {
-                    trace(tag = "NotificationService", message = "Failed to post notification", error = e)
+                    trace(tag = "NotificationService", message = "Failed to handle push", error = e)
                 }
             }
         }

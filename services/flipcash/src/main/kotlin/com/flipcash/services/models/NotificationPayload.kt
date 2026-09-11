@@ -3,6 +3,7 @@ package com.flipcash.services.models
 import com.codeinc.flipcash.gen.push.v1.Model
 import com.flipcash.services.internal.network.extensions.asPayload
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
@@ -34,10 +35,16 @@ sealed interface Substitution {
  *
  * [sendingUserId] is null for system messages or notifications not tied to a user,
  * mirroring the proto's optional `sending_user_id` field.
+ *
+ * [message] is the pushed message itself, present only when the push is for a
+ * message and the server chose to inline it. It is optional in the proto and
+ * the body has a size limit, so a chat push can still arrive without one; the
+ * fetch path stays the fallback rather than being replaced.
  */
 data class  PushChatMetadata(
     val sendingUserId: ID?,
     val chatType: ChatType,
+    val message: ChatMessage? = null,
 )
 
 data class NotificationPayload(

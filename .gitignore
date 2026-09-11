@@ -43,3 +43,7 @@ maestro/screenshots/results/
 maestro/screenshots/diffs/
 
 docs/superpowers/
+
+# Raw spike capture: full device logcat, so it can carry unrelated personal
+# content. Keep the summarised results, not the source logs.
+docs/spikes/raw/

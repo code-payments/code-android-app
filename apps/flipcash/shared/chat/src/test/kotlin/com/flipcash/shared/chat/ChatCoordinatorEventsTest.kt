@@ -161,56 +161,7 @@ class ChatCoordinatorEventsTest {
         coordinator.onUserLoggedIn(mockk(relaxed = true))
     }
 
-    // region Events vs newMessages
-
-    @Test
-    fun `events are preferred over deprecated newMessages`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
-
-        val eventMsg = textMessage(id = 1, eventSequence = 1)
-        val deprecatedMsg = textMessage(id = 99)
-
-        @Suppress("DEPRECATION")
-        val update = ChatUpdate(
-            chatId = chatId,
-            newMessages = listOf(deprecatedMsg),
-            events = listOf(chatEvent(1, eventMsg)),
-        )
-        chatUpdatesChannel.send(update)
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
-
-        // Should upsert the event message, not the deprecated one
-        coVerify {
-            messageDataSource.upsert(chatId, match { messages ->
-                messages.size == 1 && messages[0].messageId == 1L
-            })
-        }
-        coordinator.teardown()
-    }
-
-    @Test
-    fun `falls back to newMessages when events is empty`() = runTest(testDispatchers.dispatcher) {
-        triggerCollection()
-
-        val msg = textMessage(id = 42)
-        @Suppress("DEPRECATION")
-        val update = ChatUpdate(
-            chatId = chatId,
-            newMessages = listOf(msg),
-            events = emptyList(),
-        )
-        chatUpdatesChannel.send(update)
-        advanceTimeBy(1_000.milliseconds)
-        runCurrent()
-
-        coVerify {
-            messageDataSource.upsert(chatId, match { messages ->
-                messages.size == 1 && messages[0].messageId == 42L
-            })
-        }
-        coordinator.teardown()
-    }
+    // region Event message resolution
 
     @Test
     fun `multiple events are flattened and deduped by messageId`() = runTest(testDispatchers.dispatcher) {

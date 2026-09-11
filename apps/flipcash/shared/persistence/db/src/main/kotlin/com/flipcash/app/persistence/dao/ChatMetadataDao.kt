@@ -73,6 +73,9 @@ interface ChatMetadataDao {
     @Query("UPDATE chat_metadata SET last_activity_epoch_ms = :epochMs WHERE chat_id_hex = :chatIdHex")
     suspend fun updateLastActivity(chatIdHex: String, epochMs: Long)
 
+    @Query("SELECT last_message_id FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
+    suspend fun getLastMessageId(chatIdHex: String): Long?
+
     @Query("UPDATE chat_metadata SET last_message_id = :messageId WHERE chat_id_hex = :chatIdHex")
     suspend fun updateLastMessageId(chatIdHex: String, messageId: Long)
 
