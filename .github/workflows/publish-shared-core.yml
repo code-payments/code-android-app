@@ -10,6 +10,10 @@ on:
       version:
         description: 'Version to publish, e.g. 0.1.0 — also the Swift Package tag'
         required: true
+      summary:
+        description: 'Optional lede for the release notes. The changelog below it is generated either way.'
+        required: false
+        type: string
 
 concurrency:
   # Two publishes at once would race on the same tag and release.
@@ -23,13 +27,21 @@ env:
 jobs:
   publish:
     name: Publish SharedCore ${{ inputs.version }}
+    # `contents: write` is for this repo's `shared-core/*` tag; the Swift Package
+    # repo is reached with the PAT below, not with GITHUB_TOKEN.
+    permissions:
+      contents: write
     # Apple targets and `swift package compute-checksum` both need Xcode, so this
     # lane can't share the Ubuntu runners the rest of CI uses.
     runs-on: macos-15
     steps:
+      # The release notes are a `git log` between this publish and the previous
+      # `shared-core/*` tag, so this lane needs history and tags rather than the
+      # single commit a build would want.
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v4
@@ -139,6 +151,45 @@ jobs:
           git tag -f "${{ inputs.version }}"
           git push -f origin "${{ inputs.version }}"
 
+      # The Swift Package repo has no commits of its own to describe — it holds a
+      # generated `Package.swift` and the zip it points at — so the notes are
+      # derived here, from the range between this publish and the last one.
+      - name: Write the release notes
+        env:
+          GH_TOKEN: ${{ secrets.SHARED_CORE_PUBLISH_TOKEN }}
+          SUMMARY: ${{ inputs.summary }}
+        run: |
+          set -euo pipefail
+
+          checksum=$(sed -n 's/^let remoteKotlinChecksum = "\(.*\)"$/\1/p' spm-repo/Package.swift)
+
+          summary_arg=()
+          if [ -n "$SUMMARY" ]; then
+            printf '%s\n' "$SUMMARY" > "$RUNNER_TEMP/summary.md"
+            summary_arg=(--summary-file "$RUNNER_TEMP/summary.md")
+          fi
+
+          bash scripts/shared-core-release-notes.sh "${{ inputs.version }}" \
+            --source "$GITHUB_SHA" \
+            --checksum "$checksum" \
+            "${summary_arg[@]+"${summary_arg[@]}"}" > "$RUNNER_TEMP/notes.md"
+
+          cat "$RUNNER_TEMP/notes.md"
+
+          gh release edit "${{ inputs.version }}" \
+            --repo "$SPM_REPO" \
+            --title "SharedCore ${{ inputs.version }}" \
+            --notes-file "$RUNNER_TEMP/notes.md"
+
+      # Nothing else records which Kotlin a published framework was built from, and
+      # without that the next release has no range to generate its notes over. The
+      # tag is created last so a failed publish doesn't claim a version.
+      - name: Tag the source commit
+        run: |
+          set -euo pipefail
+          git tag "shared-core/${{ inputs.version }}" "$GITHUB_SHA"
+          git push origin "shared-core/${{ inputs.version }}"
+
       - name: Summary
         run: |
           {
@@ -146,4 +197,5 @@ jobs:
             echo
             echo "- Release: https://github.com/${SPM_REPO}/releases/tag/${{ inputs.version }}"
             echo '- Consume: `.package(url: "https://github.com/'"${SPM_REPO}"'", from: "${{ inputs.version }}")`'
+            echo "- Built from \`${GITHUB_SHA}\`, tagged \`shared-core/${{ inputs.version }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
