@@ -173,6 +173,7 @@ include(
     ":libs:crypto:solana",
     ":libs:currency",
     ":libs:currency-math",
+    ":libs:currency-math:discrete-curve",
     ":libs:datetime",
     ":libs:emojis",
     ":libs:encryption:base58",
@@ -285,6 +286,7 @@ val jvmUnitTestModules = setOf(":apps:flipcash:shared:ksp")
 // KMP modules run their host tests via `testAndroidHostTest`, not `testDebugUnitTest`.
 val kmpUnitTestModules = setOf(
     ":libs:codes:kikcode",
+    ":libs:currency-math:discrete-curve",
     ":libs:encryption:base58",
     ":libs:encryption:sha256",
     ":libs:encryption:sha512",

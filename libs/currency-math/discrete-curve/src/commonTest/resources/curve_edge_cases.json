@@ -1,0 +1,90 @@
+{
+  "algorithm": "discrete-bonding-curve-edge-cases",
+  "units": "currentSupply in whole tokens; value/currentValue/tokens/fx as decimal strings",
+  "note": "Reference for valueToTokens and tokensForValueExchange -- the binary-search paths not covered by curve.json/curve_fractional.json. Computed with Python's own decimal.Decimal under a 50-significant-digit, half-even context (matching both engines' curveDecimalMode/MathContext(50, HALF_EVEN) contract), applying the same per-operation rounding sequence as DiscreteCurveEngine, not exact math rounded once at the end. A null `tokens` means the operation is expected to fail (nil/None) on both platforms.",
+  "valueToTokens": [
+    {
+      "name": "v2t supply=0 value=0",
+      "note": "zero value must return zero tokens, not error",
+      "currentSupply": 0,
+      "value": "0",
+      "tokens": "0"
+    },
+    {
+      "name": "v2t supply=0 value=0.005",
+      "note": "sub-step-cost value: cheaper than completing step 0",
+      "currentSupply": 0,
+      "value": "0.005",
+      "tokens": "0.5"
+    },
+    {
+      "name": "v2t supply=0 value=1",
+      "note": "exact step-boundary value (100 tokens at 0.01)",
+      "currentSupply": 0,
+      "value": "1",
+      "tokens": "100"
+    },
+    {
+      "name": "v2t supply=50 value=0.5",
+      "note": "start mid-step, value completes the step exactly",
+      "currentSupply": 50,
+      "value": "0.5",
+      "tokens": "50"
+    },
+    {
+      "name": "v2t supply=0 value=1000000",
+      "note": "large value spanning many steps",
+      "currentSupply": 0,
+      "value": "1000000",
+      "tokens": "5113574.1872853167202006876072146859824443611523046"
+    },
+    {
+      "name": "v2t near-max-supply",
+      "note": "one step short of the table's end",
+      "currentSupply": 20999900,
+      "value": "0.01",
+      "tokens": "0.000000010000877213860133629692894336713126869858172282752"
+    },
+    {
+      "name": "v2t at-max-supply",
+      "note": "at the last valid step -- expect null (at max supply)",
+      "currentSupply": 21000000,
+      "value": "0.01",
+      "tokens": null
+    }
+  ],
+  "tokensForValueExchange": [
+    {
+      "name": "tfve basic",
+      "note": "ordinary partial exchange, well within supply",
+      "currentValue": "100",
+      "value": "50",
+      "tokens": "4967.5445632485631595035720135594574717069407144963",
+      "fx": "0.010065334968490372964726687332098368029638764564859"
+    },
+    {
+      "name": "tfve full drain",
+      "note": "value equals currentValue exactly -- new supply must land at zero",
+      "currentValue": "1",
+      "value": "1",
+      "tokens": "100",
+      "fx": "0.01"
+    },
+    {
+      "name": "tfve small value",
+      "note": "smallest representable quark-aligned value",
+      "currentValue": "1000",
+      "value": "0.0000000001",
+      "tokens": "0.000000009194005556916857318740538960675280939",
+      "fx": "0.010876652116526919999999999999999999999648919512133"
+    },
+    {
+      "name": "tfve large tvl",
+      "note": "high-TVL exchange, crosses many steps",
+      "currentValue": "1000000",
+      "value": "500000",
+      "tokens": "777426.1398510714931516338062633651393487230743959",
+      "fx": "0.64314791382726474631909885149869827831897738605144"
+    }
+  ]
+}

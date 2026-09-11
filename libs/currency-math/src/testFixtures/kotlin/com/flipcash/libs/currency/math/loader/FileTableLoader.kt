@@ -1,10 +1,9 @@
 package com.flipcash.libs.currency.math.loader
 
+import com.flipcash.libs.currency.math.internal.loader.TableByteLoader
 import java.io.File
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 
-class FileTableLoader(private val assetsDir: File) : TableLoader {
+class FileTableLoader(private val assetsDir: File) : TableByteLoader {
 
     constructor() : this(resolveAssetsDir())
 
@@ -32,24 +31,9 @@ class FileTableLoader(private val assetsDir: File) : TableLoader {
         }
     }
 
-    override suspend fun loadTable(name: String): Table {
+    override suspend fun loadTableBytes(name: String): ByteArray {
         val file = File(assetsDir, "$name.bin")
         require(file.exists()) { "Could not find ${file.absolutePath}" }
-
-        return file.inputStream().use { input ->
-            val bytes = input.readBytes()
-            val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
-            val count = bytes.size / 16
-
-            val lowBits = LongArray(count)
-            val highBits = LongArray(count)
-
-            repeat(count) { i ->
-                lowBits[i] = buffer.long
-                highBits[i] = buffer.long
-            }
-
-            Table(lowBits, highBits)
-        }
+        return file.readBytes()
     }
 }

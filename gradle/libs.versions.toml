@@ -101,6 +101,7 @@ desugaring = "2.1.5"
 kotlincrypto-hash = "0.8.0"
 kotlincrypto-macs = "0.8.0"
 event-bus = "0.1.0"
+bignum = "0.3.10"
 
 bugsnag = "6.27.0"
 bugsnag-gradle-plugin = "1.2.0"
@@ -269,6 +270,7 @@ mixpanel = { module = "com.mixpanel.android:mixpanel-android", version.ref = "mi
 
 # Crypto
 sodium-bindings = { module = "com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings-android", version.ref = "sodium-bindings" }
+ionspin-bignum = { module = "com.ionspin.kotlin:bignum", version.ref = "bignum" }
 eddsa = { module = "net.i2p.crypto:eddsa", version = "0.3.0" }
 kotlincrypto-hash-sha2 = { module = "org.kotlincrypto.hash:sha2", version.ref = "kotlincrypto-hash" }
 kotlincrypto-macs-hmac-sha2 = { module = "org.kotlincrypto.macs:hmac-sha2", version.ref = "kotlincrypto-macs" }
