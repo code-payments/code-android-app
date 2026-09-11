@@ -1,6 +1,5 @@
 package com.getcode.solana.keys
 
-import com.getcode.utils.encodeBase64
 import com.getcode.vendor.Base58
 
 abstract class KeyType(bytes: List<Byte>) {
@@ -29,9 +28,7 @@ abstract class KeyType(bytes: List<Byte>) {
 }
 
 fun KeyType.base58(): String = Base58.encode(bytes.toByteArray())
-fun KeyType.base64(): String = bytes.toByteArray().encodeBase64()
 fun KeyType.base58Redacted(): String = base58().redact(visibleLength = 4)
-fun KeyType.base64Redacted(): String = base64().redact(visibleLength = 8)
 
 fun String.redact(visibleLength: Int = 4): String {
     if (length <= visibleLength * 2) return this
