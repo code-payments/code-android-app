@@ -68,7 +68,7 @@ class EventStreamingController @Inject constructor(
             scope = scope,
             owner = owner,
             onEvent = { update ->
-                trace("EventStreamingController: Received chat update, messages=${update.newMessages.size}")
+                trace("EventStreamingController: Received chat update, events=${update.events.size}")
                 _chatUpdates.trySend(update)
             },
             onBlobUpdate = { update ->

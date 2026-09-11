@@ -55,8 +55,17 @@ class DomainModelsTest {
         val chatId = ChatId(ByteArray(32))
         val update = ChatUpdate(
             chatId = chatId,
-            newMessages = listOf(
-                ChatMessage(1, null, listOf(MessageContent.Text("hi")), Instant.fromEpochSeconds(0), 1)
+            events = listOf(
+                ChatEvent(
+                    sequence = 1,
+                    count = 1,
+                    ts = Instant.fromEpochSeconds(0),
+                    mutations = listOf(
+                        ChatMutation.MessageSent(
+                            ChatMessage(1, null, listOf(MessageContent.Text("hi")), Instant.fromEpochSeconds(0), 1)
+                        )
+                    ),
+                )
             ),
             pointerUpdates = listOf(
                 MessagePointer(PointerType.READ, listOf(1.toByte()), 5, Instant.fromEpochSeconds(0))
@@ -69,7 +78,7 @@ class DomainModelsTest {
             ),
         )
 
-        assertEquals(1, update.newMessages.size)
+        assertEquals(1, update.events.size)
         assertEquals(1, update.pointerUpdates.size)
         assertEquals(1, update.typingNotifications.size)
         assertEquals(1, update.metadataUpdates.size)

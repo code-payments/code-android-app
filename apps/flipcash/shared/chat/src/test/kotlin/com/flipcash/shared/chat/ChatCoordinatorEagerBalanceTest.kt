@@ -9,8 +9,10 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.EventStreamingController
+import com.flipcash.services.models.chat.ChatEvent
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatMutation
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.internal.ChatIdGenerator
@@ -156,12 +158,24 @@ class ChatCoordinatorEagerBalanceTest {
         unreadSeq = 0,
     )
 
+    // Each update carries its messages as event-log events. Sequences run
+    // contiguously from 1 across the whole test so the gap detector stays quiet
+    // and these tests exercise only the behaviour they name.
+    private var nextEventSequence = 1L
+
     private fun chatUpdate(vararg messages: ChatMessage) = ChatUpdate(
         chatId = chatId,
-        newMessages = messages.toList(),
         pointerUpdates = emptyList(),
         typingNotifications = emptyList(),
         metadataUpdates = emptyList(),
+        events = messages.map { message ->
+            ChatEvent(
+                sequence = nextEventSequence++,
+                count = 1,
+                ts = message.timestamp,
+                mutations = listOf(ChatMutation.MessageSent(message)),
+            )
+        },
     )
 
     private suspend fun triggerCollection() {

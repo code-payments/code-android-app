@@ -406,13 +406,11 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
 
 // -- EventModel.ChatUpdate --
 
-@Suppress("DEPRECATION")
 internal fun EventModel.ChatUpdate.toChatUpdate(
     metadataMapper: (ChatModel.Metadata) -> ChatMetadata = { it.toChatMetadata() },
 ): ChatUpdate {
     return ChatUpdate(
         chatId = chat.toChatId(),
-        newMessages = if (hasNewMessages()) newMessages.messagesList.map { it.toChatMessage() } else emptyList(),
         pointerUpdates = if (hasPointerUpdates()) pointerUpdates.pointersList.map { it.toPointer() } else emptyList(),
         typingNotifications = if (hasIsTypingNotifications()) isTypingNotifications.isTypingNotificationsList.map { it.toTypingNotification() } else emptyList(),
         metadataUpdates = metadataUpdatesList.map { it.toMetadataUpdate(metadataMapper) },

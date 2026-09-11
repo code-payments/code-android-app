@@ -51,8 +51,8 @@ import kotlin.time.Duration.Companion.seconds
  * local persistence and in-memory state.
  *
  * Responsibilities:
- * - **Message persistence** — resolves messages from `ChatUpdate.events` (preferred)
- *   or the deprecated `newMessages` field, then upserts to Room.
+ * - **Message persistence** — resolves messages from `ChatUpdate.events`, then
+ *   upserts to Room.
  * - **Gap-aware event sequencing** — uses [EventSequenceTracker] to maintain a
  *   contiguous frontier. Only the highest contiguous sequence is persisted; if a
  *   gap is detected, a timed [getDelta][performDeltaSync] backfill is scheduled.
@@ -290,17 +290,12 @@ class EventStreamDelegate @Inject constructor(
     private suspend fun applyUpdate(update: ChatUpdate) {
         val chatId = update.chatId
 
-        // --- Resolve messages: prefer events, fall back to deprecated newMessages ---
+        // --- Resolve messages from the event log ---
 
-        val resolvedMessages = if (update.events.isNotEmpty()) {
-            update.events
-                .flatMap { event -> event.mutations.map { it.message } }
-                .sortedBy { it.eventSequence }
-                .distinctBy { it.messageId }
-        } else {
-            @Suppress("DEPRECATION")
-            update.newMessages
-        }
+        val resolvedMessages = update.events
+            .flatMap { event -> event.mutations.map { it.message } }
+            .sortedBy { it.eventSequence }
+            .distinctBy { it.messageId }
 
         trace(
             tag = TAG,
