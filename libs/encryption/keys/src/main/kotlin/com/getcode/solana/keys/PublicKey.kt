@@ -4,7 +4,6 @@ import android.os.Parcel
 import android.os.Parcelable
 import com.getcode.utils.serializer.PublicKeyAsStringSerializer
 import com.getcode.vendor.Base58
-import com.google.protobuf.ByteString
 import kotlinx.serialization.Serializable
 
 @Serializable(with = PublicKeyAsStringSerializer::class)
@@ -22,10 +21,6 @@ open class PublicKey(bytes: List<Byte>) : Key32(bytes), Parcelable {
 
         fun fromBase58(base58: String): PublicKey {
             return PublicKey(base58)
-        }
-
-        fun fromByteString(byteString: ByteString): PublicKey {
-            return PublicKey(byteString.toByteArray().toList())
         }
 
         val ZERO: PublicKey = PublicKey(zero.bytes)

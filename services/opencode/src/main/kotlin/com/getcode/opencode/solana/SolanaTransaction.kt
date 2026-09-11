@@ -15,7 +15,6 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.base58
 import com.getcode.solana.keys.filterUniqueAccounts
-import com.google.protobuf.ByteString
 
 /*
     Signature: [64]byte
@@ -115,10 +114,6 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
     }
 
     companion object {
-        fun fromBytes(bytes: ByteString): SolanaTransaction? {
-            return fromList(bytes.toByteArray().toList())
-        }
-
         fun fromList(list: List<Byte>): SolanaTransaction? {
             val (signatureCount, payload) = ShortVec.decodeLen(list)
 
