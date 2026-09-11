@@ -22,6 +22,7 @@ import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -56,6 +57,28 @@ class RealVerifiedFiatCalculatorTest {
         currencyController = mockk(relaxed = true)
         calculator = RealVerifiedFiatCalculator(verifiedStateManager, currencyController)
     }
+
+    // region resolveVerifiedState
+
+    @Test
+    fun `resolveVerifiedState fetches live mint data when the cache has no usable state`() = runTest {
+        val refreshed = VerifiedState(
+            rateProto = verifiedCoreMintFiatExchangeRate {
+                exchangeRate = coreMintFiatExchangeRate { currencyCode = CurrencyCode.USD.name }
+            },
+            reserveProto = verifiedLaunchpadCurrencyReserveState {
+                reserveState = launchpadCurrencyReserveState { supplyFromBonding = 1_000L }
+            },
+        )
+        every { verifiedStateManager.getVerifiedStateFor(CurrencyCode.USD, testMint) } returnsMany listOf(null, refreshed)
+
+        val result = calculator.resolveVerifiedState(CurrencyCode.USD, testMint)
+
+        coVerify(exactly = 1) { currencyController.getLiveMintData(any(), testMint, any()) }
+        assertEquals(refreshed, result)
+    }
+
+    // endregion
 
     // region USDF passthrough
 
