@@ -77,7 +77,7 @@ flipcash2-client-protocol = "0.4.1"
 # port lags upstream, so it always set the ceiling and blocked routine bumps.
 # Don't reintroduce the Google artifact. The port exposes the same API; it just needs a Context,
 # because it loads its metadata from the AAR's assets rather than from a static instance.
-lib-phone-number-port = "9.0.36"
+lib-phone-number-port = "9.0.38"
 zxing = "3.5.4"
 
 androidx-benchmark-macro = "1.5.0-rc02"
