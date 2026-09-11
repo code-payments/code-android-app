@@ -2,6 +2,7 @@ package com.getcode.solana.keys
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class KeyTest {
@@ -78,5 +79,26 @@ class KeyTest {
         val zero2 = Key32(ByteArray(32).toList())
 
         assertEquals(zero1.base58(), zero2.base58())
+    }
+
+    @Test
+    fun `KeyType equals rejects same bytes across different concrete subclasses`() {
+        // Key64 and Signature both hold their bytes via KeyType.equals directly (neither
+        // overrides equals), so this is the case the exact-type check in KeyType.equals guards:
+        // same size, same bytes, different concrete class must not be equal, in either direction.
+        val bytes = ByteArray(LENGTH_64) { it.toByte() }.toList()
+        val key64 = Key64(bytes)
+        val signature = Signature(bytes)
+
+        assertNotEquals<KeyType>(key64, signature)
+        assertNotEquals<KeyType>(signature, key64)
+    }
+
+    @Test
+    fun `KeyType equals accepts same bytes for the same concrete subclass`() {
+        val bytes = ByteArray(LENGTH_64) { it.toByte() }.toList()
+
+        assertEquals<KeyType>(Key64(bytes), Key64(bytes))
+        assertEquals<KeyType>(Signature(bytes), Signature(bytes))
     }
 }
