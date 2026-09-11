@@ -5,8 +5,6 @@ import com.getcode.opencode.internal.solana.ShortVec
 import com.getcode.opencode.internal.solana.model.MessageAddressLookupTable
 import com.getcode.utils.DataSlice.chunk
 import com.getcode.utils.DataSlice.tail
-import com.getcode.opencode.internal.solana.utils.printDiff
-import com.getcode.opencode.internal.solana.utils.printMatch
 import com.getcode.opencode.model.transactions.AddressLookupTable
 import com.getcode.solana.keys.AccountMeta
 import com.getcode.solana.keys.Hash
@@ -336,70 +334,5 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
                 signatures = signatures,
             )
         }
-    }
-}
-
-internal fun SolanaTransaction.diff(other: SolanaTransaction) {
-    val lhs = this
-    val rhs = other
-
-    if (lhs.identifier == rhs.identifier) {
-        printMatch("ID")
-    } else {
-        printDiff(
-            title = "ID",
-            one = lhs.identifier.base58(),
-            two = rhs.identifier.base58()
-        )
-    }
-
-    if (lhs.signatures == rhs.signatures) {
-        printMatch("Signatures")
-    } else {
-        printDiff(
-            title = "Signatures",
-            one = lhs.signatures.map { it.base58() },
-            two = rhs.signatures.map { it.base58() }
-        )
-    }
-
-    if (lhs.message.header == rhs.message.header) {
-        printMatch("Header")
-    } else {
-        printDiff(
-            title = "Header",
-            one = lhs.message.header.description,
-            two = rhs.message.header.description,
-        )
-    }
-
-    if (lhs.message.recentBlockhash == rhs.message.recentBlockhash) {
-        printMatch("Recent Blockhash")
-    } else {
-        printDiff(
-            title = "Recent Blockhash",
-            one = lhs.recentBlockhash.base58(),
-            two = rhs.recentBlockhash.base58(),
-        )
-    }
-
-    if (lhs.message.accountKeys== rhs.message.accountKeys) {
-        printMatch("Accounts")
-    } else {
-        printDiff(
-            title = "Accounts",
-            one = lhs.message.accountKeys.map { it.description },
-            two = rhs.message.accountKeys.map { it.description },
-        )
-    }
-
-    if (lhs.message.instructions == rhs.message.instructions) {
-        printMatch("Instructions")
-    } else {
-        printDiff(
-            title = "Instructions",
-            one = lhs.message.instructions.map { it.description },
-            two = rhs.message.instructions.map { it.description },
-        )
     }
 }
