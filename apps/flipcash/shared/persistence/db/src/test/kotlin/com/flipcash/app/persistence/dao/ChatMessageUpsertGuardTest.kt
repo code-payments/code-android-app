@@ -80,9 +80,13 @@ class ChatMessageUpsertGuardTest {
     }
 
     /**
-     * The comparison is strict, so a re-delivery at the same sequence writes through rather than
-     * being skipped. That is the case a re-delivered push hits, and it converges because the two
-     * copies are the same message — not because the guard stopped the second one.
+     * The comparison is strict, so a copy at the same sequence writes through rather than being
+     * skipped. messaging.v1 tells clients to ignore a copy at or below the held version; the
+     * equal case is kept because a confirmed send depends on it — confirmPendingMessage stamps
+     * the server's event_sequence onto the optimistic row but leaves its locally written content,
+     * and the canonical copy that supersedes it carries that same sequence. A re-delivered push
+     * hits the same path and converges because the two copies are the same message, not because
+     * the guard stopped the second one.
      */
     @Test
     fun `a copy at the same sequence writes through`() = runTest {
@@ -95,7 +99,9 @@ class ChatMessageUpsertGuardTest {
     /**
      * Sequence 0 means "unstamped" — a legacy row, or an optimistic row the server has not
      * echoed yet — and the guard lets it past unconditionally. A source that sends 0 for a
-     * message the server did stamp therefore overwrites a newer stored copy.
+     * message the server did stamp therefore overwrites a newer stored copy. The server is not
+     * such a source: messaging.v1 constrains event_sequence to >= 1, so this is reachable only
+     * from a locally built row.
      */
     @Test
     fun `an unstamped copy bypasses the guard and overwrites a stamped row`() = runTest {
