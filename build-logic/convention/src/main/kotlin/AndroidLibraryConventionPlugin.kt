@@ -25,11 +25,16 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
 
             val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
             val compileSdkVersion = libs.findVersion("android-compileSdk").get().requiredVersion.toInt()
+            val compileSdkMinorVersion = libs.findVersion("android-compileSdkMinor").get().requiredVersion.toInt()
             val minSdkVersion = libs.findVersion("android-minSdk").get().requiredVersion.toInt()
             val javaVersion = libs.findVersion("android-java").get().requiredVersion
 
             extensions.configure<LibraryExtension> {
-                compileSdk = compileSdkVersion
+                compileSdk {
+                    version = release(compileSdkVersion) {
+                        minorApiLevel = compileSdkMinorVersion
+                    }
+                }
 
                 defaultConfig {
                     minSdk = minSdkVersion
