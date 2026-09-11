@@ -346,11 +346,25 @@ suspend fun <T> timedTraceSuspend(
 class MetadataBuilder {
     private val map = mutableMapOf<String, Any>()
 
-    infix fun String.to(value: Any) {
-        map[this] = value
+    /**
+     * Records [value] under this key, substituting [NULL_PLACEHOLDER] when it is `null`.
+     *
+     * The parameter is deliberately nullable. A non-null `Any` parameter makes this
+     * function inapplicable to a nullable argument, so the call silently resolves to
+     * [kotlin.to] instead, building a [Pair] that is discarded in statement position —
+     * the field is dropped with no error and no warning. Accepting `Any?` keeps this
+     * member the only candidate, so every pair is recorded.
+     */
+    infix fun String.to(value: Any?) {
+        map[this] = value ?: NULL_PLACEHOLDER
     }
 
     fun build(): Map<String, Any> = map
+
+    companion object {
+        /** Recorded in place of a `null` metadata value so the field stays visible. */
+        const val NULL_PLACEHOLDER = "null"
+    }
 }
 
 /** Convenience factory that builds a metadata map from [block]. */

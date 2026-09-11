@@ -1860,7 +1860,7 @@ class SwapViewModel @Inject constructor(
             message = "Something went wrong during phantom onramp",
             type = TraceType.Error,
             metadata = {
-                "errorMessage" to deeplinkError.message
+                "errorMessage" to deeplinkError.message.orEmpty()
                 "code" to deeplinkError.code
             },
             error = deeplinkError.takeUnless { it.isAlert }

@@ -324,9 +324,9 @@ class CoinbaseOnRampController @Inject constructor(
                                 "orderId" to orderId
                                 "httpCode" to error.code().toString()
                                 "errorType" to (coinbaseError?.let { it::class.simpleName } ?: "unknown")
-                                "correlationId" to coinbaseError?.correlationId
-                                "responseBody" to errorBody
-                                "errorLink" to coinbaseError?.errorLink
+                                "correlationId" to coinbaseError?.correlationId.orEmpty()
+                                "responseBody" to errorBody.orEmpty()
+                                "errorLink" to coinbaseError?.errorLink.orEmpty()
                             },
                             error = error,
                         )

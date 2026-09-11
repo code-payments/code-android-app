@@ -18,6 +18,7 @@ internal class CoinbaseStableSwapperProgram_Swap(
     private val fromMint: PublicKey,
     private val toMint: PublicKey,
     private val user: PublicKey,
+    private val whitelist: PublicKey,
     private val amountIn: Long,
     private val minAmountOut: Long,
 ) : InstructionType {
@@ -37,6 +38,7 @@ internal class CoinbaseStableSwapperProgram_Swap(
                 AccountMeta.readonly(publicKey = fromMint),
                 AccountMeta.readonly(publicKey = toMint),
                 AccountMeta.writable(publicKey = user, signer = true),
+                AccountMeta.readonly(publicKey = whitelist),
                 AccountMeta.readonly(publicKey = TokenProgram.address),
                 AccountMeta.readonly(publicKey = AssociatedTokenProgram.address),
                 AccountMeta.readonly(publicKey = SystemProgram.address),

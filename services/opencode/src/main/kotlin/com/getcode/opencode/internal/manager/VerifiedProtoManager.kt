@@ -5,6 +5,7 @@ import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
+import com.google.protobuf.Timestamp
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -25,9 +26,12 @@ import kotlin.time.Instant
  * application lifecycle.
  */
 @Singleton
-class VerifiedProtoManager @Inject constructor() {
+class VerifiedProtoManager internal constructor(
+    private val clock: Clock,
+) {
 
-    private val TTL = 15.minutes
+    @Inject
+    constructor() : this(Clock.System)
 
     /**
      * A [MutableStateFlow] holding the latest cached exchange rate data.
@@ -46,14 +50,19 @@ class VerifiedProtoManager @Inject constructor() {
     private val reserveStates = MutableStateFlow<Map<Mint, OcpCurrencyService.VerifiedLaunchpadCurrencyReserveState>>(emptyMap())
 
     fun saveRates(exchangeData: List<OcpCurrencyService.VerifiedCoreMintFiatExchangeRate>) {
-        val incoming = exchangeData.mapNotNull { data ->
-            CurrencyCode.tryValueOf(data.exchangeRate.currencyCode)?.let { it to data }
-        }.toMap()
+        val incoming = exchangeData
+            .filterNot { isExpired(it.exchangeRate.timestamp) }
+            .mapNotNull { data ->
+                CurrencyCode.tryValueOf(data.exchangeRate.currencyCode)?.let { it to data }
+            }
+            .toMap()
         this.exchangeData.update { it + incoming }
     }
 
     fun saveReserveStates(reserveStates: List<OcpCurrencyService.VerifiedLaunchpadCurrencyReserveState>) {
-        val incoming = reserveStates.associateBy { it.reserveState.mint.toMint() }
+        val incoming = reserveStates
+            .filterNot { isExpired(it.reserveState.timestamp) }
+            .associateBy { it.reserveState.mint.toMint() }
         this.reserveStates.update { it + incoming }
     }
 
@@ -100,38 +109,32 @@ class VerifiedProtoManager @Inject constructor() {
         reserveStates.value = emptyMap()
     }
 
-    private fun get(currencyCode: CurrencyCode): OcpCurrencyService.VerifiedCoreMintFiatExchangeRate? {
-        return exchangeData.value[currencyCode]
-    }
-
+    /**
+     * Returns the cached rate for [currencyCode], or null when there is none or the
+     * cached proto is older than [MaxAge]. An expired proto is evicted so the caller
+     * falls through to a fresh fetch instead of submitting a proof the server will reject.
+     */
     private fun getOrEvict(currencyCode: CurrencyCode): OcpCurrencyService.VerifiedCoreMintFiatExchangeRate? {
-        val now = Clock.System.now()
-        val stored = get(currencyCode) ?: return null
-        val ts = Instant.fromEpochSeconds(stored.exchangeRate.timestamp.seconds, stored.exchangeRate.timestamp.nanos)
-        val expired = now - ts > TTL
-        if (expired) {
-            val updated = exchangeData.value.filterNot { it.key == currencyCode }
-            exchangeData.update { updated }
+        val stored = exchangeData.value[currencyCode] ?: return null
+        if (isExpired(stored.exchangeRate.timestamp)) {
+            exchangeData.update { it - currencyCode }
+            return null
         }
-
         return stored
-    }
-
-    private fun get(mint: Mint): OcpCurrencyService.VerifiedLaunchpadCurrencyReserveState? {
-        return reserveStates.value[mint]
     }
 
     private fun getOrEvict(mint: Mint): OcpCurrencyService.VerifiedLaunchpadCurrencyReserveState? {
-        val now = Clock.System.now()
-        val stored = get(mint) ?: return null
-        val ts = Instant.fromEpochSeconds(stored.reserveState.timestamp.seconds, stored.reserveState.timestamp.nanos)
-        val expired = now - ts > TTL
-        if (expired) {
-            val updated = reserveStates.value.filterNot { it.key == mint }
-            reserveStates.update { updated }
+        val stored = reserveStates.value[mint] ?: return null
+        if (isExpired(stored.reserveState.timestamp)) {
+            reserveStates.update { it - mint }
+            return null
         }
-
         return stored
+    }
+
+    private fun isExpired(timestamp: Timestamp): Boolean {
+        val signedAt = Instant.fromEpochSeconds(timestamp.seconds, timestamp.nanos)
+        return clock.now() - signedAt > MaxAge
     }
 
     fun getVerifiedStateFor(currencyCode: CurrencyCode, mint: Mint): VerifiedState? {
@@ -139,6 +142,15 @@ class VerifiedProtoManager @Inject constructor() {
         val reserveState = getOrEvict(mint)
 
         return VerifiedState(exchangeRate, reserveState)
+    }
+
+    companion object {
+        /**
+         * Oldest server-signed proto the client will submit. The server rejects proofs
+         * older than 15 minutes with `STALE_STATE`; 13 minutes matches the iOS
+         * `clientMaxAge` and leaves headroom for the request to land.
+         */
+        private val MaxAge = 13.minutes
     }
 }
 

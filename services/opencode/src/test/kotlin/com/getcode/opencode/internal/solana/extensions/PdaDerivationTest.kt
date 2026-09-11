@@ -247,6 +247,22 @@ class PdaDerivationTest {
         assertNotEquals(result1.publicKey, result2.publicKey)
     }
 
+    // --- deriveCoinbaseWhitelistAddress ---
+
+    @Test
+    fun coinbaseWhitelistIsDeterministic() {
+        val result1 = PublicKey.deriveCoinbaseWhitelistAddress()
+        val result2 = PublicKey.deriveCoinbaseWhitelistAddress()
+        assertEquals(result1.publicKey, result2.publicKey)
+        assertEquals(result1.bump, result2.bump)
+    }
+
+    @Test
+    fun coinbaseWhitelistIsOffCurve() {
+        val result = PublicKey.deriveCoinbaseWhitelistAddress()
+        assertTrue(!Ed25519.onCurve(result.publicKey.bytes.toByteArray()))
+    }
+
     // --- Coinbase PDA chain: pool -> vault -> vaultTokenAccount ---
 
     @Test
@@ -255,10 +271,11 @@ class PdaDerivationTest {
         val mint = testKey(10)
         val vault = PublicKey.deriveCoinbaseTokenVaultAddress(pool, mint).publicKey
         val vaultTA = PublicKey.deriveCoinbaseVaultTokenAccountAddress(vault).publicKey
+        val whitelist = PublicKey.deriveCoinbaseWhitelistAddress().publicKey
 
-        // All three should be distinct
-        val all = setOf(pool, vault, vaultTA)
-        assertEquals(3, all.size, "pool, vault, and vaultTA should all be distinct")
+        // All four should be distinct
+        val all = setOf(pool, vault, vaultTA, whitelist)
+        assertEquals(4, all.size, "pool, vault, vaultTA, and whitelist should all be distinct")
     }
 
     // --- Known value: well-known associated token address ---

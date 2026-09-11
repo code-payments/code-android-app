@@ -158,9 +158,8 @@ class NotificationService : FirebaseMessagingService(),
             message = "onMessageReceived",
             type = TraceType.Process,
             metadata = {
-                // MetadataBuilder.to takes a non-null Any, so passing a String?
-                // silently resolves to kotlin.to, builds a Pair and discards it.
-                // Every value here must be non-null or it will not be recorded.
+                // Push content is not recorded: TraceType.Process is forwarded to
+                // breadcrumb sinks, and message text does not belong in Bugsnag.
                 "seq" to message.data[KEY_SPIKE_SEQ].orEmpty()
                 "has_body" to (body != null)
                 "actions" to actions.size
