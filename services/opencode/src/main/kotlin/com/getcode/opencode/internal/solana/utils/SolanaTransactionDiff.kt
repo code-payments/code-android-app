@@ -7,7 +7,8 @@ import com.getcode.solana.keys.base58
  * Diagnostic diff between two [SolanaTransaction]s, printed via [printDiff]/[printMatch]. Kept in
  * `:services:opencode` rather than moving with [SolanaTransaction] into `:libs:solana:encoding`
  * because `printDiff`/`printMatch` depend on `timber.log.Timber`, which is Android-only. Called
- * from nowhere in the codebase today; kept rather than deleted per standing decision.
+ * from `IntentExecutor` and `StatefulSwapExecutor` to log what differs between the transaction the
+ * client built and the one the server reports back on an invalid-signature error.
  *
  * The header line is formatted inline here (matching `MessageHeader.description`'s
  * `"H{...}"` shape) rather than calling that extension: it is `internal` inside

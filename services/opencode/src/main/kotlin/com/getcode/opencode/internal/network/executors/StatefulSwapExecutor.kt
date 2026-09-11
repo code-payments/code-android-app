@@ -13,9 +13,9 @@ import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.SwapResult
 import com.getcode.opencode.model.transactions.SwapProgram
 import com.getcode.opencode.model.transactions.VerifiedSwapMetadata
+import com.getcode.opencode.internal.solana.utils.diff
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.fromBytes
-import com.getcode.opencode.solana.diff
 import com.getcode.services.opencode.BuildConfig
 import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.base58
