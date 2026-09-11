@@ -39,8 +39,7 @@
 # Set DEVICE to an adb serial when more than one device is attached. PAYLOAD is
 # the same base64 flipcash.push.v1.Payload the bucket runner sends, and the
 # default `IAU=` is category=CONTACT_JOIN, which plans RefreshFeed +
-# SyncContacts. PushSilentSync must be ON for a data-only push to plan anything
-# at all; with it off this script measures an empty action list.
+# SyncContacts.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -74,7 +73,33 @@ restore() {
 trap restore EXIT
 
 adb shell "dumpsys battery unplug" >/dev/null
+
+# HOME before SLEEP, and then wait for the process to actually fall out of the
+# top slot. Turning the screen off on its own is not enough: the app stays the
+# top of its task as `top-sleeping` at adj 0, which is neither cached nor frozen
+# and keeps paying the timer work the cached case does not. The first run of this
+# script measured that state for eleven windows without noticing, because it
+# recorded the adj columns instead of gating on them.
+# WAKEUP first: HOME sent to a sleeping device does nothing, which is how the
+# first run stayed top-sleeping through the HOME it thought had backgrounded it.
+adb shell "input keyevent KEYCODE_WAKEUP" >/dev/null || true
+sleep 2
+adb shell "input keyevent KEYCODE_HOME" >/dev/null || true
+sleep 3
 adb shell "input keyevent KEYCODE_SLEEP" >/dev/null || true
+
+adj_now() { adb shell "cat /proc/\$(pidof $PACKAGE)/oom_score_adj" 2>/dev/null | tr -d '\r'; }
+
+waited=0
+until adj="$(adj_now)"; [ -n "$adj" ] && [ "$adj" -ge 900 ] 2>/dev/null; do
+    [ "$waited" -ge 300 ] && {
+        echo "FATAL: $PACKAGE never reached adj >= 900 (last: ${adj:-unknown}) — nothing was measured" >&2
+        exit 1
+    }
+    sleep 5
+    waited=$(( waited + 5 ))
+done
+echo "cached at adj $adj after ${waited} s" >&2
 
 # One round trip returns pid, cached-ness and the two counters together. Read
 # apart they can straddle a process death and produce a negative delta.
@@ -118,6 +143,14 @@ measure() {
 
 measure "idle" no
 for i in $(seq -f '%03g' 1 "$COUNT"); do
+    # A kill ends the cell. Without this the loop keeps calling measure(), which
+    # returns immediately on a dead process, so the remaining windows land in the
+    # file as `dead_before` in a couple of seconds and the run looks like it
+    # completed its full count. Stop and say which push was the last one.
+    if [ -z "$(adb shell "pidof $PACKAGE" 2>/dev/null | tr -d '\r')" ]; then
+        echo "process gone before window $i - cell ends here" >&2
+        break
+    fi
     measure "$i" yes
 done
 
@@ -128,9 +161,23 @@ python3 - "$OUT" "$SETTLE" <<'PY'
 import statistics, sys
 path, settle = sys.argv[1], float(sys.argv[2])
 rows = [l.split() for l in open(path) if not l.startswith('#')]
-idle = [r for r in rows if r[0] == 'idle' and r[-1].isdigit()]
-push = [int(r[-1]) for r in rows if r[0] != 'idle' and r[-1].isdigit()]
+
+# The window has to *start* cached. That is the state the killer's budget applies
+# to, and the state a push has to thaw the process out of, so it is what decides
+# whether the reading is the cold cost or a warm one. It cannot also *end* cached:
+# handling a push promotes the process into the previous-app slot at adj 700,
+# which it holds for about two minutes after the last activity. Requiring both
+# ends discards every push window by construction.
+def cached(r):
+    return r[2].isdigit() and int(r[2]) >= 900
+
+complete = [r for r in rows if r[-1].isdigit()]
+uncached = [r[0] for r in complete if not cached(r)]
+idle = [r for r in complete if r[0] == 'idle' and cached(r)]
+push = [int(r[-1]) for r in complete if r[0] != 'idle' and cached(r)]
 died = [r[0] for r in rows if r[-1] == 'died']
+if uncached:
+    print(f"dropped:  {len(uncached)} window(s) that did not start cached: {uncached}")
 if not push:
     print(f"no complete push samples; {len(died)} died: {died}"); sys.exit(0)
 idle_ms = int(idle[0][-1]) if idle else 0
