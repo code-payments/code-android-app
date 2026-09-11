@@ -4,7 +4,9 @@ import android.os.Parcelable
 import com.getcode.opencode.internal.extensions.fractionDigits
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.MintParceler
 import kotlinx.parcelize.Parcelize
+import kotlinx.parcelize.TypeParceler
 import kotlinx.serialization.Serializable
 import javax.annotation.concurrent.Immutable
 
@@ -34,6 +36,7 @@ import javax.annotation.concurrent.Immutable
 @Serializable
 @Parcelize
 @Immutable
+@TypeParceler<Mint, MintParceler>()
 data class LocalFiat(
     val underlyingTokenAmount: Fiat,
     val nativeAmount: Fiat,

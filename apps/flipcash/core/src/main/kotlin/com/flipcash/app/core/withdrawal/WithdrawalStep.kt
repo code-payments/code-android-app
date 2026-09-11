@@ -4,7 +4,9 @@ import android.os.Parcelable
 import com.getcode.navigation.flow.FlowStep
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.MintParceler
 import kotlinx.parcelize.Parcelize
+import kotlinx.parcelize.TypeParceler
 import kotlinx.serialization.Serializable
 
 /**
@@ -22,6 +24,7 @@ sealed interface WithdrawalStep : FlowStep, Parcelable {
     data object SelectToken: WithdrawalStep
     @Parcelize
     @Serializable
+    @TypeParceler<Mint, MintParceler>()
     data class Amount(val mint: Mint) : WithdrawalStep
 
     @Parcelize

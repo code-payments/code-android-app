@@ -27,8 +27,10 @@ import com.getcode.navigation.flow.FlowStep
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.MintParceler
 import com.getcode.ui.core.RestrictionType
 import kotlinx.parcelize.Parcelize
+import kotlinx.parcelize.TypeParceler
 import kotlinx.serialization.Serializable
 import kotlin.reflect.KClass
 
@@ -167,6 +169,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class TokenSelection(val purpose: TokenPurpose) : Sheets
         @Serializable
+        @TypeParceler<Mint, MintParceler>()
         data class Give(val mint: Mint? = null, val fromTokenInfo: Boolean = false) : Sheets
 
         @Serializable
@@ -209,6 +212,7 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Parcelize
     sealed interface Token : AppRoute {
         @Serializable
+        @TypeParceler<Mint, MintParceler>()
         data class Info(
             val mint: Mint,
             val shortfall: Fiat? = null,
@@ -220,6 +224,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         ) : Token
 
         @Serializable
+        @TypeParceler<Mint, MintParceler>()
         data class Transactions(val mint: Mint) : Token
         @Serializable
         data class Swap(
@@ -288,6 +293,7 @@ sealed interface AppRoute : NavKey, Parcelable {
          * "Withdraw as USDC" intro, and any other currency lands straight on the amount screen.
          */
         @Serializable
+        @TypeParceler<Mint, MintParceler>()
         data class Withdrawal(
             val preselectedMint: Mint? = Mint.usdf,
         ) : Transfers, FlowRouteWithResult<WithdrawalResult> {
