@@ -1,6 +1,5 @@
 package com.getcode.opencode.solana
 
-import com.getcode.ed25519.Ed25519
 import com.getcode.opencode.internal.solana.ShortVec
 import com.getcode.opencode.internal.solana.model.MessageAddressLookupTable
 import com.getcode.utils.DataSlice.chunk
@@ -59,36 +58,6 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
             message.recentBlockhash = v
         }
 
-    fun signatures(vararg keyPair: Ed25519.KeyPair): List<Signature> {
-        return keyPair.map { kp ->
-            val result = kp.sign(message.encode().toByteArray()).toList()
-            Signature(result)
-        }
-    }
-
-    fun sign(vararg keyPairs: Ed25519.KeyPair): List<Signature> {
-        val requiredSignatureCount = message.header.requiredSignatures
-        if (keyPairs.size > requiredSignatureCount) {
-            throw Exception(SigningError.tooManySigners.name)
-        }
-
-        val messageData = message.encode()
-        val newSignatures = mutableListOf<Signature>()
-
-        keyPairs.forEach { keyPair ->
-            val signatureIndex =
-                message.accountKeys.indexOfFirst { it.bytes == keyPair.publicKeyBytes.toList() }
-            if (signatureIndex == -1) {
-                throw Exception("accountNotInAccountList. Account: ${keyPair.publicKey}")
-            }
-
-            val signature = Ed25519.sign(messageData.toByteArray(), keyPair)
-            newSignatures.add(Signature(signature.toList()))
-        }
-
-        return newSignatures
-    }
-
     fun encode(): List<Byte> {
         val data = mutableListOf<Byte>()
         data.addAll(ShortVec.encodeList(signatures.map { it.bytes }))
@@ -103,12 +72,6 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
                 signatures=${signatures.joinToString { it.base58() }}
             }
         """.trimIndent()
-    }
-
-    enum class SigningError {
-        tooManySigners,
-        accountNotInAccountList,
-        invalidKey
     }
 
     companion object {
