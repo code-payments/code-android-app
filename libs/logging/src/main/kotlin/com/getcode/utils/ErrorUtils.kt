@@ -93,9 +93,24 @@ object ErrorUtils {
                 throwable is SocketException ||
                 throwable.cause is SocketException
 
-    private val gmsTransientMessages = setOf("SERVICE_NOT_AVAILABLE", "FIS_AUTH_ERROR", "MISSING_INSTANCEID_SERVICE", "TOO_MANY_REGISTRATIONS")
+    /**
+     * Error strings Google Play Services returns for a failed FCM registration. They describe the
+     * device's GMS state or the FCM backend, not app code, so they stay out of Bugsnag. Firebase
+     * wraps them as `IOException("FCM Registration failed!")` -> `ExecutionException` ->
+     * `IOException(<code>)`, which is why the cause chain is walked.
+     */
+    private val gmsTransientMessages = setOf(
+        "SERVICE_NOT_AVAILABLE",
+        "FIS_AUTH_ERROR",
+        "MISSING_INSTANCEID_SERVICE",
+        "TOO_MANY_REGISTRATIONS",
+        "AUTHENTICATION_FAILED",
+        "INTERNAL_SERVER_ERROR",
+        "InternalServerError",
+        "PHONE_REGISTRATION_ERROR",
+    )
 
-    private fun isGmsTransientError(throwable: Throwable): Boolean =
+    internal fun isGmsTransientError(throwable: Throwable): Boolean =
         generateSequence(throwable) { it.cause }
             .any { it is java.io.IOException && it.message in gmsTransientMessages }
 
