@@ -9,8 +9,6 @@ import com.getcode.utils.DataSlice.tail
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.LENGTH_32
 import com.getcode.solana.keys.PublicKey
-import com.getcode.utils.TraceType
-import com.getcode.utils.trace
 
 /**
  * Represents a Version 0 (V0) Solana transaction message.
@@ -58,7 +56,6 @@ data class VersionedMessageV0(
     companion object {
         fun newInstance(data: List<Byte>): VersionedMessageV0? {
             if (data.isEmpty()) {
-                trace(type = TraceType.Error, message = "data is empty")
                 return null
             }
 
@@ -69,7 +66,6 @@ data class VersionedMessageV0(
             payload = remainingPayload
 
             if (version.first().byteToUnsignedInt() != (MessageVersion.v0.ordinal + messageVersionSerializationOffset)) {
-                trace(type = TraceType.Error, message = "version is not v0")
                 return null
             }
             // Decode Header (manually, without decompiling instructions)
@@ -79,7 +75,6 @@ data class VersionedMessageV0(
 
             // Decode static account keys
             val (accountCount, accountData) = ShortVec.decodeLen(payload)
-            trace(type = TraceType.Process, message = "static account count: $accountCount")
 
             val staticKeys = accountData.chunked(LENGTH_32).mapNotNull { chunk ->
                 runCatching { PublicKey(chunk) }.getOrNull()
@@ -92,13 +87,11 @@ data class VersionedMessageV0(
             payload = remainingPayload2
             val hash = runCatching { Hash(hashBytes) }.getOrNull()
             if (hash == null) {
-                trace(type = TraceType.Error, message = "failed to decode blockhash")
                 return null
             }
 
             // Decode compiled instructions (without decompiling yet)
             val (instructionCount, instructionsData) = ShortVec.decodeLen(payload)
-            trace(type = TraceType.Process, message = "instruction count: $instructionCount")
 
             var remainingInstructionsData = instructionsData
             val compiledInstructions = mutableListOf<CompiledInstruction>()
@@ -106,7 +99,6 @@ data class VersionedMessageV0(
             repeat(instructionCount) {
                 val instruction = CompiledInstruction.fromList(remainingInstructionsData)
                 if (instruction == null) {
-                    trace(type = TraceType.Error, message = "failed to decode instruction")
                     return null
                 }
 
@@ -124,7 +116,6 @@ data class VersionedMessageV0(
             repeat(altCount) {
                 // public key
                 if (remaining.count() < LENGTH_32) {
-                    trace(type = TraceType.Error, message = "not enough data for lookup public key")
                     return null
                 }
 
@@ -132,7 +123,6 @@ data class VersionedMessageV0(
                 remaining = remaining.drop(LENGTH_32)
                 val publicKey = runCatching { PublicKey(publicKeyData) }.getOrNull()
                 if (publicKey == null) {
-                    trace(type = TraceType.Error, message = "failed to decode lookup public key")
                     return null
                 }
 
@@ -141,10 +131,6 @@ data class VersionedMessageV0(
                 remaining = writableRemaining
 
                 if (remaining.count() < writableIndexLength) {
-                    trace(
-                        type = TraceType.Error,
-                        message = "not enough data for lookup writable indexes, need: $writableIndexLength, have: ${remaining.count()}"
-                    )
                     return null
                 }
 
@@ -156,10 +142,6 @@ data class VersionedMessageV0(
                 remaining = readonlyRemaining
 
                 if (remaining.count() < readonlyIndexLength) {
-                    trace(
-                        type = TraceType.Error,
-                        message = "not enough data for lookup readonly indexes, need: $readonlyIndexLength, have: ${remaining.count()}"
-                    )
                     return null
                 }
 
