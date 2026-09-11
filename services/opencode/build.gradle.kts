@@ -39,6 +39,7 @@ dependencies {
     api(project(":libs:encryption:sha512"))
     api(project(":libs:encryption:utils"))
     api(project(":libs:logging"))
+    api(project(":libs:solana:encoding"))
     api(project(":libs:locale:bindings"))
     implementation(project(":libs:locale:impl"))
     api(project(":libs:network:connectivity:bindings"))
