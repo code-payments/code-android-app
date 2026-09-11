@@ -629,7 +629,7 @@ off and the phone physically unplugged, the counters do not move at all:
 |---|---|
 | Samples | 16, at 60 s |
 | Span | 906 s |
-| `oom_score_adj` | 910 throughout (the kills were at 905) |
+| `oom_score_adj` | 910 throughout (kills have been seen at 700, 900 and 905) |
 | `cgroup.freeze` | `/sys/fs/cgroup/apps/uid_10309/pid_5303/cgroup.freeze` = 1 |
 | utime + stime | 2221 + 199 ticks at the first sample, and at all fifteen after it |
 | Delta | **0 ticks** |
@@ -642,44 +642,129 @@ third row: the process is frozen, so it is not sleeping cheaply, it is not runni
 across windows in which pushes arrived every 180 s, so it is the residue either side of a burst —
 thaw, timer catch-up, the stream's ping timer — attributed to the gap it sat in. Measured with
 nothing arriving, the floor is zero. The practical consequence is that the budget has one term: the
-whole 6000 ms is available to push work, and the answer depends only on what a push costs.
+whole 6000 ms is available to push work, and what remains is the cost of one push and how many of
+them a window holds.
 
-### The answer, at the cost we have
+### The answer, at the measured cost
 
-The per-push term is still the regression's **~6.7 s**, and it is an upper bound rather than a
-reading. `TraceManager.includeRpcBodies` was on for the capture build — it follows `BuildConfig.DEBUG`
-and `ReleaseStage.Internal` — so `LoggingClientCallListener` built a full proto `toString()` for every
-RPC in every burst, roughly 55 KB of string per push that production never builds.
+The instrument has now been run. `scripts/spike/measure-push-cpu.sh` brackets `/proc/<pid>/stat`
+utime+stime around each send, takes a push-free window first for the idle term, and gates each window
+on the process having actually reached cached before the push lands.
 
-Taken at that bound, with idle at zero:
+Twelve endpoint brackets across three cells, plus one burst sampled at 2 s:
 
-| | |
-|---|---|
-| Budget per 300 s window | 6000 ms |
-| Cost of one push | ~6700 ms |
-| Pushes per five minutes | **0.90** |
-| Break-even cadence | 335 s |
+| Cell | Spacing | n | Per-push (ms) | Mean |
+|---|---|---|---|---|
+| 240 s, first attempt | 240 s | 4 | 1810, 2200, 1830, 2180 | 2005 |
+| 240 s, repeat | 240 s | 3 | 1930, 1990, 2290 | 2070 |
+| 420 s | 420 s | 5 | 2680, 2210, 2430, 1970, 2360 | 2330 |
+| 2 s profile | single push | 1 | 2030 total | — |
 
-**The app cannot absorb even one push per five minutes.** That is the same conclusion the regression
-reached, and removing the idle term does not soften it: idle was never spending the budget, so there
-is nothing there to reclaim. A push has to come in under 6000 ms of CPU to survive one per window at
-all, under 3000 ms for two, and under 1500 ms for the four-per-five-minutes a chat preload would
-imply. The measured cost misses the first of those thresholds by 12% and the last by 4.5x.
+**A push costs about 2.2 s of CPU, not the 6.7 s the regression inferred.** That number came from log
+volume; read off the counters it is a third of the size. Bodies are still on for every figure here —
+this is a `debug` install, so `includeRpcBodies` is true and each RPC still builds a full proto
+`toString()` — so 2.2 s is also an upper bound on production, just a much tighter one.
+
+The profile says where it goes: cumulative 1760 ms at t=2 s of a 2030 ms total, then roughly 10 ms
+per 2 s out to t≈120 s. **87% of a burst is in its first two seconds.** The tail is the adj-700
+previous-app decay winding down, not work worth trimming.
+
+### The 300 s window is uptime, not wall clock
+
+Dividing the budget by the cost gives 6000 / 2200 = 2.7 pushes per five minutes. The device
+disagrees, and not in the direction a margin would explain:
+
+| Cell | Process between pushes | Pushes | Outcome |
+|---|---|---|---|
+| 120 s spacing | never frozen, adj 0 then 700 | 10 | survived |
+| 240 s spacing | cached and frozen | 5 | killed on #5 |
+| 240 s spacing, repeat | cached and frozen | 4 | killed on #4 |
+| 420 s spacing | cached and frozen | 5 | survived |
+
+The 120 s row is the voided first attempt, whose readings are unusable because it never backgrounded
+the app. Whether the process survived is not a reading, so that row still counts, and it is the row
+that makes the pattern impossible to read as a rate: ten pushes at the tightest spacing survived
+while four at an intermediate spacing did not. No rate expressed in wall-clock seconds produces that
+ordering. The kill record from the repeat cell
+resolves it:
+
+```
+am_kill: [0,12639,com.flipcash.app.android,900,excessive cpu 6230 during 300043 dur=1750357 limit=2,249060]
+```
+
+6230 ms charged. The three windows measured for that process sum to 1930 + 1990 + 2290 = **6210 ms**.
+The instrument and AMS agree to 0.3%, which retires the discrepancy this document previously could
+not account for. But those three bursts are 240 s apart, so first to last is at least 480 s of wall
+clock, and AMS calls the interval between them `300043`. **The window is 300 s of `uptimeMillis()`,
+which does not advance across suspend.**
+
+How much wall clock a window covers is then a question about how much the phone suspends. Two
+readings of `dumpsys batterystats`, 421 s apart with the device asleep and no pushes arriving, differ
+by 142 s of uptime: **33.7%**, or a 300 s window stretched across 890 s. Over the whole 14 h on
+battery the figure is 38.4%. Neither is the number that applies during a push cadence, because each
+push wakes the device and buys back uptime.
+
+The cells bracket that number better than either aggregate does. Three sends 240 s apart were charged
+to one window, so the window covers more than 480 s of wall clock. The 420 s cell survived, so fewer
+than three of its sends fit, putting the window at 840 s or less. A 300 s uptime window during a
+cadence like this therefore spans between roughly 480 s and 840 s, and every cell follows:
+
+| Cell | Wall clock per window | Pushes inside it | CPU | vs 6000 ms |
+|---|---|---|---|---|
+| 120 s, never frozen — device stays awake, so uptime ≈ realtime | 300 s | 2.5 | ~5500 ms | under, survived |
+| 240 s, frozen | 480-840 s | 2.0-3.5 | 4400-7700 ms | over at the observed 3, killed twice |
+| 420 s, frozen | 480-840 s | 1.1-2.0 | 2500-4400 ms | under, survived |
+
+Keeping the process out of the freezer is also what keeps the device out of suspend, so the tightest
+cadence is safe for the same reason the widest one is: neither manages to compress three bursts into
+a single window.
+
+**One correction to the idle table further up.** It recorded the kills as being at `adj 905`, which
+reads as though the killer only reaches fully cached processes. It does not. The two kills in these
+cells name `adj 700` and `adj 900`, and AMS checks any process at `setProcState >= PROCESS_STATE_HOME`,
+which
+includes the previous-app slot. Handling a push promotes the process from 900 to 700 for about 135 s;
+that promotion does not buy it immunity.
+
+### What this means for the preload
+
+The budget is 6000 ms per 300 s of uptime and a push costs ~2.2 s, so the app can absorb **two pushes
+per uptime window**. The third is what killed it in both 240 s cells.
+
+Turning that into a cadence needs the suspend ratio, which is a property of the user's device and
+day rather than of the app. Two pushes per 840 s is **one push every seven minutes**, which is what
+420 s delivered: five consecutive pushes, no kill, and by the same bracket 2500-4400 ms against a
+6000 ms budget. 240 s killed in both attempts. Treat 420 s as the fastest cadence observed to be
+safe, and note the margin is thinner than the ratio 6000/2200 suggests — at the unfavourable end of
+the bracket, 420 s is already using 73% of the budget.
+
+A chat preload driven by message arrival will exceed that on any active conversation, which leaves
+two options, and the burst shape chooses between them. Coalescing server-side costs one burst per
+window whatever the message volume. Trimming the handler has 87% of its target inside the first two
+seconds, in the sync RPC fan-out, and almost nothing in the tail — so it is a fan-out problem, not a
+timer problem.
 
 ### What this does not establish
 
-The per-push number was not re-measured. `scripts/spike/measure-push-cpu.sh` is the instrument for
-it: the same `/proc` bracket used above, applied around each send, with a push-free window first for
-the idle term. It needs the device's FCM registration token, which `scripts/fcm.sh` takes as its
-first argument, and it has not been run.
+Bodies were on for all of it. Production sets `includeRpcBodies` false, so the real per-push cost is
+below 2.2 s by a margin nothing here measures. The `benchmark` variant would attribute it: it is
+`initWith(debug)` with `isDebuggable = false` and shares the `contributors` signing key, so it
+installs over the existing build and keeps the login. That run replaces the app on the test device
+and was not made.
 
-Two things that run would settle. The first is how much of 6.7 s is the RPC-body logging: the
-`benchmark` variant is `initWith(debug)` with `isDebuggable = false`, which turns `BuildConfig.DEBUG`
-off, and it shares the `contributors` signing key with `debug`, so it installs over the existing
-build and keeps the login and the stored flag value. Running the same cell on both variants
-attributes the difference. The second is whether the four fixes listed above move the number, since
-each of them targets work inside the first 7.7 s of a burst, which is where 95% of it is.
+The four fixes listed above are unmeasured against the new baseline. Each targets work inside the
+first seconds of a burst, which is still where the cost sits, but 2.2 s leaves less to reclaim than
+6.7 s did.
 
-Generality is unchanged from the rest of this document: one device, one OEM, one Android version.
-The idle measurement adds one caveat of its own — the phone was at `deep=INACTIVE`, not in Doze.
-Doze would only make idle cheaper, so the zero holds as a floor for the deeper states too.
+The first 240 s cell's kill charged 7190 ms where its four preceding windows sum to 8020. A window
+boundary falling inside a burst rather than between bursts would explain it, but that was not
+confirmed; only the repeat cell's charge lines up closely enough to stand as evidence by itself.
+
+The suspend ratio during a cadence was bracketed, not measured. The 480-840 s span comes from which
+cells lived and died, so it is only as tight as the two spacings tried; a cell between them would
+narrow it. The direct readings either side — 33.7% over a quiet window, 38.4% over the battery's
+lifetime — are both from periods that are not a push cadence.
+
+Generality is unchanged from the rest of this document: one device, one OEM, one Android version. The
+uptime ratio travels worst of all the numbers here, since it is set by how much a given phone
+suspends, which varies by device, by user, and by whatever else is installed.
