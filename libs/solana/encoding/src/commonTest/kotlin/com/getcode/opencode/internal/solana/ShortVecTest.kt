@@ -2,6 +2,8 @@ package com.getcode.opencode.internal.solana
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class ShortVecTest {
 
@@ -47,42 +49,42 @@ class ShortVecTest {
     @Test
     fun roundtripZero() {
         val encoded = ShortVec.encodeLen(0)
-        val (decoded, _) = ShortVec.decodeLen(encoded)
+        val (decoded, _) = ShortVec.decodeLen(encoded)!!
         assertEquals(0, decoded)
     }
 
     @Test
     fun roundtripSmall() {
         val encoded = ShortVec.encodeLen(42)
-        val (decoded, _) = ShortVec.decodeLen(encoded)
+        val (decoded, _) = ShortVec.decodeLen(encoded)!!
         assertEquals(42, decoded)
     }
 
     @Test
     fun roundtripBoundary127() {
         val encoded = ShortVec.encodeLen(127)
-        val (decoded, _) = ShortVec.decodeLen(encoded)
+        val (decoded, _) = ShortVec.decodeLen(encoded)!!
         assertEquals(127, decoded)
     }
 
     @Test
     fun roundtripBoundary128() {
         val encoded = ShortVec.encodeLen(128)
-        val (decoded, _) = ShortVec.decodeLen(encoded)
+        val (decoded, _) = ShortVec.decodeLen(encoded)!!
         assertEquals(128, decoded)
     }
 
     @Test
     fun roundtripBoundary16383() {
         val encoded = ShortVec.encodeLen(16383)
-        val (decoded, _) = ShortVec.decodeLen(encoded)
+        val (decoded, _) = ShortVec.decodeLen(encoded)!!
         assertEquals(16383, decoded)
     }
 
     @Test
     fun roundtripBoundary16384() {
         val encoded = ShortVec.encodeLen(16384)
-        val (decoded, _) = ShortVec.decodeLen(encoded)
+        val (decoded, _) = ShortVec.decodeLen(encoded)!!
         assertEquals(16384, decoded)
     }
 
@@ -91,9 +93,66 @@ class ShortVecTest {
         val encoded = ShortVec.encodeLen(5)
         val extra = listOf<Byte>(0xA, 0xB, 0xC)
         val input = encoded + extra
-        val (value, remaining) = ShortVec.decodeLen(input)
+        val (value, remaining) = ShortVec.decodeLen(input)!!
         assertEquals(5, value)
         assertEquals(extra, remaining)
+    }
+
+    @Test
+    fun roundtripLargeValueNearIntBoundary() {
+        // 5-byte-encoded values near Int.MAX_VALUE should still round-trip without going
+        // negative or being rejected by the new `MAX_LEN_BYTES` / sign guard.
+        val value = Int.MAX_VALUE / 2
+        val encoded = ShortVec.encodeLen(value)
+        val result = ShortVec.decodeLen(encoded)
+        assertNotNull(result)
+        assertEquals(value, result.first)
+    }
+
+    // --- decodeLen malformed-input regression tests ---
+    //
+    // These reproduce the crash this change fixes: `decodeLen` used to read `input[offset]` in
+    // an unbounded loop, throwing `IndexOutOfBoundsException` on empty input or a truncated
+    // ShortVec whose last byte still has its continuation bit set. On Kotlin/Native that
+    // exception is an uncaught, fatal trap across the Swift interop boundary rather than a
+    // catchable error, so the fix is to return `null` instead of throwing.
+
+    @Test
+    fun decodeLenEmptyInputReturnsNull() {
+        assertNull(ShortVec.decodeLen(emptyList()))
+    }
+
+    @Test
+    fun decodeLenLoneContinuationByteReturnsNull() {
+        // 0xFF has its continuation bit (0x80) set with no following byte to terminate the
+        // sequence — the exact one-byte input that used to walk off the end of the list.
+        assertNull(ShortVec.decodeLen(listOf(0xFF.toByte())))
+    }
+
+    @Test
+    fun decodeLenAllContinuationBytesUpToCapReturnsNull() {
+        // Five continuation-flagged bytes (MAX_LEN_BYTES worth) with none terminating the
+        // sequence — still too short to conclude, and also exercises the MAX_LEN_BYTES cap
+        // itself rather than merely running off the end of a short list.
+        val input = List(5) { 0xFF.toByte() }
+        assertNull(ShortVec.decodeLen(input))
+    }
+
+    @Test
+    fun decodeLenTruncatedMultiByteLengthReturnsNull() {
+        // First byte says "more bytes follow" (continuation bit set) but the input ends right
+        // there — a valid-looking length prefix that overruns the remaining bytes.
+        assertNull(ShortVec.decodeLen(listOf(0x80.toByte())))
+    }
+
+    @Test
+    fun decodeLenNegativeResultReturnsNull() {
+        // Five continuation-carrying bytes (0xFF, 0xFF, 0xFF, 0xFF, then a terminating 0x0F)
+        // OR together to 0xFFFFFFFF once each byte's 7 payload bits are shifted into place —
+        // all 32 bits set, i.e. -1 as a signed Int. `decodeLen` must reject this rather than
+        // silently hand a negative "length" to a caller that treats it as a count.
+        val input = listOf(0xFF, 0xFF, 0xFF, 0xFF, 0x0F).map { it.toByte() }
+        assertNull(ShortVec.decodeLen(input))
     }
 
     // --- encode / encodeList ---

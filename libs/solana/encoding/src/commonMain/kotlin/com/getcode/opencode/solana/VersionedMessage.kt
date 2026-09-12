@@ -3,6 +3,7 @@ package com.getcode.opencode.solana
 import com.getcode.opencode.internal.solana.ShortVec
 import com.getcode.opencode.internal.solana.model.MessageAddressLookupTable
 import com.getcode.utils.DataSlice.byteToUnsignedInt
+import com.getcode.utils.DataSlice.chunk
 import com.getcode.utils.DataSlice.consume
 import com.getcode.utils.DataSlice.prefix
 import com.getcode.utils.DataSlice.tail
@@ -68,21 +69,28 @@ data class VersionedMessageV0(
             if (version.first().byteToUnsignedInt() != (MessageVersion.v0.ordinal + messageVersionSerializationOffset)) {
                 return null
             }
-            // Decode Header (manually, without decompiling instructions)
+            // Decode Header (manually, without decompiling instructions). Guard the length
+            // explicitly: `MessageHeader.fromList` indexes data[0..2] with no bounds check of its
+            // own (it's a pre-existing non-nullable API, left as-is to avoid a public signature
+            // change), and `payload.consume` silently hands back an empty `consumed` list rather
+            // than throwing when `payload` is shorter than requested.
+            if (remainingPayload.size < MessageHeader.length) return null
             val (headerBytes, remainingPayload1) = remainingPayload.consume(MessageHeader.length)
             payload = remainingPayload1
             val header = MessageHeader.fromList(headerBytes)
 
             // Decode static account keys
-            val (accountCount, accountData) = ShortVec.decodeLen(payload)
+            val (accountCount, accountData) = ShortVec.decodeLen(payload) ?: return null
+            if (accountCount < 0 || accountCount > accountData.size / LENGTH_32) return null
 
-            val staticKeys = accountData.chunked(LENGTH_32).mapNotNull { chunk ->
-                runCatching { PublicKey(chunk) }.getOrNull()
-            }
+            val staticKeys = accountData.chunk(LENGTH_32, accountCount) { PublicKey(it) } ?: return null
 
             payload = accountData.tail(LENGTH_32 * accountCount)
 
-            // Decode recent blockhash
+            // Decode recent blockhash. `Hash`/`Key32` never validate the size of the bytes handed
+            // to them, so an under-length `payload` here would silently produce a corrupt hash
+            // rather than fail — guard the length up front instead.
+            if (payload.size < LENGTH_32) return null
             val (hashBytes, remainingPayload2) = payload.consume(LENGTH_32)
             payload = remainingPayload2
             val hash = runCatching { Hash(hashBytes) }.getOrNull()
@@ -91,7 +99,7 @@ data class VersionedMessageV0(
             }
 
             // Decode compiled instructions (without decompiling yet)
-            val (instructionCount, instructionsData) = ShortVec.decodeLen(payload)
+            val (instructionCount, instructionsData) = ShortVec.decodeLen(payload) ?: return null
 
             var remainingInstructionsData = instructionsData
             val compiledInstructions = mutableListOf<CompiledInstruction>()
@@ -109,7 +117,7 @@ data class VersionedMessageV0(
             payload = remainingInstructionsData
 
             // Decode Address Table Lookups
-            val (altCount, lookupData) = ShortVec.decodeLen(payload)
+            val (altCount, lookupData) = ShortVec.decodeLen(payload) ?: return null
             var remaining = lookupData
 
             val alts = mutableListOf<MessageAddressLookupTable>()
@@ -127,7 +135,7 @@ data class VersionedMessageV0(
                 }
 
                 // writable indexes
-                val (writableIndexLength, writableRemaining) = ShortVec.decodeLen(remaining)
+                val (writableIndexLength, writableRemaining) = ShortVec.decodeLen(remaining) ?: return null
                 remaining = writableRemaining
 
                 if (remaining.count() < writableIndexLength) {
@@ -138,7 +146,7 @@ data class VersionedMessageV0(
                 remaining = remaining.drop(writableIndexLength)
 
                 // readonly indexes
-                val (readonlyIndexLength, readonlyRemaining) = ShortVec.decodeLen(remaining)
+                val (readonlyIndexLength, readonlyRemaining) = ShortVec.decodeLen(remaining) ?: return null
                 remaining = readonlyRemaining
 
                 if (remaining.count() < readonlyIndexLength) {

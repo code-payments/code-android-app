@@ -118,15 +118,15 @@ data class CompiledInstruction(
             val index = indexConsumed.consumed.first()
             payload = indexConsumed.remaining
 
-            var (accountCount, accountData) = ShortVec.decodeLen(payload)
+            val (accountCount, accountData) = ShortVec.decodeLen(payload) ?: return null
             if (accountData.size < accountCount) return null
 
             val accountIndexesConsumed = accountData.consume(accountCount)
-            accountData = accountIndexesConsumed.remaining
+            val accountIndexesRemaining = accountIndexesConsumed.remaining
             val accountIndexes = accountIndexesConsumed.consumed
 
-            val (opaqueCount, opaqueData) = ShortVec.decodeLen(accountData)
-            if(opaqueData.size < opaqueCount) return null
+            val (opaqueCount, opaqueData) = ShortVec.decodeLen(accountIndexesRemaining) ?: return null
+            if (opaqueData.size < opaqueCount) return null
 
             return CompiledInstruction(
                 index,

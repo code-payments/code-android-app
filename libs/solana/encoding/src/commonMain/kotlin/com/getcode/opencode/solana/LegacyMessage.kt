@@ -47,13 +47,19 @@ data class LegacyMessage(
         fun newInstance(list: List<Byte>): LegacyMessage? {
             var payload: List<Byte> = list
 
-            // Decode `header`
+            // Decode `header`. Guard the length explicitly: `MessageHeader.fromList` indexes
+            // data[0..2] with no bounds check of its own (it's a pre-existing non-nullable API,
+            // left as-is to avoid a public signature change), and `payload.consume` silently
+            // hands back an empty `consumed` list rather than throwing when `payload` is shorter
+            // than requested.
+            if (payload.size < MessageHeader.length) return null
             val headerConsumed = payload.consume(MessageHeader.length)
             val header = MessageHeader.fromList(headerConsumed.consumed)
             payload = headerConsumed.remaining
 
             // Decode `accountKeys`
-            val (accountCount, accountData) = ShortVec.decodeLen(payload)
+            val (accountCount, accountData) = ShortVec.decodeLen(payload) ?: return null
+            if (accountCount < 0 || accountCount > accountData.size / com.getcode.solana.keys.LENGTH_32) return null
             val messageAccounts = accountData.chunk(com.getcode.solana.keys.LENGTH_32, accountCount) {
                 com.getcode.solana.keys.PublicKey(
                     it
@@ -63,14 +69,17 @@ data class LegacyMessage(
 
             payload = accountData.tail(com.getcode.solana.keys.LENGTH_32 * accountCount)
 
-            // Decode `recentBlockHash`
+            // Decode `recentBlockHash`. `Hash`/`Key32` never validate the size of the bytes handed
+            // to them, so an under-length `payload` here would silently produce a corrupt hash
+            // rather than fail — guard the length up front instead.
+            if (payload.size < com.getcode.solana.keys.LENGTH_32) return null
             val hashConsumed = payload.consume(com.getcode.solana.keys.LENGTH_32)
             val hash = com.getcode.solana.keys.Hash(hashConsumed.consumed)
 
             payload = hashConsumed.remaining
 
             // Decode `instructions`
-            var (instructionCount, remainingData) = ShortVec.decodeLen(payload)
+            var (instructionCount, remainingData) = ShortVec.decodeLen(payload) ?: return null
             val compiledInstructions = mutableListOf<CompiledInstruction>()
 
             for (i in 0 until instructionCount) {

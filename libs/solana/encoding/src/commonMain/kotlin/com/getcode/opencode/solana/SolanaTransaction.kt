@@ -76,9 +76,13 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
 
     companion object {
         fun fromList(list: List<Byte>): SolanaTransaction? {
-            val (signatureCount, payload) = ShortVec.decodeLen(list)
+            val (signatureCount, payload) = ShortVec.decodeLen(list) ?: return null
 
-            if (payload.size < signatureCount * LENGTH_64) {
+            // Bound-check via division rather than `signatureCount * LENGTH_64 > payload.size`:
+            // `signatureCount` comes straight from the wire and, on a 32-bit `Int`, a large value
+            // multiplied by LENGTH_64 can wrap around instead of overflowing into a value this
+            // check would reject.
+            if (signatureCount < 0 || signatureCount > payload.size / LENGTH_64) {
                 return null
             }
 
