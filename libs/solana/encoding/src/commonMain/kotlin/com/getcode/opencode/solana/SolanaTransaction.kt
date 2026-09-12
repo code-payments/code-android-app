@@ -273,9 +273,14 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
                 }
             }
 
-            // Compile instructions using the complete account list
+            // Compile instructions using the complete account list. `allAccounts` above is built
+            // from `staticAccountKeys` plus every address loaded from `sortedLuts`, both derived
+            // from the same `accounts` set assembled from these `instructions` earlier in this
+            // function, so every program/account an instruction references is always present in
+            // it — `compile` returning `null` here would mean that invariant was violated above.
             val compiledInstructions = instructions.map { instruction ->
                 instruction.compile(allAccounts)
+                    ?: error("instruction references an account missing from allAccounts")
             }
 
             // Create the V0 message

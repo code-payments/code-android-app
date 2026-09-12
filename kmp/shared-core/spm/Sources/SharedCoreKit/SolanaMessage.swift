@@ -134,9 +134,13 @@ public struct SharedSolanaInstruction: Equatable, Sendable {
         self.data = data
     }
 
-    public func compile(messageAccounts: [Data]) -> SharedSolanaCompiledInstruction {
+    /// Compiles this instruction against `messageAccounts` by replacing `program` and each
+    /// account's key with its index into `messageAccounts`. `nil` if `program` or any of
+    /// `accounts` is not present in `messageAccounts`.
+    public func compile(messageAccounts: [Data]) -> SharedSolanaCompiledInstruction? {
         let accounts = messageAccounts.map { KotlinPublicKey(bytes: $0.kotlinByteList) }
-        return SharedSolanaCompiledInstruction(kotlin.compile(messageAccounts: accounts))
+        guard let result = kotlin.compile(messageAccounts: accounts) else { return nil }
+        return SharedSolanaCompiledInstruction(result)
     }
 }
 
@@ -427,8 +431,17 @@ public enum SharedSolanaMessage: Equatable, Sendable {
     public var instructions: [SharedSolanaCompiledInstruction] {
         switch self {
         case .legacy(let message):
+            // `accounts` above is this message's own full account list, and `message.instructions`
+            // are this same message's instructions, so every program/account an instruction
+            // references is always present in `accounts` — `compile` returning `nil` here would
+            // mean this message's own invariant was violated elsewhere.
             let accounts = message.accounts.map(\.publicKey)
-            return message.instructions.map { $0.compile(messageAccounts: accounts) }
+            return message.instructions.map { instruction in
+                guard let compiled = instruction.compile(messageAccounts: accounts) else {
+                    fatalError("instruction references an account missing from this message")
+                }
+                return compiled
+            }
         case .versionedV0(let message):
             return message.instructions
         }

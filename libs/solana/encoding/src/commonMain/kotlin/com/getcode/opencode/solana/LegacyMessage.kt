@@ -33,7 +33,13 @@ data class LegacyMessage(
         val data = mutableListOf<Byte>()
 
         val accounts = accounts.map { it.publicKey }
-        val instructions = instructions.map { it.compile(accounts) }
+        // `accounts` above is this message's own full account list, built from the same
+        // `instructions` being compiled below (see `newInstance`), so every program/account an
+        // instruction references is always present in it — `compile` returning `null` here would
+        // mean this message's own invariant was violated elsewhere.
+        val instructions = instructions.map {
+            it.compile(accounts) ?: error("instruction references an account missing from this message")
+        }
 
         data.addAll(header.encode().toList())
         data.addAll(ShortVec.encodeList(accounts.map { it.bytes }))

@@ -14,10 +14,23 @@ data class Instruction(
     val accounts: List<AccountMeta>,
     val data: List<Byte>,
 ) {
-    fun compile(messageAccounts: List<PublicKey>): CompiledInstruction {
+    /**
+     * Compiles this instruction against [messageAccounts] by replacing [program] and each
+     * account's [PublicKey] with its index into [messageAccounts].
+     *
+     * @return the compiled instruction, or `null` if [program] or any [accounts] entry is not
+     *   present in [messageAccounts]. `indexOfFirst` returns `-1` on a miss, and `(-1).toByte()`
+     *   is `0xFF` — a structurally valid but wrong index — so a miss is reported as `null` instead
+     *   of silently compiling a corrupt instruction.
+     */
+    fun compile(messageAccounts: List<PublicKey>): CompiledInstruction? {
         val programIndex = messageAccounts.indexOfFirst { it == program }
+        if (programIndex < 0) return null
+
         val accountIndexes = accounts.map { account ->
-            messageAccounts.indexOfFirst { it == account.publicKey }.toByte()
+            val accountIndex = messageAccounts.indexOfFirst { it == account.publicKey }
+            if (accountIndex < 0) return null
+            accountIndex.toByte()
         }
 
         return CompiledInstruction(

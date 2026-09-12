@@ -99,6 +99,7 @@ class InstructionIntegrationTest {
         val messageAccounts = listOf(acc0, acc1, program)
         val compiled = instruction.compile(messageAccounts)
 
+        assertNotNull(compiled)
         assertEquals(2.toByte(), compiled.programIndex) // program at index 2
         assertEquals(listOf<Byte>(0, 1), compiled.accountIndexes) // acc0=0, acc1=1
 
@@ -116,6 +117,42 @@ class InstructionIntegrationTest {
         assertEquals(acc0, decompiled.accounts[0].publicKey)
         assertEquals(acc1, decompiled.accounts[1].publicKey)
         assertEquals(instruction.data, decompiled.data)
+    }
+
+    @Test
+    fun compileWithProgramMissingFromMessageAccountsReturnsNull() {
+        val program = publicKey(10)
+        val acc0 = publicKey(1)
+
+        val instruction = Instruction(
+            program = program,
+            accounts = listOf(AccountMeta.writable(acc0, signer = true)),
+            data = listOf(0x01),
+        )
+
+        // `program` is not present in `messageAccounts` — only its accounts are.
+        val messageAccounts = listOf(acc0)
+        assertNull(instruction.compile(messageAccounts))
+    }
+
+    @Test
+    fun compileWithAccountMissingFromMessageAccountsReturnsNull() {
+        val program = publicKey(10)
+        val acc0 = publicKey(1)
+        val acc1 = publicKey(2)
+
+        val instruction = Instruction(
+            program = program,
+            accounts = listOf(
+                AccountMeta.writable(acc0, signer = true),
+                AccountMeta.readonly(acc1),
+            ),
+            data = listOf(0x01),
+        )
+
+        // `acc1` is not present in `messageAccounts`.
+        val messageAccounts = listOf(program, acc0)
+        assertNull(instruction.compile(messageAccounts))
     }
 
     @Test

@@ -67,8 +67,14 @@ sealed interface Message {
 
     val instructions: List<CompiledInstruction>
         get() = when (this) {
+            // `accountKeys` above is this message's own full account list (see
+            // `LegacyMessage.newInstance`), built from the same `message.instructions` being
+            // compiled here, so every program/account an instruction references is always
+            // present in it — `compile` returning `null` here would mean this message's own
+            // invariant was violated elsewhere.
             is Legacy -> message.instructions.map { instruction ->
                 instruction.compile(accountKeys)
+                    ?: error("instruction references an account missing from this message")
             }
             is VersionedV0 -> message.instructions
         }
