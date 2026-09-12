@@ -279,7 +279,7 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
             // function — this call site never takes a caller-supplied account list at all, unlike
             // `LegacyMessage`'s public constructor (see `LegacyMessage.encode()`'s comment). The
             // exported `SharedSolanaTransaction.init(payer:recentBlockhash:addressLookupTables:
-            // instructions:)` (`kmp/shared-core/spm/.../SolanaTransaction.swift`) only ever forwards
+            // instructions:)` (`kmp/shared-core/flipcash-shared-core-spm/.../SolanaTransaction.swift`) only ever forwards
             // `instructions` into this function; it cannot inject an inconsistent `accounts`. So
             // every program/account an instruction references is always present in `allAccounts`,
             // and `compile` returning `null` here is unreachable regardless of what's exposed

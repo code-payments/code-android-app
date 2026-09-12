@@ -37,7 +37,7 @@ data class LegacyMessage(
         // module, only `newInstance` below calls the constructor, and it derives `accounts` from
         // these same `instructions`. Across the Kotlin/Native boundary, `LegacyMessage` is not
         // itself exported — the exported type is `SharedSolanaLegacyMessage`
-        // (`kmp/shared-core/spm/.../SolanaMessage.swift`), whose only public initializer validates
+        // (`kmp/shared-core/flipcash-shared-core-spm/.../SolanaMessage.swift`), whose only public initializer validates
         // that every instruction's accounts are present in `accounts` and returns `nil` otherwise.
         // So a `LegacyMessage` with an instruction referencing an account missing from `accounts`
         // cannot exist, and `compile` returning `null` here is unreachable.
