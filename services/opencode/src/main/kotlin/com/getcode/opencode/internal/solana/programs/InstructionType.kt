@@ -1,7 +1,7 @@
 package com.getcode.opencode.internal.solana.programs
 
-import com.getcode.opencode.internal.solana.utils.DataSlice
-import com.getcode.opencode.internal.solana.utils.DataSlice.consume
+import com.getcode.utils.DataSlice
+import com.getcode.utils.DataSlice.consume
 import com.getcode.opencode.solana.Instruction
 import com.getcode.solana.keys.PublicKey
 

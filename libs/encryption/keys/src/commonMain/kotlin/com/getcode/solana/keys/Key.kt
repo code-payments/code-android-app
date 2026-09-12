@@ -1,0 +1,96 @@
+package com.getcode.solana.keys
+
+import com.getcode.vendor.Base58
+
+abstract class KeyType(bytes: List<Byte>) {
+    abstract val size: Int
+    var bytes: List<Byte> = bytes
+        set(v) {
+            if (v.size == size) field = v
+        }
+
+    val byteArray = bytes.toByteArray()
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as KeyType
+
+        if (bytes != other.bytes) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return bytes.hashCode()
+    }
+
+}
+
+fun KeyType.base58(): String = Base58.encode(bytes.toByteArray())
+fun KeyType.base58Redacted(): String = base58().redact(visibleLength = 4)
+
+fun String.redact(visibleLength: Int = 4): String {
+    if (length <= visibleLength * 2) return this
+    return "${take(visibleLength)}…${takeLast(visibleLength)}"
+}
+
+class Key16(bytes: List<Byte>) : KeyType(bytes) {
+    override val size: Int get() = LENGTH_16
+}
+open class Key32(bytes: List<Byte>) : KeyType(bytes), Comparable<Key32> {
+
+    constructor(base58: String) : this(Base58.decode(base58).toList())
+
+    override val size: Int get() = LENGTH_32
+
+    companion object {
+        val kinMint = PublicKey(Base58.decode("kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6").toList())
+
+        val subsidizer = PublicKey(Base58.decode("codeHy87wGD5oMRLG75qKqsSi1vWE3oxNyYmXo5F9YR").toList())
+        val timeAuthority = PublicKey(Base58.decode("codeHy87wGD5oMRLG75qKqsSi1vWE3oxNyYmXo5F9YR").toList())
+        val splitter = PublicKey(Base58.decode("spLit2eb13Tz93if6aJM136nUWki5PVUsoEjcUjwpwW").toList())
+
+        val mock = PublicKey(Base58.decode("EBDRoayCDDUvDgCimta45ajQeXbexv7aKqJubruqpyvu").toList())
+
+        val zero = Key32(ByteArray(LENGTH_32).toList())
+
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Key32) return false
+        return size == other.size && bytes == other.bytes
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + size
+        return result
+    }
+
+    override fun compareTo(other: Key32): Int {
+        for (i in bytes.indices) {
+            val cmp = bytes[i].toUByte().compareTo(other.bytes[i].toUByte())
+            if (cmp != 0) return cmp
+        }
+        return 0
+    }
+}
+
+open class Key64(bytes: List<Byte>) : KeyType(bytes) {
+
+    constructor(base58: String): this (Base58.decode(base58).toList())
+
+    override val size: Int get() = LENGTH_64
+
+    companion object {
+
+    }
+}
+
+open class CurvePrivate
+
+const val LENGTH_16 = 16
+const val LENGTH_32 = 32
+const val LENGTH_64 = 64

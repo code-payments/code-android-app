@@ -11,6 +11,7 @@ import com.getcode.opencode.model.transactions.StatelessSwapRequest
 import com.getcode.opencode.model.transactions.StatelessSwapServerParameters
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.TransactionBuilder
+import com.getcode.opencode.solana.signatures
 import com.getcode.solana.keys.Signature
 
 internal class IntentStatelessSwap(

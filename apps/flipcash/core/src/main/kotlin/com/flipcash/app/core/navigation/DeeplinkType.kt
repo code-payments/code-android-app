@@ -6,7 +6,9 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.MintParceler
 import kotlinx.parcelize.Parcelize
+import kotlinx.parcelize.TypeParceler
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -16,7 +18,9 @@ sealed interface DeeplinkType: Parcelable {
     @Serializable data class Login(val entropy: String) : DeeplinkType
     @Serializable data class CashLink(val entropy: String = "") : DeeplinkType
 
-    @Serializable data class TokenInfo(val mint: Mint): DeeplinkType, Navigatable
+    @Serializable
+    @TypeParceler<Mint, MintParceler>()
+    data class TokenInfo(val mint: Mint): DeeplinkType, Navigatable
 
     @Serializable data class TipChat(val identifier: ChatIdentifier): DeeplinkType, Navigatable
 
