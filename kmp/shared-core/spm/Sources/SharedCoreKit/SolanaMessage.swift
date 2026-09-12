@@ -35,7 +35,7 @@ public struct SharedSolanaMessageHeader: Equatable, Sendable {
 }
 
 extension SharedSolanaMessageHeader {
-    init(_ header: SharedCore.MessageHeader) {
+    init(_ header: KotlinMessageHeader) {
         self.init(
             requiredSignatures: Int(header.requiredSignatures),
             readOnlySigners: Int(header.readOnlySigners),
@@ -43,8 +43,8 @@ extension SharedSolanaMessageHeader {
         )
     }
 
-    var kotlin: SharedCore.MessageHeader {
-        SharedCore.MessageHeader(
+    var kotlin: KotlinMessageHeader {
+        KotlinMessageHeader(
             requiredSignatures: Int32(requiredSignatures),
             readOnlySigners: Int32(readOnlySigners),
             readOnly: Int32(readOnly)
@@ -97,7 +97,7 @@ public struct SharedSolanaAccountMeta: Equatable, Sendable {
 }
 
 extension SharedSolanaAccountMeta {
-    init(_ meta: SharedCore.AccountMeta) {
+    init(_ meta: KotlinAccountMeta) {
         self.init(
             publicKey: Data(meta.publicKey.byteArray),
             isSigner: meta.isSigner,
@@ -107,9 +107,9 @@ extension SharedSolanaAccountMeta {
         )
     }
 
-    var kotlin: SharedCore.AccountMeta {
-        SharedCore.AccountMeta(
-            publicKey: SharedCore.PublicKey(bytes: publicKey.kotlinByteList),
+    var kotlin: KotlinAccountMeta {
+        KotlinAccountMeta(
+            publicKey: KotlinPublicKey(bytes: publicKey.kotlinByteList),
             isSigner: isSigner,
             isWritable: isWritable,
             isPayer: isPayer,
@@ -135,13 +135,13 @@ public struct SharedSolanaInstruction: Equatable, Sendable {
     }
 
     public func compile(messageAccounts: [Data]) -> SharedSolanaCompiledInstruction {
-        let accounts = messageAccounts.map { SharedCore.PublicKey(bytes: $0.kotlinByteList) }
+        let accounts = messageAccounts.map { KotlinPublicKey(bytes: $0.kotlinByteList) }
         return SharedSolanaCompiledInstruction(kotlin.compile(messageAccounts: accounts))
     }
 }
 
 extension SharedSolanaInstruction {
-    init(_ instruction: SharedCore.Instruction) {
+    init(_ instruction: KotlinInstruction) {
         self.init(
             program: Data(instruction.program.byteArray),
             accounts: instruction.accounts.map(SharedSolanaAccountMeta.init),
@@ -149,9 +149,9 @@ extension SharedSolanaInstruction {
         )
     }
 
-    var kotlin: SharedCore.Instruction {
-        SharedCore.Instruction(
-            program: SharedCore.PublicKey(bytes: program.kotlinByteList),
+    var kotlin: KotlinInstruction {
+        KotlinInstruction(
+            program: KotlinPublicKey(bytes: program.kotlinByteList),
             accounts: accounts.map { $0.kotlin },
             data: data.kotlinByteList
         )
@@ -175,7 +175,7 @@ public struct SharedSolanaCompiledInstruction: Equatable, Sendable {
     /// Parses a single wire-format compiled instruction — `programIndex(1) + shortVec(accountIndexes) +
     /// shortVec(data)` — with no enclosing message. `nil` if `data` is short or malformed.
     public init?(data: Data) {
-        guard let result = SharedCore.CompiledInstruction.companion.fromList(list: data.kotlinByteList) else { return nil }
+        guard let result = KotlinCompiledInstruction.companion.fromList(list: data.kotlinByteList) else { return nil }
         self.init(result)
     }
 
@@ -192,7 +192,7 @@ public struct SharedSolanaCompiledInstruction: Equatable, Sendable {
 }
 
 extension SharedSolanaCompiledInstruction {
-    init(_ instruction: SharedCore.CompiledInstruction) {
+    init(_ instruction: KotlinCompiledInstruction) {
         self.init(
             programIndex: UInt8(bitPattern: instruction.programIndex),
             accountIndexes: [UInt8](kotlinByteList: instruction.accountIndexes),
@@ -200,8 +200,8 @@ extension SharedSolanaCompiledInstruction {
         )
     }
 
-    var kotlin: SharedCore.CompiledInstruction {
-        SharedCore.CompiledInstruction(
+    var kotlin: KotlinCompiledInstruction {
+        KotlinCompiledInstruction(
             programIndex: Int8(bitPattern: programIndex),
             accountIndexes: accountIndexes.kotlinByteList,
             data: data.kotlinByteList
@@ -232,7 +232,7 @@ public struct SharedSolanaMessageAddressTableLookup: Equatable, Sendable {
 }
 
 extension SharedSolanaMessageAddressTableLookup {
-    init(_ lookup: SharedCore.MessageAddressLookupTable) {
+    init(_ lookup: KotlinMessageAddressLookupTable) {
         self.init(
             publicKey: Data(lookup.publicKey.byteArray),
             writableIndexes: [UInt8](kotlinByteList: lookup.writableIndexes),
@@ -240,9 +240,9 @@ extension SharedSolanaMessageAddressTableLookup {
         )
     }
 
-    var kotlin: SharedCore.MessageAddressLookupTable {
-        SharedCore.MessageAddressLookupTable(
-            publicKey: SharedCore.PublicKey(bytes: publicKey.kotlinByteList),
+    var kotlin: KotlinMessageAddressLookupTable {
+        KotlinMessageAddressLookupTable(
+            publicKey: KotlinPublicKey(bytes: publicKey.kotlinByteList),
             writableIndexes: writableIndexes.kotlinByteList,
             readonlyIndexes: readonlyIndexes.kotlinByteList
         )
@@ -265,10 +265,10 @@ public struct SharedSolanaAddressLookupTable: Equatable, Sendable {
 }
 
 extension SharedSolanaAddressLookupTable {
-    var kotlin: SharedCore.AddressLookupTable {
-        SharedCore.AddressLookupTable(
-            publicKey: SharedCore.PublicKey(bytes: publicKey.kotlinByteList),
-            addresses: addresses.map { SharedCore.PublicKey(bytes: $0.kotlinByteList) }
+    var kotlin: KotlinAddressLookupTable {
+        KotlinAddressLookupTable(
+            publicKey: KotlinPublicKey(bytes: publicKey.kotlinByteList),
+            addresses: addresses.map { KotlinPublicKey(bytes: $0.kotlinByteList) }
         )
     }
 }
@@ -294,7 +294,7 @@ public struct SharedSolanaLegacyMessage: Equatable, Sendable {
 }
 
 extension SharedSolanaLegacyMessage {
-    init(_ message: SharedCore.LegacyMessage) {
+    init(_ message: KotlinLegacyMessage) {
         self.init(
             header: SharedSolanaMessageHeader(message.header),
             accounts: message.accounts.map(SharedSolanaAccountMeta.init),
@@ -303,11 +303,11 @@ extension SharedSolanaLegacyMessage {
         )
     }
 
-    var kotlin: SharedCore.LegacyMessage {
-        SharedCore.LegacyMessage(
+    var kotlin: KotlinLegacyMessage {
+        KotlinLegacyMessage(
             header: header.kotlin,
             accounts: accounts.map { $0.kotlin },
-            recentBlockhash: SharedCore.Key32(bytes: recentBlockhash.kotlinByteList),
+            recentBlockhash: KotlinKey32(bytes: recentBlockhash.kotlinByteList),
             instructions: instructions.map { $0.kotlin }
         )
     }
@@ -342,7 +342,7 @@ public struct SharedSolanaVersionedMessageV0: Equatable, Sendable {
 }
 
 extension SharedSolanaVersionedMessageV0 {
-    init(_ message: SharedCore.VersionedMessageV0) {
+    init(_ message: KotlinVersionedMessageV0) {
         self.init(
             header: SharedSolanaMessageHeader(message.header),
             staticAccountKeys: message.staticAccountKeys.map { Data($0.byteArray) },
@@ -352,11 +352,11 @@ extension SharedSolanaVersionedMessageV0 {
         )
     }
 
-    var kotlin: SharedCore.VersionedMessageV0 {
-        SharedCore.VersionedMessageV0(
+    var kotlin: KotlinVersionedMessageV0 {
+        KotlinVersionedMessageV0(
             header: header.kotlin,
-            staticAccountKeys: staticAccountKeys.map { SharedCore.PublicKey(bytes: $0.kotlinByteList) },
-            recentBlockhash: SharedCore.Key32(bytes: recentBlockhash.kotlinByteList),
+            staticAccountKeys: staticAccountKeys.map { KotlinPublicKey(bytes: $0.kotlinByteList) },
+            recentBlockhash: KotlinKey32(bytes: recentBlockhash.kotlinByteList),
             instructions: instructions.map { $0.kotlin },
             addressLookupTables: addressLookupTables.map { $0.kotlin }
         )
@@ -452,11 +452,11 @@ public enum SharedSolanaMessage: Equatable, Sendable {
     /// Parses `data` as a message — legacy or v0, decided by the version-prefix byte. `nil` if
     /// `data` matches neither wire format.
     public init?(data: Data) {
-        guard let result = SharedCore.MessageCompanion.shared.doNewInstance(data: data.kotlinByteList) else { return nil }
+        guard let result = KotlinMessageCompanion.shared.doNewInstance(data: data.kotlinByteList) else { return nil }
         switch result {
-        case let legacy as SharedCore.MessageLegacy:
+        case let legacy as KotlinMessageLegacy:
             self = .legacy(SharedSolanaLegacyMessage(legacy.message))
-        case let v0 as SharedCore.MessageVersionedV0:
+        case let v0 as KotlinMessageVersionedV0:
             self = .versionedV0(SharedSolanaVersionedMessageV0(v0.message))
         default:
             return nil

@@ -32,19 +32,13 @@ public struct SharedSolanaTransaction: Equatable, Sendable {
     }
 
     /// Parses `data` as a full transaction (signatures + message). `nil` if `data` does not parse
-    /// as either message version, or its signature count doesn't match the message header.
-    ///
-    /// Guards `data.isEmpty` itself rather than forwarding it to Kotlin: `SolanaTransaction.fromList`
-    /// reads its leading ShortVec length byte with no bounds check
-    /// (`ShortVec.decodeLen`, `libs/solana/encoding/.../internal/solana/ShortVec.kt`), so an empty
-    /// list crashes the process (an uncaught `IndexOutOfBoundsException`, not a Swift `nil`) instead
-    /// of failing the way this initializer's signature promises. This one-line guard only covers the
-    /// fully-empty case; a truncated ShortVec whose last byte still has its continuation bit set
-    /// (e.g. a lone `0xFF`) hits the same unbounded read one byte later and is not guarded here — see
-    /// the facade's final report for why a complete fix belongs in `ShortVec.decodeLen`, not here.
+    /// as either message version, its signature count doesn't match the message header, or `data`
+    /// is empty or otherwise truncated — `SolanaTransaction.fromList` and the `ShortVec.decodeLen`
+    /// it's built on
+    /// (`libs/solana/encoding/.../internal/solana/ShortVec.kt`) return `null` for all of those
+    /// instead of throwing, so no guard is needed on the Swift side.
     public init?(data: Data) {
-        guard !data.isEmpty else { return nil }
-        guard let result = SharedCore.SolanaTransaction.companion.fromList(list: data.kotlinByteList) else { return nil }
+        guard let result = KotlinSolanaTransaction.companion.fromList(list: data.kotlinByteList) else { return nil }
         self.init(result)
     }
 
@@ -57,9 +51,9 @@ public struct SharedSolanaTransaction: Equatable, Sendable {
     }
 
     public init(payer: Data, recentBlockhash: Data?, instructions: [SharedSolanaInstruction]) {
-        let result = SharedCore.SolanaTransaction.companion.doNewInstance(
-            payer: SharedCore.PublicKey(bytes: payer.kotlinByteList),
-            recentBlockhash: recentBlockhash.map { SharedCore.Key32(bytes: $0.kotlinByteList) },
+        let result = KotlinSolanaTransaction.companion.doNewInstance(
+            payer: KotlinPublicKey(bytes: payer.kotlinByteList),
+            recentBlockhash: recentBlockhash.map { KotlinKey32(bytes: $0.kotlinByteList) },
             instructions: instructions.map { $0.kotlin }
         )
         self.init(result)
@@ -73,9 +67,9 @@ public struct SharedSolanaTransaction: Equatable, Sendable {
     }
 
     public init(payer: Data, recentBlockhash: Data?, addressLookupTables: [SharedSolanaAddressLookupTable], instructions: [SharedSolanaInstruction]) {
-        let result = SharedCore.SolanaTransaction.companion.doNewV0Instance(
-            payer: SharedCore.PublicKey(bytes: payer.kotlinByteList),
-            recentBlockhash: recentBlockhash.map { SharedCore.Key32(bytes: $0.kotlinByteList) },
+        let result = KotlinSolanaTransaction.companion.doNewV0Instance(
+            payer: KotlinPublicKey(bytes: payer.kotlinByteList),
+            recentBlockhash: recentBlockhash.map { KotlinKey32(bytes: $0.kotlinByteList) },
             addressLookupTables: addressLookupTables.map { $0.kotlin },
             instructions: instructions.map { $0.kotlin }
         )
@@ -84,15 +78,15 @@ public struct SharedSolanaTransaction: Equatable, Sendable {
 }
 
 extension SharedSolanaTransaction {
-    init(_ transaction: SharedCore.SolanaTransaction) {
+    init(_ transaction: KotlinSolanaTransaction) {
         let message: SharedSolanaMessage
         switch transaction.message {
-        case let legacy as SharedCore.MessageLegacy:
+        case let legacy as KotlinMessageLegacy:
             message = .legacy(SharedSolanaLegacyMessage(legacy.message))
-        case let v0 as SharedCore.MessageVersionedV0:
+        case let v0 as KotlinMessageVersionedV0:
             message = .versionedV0(SharedSolanaVersionedMessageV0(v0.message))
         default:
-            preconditionFailure("SharedCore.Message has only Legacy and VersionedV0 cases")
+            preconditionFailure("KotlinMessage has only Legacy and VersionedV0 cases")
         }
         self.init(
             message: message,
@@ -100,17 +94,17 @@ extension SharedSolanaTransaction {
         )
     }
 
-    var kotlin: SharedCore.SolanaTransaction {
-        let kotlinMessage: SharedCore.Message
+    var kotlin: KotlinSolanaTransaction {
+        let kotlinMessage: KotlinMessage
         switch message {
         case .legacy(let m):
-            kotlinMessage = SharedCore.MessageLegacy(message: m.kotlin)
+            kotlinMessage = KotlinMessageLegacy(message: m.kotlin)
         case .versionedV0(let m):
-            kotlinMessage = SharedCore.MessageVersionedV0(message: m.kotlin)
+            kotlinMessage = KotlinMessageVersionedV0(message: m.kotlin)
         }
-        return SharedCore.SolanaTransaction(
+        return KotlinSolanaTransaction(
             message: kotlinMessage,
-            signatures: signatures.map { SharedCore.Signature(bytes: $0.kotlinByteList) }
+            signatures: signatures.map { KotlinSignature(bytes: $0.kotlinByteList) }
         )
     }
 }
