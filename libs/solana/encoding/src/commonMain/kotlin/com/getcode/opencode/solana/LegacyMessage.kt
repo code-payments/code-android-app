@@ -33,10 +33,14 @@ data class LegacyMessage(
         val data = mutableListOf<Byte>()
 
         val accounts = accounts.map { it.publicKey }
-        // `accounts` above is this message's own full account list, built from the same
-        // `instructions` being compiled below (see `newInstance`), so every program/account an
-        // instruction references is always present in it — `compile` returning `null` here would
-        // mean this message's own invariant was violated elsewhere.
+        // Every caller that can construct a `LegacyMessage` builds this invariant in: within this
+        // module, only `newInstance` below calls the constructor, and it derives `accounts` from
+        // these same `instructions`. Across the Kotlin/Native boundary, `LegacyMessage` is not
+        // itself exported — the exported type is `SharedSolanaLegacyMessage`
+        // (`kmp/shared-core/spm/.../SolanaMessage.swift`), whose only public initializer validates
+        // that every instruction's accounts are present in `accounts` and returns `nil` otherwise.
+        // So a `LegacyMessage` with an instruction referencing an account missing from `accounts`
+        // cannot exist, and `compile` returning `null` here is unreachable.
         val instructions = instructions.map {
             it.compile(accounts) ?: error("instruction references an account missing from this message")
         }

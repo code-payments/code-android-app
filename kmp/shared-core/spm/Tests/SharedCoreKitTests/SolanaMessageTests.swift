@@ -173,4 +173,71 @@ struct SolanaMessageTests {
         #expect(SharedSolanaTransaction(data: Data()) == nil)
         #expect(SharedSolanaTransaction(data: Data([0x00])) == nil)
     }
+
+    // MARK: - SharedSolanaLegacyMessage construction validation
+    //
+    // Regression coverage for the caller-constructible hole behind the `SharedSolanaLegacyMessage`
+    // trap: nothing enforced that an instruction's `program`/accounts were present in `accounts`,
+    // so a caller-built message with a dangling account reference would trap uncatchably inside
+    // `encode()` (via `LegacyMessage.encode()`'s `error(...)`) once it crossed into Kotlin. These
+    // vectors are the ones a `.legacy` message reaches that trap through — `encode()` and
+    // `SharedSolanaMessage.instructions` (see `SolanaMessage.swift`) — so a validating initializer
+    // that returns `nil` here is what keeps the facade from ever handing Kotlin an inconsistent
+    // value in the first place.
+
+    @Test("SharedSolanaLegacyMessage(header:accounts:recentBlockhash:instructions:) rejects an instruction account missing from accounts")
+    func rejectsInstructionAccountMissingFromAccounts() {
+        let k1 = Data(repeating: 1, count: 32)
+        let k2 = Data(repeating: 2, count: 32)
+        let missing = Data(repeating: 9, count: 32)  // not in accounts
+
+        let message = SharedSolanaLegacyMessage(
+            header: SharedSolanaMessageHeader(requiredSignatures: 1, readOnlySigners: 0, readOnly: 1),
+            accounts: [.payer(publicKey: k1), .program(publicKey: k2)],
+            recentBlockhash: Data(repeating: 99, count: 32),
+            instructions: [
+                SharedSolanaInstruction(program: k2, accounts: [.readonly(publicKey: missing)], data: Data([7]))
+            ]
+        )
+
+        #expect(message == nil)
+    }
+
+    @Test("SharedSolanaLegacyMessage(header:accounts:recentBlockhash:instructions:) rejects an instruction program missing from accounts")
+    func rejectsInstructionProgramMissingFromAccounts() {
+        let k1 = Data(repeating: 1, count: 32)
+        let k2 = Data(repeating: 2, count: 32)
+        let missingProgram = Data(repeating: 9, count: 32)  // not in accounts
+
+        let message = SharedSolanaLegacyMessage(
+            header: SharedSolanaMessageHeader(requiredSignatures: 1, readOnlySigners: 0, readOnly: 1),
+            accounts: [.payer(publicKey: k1), .program(publicKey: k2)],
+            recentBlockhash: Data(repeating: 99, count: 32),
+            instructions: [
+                SharedSolanaInstruction(program: missingProgram, accounts: [.readonly(publicKey: k2)], data: Data([7]))
+            ]
+        )
+
+        #expect(message == nil)
+    }
+
+    @Test("SharedSolanaLegacyMessage(header:accounts:recentBlockhash:instructions:) constructs and encodes when every reference resolves")
+    func constructsAndEncodesWhenEveryReferenceResolves() throws {
+        let k1 = Data(repeating: 1, count: 32)
+        let k2 = Data(repeating: 2, count: 32)
+
+        let message = try #require(SharedSolanaLegacyMessage(
+            header: SharedSolanaMessageHeader(requiredSignatures: 1, readOnlySigners: 0, readOnly: 1),
+            accounts: [.payer(publicKey: k1), .program(publicKey: k2)],
+            recentBlockhash: Data(repeating: 99, count: 32),
+            instructions: [
+                SharedSolanaInstruction(program: k2, accounts: [.readonly(publicKey: k1)], data: Data([7]))
+            ]
+        ))
+
+        // Reachable now that construction succeeded: neither of these traps.
+        let encoded = message.encode()
+        #expect(!encoded.isEmpty)
+        #expect(SharedSolanaMessage.legacy(message).instructions.count == 1)
+    }
 }

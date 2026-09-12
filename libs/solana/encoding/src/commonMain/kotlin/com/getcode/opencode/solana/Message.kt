@@ -67,11 +67,12 @@ sealed interface Message {
 
     val instructions: List<CompiledInstruction>
         get() = when (this) {
-            // `accountKeys` above is this message's own full account list (see
-            // `LegacyMessage.newInstance`), built from the same `message.instructions` being
-            // compiled here, so every program/account an instruction references is always
-            // present in it — `compile` returning `null` here would mean this message's own
-            // invariant was violated elsewhere.
+            // Same unreachability argument as `LegacyMessage.encode()` (see its comment):
+            // `accountKeys` is `message`'s own account list, and within this module only
+            // `LegacyMessage.newInstance` constructs a `LegacyMessage`, deriving `accounts` from
+            // the same instructions compiled here. Across the Kotlin/Native boundary, the exported
+            // `SharedSolanaLegacyMessage`'s only public initializer validates this and returns
+            // `nil` otherwise — so `compile` returning `null` here is unreachable.
             is Legacy -> message.instructions.map { instruction ->
                 instruction.compile(accountKeys)
                     ?: error("instruction references an account missing from this message")

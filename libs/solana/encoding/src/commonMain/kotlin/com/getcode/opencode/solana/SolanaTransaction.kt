@@ -276,8 +276,14 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
             // Compile instructions using the complete account list. `allAccounts` above is built
             // from `staticAccountKeys` plus every address loaded from `sortedLuts`, both derived
             // from the same `accounts` set assembled from these `instructions` earlier in this
-            // function, so every program/account an instruction references is always present in
-            // it — `compile` returning `null` here would mean that invariant was violated above.
+            // function — this call site never takes a caller-supplied account list at all, unlike
+            // `LegacyMessage`'s public constructor (see `LegacyMessage.encode()`'s comment). The
+            // exported `SharedSolanaTransaction.init(payer:recentBlockhash:addressLookupTables:
+            // instructions:)` (`kmp/shared-core/spm/.../SolanaTransaction.swift`) only ever forwards
+            // `instructions` into this function; it cannot inject an inconsistent `accounts`. So
+            // every program/account an instruction references is always present in `allAccounts`,
+            // and `compile` returning `null` here is unreachable regardless of what's exposed
+            // across the Kotlin/Native boundary.
             val compiledInstructions = instructions.map { instruction ->
                 instruction.compile(allAccounts)
                     ?: error("instruction references an account missing from allAccounts")

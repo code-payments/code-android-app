@@ -285,7 +285,28 @@ public struct SharedSolanaLegacyMessage: Equatable, Sendable {
     public var recentBlockhash: Data
     public var instructions: [SharedSolanaInstruction]
 
-    public init(header: SharedSolanaMessageHeader, accounts: [SharedSolanaAccountMeta], recentBlockhash: Data, instructions: [SharedSolanaInstruction]) {
+    /// Fails if any instruction's `program`, or any of its accounts' `publicKey`, is absent from
+    /// `accounts`. That's the one caller-constructible hole behind the `error(...)` traps in
+    /// Kotlin's `LegacyMessage.encode()` (`LegacyMessage.kt`) and `Message.instructions`
+    /// (`Message.kt`): both assume every instruction only references accounts already in the
+    /// message's own account list, which `newInstance`-built messages guarantee but a
+    /// caller-supplied `accounts`/`instructions` pair does not. Validating here — the only public,
+    /// caller-reachable constructor for this type — makes that assumption actually hold for every
+    /// value this facade can produce, so `encode()` and `SharedSolanaMessage.instructions` below
+    /// can stay total instead of trapping.
+    ///
+    /// Decoded messages skip this check via `init(_ message: KotlinLegacyMessage)` below: Kotlin's
+    /// own `LegacyMessage.newInstance` already guarantees the invariant there, so re-validating on
+    /// every decode would be redundant work with no way to ever fail.
+    public init?(header: SharedSolanaMessageHeader, accounts: [SharedSolanaAccountMeta], recentBlockhash: Data, instructions: [SharedSolanaInstruction]) {
+        let accountKeys = Set(accounts.map(\.publicKey))
+        for instruction in instructions {
+            guard accountKeys.contains(instruction.program) else { return nil }
+            for account in instruction.accounts {
+                guard accountKeys.contains(account.publicKey) else { return nil }
+            }
+        }
+
         self.header = header
         self.accounts = accounts
         self.recentBlockhash = recentBlockhash
@@ -298,13 +319,16 @@ public struct SharedSolanaLegacyMessage: Equatable, Sendable {
 }
 
 extension SharedSolanaLegacyMessage {
+    // Assigns stored properties directly rather than delegating to the public, validating
+    // `init?(header:accounts:recentBlockhash:instructions:)`: that initializer is failable, and a
+    // non-failable initializer cannot delegate to one written `init?`. Delegating is unnecessary
+    // here anyway — Kotlin's own `LegacyMessage.newInstance` already guarantees this invariant for
+    // any `KotlinLegacyMessage` that exists, so this path has no validation to perform.
     init(_ message: KotlinLegacyMessage) {
-        self.init(
-            header: SharedSolanaMessageHeader(message.header),
-            accounts: message.accounts.map(SharedSolanaAccountMeta.init),
-            recentBlockhash: Data(message.recentBlockhash.byteArray),
-            instructions: message.instructions.map(SharedSolanaInstruction.init)
-        )
+        self.header = SharedSolanaMessageHeader(message.header)
+        self.accounts = message.accounts.map(SharedSolanaAccountMeta.init)
+        self.recentBlockhash = Data(message.recentBlockhash.byteArray)
+        self.instructions = message.instructions.map(SharedSolanaInstruction.init)
     }
 
     var kotlin: KotlinLegacyMessage {
@@ -433,14 +457,15 @@ public enum SharedSolanaMessage: Equatable, Sendable {
         case .legacy(let message):
             // `accounts` above is this message's own full account list, and `message.instructions`
             // are this same message's instructions, so every program/account an instruction
-            // references is always present in `accounts` — `compile` returning `nil` here would
-            // mean this message's own invariant was violated elsewhere.
+            // references is always present in `accounts` — `SharedSolanaLegacyMessage`'s only
+            // public constructor (`init?(header:accounts:recentBlockhash:instructions:)`) rejects
+            // any value where that would not hold, and the internal `init(_ message:
+            // KotlinLegacyMessage)` only wraps values Kotlin's own `LegacyMessage.newInstance`
+            // already built consistently. So `compile` returning `nil` here is unreachable; force-
+            // unwrap rather than thread an `Optional` through a getter that can never actually fail.
             let accounts = message.accounts.map(\.publicKey)
             return message.instructions.map { instruction in
-                guard let compiled = instruction.compile(messageAccounts: accounts) else {
-                    fatalError("instruction references an account missing from this message")
-                }
-                return compiled
+                instruction.compile(messageAccounts: accounts)!
             }
         case .versionedV0(let message):
             return message.instructions
