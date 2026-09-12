@@ -280,10 +280,10 @@ extension SharedSolanaAddressLookupTable {
 // MARK: - Legacy message
 
 public struct SharedSolanaLegacyMessage: Equatable, Sendable {
-    public var header: SharedSolanaMessageHeader
-    public var accounts: [SharedSolanaAccountMeta]
-    public var recentBlockhash: Data
-    public var instructions: [SharedSolanaInstruction]
+    public let header: SharedSolanaMessageHeader
+    public let accounts: [SharedSolanaAccountMeta]
+    public let recentBlockhash: Data
+    public let instructions: [SharedSolanaInstruction]
 
     /// Fails if any instruction's `program`, or any of its accounts' `publicKey`, is absent from
     /// `accounts`. That's the one caller-constructible hole behind the `error(...)` traps in
@@ -294,6 +294,12 @@ public struct SharedSolanaLegacyMessage: Equatable, Sendable {
     /// caller-reachable constructor for this type — makes that assumption actually hold for every
     /// value this facade can produce, so `encode()` and `SharedSolanaMessage.instructions` below
     /// can stay total instead of trapping.
+    ///
+    /// The four stored properties are `let`: validating only at construction is not enough on its
+    /// own — a `var` property let a caller pull a value back out, mutate `instructions` (or
+    /// `accounts`) directly, and reintroduce exactly the dangling reference this initializer
+    /// rejects, without going through it again. Immutability makes the invariant hold for the
+    /// value's entire lifetime, not just the instant after `init?` returns.
     ///
     /// Decoded messages skip this check via `init(_ message: KotlinLegacyMessage)` below: Kotlin's
     /// own `LegacyMessage.newInstance` already guarantees the invariant there, so re-validating on
@@ -321,14 +327,24 @@ public struct SharedSolanaLegacyMessage: Equatable, Sendable {
 extension SharedSolanaLegacyMessage {
     // Assigns stored properties directly rather than delegating to the public, validating
     // `init?(header:accounts:recentBlockhash:instructions:)`: that initializer is failable, and a
-    // non-failable initializer cannot delegate to one written `init?`. Delegating is unnecessary
-    // here anyway — Kotlin's own `LegacyMessage.newInstance` already guarantees this invariant for
-    // any `KotlinLegacyMessage` that exists, so this path has no validation to perform.
+    // non-failable initializer cannot delegate to one written `init?`. Only for use where the
+    // invariant can be shown to hold without re-running the check: from a `KotlinLegacyMessage`
+    // (Kotlin's own `LegacyMessage.newInstance` already guarantees it) or when replacing
+    // `recentBlockhash` (`withRecentBlockhash` below), which the invariant doesn't depend on.
+    private init(uncheckedHeader header: SharedSolanaMessageHeader, accounts: [SharedSolanaAccountMeta], recentBlockhash: Data, instructions: [SharedSolanaInstruction]) {
+        self.header = header
+        self.accounts = accounts
+        self.recentBlockhash = recentBlockhash
+        self.instructions = instructions
+    }
+
     init(_ message: KotlinLegacyMessage) {
-        self.header = SharedSolanaMessageHeader(message.header)
-        self.accounts = message.accounts.map(SharedSolanaAccountMeta.init)
-        self.recentBlockhash = Data(message.recentBlockhash.byteArray)
-        self.instructions = message.instructions.map(SharedSolanaInstruction.init)
+        self.init(
+            uncheckedHeader: SharedSolanaMessageHeader(message.header),
+            accounts: message.accounts.map(SharedSolanaAccountMeta.init),
+            recentBlockhash: Data(message.recentBlockhash.byteArray),
+            instructions: message.instructions.map(SharedSolanaInstruction.init)
+        )
     }
 
     var kotlin: KotlinLegacyMessage {
@@ -338,6 +354,16 @@ extension SharedSolanaLegacyMessage {
             recentBlockhash: KotlinKey32(bytes: recentBlockhash.kotlinByteList),
             instructions: instructions.map { $0.kotlin }
         )
+    }
+
+    /// Returns a copy with `recentBlockhash` replaced, used by `SharedSolanaMessage.recentBlockhash`'s
+    /// setter below now that `accounts`/`instructions` are `let` and can no longer be mutated in
+    /// place. Goes through the unchecked initializer above rather than the validating one: that
+    /// check only relates `accounts` to `instructions`, neither of which changes here, so `self`
+    /// being valid already (the only way a `SharedSolanaLegacyMessage` can exist) guarantees the
+    /// copy is too — no `Optional` to force-unwrap.
+    func withRecentBlockhash(_ recentBlockhash: Data) -> SharedSolanaLegacyMessage {
+        SharedSolanaLegacyMessage(uncheckedHeader: header, accounts: accounts, recentBlockhash: recentBlockhash, instructions: instructions)
     }
 }
 
@@ -439,9 +465,8 @@ public enum SharedSolanaMessage: Equatable, Sendable {
         }
         set {
             switch self {
-            case .legacy(var message):
-                message.recentBlockhash = newValue
-                self = .legacy(message)
+            case .legacy(let message):
+                self = .legacy(message.withRecentBlockhash(newValue))
             case .versionedV0(var message):
                 message.recentBlockhash = newValue
                 self = .versionedV0(message)
@@ -457,12 +482,16 @@ public enum SharedSolanaMessage: Equatable, Sendable {
         case .legacy(let message):
             // `accounts` above is this message's own full account list, and `message.instructions`
             // are this same message's instructions, so every program/account an instruction
-            // references is always present in `accounts` — `SharedSolanaLegacyMessage`'s only
-            // public constructor (`init?(header:accounts:recentBlockhash:instructions:)`) rejects
-            // any value where that would not hold, and the internal `init(_ message:
-            // KotlinLegacyMessage)` only wraps values Kotlin's own `LegacyMessage.newInstance`
-            // already built consistently. So `compile` returning `nil` here is unreachable; force-
-            // unwrap rather than thread an `Optional` through a getter that can never actually fail.
+            // references is always present in `accounts`. This holds for the lifetime of `message`,
+            // not just at the moment it was built: `SharedSolanaLegacyMessage`'s four stored
+            // properties are `let`, so nothing after construction can change `accounts` or
+            // `instructions` independently of one another and reopen the gap between them.
+            // Construction itself only ever reaches a consistent pairing — the public
+            // `init?(header:accounts:recentBlockhash:instructions:)` rejects any value where it
+            // would not hold, and the internal `init(_ message: KotlinLegacyMessage)` only wraps
+            // values Kotlin's own `LegacyMessage.newInstance` already built consistently. So
+            // `compile` returning `nil` here is unreachable; force-unwrap rather than thread an
+            // `Optional` through a getter that can never actually fail.
             let accounts = message.accounts.map(\.publicKey)
             return message.instructions.map { instruction in
                 instruction.compile(messageAccounts: accounts)!
