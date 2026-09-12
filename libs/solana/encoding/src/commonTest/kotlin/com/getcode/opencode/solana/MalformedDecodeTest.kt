@@ -192,4 +192,95 @@ class MalformedDecodeTest {
         val bytes = listOf(0.toByte(), 1.toByte(), 0.toByte(), 5.toByte(), 0xAA.toByte(), 0xBB.toByte())
         assertNull(CompiledInstruction.fromList(bytes))
     }
+
+    // --- CompiledInstruction.decompile / LegacyMessage.newInstance: out-of-range indexes ---
+    //
+    // `decompile` validated the *count* of `accountIndexes` against `accounts.size` and then
+    // indexed with `programIndex`/`accountIndexes` unchecked. Both are `u8` on the wire but were
+    // read as signed `Byte`s: a wire byte of 0xFF decodes to -1, and `LegacyMessage.newInstance`'s
+    // own guard (`instruction.programIndex >= messageAccounts.size`) is also a signed comparison
+    // that -1 passes, so `accounts[-1]` throws `IndexOutOfBoundsException` — a fatal,
+    // uncatchable trap across the Kotlin/Native boundary, not a Swift-catchable error. A
+    // positive index simply past the end of `accounts` throws the same way, since the count
+    // check alone says nothing about any individual index's range.
+
+    private fun twoAccountLegacyMessageEncoded(): Pair<LegacyMessage, List<Byte>> {
+        val accounts = listOf(
+            AccountMeta.payer(publicKey(1)),
+            AccountMeta.program(publicKey(2)),
+        )
+        val instruction = Instruction(
+            program = publicKey(2),
+            accounts = listOf(AccountMeta.writable(publicKey(1))),
+            data = listOf(0x01),
+        )
+        val message = LegacyMessage.newInstance(
+            accounts = accounts,
+            recentBlockhash = hash(9),
+            instructions = listOf(instruction),
+        )
+        return message to message.encode().toList()
+    }
+
+    /** Byte offset of the (single) instruction's `programIndex` within [encoded]. */
+    private fun programIndexOffset(message: LegacyMessage, encoded: List<Byte>): Int {
+        val accountCount = message.accounts.size
+        val accountsSectionLen = ShortVec.encodeLen(accountCount).size + accountCount * LENGTH_32
+        val accountsEnd = MessageHeader.length + accountsSectionLen
+        val hashEnd = accountsEnd + LENGTH_32
+        val instructionCount = message.instructions.size
+        return hashEnd + ShortVec.encodeLen(instructionCount).size
+    }
+
+    @Test
+    fun legacyMessageNewInstanceNegativeWhenSignedProgramIndexReturnsNull() {
+        val (message, encoded) = twoAccountLegacyMessageEncoded()
+        assertNotNull(LegacyMessage.newInstance(encoded))
+
+        val corrupted = encoded.toMutableList()
+        // 0xFF read as a signed Byte is -1, which used to pass the `>= messageAccounts.size`
+        // guard and then crash indexing `accounts[-1]`.
+        corrupted[programIndexOffset(message, encoded)] = 0xFF.toByte()
+
+        assertNull(LegacyMessage.newInstance(corrupted))
+    }
+
+    @Test
+    fun compiledInstructionDecompilePositiveOutOfRangeProgramIndexReturnsNull() {
+        // Unit-tests `decompile` directly rather than through `LegacyMessage.newInstance`: a
+        // small positive out-of-range `programIndex` (2, with only 2 accounts) is still caught by
+        // `LegacyMessage.newInstance`'s own `programIndex >= messageAccounts.size` guard even
+        // before the fix, since that comparison is only wrong for values that go negative when
+        // read as a signed `Byte` (128-255). `decompile`'s own count check
+        // (`accounts.size < accountIndexes.size + 1`) never looks at `programIndex`'s value at
+        // all, so calling it directly is what actually exercises the bug for this case.
+        val accounts = listOf(
+            AccountMeta.payer(publicKey(1)),
+            AccountMeta.program(publicKey(2)),
+        )
+        val compiled = CompiledInstruction(
+            programIndex = accounts.size.toByte(), // 2 is past the end of a 2-account list
+            accountIndexes = listOf(0),
+            data = listOf(0x01),
+        )
+
+        assertNull(compiled.decompile(accounts))
+    }
+
+    @Test
+    fun legacyMessageNewInstanceOutOfRangeAccountIndexReturnsNull() {
+        val (message, encoded) = twoAccountLegacyMessageEncoded()
+        assertNotNull(LegacyMessage.newInstance(encoded))
+
+        val instruction = message.instructions.single()
+        val accountIndexCountLen = ShortVec.encodeLen(instruction.accounts.size).size
+        val accountIndexOffset = programIndexOffset(message, encoded) + 1 + accountIndexCountLen
+
+        val corrupted = encoded.toMutableList()
+        // 5 is well past the end of the 2-account message; the pre-fix count check
+        // (`accounts.size < accountIndexes.size + 1`) never looks at the index's actual value.
+        corrupted[accountIndexOffset] = 5.toByte()
+
+        assertNull(LegacyMessage.newInstance(corrupted))
+    }
 }

@@ -95,10 +95,12 @@ data class LegacyMessage(
             for (i in 0 until instructionCount) {
                 val instruction = CompiledInstruction.fromList(remainingData) ?: return null
 
-                if (instruction.programIndex >= messageAccounts.size) {
-                    return null
-                }
-
+                // `programIndex` is dropped here rather than range-checked: it's a signed `Byte`,
+                // so a wire byte of 0xFF (out of range as an unsigned index) reads as -1 and
+                // would pass a signed `>= messageAccounts.size` comparison anyway. The unsigned,
+                // full-range check now lives in `CompiledInstruction.decompile` below, which
+                // rejects both `programIndex` and every `accountIndexes` entry that's out of
+                // range for `metaAccounts` — a signed check here would only contradict it.
                 remainingData = remainingData.tail(instruction.byteLength)
                 compiledInstructions.add(instruction)
             }

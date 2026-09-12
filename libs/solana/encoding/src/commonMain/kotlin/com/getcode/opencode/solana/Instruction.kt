@@ -109,8 +109,22 @@ data class CompiledInstruction(
             return null
         }
 
-        val program = accounts[programIndex.toInt()].publicKey
-        val accountsD = accountIndexes.map { accounts[it.toInt()] }
+        // Both `programIndex` and each `accountIndexes` entry are `u8` on the wire and must be
+        // read unsigned (`and 0xFF`) before indexing: `Byte` is signed, so a wire byte of 0xFF
+        // decodes to -1, and the size check above only bounds the *count* of `accountIndexes`,
+        // not any individual index's value — a positive index past the end of `accounts` is just
+        // as unchecked. Range-check every index against `accounts.size` instead of indexing
+        // unchecked, so malformed input returns `null` here rather than throwing.
+        val programIdx = programIndex.toInt() and 0xFF
+        if (programIdx >= accounts.size) return null
+
+        val accountsD = accountIndexes.map { index ->
+            val accountIdx = index.toInt() and 0xFF
+            if (accountIdx >= accounts.size) return null
+            accounts[accountIdx]
+        }
+
+        val program = accounts[programIdx].publicKey
 
         return Instruction(
             program = program,
