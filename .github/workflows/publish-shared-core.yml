@@ -87,7 +87,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf spm-repo/Sources spm-repo/Tests
-          cp -R kmp/shared-core/flipcash-shared-core-spm/Package.swift kmp/shared-core/flipcash-shared-core-spm/Sources kmp/shared-core/flipcash-shared-core-spm/Tests spm-repo/
+          cp -R kmp/shared-core/spm/Package.swift kmp/shared-core/spm/Sources kmp/shared-core/spm/Tests spm-repo/
 
       - name: Build the XCFramework, upload it, and update Package.swift
         env:

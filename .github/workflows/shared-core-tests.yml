@@ -1,6 +1,6 @@
 name: SharedCore tests
 
-# The Swift facade in `kmp/shared-core/flipcash-shared-core-spm` and the Kotlin/Native halves of the modules it
+# The Swift facade in `kmp/shared-core/spm` and the Kotlin/Native halves of the modules it
 # exports both need Xcode, so neither runs in the Ubuntu `CI` workflow. This is the macOS lane
 # that covers them. Path-filtered rather than folded into `CI`: a macOS runner is expensive and
 # nothing outside these directories can change the answer.
@@ -94,7 +94,7 @@ jobs:
       # the same override the local loop uses; see docs/proto-local-development.md's sibling,
       # shared-core-local-development.md, in the orchestrator repo.
       - name: Run the SharedCoreKit tests
-        working-directory: kmp/shared-core/flipcash-shared-core-spm
+        working-directory: kmp/shared-core/spm
         env:
           FLIPCASH_SHARED_CORE_LOCAL: ${{ github.workspace }}
         run: |
