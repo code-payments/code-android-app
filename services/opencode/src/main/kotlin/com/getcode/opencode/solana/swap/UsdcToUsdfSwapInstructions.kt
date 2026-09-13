@@ -105,7 +105,7 @@ internal fun buildUsdcToUsdfSwapInstructions(
                         user = sender,
                         whitelist = swapAccounts.whitelist,
                         amountIn = amount,
-                        minAmountOut = 0,
+                        minAmountOut = amount, // 1:1 stable pair; the program rejects 0 with InvalidAmount
                     ).instruction()
                 )
             }
