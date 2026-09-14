@@ -3,9 +3,7 @@ package com.flipcash.app.bills
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,7 +30,6 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.navigation.asNavBarTab
-import com.flipcash.app.core.tipping.LocalTipCoordinator
 import com.flipcash.app.session.BillDeterminationResult
 import com.flipcash.app.session.Grabbed
 import com.flipcash.app.session.LocalSessionController
@@ -41,7 +38,6 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.scrim.LocalScrimController
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.AnimationUtils
-import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -62,9 +58,6 @@ fun BillOverlay(modifier: Modifier = Modifier) {
     val session = LocalSessionController.current ?: return
     val state by session.state.collectAsStateWithLifecycle()
     val billState by session.billState.collectAsStateWithLifecycle()
-
-    // Tip affordability (min-tip balance check), surfaced through the shared selection state.
-    val tipSelection by LocalTipCoordinator.current.selection.collectAsStateWithLifecycle()
 
     // A bill is a focused modal — it must never share the screen with a keyboard. What makes that
     // reachable is a tip-card deeplink handled while a chat input still holds focus: App takes the
@@ -136,39 +129,20 @@ fun BillOverlay(modifier: Modifier = Modifier) {
         var managementHeight by remember { mutableStateOf(0.dp) }
         val showManagementOptions by remember(updatedBillState) {
             derivedStateOf {
-                // The tip card always shows, but its modal only slides up when the viewer can afford
-                // the minimum tip; otherwise the tip decorator prompts to add money.
                 billDismissState.targetValue == DismissValue.Default &&
-                    (updatedBillState.valuation != null ||
-                        (updatedBillState.bill is Scannable.TipCard && tipSelection.canTip))
+                    updatedBillState.valuation != null
             }
         }
 
-        // When the tip modal is up, pin the tip card just above it: reserve the modal's height as
-        // bottom inset AND bottom-align the card (bias 0 = centered, 1 = bottom). Both animated so the
-        // card slides from centered down to just above the modal, and back, in lockstep with the modal.
-        val isTipCard = updatedBillState.bill is Scannable.TipCard
-        val tipModalUp = managementHeight > 0.dp && isTipCard
-        val modalSpeed = ModalAnimationSpeed.Normal(updatedBillState.confirmationDelayMillis)
-        val offset = if (isTipCard) CodeTheme.dimens.grid.x8 else CodeTheme.dimens.grid.x2
-        // Only the tip card's inset is animated. Everywhere else the inset's one and only change is
-        // 0 -> the management row's measured height, which lands a frame after the bill composes;
-        // animating it slid the card up from behind the send/cancel pills half a second after it had
-        // already appeared over them. Snapping puts the card at its final position while the enter
-        // spring is still carrying it up from off-screen, so there is nothing to see.
+        // The inset's one and only change is 0 -> the management row's measured height, which lands
+        // a frame after the bill composes; animating it slid the card up from behind the
+        // send/cancel pills half a second after it had already appeared over them. Snapping puts
+        // the card at its final position while the enter spring is still carrying it up from
+        // off-screen, so there is nothing to see.
         val billBottomInset by animateDpAsState(
-            targetValue = managementHeight + offset,
-            animationSpec = if (isTipCard) {
-                tween(durationMillis = modalSpeed.duration, delayMillis = modalSpeed.delay)
-            } else {
-                snap()
-            },
+            targetValue = managementHeight + CodeTheme.dimens.grid.x2,
+            animationSpec = snap(),
             label = "billBottomInset",
-        )
-        val billVerticalBias by animateFloatAsState(
-            targetValue = if (tipModalUp) 1f else 0f,
-            animationSpec = tween(durationMillis = modalSpeed.duration, delayMillis = modalSpeed.delay),
-            label = "billVerticalBias",
         )
 
         AnimatedScannable(
@@ -181,7 +155,7 @@ fun BillOverlay(modifier: Modifier = Modifier) {
                 top = CodeTheme.dimens.grid.x2,
                 bottom = billBottomInset,
             ),
-            scannableAlignment = BiasAlignment(horizontalBias = 0f, verticalBias = billVerticalBias),
+            scannableAlignment = BiasAlignment(horizontalBias = 0f, verticalBias = 0f),
             bill = updatedBillState.bill,
             transitionSpec = {
                 when (updatedState.billResult) {
@@ -222,8 +196,8 @@ fun BillOverlay(modifier: Modifier = Modifier) {
  * Deliberately not a plain `LaunchedEffect(presented)`. [BillOverlay] is hosted per navigation
  * entry, so a screen opened *while* a bill is up composes a fresh copy with the bill already
  * present, and an unguarded effect would fire on that first pass. For the keyboard that would stomp
- * the post-tip hand-off, which opens the chat with the keyboard up on purpose (see
- * TipCardDecorator's LaunchChat). Seeding `wasPresented` from the value at first composition makes
+ * a hand-off that opens the chat with the keyboard up on purpose. Seeding `wasPresented` from the
+ * value at first composition makes
  * an already-presented bill a no-op, so only a bill that appears *while this copy is watching*
  * counts as a presentation.
  */
