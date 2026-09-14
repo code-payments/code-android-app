@@ -75,7 +75,7 @@ internal data object MinimumTip : FullMenuItem<MyAccountScreenViewModel.Event>()
     override val icon: Painter
         @Composable get() = painterResource(CoreR.drawable.ic_coins)
     override val name: String
-        @Composable get() = stringResource(CoreR.string.title_minimumTip)
+        @Composable get() = stringResource(CoreR.string.title_minimumToChat)
     override val action: MyAccountScreenViewModel.Event =
         MyAccountScreenViewModel.Event.OnMinimumTipClicked
 }
