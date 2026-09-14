@@ -154,6 +154,14 @@ internal class ChatViewModel @Inject constructor(
         val limits: Limits? = null,
         val isAnonymous: Boolean = false,
         val cashSymbol: String = "$",
+        /**
+         * The recipient's fee to open a DM with them, already formatted, or null when there is no
+         * such fee to name — a contact DM, a tip DM that already exists, or the moment before the
+         * profile has resolved. The call-to-action pill renders on the chat's first frame and this
+         * arrives over the network, so "no fee yet" and "no fee at all" are deliberately the same
+         * value: both mean the pill falls back to its unpriced label.
+         */
+        val chatInitFee: String? = null,
         // Transient "focus the message input" request. Set by OnStartMessageInput (dispatched when
         // returning from amount entry after a send, and on a post-tip chat open) and cleared by
         // OnMessageInputConsumed once the bottom bar has focused the field and shown the keyboard.
@@ -239,6 +247,7 @@ internal class ChatViewModel @Inject constructor(
         data class OnTipUserResolved(val userId: ID, val profile: UserProfile): Event
         data object OnTipDmDetected : Event
         data class OnCurrencySymbolUpdated(val symbol: String): Event
+        data class OnChatInitFeeUpdated(val formatted: String?) : Event
         data object RefreshContact : Event
         data class ChatFound(val chatId: ChatId) : Event
         data object OnSendCash: Event
@@ -735,6 +744,12 @@ internal class ChatViewModel @Inject constructor(
                     dispatchEvent(Event.OnCurrencySymbolUpdated(currency.symbol.ifEmpty { "$" }))
                 }
             }.launchIn(viewModelScope)
+
+        // The same floor the amount entry enforces, said out loud on the button that has to charge
+        // it. Formatted here rather than in the composable so the button has no currency logic.
+        minAmountFlow
+            .onEach { dispatchEvent(Event.OnChatInitFeeUpdated(it?.formatted())) }
+            .launchIn(viewModelScope)
 
         transactionController.limits
             .onEach { dispatchEvent(Event.LimitsChanged(it)) }
@@ -1294,6 +1309,7 @@ internal class ChatViewModel @Inject constructor(
                     )
                 }
                 is Event.OnCurrencySymbolUpdated -> { state -> state.copy(cashSymbol = event.symbol) }
+                is Event.OnChatInitFeeUpdated -> { state -> state.copy(chatInitFee = event.formatted) }
                 is Event.RefreshContact -> { state -> state }
                 is Event.ChatFound -> { state -> state.copy(chatId = event.chatId) }
                 Event.OnSendCash -> { state -> state }
