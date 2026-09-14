@@ -8,7 +8,7 @@ enum class NavBarButton {
     ;
 
     companion object {
-        /** The fixed tab set, in bar order. */
-        val tabs = listOf(Scanner, Wallet, Chats, TipCard)
+        /** The fixed tab set, in bar order. Chats sits second, beside the scanner it now feeds. */
+        val tabs = listOf(Scanner, Chats, Wallet, TipCard)
     }
 }
