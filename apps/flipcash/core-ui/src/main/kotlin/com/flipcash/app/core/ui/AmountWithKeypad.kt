@@ -113,6 +113,10 @@ fun BoxScope.AmountEntryField(
 /**
  * v2 amount field: top-anchored and left-aligned at display-extra-large over an "$X available"
  * line. Carries no currency flag or chevron — the currency is fixed for the flows that use it.
+ *
+ * @param caption optional text rendered immediately under the amount. It belongs here rather than
+ * in [AmountWithKeypad]'s accessory strip: the strip sits at the bottom of the amount region, which
+ * on this top-anchored layout leaves it floating above the keypad with the amount far overhead.
  */
 @Composable
 fun LargeAmountField(
@@ -123,6 +127,7 @@ fun LargeAmountField(
     decimalPlaces: Int = 2,
     hint: String = "",
     isError: Boolean = false,
+    caption: (@Composable () -> Unit)? = null,
 ) {
     val networkObserver = LocalNetworkObserver.current
     val networkState by networkObserver.state.collectAsStateWithLifecycle()
@@ -163,5 +168,13 @@ fun LargeAmountField(
             },
             decimalPlaces = decimalPlaces,
         )
+        caption?.let {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .padding(top = CodeTheme.dimens.grid.x2),
+            ) { it() }
+        }
     }
 }

@@ -22,8 +22,8 @@ import kotlinx.coroutines.flow.onEach
  * discards the entry: there is no draft to keep, so a changed-but-abandoned amount just doesn't
  * reach the profile.
  *
- * Node 10074:18892. The screen carries no title; the description under the amount says what the
- * number is for, which a two-word app-bar title could only repeat.
+ * Node 10074:18892. The screen carries no title; the description sitting directly under the amount
+ * says what the number is for, which a two-word app-bar title could only repeat.
  *
  * @param isLastStep whether the flow ends here, which is the only thing that decides between
  * "Save" and "Next".
@@ -42,12 +42,12 @@ internal fun MinimumTipEntryScreen(isLastStep: Boolean) {
         appBar = {
             AppBarWithTitle(onBackIconClicked = { flowNavigator.back() })
         },
-        accessory = {
+        headerCaption = {
             Text(
                 text = stringResource(R.string.description_minimumToChat),
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
-                textAlign = TextAlign.Center,
+                textAlign = TextAlign.Start,
             )
         },
     )
