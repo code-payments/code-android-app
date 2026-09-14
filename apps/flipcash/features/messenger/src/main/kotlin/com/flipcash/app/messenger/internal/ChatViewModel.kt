@@ -461,11 +461,9 @@ internal class ChatViewModel @Inject constructor(
     // Only the payment that opens a tip DM is a tip — it buys the conversation, and it is the one
     // the recipient's fee applies to. Everything after it, and every contact DM, is a plain send.
     private fun amountStyle(isTip: Boolean) = AmountEntryStyle(
-        actionLabel = AmountEntryLabel.Plain(
-            resources.getString(
-                if (isTip) R.string.action_swipeToTip else R.string.action_swipeToSend
-            )
-        ),
+        // One label for both kinds of payment. The chat above the keypad already says who this is
+        // going to and why; the slider only has to say what the gesture does.
+        actionLabel = AmountEntryLabel.Plain(resources.getString(R.string.action_swipeToSend)),
         actionStyle = ConfirmationStyle.Slide,
         infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
         overMaxHint = { resources.getString(R.string.subtitle_sendHintLimitExceeded, it) },
