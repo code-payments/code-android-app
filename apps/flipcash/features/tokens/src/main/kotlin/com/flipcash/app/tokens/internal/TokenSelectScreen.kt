@@ -71,7 +71,6 @@ private fun SelectTokenScreenContent(
                 is TokenPurpose.Swap -> TokenSelectionStyle.Chevron
                 is TokenPurpose.LaunchFunding -> TokenSelectionStyle.Chevron
                 is TokenPurpose.Select -> TokenSelectionStyle.Checkbox
-                is TokenPurpose.Tip -> TokenSelectionStyle.Checkbox
                 is TokenPurpose.ConvertDestination -> TokenSelectionStyle.Checkbox
                 is TokenPurpose.BuyFunding -> TokenSelectionStyle.Checkbox
                 TokenPurpose.Withdraw -> TokenSelectionStyle.Chevron
@@ -97,7 +96,6 @@ private fun SelectTokenScreenContent(
             is TokenPurpose.Select -> false
             is TokenPurpose.Swap -> false
             is TokenPurpose.LaunchFunding -> false
-            is TokenPurpose.Tip -> false
             is TokenPurpose.ConvertDestination -> false
             is TokenPurpose.BuyFunding -> false
             else -> true
@@ -106,10 +104,6 @@ private fun SelectTokenScreenContent(
             when (val purpose = state.purpose) {
                 is TokenPurpose.LaunchFunding -> {
                     amount.nativeAmount.valueGreaterThanOrEqualTo(purpose.amount)
-                }
-                is TokenPurpose.Tip -> {
-                    val target = purpose.amount ?: return@atLeast true
-                    amount.nativeAmount.valueGreaterThanOrEqualTo(target)
                 }
                 else -> true
             }

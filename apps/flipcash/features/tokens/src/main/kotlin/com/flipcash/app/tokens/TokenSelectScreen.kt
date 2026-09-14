@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,8 +17,6 @@ import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.flipcash.features.tokens.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.flow.FlowDismissStyle
-import com.getcode.navigation.flow.LocalFlowDismissStyle
 import com.getcode.ui.components.AppBarWithTitle
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -36,34 +33,24 @@ fun TokenSelectScreen(
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<SelectTokenViewModel>()
 
-    // Standalone selection sheets (Select / Tip) dismiss with a close (X); when the screen is a
-    // step pushed onto another stack we keep the ambient style — a flow host's back arrow (Swap) or
-    // the default. AppBarWithTitle auto-swaps the icon off LocalFlowDismissStyle.
-    val dismissStyle = when (purpose) {
-        is TokenPurpose.Tip -> FlowDismissStyle.Close
-        else -> LocalFlowDismissStyle.current
-    }
-
-    CompositionLocalProvider(LocalFlowDismissStyle provides dismissStyle) {
-        Column(
-            modifier = if (presentation.wrapHeight) Modifier.fillMaxWidth()
-            else Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            if (showTopBar) {
-                AppBarWithTitle(
-                    title = when (purpose) {
-                        is TokenPurpose.Swap -> stringResource(R.string.title_selectPaymentCurrency)
-                        is TokenPurpose.LaunchFunding -> stringResource(R.string.title_selectPaymentCurrency)
-                        else -> stringResource(R.string.title_selectCurrency)
-                    },
-                    onBackIconClicked = { navigator.pop() },
-                    titleAlignment = Alignment.CenterHorizontally,
-                )
-            }
-
-            SelectTokenScreen(viewModel, presentation = presentation)
+    Column(
+        modifier = if (presentation.wrapHeight) Modifier.fillMaxWidth()
+        else Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        if (showTopBar) {
+            AppBarWithTitle(
+                title = when (purpose) {
+                    is TokenPurpose.Swap -> stringResource(R.string.title_selectPaymentCurrency)
+                    is TokenPurpose.LaunchFunding -> stringResource(R.string.title_selectPaymentCurrency)
+                    else -> stringResource(R.string.title_selectCurrency)
+                },
+                onBackIconClicked = { navigator.pop() },
+                titleAlignment = Alignment.CenterHorizontally,
+            )
         }
+
+        SelectTokenScreen(viewModel, presentation = presentation)
     }
 
     LaunchedEffect(viewModel) {
@@ -96,7 +83,6 @@ fun TokenSelectScreen(
                         navigator.push(Deposit())
                     }
 
-                    is TokenPurpose.Tip -> Unit
                     is TokenPurpose.LaunchFunding -> Unit
                     is TokenPurpose.Swap -> Unit
                     is TokenPurpose.ConvertDestination -> Unit
