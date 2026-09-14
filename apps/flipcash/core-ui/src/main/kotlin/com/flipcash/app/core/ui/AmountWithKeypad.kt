@@ -151,7 +151,10 @@ fun LargeAmountField(
             amountPrefix = prefix,
             amountText = "",
             placeholder = placeholder,
-            captionText = hint,
+            // Empty rather than null reserves a blank hint line, which would sit between the
+            // amount and [caption]. Nothing here toggles a hint on and off mid-entry, so there is
+            // no jump to guard against by holding the space.
+            captionText = hint.takeIf { it.isNotEmpty() },
             currencyResId = null,
             isAltCaptionKinIcon = false,
             isAltCaption = isError,
