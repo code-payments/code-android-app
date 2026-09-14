@@ -26,7 +26,6 @@ import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.tipping.NewChatScreen
-import com.flipcash.app.tipping.TipAmountEntryScreen
 import com.flipcash.app.tipping.TippingFlowScreen
 import com.flipcash.shared.transactionhistory.ActivityHistoryScreen
 import com.flipcash.app.core.AppRoute
@@ -98,7 +97,6 @@ fun appEntryProvider(
         TippingFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
     }
     annotatedEntry<AppRoute.Sheets.TokenSelection> { key -> TokenSelectScreen(key.purpose) }
-    annotatedEntry<AppRoute.Sheets.TipAmountEntry> { TipAmountEntryScreen() }
     annotatedEntry<AppRoute.Sheets.Wallet> {
         // The wallet hosts the card-expand overlay in-entry so a pushed action (Give/Convert/Withdraw)
         // covers the expanded currency-info with correct z-order (iOS WalletScreen structure).
