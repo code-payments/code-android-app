@@ -42,7 +42,7 @@ class OnBillPresentedTest {
     fun `a bill already up at first composition is not a presentation`() {
         watch(initiallyPresented = true)
 
-        // The post-tip hand-off case: LaunchChat opens the chat with the keyboard up on purpose,
+        // The hand-off case: a scanned tip card opens the chat with the keyboard up on purpose,
         // and the chat's fresh overlay must not take it straight back down.
         assertEquals(0, presentations)
     }

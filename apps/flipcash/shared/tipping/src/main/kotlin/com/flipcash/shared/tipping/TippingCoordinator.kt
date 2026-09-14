@@ -121,7 +121,7 @@ class TippingCoordinator @Inject constructor(
     /**
      * The smallest tippable amount for the card on screen: the fee its owner charges to open a DM
      * when this tip would open one, and the system minimum otherwise. Surfaced by the amount entry
-     * as a standing hint and enforced by [confirmTip].
+     * as a standing hint.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     val minTipAmount: StateFlow<Fiat?> =
@@ -175,108 +175,10 @@ class TippingCoordinator @Inject constructor(
         _amount.value = amount
     }
 
-    override fun confirmTip() {
-        val amount = _amount.value ?: return
-        val userForTip = _userId.value ?: return
-        if (!_sendState.value.isIdle) return
-        val owner = userManager.accountCluster ?: return
-        val rate = exchange.preferredRate
-
-        scope.launch {
-            setSendState(LoadingSuccessState(loading = true))
-            val token = selectedToken.firstOrNull() ?: return@launch
-
-            // The floor, checked here as well as in the amount entry: a preset chip never passes
-            // through that entry.
-            val floor = minTipAmount.value
-            if (floor != null && amount.value.valueLessThan(floor)) {
-                setSendState(LoadingSuccessState())
-                BottomBarManager.showInfo(
-                    title = resources.getString(R.string.error_title_tipMinimum, floor.formatted()),
-                    message = resources.getString(R.string.error_description_tipMinimum),
-                )
-                return@launch
-            }
-
-            // Fast-fail before the loading state if the tip exceeds the token balance:
-            // prompt to add money (or enter a smaller amount) instead of attempting a send.
-            val balanceInLocal = tokenCoordinator.balanceForToken(token).convertingTo(rate)
-            if (amount.value.valueGreaterThan(balanceInLocal)) {
-                setSendState(LoadingSuccessState())
-                promptInsufficientBalance()
-                return@launch
-            }
-
-
-            val source = owner.withTimelockForToken(token)
-
-            val balance = tokenCoordinator.balanceForToken(token)
-            val verifiedFiat = verifiedFiatCalculator.compute(
-                amount = amount.value,
-                token = token,
-                balance = balance,
-                rate = rate,
-            ).getOrElse { error ->
-                setSendState(LoadingSuccessState())
-                val (title, message) = when (error) {
-                    is ComputeVerifiedFiatError.AmountBelowMinimum -> {
-                        R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall
-                    }
-
-                    else -> {
-                        R.string.error_title_staleRates to R.string.error_description_staleRates
-                    }
-                }
-                BottomBarManager.showAlert(
-                    title = resources.getString(title),
-                    message = resources.getString(message),
-                )
-                return@launch
-            }
-
-            tipPaymentDelegate.send(
-                userId = userForTip,
-                verifiedFiat = verifiedFiat,
-                token = token,
-                source = source,
-                origin = TipOrigin.TIPCARD,
-                // A tip card is always a genuine tip — there is no "send cash" path through it.
-                action = TipAction.TIP,
-            ).onSuccess { canonicalChatId ->
-                setSendState(LoadingSuccessState(success = true))
-                delay(400.milliseconds)
-                setSendState(LoadingSuccessState())
-                analytics.transfer(
-                    event = Analytics.Transfer.SentTip,
-                    amount = verifiedFiat.localFiat,
-                    successful = true,
-                )
-
-                // Hand off to the tipped user's chat via the tips flow, so backing out of the
-                // chat lands on the tips list.
-                canonicalChatId?.let {
-                    _events.emit(TipEvent.LaunchChat(ChatIdentifier.ByChatId(it)))
-                }
-            }.onFailure { cause ->
-                setSendState(LoadingSuccessState())
-                analytics.transfer(
-                    event = Analytics.Transfer.SentTip,
-                    amount = verifiedFiat.localFiat,
-                    error = cause,
-                )
-                BottomBarManager.showError(
-                    title = resources.getString(R.string.error_title_cashFailedToSend),
-                    message = resources.getString(R.string.error_description_cashFailedToSend),
-                )
-            }
-        }
-    }
-
     /**
      * Shows the insufficient-balance prompt with an "Add Money" action, mirroring the
      * give/currency-creator flows. Choosing "Add Money" resolves a deposit route via
      * [PurchaseMethodController] and emits it as a [TipEvent.OpenRoute] for the tip UI to open.
-     * Shared by the send path ([confirmTip]) and the amount-entry over-balance gate.
      */
     fun promptInsufficientBalance() {
         BottomBarManager.showInfo(
@@ -366,19 +268,14 @@ class TippingCoordinator @Inject constructor(
     /**
      * Dual gating, like the send / currency-creator flows: the presentation gate only asks "is
      * there any giveable balance?" (no amount threshold, so it stays currency-agnostic). The
-     * minimum-tip and per-amount affordability are enforced downstream — the amount entry's
-     * below-min / over-balance gates and confirmTip.
+     * minimum-tip and per-amount affordability are enforced downstream, by the chat's own amount
+     * entry.
      */
     private suspend fun onCardResolved(userId: ID, profile: UserProfile) {
         _canTip.value = tokenCoordinator.hasGiveableBalance()
         _userId.value = userId
         _recipient.value = profile
         vibrator.vibrate()
-    }
-
-    /** Updates the tip submission's processing state; used by the send path (see [confirmTip]). */
-    private fun setSendState(state: LoadingSuccessState) {
-        _sendState.value = state
     }
 
     /**

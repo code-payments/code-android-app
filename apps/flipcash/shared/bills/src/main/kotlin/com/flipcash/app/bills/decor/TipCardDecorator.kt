@@ -6,7 +6,6 @@ import androidx.compose.runtime.LaunchedEffect
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.chat.ChatIdentifier
-import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.tipping.LocalTipCoordinator
 import com.flipcash.app.core.tipping.TipEvent
@@ -65,18 +64,7 @@ internal data class TipCardDecorator(private val tipCard: Scannable.TipCard) : S
         LaunchedEffect(tipCoordinator) {
             tipCoordinator.events.collect { event ->
                 when (event) {
-                    is TipEvent.OpenRoute -> {
-                        navigator.openAsSheet(event.route)
-                    }
-                    is TipEvent.LaunchChat -> {
-                        navigator.navigateAll(
-                            listOf(
-                                AppRoute.Sheets.Tips(),
-                                AppRoute.Messaging.Chat(event.identifier, openKeyboard = true),
-                            ),
-                        )
-                        context.onDismiss(Grabbed)
-                    }
+                    is TipEvent.OpenRoute -> navigator.openAsSheet(event.route)
                 }
             }
         }

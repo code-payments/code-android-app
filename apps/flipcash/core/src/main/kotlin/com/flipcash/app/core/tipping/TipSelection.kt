@@ -1,7 +1,6 @@
 package com.flipcash.app.core.tipping
 
 import androidx.compose.runtime.staticCompositionLocalOf
-import com.flipcash.app.core.chat.ChatIdentifier
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
@@ -68,9 +67,6 @@ interface TipSelectionHolder {
     /** Selects [amount] (a [TipAmount.Preset] or [TipAmount.Custom]); pass `null` to clear it. */
     fun selectAmount(amount: TipAmount?)
 
-    /** Submits the current tip selection, driving [TipSelectionState.sendState] loading → success. */
-    fun confirmTip()
-
     /**
      * One-shot UI events the tip decorator should act on — e.g. opening the deposit flow
      * after the user picks "Add Money" from an insufficient-balance prompt. Emitted by the
@@ -82,7 +78,6 @@ interface TipSelectionHolder {
     object Empty : TipSelectionHolder {
         override val selection: StateFlow<TipSelectionState> = MutableStateFlow(TipSelectionState())
         override fun selectAmount(amount: TipAmount?) = Unit
-        override fun confirmTip() = Unit
         override val events: Flow<TipEvent> = emptyFlow()
     }
 }
@@ -91,12 +86,6 @@ interface TipSelectionHolder {
 sealed interface TipEvent {
     /** Open [route] (e.g. the deposit flow) using the tip UI's navigator. */
     data class OpenRoute(val route: AppRoute) : TipEvent
-
-    /**
-     * Launch the DM chat for a completed tip. The tip UI opens it through the tips flow so the
-     * tips list sits beneath the chat in the back stack (back returns to the list).
-     */
-    data class LaunchChat(val identifier: ChatIdentifier) : TipEvent
 }
 
 /** Provides the active [TipSelectionHolder] (the tipping coordinator) to composables. */
