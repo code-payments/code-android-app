@@ -34,13 +34,14 @@ import javax.inject.Inject
 import kotlin.math.abs
 
 /**
- * Backs the minimum-tip entry screen — the fee another user has to pay to open a DM, which the
+ * Backs the minimum-to-chat entry screen — the fee another user has to pay to open a DM, which the
  * profile carries as `minDmChatInitFee`.
  *
- * Two things separate it from the send-side tip entry: there is no ceiling, since a user can ask
- * for any amount regardless of what anyone can afford, so the preset minimum is the only bound and
- * it shows as a standing hint rather than only on error; and the confirm action is a save, so it
- * stays inert until the entry actually differs from what is already stored.
+ * Two things separate it from the send-side tip entry. There is no ceiling, since a user can ask
+ * for any amount regardless of what anyone can afford, so the preset minimum is the only bound —
+ * and it is a rule rather than guidance: the style sets `requireMinimum`, so the save action stays
+ * inert under the floor instead of accepting the amount and rejecting it in a bottom bar. And the
+ * action is a save, so it also stays inert until the entry actually differs from what is stored.
  */
 @HiltViewModel
 internal class MinimumTipEntryViewModel @Inject constructor(
@@ -156,28 +157,16 @@ internal class MinimumTipEntryViewModel @Inject constructor(
                 if (entered <= 0.0) return@onEach
                 val amount = Fiat(entered, stateFlow.value.currency)
 
-                val min = minimumAmount.value
-                if (min != null && amount.valueLessThan(min)) {
-                    // Info, not alert: nothing has gone wrong and nothing is being destroyed —
-                    // the entry is just under the floor and needs raising.
-                    BottomBarManager.showInfo(
-                        title = resources.getString(R.string.error_title_minimumTip, min.formatted()),
-                        message = resources.getString(R.string.error_description_minimumTip),
-                    )
-                    return@onEach
-                }
-
-                // Replacing a stored fee asks first; a first one has nothing to overwrite. Asked
-                // after validation so a rejected amount never gets a confirmation dialog.
+                // Replacing a stored fee asks first; a first one has nothing to overwrite.
                 if (stateFlow.value.saved == null) {
                     dispatchEvent(Event.CommitRequested(amount))
                     return@onEach
                 }
                 BottomBarManager.showMessage(
-                    title = resources.getString(R.string.prompt_title_changeMinimumTip),
-                    message = resources.getString(R.string.prompt_description_changeMinimumTip),
+                    title = resources.getString(R.string.prompt_title_changeMinimumToChat),
+                    message = resources.getString(R.string.prompt_description_changeMinimumToChat),
                     actions = listOf(
-                        BottomBarAction(resources.getString(R.string.action_changeMinimumTip)) {
+                        BottomBarAction(resources.getString(R.string.action_changeMinimumToChat)) {
                             dispatchEvent(Event.CommitRequested(amount))
                         }
                     ),
@@ -222,7 +211,9 @@ internal class MinimumTipEntryViewModel @Inject constructor(
             resources.getString(if (isLastStep) R.string.action_save else R.string.action_next)
         ),
         actionStyle = ConfirmationStyle.Button,
-        belowMinHint = { resources.getString(R.string.subtitle_minimumTipHint, it) },
+        // No belowMinHint: the description under the keypad already says what the floor is for, and
+        // the action simply won't fire under it.
+        requireMinimum = true,
     )
 
     companion object {
