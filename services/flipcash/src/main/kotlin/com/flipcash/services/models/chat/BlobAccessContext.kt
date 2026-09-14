@@ -23,6 +23,13 @@ sealed interface BlobAccessContext {
     /** Read from within [chatId]. Granted iff the caller is a member and the blob was shared into it. */
     data class Chat(val chatId: ChatId) : BlobAccessContext
 
+    /**
+     * Read from [chatId]'s public profile. Grants only the renditions of that chat's *current*
+     * profile picture — a superseded picture stops resolving through it. Distinct from [Chat]:
+     * this authorizes off the chat's public profile picture, not membership in the chat.
+     */
+    data class ChatProfile(val chatId: ChatId) : BlobAccessContext
+
     companion object {
         /**
          * [Profile] for [userId], falling back to [Owned] when the id isn't known. The fallback is
