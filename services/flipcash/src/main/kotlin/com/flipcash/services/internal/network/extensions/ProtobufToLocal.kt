@@ -47,6 +47,7 @@ import com.flipcash.services.models.chat.MetadataUpdate
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.RosterChange
 import com.flipcash.services.models.chat.RosterSummary
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.ReactionUpdate
@@ -377,28 +378,7 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
     return ChatMetadata(
         chatId = chatId.toChatId(),
         type = type.toChatType(),
-        members = membersList.map { member ->
-            ChatMember(
-                userId = member.userId.toId(),
-                userProfile = with (member.userProfile) {
-                    UserProfile(
-                        displayName = displayName,
-                        socialAccounts = emptyList(),
-                        phoneNumber = phoneNumber.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
-                        email = emailAddress.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
-                        profilePicture = if (hasProfilePicture()) profilePicture.toMediaItem() else null,
-                        // Falls back to the member's own id: the server sets it on the member but
-                        // usually not again inside the nested profile, and this profile is by
-                        // definition that member's. Dropping it here leaves callers unable to name
-                        // the profile that authorizes re-minting the picture's download URL, so the
-                        // avatar can never recover once the stored URL expires.
-                        userId = if (hasUserId()) userId.toId() else member.userId.toId(),
-                        username = if (hasUsername()) username.value else null,
-                    )
-                },
-                pointers = member.pointersList.map { it.toPointer() },
-            )
-        },
+        members = membersList.map { it.toChatMember() },
         lastMessage = if (hasLastMessage()) lastMessage.toChatMessage() else null,
         lastActivity = Instant.fromEpochSeconds(lastActivity.seconds, lastActivity.nanos),
         latestEventSequence = latestEventSequence,
@@ -410,6 +390,31 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
     )
 }
 
+// -- Chat member --
+
+internal fun ChatModel.Member.toChatMember(): ChatMember {
+    return ChatMember(
+        userId = userId.toId(),
+        userProfile = with(userProfile) {
+            UserProfile(
+                displayName = displayName,
+                socialAccounts = emptyList(),
+                phoneNumber = phoneNumber.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
+                email = emailAddress.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
+                profilePicture = if (hasProfilePicture()) profilePicture.toMediaItem() else null,
+                // Falls back to the member's own id: the server sets it on the member but
+                // usually not again inside the nested profile, and this profile is by
+                // definition that member's. Dropping it here leaves callers unable to name
+                // the profile that authorizes re-minting the picture's download URL, so the
+                // avatar can never recover once the stored URL expires.
+                userId = if (hasUserId()) userId.toId() else this@toChatMember.userId.toId(),
+                username = if (hasUsername()) username.value else null,
+            )
+        },
+        pointers = pointersList.map { it.toPointer() },
+    )
+}
+
 // -- Chat roster summary --
 
 internal fun ChatModel.RosterSummary.toRosterSummary(): RosterSummary {
@@ -417,6 +422,32 @@ internal fun ChatModel.RosterSummary.toRosterSummary(): RosterSummary {
         memberCount = memberCount,
         version = version,
     )
+}
+
+// -- Chat roster changes --
+
+/**
+ * Maps a wire roster update onto [RosterChange]. A kind-not-set update is dropped rather than
+ * defaulted, for the same reason malformed rules are: inventing a join would add a member the
+ * server never sent, and inventing a leave would remove one.
+ */
+internal fun ChatModel.RosterUpdate.toRosterChangeOrNull(
+    metadataMapper: (ChatModel.Metadata) -> ChatMetadata = { it.toChatMetadata() },
+): RosterChange? {
+    return when (kindCase) {
+        ChatModel.RosterUpdate.KindCase.MEMBER_JOINED -> RosterChange.MemberJoined(
+            member = memberJoined.member.toChatMember(),
+            metadata = if (memberJoined.hasMetadata()) metadataMapper(memberJoined.metadata) else null,
+            rosterSummary = rosterSummary.toRosterSummary(),
+        )
+
+        ChatModel.RosterUpdate.KindCase.MEMBER_LEFT -> RosterChange.MemberLeft(
+            userId = memberLeft.userId.toId(),
+            rosterSummary = rosterSummary.toRosterSummary(),
+        )
+
+        else -> null
+    }
 }
 
 // -- Chat participation rules --
@@ -467,6 +498,9 @@ internal fun EventModel.ChatUpdate.toChatUpdate(
         metadataUpdates = metadataUpdatesList.map { it.toMetadataUpdate(metadataMapper) },
         events = if (hasEvents()) events.eventsList.map { it.toChatEvent() } else emptyList(),
         reactionUpdates = if (hasReactionUpdates()) reactionUpdates.reactionUpdatesList.map { it.toReactionUpdate() } else emptyList(),
+        rosterUpdates = if (hasRosterUpdates()) {
+            rosterUpdates.rosterUpdatesList.mapNotNull { it.toRosterChangeOrNull(metadataMapper) }
+        } else emptyList(),
     )
 }
 
