@@ -45,6 +45,8 @@ kotlin {
             export(project(":libs:encryption:ed25519"))
             export(project(":libs:encryption:mnemonic"))
             export(project(":libs:currency-math:discrete-curve"))
+            export(project(":libs:encryption:keys"))
+            export(project(":libs:solana:encoding"))
         }
     }
 
@@ -59,6 +61,8 @@ kotlin {
                 api(project(":libs:encryption:ed25519"))
                 api(project(":libs:encryption:mnemonic"))
                 api(project(":libs:currency-math:discrete-curve"))
+                api(project(":libs:encryption:keys"))
+                api(project(":libs:solana:encoding"))
             }
         }
     }

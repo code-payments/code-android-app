@@ -8,8 +8,8 @@ import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStreamForResult
 import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.model.core.errors.SubmitIntentError
+import com.getcode.opencode.internal.solana.utils.diff
 import com.getcode.opencode.solana.SolanaTransaction
-import com.getcode.opencode.solana.diff
 import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.services.opencode.BuildConfig

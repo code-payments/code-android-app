@@ -2,7 +2,9 @@ package com.flipcash.app.core.tokens
 
 import android.os.Parcelable
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.MintParceler
 import kotlinx.parcelize.Parcelize
+import kotlinx.parcelize.TypeParceler
 import kotlinx.serialization.Serializable
 
 /**
@@ -27,18 +29,24 @@ sealed interface SwapPurpose : Parcelable {
     val mint: Mint
     sealed interface BalanceIncrease
     sealed interface BalanceDecrease
-    @Serializable data class Buy(
+    @Serializable
+    @TypeParceler<Mint, MintParceler>()
+    data class Buy(
         override val mint: Mint,
         val fundingSource: FundingSource = FundingSource.Flexible,
     ) : SwapPurpose, BalanceIncrease
-    @Serializable data class Sell(override val  mint: Mint) : SwapPurpose, BalanceDecrease
+    @Serializable
+    @TypeParceler<Mint, MintParceler>()
+    data class Sell(override val  mint: Mint) : SwapPurpose, BalanceDecrease
 
     /**
      * Converts one held currency directly into another. [mint] is the *source* currency the amount
      * is entered in (so balance/limit semantics match [Sell]); [destinationMint] is what the user
      * receives.
      */
-    @Serializable data class Convert(
+    @Serializable
+    @TypeParceler<Mint, MintParceler>()
+    data class Convert(
         override val mint: Mint,
         val destinationMint: Mint,
     ) : SwapPurpose, BalanceDecrease
