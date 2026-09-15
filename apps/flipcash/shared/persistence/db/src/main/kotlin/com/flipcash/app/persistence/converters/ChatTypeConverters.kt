@@ -119,6 +119,20 @@ class ChatTypeConverters {
 
     // endregion
 
+    // region ChatRules (group participation requirements)
+
+    @TypeConverter
+    fun fromChatRules(value: String?): ChatRulesSerialized? {
+        return value?.let { runCatching { json.decodeFromString<ChatRulesSerialized>(it) }.getOrNull() }
+    }
+
+    @TypeConverter
+    fun toChatRules(rules: ChatRulesSerialized?): String? {
+        return rules?.let { json.encodeToString(it) }
+    }
+
+    // endregion
+
     // region ReactionSummary
 
     @TypeConverter
@@ -253,3 +267,29 @@ data class ReactorSerialized(
     val userIdHex: String,
     val reactedAtEpochSeconds: Long,
 )
+
+/**
+ * Storage form of `ChatRules`. The domain type holds a `Fiat` and a list of `PublicKey`,
+ * neither of which is serializable, so the amount is flattened to quarks + currency code and
+ * each mint to its base58 string — the same shape `MessageContentSerialized.Cash` already uses.
+ */
+@Serializable
+data class ChatRulesSerialized(
+    val listener: List<ChatRuleRequirementSerialized> = emptyList(),
+    val speaker: List<ChatRuleRequirementSerialized> = emptyList(),
+)
+
+@Serializable
+sealed interface ChatRuleRequirementSerialized {
+    @Serializable
+    @SerialName("minimum_balance")
+    data class MinimumBalance(
+        val quarks: Long,
+        val currencyCode: String,
+        val mints: List<String> = emptyList(),
+    ) : ChatRuleRequirementSerialized
+
+    @Serializable
+    @SerialName("staff")
+    data object Staff : ChatRuleRequirementSerialized
+}
