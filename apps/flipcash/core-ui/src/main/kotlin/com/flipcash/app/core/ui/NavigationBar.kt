@@ -1,6 +1,5 @@
 package com.flipcash.app.core.ui
 
-import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -21,6 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -32,6 +33,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -219,7 +222,7 @@ fun NavigationBar(
                                 modifier = Modifier
                                     .size(iconSize)
                                     .graphicsLayer { alpha = iconAlpha },
-                                painter = painterResource(button.icon(selected)),
+                                painter = button.icon(selected),
                                 colorFilter = ColorFilter.tint(Color.White),
                                 contentDescription = null,
                             )
@@ -255,16 +258,32 @@ internal val NavBarButton.testTag: String
     }
 
 /**
- * The glyph for [this] tab at the weight its selection calls for. Every tab is drawn as an outline
- * until it is selected, where it fills in; the dimming on top of that is the caller's alpha. The
- * unsuffixed drawable is the outline, so `ic_nav_scan` stays the outline the tutorial card reuses.
+ * The glyph for [this] tab at the weight its selection calls for (node 10000:111297). Every tab is
+ * drawn as an outline until it is selected, where it fills in; the dimming on top of that is the
+ * caller's alpha. The unsuffixed drawable is the outline, so `ic_nav_tipcard` is also the outline
+ * the tutorial card reuses.
+ *
+ * The scanner tab carries the tip card glyph because scanning one is what that tab is for. The You
+ * tab draws the user's own photo when there is one (see the avatar branch above) and falls back to
+ * a people circle, not to the tip card — the tab is the account, and the card is only its front.
+ *
+ * That fallback's selected weight comes from Material rather than from the design file, which draws
+ * the You tab only as an outline. `Icons.Filled.AccountCircle` is the same glyph solid: its disc
+ * lands on `ic_people_circle`'s outer edge (r 10 at 24x24, against the outline's 9.25 centreline
+ * plus a 1.5 stroke), and knocking the person out of a solid body is what `ic_nav_wallet_selected`
+ * and `ic_nav_tipcard_selected` already do. The head is the one thing that moves, 0.5 smaller.
  */
-@DrawableRes
-private fun NavBarButton.icon(selected: Boolean): Int = when (this) {
-    NavBarButton.Scanner -> if (selected) R.drawable.ic_nav_scan_selected else R.drawable.ic_nav_scan
-    NavBarButton.Wallet -> if (selected) R.drawable.ic_nav_wallet_selected else R.drawable.ic_nav_wallet
-    NavBarButton.Chats -> if (selected) R.drawable.ic_nav_chat_selected else R.drawable.ic_nav_chat
-    NavBarButton.TipCard -> if (selected) R.drawable.ic_nav_tipcard_selected else R.drawable.ic_nav_tipcard
+@Composable
+private fun NavBarButton.icon(selected: Boolean): Painter = when (this) {
+    NavBarButton.Scanner ->
+        painterResource(if (selected) R.drawable.ic_nav_tipcard_selected else R.drawable.ic_nav_tipcard)
+    NavBarButton.Wallet ->
+        painterResource(if (selected) R.drawable.ic_nav_wallet_selected else R.drawable.ic_nav_wallet)
+    NavBarButton.Chats ->
+        painterResource(if (selected) R.drawable.ic_nav_chat_selected else R.drawable.ic_nav_chat)
+    NavBarButton.TipCard ->
+        if (selected) rememberVectorPainter(Icons.Filled.AccountCircle)
+        else painterResource(R.drawable.ic_people_circle)
 }
 
 @Preview
@@ -300,5 +319,19 @@ private fun NavigationBarAvatarSelectedPreview() {
         state = rememberNavigationBarState(selectedTab = NavBarButton.TipCard),
         onButtonClick = { },
         avatar = { modifier -> Box(modifier.background(Color(0xFF8E6E5B))) },
+    )
+}
+
+/**
+ * The You tab with no photo to draw (node 10000:111297) — the people-circle fallback, selected, so
+ * the filled twin gets a preview of its own rather than only appearing in the screenshot test.
+ */
+@Preview(name = "No photo, You tab selected")
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun NavigationBarNoAvatarSelectedPreview() {
+    NavigationBar(
+        state = rememberNavigationBarState(selectedTab = NavBarButton.TipCard),
+        onButtonClick = { },
     )
 }

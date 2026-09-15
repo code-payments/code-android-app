@@ -72,7 +72,7 @@ sealed interface TutorialItem {
         override val description: String
             @Composable get() = stringResource(R.string.subtitle_scanTipCard)
         override val icon: Painter
-            @Composable get() = painterResource(R.drawable.ic_nav_scan)
+            @Composable get() = painterResource(R.drawable.ic_nav_tipcard)
     }
 
     class ProfilePicture(override val isCompleted: Boolean) : Profile {

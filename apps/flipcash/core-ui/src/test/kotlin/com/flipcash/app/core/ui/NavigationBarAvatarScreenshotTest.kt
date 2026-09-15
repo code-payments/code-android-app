@@ -72,6 +72,11 @@ class NavigationBarAvatarScreenshotTest {
                     NavigationBar(
                         state = rememberNavigationBarState(selectedTab = NavBarButton.Wallet),
                     )
+                    // No photo, You tab selected — the filled people-circle fallback, which is the
+                    // one state neither the photo bars nor the unselected fallback shows.
+                    NavigationBar(
+                        state = rememberNavigationBarState(selectedTab = NavBarButton.TipCard),
+                    )
                 }
             }
         }
