@@ -1,5 +1,7 @@
 package com.flipcash.app.persistence.sources.mapper.chat
 
+import com.flipcash.app.persistence.converters.ChatRuleRequirementSerialized
+import com.flipcash.app.persistence.converters.ChatRulesSerialized
 import com.flipcash.app.persistence.converters.EmojiReactionSerialized
 import com.flipcash.app.persistence.converters.MessageContentSerialized
 import com.flipcash.app.persistence.converters.MessagePointerSerialized
@@ -22,6 +24,8 @@ import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.chat.EmojiReaction
@@ -30,11 +34,13 @@ import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.Reactor
 import com.flipcash.services.models.chat.ReactionSummary
+import com.flipcash.services.models.chat.RosterSummary
 import com.flipcash.services.models.chat.ClientMessageId
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.base58
 import com.getcode.utils.base64
@@ -58,14 +64,24 @@ class ChatEntityMapper @Inject constructor() {
      * a message load or a delta sync. A fresh insert therefore starts at 0, meaning "this
      * transcript has never been fetched"; `ChatMetadataDao.upsert` leaves the column alone
      * on an existing row.
+     *
+     * [isMember] is not on [ChatMetadata]: every payload that carries a group today is one
+     * the caller is in, so it is a property of the write, not of the metadata. The feed and
+     * a join write `true`; a gated preview fetched by chat id writes `false`.
      */
-    fun toEntity(metadata: ChatMetadata): ChatMetadataEntity {
+    fun toEntity(metadata: ChatMetadata, isMember: Boolean = true): ChatMetadataEntity {
         return ChatMetadataEntity(
             chatIdHex = metadata.chatId.bytes.toList().hexEncodedString(),
             chatType = metadata.type.name,
             lastActivityEpochMs = metadata.lastActivity.toEpochMilliseconds(),
             lastMessageId = metadata.lastMessage?.messageId,
             isHidden = metadata.isHidden,
+            title = metadata.title,
+            pictureJson = metadata.picture,
+            memberCount = metadata.rosterSummary.memberCount,
+            rosterVersion = metadata.rosterSummary.version,
+            rulesJson = metadata.rules?.toSerialized(),
+            isMember = isMember,
         )
     }
 
@@ -84,6 +100,13 @@ class ChatEntityMapper @Inject constructor() {
             // rebuilt from the database reports 0 — "unknown", not "no events".
             latestEventSequence = 0,
             isHidden = entity.isHidden,
+            title = entity.title,
+            picture = entity.pictureJson,
+            rosterSummary = RosterSummary(
+                memberCount = entity.memberCount,
+                version = entity.rosterVersion,
+            ),
+            rules = entity.rulesJson?.toDomain(),
         )
     }
 
@@ -302,6 +325,36 @@ private fun MessagePointerSerialized.toDomain(): MessagePointer = MessagePointer
     value = value,
     timestamp = Instant.fromEpochSeconds(timestampEpochSeconds),
 )
+
+private fun ChatRules.toSerialized(): ChatRulesSerialized = ChatRulesSerialized(
+    listener = listener.map { it.toSerialized() },
+    speaker = speaker.map { it.toSerialized() },
+)
+
+private fun ChatRuleRequirement.toSerialized(): ChatRuleRequirementSerialized = when (this) {
+    is ChatRuleRequirement.MinimumBalance -> ChatRuleRequirementSerialized.MinimumBalance(
+        quarks = amount.quarks,
+        currencyCode = amount.currencyCode.name,
+        mints = mints.map { it.base58() },
+    )
+    ChatRuleRequirement.Staff -> ChatRuleRequirementSerialized.Staff
+}
+
+private fun ChatRulesSerialized.toDomain(): ChatRules = ChatRules(
+    listener = listener.map { it.toDomain() },
+    speaker = speaker.map { it.toDomain() },
+)
+
+private fun ChatRuleRequirementSerialized.toDomain(): ChatRuleRequirement = when (this) {
+    is ChatRuleRequirementSerialized.MinimumBalance -> ChatRuleRequirement.MinimumBalance(
+        amount = Fiat(
+            quarks = quarks,
+            currencyCode = CurrencyCode.tryValueOf(currencyCode) ?: CurrencyCode.USD,
+        ),
+        mints = mints.map { PublicKey(it.decodeBase58().toList()) },
+    )
+    ChatRuleRequirementSerialized.Staff -> ChatRuleRequirement.Staff
+}
 
 private fun SocialAccount.toSerialized(): SocialAccountSerialized = when (this) {
     is SocialAccount.TwitterX -> SocialAccountSerialized.TwitterX(
