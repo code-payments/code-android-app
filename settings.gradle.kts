@@ -41,20 +41,51 @@ plugins {
 //
 // local.properties is untracked and CI never writes it, so release builds always resolve the
 // pinned versions from Maven Central.
-val protoLocalRoot = java.util.Properties().apply {
+//
+// protoLocalPackages picks which package(s) to substitute, e.g. protoLocalPackages=flipcash2
+// (comma-separated, ocp/flipcash2 or the full directory names, case-insensitive), and is
+// required whenever protoLocalRoot is set — there's no "both" default. A contract sync touches
+// one package at a time, so defaulting to "both" would feed the build whatever unrelated
+// in-progress state the other package's checkout happens to be on. Use
+// protoLocalPackages=ocp,flipcash2 to select both explicitly.
+val localProperties = java.util.Properties().apply {
     val f = File(settingsDir, "local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
-}.getProperty("protoLocalRoot")?.trim()?.takeIf { it.isNotEmpty() }
+}
+val protoLocalRoot = localProperties.getProperty("protoLocalRoot")?.trim()?.takeIf { it.isNotEmpty() }
 
 if (protoLocalRoot != null) {
-    listOf("ocp-client-protocol", "flipcash2-client-protocol").forEach { repo ->
+    val repoAliases = linkedMapOf(
+        "ocp-client-protocol" to setOf("ocp", "ocp-client-protocol"),
+        "flipcash2-client-protocol" to setOf("flipcash2", "flipcash2-client-protocol"),
+    )
+    val requestedPackages = localProperties.getProperty("protoLocalPackages")
+        ?.split(",")
+        ?.map { it.trim() }
+        ?.filter { it.isNotEmpty() }
+        ?.takeIf { it.isNotEmpty() }
+        ?: throw GradleException(
+            "protoLocalRoot is set but protoLocalPackages is missing. Add it to local.properties, " +
+                "e.g. protoLocalPackages=ocp,flipcash2. Valid values (comma-separated): ocp, " +
+                "flipcash2, ocp-client-protocol, flipcash2-client-protocol."
+        )
+
+    val selectedRepos = requestedPackages.map { token ->
+        repoAliases.entries.firstOrNull { (_, aliases) -> aliases.any { it.equals(token, ignoreCase = true) } }?.key
+            ?: throw GradleException(
+                "protoLocalPackages has an unrecognised entry '$token'. Valid values: " +
+                    "ocp, flipcash2, ocp-client-protocol, flipcash2-client-protocol."
+            )
+    }.distinct()
+
+    selectedRepos.forEach { repo ->
         val dir = File(protoLocalRoot, repo)
         require(dir.isDirectory) {
             "protoLocalRoot=$protoLocalRoot has no $repo checkout in it"
         }
         includeBuild(dir)
     }
-    logger.lifecycle("Contract packages: building from $protoLocalRoot, not the pinned versions")
+    logger.lifecycle("Contract packages: building $selectedRepos from $protoLocalRoot, not the pinned versions")
 }
 
 dependencyResolutionManagement {
