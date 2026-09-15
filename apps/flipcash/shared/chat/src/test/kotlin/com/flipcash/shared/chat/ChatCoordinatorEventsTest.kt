@@ -16,7 +16,13 @@ import com.flipcash.services.models.chat.ChatMutation
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ReactionUpdate
+import com.flipcash.services.models.chat.RosterSummary
+import com.flipcash.services.models.chat.RosterUpdate
+import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.chat.internal.ChatIdGenerator
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.internal.RealChatCoordinator
@@ -60,6 +66,7 @@ class ChatCoordinatorEventsTest {
 
     private lateinit var metadataDataSource: ChatMetadataDataSource
     private lateinit var messageDataSource: ChatMessageDataSource
+    private lateinit var memberDataSource: ChatMemberDataSource
     private lateinit var coordinator: RealChatCoordinator
     private lateinit var testDispatchers: TestDispatchers
 
@@ -77,7 +84,7 @@ class ChatCoordinatorEventsTest {
 
         metadataDataSource = mockk(relaxed = true)
         messageDataSource = mockk(relaxed = true)
-        val memberDataSource = mockk<ChatMemberDataSource>(relaxed = true)
+        memberDataSource = mockk(relaxed = true)
         val messagingController = mockk<ChatMessagingController>(relaxed = true)
 
         testDispatchers = TestDispatchers(TestCoroutineScheduler())
@@ -155,6 +162,21 @@ class ChatCoordinatorEventsTest {
         count = 1,
         ts = message.timestamp,
         mutations = listOf(ChatMutation.MessageSent(message)),
+    )
+
+    private fun chatMember(userId: List<Byte>) = ChatMember(
+        userId = userId,
+        userProfile = UserProfile.Empty,
+        pointers = emptyList(),
+    )
+
+    private fun chatMetadata(rosterVersion: Long) = ChatMetadata(
+        chatId = chatId,
+        type = ChatType.GROUP,
+        members = listOf(chatMember(selfId)),
+        lastMessage = null,
+        lastActivity = Instant.fromEpochSeconds(1000),
+        rosterSummary = RosterSummary(memberCount = 1, version = rosterVersion),
     )
 
     private suspend fun triggerCollection() {
@@ -440,6 +462,139 @@ class ChatCoordinatorEventsTest {
         val reactions = coordinator.state.value.reactionOverlays[chatId]?.get(1L)?.reactions
         assertNotNull(reactions)
         assertEquals(2, reactions.size)
+        coordinator.teardown()
+    }
+
+    // endregion
+
+    // region Roster updates
+
+    @Test
+    fun `roster update with version not greater than tracked is dropped`() = runTest(testDispatchers.dispatcher) {
+        triggerCollection()
+
+        // First update establishes version 2.
+        chatUpdatesChannel.send(ChatUpdate(
+            chatId = chatId,
+            rosterUpdates = listOf(
+                RosterUpdate.MemberJoined(
+                    rosterSummary = RosterSummary(memberCount = 2, version = 2),
+                    member = chatMember(otherId),
+                    metadata = null,
+                ),
+            ),
+        ))
+        advanceTimeBy(500.milliseconds)
+        runCurrent()
+
+        coVerify(exactly = 1) { memberDataSource.upsert(chatId, listOf(chatMember(otherId))) }
+
+        // Stale update at version 1 (<= tracked version 2) must be dropped.
+        chatUpdatesChannel.send(ChatUpdate(
+            chatId = chatId,
+            rosterUpdates = listOf(
+                RosterUpdate.MemberJoined(
+                    rosterSummary = RosterSummary(memberCount = 3, version = 1),
+                    member = chatMember(otherId),
+                    metadata = null,
+                ),
+            ),
+        ))
+        advanceTimeBy(500.milliseconds)
+        runCurrent()
+
+        // Still only the one upsert from the first, accepted update.
+        coVerify(exactly = 1) { memberDataSource.upsert(chatId, listOf(chatMember(otherId))) }
+        coordinator.teardown()
+    }
+
+    @Test
+    fun `recipient join inserts chat metadata and members`() = runTest(testDispatchers.dispatcher) {
+        triggerCollection()
+
+        val metadata = chatMetadata(rosterVersion = 1)
+        chatUpdatesChannel.send(ChatUpdate(
+            chatId = chatId,
+            rosterUpdates = listOf(
+                RosterUpdate.MemberJoined(
+                    rosterSummary = metadata.rosterSummary,
+                    member = chatMember(selfId),
+                    metadata = metadata,
+                ),
+            ),
+        ))
+        advanceTimeBy(500.milliseconds)
+        runCurrent()
+
+        coVerify { memberDataSource.upsert(chatId, listOf(chatMember(selfId))) }
+        coVerify { metadataDataSource.upsert(metadata) }
+        coVerify { memberDataSource.upsert(chatId, metadata.members) }
+        coordinator.teardown()
+    }
+
+    @Test
+    fun `non-recipient join upserts member only`() = runTest(testDispatchers.dispatcher) {
+        triggerCollection()
+
+        chatUpdatesChannel.send(ChatUpdate(
+            chatId = chatId,
+            rosterUpdates = listOf(
+                RosterUpdate.MemberJoined(
+                    rosterSummary = RosterSummary(memberCount = 2, version = 1),
+                    member = chatMember(otherId),
+                    metadata = null,
+                ),
+            ),
+        ))
+        advanceTimeBy(500.milliseconds)
+        runCurrent()
+
+        coVerify { memberDataSource.upsert(chatId, listOf(chatMember(otherId))) }
+        coVerify(exactly = 0) { metadataDataSource.upsert(any<ChatMetadata>()) }
+        coordinator.teardown()
+    }
+
+    @Test
+    fun `recipient leave removes chat metadata and members`() = runTest(testDispatchers.dispatcher) {
+        triggerCollection()
+
+        chatUpdatesChannel.send(ChatUpdate(
+            chatId = chatId,
+            rosterUpdates = listOf(
+                RosterUpdate.MemberLeft(
+                    rosterSummary = RosterSummary(memberCount = 0, version = 1),
+                    userId = selfId,
+                ),
+            ),
+        ))
+        advanceTimeBy(500.milliseconds)
+        runCurrent()
+
+        coVerify { metadataDataSource.delete(chatId) }
+        coVerify { memberDataSource.deleteForChat(chatId) }
+        coVerify(exactly = 0) { memberDataSource.removeMember(chatId, selfId) }
+        coordinator.teardown()
+    }
+
+    @Test
+    fun `non-recipient leave removes member row only`() = runTest(testDispatchers.dispatcher) {
+        triggerCollection()
+
+        chatUpdatesChannel.send(ChatUpdate(
+            chatId = chatId,
+            rosterUpdates = listOf(
+                RosterUpdate.MemberLeft(
+                    rosterSummary = RosterSummary(memberCount = 1, version = 1),
+                    userId = otherId,
+                ),
+            ),
+        ))
+        advanceTimeBy(500.milliseconds)
+        runCurrent()
+
+        coVerify { memberDataSource.removeMember(chatId, otherId) }
+        coVerify(exactly = 0) { metadataDataSource.delete(any()) }
+        coVerify(exactly = 0) { memberDataSource.deleteForChat(any()) }
         coordinator.teardown()
     }
 

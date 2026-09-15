@@ -107,6 +107,9 @@ interface ChatMemberDao {
     @Query("DELETE FROM chat_members WHERE chat_id_hex = :chatIdHex")
     suspend fun deleteForChat(chatIdHex: String)
 
+    @Query("DELETE FROM chat_members WHERE chat_id_hex = :chatIdHex AND user_id_hex = :userIdHex")
+    suspend fun deleteMember(chatIdHex: String, userIdHex: String)
+
     /** Drops the members of [chatIdHex] that are no longer in [keepUserIdHexes]. */
     @Query(
         "DELETE FROM chat_members WHERE chat_id_hex = :chatIdHex " +
