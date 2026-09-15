@@ -37,7 +37,9 @@ import kotlin.time.Clock
  * 5. On success: adds the token to the balance and emits [Event.BillReady],
  *    [Event.CheckPendingFeed], and [Event.RefreshFeed] for the shell to route.
  *
- * The rendezvous dedup map is cleared per-key on grab error so the user can retry.
+ * The rendezvous dedup map is cleared per-key on grab error so the user can retry. Tip
+ * payloads carry no grab, so they are deduplicated on a cooldown instead — see
+ * [isTipCardOnCooldown].
  *
  * @see com.flipcash.app.session.internal.RealSessionController
  */
@@ -66,6 +68,7 @@ class CodeScanDelegate @Inject constructor(
     val events: Flow<Event> = _events.consumeAsFlow()
 
     private val scannedRendezvous = mutableMapOf<String, Long>()
+    private val scannedTipCards = mutableMapOf<ID, Long>()
 
     override fun onCameraScanning(scanning: Boolean) {
         stateHolder.update { it.copy(isCameraUp = scanning) }
@@ -79,6 +82,16 @@ class CodeScanDelegate @Inject constructor(
         val payload = (code as? ScannableKikCode.RemoteKikCode)?.payloadId?.toList() ?: return
         val codePayload = OpenCodePayload.fromList(payload)
         if (scannedRendezvous.contains(codePayload.rendezvous.publicKey)) {
+            return
+        }
+
+        // A tip card is a person rather than a one-shot grab, so it gets a cooldown where cash
+        // gets the permanent rendezvous suppression above. Without one the only thing between the
+        // camera and a second present is the "a bill is up" check at the top of this function, and
+        // the hand-off into the chat drops the bill before it pushes (see TipCardDecorator) — for
+        // the length of that transition the card is still in frame with every gate open, and it
+        // re-presents over the chat it just opened.
+        if (codePayload.kind == PayloadKind.Tip && isTipCardOnCooldown(codePayload.userId)) {
             return
         }
 
@@ -159,5 +172,35 @@ class CodeScanDelegate @Inject constructor(
         val userId = payload.userId ?: return
         analytics.tipCardScanned()
         _events.trySend(Event.TipCardScanned(userId))
+    }
+
+    /**
+     * Whether [userId]'s card was accepted within [TipCardRescanCooldownMillis]. Accepting refreshes
+     * the window and a suppressed frame does not, so holding the camera on a card runs the cooldown
+     * out rather than extending it indefinitely.
+     *
+     * Synchronized because the analyzer decodes frames concurrently (each frame gets its own
+     * coroutine in MultiCodeAnalyzer), and an unguarded check-then-set lets two of them both pass.
+     */
+    @Synchronized
+    private fun isTipCardOnCooldown(userId: ID?): Boolean {
+        userId ?: return false
+        val now = Clock.System.now().toEpochMilliseconds()
+        val lastScanned = scannedTipCards[userId]
+        if (lastScanned != null && now - lastScanned < TipCardRescanCooldownMillis) {
+            return true
+        }
+        scannedTipCards[userId] = now
+        return false
+    }
+
+    private companion object {
+        /**
+         * How long the same tip card is ignored after one has been accepted. Long enough to cover
+         * the card's beat on screen and the push into the chat behind it, short enough that
+         * deliberately scanning the same person again isn't blocked. The same 3s the QR analyzer
+         * debounces by, which is what already covers the other scan route to this card.
+         */
+        const val TipCardRescanCooldownMillis = 3_000L
     }
 }

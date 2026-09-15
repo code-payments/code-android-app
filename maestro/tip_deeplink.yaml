@@ -1,12 +1,10 @@
 appId: com.flipcash.app.android
-name: "Tip deeplink — opens the tip flow"
+name: "Tip deeplink — lands in the recipient's chat"
 tags:
   - tipping
 ---
 # Seed-login. A fresh login clears local state, so give balances a moment to sync
-# (opening the Wallet forces the token balances to load) before opening the deeplink —
-# otherwise hasGiveableBalance is transiently false and the app shows the
-# add-money/discover gate instead of the tip flow.
+# (opening the Wallet forces the token balances to load) before opening the deeplink.
 - runFlow:
     file: subflows/login_with_flags.yaml
     env:
@@ -14,10 +12,11 @@ tags:
 - runFlow: subflows/navigate_to_wallet.yaml
 - assertVisible: { id: wallet_screen }
 
-# Open the tip card deeplink -> presents the tip flow for that recipient.
+# Open the tip card deeplink -> the card holds for its reveal beat, then the chat takes over.
+# Wait on the chat rather than on the card, and anchor on the route's own id rather than on the
+# call-to-action copy, which the chat changes as the conversation progresses.
 - openLink: ${TIPCARD_DEEPLINK}
 - extendedWaitUntil:
-    visible:
-      text: "Swipe to Tip"
+    visible: { id: chat_screen }
     timeout: 12000
-- assertVisible: "Tip Brandon McAnsh"
+- assertVisible: "Brandon McAnsh"

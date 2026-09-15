@@ -24,6 +24,7 @@ import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.bills.BillManagementOptions
 import com.flipcash.app.bills.modals.ReceivedFundsConfirmation
 import com.flipcash.app.session.LocalSessionController
+import com.flipcash.app.session.PutInWallet
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.core.measured
 import com.getcode.ui.utils.AnimationUtils
@@ -75,7 +76,7 @@ internal data class PayableDecorator(private val bill: Scannable.Payable) : Scan
             }
 
             BackHandler(canCancel) {
-                context.onDismiss()
+                context.onDismiss(PutInWallet)
             }
         }
 
@@ -97,7 +98,7 @@ internal data class PayableDecorator(private val bill: Scannable.Payable) : Scan
                     // grab time. A cash link is claimed from a link rather than from the scanner,
                     // so it has no snapshot to reveal and stays where it is.
                     onClaim = {
-                        if (session == null) context.onDismiss()
+                        if (session == null) context.onDismiss(PutInWallet)
                         else if (session.claimReceivedFunds()) {
                             navigator.navigateAll(listOf(AppRoute.Sheets.Wallet))
                         }
