@@ -25,7 +25,7 @@ class BlobAccessContextValidationTest {
     @Test
     fun `a profile scope validates`() {
         val context = Model.AccessContext.newBuilder()
-            .setProfile(userId().asUserId())
+            .setUserProfile(userId().asUserId())
             .build()
 
         assertEquals(ValidationResult.Valid, context.validate())
@@ -35,6 +35,15 @@ class BlobAccessContextValidationTest {
     fun `a chat scope validates`() {
         val context = Model.AccessContext.newBuilder()
             .setChat(chatId().asChatId())
+            .build()
+
+        assertEquals(ValidationResult.Valid, context.validate())
+    }
+
+    @Test
+    fun `a chat profile scope validates`() {
+        val context = Model.AccessContext.newBuilder()
+            .setChatProfile(chatId().asChatId())
             .build()
 
         assertEquals(ValidationResult.Valid, context.validate())
