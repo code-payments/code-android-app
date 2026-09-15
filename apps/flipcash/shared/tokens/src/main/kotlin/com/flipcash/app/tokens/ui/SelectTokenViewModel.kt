@@ -153,7 +153,6 @@ class SelectTokenViewModel @Inject constructor(
                                     is TokenPurpose.ConvertDestination,
                                     is TokenPurpose.BuyFunding,
                                     is TokenPurpose.LaunchFunding,
-                                    is TokenPurpose.Tip,
                                     TokenPurpose.Deposit,
                                     TokenPurpose.Withdraw -> {
                                         it.token.name
@@ -174,10 +173,6 @@ class SelectTokenViewModel @Inject constructor(
                                 is TokenPurpose.Select -> hasBalance
 
                                 is TokenPurpose.LaunchFunding -> {
-                                    hasBalance
-                                }
-
-                                is TokenPurpose.Tip -> {
                                     hasBalance
                                 }
 

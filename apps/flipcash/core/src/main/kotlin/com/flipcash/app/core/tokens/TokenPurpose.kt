@@ -31,7 +31,6 @@ sealed interface TokenPurpose: Parcelable {
      */
     @Serializable data class BuyFunding(val target: Mint, val current: Mint) : TokenPurpose
     @Serializable data class LaunchFunding(val amount: Fiat): TokenPurpose
-    @Serializable data class Tip(val amount: Fiat?): TriggersChange
     @Serializable data object Withdraw: TokenPurpose
     @Serializable data object Deposit: TokenPurpose
     @Serializable data object Balance : TokenPurpose
