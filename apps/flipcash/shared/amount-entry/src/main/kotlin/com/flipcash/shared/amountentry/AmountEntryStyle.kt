@@ -9,6 +9,15 @@ data class AmountEntryStyle(
     val infoHint: (maxFormatted: String) -> String = { "" },
     val overMaxHint: (maxFormatted: String) -> String = { "" },
     val belowMinHint: ((minFormatted: String) -> String)? = null,
+
+    /**
+     * Whether the floor is a rule or a suggestion. When true the confirm action stays inert until
+     * the entry clears [minimumAmount], instead of accepting it and rejecting it afterwards.
+     *
+     * Independent of [belowMinHint]: a flow can enforce the floor silently, explain it in prose
+     * elsewhere on the screen, or do both.
+     */
+    val requireMinimum: Boolean = false,
     val standingHint: StandingHint = StandingHint.Ceiling,
 ) {
     /**

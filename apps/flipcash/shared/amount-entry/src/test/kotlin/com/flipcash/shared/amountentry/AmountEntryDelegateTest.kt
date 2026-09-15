@@ -610,4 +610,73 @@ class AmountEntryDelegateTest {
         rateFlow.value = Rate(1.1, CurrencyCode.EUR)
         assertEquals(0.0, delegate.state.value.enteredAmount)
     }
+
+    // ---------------------------------------------------------------
+    // requireMinimum
+    // ---------------------------------------------------------------
+
+    @Test
+    fun `config blocks confirm below the minimum when the style requires it`() = runTest {
+        val min = MutableStateFlow<Fiat?>(Fiat(5.0, CurrencyCode.USD))
+        val delegate = createDelegate(
+            style = AmountEntryStyle(
+                actionLabel = AmountEntryLabel.Plain("Save"),
+                requireMinimum = true,
+            ),
+            minimumAmount = min,
+        )
+        delegate.onCurrencyChanged(usd)
+        delegate.onNumber(2) // below 5
+
+        assertFalse(delegate.config.value.canConfirm)
+    }
+
+    @Test
+    fun `config allows confirm at the minimum when the style requires it`() = runTest {
+        val min = MutableStateFlow<Fiat?>(Fiat(5.0, CurrencyCode.USD))
+        val delegate = createDelegate(
+            style = AmountEntryStyle(
+                actionLabel = AmountEntryLabel.Plain("Save"),
+                requireMinimum = true,
+            ),
+            minimumAmount = min,
+        )
+        delegate.onCurrencyChanged(usd)
+        delegate.onNumber(5) // exactly the floor
+
+        assertTrue(delegate.config.value.canConfirm)
+    }
+
+    @Test
+    fun `config allows confirm below the minimum when the style does not require it`() = runTest {
+        val min = MutableStateFlow<Fiat?>(Fiat(5.0, CurrencyCode.USD))
+        val delegate = createDelegate(
+            style = AmountEntryStyle(
+                actionLabel = AmountEntryLabel.Plain("Send"),
+                belowMinHint = { "Min is $it" },
+            ),
+            minimumAmount = min,
+        )
+        delegate.onCurrencyChanged(usd)
+        delegate.onNumber(2) // below 5
+
+        // The hint says so, but the flow still accepts the amount and rejects it later.
+        assertTrue(delegate.config.value.canConfirm)
+    }
+
+    @Test
+    fun `config shows no hint below the minimum when the style has no below-min hint`() = runTest {
+        val min = MutableStateFlow<Fiat?>(Fiat(5.0, CurrencyCode.USD))
+        val delegate = createDelegate(
+            style = AmountEntryStyle(
+                actionLabel = AmountEntryLabel.Plain("Save"),
+                requireMinimum = true,
+            ),
+            minimumAmount = min,
+        )
+        delegate.onCurrencyChanged(usd)
+        delegate.onNumber(2) // below 5, with nothing to say about it
+
+        assertIs<AmountEntryHint.None>(delegate.config.value.hint)
+    }
 }
