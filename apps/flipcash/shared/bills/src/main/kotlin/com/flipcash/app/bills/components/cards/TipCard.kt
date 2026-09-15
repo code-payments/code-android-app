@@ -23,14 +23,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.bills.components.ScannableCode
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.handle
-import com.flipcash.shared.bills.R
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 
@@ -150,7 +148,9 @@ internal fun TipCard(
                     verticalArrangement = Arrangement.spacedBy(width * TipCardHandleGapFraction),
                 ) {
                     Text(
-                        text = stringResource(R.string.label_tipUser, user.displayName),
+                        // The name alone, not "Tip <name>": scanning a card reaches the person,
+                        // and what you do once you are there is the chat's business.
+                        text = user.displayName,
                         style = CodeTheme.typography.textMedium.copy(
                             fontSize = nameFontSize,
                             lineHeight = nameFontSize * TipCardNameLineHeightRatio,
