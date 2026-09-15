@@ -267,4 +267,51 @@ class ErrorsTest {
         assertSame(root, error.cause)
         assertEquals("jwt failure", error.message)
     }
+
+    // -- GetGroupChatFeedError --
+
+    @Test
+    fun `GetGroupChatFeedError subtypes are CodeServerError`() {
+        assertIs<CodeServerError>(GetGroupChatFeedError.Denied())
+        assertIs<CodeServerError>(GetGroupChatFeedError.NotFound())
+        assertIs<CodeServerError>(GetGroupChatFeedError.Unrecognized())
+        assertIs<CodeServerError>(GetGroupChatFeedError.Other())
+    }
+
+    @Test
+    fun `GetGroupChatFeedError Other preserves cause`() {
+        val root = RuntimeException("transport died")
+        assertSame(root, GetGroupChatFeedError.Other(root).cause)
+    }
+
+    // -- JoinChatError --
+
+    @Test
+    fun `JoinChatError subtypes are CodeServerError`() {
+        assertIs<CodeServerError>(JoinChatError.Denied())
+        assertIs<CodeServerError>(JoinChatError.NotFound())
+        assertIs<CodeServerError>(JoinChatError.RulesNotSatisfied())
+        assertIs<CodeServerError>(JoinChatError.Unrecognized())
+        assertIs<CodeServerError>(JoinChatError.Other())
+    }
+
+    @Test
+    fun `JoinChatError RulesNotSatisfied has expected message`() {
+        assertEquals("Rules not satisfied", JoinChatError.RulesNotSatisfied().message)
+    }
+
+    // -- LeaveChatError --
+
+    @Test
+    fun `LeaveChatError subtypes are CodeServerError`() {
+        assertIs<CodeServerError>(LeaveChatError.Denied())
+        assertIs<CodeServerError>(LeaveChatError.NotFound())
+        assertIs<CodeServerError>(LeaveChatError.Unrecognized())
+        assertIs<CodeServerError>(LeaveChatError.Other())
+    }
+
+    @Test
+    fun `LeaveChatError NotFound has expected message`() {
+        assertEquals("Not found", LeaveChatError.NotFound().message)
+    }
 }

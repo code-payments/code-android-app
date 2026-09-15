@@ -360,6 +360,42 @@ sealed class GetDmChatFeedError(
     data class Other(override val cause: Throwable? = null) : GetDmChatFeedError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class GetGroupChatFeedError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetGroupChatFeedError("Denied")
+    class NotFound : GetGroupChatFeedError("Not found")
+    class Unrecognized : GetGroupChatFeedError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetGroupChatFeedError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class JoinChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : JoinChatError("Denied")
+    class NotFound : JoinChatError("Not found")
+    // The caller does not meet the chat's listener rules — a minimum balance, or staff
+    // membership. Recoverable by the user, so it is deliberately not a NotifiableError.
+    class RulesNotSatisfied : JoinChatError("Rules not satisfied")
+    class Unrecognized : JoinChatError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : JoinChatError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class LeaveChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : LeaveChatError("Denied")
+    // Recovered to success by InternalChatRepository.leaveChat: "the chat is not there"
+    // is the state LeaveChat was asked to produce. Kept as a distinct arm so the
+    // repository can tell it apart from Denied.
+    class NotFound : LeaveChatError("Not found")
+    class Unrecognized : LeaveChatError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : LeaveChatError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class GetMessageError(
     override val message: String? = null,
     override val cause: Throwable? = null
