@@ -101,6 +101,9 @@ interface ChatMetadataDao {
     @Query("UPDATE chat_metadata SET is_hidden = :hidden WHERE chat_id_hex = :chatIdHex")
     suspend fun updateHidden(chatIdHex: String, hidden: Boolean)
 
+    @Query("DELETE FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
+    suspend fun deleteById(chatIdHex: String)
+
     @Query("DELETE FROM chat_metadata")
     suspend fun deleteAll()
 }

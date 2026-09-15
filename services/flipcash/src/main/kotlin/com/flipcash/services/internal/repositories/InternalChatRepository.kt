@@ -4,9 +4,11 @@ import com.flipcash.services.internal.domain.ChatMetadataMapper
 import com.flipcash.services.internal.network.extensions.toPagingToken
 import com.flipcash.services.internal.network.services.ChatService
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.repository.ChatRepository
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -36,4 +38,39 @@ internal class InternalChatRepository(
                 hasMore = response.hasMore,
             )
         }
+
+    override suspend fun getGroupChatFeed(
+        owner: KeyPair,
+        queryOptions: QueryOptions,
+    ): Result<ChatFeedPage> = service.getGroupChatFeed(owner, queryOptions)
+        .onFailure { ErrorUtils.handleError(it) }
+        .map { response ->
+            ChatFeedPage(
+                chats = response.chatsList.map { mapper.map(it) },
+                pagingToken = if (response.hasPagingToken()) response.pagingToken.toPagingToken() else null,
+                hasMore = response.hasMore,
+            )
+        }
+
+    override suspend fun startChat(
+        owner: KeyPair,
+        title: String,
+        picture: BlobId?,
+        rules: ChatRules?,
+    ): Result<ChatMetadata> = service.startChat(owner, title, picture, rules)
+        .onFailure { ErrorUtils.handleError(it) }
+        .map { mapper.map(it) }
+
+    override suspend fun joinChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<ChatMetadata> = service.joinChat(owner, chatId)
+        .onFailure { ErrorUtils.handleError(it) }
+        .map { mapper.map(it) }
+
+    override suspend fun leaveChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<Unit> = service.leaveChat(owner, chatId)
+        .onFailure { ErrorUtils.handleError(it) }
 }

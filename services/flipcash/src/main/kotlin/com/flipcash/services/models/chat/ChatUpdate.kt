@@ -7,4 +7,5 @@ data class ChatUpdate(
     val metadataUpdates: List<MetadataUpdate> = emptyList(),
     val events: List<ChatEvent> = emptyList(),
     val reactionUpdates: List<ReactionUpdate> = emptyList(),
+    val rosterUpdates: List<RosterUpdate> = emptyList(),
 )

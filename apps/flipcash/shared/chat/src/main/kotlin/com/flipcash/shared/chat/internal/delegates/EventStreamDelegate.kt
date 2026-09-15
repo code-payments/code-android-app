@@ -16,6 +16,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MetadataUpdate
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.ReactionUpdate
+import com.flipcash.services.models.chat.RosterUpdate
 import com.flipcash.services.models.chat.TypingNotification
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.GetDeltaError
@@ -103,6 +104,13 @@ class EventStreamDelegate @Inject constructor(
     val events: Flow<Event> = _events.receiveAsFlow()
 
     private val sequenceTracker = EventSequenceTracker()
+
+    // In-memory only: Room's chat_metadata has no roster-version column today (rosterSummary is
+    // only ever real when hydrated fresh from the network), so there is nothing durable to key
+    // this off. A cold start always applies the first roster update it sees for a chat, since any
+    // real version is >= 1 > the 0L default here — consistent with ChatMetadata's own
+    // reconstruct-from-Room default.
+    private val rosterVersions = mutableMapOf<ChatId, Long>()
     private var scope: CoroutineScope? = null
     private var eventStreamCollectJob: Job? = null
     private var heartbeatJob: Job? = null
@@ -299,7 +307,7 @@ class EventStreamDelegate @Inject constructor(
 
         trace(
             tag = TAG,
-            message = "applyUpdate: chatId=$chatId, messages=${resolvedMessages.size}, events=${update.events.size}, pointers=${update.pointerUpdates.size}, reactions=${update.reactionUpdates.size}, typing=${update.typingNotifications.size}",
+            message = "applyUpdate: chatId=$chatId, messages=${resolvedMessages.size}, events=${update.events.size}, pointers=${update.pointerUpdates.size}, reactions=${update.reactionUpdates.size}, typing=${update.typingNotifications.size}, roster=${update.rosterUpdates.size}",
             type = TraceType.Process,
         )
 
@@ -373,6 +381,43 @@ class EventStreamDelegate @Inject constructor(
                 state.copy(
                     reactionOverlays = state.reactionOverlays + (chatId to chatOverlays.toMap())
                 )
+            }
+        }
+
+        // --- Process roster updates ---
+        //
+        // Durable (Room), not an overlay: unlike reactions/typing, a roster change mutates the
+        // chat list / membership itself, so it has to land in the same store SyncFeedRequested
+        // and getGroupChatFeed hydrate from. The version guard lives only in memory
+        // (`rosterVersions`) rather than a Room column — see the field's doc comment — so a
+        // process restart re-applies the first roster update it sees per chat, which is safe:
+        // the same upsert/delete calls below are already idempotent.
+
+        for (rosterUpdate in update.rosterUpdates) {
+            val incomingVersion = rosterUpdate.rosterSummary.version
+            val trackedVersion = rosterVersions[chatId] ?: 0L
+            if (incomingVersion <= trackedVersion) {
+                continue
+            }
+            rosterVersions[chatId] = incomingVersion
+
+            when (rosterUpdate) {
+                is RosterUpdate.MemberJoined -> {
+                    memberDataSource.upsert(chatId, listOf(rosterUpdate.member))
+                    val metadata = rosterUpdate.metadata
+                    if (metadata != null) {
+                        metadataDataSource.upsert(metadata)
+                        memberDataSource.upsert(chatId, metadata.members)
+                    }
+                }
+                is RosterUpdate.MemberLeft -> {
+                    if (rosterUpdate.userId == userManager.accountId) {
+                        metadataDataSource.delete(chatId)
+                        memberDataSource.deleteForChat(chatId)
+                    } else {
+                        memberDataSource.removeMember(chatId, rosterUpdate.userId)
+                    }
+                }
             }
         }
 

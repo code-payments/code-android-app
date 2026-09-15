@@ -73,6 +73,10 @@ class ChatMetadataDataSource @Inject constructor(
     suspend fun exists(chatId: ChatId): Boolean =
         db?.chatMetadataDao()?.getById(mapper.chatIdHex(chatId)) != null
 
+    suspend fun delete(chatId: ChatId) {
+        db?.chatMetadataDao()?.deleteById(mapper.chatIdHex(chatId))
+    }
+
     fun toMetadata(
         entity: ChatMetadataEntity,
         members: List<ChatMember>,

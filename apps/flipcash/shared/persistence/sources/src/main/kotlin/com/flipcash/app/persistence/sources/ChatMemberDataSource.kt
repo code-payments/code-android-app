@@ -113,6 +113,10 @@ class ChatMemberDataSource @Inject constructor(
         db?.chatMemberDao()?.deleteForChat(mapper.chatIdHex(chatId))
     }
 
+    suspend fun removeMember(chatId: ChatId, userId: ID) {
+        db?.chatMemberDao()?.deleteMember(mapper.chatIdHex(chatId), mapper.userIdHex(userId))
+    }
+
     suspend fun clear() {
         db?.chatMemberDao()?.deleteAll()
     }

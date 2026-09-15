@@ -5,8 +5,15 @@ import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
 import com.flipcash.services.internal.network.api.ChatApi
 import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.GetDmChatFeedError
+import com.flipcash.services.models.GetGroupChatFeedError
+import com.flipcash.services.models.JoinChatError
+import com.flipcash.services.models.LeaveChatError
+import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.StartChatError
+import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
@@ -57,6 +64,110 @@ internal class ChatService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(cause.toValidationOrElse { GetDmChatFeedError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun getGroupChatFeed(
+        owner: KeyPair,
+        queryOptions: QueryOptions,
+    ): Result<RpcChatService.GetGroupChatFeedResponse> {
+        return runCatching {
+            api.getGroupChatFeed(owner, queryOptions)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.GetGroupChatFeedResponse.Result.OK -> Result.success(response)
+                    RpcChatService.GetGroupChatFeedResponse.Result.DENIED -> Result.failure(GetGroupChatFeedError.Denied())
+                    RpcChatService.GetGroupChatFeedResponse.Result.NOT_FOUND -> Result.failure(GetGroupChatFeedError.NotFound())
+                    RpcChatService.GetGroupChatFeedResponse.Result.UNRECOGNIZED -> Result.failure(GetGroupChatFeedError.Unrecognized())
+                    else -> Result.failure(GetGroupChatFeedError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { GetGroupChatFeedError.Other(cause = it) })
+            }
+        )
+    }
+
+    /**
+     * Returns the raw response rather than just the [ChatModel.Metadata]: on TITLE_MODERATED the
+     * caller needs both the failure and [RpcChatService.StartChatResponse.getFlaggedCategory] to
+     * build [StartChatError.TitleModerated], so the category is folded in here rather than
+     * surfaced twice (once on the response, once on the domain result).
+     */
+    suspend fun startChat(
+        owner: KeyPair,
+        title: String,
+        picture: BlobId?,
+        rules: ChatRules?,
+    ): Result<ChatModel.Metadata> {
+        return runCatching {
+            api.startChat(owner, title, picture, rules)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.StartChatResponse.Result.OK -> Result.success(response.chat)
+                    RpcChatService.StartChatResponse.Result.DENIED -> Result.failure(StartChatError.Denied())
+                    RpcChatService.StartChatResponse.Result.TITLE_MODERATED -> Result.failure(
+                        StartChatError.TitleModerated(
+                            flaggedCategory = ModerationResult.FlaggedCategory.valueOf(response.flaggedCategory.name)
+                        )
+                    )
+                    RpcChatService.StartChatResponse.Result.PICTURE_BLOB_NOT_ACCEPTED -> Result.failure(StartChatError.PictureBlobNotAccepted())
+                    RpcChatService.StartChatResponse.Result.INVALID_RULES -> Result.failure(StartChatError.InvalidRules())
+                    RpcChatService.StartChatResponse.Result.RULES_NOT_SATISFIED -> Result.failure(StartChatError.RulesNotSatisfied())
+                    RpcChatService.StartChatResponse.Result.UNRECOGNIZED -> Result.failure(StartChatError.Unrecognized())
+                    else -> Result.failure(StartChatError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { StartChatError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun joinChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<ChatModel.Metadata> {
+        return runCatching {
+            api.joinChat(owner, chatId)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.JoinChatResponse.Result.OK -> Result.success(response.chat)
+                    RpcChatService.JoinChatResponse.Result.DENIED -> Result.failure(JoinChatError.Denied())
+                    RpcChatService.JoinChatResponse.Result.NOT_FOUND -> Result.failure(JoinChatError.NotFound())
+                    RpcChatService.JoinChatResponse.Result.RULES_NOT_SATISFIED -> Result.failure(JoinChatError.RulesNotSatisfied())
+                    RpcChatService.JoinChatResponse.Result.UNRECOGNIZED -> Result.failure(JoinChatError.Unrecognized())
+                    else -> Result.failure(JoinChatError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { JoinChatError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun leaveChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<Unit> {
+        return runCatching {
+            api.leaveChat(owner, chatId)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.LeaveChatResponse.Result.OK -> Result.success(Unit)
+                    RpcChatService.LeaveChatResponse.Result.DENIED -> Result.failure(LeaveChatError.Denied())
+                    RpcChatService.LeaveChatResponse.Result.NOT_FOUND -> Result.failure(LeaveChatError.NotFound())
+                    RpcChatService.LeaveChatResponse.Result.UNRECOGNIZED -> Result.failure(LeaveChatError.Unrecognized())
+                    else -> Result.failure(LeaveChatError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { LeaveChatError.Other(cause = it) })
             }
         )
     }
