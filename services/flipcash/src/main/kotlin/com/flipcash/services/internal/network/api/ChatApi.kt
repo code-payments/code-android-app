@@ -62,4 +62,52 @@ internal class ChatApi @Inject constructor(
             api.getDmChatFeed(request)
         }
     }
+
+    suspend fun getGroupChatFeed(
+        owner: KeyPair,
+        queryOptions: QueryOptions,
+    ): RpcChatService.GetGroupChatFeedResponse {
+        val request = RpcChatService.GetGroupChatFeedRequest.newBuilder()
+            .setQueryOptions(queryOptions.asQueryOptions())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getGroupChatFeed(request)
+        }
+    }
+
+    suspend fun joinChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): RpcChatService.JoinChatResponse {
+        val request = RpcChatService.JoinChatRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.joinChat(request)
+        }
+    }
+
+    suspend fun leaveChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): RpcChatService.LeaveChatResponse {
+        val request = RpcChatService.LeaveChatRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.leaveChat(request)
+        }
+    }
 }
