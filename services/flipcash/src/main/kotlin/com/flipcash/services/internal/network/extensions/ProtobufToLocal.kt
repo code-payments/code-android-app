@@ -460,9 +460,14 @@ internal fun ChatModel.MinimumBalanceRequirement.toRuleRequirement(): ChatRuleRe
 
 // -- Chat roster updates --
 
-internal fun ChatModel.RosterUpdate.toRosterUpdate(
+// An unset/unrecognized kind (a future oneof arm an already-shipped client doesn't know about)
+// returns null rather than a fabricated MemberLeft: the caller drops it via mapNotNull before it
+// reaches EventStreamDelegate, so it can never advance the in-memory roster-version tracker.
+// RosterSummary's own contract is that a version a client cannot reconcile gets caught up by a
+// roster refetch, not silently recorded as applied.
+internal fun ChatModel.RosterUpdate.toRosterUpdateOrNull(
     metadataMapper: (ChatModel.Metadata) -> ChatMetadata = { it.toChatMetadata() },
-): RosterUpdate {
+): RosterUpdate? {
     return when (kindCase) {
         ChatModel.RosterUpdate.KindCase.MEMBER_JOINED -> RosterUpdate.MemberJoined(
             rosterSummary = rosterSummary.toRosterSummary(),
@@ -473,10 +478,7 @@ internal fun ChatModel.RosterUpdate.toRosterUpdate(
             rosterSummary = rosterSummary.toRosterSummary(),
             userId = memberLeft.userId.toId(),
         )
-        else -> RosterUpdate.MemberLeft(
-            rosterSummary = rosterSummary.toRosterSummary(),
-            userId = emptyList(),
-        )
+        else -> null
     }
 }
 
@@ -492,7 +494,7 @@ internal fun EventModel.ChatUpdate.toChatUpdate(
         metadataUpdates = metadataUpdatesList.map { it.toMetadataUpdate(metadataMapper) },
         events = if (hasEvents()) events.eventsList.map { it.toChatEvent() } else emptyList(),
         reactionUpdates = if (hasReactionUpdates()) reactionUpdates.reactionUpdatesList.map { it.toReactionUpdate() } else emptyList(),
-        rosterUpdates = if (hasRosterUpdates()) rosterUpdates.rosterUpdatesList.map { it.toRosterUpdate(metadataMapper) } else emptyList(),
+        rosterUpdates = if (hasRosterUpdates()) rosterUpdates.rosterUpdatesList.mapNotNull { it.toRosterUpdateOrNull(metadataMapper) } else emptyList(),
     )
 }
 
