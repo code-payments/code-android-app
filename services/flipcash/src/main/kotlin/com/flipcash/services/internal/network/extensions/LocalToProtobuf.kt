@@ -7,7 +7,10 @@ import com.codeinc.flipcash.gen.thirdparty.v1.Model as ThirdPartyModels
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.SocialAccountLinkRequest
+import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.MessageContent
@@ -228,4 +231,51 @@ internal fun TypingState.asTypingState(): MessagingModel.IsTypingNotification.St
         TypingState.TYPING_TIMED_OUT -> MessagingModel.IsTypingNotification.State.TYPING_TIMED_OUT
         TypingState.UNKNOWN -> MessagingModel.IsTypingNotification.State.UNKNOWN_TYPING_STATE
     }
+}
+
+
+// -- Chat blob id --
+
+internal fun BlobId.asProtoBlobId(): com.codeinc.flipcash.gen.blob.v1.Model.BlobId {
+    return com.codeinc.flipcash.gen.blob.v1.Model.BlobId.newBuilder()
+        .setValue(bytes.toByteString())
+        .build()
+}
+
+// -- Chat participation rules --
+
+internal fun ChatRules.asProtoRules(): ChatModel.Rules {
+    return ChatModel.Rules.newBuilder()
+        .addAllListener(listener.map { it.asListenerRules() })
+        .addAllSpeaker(speaker.map { it.asSpeakerRules() })
+        .build()
+}
+
+internal fun ChatRuleRequirement.asListenerRules(): ChatModel.ListenerRules {
+    return ChatModel.ListenerRules.newBuilder()
+        .apply {
+            when (this@asListenerRules) {
+                is ChatRuleRequirement.MinimumBalance -> setMinimumBalance(asMinimumBalanceRequirement())
+                ChatRuleRequirement.Staff -> setStaff(ChatModel.StaffRequirement.getDefaultInstance())
+            }
+        }
+        .build()
+}
+
+internal fun ChatRuleRequirement.asSpeakerRules(): ChatModel.SpeakerRules {
+    return ChatModel.SpeakerRules.newBuilder()
+        .apply {
+            when (this@asSpeakerRules) {
+                is ChatRuleRequirement.MinimumBalance -> setMinimumBalance(asMinimumBalanceRequirement())
+                ChatRuleRequirement.Staff -> setStaff(ChatModel.StaffRequirement.getDefaultInstance())
+            }
+        }
+        .build()
+}
+
+internal fun ChatRuleRequirement.MinimumBalance.asMinimumBalanceRequirement(): ChatModel.MinimumBalanceRequirement {
+    return ChatModel.MinimumBalanceRequirement.newBuilder()
+        .setAmount(amount.asFiatPaymentAmount())
+        .addAllMints(mints.map { it.asPublicKey() })
+        .build()
 }

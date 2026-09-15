@@ -4,6 +4,8 @@ import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.BlobId
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.repository.ChatRepository
 import com.flipcash.services.user.UserManager
@@ -162,6 +164,175 @@ class ChatControllerTest {
 
     // endregion
 
+    // region getGroupChatFeed
+
+    @Test
+    fun `getGroupChatFeed fails when no account cluster`() = runTest {
+        every { userManager.accountCluster } returns null
+
+        val result = controller.getGroupChatFeed()
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `getGroupChatFeed uses default QueryOptions when none provided`() = runTest {
+        stubOwner()
+        repository.getGroupChatFeedResult = Result.success(ChatFeedPage(emptyList(), null, false))
+
+        controller.getGroupChatFeed()
+
+        assertEquals(QueryOptions(), repository.lastGroupQueryOptions)
+    }
+
+    @Test
+    fun `getGroupChatFeed returns page from the repository`() = runTest {
+        stubOwner()
+        val chat = stubMetadata(ChatId(ByteArray(32) { 3 }))
+        val page = ChatFeedPage(chats = listOf(chat), pagingToken = null, hasMore = false)
+        repository.getGroupChatFeedResult = Result.success(page)
+
+        val result = controller.getGroupChatFeed()
+
+        assertSame(page, result.getOrThrow())
+    }
+
+    @Test
+    fun `getGroupChatFeed surfaces repository failures without swallowing`() = runTest {
+        stubOwner()
+        val cause = RuntimeException("server error")
+        repository.getGroupChatFeedResult = Result.failure(cause)
+
+        val result = controller.getGroupChatFeed()
+
+        assertTrue(result.isFailure)
+        assertSame(cause, result.exceptionOrNull())
+    }
+
+    // endregion
+
+    // region startChat
+
+    @Test
+    fun `startChat fails when no account cluster`() = runTest {
+        every { userManager.accountCluster } returns null
+
+        val result = controller.startChat(title = "Trip planning")
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `startChat forwards title, picture and rules to the repository`() = runTest {
+        stubOwner()
+        val picture = BlobId(byteArrayOf(1, 2, 3))
+        val rules = ChatRules(listener = emptyList(), speaker = emptyList())
+        repository.startChatResult = Result.success(stubMetadata())
+
+        controller.startChat(title = "Trip planning", picture = picture, rules = rules)
+
+        assertEquals("Trip planning", repository.lastStartChatTitle)
+        assertEquals(picture, repository.lastStartChatPicture)
+        assertSame(rules, repository.lastStartChatRules)
+    }
+
+    @Test
+    fun `startChat returns the created chat metadata`() = runTest {
+        stubOwner()
+        val expected = stubMetadata()
+        repository.startChatResult = Result.success(expected)
+
+        val result = controller.startChat(title = "Trip planning")
+
+        assertSame(expected, result.getOrThrow())
+    }
+
+    @Test
+    fun `startChat surfaces repository failures without swallowing`() = runTest {
+        stubOwner()
+        val cause = RuntimeException("title moderated")
+        repository.startChatResult = Result.failure(cause)
+
+        val result = controller.startChat(title = "Trip planning")
+
+        assertTrue(result.isFailure)
+        assertSame(cause, result.exceptionOrNull())
+    }
+
+    // endregion
+
+    // region joinChat
+
+    @Test
+    fun `joinChat fails when no account cluster`() = runTest {
+        every { userManager.accountCluster } returns null
+
+        val result = controller.joinChat(ChatId(ByteArray(32)))
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `joinChat forwards the chatId to the repository`() = runTest {
+        stubOwner()
+        val chatId = ChatId(ByteArray(32) { 0x11 })
+        repository.joinChatResult = Result.success(stubMetadata(chatId))
+
+        controller.joinChat(chatId)
+
+        assertEquals(chatId, repository.lastJoinChatId)
+    }
+
+    @Test
+    fun `joinChat surfaces repository failures without swallowing`() = runTest {
+        stubOwner()
+        val cause = RuntimeException("denied")
+        repository.joinChatResult = Result.failure(cause)
+
+        val result = controller.joinChat(ChatId(ByteArray(32)))
+
+        assertTrue(result.isFailure)
+        assertSame(cause, result.exceptionOrNull())
+    }
+
+    // endregion
+
+    // region leaveChat
+
+    @Test
+    fun `leaveChat fails when no account cluster`() = runTest {
+        every { userManager.accountCluster } returns null
+
+        val result = controller.leaveChat(ChatId(ByteArray(32)))
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `leaveChat forwards the chatId to the repository`() = runTest {
+        stubOwner()
+        val chatId = ChatId(ByteArray(32) { 0x22 })
+        repository.leaveChatResult = Result.success(Unit)
+
+        controller.leaveChat(chatId)
+
+        assertEquals(chatId, repository.lastLeaveChatId)
+    }
+
+    @Test
+    fun `leaveChat surfaces repository failures without swallowing`() = runTest {
+        stubOwner()
+        val cause = RuntimeException("not a member")
+        repository.leaveChatResult = Result.failure(cause)
+
+        val result = controller.leaveChat(ChatId(ByteArray(32)))
+
+        assertTrue(result.isFailure)
+        assertSame(cause, result.exceptionOrNull())
+    }
+
+    // endregion
+
     // region helpers
 
     private fun stubMetadata(chatId: ChatId = ChatId(ByteArray(32))) = ChatMetadata(
@@ -180,9 +351,20 @@ class ChatControllerTest {
 private class FakeChatRepository : ChatRepository {
     var getChatResult: Result<ChatMetadata> = Result.failure(RuntimeException("not configured"))
     var getDmChatFeedResult: Result<ChatFeedPage> = Result.failure(RuntimeException("not configured"))
+    var getGroupChatFeedResult: Result<ChatFeedPage> = Result.failure(RuntimeException("not configured"))
+    var startChatResult: Result<ChatMetadata> = Result.failure(RuntimeException("not configured"))
+    var joinChatResult: Result<ChatMetadata> = Result.failure(RuntimeException("not configured"))
+    var leaveChatResult: Result<Unit> = Result.failure(RuntimeException("not configured"))
+
     var lastChatId: ChatId? = null
     var lastQueryOptions: QueryOptions? = null
     var lastChatType: ChatType? = null
+    var lastGroupQueryOptions: QueryOptions? = null
+    var lastStartChatTitle: String? = null
+    var lastStartChatPicture: BlobId? = null
+    var lastStartChatRules: ChatRules? = null
+    var lastJoinChatId: ChatId? = null
+    var lastLeaveChatId: ChatId? = null
 
     override suspend fun getChat(owner: Ed25519.KeyPair, chatId: ChatId): Result<ChatMetadata> {
         lastChatId = chatId
@@ -197,6 +379,36 @@ private class FakeChatRepository : ChatRepository {
         lastQueryOptions = queryOptions
         lastChatType = chatType
         return getDmChatFeedResult
+    }
+
+    override suspend fun getGroupChatFeed(
+        owner: Ed25519.KeyPair,
+        queryOptions: QueryOptions,
+    ): Result<ChatFeedPage> {
+        lastGroupQueryOptions = queryOptions
+        return getGroupChatFeedResult
+    }
+
+    override suspend fun startChat(
+        owner: Ed25519.KeyPair,
+        title: String,
+        picture: BlobId?,
+        rules: ChatRules?,
+    ): Result<ChatMetadata> {
+        lastStartChatTitle = title
+        lastStartChatPicture = picture
+        lastStartChatRules = rules
+        return startChatResult
+    }
+
+    override suspend fun joinChat(owner: Ed25519.KeyPair, chatId: ChatId): Result<ChatMetadata> {
+        lastJoinChatId = chatId
+        return joinChatResult
+    }
+
+    override suspend fun leaveChat(owner: Ed25519.KeyPair, chatId: ChatId): Result<Unit> {
+        lastLeaveChatId = chatId
+        return leaveChatResult
     }
 }
 

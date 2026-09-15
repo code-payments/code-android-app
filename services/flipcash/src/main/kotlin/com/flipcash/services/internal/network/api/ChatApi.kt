@@ -5,11 +5,15 @@ import com.codeinc.flipcash.gen.chat.v1.ChatService as RpcChatService
 import com.codeinc.flipcash.gen.chat.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asChatId
+import com.flipcash.services.internal.network.extensions.asProtoBlobId
 import com.flipcash.services.internal.network.extensions.asProtoChatType
+import com.flipcash.services.internal.network.extensions.asProtoRules
 import com.flipcash.services.internal.network.extensions.asQueryOptions
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -60,6 +64,80 @@ internal class ChatApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.getDmChatFeed(request)
+        }
+    }
+
+    suspend fun getGroupChatFeed(
+        owner: KeyPair,
+        queryOptions: QueryOptions,
+    ): RpcChatService.GetGroupChatFeedResponse {
+        val request = RpcChatService.GetGroupChatFeedRequest.newBuilder()
+            .setQueryOptions(queryOptions.asQueryOptions())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getGroupChatFeed(request)
+        }
+    }
+
+    suspend fun startChat(
+        owner: KeyPair,
+        title: String,
+        picture: BlobId?,
+        rules: ChatRules?,
+    ): RpcChatService.StartChatResponse {
+        val groupParameters = RpcChatService.StartChatRequest.GroupChatParameters.newBuilder()
+            .setTitle(title)
+            .apply {
+                picture?.let { setPicture(it.asProtoBlobId()) }
+                rules?.let { setRules(it.asProtoRules()) }
+            }
+            .build()
+
+        val request = RpcChatService.StartChatRequest.newBuilder()
+            .setGroup(groupParameters)
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.startChat(request)
+        }
+    }
+
+    suspend fun joinChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): RpcChatService.JoinChatResponse {
+        val request = RpcChatService.JoinChatRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.joinChat(request)
+        }
+    }
+
+    suspend fun leaveChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): RpcChatService.LeaveChatResponse {
+        val request = RpcChatService.LeaveChatRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.leaveChat(request)
         }
     }
 }

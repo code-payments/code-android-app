@@ -48,6 +48,7 @@ import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.RosterSummary
+import com.flipcash.services.models.chat.RosterUpdate
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.ReactionUpdate
 import com.flipcash.services.models.chat.Reactor
@@ -377,28 +378,7 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
     return ChatMetadata(
         chatId = chatId.toChatId(),
         type = type.toChatType(),
-        members = membersList.map { member ->
-            ChatMember(
-                userId = member.userId.toId(),
-                userProfile = with (member.userProfile) {
-                    UserProfile(
-                        displayName = displayName,
-                        socialAccounts = emptyList(),
-                        phoneNumber = phoneNumber.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
-                        email = emailAddress.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
-                        profilePicture = if (hasProfilePicture()) profilePicture.toMediaItem() else null,
-                        // Falls back to the member's own id: the server sets it on the member but
-                        // usually not again inside the nested profile, and this profile is by
-                        // definition that member's. Dropping it here leaves callers unable to name
-                        // the profile that authorizes re-minting the picture's download URL, so the
-                        // avatar can never recover once the stored URL expires.
-                        userId = if (hasUserId()) userId.toId() else member.userId.toId(),
-                        username = if (hasUsername()) username.value else null,
-                    )
-                },
-                pointers = member.pointersList.map { it.toPointer() },
-            )
-        },
+        members = membersList.map { it.toChatMember() },
         lastMessage = if (hasLastMessage()) lastMessage.toChatMessage() else null,
         lastActivity = Instant.fromEpochSeconds(lastActivity.seconds, lastActivity.nanos),
         latestEventSequence = latestEventSequence,
@@ -407,6 +387,29 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
         picture = if (hasPicture()) picture.toMediaItem() else null,
         rosterSummary = rosterSummary.toRosterSummary(),
         rules = if (hasRules()) rules.toChatRules() else null,
+    )
+}
+
+internal fun ChatModel.Member.toChatMember(): ChatMember {
+    return ChatMember(
+        userId = userId.toId(),
+        userProfile = with (userProfile) {
+            UserProfile(
+                displayName = displayName,
+                socialAccounts = emptyList(),
+                phoneNumber = phoneNumber.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
+                email = emailAddress.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
+                profilePicture = if (hasProfilePicture()) profilePicture.toMediaItem() else null,
+                // Falls back to the member's own id: the server sets it on the member but
+                // usually not again inside the nested profile, and this profile is by
+                // definition that member's. Dropping it here leaves callers unable to name
+                // the profile that authorizes re-minting the picture's download URL, so the
+                // avatar can never recover once the stored URL expires.
+                userId = if (hasUserId()) userId.toId() else this@toChatMember.userId.toId(),
+                username = if (hasUsername()) username.value else null,
+            )
+        },
+        pointers = pointersList.map { it.toPointer() },
     )
 }
 
@@ -455,6 +458,28 @@ internal fun ChatModel.MinimumBalanceRequirement.toRuleRequirement(): ChatRuleRe
     )
 }
 
+// -- Chat roster updates --
+
+internal fun ChatModel.RosterUpdate.toRosterUpdate(
+    metadataMapper: (ChatModel.Metadata) -> ChatMetadata = { it.toChatMetadata() },
+): RosterUpdate {
+    return when (kindCase) {
+        ChatModel.RosterUpdate.KindCase.MEMBER_JOINED -> RosterUpdate.MemberJoined(
+            rosterSummary = rosterSummary.toRosterSummary(),
+            member = memberJoined.member.toChatMember(),
+            metadata = if (memberJoined.hasMetadata()) metadataMapper(memberJoined.metadata) else null,
+        )
+        ChatModel.RosterUpdate.KindCase.MEMBER_LEFT -> RosterUpdate.MemberLeft(
+            rosterSummary = rosterSummary.toRosterSummary(),
+            userId = memberLeft.userId.toId(),
+        )
+        else -> RosterUpdate.MemberLeft(
+            rosterSummary = rosterSummary.toRosterSummary(),
+            userId = emptyList(),
+        )
+    }
+}
+
 // -- EventModel.ChatUpdate --
 
 internal fun EventModel.ChatUpdate.toChatUpdate(
@@ -467,6 +492,7 @@ internal fun EventModel.ChatUpdate.toChatUpdate(
         metadataUpdates = metadataUpdatesList.map { it.toMetadataUpdate(metadataMapper) },
         events = if (hasEvents()) events.eventsList.map { it.toChatEvent() } else emptyList(),
         reactionUpdates = if (hasReactionUpdates()) reactionUpdates.reactionUpdatesList.map { it.toReactionUpdate() } else emptyList(),
+        rosterUpdates = if (hasRosterUpdates()) rosterUpdates.rosterUpdatesList.map { it.toRosterUpdate(metadataMapper) } else emptyList(),
     )
 }
 

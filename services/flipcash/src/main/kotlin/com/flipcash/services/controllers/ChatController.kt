@@ -1,9 +1,11 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.repository.ChatRepository
 import com.flipcash.services.user.UserManager
@@ -30,5 +32,39 @@ class ChatController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.getDmChatFeed(owner, queryOptions, chatType)
+    }
+
+    suspend fun getGroupChatFeed(
+        queryOptions: QueryOptions = QueryOptions(),
+    ): Result<ChatFeedPage> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.getGroupChatFeed(owner, queryOptions)
+    }
+
+    suspend fun startChat(
+        title: String,
+        picture: BlobId? = null,
+        rules: ChatRules? = null,
+    ): Result<ChatMetadata> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.startChat(owner, title, picture, rules)
+    }
+
+    suspend fun joinChat(chatId: ChatId): Result<ChatMetadata> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.joinChat(owner, chatId)
+    }
+
+    suspend fun leaveChat(chatId: ChatId): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.leaveChat(owner, chatId)
     }
 }

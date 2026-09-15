@@ -360,6 +360,50 @@ sealed class GetDmChatFeedError(
     data class Other(override val cause: Throwable? = null) : GetDmChatFeedError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class GetGroupChatFeedError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetGroupChatFeedError("Denied")
+    class NotFound : GetGroupChatFeedError("Not found")
+    class Unrecognized : GetGroupChatFeedError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetGroupChatFeedError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class StartChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : StartChatError("Denied")
+    data class TitleModerated(val flaggedCategory: ModerationResult.FlaggedCategory) : StartChatError("Title moderated")
+    class PictureBlobNotAccepted : StartChatError("Picture blob not accepted")
+    class InvalidRules : StartChatError("Invalid rules")
+    class RulesNotSatisfied : StartChatError("Rules not satisfied")
+    class Unrecognized : StartChatError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : StartChatError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class JoinChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : JoinChatError("Denied")
+    class NotFound : JoinChatError("Not found")
+    class RulesNotSatisfied : JoinChatError("Rules not satisfied")
+    class Unrecognized : JoinChatError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : JoinChatError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class LeaveChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : LeaveChatError("Denied")
+    class NotFound : LeaveChatError("Not found")
+    class Unrecognized : LeaveChatError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : LeaveChatError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class GetMessageError(
     override val message: String? = null,
     override val cause: Throwable? = null
