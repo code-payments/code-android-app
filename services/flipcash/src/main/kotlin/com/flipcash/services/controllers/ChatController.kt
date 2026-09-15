@@ -31,4 +31,27 @@ class ChatController @Inject constructor(
 
         return repository.getDmChatFeed(owner, queryOptions, chatType)
     }
+
+    suspend fun getGroupChatFeed(
+        queryOptions: QueryOptions = QueryOptions(),
+    ): Result<ChatFeedPage> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.getGroupChatFeed(owner, queryOptions)
+    }
+
+    suspend fun joinChat(chatId: ChatId): Result<ChatMetadata> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.joinChat(owner, chatId)
+    }
+
+    suspend fun leaveChat(chatId: ChatId): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.leaveChat(owner, chatId)
+    }
 }

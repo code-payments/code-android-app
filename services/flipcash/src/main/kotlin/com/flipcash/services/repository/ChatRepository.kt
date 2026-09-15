@@ -18,4 +18,28 @@ interface ChatRepository {
         queryOptions: QueryOptions,
         chatType: ChatType,
     ): Result<ChatFeedPage>
+
+    /**
+     * One page of the group feed. Unlike the DM feed there is no type filter: the server
+     * decides what a group is, and `GetGroupChatFeedRequest` carries only query options.
+     */
+    suspend fun getGroupChatFeed(
+        owner: KeyPair,
+        queryOptions: QueryOptions,
+    ): Result<ChatFeedPage>
+
+    /** Adds the caller to [chatId]'s roster, returning the chat as the caller now sees it. */
+    suspend fun joinChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<ChatMetadata>
+
+    /**
+     * Removes the caller from [chatId]'s roster. Idempotent: a server `NOT_FOUND` is
+     * reported as success, because it describes the state the call was asked to produce.
+     */
+    suspend fun leaveChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<Unit>
 }
