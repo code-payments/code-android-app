@@ -183,7 +183,7 @@ fun BillOverlay(modifier: Modifier = Modifier) {
                 isRemoteSendLoading = updatedState.isRemoteSendLoading,
                 showManagementOptions = showManagementOptions,
                 onManagementHeightMeasured = { managementHeight = it },
-                onDismiss = { session.dismissBill(PutInWallet) },
+                onDismiss = { result -> session.dismissBill(result) },
             )
             with(overlays) { Content(overlayContext) }
         }

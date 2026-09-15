@@ -10,6 +10,7 @@ import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.tipping.LocalTipCoordinator
 import com.flipcash.app.core.tipping.TipEvent
+import com.flipcash.app.session.Grabbed
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.ModalAnimationSpeed
 import kotlinx.coroutines.delay
@@ -22,7 +23,8 @@ import kotlinx.coroutines.delay
  *
  * The card still gets a beat on screen before the chat takes over. It is the same 450ms the modal
  * used to take sliding up ([ModalAnimationSpeed.Normal] at the tip card's zero confirmation delay),
- * so the scan still reads as "I found this person" rather than as a screen that flashed past.
+ * so the scan still reads as "I found this person" rather than as a screen that flashed past. Then
+ * the card pops and the push runs together, so the two are one movement rather than two.
  */
 internal data class TipCardDecorator(private val tipCard: Scannable.TipCard) : ScannableDecorator {
     @Composable
@@ -39,10 +41,15 @@ internal data class TipCardDecorator(private val tipCard: Scannable.TipCard) : S
         LaunchedEffect(tipPresented, userId) {
             if (!tipPresented || userId == null) return@LaunchedEffect
             delay(ModalAnimationSpeed.Normal(billState.confirmationDelayMillis).delay.toLong())
+            // Pop and push in the same frame, and pop with [Grabbed] rather than [PutInWallet]:
+            // the card leaves as a 100ms fade-and-scale instead of a 600ms slide back to the
+            // wallet. The overlay lives inside this navigation entry, so the entry slides out from
+            // under it either way — the slide outlasts the handoff and is never seen, while the
+            // pop lands inside it and reads as the card handing you to the chat.
+            context.onDismiss(Grabbed)
             navigator.push(
                 AppRoute.Messaging.Chat(ChatIdentifier.ByUser(userId, tipCard.user)),
             )
-            context.onDismiss()
         }
 
         // The coordinator's one-shot UI events. Collected here, not in a modal, so it fires
@@ -60,7 +67,7 @@ internal data class TipCardDecorator(private val tipCard: Scannable.TipCard) : S
                                 AppRoute.Messaging.Chat(event.identifier, openKeyboard = true),
                             ),
                         )
-                        context.onDismiss()
+                        context.onDismiss(Grabbed)
                     }
                 }
             }
