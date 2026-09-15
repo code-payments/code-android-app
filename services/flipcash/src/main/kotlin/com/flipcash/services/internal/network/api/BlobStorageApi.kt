@@ -110,8 +110,10 @@ internal class BlobStorageApi @Inject constructor(
     private fun BlobAccessContext.toProto(): Model.AccessContext? = when (this) {
         BlobAccessContext.Owned -> null
         is BlobAccessContext.Profile ->
-            Model.AccessContext.newBuilder().setProfile(userId.asUserId()).build()
+            Model.AccessContext.newBuilder().setUserProfile(userId.asUserId()).build()
         is BlobAccessContext.Chat ->
             Model.AccessContext.newBuilder().setChat(chatId.asChatId()).build()
+        is BlobAccessContext.ChatProfile ->
+            Model.AccessContext.newBuilder().setChatProfile(chatId.asChatId()).build()
     }
 }

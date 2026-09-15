@@ -293,4 +293,34 @@ class CodeScanDelegateTest {
             )
         }
     }
+
+    // --- Tip cards: a cooldown, not the cash path's permanent rendezvous suppression ---
+
+    @Test
+    fun `onCodeScan ignores a tip card already scanned within the cooldown`() = runTest {
+        every { mockPayload.kind } returns PayloadKind.Tip
+        every { mockPayload.userId } returns listOf(1.toByte())
+
+        val delegate = createDelegate()
+        delegate.onCodeScan(remoteKikCode())
+        // The camera keeps decoding the same card through the hand-off into the chat, and the
+        // dismissed bill has already re-opened the "a bill is up" gate at the top of onCodeScan.
+        delegate.onCodeScan(remoteKikCode())
+
+        verify(exactly = 1) { analytics.tipCardScanned() }
+    }
+
+    @Test
+    fun `onCodeScan accepts a different tip card during another card's cooldown`() = runTest {
+        every { mockPayload.kind } returns PayloadKind.Tip
+        every { mockPayload.userId } returns listOf(1.toByte())
+
+        val delegate = createDelegate()
+        delegate.onCodeScan(remoteKikCode())
+
+        every { mockPayload.userId } returns listOf(2.toByte())
+        delegate.onCodeScan(remoteKikCode())
+
+        verify(exactly = 2) { analytics.tipCardScanned() }
+    }
 }

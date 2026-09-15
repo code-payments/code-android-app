@@ -81,9 +81,13 @@ internal class NewChatViewModel @Inject constructor(
             .map { username -> resolve(username) }
             .onResult(
                 onSuccess = { identifier ->
+                    // No reset back to idle afterwards. The chat replaces this screen, so idle is
+                    // a state it never shows again — but the button reaches it first: the fill
+                    // snaps from the disabled White10 to a solid White while the content is still
+                    // crossfading the checkmark out, so the last thing seen before the chat
+                    // arrives is a blank white button. Holding the checkmark leaves it alone.
                     dispatchSuccessThen(Event.UpdateProcessingState(success = true)) {
                         dispatchEvent(Event.UserResolved(identifier))
-                        dispatchEvent(Event.UpdateProcessingState())
                     }
                 },
                 onError = { cause ->

@@ -1008,9 +1008,9 @@
     <string name="prompt_title_changeProfilePicture">Change Profile Picture?</string>
     <string name="prompt_description_changeProfilePicture">This will change your profile picture</string>
     <string name="action_changeProfilePicture">Change Profile Picture</string>
-    <string name="prompt_title_changeMinimumTip">Change Minimum Tip?</string>
-    <string name="prompt_description_changeMinimumTip">This will change your minimum tip</string>
-    <string name="action_changeMinimumTip">Change Minimum Tip</string>
+    <string name="prompt_title_changeMinimumToChat">Change Minimum To Chat?</string>
+    <string name="prompt_description_changeMinimumToChat">This will change how much someone must send you to start chatting</string>
+    <string name="action_changeMinimumToChat">Change Minimum</string>
 
     <!-- A tapped `flipcash.com/{username}` link that resolves to nothing. -->
     <string name="error_title_usernameNotFound">No Such Account</string>
@@ -1032,6 +1032,7 @@
     <string name="subtitle_myTipCard">Share Your Tip Card to Get Tipped</string>
     <string name="action_showTipCard">Show My Tip Card</string>
     <string name="title_sendTip">Send a Tip</string>
+    <string name="action_sendToStartChatting">Send %1$s to Start Chatting</string>
     <string name="title_amountToTip">Amount to Tip</string>
     <string name="label_of">of</string>
     <string name="action_swipeToTip">Swipe to Tip</string>
@@ -1041,14 +1042,13 @@
     <string name="error_description_tipMinimum">Please enter a higher amount</string>
     <string name="label_viaTipCard">via Tip Card</string>
 
-    <!-- Minimum-tip entry (nodes 9541:10951, 9553:113170). Backed by the profile's
-         min_dm_chat_init_fee: tipping is what opens a DM, so the fee to start one is the
-         minimum tip. Distinct from the send-side strings above, which are about a tip in flight. -->
-    <string name="title_minimumTipEntry">Set Minimum Tip</string>
-    <string name="title_minimumTip">Minimum Tip</string>
-    <string name="subtitle_minimumTipHint">%1$s minimum</string>
-    <string name="error_title_minimumTip">%1$s Minimum Tip</string>
-    <string name="error_description_minimumTip">Please enter a higher amount</string>
+    <!-- Minimum-to-chat entry (nodes 9541:10951, 9553:113170, 10074:18892). Backed by the
+         profile's min_dm_chat_init_fee: paying is what opens a DM, so this is the price of
+         starting a conversation. Distinct from the send-side strings above, which are about a
+         tip in flight. The floor is explained in prose under the keypad and enforced by keeping
+         the save button inert, so there is no below-minimum error to show. -->
+    <string name="title_minimumToChat">Minimum To Chat</string>
+    <string name="description_minimumToChat">Choose how much someone must send you to start chatting. You can send it back if the conversation is worthwhile.</string>
     <string name="error_title_minimumTipFailed">Something Went Wrong</string>
     <string name="error_description_minimumTipFailed">We were unable to save your minimum tip. Please try again</string>
 

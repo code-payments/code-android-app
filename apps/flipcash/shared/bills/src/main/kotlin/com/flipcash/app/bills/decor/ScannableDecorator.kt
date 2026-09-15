@@ -12,6 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import com.flipcash.app.core.bill.BillState
 import com.flipcash.app.core.bill.Scannable
+import com.flipcash.app.session.BillDeterminationResult
+import com.flipcash.app.session.Grabbed
+import com.flipcash.app.session.PutInWallet
 
 /**
  * Below-bill decor content owned by a [Scannable] type rather than decided by
@@ -82,7 +85,10 @@ internal data object NoOpScannableDecorator : ScannableDecorator {
  * @param showManagementOptions whether the management options row should be shown.
  * @param onManagementHeightMeasured reports the measured management-row height back to the
  *   container so the card floats above it.
- * @param onDismiss dismisses the current bill (equivalent to `session.dismissBill(PutInWallet)`).
+ * @param onDismiss dismisses the current bill. The [BillDeterminationResult] passed in picks the
+ *   card's exit animation as well as recording the outcome — [PutInWallet] slides it back down to
+ *   the wallet, [Grabbed] pops it (fade + scale). A decorator that hands off to another screen
+ *   wants the pop, because the slide takes longer than the handoff leaves it on screen for.
  */
 data class ScannableDecoratorContext(
     val liveBill: Scannable?,
@@ -90,5 +96,5 @@ data class ScannableDecoratorContext(
     val isRemoteSendLoading: Boolean,
     val showManagementOptions: Boolean,
     val onManagementHeightMeasured: (Dp) -> Unit,
-    val onDismiss: () -> Unit,
+    val onDismiss: (BillDeterminationResult) -> Unit,
 )

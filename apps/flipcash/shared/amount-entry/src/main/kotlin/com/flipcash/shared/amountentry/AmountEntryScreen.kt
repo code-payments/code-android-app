@@ -29,6 +29,8 @@ fun AmountEntryScreen(
     largeHeader: Boolean = false,
     /** Optional row rendered between the amount and the keypad. */
     accessory: (@Composable () -> Unit)? = null,
+    /** Optional text rendered directly under the amount. [largeHeader] layouts only. */
+    headerCaption: (@Composable () -> Unit)? = null,
 ) {
     val delegateState by controller.state.collectAsStateWithLifecycle()
     val config by controller.config.collectAsStateWithLifecycle()
@@ -100,6 +102,7 @@ fun AmountEntryScreen(
                     hint = hintText,
                     isError = isError,
                     decimalPlaces = delegateState.currency.fractionUnits,
+                    caption = headerCaption,
                 )
             } else {
                 AmountEntryField(

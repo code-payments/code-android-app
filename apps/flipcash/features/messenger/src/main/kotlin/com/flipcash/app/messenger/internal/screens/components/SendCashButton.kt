@@ -139,8 +139,15 @@ internal fun RowScope.SendCashButton(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (isCallToAction) {
+            // The fee resolves over the network, and this pill is the chat's first frame. Until it
+            // lands the button still has to say what it does, so it names the act without the price.
+            val fee = state.chatInitFee
             Text(
-                text = stringResource(R.string.title_sendTip),
+                text = if (fee != null) {
+                    stringResource(R.string.action_sendToStartChatting, fee)
+                } else {
+                    stringResource(R.string.title_sendTip)
+                },
                 color = contentColor,
                 style = CodeTheme.typography.textMedium,
                 maxLines = 1,

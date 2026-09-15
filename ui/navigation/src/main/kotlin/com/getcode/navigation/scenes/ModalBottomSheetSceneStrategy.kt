@@ -67,6 +67,18 @@ private val Expanded = SheetDetent("expanded") { containerHeight, _ ->
 }
 
 /**
+ * Resting detent for a [com.getcode.navigation.WrapContentSheet]: the height its content asked for,
+ * never more than [Expanded] would have given it.
+ *
+ * The detent is what sizes the sheet — compose-unstyled lays the sheet out to the detent height, not
+ * to the content — so dropping `fillMaxHeight()` from the sheet body is not enough on its own. This
+ * is the half of wrap-content that makes the sheet hug three lines instead of claiming the screen.
+ */
+private val WrapContent = SheetDetent("wrap-content") { containerHeight, sheetHeight ->
+    sheetHeight.coerceAtMost(containerHeight * 0.925f)
+}
+
+/**
  * Resting — and, for short content, only — detent for a [com.getcode.navigation.HalfSheet].
  *
  * The sheet always fills this detent, so its content is measured against it and does not need to
@@ -135,10 +147,16 @@ internal class ModalBottomSheetScene<T : Any> constructor(
             val isWrapContent =
                 metadata[NavMetadataKeys.IsWrapContentSheet.key] as? Boolean ?: false
 
-            // A half sheet gains an extra resting detent and opens there; every other sheet keeps
-            // the two-detent (hidden/expanded) behaviour.
+            // A half sheet gains an extra resting detent and opens there; a wrap-content sheet rests
+            // at its own content height; every other sheet keeps the two-detent (hidden/expanded)
+            // behaviour. Half wins the overlap: those sheets are sized by the fraction, and
+            // wrap-content only strips their `fillMaxHeight()` further down.
             val isHalfSheet = metadata[NavMetadataKeys.IsHalfSheet.key] as? Boolean ?: false
-            val restingDetent = if (isHalfSheet) Half else Expanded
+            val restingDetent = when {
+                isHalfSheet -> Half
+                isWrapContent -> WrapContent
+                else -> Expanded
+            }
 
             // Whether the sheet's content overruns [restingDetent]. Half sheets start out
             // unexpandable and are handed [Expanded] only once their content says it needs it.
@@ -151,11 +169,7 @@ internal class ModalBottomSheetScene<T : Any> constructor(
 
             val sheetState = rememberBottomSheetState(
                 initialDetent = SheetDetent.Hidden,
-                detents = if (isHalfSheet) {
-                    listOf(SheetDetent.Hidden, Half)
-                } else {
-                    listOf(SheetDetent.Hidden, Expanded)
-                },
+                detents = listOf(SheetDetent.Hidden, restingDetent),
                 confirmDetentChange = { detent ->
                     detent != SheetDetent.Hidden || allowDismiss
                 },

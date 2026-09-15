@@ -45,6 +45,9 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MetadataUpdate
 import com.flipcash.services.models.chat.PointerType
+import com.flipcash.services.models.chat.ChatRules
+import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.RosterSummary
 import com.flipcash.services.models.chat.ReactionSummary
 import com.flipcash.services.models.chat.ReactionUpdate
 import com.flipcash.services.models.chat.Reactor
@@ -258,7 +261,7 @@ internal fun MessagingModel.EmojiReaction.toEmojiReaction(): EmojiReaction {
         count = count,
         reactedBySelf = reactedBySelf,
         sampleReactors = sampleReactorsList.map { it.toReactor() },
-        sequence = sequence,
+        sequence = version,
     )
 }
 
@@ -280,7 +283,7 @@ internal fun MessagingModel.ReactionUpdate.toReactionUpdate(): ReactionUpdate {
             else -> ReactionUpdate.Action.UNKNOWN
         },
         count = count,
-        sequence = sequence,
+        sequence = version,
         reactedAt = Instant.fromEpochSeconds(reactedTs.seconds, reactedTs.nanos),
     )
 }
@@ -401,6 +404,54 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
         latestEventSequence = latestEventSequence,
         isHidden = isHidden,
         title = title.takeIf { it.isNotEmpty() },
+        picture = if (hasPicture()) picture.toMediaItem() else null,
+        rosterSummary = rosterSummary.toRosterSummary(),
+        rules = if (hasRules()) rules.toChatRules() else null,
+    )
+}
+
+// -- Chat roster summary --
+
+internal fun ChatModel.RosterSummary.toRosterSummary(): RosterSummary {
+    return RosterSummary(
+        memberCount = memberCount,
+        version = version,
+    )
+}
+
+// -- Chat participation rules --
+
+internal fun ChatModel.Rules.toChatRules(): ChatRules {
+    return ChatRules(
+        listener = listenerList.mapNotNull { it.toRuleRequirementOrNull() },
+        speaker = speakerList.mapNotNull { it.toRuleRequirementOrNull() },
+    )
+}
+
+// Malformed (kind-not-set) entries are dropped rather than defaulted: fabricating a requirement
+// the server never sent would wrongly gate the chat, and inventing "no requirement" would wrongly
+// open it. Both ListenerRules and SpeakerRules mark `kind` as validate.required, so the server
+// is not expected to send one, but a client should not crash decoding an older/newer wire shape.
+internal fun ChatModel.ListenerRules.toRuleRequirementOrNull(): ChatRuleRequirement? {
+    return when (kindCase) {
+        ChatModel.ListenerRules.KindCase.MINIMUM_BALANCE -> minimumBalance.toRuleRequirement()
+        ChatModel.ListenerRules.KindCase.STAFF -> ChatRuleRequirement.Staff
+        else -> null
+    }
+}
+
+internal fun ChatModel.SpeakerRules.toRuleRequirementOrNull(): ChatRuleRequirement? {
+    return when (kindCase) {
+        ChatModel.SpeakerRules.KindCase.MINIMUM_BALANCE -> minimumBalance.toRuleRequirement()
+        ChatModel.SpeakerRules.KindCase.STAFF -> ChatRuleRequirement.Staff
+        else -> null
+    }
+}
+
+internal fun ChatModel.MinimumBalanceRequirement.toRuleRequirement(): ChatRuleRequirement.MinimumBalance {
+    return ChatRuleRequirement.MinimumBalance(
+        amount = amount.toFiat(),
+        mints = mintsList.map { it.toPublicKey() },
     )
 }
 

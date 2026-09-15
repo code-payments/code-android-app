@@ -90,7 +90,9 @@ class AmountEntryDelegate(
     override val config: StateFlow<AmountEntryConfig> = combine(
         _state, style, loadingState, bounds,
     ) { delegateState, currentStyle, loading, (max, min, confirmAllowed) ->
-        val isBelowMin = min != null && currentStyle.belowMinHint != null &&
+        // Whether the entry breaks the floor, asked independently of whether the style has anything
+        // to say about it: a flow can enforce the floor without narrating it.
+        val isBelowMin = min != null &&
             !delegateState.isEmpty && delegateState.enteredAmount > 0 &&
             Fiat(delegateState.enteredAmount, min.currencyCode).valueLessThan(min)
 
@@ -105,7 +107,8 @@ class AmountEntryDelegate(
             (max == null || currentStyle.standingHint == AmountEntryStyle.StandingHint.Floor)
 
         val hint = when {
-            isBelowMin -> AmountEntryHint.Error(currentStyle.belowMinHint!!(min!!.formatted()))
+            isBelowMin && currentStyle.belowMinHint != null ->
+                AmountEntryHint.Error(currentStyle.belowMinHint!!(min!!.formatted()))
             isOverMax -> AmountEntryHint.Error(currentStyle.overMaxHint(max!!.formatted()))
             floorStands -> AmountEntryHint.Info(currentStyle.belowMinHint!!(min!!.formatted()))
             max != null -> AmountEntryHint.Info(currentStyle.infoHint(max.formatted()))
@@ -114,7 +117,8 @@ class AmountEntryDelegate(
 
         AmountEntryConfig(
             hint = hint,
-            canConfirm = delegateState.enteredAmount > 0.0 && confirmAllowed,
+            canConfirm = delegateState.enteredAmount > 0.0 && confirmAllowed &&
+                (!currentStyle.requireMinimum || !isBelowMin),
             canChangeCurrency = currentStyle.canChangeCurrency,
             action = AmountEntryAction(
                 label = currentStyle.actionLabel,

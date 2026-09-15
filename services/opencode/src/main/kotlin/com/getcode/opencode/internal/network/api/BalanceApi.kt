@@ -24,26 +24,31 @@ internal class BalanceApi @Inject constructor(
         .withWaitForReady()
 
     /**
-     * Returns balance data for any owner account.
+     * Returns balance data for a set of owner accounts, optionally filtered to a
+     * set of mints.
      *
      * Unlike every other OpenCode endpoint, this RPC carries no auth/signature field —
-     * it is intentionally unauthenticated so it can resolve the balance for any owner
+     * it is intentionally unauthenticated so it can resolve balances for any owner
      * account address, not just the caller's own. Do not sign this request.
      *
-     * @param owner The owner account to fetch balance data for.
-     * @return The [OcpBalanceService.GetBalanceResponse]
+     * @param owners The owner accounts to fetch balance data for (min 1, max 1024).
+     * @param mints Optional filter to limit the response to balances for these mints.
+     *   When empty, balances for all mints held by each owner are returned.
+     * @return The [OcpBalanceService.GetBalancesResponse]
      */
-    suspend fun getBalance(
-        owner: PublicKey,
-    ): OcpBalanceService.GetBalanceResponse {
-        val request = OcpBalanceService.GetBalanceRequest.newBuilder()
-            .setOwner(owner.asSolanaAccountId())
+    suspend fun getBalances(
+        owners: List<PublicKey>,
+        mints: List<PublicKey> = emptyList(),
+    ): OcpBalanceService.GetBalancesResponse {
+        val request = OcpBalanceService.GetBalancesRequest.newBuilder()
+            .addAllOwners(owners.map { it.asSolanaAccountId() })
+            .addAllMints(mints.map { it.asSolanaAccountId() })
             .build()
 
         request.validate().orThrow()
 
         return withContext(Dispatchers.IO) {
-            api.getBalance(request)
+            api.getBalances(request)
         }
     }
 }

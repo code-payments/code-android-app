@@ -4,9 +4,12 @@ import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
 import com.flipcash.services.internal.domain.mapper.Mapper
 import com.flipcash.services.internal.network.extensions.toChatId
 import com.flipcash.services.internal.network.extensions.toChatMessage
+import com.flipcash.services.internal.network.extensions.toChatRules
 import com.flipcash.services.internal.network.extensions.toChatType
 import com.flipcash.services.internal.network.extensions.toId
+import com.flipcash.services.internal.network.extensions.toMediaItem
 import com.flipcash.services.internal.network.extensions.toPointer
+import com.flipcash.services.internal.network.extensions.toRosterSummary
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
 import kotlin.time.Instant
@@ -36,6 +39,9 @@ class ChatMetadataMapper @Inject constructor(
             latestEventSequence = from.latestEventSequence,
             isHidden = from.isHidden,
             title = from.title.takeIf { it.isNotEmpty() },
+            picture = if (from.hasPicture()) from.picture.toMediaItem() else null,
+            rosterSummary = from.rosterSummary.toRosterSummary(),
+            rules = if (from.hasRules()) from.rules.toChatRules() else null,
         )
     }
 }
