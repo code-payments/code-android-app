@@ -13,7 +13,9 @@ import com.flipcash.app.core.tipping.TipEvent
 import com.flipcash.app.session.Grabbed
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.ModalAnimationSpeed
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 /**
  * Decorator owned by a [Scannable.TipCard] (node 10074:18893). Scanning a card is a way of reaching
@@ -24,7 +26,7 @@ import kotlinx.coroutines.delay
  * The card still gets a beat on screen before the chat takes over. It is the same 450ms the modal
  * used to take sliding up ([ModalAnimationSpeed.Normal] at the tip card's zero confirmation delay),
  * so the scan still reads as "I found this person" rather than as a screen that flashed past. Then
- * the card pops and the push runs together, so the two are one movement rather than two.
+ * the card's pop overlaps the push into the chat, so the hand-off reads as one movement.
  */
 internal data class TipCardDecorator(private val tipCard: Scannable.TipCard) : ScannableDecorator {
     @Composable
@@ -41,15 +43,21 @@ internal data class TipCardDecorator(private val tipCard: Scannable.TipCard) : S
         LaunchedEffect(tipPresented, userId) {
             if (!tipPresented || userId == null) return@LaunchedEffect
             delay(ModalAnimationSpeed.Normal(billState.confirmationDelayMillis).delay.toLong())
-            // Pop and push in the same frame, and pop with [Grabbed] rather than [PutInWallet]:
-            // the card leaves as a 100ms fade-and-scale instead of a 600ms slide back to the
-            // wallet. The overlay lives inside this navigation entry, so the entry slides out from
-            // under it either way — the slide outlasts the handoff and is never seen, while the
-            // pop lands inside it and reads as the card handing you to the chat.
-            context.onDismiss(Grabbed)
-            navigator.push(
-                AppRoute.Messaging.Chat(ChatIdentifier.ByUser(userId, tipCard.user)),
-            )
+            // Dismiss with [Grabbed] rather than [PutInWallet]: the card leaves as a 100ms
+            // fade-and-scale instead of a 600ms slide back to the wallet, which the entry sliding
+            // out from under it would swallow whole. [PopLeadMillis] then gives that pop a head
+            // start, so it is already running when the push takes the entry away — dismissed and
+            // pushed in the same frame, the card is removed rather than seen to leave.
+            //
+            // Uncancellable because dismissing sets the bill to null, which flips `tipPresented`
+            // and restarts this effect; a plain delay here would take the push down with it.
+            withContext(NonCancellable) {
+                context.onDismiss(Grabbed)
+                delay(PopLeadMillis)
+                navigator.push(
+                    AppRoute.Messaging.Chat(ChatIdentifier.ByUser(userId, tipCard.user)),
+                )
+            }
         }
 
         // The coordinator's one-shot UI events. Collected here, not in a modal, so it fires
@@ -74,3 +82,10 @@ internal data class TipCardDecorator(private val tipCard: Scannable.TipCard) : S
         }
     }
 }
+
+/**
+ * How long the card's exit gets to itself before the chat is pushed. Long enough for the
+ * fade-and-scale to be under way when the navigation transition starts, short enough that the two
+ * still read as one movement.
+ */
+private const val PopLeadMillis = 50L
