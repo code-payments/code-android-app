@@ -262,9 +262,15 @@ internal class ChatViewModel @Inject constructor(
         data class RetryMessage(val pendingId: String?, val content: MessageContent) : Event
 
         data object NavigateToAmountEntry : Event
+
+        /** Open the fixed-fee sheet that pays for the DM, instead of the keypad. */
+        data object NavigateToInitPayment : Event
         data object PresentDepositOptions : Event
         data class OpenScreen(val route: AppRoute, val asSheet: Boolean = false): Event
         data object OnConfirmRequested : Event
+
+        /** Confirm the DM-opening fee. The amount comes from the fee, not from the keypad. */
+        data object OnInitPaymentConfirmed : Event
         data class OnSendRequested(
             val amount: Fiat,
             val token: Token,
@@ -1006,6 +1012,10 @@ internal class ChatViewModel @Inject constructor(
             .onEach { onConfirmRequested() }
             .launchIn(viewModelScope)
 
+        eventFlow.filterIsInstance<Event.OnInitPaymentConfirmed>()
+            .onEach { onConfirmRequested(fixedAmount = minAmountFlow.value) }
+            .launchIn(viewModelScope)
+
         eventFlow.filterIsInstance<Event.OnSendCash>()
             // Both contact DMs and tip DMs can send cash; the recipient is whichever participant
             // backs the chat. The final send branches on that type (see Event.OnSendRequested).
@@ -1019,8 +1029,16 @@ internal class ChatViewModel @Inject constructor(
                     }
                     return@onEach
                 }
-                amountDelegate.reset()
-                dispatchEvent(Event.NavigateToAmountEntry)
+                // The payment that opens a tip DM costs exactly the recipient's fee, so there is
+                // nothing to enter — send it straight to the sheet that states the fee. Every
+                // other send, including the moment before the fee resolves, keeps the keypad.
+                val fee = minAmountFlow.value
+                if (fee != null) {
+                    dispatchEvent(Event.NavigateToInitPayment)
+                } else {
+                    amountDelegate.reset()
+                    dispatchEvent(Event.NavigateToAmountEntry)
+                }
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -1167,22 +1185,19 @@ internal class ChatViewModel @Inject constructor(
         chatCoordinator.setActiveChatId(null)
     }
 
-    private fun checkBalanceLimit(): Boolean {
-        val amount = amountDelegate.state.value.enteredAmount
+    private fun checkBalanceLimit(amount: Fiat): Boolean {
         val token = stateFlow.value.token ?: return false
         val rate = exchange.preferredRate
-        val entered = Fiat(amount, rate.currency)
         val balance = tokenCoordinator.balanceForToken(token)
         val balanceInLocal = balance.convertingTo(rate)
-        val isOverBalance = entered.valueGreaterThan(balanceInLocal)
+        val isOverBalance = amount.valueGreaterThan(balanceInLocal)
         if (isOverBalance) {
             presentInsufficientBalance()
         }
         return isOverBalance
     }
 
-    private fun checkSendLimit(): Boolean {
-        val amount = amountDelegate.state.value.enteredAmount
+    private fun checkSendLimit(amount: Double): Boolean {
         val currency = amountDelegate.state.value.currency
         val sendLimit =
             currency.code?.let { stateFlow.value.limits?.sendLimitFor(it) } ?: SendLimit.Zero
@@ -1196,15 +1211,19 @@ internal class ChatViewModel @Inject constructor(
         return isOverLimit
     }
 
-    private fun onConfirmRequested() {
-        if (checkBalanceLimit() || checkSendLimit()) return
+    /**
+     * @param fixedAmount the amount when the flow priced the payment rather than the user typing
+     * it — the fee that opens a tip DM. Null reads the keypad entry.
+     */
+    private fun onConfirmRequested(fixedAmount: Fiat? = null) {
+        val enteredAmount = fixedAmount?.toDouble() ?: amountDelegate.state.value.enteredAmount
+        val amount = fixedAmount ?: Fiat(enteredAmount, exchange.preferredRate.currency)
 
-        val enteredAmount = amountDelegate.state.value.enteredAmount
+        if (checkBalanceLimit(amount) || checkSendLimit(enteredAmount)) return
+
         if (enteredAmount <= 0) return
 
         val token = stateFlow.value.token ?: return
-        val rate = exchange.preferredRate
-        val amount = Fiat(enteredAmount, rate.currency)
 
         if (stateFlow.value.resolveState is ResolveState.Resolved) {
             dispatchEvent(Event.OnSendRequested(
@@ -1324,9 +1343,11 @@ internal class ChatViewModel @Inject constructor(
                 is Event.SendMessage -> { state -> state }
                 is Event.RetryMessage -> { state -> state }
                 Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
+                Event.NavigateToInitPayment -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
                 is Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
                 is Event.OnConfirmRequested -> { state -> state }
+                is Event.OnInitPaymentConfirmed -> { state -> state }
                 is Event.OnSendRequested -> { state -> state }
                 is Event.SendStateUpdated -> { state ->
                     state.copy(

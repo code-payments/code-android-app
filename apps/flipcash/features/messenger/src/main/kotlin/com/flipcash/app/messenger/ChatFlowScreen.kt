@@ -21,6 +21,7 @@ import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
 import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
+import com.flipcash.app.messenger.internal.screens.cash.ChatInitPaymentSheet
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
 import com.getcode.navigation.annotatedEntry
@@ -58,7 +59,8 @@ fun ChatFlowScreen(
         // Popping with the IME still up drags the screen behind it out from under the keyboard.
         onExit = { _, _ -> keyboard.hideIfVisible { navigator.pop() } },
         entryProvider = chatEntryProvider(route.identifier, route.openKeyboard),
-        // ChatStep.AmountEntry is a Sheet, so the flow needs the sheet strategy to draw it as one;
+        // ChatStep.AmountEntry and ChatStep.InitPayment are Sheets, so the flow needs the sheet
+        // strategy to draw them as such;
         // without it the step would fall through to SinglePane and cover the thread. Amount entry
         // returns its result inside the flow (resultBackNavigator), so the strategy's own
         // dismiss-delivers-Canceled path has nothing to address here — hence the null key. A
@@ -80,6 +82,9 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.AmountEntry> {
         FlowAmountEntryScreen()
+    }
+    annotatedEntry<ChatStep.InitPayment> {
+        FlowInitPaymentScreen()
     }
     annotatedEntry<ChatStep.Profile> { step ->
         FlowChatProfileScreen(step.contact)
@@ -118,6 +123,18 @@ private fun FlowConversationScreen(identifier: ChatIdentifier, openKeyboard: Boo
                 // ChatStep.AmountEntry is a FlowStep -> the dispatcher keeps this push on the inner
                 // flow stack and registers the result callback on the inner store (intra-flow).
                 navigator.navigateForResult<ChatSendResult>(ChatStep.AmountEntry) { result ->
+                    if (result is NavResultOrCanceled.ReturnValue) {
+                        viewModel.dispatchEvent(ChatViewModel.Event.OnStartMessageInput)
+                    }
+                }
+            }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<ChatViewModel.Event.NavigateToInitPayment>()
+            .collect {
+                navigator.navigateForResult<ChatSendResult>(ChatStep.InitPayment) { result ->
                     if (result is NavResultOrCanceled.ReturnValue) {
                         viewModel.dispatchEvent(ChatViewModel.Event.OnStartMessageInput)
                     }
@@ -170,6 +187,25 @@ private fun FlowAmountEntryScreen() {
         onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnConfirmRequested) },
         onSendComplete = { resultBack.returnValue(ChatSendResult) }, // intra-flow result -> Conversation
         onExit = dismissSheet,
+    )
+}
+
+@Composable
+private fun FlowInitPaymentScreen() {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    // Same dismissal rule as amount entry: exit through the sheet so it animates down rather than
+    // having its scene deleted mid-frame.
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val resultBack = resultBackNavigator<ChatSendResult>(exit = dismissSheet)
+
+    ChatInitPaymentSheet(
+        fee = state.chatInitFee,
+        token = state.token,
+        sendProgress = state.sendProgress,
+        eventFlow = viewModel.eventFlow,
+        onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnInitPaymentConfirmed) },
+        onSendComplete = { resultBack.returnValue(ChatSendResult) },
     )
 }
 

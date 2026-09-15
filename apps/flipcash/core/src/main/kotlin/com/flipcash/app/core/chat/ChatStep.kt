@@ -2,6 +2,7 @@ package com.flipcash.app.core.chat
 
 import android.os.Parcelable
 import com.getcode.navigation.Sheet
+import com.getcode.navigation.WrapContentSheet
 import com.getcode.navigation.flow.FlowStep
 import com.getcode.navigation.results.NavigationRetVal
 import kotlinx.parcelize.Parcelize
@@ -28,6 +29,18 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data object AmountEntry : ChatStep, NavigationRetVal<ChatSendResult>, Sheet
+
+    /**
+     * The payment that opens a tip DM, at the fee the recipient charges.
+     *
+     * Separate from [AmountEntry] because there is nothing to enter: the fee is the price of the
+     * conversation, so the sheet states it and asks only for the swipe. A [WrapContentSheet] for
+     * the same reason — three lines of content shouldn't claim the screen.
+     */
+    @Parcelize
+    @Serializable
+    data object InitPayment :
+        ChatStep, NavigationRetVal<ChatSendResult>, Sheet, WrapContentSheet
 
     @Parcelize
     @Serializable
