@@ -116,6 +116,7 @@ class ChatCoordinatorEventsTest {
             userManager = userManager,
             stateHolder = stateHolder,
             analytics = mockk(relaxed = true),
+            senderResolver = mockk(relaxed = true),
         )
 
         val dmChatResolverDelegate = DmChatResolverDelegate(

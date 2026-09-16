@@ -134,6 +134,7 @@ class ReceivedCounterTest {
             userManager = userManager,
             stateHolder = stateHolder,
             analytics = analytics,
+            senderResolver = mockk(relaxed = true),
         )
 
         val dmChatResolverDelegate = DmChatResolverDelegate(

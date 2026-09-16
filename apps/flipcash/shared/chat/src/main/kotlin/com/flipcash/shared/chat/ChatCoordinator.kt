@@ -5,6 +5,7 @@ package com.flipcash.shared.chat
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.PagingData
 import com.flipcash.app.core.contacts.DeviceContact
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
@@ -178,6 +179,20 @@ interface MessagingOperations {
      * supplies the last message.
      */
     fun observeMetadata(chatId: ChatId): Flow<ChatMembership?>
+
+    /**
+     * Every profile this device holds, keyed by user-id hex.
+     *
+     * The group transcript indexes into this by a bubble's `senderId` to draw a name and avatar.
+     * A DM never reads it: its only other participant is already the screen's subject.
+     */
+    fun observeSenderProfiles(): Flow<Map<String, UserProfile>>
+
+    /**
+     * Asks for [userId]'s profile if nothing has asked already, for a sender the roster subset
+     * does not cover. Returns immediately; the answer arrives through [observeSenderProfiles].
+     */
+    fun requestSenderProfile(userId: ID)
 
     /** Observes the other member's read pointer in [chatId] (for read receipts). */
     fun observeOtherReadPointer(chatId: ChatId): Flow<MessagePointer?>

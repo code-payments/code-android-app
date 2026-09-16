@@ -25,7 +25,9 @@ import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.DeleteMessageError
 import com.flipcash.services.models.EditMessageError
+import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.chat.ChatHydrationState
+import com.flipcash.shared.chat.internal.SenderResolver
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.PendingMutation
@@ -74,6 +76,7 @@ class MessagingDelegate @Inject constructor(
     private val userManager: UserManager,
     private val stateHolder: ChatStateHolder,
     private val analytics: FlipcashAnalyticsService,
+    private val senderResolver: SenderResolver,
 ) : MessagingOperations {
 
     /**
@@ -177,6 +180,10 @@ class MessagingDelegate @Inject constructor(
                 isMember = entity.isMember,
             )
         }.distinctUntilChanged()
+
+    override fun observeSenderProfiles(): Flow<Map<String, UserProfile>> = senderResolver.profiles
+
+    override fun requestSenderProfile(userId: ID) = senderResolver.request(userId)
 
     override fun observeOtherReadPointer(chatId: ChatId): Flow<MessagePointer?> {
         val selfId = userManager.accountId
@@ -473,6 +480,7 @@ class MessagingDelegate @Inject constructor(
         metadataDataSource.clear()
         messageDataSource.clear()
         memberDataSource.clear()
+        senderResolver.clear()
     }
 
     // endregion

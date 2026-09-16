@@ -70,6 +70,7 @@ class MessagingMutationTest {
             userManager = userManager,
             stateHolder = mockk(relaxed = true),
             analytics = mockk(relaxed = true),
+            senderResolver = mockk(relaxed = true),
         )
     }
 

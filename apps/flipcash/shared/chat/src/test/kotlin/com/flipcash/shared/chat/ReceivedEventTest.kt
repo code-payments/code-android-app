@@ -137,6 +137,7 @@ class ReceivedEventTest {
             userManager = userManager,
             stateHolder = stateHolder,
             analytics = analytics,
+            senderResolver = mockk(relaxed = true),
         )
 
         val dmChatResolverDelegate = DmChatResolverDelegate(
