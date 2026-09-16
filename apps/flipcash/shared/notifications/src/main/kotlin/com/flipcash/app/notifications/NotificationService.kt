@@ -47,6 +47,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.notifications.R
 import com.getcode.utils.TraceType
+import com.getcode.utils.hexEncodedString
 import com.getcode.utils.trace
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -262,7 +263,7 @@ class NotificationService : FirebaseMessagingService(),
             }
 
         val notificationId = if (chatId != null) {
-            builder.applyChatStyle(chatId, groupKey, title, body)
+            builder.applyChatStyle(chatId, groupKey, title, body, payload?.chatMetadata)
         } else {
             builder.setContentTitle(title).setContentText(body)
             SecureRandom().nextInt(Int.MAX_VALUE)
@@ -288,40 +289,59 @@ class NotificationService : FirebaseMessagingService(),
         groupKey: String?,
         title: String?,
         body: String?,
+        metadata: PushChatMetadata?,
     ): Int {
         val notificationId = chatId.hashCode()
 
         // Prefer the device-contact identity (CONTACT_DM, or a counterparty saved
-        // in the address book): the user's own name + photo for them. Only when
-        // that's absent do we fetch the chat member and fall back to their
-        // server-side profile — which is the only identity a TIP_DM has.
-        val contactE164 = contactCoordinator.lookupContactByDmChatId(chatId.toString())?.e164
-        val member = if (contactE164 == null) chatCoordinator.getOtherMember(chatId) else null
-        val e164 = contactE164 ?: member?.userProfile?.verifiedPhoneNumber
+        // in the address book): the user's own name + photo for them. The row is
+        // keyed by DM chat id, so a group can never match it — don't ask.
+        val contactE164 = if (metadata?.chatType != ChatType.GROUP) {
+            contactCoordinator.lookupContactByDmChatId(chatId.toString())?.e164
+        } else {
+            null
+        }
+
+        // Otherwise fall back to the sender's server-side profile — which is the only
+        // identity a TIP_DM has, and the only one a group participant has at all.
+        val lookup = planSenderLookup(
+            chatType = metadata?.chatType,
+            sendingUserId = metadata?.sendingUserId,
+            hasDeviceContact = contactE164 != null,
+        )
+        val sender = when (lookup) {
+            is SenderLookup.ByUserId ->
+                resolveSenderProfile(lookup.userId)?.let { Sender(lookup.userId, it) }
+            SenderLookup.OtherMember ->
+                chatCoordinator.getOtherMember(chatId)?.let { Sender(it.userId, it.userProfile) }
+            SenderLookup.None -> null
+        }
+        val e164 = contactE164 ?: sender?.profile?.verifiedPhoneNumber
 
         val senderName = e164?.let { contactResolver.resolveName(it) }
-            ?: member?.userProfile?.displayName?.takeIf { it.isNotBlank() }
-            ?: member?.userProfile?.socialHandle()
+            ?: sender?.profile?.displayName?.takeIf { it.isNotBlank() }
+            ?: sender?.profile?.socialHandle()
             ?: title
             ?: ""
 
         // Device-contact photo (local, synchronous) first; otherwise the profile
         // picture URL loaded through the app's shared Coil loader (cache-first,
-        // network-bounded). Works for CONTACT_DM and TIP_DM alike.
+        // network-bounded). Works for every chat type: a group sender who is in the
+        // address book resolves through their profile's phone number.
         //
         // Size the rendition to the platform's large-icon dimension (density-scaled) rather than
         // grabbing the smallest THUMBNAIL — the server ships several thumbnail/display sizes and
         // the tiny 32px one looks grainy on the notification's person icon.
         val avatarPx = resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
         val avatar = e164?.let { resolveContactPhoto(it) }
-            ?: member?.userProfile?.profilePicture?.let { picture ->
+            ?: sender?.profile?.profilePicture?.let { picture ->
                 // Through the resolver, not `picture.urlForSize` — the stored download URL expires
                 // and the profile it came from may have been persisted days ago.
                 mediaUrlResolver.urlForSize(
                     media = picture,
                     targetLongestSidePx = avatarPx,
-                    // The counterparty's picture, so their profile is what authorizes a re-mint.
-                    access = BlobAccessContext.profile(member?.userId),
+                    // The sender's picture, so their profile is what authorizes a re-mint.
+                    access = BlobAccessContext.profile(sender.userId),
                 )?.let { url ->
                     loadRemoteAvatar(url, picture.cacheKeyForSize(avatarPx))
                 }
@@ -329,15 +349,21 @@ class NotificationService : FirebaseMessagingService(),
 
         trace(
             tag = "NotificationService",
-            message = "applyChatStyle: chatId=$chatId, groupKey=$groupKey, e164=$e164, hasMember=${member != null}, hasAvatar=${avatar != null}, authenticated=${userManager.accountCluster != null}",
+            message = "applyChatStyle: chatId=$chatId, groupKey=$groupKey, chatType=${metadata?.chatType}, lookup=${lookup::class.simpleName}, e164=$e164, hasSender=${sender != null}, hasAvatar=${avatar != null}, authenticated=${userManager.accountCluster != null}",
             type = TraceType.Log,
         )
 
         val selfPerson = buildSelfPerson(this@NotificationService, userManager.profile, contactResolver)
 
+        // Key the sender by their user id. MessagingStyle tells participants apart by
+        // Person key, and groupKey is per-chat — under it every sender in a group
+        // collapses into one person, so the name and icon of whoever spoke first get
+        // stamped on all of their messages.
+        val senderKey = metadata?.sendingUserId?.hexEncodedString() ?: groupKey ?: "unknown"
+
         val senderPerson = Person.Builder()
             .setName(senderName)
-            .setKey(groupKey ?: "unknown")
+            .setKey(senderKey)
             .apply {
                 if (avatar != null) setIcon(IconCompat.createWithBitmap(avatar.toCircularBitmap()))
             }
@@ -358,6 +384,27 @@ class NotificationService : FirebaseMessagingService(),
 
         return notificationId
     }
+
+    /** Who a chat push is attributed to: their id (for blob access) and their profile. */
+    private data class Sender(val userId: ID, val profile: UserProfile)
+
+    /**
+     * The sender's profile, cache-first.
+     *
+     * `user_profiles` is a superset of the chat roster —
+     * [com.flipcash.app.persistence.sources.ChatMemberDataSource] writes every synced member's
+     * profile into it — so this is a local read for anyone the app has already seen, and only
+     * reaches the network for a group participant it hasn't. The result is written back so the
+     * next push from them doesn't.
+     *
+     * The transcript's [com.flipcash.shared.chat.ChatCoordinator.requestSenderProfile] resolves
+     * the same profiles, but it is fire-and-forget by design (it must not stall Paging), and a
+     * notification has to render now.
+     */
+    private suspend fun resolveSenderProfile(userId: ID): UserProfile? =
+        userProfileDataSource.getCachedProfile(userId)
+            ?: profileController.getProfileForUser(userId).getOrNull()
+                ?.also { userProfileDataSource.store(userId, it) }
 
     /** First social handle (e.g. an X username) to render as a display name, if any. */
     private fun UserProfile.socialHandle(): String? =
