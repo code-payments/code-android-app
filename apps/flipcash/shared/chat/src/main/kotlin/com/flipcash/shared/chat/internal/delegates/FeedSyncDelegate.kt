@@ -10,12 +10,13 @@ import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.PointerType
-import com.flipcash.services.models.chat.isDmAddressable
 import com.flipcash.shared.chat.ChatHydrationState
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.FeedOperations
 import com.flipcash.shared.chat.FeedSyncState
 import com.flipcash.shared.chat.internal.ChatStateHolder
+import com.flipcash.shared.chat.internal.isRenderable
+import com.flipcash.shared.chat.internal.unreadCount
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
@@ -101,41 +102,22 @@ class FeedSyncDelegate @Inject constructor(
 
     // region FeedOperations
 
-    override fun feed(chatType: ChatType): Flow<List<ChatSummary>> =
-        stateHolder.state.map { state ->
+    override fun feed(vararg chatTypes: ChatType): Flow<List<ChatSummary>> {
+        val requested = chatTypes.toSet()
+        return stateHolder.state.map { state ->
             val selfId = userManager.accountId
             val selfPhone = userManager.profile?.verifiedPhoneNumber
-            val isSelf = { member: ChatMember ->
-                member.userId == selfId || (selfPhone != null && member.userProfile.verifiedPhoneNumber == selfPhone)
-            }
             state.feed
-                .filter { it.type == chatType }
-                // Hidden chats (e.g. a DM the user blocked) must not surface in the feed.
-                .filter { !it.isHidden }
-                .mapNotNull { metadata ->
-                    val otherMember = metadata.members.firstOrNull { !isSelf(it) }
-                        ?: return@mapNotNull null
-
-                    // Contact DMs require a resolvable identity (phone / display name). Tip DMs are
-                    // identified by user id and have no phone by design, so they are never dropped.
-                    if (!isDmAddressable(chatType, otherMember.userProfile)) return@mapNotNull null
-
-                    val readPointer = metadata.members
-                        .firstOrNull { it.userId == selfId }
-                        ?.pointers
-                        ?.firstOrNull { it.type == PointerType.READ }
-                        ?.value ?: 0L
-
-                    val unreadCount = metadata.lastMessage?.let { lastMsg ->
-                        if (lastMsg.messageId > readPointer && lastMsg.senderId != selfId) 1 else 0
-                    } ?: 0
-
-                    ChatSummary(metadata = metadata, unreadCount = unreadCount)
+                .filter { it.type in requested }
+                .filter { isRenderable(it, selfId, selfPhone) }
+                .map { metadata ->
+                    ChatSummary(metadata = metadata, unreadCount = unreadCount(metadata, selfId))
                 }
         }
+    }
 
-    override fun observeUnreadConversations(chatType: ChatType): Flow<Int> {
-        return feed(chatType).map { summaries -> summaries.count { it.unreadCount > 0 } }
+    override fun observeUnreadConversations(vararg chatTypes: ChatType): Flow<Int> {
+        return feed(*chatTypes).map { summaries -> summaries.count { it.unreadCount > 0 } }
     }
 
     override fun refreshFeed() {
@@ -221,7 +203,10 @@ class FeedSyncDelegate @Inject constructor(
         metadataEntities: List<ChatMetadataEntity>,
         membersByChat: Map<String, List<ChatMember>>,
     ): List<ChatMetadata> {
-        return metadataEntities.map { entity ->
+        // `is_member` is a column rather than a field on ChatMetadata: a chat you have left is
+        // still a chat you can be shown (Plan C's gate reads the same row), so the flag is dropped
+        // here, at the edge of the list, rather than carried through the domain model.
+        return metadataEntities.filter { it.isMember }.map { entity ->
             val members = membersByChat[entity.chatIdHex] ?: emptyList()
             // Deliberately the newest *visible* message, not the newest row: deleting the newest
             // message drops the feed back to the one before it, so the preview reads that message

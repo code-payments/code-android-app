@@ -23,11 +23,16 @@ import kotlinx.coroutines.flow.StateFlow
  * Implemented by [com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate].
  */
 interface FeedOperations {
-    /** Reactive list of [chatType] conversations, sorted by last activity. */
-    fun feed(chatType: ChatType): Flow<List<ChatSummary>>
+    /**
+     * Reactive list of conversations of any of [chatTypes], sorted by last activity.
+     *
+     * Several types at once because a group and a DM share one list on screen; asking for one
+     * type is still the common case and reads the same as it did.
+     */
+    fun feed(vararg chatTypes: ChatType): Flow<List<ChatSummary>>
 
-    /** Emits the number of [chatType] conversations that have unread messages. */
-    fun observeUnreadConversations(chatType: ChatType): Flow<Int>
+    /** Emits the number of conversations of any of [chatTypes] that have unread messages. */
+    fun observeUnreadConversations(vararg chatTypes: ChatType): Flow<Int>
 
     /** Triggers a server-side feed sync. Safe to call redundantly. */
     fun refreshFeed()
