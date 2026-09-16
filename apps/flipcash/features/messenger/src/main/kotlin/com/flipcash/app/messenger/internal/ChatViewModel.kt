@@ -953,16 +953,27 @@ internal class ChatViewModel @Inject constructor(
             .onEach { typists -> dispatchEvent(Event.TypistsUpdated(typists)) }
             .launchIn(viewModelScope)
 
-        // Enable typing notifications once a payment has been exchanged
-        stateFlow.mapNotNull { it.chatId }
-            .distinctUntilChanged()
-            .flatMapLatest { chatId ->
-                chatCoordinator.observeMessages(chatId)
-                    .map { messages ->
-                        messages.any { msg -> msg.content.any { it is MessageContent.Cash } }
-                    }
-                    .distinctUntilChanged()
+        // A DM opens its composer once a payment has been exchanged. A group has no such
+        // exchange to wait for: its own rules say who may post, and [GroupAccess] has already
+        // applied them — a group that reaches the composer at all is [GroupAccess.Membered], and
+        // one that has not is showing the gate bar instead. Letting a group fall through to the
+        // DM rule left it unable to type until someone tipped into it.
+        combine(
+            stateFlow.mapNotNull { it.chatId }.distinctUntilChanged(),
+            stateFlow.map { it.subject is ChatSubject.Group }.distinctUntilChanged(),
+            ::Pair,
+        )
+            .flatMapLatest { (chatId, isGroup) ->
+                if (isGroup) {
+                    flowOf(true)
+                } else {
+                    chatCoordinator.observeMessages(chatId)
+                        .map { messages ->
+                            messages.any { msg -> msg.content.any { it is MessageContent.Cash } }
+                        }
+                }
             }
+            .distinctUntilChanged()
             .onEach { dispatchEvent(Event.TypingEnabled(it)) }
             .launchIn(viewModelScope)
     }
