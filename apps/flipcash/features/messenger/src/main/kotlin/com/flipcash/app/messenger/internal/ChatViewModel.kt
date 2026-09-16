@@ -24,6 +24,7 @@ import com.flipcash.shared.chat.withinWindows
 import com.flipcash.shared.chat.applying
 import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.ReceiptStatus
@@ -52,6 +53,7 @@ import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.solana.keys.Mint
+import com.getcode.utils.hexEncodedString
 import com.getcode.opencode.model.core.ID
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -376,9 +378,33 @@ internal class ChatViewModel @Inject constructor(
      */
     private val messagePolicy = stateFlow.map { it.messagePolicy }.distinctUntilChanged()
 
+    /**
+     * Null for a DM, a map for a group — the distinction the transcript needs, because a DM's
+     * counterparty is already named in the title bar and attributing each of their bubbles would be
+     * noise. `null` rather than an empty map so the difference survives: an empty map in a group is
+     * a real state (nothing resolved yet) and has to keep asking for profiles, where a DM must not
+     * ask at all.
+     *
+     * Two sources behind it, because the roster is a truncated subset — members come from it, and
+     * anyone it omits (a sender who left, a member past the cap) is asked for one profile at a time.
+     * See SenderResolver.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val senderProfiles: Flow<Map<String, UserProfile>?> =
+        stateFlow.map { it.chatType == ChatType.GROUP }
+            .distinctUntilChanged()
+            .flatMapLatest { isGroup ->
+                if (isGroup) chatCoordinator.observeSenderProfiles() else flowOf(null)
+            }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val messages: Flow<PagingData<ChatListItem>> =
-        combine(messageStream, pendingMutations, messagePolicy) { pagingData, mutations, policy ->
+        combine(
+            messageStream,
+            pendingMutations,
+            messagePolicy,
+            senderProfiles,
+        ) { pagingData, mutations, policy, profiles ->
             pagingData.flatMap { stored ->
                 val message = stored.applying(mutations[stored.messageId])
                 message.content.mapIndexed { index, content ->
@@ -407,6 +433,26 @@ internal class ChatViewModel @Inject constructor(
                         }
                     } else null
 
+                    // A message the viewer sent needs no attribution, and neither does a DM —
+                    // `profiles` is null for one. Asking for a profile that is missing is what keeps
+                    // a sender from showing as a blank name for the rest of the session; the
+                    // resolver dedupes, so asking once per page is asking once.
+                    val sender = profiles?.let { resolved ->
+                        message.senderId?.takeIf { !message.isFromSelf }?.let { senderId ->
+                            val profile = resolved[senderId.hexEncodedString()]
+                            if (profile == null) {
+                                chatCoordinator.requestSenderProfile(senderId)
+                                null
+                            } else {
+                                SenderIdentity(
+                                    userId = senderId,
+                                    displayName = profile.displayName,
+                                    picture = profile.profilePicture,
+                                )
+                            }
+                        }
+                    }
+
                     ChatListItem.ContentBubble(
                         messageId = message.messageId,
                         contentIndex = index,
@@ -424,6 +470,7 @@ internal class ChatViewModel @Inject constructor(
                         // each action site.
                         capabilities = resolveCapabilities(message, policy),
                         quote = quote,
+                        sender = sender,
                     )
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->

@@ -9,7 +9,11 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -19,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,6 +42,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import com.flipcash.app.messenger.internal.screens.ChatAnimations
+import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatAction
@@ -45,6 +51,7 @@ import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.ui.ContentBubble
+import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
@@ -202,46 +209,87 @@ internal fun MessageRow(
                 if (item.receiptStatus == ReceiptStatus.SENDING) {
                     wasSending = true
                 }
-                Column(
+                // Bound to a local: `sender` is a property of another module's public API, so
+                // Kotlin will not smart-cast it to non-null inside the branches below.
+                val sender = item.sender
+                val runStart = startsSenderRun(
+                    current = item,
+                    older = messages.peek(index + 1),
+                )
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
                 ) {
-                    Box(insertionModifier) {
-                        ContentBubble(
-                            item = item,
-                            // The bubble's own targets go with the row's: a cash
-                            // bubble behind the backdrop would otherwise open token
-                            // info from under the bar.
-                            interactive = !selecting,
-                            // A bubble with a tap target of its own consumes the press,
-                            // so the row's long-press never reaches it. Handing it the
-                            // same gesture is what makes a cash bubble selectable.
-                            onLongClick = select,
-                            position = bubblePositionOf(
-                                index,
-                                item,
-                                messages,
-                                separatorConfig
-                            ),
-                            attention = attention,
-                        )
+                    // The gutter is reserved on every row of a sender run, not only the labelled
+                    // one, so the bubbles above and below line up on the same left edge instead of
+                    // stepping in and out as the run starts.
+                    if (sender != null) {
+                        Box(modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x6)) {
+                            if (runStart) {
+                                ContactAvatar(
+                                    image = sender.picture,
+                                    displayName = sender.displayName,
+                                    access = BlobAccessContext.profile(sender.userId),
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape),
+                                )
+                            }
+                        }
                     }
-                    val showReceipt =
-                        shouldShowReceiptLabel(index, item, messages, otherReadPointer)
-                    AnimatedVisibility(
-                        visible = showReceipt && effectiveStatus != null,
-                        enter = EnterTransition.None,
-                        exit = ChatAnimations.receiptExit,
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = if (item.isFromSelf) Alignment.End else Alignment.Start,
                     ) {
-                        if (effectiveStatus != null) {
-                            ReceiptLabel(
-                                status = effectiveStatus,
-                                readPointer = otherReadPointer,
-                                animateEntrance = wasSending,
-                                onRetryFailed = if (effectiveStatus == ReceiptStatus.FAILED) {
-                                    { onAction(ChatAction.RetryMessage(item)) }
-                                } else null,
+                        if (sender != null && runStart) {
+                            Text(
+                                modifier = Modifier.padding(
+                                    start = CodeTheme.dimens.grid.x1,
+                                    bottom = CodeTheme.dimens.grid.x1,
+                                ),
+                                text = sender.displayName,
+                                style = CodeTheme.typography.textSmall,
+                                color = CodeTheme.colors.textSecondary,
                             )
+                        }
+                        Box(insertionModifier) {
+                            ContentBubble(
+                                item = item,
+                                // The bubble's own targets go with the row's: a cash
+                                // bubble behind the backdrop would otherwise open token
+                                // info from under the bar.
+                                interactive = !selecting,
+                                // A bubble with a tap target of its own consumes the press,
+                                // so the row's long-press never reaches it. Handing it the
+                                // same gesture is what makes a cash bubble selectable.
+                                onLongClick = select,
+                                position = bubblePositionOf(
+                                    index,
+                                    item,
+                                    messages,
+                                    separatorConfig
+                                ),
+                                attention = attention,
+                            )
+                        }
+                        val showReceipt =
+                            shouldShowReceiptLabel(index, item, messages, otherReadPointer)
+                        AnimatedVisibility(
+                            visible = showReceipt && effectiveStatus != null,
+                            enter = EnterTransition.None,
+                            exit = ChatAnimations.receiptExit,
+                        ) {
+                            if (effectiveStatus != null) {
+                                ReceiptLabel(
+                                    status = effectiveStatus,
+                                    readPointer = otherReadPointer,
+                                    animateEntrance = wasSending,
+                                    onRetryFailed = if (effectiveStatus == ReceiptStatus.FAILED) {
+                                        { onAction(ChatAction.RetryMessage(item)) }
+                                    } else null,
+                                )
+                            }
                         }
                     }
                 }
@@ -331,4 +379,20 @@ private fun bottomSpacingFor(
         // Same sender, close together → tight
         else -> tight
     }
+}
+
+/**
+ * Whether [current] is the bubble that wears its sender's name and picture.
+ *
+ * `older` is the item drawn *above* [current] — under `reverseLayout` that is `peek(index + 1)`,
+ * the mirror of [bottomSpacingFor]'s `index - 1`. A run is labelled at its top, so the bubble that
+ * starts one is the one whose upper neighbour came from someone else.
+ *
+ * Pure so it can be tested without a `PagingData`: the messenger module has no `paging-testing`
+ * dependency, and the peek belongs to the caller anyway.
+ */
+internal fun startsSenderRun(current: ChatListItem.ContentBubble, older: ChatListItem?): Boolean {
+    val sender = current.sender ?: return false
+    val olderBubble = older as? ChatListItem.ContentBubble ?: return true
+    return olderBubble.sender?.userId != sender.userId
 }

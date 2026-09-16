@@ -43,6 +43,11 @@ sealed interface ChatListItem {
          * never synced still reads as a message.
          */
         val quote: ChatQuote? = null,
+        /**
+         * Who sent this, when that is not implied. Null for the viewer's own messages and for every
+         * message in a DM; set only for another member's message in a group.
+         */
+        val sender: SenderIdentity? = null,
     ) : ChatListItem {
         /** The body a Copy or an Edit acts on, or `null` for a bubble that carries no text. */
         val plainText: String?
