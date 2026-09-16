@@ -184,6 +184,8 @@ class RealChatCoordinator @Inject constructor(
                 when (event) {
                     is GroupFeedDelegate.Event.LoadMessages ->
                         messagingDelegate.loadMessages(event.chatId)
+                    is GroupFeedDelegate.Event.DeltaSyncNeeded ->
+                        eventStreamDelegate.performDeltaSync(event.chatId)
                 }
             }.launchIn(scope)
 

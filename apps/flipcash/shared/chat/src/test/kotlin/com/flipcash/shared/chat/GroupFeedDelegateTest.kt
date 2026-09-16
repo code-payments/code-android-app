@@ -22,8 +22,10 @@ import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
@@ -62,7 +64,7 @@ class GroupFeedDelegateTest {
         pointers = emptyList(),
     )
 
-    private fun group(version: Long = 4) = ChatMetadata(
+    private fun group(version: Long = 4, latestEventSequence: Long = 0) = ChatMetadata(
         chatId = chatId,
         type = ChatType.GROUP,
         members = listOf(member(selfId)),
@@ -70,7 +72,14 @@ class GroupFeedDelegateTest {
         lastActivity = Instant.fromEpochSeconds(1_000),
         title = "Flipcash Staff",
         rosterSummary = RosterSummary(memberCount = 12, version = version),
+        latestEventSequence = latestEventSequence,
     )
+
+    private fun feedReturns(vararg chats: ChatMetadata) {
+        coEvery { controller.getGroupChatFeed(any()) } returns Result.success(
+            ChatFeedPage(chats = chats.toList(), pagingToken = null, hasMore = false)
+        )
+    }
 
     @Test
     fun `a sync persists the groups it fetched`() = runTest {
@@ -106,6 +115,41 @@ class GroupFeedDelegateTest {
         subject.performGroupFeedSync()
 
         coVerify(exactly = 0) { metadataDataSource.upsert(any<List<ChatMetadata>>()) }
+    }
+
+    /**
+     * A feed sync caches each group's last-message preview and nothing else, so a group the device
+     * has never fetched would otherwise open to a single bubble. The applied cursor, not the
+     * presence of a message row, is what says the transcript was pulled.
+     */
+    @Test
+    fun `a synced group the device never fetched asks for its messages`() = runTest {
+        feedReturns(group(latestEventSequence = 9))
+        coEvery { metadataDataSource.getLatestEventSequence(chatId) } returns 0
+
+        subject.performGroupFeedSync()
+
+        assertEquals(GroupFeedDelegate.Event.LoadMessages(chatId), subject.events.first())
+    }
+
+    @Test
+    fun `a synced group whose cursor is behind the feed head streams the gap`() = runTest {
+        feedReturns(group(latestEventSequence = 9))
+        coEvery { metadataDataSource.getLatestEventSequence(chatId) } returns 5
+
+        subject.performGroupFeedSync()
+
+        assertEquals(GroupFeedDelegate.Event.DeltaSyncNeeded(chatId), subject.events.first())
+    }
+
+    @Test
+    fun `a synced group that is already caught up asks for nothing`() = runTest {
+        feedReturns(group(latestEventSequence = 9))
+        coEvery { metadataDataSource.getLatestEventSequence(chatId) } returns 9
+
+        subject.performGroupFeedSync()
+
+        assertNull(withTimeoutOrNull(1_000) { subject.events.first() })
     }
 
     @Test
