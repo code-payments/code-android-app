@@ -32,6 +32,15 @@ import com.getcode.ui.theme.CodeScaffold
 import kotlinx.coroutines.flow.filterIsInstance
 
 /**
+ * Whether the group's profile offers a way out of the group.
+ *
+ * Off while the rest of group membership settles: a leave is not something to hand someone before
+ * the join it undoes is finished. Everything behind it — the confirmation, the call, the close —
+ * is in place, so this is the only line to change when it ships.
+ */
+private const val SHOW_LEAVE_ACTION = false
+
+/**
  * The group's own profile, reached from the info card at the head of its transcript.
  *
  * Driven by the conversation's [ChatViewModel] rather than one of its own: everything on this
@@ -62,9 +71,10 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            // Leaving is the only thing on offer, and only to someone who is in the group. For
-            // anyone else this is the identity header on its own.
-            items = if (group?.isMember == true) {
+            // Leaving is the only thing on offer, and only to someone who is in the group — but
+            // it is held back for now, so this is the identity header on its own. The leave
+            // itself is wired end to end behind [SHOW_LEAVE_ACTION]; flipping it puts the row back.
+            items = if (SHOW_LEAVE_ACTION && group?.isMember == true) {
                 listOf<MenuItem<ChatViewModel.Event>>(LeaveChat)
             } else {
                 emptyList()
