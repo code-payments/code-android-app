@@ -137,6 +137,7 @@ class ReceivedEventTest {
             userManager = userManager,
             stateHolder = stateHolder,
             analytics = analytics,
+            senderResolver = mockk(relaxed = true),
         )
 
         val dmChatResolverDelegate = DmChatResolverDelegate(
@@ -156,7 +157,6 @@ class ReceivedEventTest {
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = testDispatchers,
             groupFeedDelegate = mockk(relaxed = true),
-            featureFlags = mockk(relaxed = true),
         )
     }
 

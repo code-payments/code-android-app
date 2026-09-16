@@ -49,6 +49,7 @@ class MessagingPushedMessageTest {
         userManager = mockk(relaxed = true),
         stateHolder = mockk(relaxed = true),
         analytics = mockk(relaxed = true),
+        senderResolver = mockk(relaxed = true),
     )
 
     @Test

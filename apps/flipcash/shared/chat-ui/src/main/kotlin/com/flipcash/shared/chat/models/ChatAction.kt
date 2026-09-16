@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.models
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
 
 sealed interface ChatAction {
@@ -9,6 +10,19 @@ sealed interface ChatAction {
     object RefreshContact : ChatAction
     data class ViewToken(val mint: Mint) : ChatAction
     data object ViewProfile : ChatAction
+
+    /**
+     * Opens the profile of the member who sent a bubble, from their picture in the gutter.
+     *
+     * Separate from [ViewProfile], which opens whoever the chat itself is with. A group is
+     * with no one, so the only profile reachable from its transcript is a sender's, and the
+     * id is how the handler finds them — the profile it needs is the one the transcript
+     * already resolved to draw this picture.
+     */
+    data class ViewMemberProfile(val userId: ID) : ChatAction
+
+    /** Joins the group this screen is showing. */
+    data object JoinChat : ChatAction
 
     /**
      * Adds [bubble] to the selection, or removes it if it is already selected.

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.paging.PagingSource
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import app.cash.turbine.test
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.converters.ChatRulesSerialized
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
@@ -15,6 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * Covers what a feed sync is allowed to overwrite. `latest_event_sequence` (the applied
@@ -278,6 +280,30 @@ class ChatMetadataDaoTest {
 
         assertEquals(4L, dao.getRosterVersion(CHAT_HEX))
         assertEquals(null, dao.getRosterVersion(OTHER_HEX))
+    }
+
+    @Test
+    fun `observeById re-emits when the row changes`() = runTest {
+        dao.upsert(entity(title = "Flipcash Staff", memberCount = 2, rosterVersion = 1))
+
+        dao.observeById(CHAT_HEX).test {
+            assertEquals(2L, awaitItem()?.memberCount)
+
+            // Through `updateRosterIfNewer`, not `upsert`: the roster columns are versioned and
+            // an upsert deliberately leaves them alone, so this is the write a roster event makes.
+            dao.updateRosterIfNewer(CHAT_HEX, memberCount = 3, rosterVersion = 2)
+            assertEquals(3L, awaitItem()?.memberCount)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `observeById emits null for a chat this device has never stored`() = runTest {
+        dao.observeById(CHAT_HEX).test {
+            assertNull(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     private companion object {

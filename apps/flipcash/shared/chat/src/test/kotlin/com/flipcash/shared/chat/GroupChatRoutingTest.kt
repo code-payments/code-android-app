@@ -1,8 +1,6 @@
 package com.flipcash.shared.chat
 
 import com.flipcash.app.core.dispatchers.TestDispatchers
-import com.flipcash.app.featureflags.FeatureFlag
-import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
@@ -60,7 +58,6 @@ class GroupChatRoutingTest {
     private val chatUpdatesChannel = Channel<ChatUpdate>(capacity = Channel.UNLIMITED)
 
     private val groupFeedDelegate = mockk<GroupFeedDelegate>(relaxed = true)
-    private val featureFlags = mockk<FeatureFlagController>(relaxed = true)
 
     private val testDispatchers = TestDispatchers(TestCoroutineScheduler())
 
@@ -118,12 +115,12 @@ class GroupChatRoutingTest {
                 userManager = userManager,
                 stateHolder = stateHolder,
                 analytics = mockk(relaxed = true),
+                senderResolver = mockk(relaxed = true),
             ),
             groupFeedDelegate = groupFeedDelegate,
             stateHolder = stateHolder,
             userManager = userManager,
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
-            featureFlags = featureFlags,
             dispatchers = testDispatchers,
         )
     }
@@ -140,7 +137,6 @@ class GroupChatRoutingTest {
 
     @Test
     fun `a roster change on the stream reaches the group delegate`() = runTest(testDispatchers.dispatcher) {
-        coEvery { featureFlags.get(FeatureFlag.GroupChats) } returns true
         val subject = coordinator()
         subject.onUserLoggedIn(mockk<AccountCluster>(relaxed = true))
         runCurrent()
@@ -154,7 +150,6 @@ class GroupChatRoutingTest {
 
     @Test
     fun `an update with no roster change does not reach the group delegate`() = runTest(testDispatchers.dispatcher) {
-        coEvery { featureFlags.get(FeatureFlag.GroupChats) } returns true
         val subject = coordinator()
         subject.onUserLoggedIn(mockk<AccountCluster>(relaxed = true))
         runCurrent()
@@ -167,32 +162,19 @@ class GroupChatRoutingTest {
     }
 
     @Test
-    fun `logging in syncs the group feed when the flag is on`() = runTest(testDispatchers.dispatcher) {
-        coEvery { featureFlags.get(FeatureFlag.GroupChats) } returns true
-
+    fun `logging in syncs the group feed`() = runTest(testDispatchers.dispatcher) {
         val subject = coordinator()
         subject.onUserLoggedIn(mockk<AccountCluster>(relaxed = true))
         runCurrent()
 
+        // Unconditional: the GroupChats flag filters the list, it does not decide whether the
+        // cache is populated. Gating the fetch here made the toggle a no-op until the next launch.
         coVerify { groupFeedDelegate.syncGroupFeed() }
         subject.teardown()
     }
 
     @Test
-    fun `logging in does not sync the group feed when the flag is off`() = runTest(testDispatchers.dispatcher) {
-        coEvery { featureFlags.get(FeatureFlag.GroupChats) } returns false
-
-        val subject = coordinator()
-        subject.onUserLoggedIn(mockk<AccountCluster>(relaxed = true))
-        runCurrent()
-
-        coVerify(exactly = 0) { groupFeedDelegate.syncGroupFeed() }
-        subject.teardown()
-    }
-
-    @Test
     fun `teardown cancels the group delegate's jobs`() = runTest(testDispatchers.dispatcher) {
-        coEvery { featureFlags.get(FeatureFlag.GroupChats) } returns true
         val subject = coordinator()
         subject.onUserLoggedIn(mockk<AccountCluster>(relaxed = true))
         runCurrent()

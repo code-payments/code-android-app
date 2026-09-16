@@ -24,6 +24,7 @@ import com.flipcash.shared.chat.withinWindows
 import com.flipcash.shared.chat.applying
 import com.flipcash.shared.chat.resolveCapabilities
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.SenderIdentity
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.ReceiptStatus
@@ -48,8 +49,11 @@ import com.flipcash.shared.amountentry.AmountEntryLabel
 import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
+import com.getcode.solana.keys.Mint
+import com.getcode.utils.hexEncodedString
 import com.getcode.opencode.model.core.ID
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -72,6 +76,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -137,7 +142,7 @@ internal class ChatViewModel @Inject constructor(
     data class State(
         val separatorConfig: SeparatorConfig = SeparatorConfig.Continuous(),
         val chatId: ChatId? = null,
-        val participant: ChatParticipant? = null,
+        val subject: ChatSubject? = null,
         // The kind of DM this conversation is, resolved from the fast local contact lookup ahead of
         // the participant's server profile (which resolves over the network for tip DMs). Starts
         // UNKNOWN and settles to CONTACT_DM / TIP_DM as soon as the chat opens; the send button and
@@ -218,10 +223,31 @@ internal class ChatViewModel @Inject constructor(
          * the reducer is where the selection is set.
          */
         val messagePolicy: MessagePolicy = MessagePolicy.Default,
+        /**
+         * The symbol of the token a group's balance requirement names — "BadBoys", not its mint.
+         * Null until the token cache has it, and null for any chat without such a rule.
+         */
+        val ruleTicker: String? = null,
+        /**
+         * What this viewer may do here. Null for anything that is not a group — a DM has no gate,
+         * and rendering one from a default would blur every contact conversation in the app.
+         */
+        val groupAccess: GroupAccess? = null,
     ) {
-        // Opening the participant's profile (the entry point to blocking) is only available for tip DMs.
+        /**
+         * The DM counterparty, or `null` for a group.
+         *
+         * Kept as a derived property so the paths that predate [ChatSubject] — the quote accent,
+         * the tip recipient flow and the payment branches — keep reading what they always read.
+         * None of them is reachable from a group, which is exactly what a `null` says here.
+         */
+        val participant: ChatParticipant?
+            get() = subject?.asParticipant()
+
+        // Opening the participant's profile (the entry point to blocking) is the tip arm's answer
+        // alone. Asking the subject rather than comparing chat types means a new arm has to say.
         val canViewProfile: Boolean
-            get() = chatType == ChatType.TIP_DM
+            get() = subject?.canViewProfile == true
 
         /** What the selection bar may offer, straight from what the transcript already resolved. */
         val selectionCapabilities: Set<MessageCapability>
@@ -246,6 +272,27 @@ internal class ChatViewModel @Inject constructor(
         data class OnContactFound(val contact: DeviceContact): Event
         data class OnTipUserResolved(val userId: ID, val profile: UserProfile): Event
         data object OnTipDmDetected : Event
+
+        /** The chat this screen is showing turned out to be a group, with this metadata. */
+        data class OnGroupResolved(val membership: ChatMembership) : Event
+
+        /** The token cache learned the symbol behind the group's balance requirement. */
+        data class OnRuleTickerResolved(val ticker: String?) : Event
+
+        /** The gate re-decided, because membership, the rules, or the balance moved. */
+        data class OnGroupAccessResolved(val access: GroupAccess) : Event
+
+        /** The gate's "Join Chat" button. */
+        data object JoinChat : Event
+
+        /** The group profile's "Leave Chat" row, which puts the confirmation up. */
+        data object LeaveChat : Event
+
+        /** The user confirmed the leave. */
+        data object LeaveConfirmed : Event
+
+        /** The leave went through, so whatever is showing the group's profile should close. */
+        data object LeftChat : Event
         data class OnCurrencySymbolUpdated(val symbol: String): Event
         data class OnChatInitFeeUpdated(val formatted: String?) : Event
         data object RefreshContact : Event
@@ -352,9 +399,48 @@ internal class ChatViewModel @Inject constructor(
      */
     private val messagePolicy = stateFlow.map { it.messagePolicy }.distinctUntilChanged()
 
+    /**
+     * Null for a DM, a map for a group — the distinction the transcript needs, because a DM's
+     * counterparty is already named in the title bar and attributing each of their bubbles would be
+     * noise. `null` rather than an empty map so the difference survives: an empty map in a group is
+     * a real state (nothing resolved yet) and has to keep asking for profiles, where a DM must not
+     * ask at all.
+     *
+     * Two sources behind it, because the roster is a truncated subset — members come from it, and
+     * anyone it omits (a sender who left, a member past the cap) is asked for one profile at a time.
+     * See SenderResolver.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val senderProfiles: StateFlow<Map<String, UserProfile>?> =
+        stateFlow.map { it.chatType == ChatType.GROUP }
+            .distinctUntilChanged()
+            .flatMapLatest { isGroup ->
+                if (isGroup) chatCoordinator.observeSenderProfiles() else flowOf(null)
+            }
+            // Held rather than cold so a tap on a sender's picture can read the profile that drew
+            // it. The transcript is the only thing that asks for these, so the map the paging
+            // stream is using is the one to answer from — looking the sender up again would be a
+            // second source for an identity already on screen.
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /**
+     * The member behind [userId], as a participant a profile screen can be opened on.
+     *
+     * Null until the transcript has resolved them, which it has by the time their picture is
+     * drawn — the picture is what this is reached from.
+     */
+    fun memberParticipant(userId: ID): ChatParticipant.TipUser? =
+        senderProfiles.value?.get(userId.hexEncodedString())
+            ?.let { ChatParticipant.TipUser(userId, it) }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val messages: Flow<PagingData<ChatListItem>> =
-        combine(messageStream, pendingMutations, messagePolicy) { pagingData, mutations, policy ->
+        combine(
+            messageStream,
+            pendingMutations,
+            messagePolicy,
+            senderProfiles,
+        ) { pagingData, mutations, policy, profiles ->
             pagingData.flatMap { stored ->
                 val message = stored.applying(mutations[stored.messageId])
                 message.content.mapIndexed { index, content ->
@@ -383,6 +469,26 @@ internal class ChatViewModel @Inject constructor(
                         }
                     } else null
 
+                    // A message the viewer sent needs no attribution, and neither does a DM —
+                    // `profiles` is null for one. Asking for a profile that is missing is what keeps
+                    // a sender from showing as a blank name for the rest of the session; the
+                    // resolver dedupes, so asking once per page is asking once.
+                    val sender = profiles?.let { resolved ->
+                        message.senderId?.takeIf { !message.isFromSelf }?.let { senderId ->
+                            val profile = resolved[senderId.hexEncodedString()]
+                            if (profile == null) {
+                                chatCoordinator.requestSenderProfile(senderId)
+                                null
+                            } else {
+                                SenderIdentity(
+                                    userId = senderId,
+                                    displayName = profile.displayName,
+                                    picture = profile.profilePicture,
+                                )
+                            }
+                        }
+                    }
+
                     ChatListItem.ContentBubble(
                         messageId = message.messageId,
                         contentIndex = index,
@@ -400,6 +506,7 @@ internal class ChatViewModel @Inject constructor(
                         // each action site.
                         capabilities = resolveCapabilities(message, policy),
                         quote = quote,
+                        sender = sender,
                     )
                 }
             }.insertSeparators { before: ChatListItem.ContentBubble?, after: ChatListItem.ContentBubble? ->
@@ -417,16 +524,32 @@ internal class ChatViewModel @Inject constructor(
      * [ChatParticipant.Contact] wraps a device contact and carries no user id, so the participant
      * is not a usable source for a counterparty's colour.
      */
+    /**
+     * Who the citation says said it.
+     *
+     * A DM's counterparty is the chat's, so the participant answers for every message they sent.
+     * A group has no counterparty and a different name per message, so the answer is the cited
+     * sender's own profile — the same map the transcript draws their bubble from. Missing means
+     * the device has never seen them, which a request fixes for the next emission; the strip
+     * showing a blank name is what it looked like before.
+     */
+    private suspend fun ChatMessage.quoteAuthorName(): String {
+        if (isFromSelf) return resources.getString(R.string.title_you)
+
+        val profiles = senderProfiles.value ?: return stateFlow.value.participant?.name.orEmpty()
+        val senderId = senderId ?: return ""
+        val profile = profiles[senderId.hexEncodedString()]
+            ?: return "".also { chatCoordinator.requestSenderProfile(senderId) }
+
+        return profile.displayName
+    }
+
     private suspend fun ChatMessage.toQuote(): ChatQuote {
         val body = content.firstOrNull()
         val palette = senderId?.let { generateComplementaryColorPalette(it) }
         return ChatQuote(
             messageId = messageId,
-            authorName = if (isFromSelf) {
-                resources.getString(R.string.title_you)
-            } else {
-                stateFlow.value.participant?.name.orEmpty()
-            },
+            authorName = quoteAuthorName(),
             snippet = when (body) {
                 is MessageContent.Cash -> ChatQuoteSnippet.Cash(
                     amount = body.amount,
@@ -696,6 +819,48 @@ internal class ChatViewModel @Inject constructor(
             .onEach { member -> dispatchEvent(Event.OnTipUserResolved(member.userId, member.userProfile)) }
             .launchIn(viewModelScope)
 
+        // A group's identity is its own row, not a counterparty. Observed rather than read once
+        // because every field the chrome shows moves under the user: a roster event changes the
+        // member count, a join flips membership, a rules change moves the gate.
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatCoordinator.observeMetadata(it) }
+            .filterNotNull()
+            .filter { it.metadata.type == ChatType.GROUP }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnGroupResolved(it)) }
+            .launchIn(viewModelScope)
+
+        // The cache starts empty and fills in, so this is observed rather than read once — a
+        // requirement resolved against an empty cache would render its amount with no token beside
+        // it and never correct itself.
+        combine(
+            stateFlow.map { (it.subject as? ChatSubject.Group)?.rules.balanceRequirement() }
+                .distinctUntilChanged(),
+            tokenCoordinator.observeTokenCache(),
+        ) { requirement, tokens ->
+            requirement?.mints?.firstOrNull()?.let { tokens[Mint(it.bytes)]?.symbol }
+        }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnRuleTickerResolved(it)) }
+            .launchIn(viewModelScope)
+
+        // Re-resolved whenever membership or the rules move, and internally whenever the balance
+        // does. flatMapLatest rather than combine because the balance flow is the inner one: a new
+        // subject must cancel the gate it was deciding, not race it.
+        stateFlow.map { it.subject as? ChatSubject.Group }
+            .distinctUntilChanged()
+            .flatMapLatest { group ->
+                if (group == null) {
+                    flowOf(null)
+                } else {
+                    tokenCoordinator.groupAccess(isMember = group.isMember, rules = group.rules)
+                }
+            }
+            .filterNotNull()
+            .onEach { dispatchEvent(Event.OnGroupAccessResolved(it)) }
+            .launchIn(viewModelScope)
+
         // Observe member identity — if the other member loses identity (e.g. unlinked
         // their phone), mark the chat as read-only. Gated by chat type through the same rule the
         // feed filters on, so a tip DM — addressed by user id, named by handle — is never
@@ -829,16 +994,27 @@ internal class ChatViewModel @Inject constructor(
             .onEach { typists -> dispatchEvent(Event.TypistsUpdated(typists)) }
             .launchIn(viewModelScope)
 
-        // Enable typing notifications once a payment has been exchanged
-        stateFlow.mapNotNull { it.chatId }
-            .distinctUntilChanged()
-            .flatMapLatest { chatId ->
-                chatCoordinator.observeMessages(chatId)
-                    .map { messages ->
-                        messages.any { msg -> msg.content.any { it is MessageContent.Cash } }
-                    }
-                    .distinctUntilChanged()
+        // A DM opens its composer once a payment has been exchanged. A group has no such
+        // exchange to wait for: its own rules say who may post, and [GroupAccess] has already
+        // applied them — a group that reaches the composer at all is [GroupAccess.Membered], and
+        // one that has not is showing the gate bar instead. Letting a group fall through to the
+        // DM rule left it unable to type until someone tipped into it.
+        combine(
+            stateFlow.mapNotNull { it.chatId }.distinctUntilChanged(),
+            stateFlow.map { it.subject is ChatSubject.Group }.distinctUntilChanged(),
+            ::Pair,
+        )
+            .flatMapLatest { (chatId, isGroup) ->
+                if (isGroup) {
+                    flowOf(true)
+                } else {
+                    chatCoordinator.observeMessages(chatId)
+                        .map { messages ->
+                            messages.any { msg -> msg.content.any { it is MessageContent.Cash } }
+                        }
+                }
             }
+            .distinctUntilChanged()
             .onEach { dispatchEvent(Event.TypingEnabled(it)) }
             .launchIn(viewModelScope)
     }
@@ -918,6 +1094,53 @@ internal class ChatViewModel @Inject constructor(
                     // out of, which reads as a second confirmation still pending.
                     onDismiss = { dispatchEvent(Event.ClearMessageSelection) },
                 )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.JoinChat>()
+            .onEach {
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                // No optimistic flip. `join` caches the chat and the membership flag comes back
+                // through observeMetadata, which is the same path a join from another device takes —
+                // one source for the gate rather than two that can disagree.
+                chatCoordinator.join(chatId)
+                    .onFailure { trace("failed to join chat - ${it.localizedMessage}") }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.LeaveChat>()
+            .mapNotNull { stateFlow.value.subject as? ChatSubject.Group }
+            .onEach { group ->
+                BottomBarManager.showAlert(
+                    title = resources.getString(
+                        R.string.prompt_title_leaveChat,
+                        group.title,
+                    ),
+                    message = resources.getString(R.string.prompt_description_leaveChat),
+                    actions = listOf(
+                        BottomBarAction(text = resources.getString(R.string.action_leaveChat)) {
+                            dispatchEvent(Event.LeaveConfirmed)
+                        }
+                    ),
+                    showCancel = true,
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.LeaveConfirmed>()
+            .onEach {
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                // `leave` clears the membership locally before the call, so the gate is back in
+                // place by the time the profile closes — the same single source the join reads.
+                chatCoordinator.leave(chatId)
+                    .onSuccess { dispatchEvent(Event.LeftChat) }
+                    .onFailure {
+                        trace("failed to leave chat - ${it.localizedMessage}")
+                        BottomBarManager.showError(
+                            title = resources.getString(R.string.error_title_failedToLeave),
+                            message = resources.getString(R.string.error_description_failedToLeave),
+                        )
+                    }
             }
             .launchIn(viewModelScope)
 
@@ -1290,7 +1513,7 @@ internal class ChatViewModel @Inject constructor(
                     when (val id = event.identifier) {
                         is ChatIdentifier.ByContact ->
                             state.copy(
-                                participant = ChatParticipant.Contact(id.contact),
+                                subject = ChatSubject.Contact(ChatParticipant.Contact(id.contact)),
                                 chatType = ChatType.CONTACT_DM,
                             )
                         is ChatIdentifier.ByChatId -> state
@@ -1300,7 +1523,9 @@ internal class ChatViewModel @Inject constructor(
                         // profile to observe.
                         is ChatIdentifier.ByUser ->
                             state.copy(
-                                participant = ChatParticipant.TipUser(id.userId, id.profile),
+                                subject = ChatSubject.TipUser(
+                                    ChatParticipant.TipUser(id.userId, id.profile)
+                                ),
                                 chatType = ChatType.TIP_DM,
                                 resolveState = ResolveState.Resolved,
                             )
@@ -1308,19 +1533,42 @@ internal class ChatViewModel @Inject constructor(
                 }
                 is Event.OnContactFound -> { state ->
                     state.copy(
-                        participant = ChatParticipant.Contact(event.contact),
+                        subject = ChatSubject.Contact(ChatParticipant.Contact(event.contact)),
                         chatType = ChatType.CONTACT_DM,
                     )
                 }
                 Event.OnTipDmDetected -> { state -> state.copy(chatType = ChatType.TIP_DM) }
+                is Event.OnGroupResolved -> { state ->
+                    val metadata = event.membership.metadata
+                    state.copy(
+                        subject = ChatSubject.Group(
+                            chatId = metadata.chatId,
+                            groupTitle = metadata.title,
+                            picture = metadata.picture,
+                            memberCount = metadata.rosterSummary.memberCount,
+                            rules = metadata.rules,
+                            isMember = event.membership.isMember,
+                        ),
+                        chatType = ChatType.GROUP,
+                        resolveState = ResolveState.Resolved,
+                    )
+                }
+                is Event.OnRuleTickerResolved -> { state -> state.copy(ruleTicker = event.ticker) }
+                is Event.OnGroupAccessResolved -> { state -> state.copy(groupAccess = event.access) }
+                Event.JoinChat,
+                Event.LeaveChat,
+                Event.LeaveConfirmed,
+                Event.LeftChat -> { state -> state }
                 is Event.OnTipUserResolved -> { state ->
                     // A device contact, once matched, wins over the server profile (it carries the
                     // phone number and the user's own naming). Otherwise this is a tip DM: adopt the
                     // profile identity and mark the recipient resolved so the send can proceed (the
                     // tip user is known to exist; the tip send resolves their address at send time).
-                    if (state.participant is ChatParticipant.Contact) state
+                    if (state.subject is ChatSubject.Contact) state
                     else state.copy(
-                        participant = ChatParticipant.TipUser(event.userId, event.profile),
+                        subject = ChatSubject.TipUser(
+                            ChatParticipant.TipUser(event.userId, event.profile)
+                        ),
                         chatType = ChatType.TIP_DM,
                         resolveState = ResolveState.Resolved,
                     )

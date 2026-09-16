@@ -63,7 +63,11 @@ internal fun RowScope.SendCashButton(
     // is the entire bar. Condensing it there would leave a full-width transparent "$"; what the
     // chat actually needs is its one call to action, so it stays white and says what it does.
     val isCallToAction = isTipChat && !canType
-    val isTyping = !isCallToAction && (isTipChat || state.chatInputState.text.isNotEmpty())
+    // A group is condensed like a tip chat: the group is not one counterparty to "Send $" to, and
+    // the expanded pill would take the row from a composer that is always open there.
+    val isGroupChat = state.chatType == ChatType.GROUP
+    val isTyping = !isCallToAction &&
+        (isTipChat || isGroupChat || state.chatInputState.text.isNotEmpty())
 
     // Colors ease slowly and independently of the width/label so the fill change reads as one calm
     // transition instead of snapping with the resize — but NOT on the first settle. A tip chat opens

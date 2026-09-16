@@ -50,6 +50,13 @@ class GroupFeedDelegate @Inject constructor(
     sealed interface Event {
         /** A group whose transcript the device does not have yet. */
         data class LoadMessages(val chatId: ChatId) : Event
+
+        /**
+         * The group's applied cursor is behind the feed's head, so the device is missing a window
+         * of its transcript. Same contract as
+         * [FeedSyncDelegate.Event.DeltaSyncNeeded][FeedSyncDelegate.Event.DeltaSyncNeeded].
+         */
+        data class DeltaSyncNeeded(val chatId: ChatId) : Event
     }
 
     private val _events = Channel<Event>(Channel.UNLIMITED)
@@ -87,6 +94,18 @@ class GroupFeedDelegate @Inject constructor(
             return
         }
         persist(page.chats)
+
+        // Caching the feed is not the same as having the transcript: [persist] writes each group's
+        // last-message preview and nothing else, so without this a synced group opens to a single
+        // bubble. The applied cursor is what says whether the transcript was ever pulled — a feed
+        // sync never writes it. Same rule the DM feed applies in [FeedSyncDelegate].
+        for (chat in page.chats) {
+            val cursor = metadataDataSource.getLatestEventSequence(chat.chatId)
+            when {
+                cursor <= 0L -> _events.send(Event.LoadMessages(chat.chatId))
+                chat.latestEventSequence > cursor -> _events.send(Event.DeltaSyncNeeded(chat.chatId))
+            }
+        }
     }
 
     /**

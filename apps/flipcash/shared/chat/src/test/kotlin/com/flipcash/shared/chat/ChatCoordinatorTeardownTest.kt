@@ -107,13 +107,13 @@ class ChatCoordinatorTeardownTest {
                 userManager = userManager,
                 stateHolder = stateHolder,
                 analytics = mockk(relaxed = true),
+                senderResolver = mockk(relaxed = true),
             ),
             stateHolder = stateHolder,
             userManager = userManager,
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = TestDispatchers(TestCoroutineScheduler()),
             groupFeedDelegate = mockk(relaxed = true),
-            featureFlags = mockk(relaxed = true),
         )
     }
 

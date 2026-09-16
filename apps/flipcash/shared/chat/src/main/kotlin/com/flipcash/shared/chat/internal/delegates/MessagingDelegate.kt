@@ -25,7 +25,10 @@ import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.DeleteMessageError
 import com.flipcash.services.models.EditMessageError
+import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.chat.ChatHydrationState
+import com.flipcash.shared.chat.internal.SenderResolver
+import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.PendingMutation
 import com.flipcash.shared.chat.internal.ChatStateHolder
@@ -37,6 +40,7 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -72,6 +76,7 @@ class MessagingDelegate @Inject constructor(
     private val userManager: UserManager,
     private val stateHolder: ChatStateHolder,
     private val analytics: FlipcashAnalyticsService,
+    private val senderResolver: SenderResolver,
 ) : MessagingOperations {
 
     /**
@@ -161,6 +166,24 @@ class MessagingDelegate @Inject constructor(
     override fun observeMembers(chatId: ChatId): Flow<List<ChatMember>> {
         return memberDataSource.observeMembers(chatId)
     }
+
+    override fun observeMetadata(chatId: ChatId): Flow<ChatMembership?> =
+        combine(
+            metadataDataSource.observeById(chatId),
+            memberDataSource.observeMembers(chatId),
+        ) { entity, members ->
+            entity ?: return@combine null
+            val lastMessage = entity.lastMessageId
+                ?.let { messageDataSource.getLatestVisible(entity.chatIdHex) }
+            ChatMembership(
+                metadata = metadataDataSource.toMetadata(entity, members, lastMessage),
+                isMember = entity.isMember,
+            )
+        }.distinctUntilChanged()
+
+    override fun observeSenderProfiles(): Flow<Map<String, UserProfile>> = senderResolver.profiles
+
+    override fun requestSenderProfile(userId: ID) = senderResolver.request(userId)
 
     override fun observeOtherReadPointer(chatId: ChatId): Flow<MessagePointer?> {
         val selfId = userManager.accountId
@@ -457,6 +480,7 @@ class MessagingDelegate @Inject constructor(
         metadataDataSource.clear()
         messageDataSource.clear()
         memberDataSource.clear()
+        senderResolver.clear()
     }
 
     // endregion

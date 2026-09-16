@@ -139,13 +139,13 @@ class ChatHistoryHydrationTest {
                 userManager = userManager,
                 stateHolder = stateHolder,
                 analytics = mockk(relaxed = true),
+                senderResolver = mockk(relaxed = true),
             ),
             stateHolder = stateHolder,
             userManager = userManager,
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = TestDispatchers(testScheduler),
             groupFeedDelegate = mockk(relaxed = true),
-            featureFlags = mockk(relaxed = true),
         )
     }
 

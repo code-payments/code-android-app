@@ -45,4 +45,16 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data class Profile(val contact: ChatParticipant): ChatStep
+
+    /**
+     * The group's own profile — the counterpart of [Profile] for a chat that has no counterparty.
+     *
+     * Carries nothing, because there is nothing a group can be identified by that the flow does
+     * not already hold: the screen reads the group off the conversation's view model, the same
+     * way the transcript does. [Profile] has to carry its participant because a member's profile
+     * is opened from a bubble rather than from the chat the flow was opened on.
+     */
+    @Parcelize
+    @Serializable
+    data object GroupProfile : ChatStep
 }

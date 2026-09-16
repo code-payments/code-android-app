@@ -134,6 +134,7 @@ class ReceivedCounterTest {
             userManager = userManager,
             stateHolder = stateHolder,
             analytics = analytics,
+            senderResolver = mockk(relaxed = true),
         )
 
         val dmChatResolverDelegate = DmChatResolverDelegate(
@@ -153,7 +154,6 @@ class ReceivedCounterTest {
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = testDispatchers,
             groupFeedDelegate = mockk(relaxed = true),
-            featureFlags = mockk(relaxed = true),
         )
     }
 

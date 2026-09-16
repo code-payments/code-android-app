@@ -26,6 +26,10 @@ class ChatMetadataDataSource @Inject constructor(
     fun observeAll(): Flow<List<ChatMetadataEntity>> =
         db?.chatMetadataDao()?.observeAll() ?: emptyFlow()
 
+    /** One chat's row by [chatId], re-emitted on change; `null` while it is not stored. */
+    fun observeById(chatId: ChatId): Flow<ChatMetadataEntity?> =
+        db?.chatMetadataDao()?.observeById(mapper.chatIdHex(chatId)) ?: emptyFlow()
+
     /**
      * The merged feed of [chatTypes] as a Paging source.
      *

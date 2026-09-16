@@ -54,6 +54,20 @@ interface ChatMetadataDao {
     @Query("SELECT * FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
     suspend fun getById(chatIdHex: String): ChatMetadataEntity?
 
+    /**
+     * One chat's row, re-emitted whenever it changes.
+     *
+     * The chrome and the access gate read title, picture, member count, rules and membership off
+     * this row, and every one of them moves under the user — a roster event changes the count, a
+     * join flips membership. Room re-runs the query on any write to `chat_metadata`, so a screen
+     * observing this needs nothing that polls.
+     *
+     * Emits `null` for a chat this device has not stored, which is the state a chat opened from a
+     * link sits in until its sync lands.
+     */
+    @Query("SELECT * FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
+    fun observeById(chatIdHex: String): Flow<ChatMetadataEntity?>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIfAbsent(entity: ChatMetadataEntity): Long
 

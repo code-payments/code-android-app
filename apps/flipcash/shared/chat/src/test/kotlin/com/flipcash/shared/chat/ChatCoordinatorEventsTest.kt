@@ -116,6 +116,7 @@ class ChatCoordinatorEventsTest {
             userManager = userManager,
             stateHolder = stateHolder,
             analytics = mockk(relaxed = true),
+            senderResolver = mockk(relaxed = true),
         )
 
         val dmChatResolverDelegate = DmChatResolverDelegate(
@@ -135,7 +136,6 @@ class ChatCoordinatorEventsTest {
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = testDispatchers,
             groupFeedDelegate = mockk(relaxed = true),
-            featureFlags = mockk(relaxed = true),
         )
     }
 

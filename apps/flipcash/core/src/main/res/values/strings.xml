@@ -250,6 +250,12 @@
         <item quantity="other">%1$s members</item>
     </plurals>
 
+    <plurals name="subtitle_chatMemberCount">
+        <item quantity="zero">0 people</item>
+        <item quantity="one">1 person</item>
+        <item quantity="other">%1$s people</item>
+    </plurals>
+
     <string name="action_addCash">Add Cash</string>
     <string name="title_selectMethod">Select Method</string>
     <string name="title_amountToAdd">Amount to Add</string>
@@ -885,6 +891,19 @@
 
     <string name="label_fromYourContacts">From Your Contacts</string>
     <string name="label_addContact">Add Contact</string>
+    <string name="label_chat_balanceRequirement">Balance Requirement: %1$s of $%2$s</string>
+    <string name="label_chat_balanceRequirement_anyToken">Balance Requirement: %1$s</string>
+    <string name="subtitle_chatGate_minimumBalance">Minimum Balance: %1$s of $%2$s</string>
+    <string name="subtitle_chatGate_minimumBalance_anyToken">Minimum Balance: %1$s</string>
+    <string name="subtitle_chatGate_staffOnly">This chat is open to Flipcash staff only.</string>
+    <string name="action_buyMoreToken">Buy More $%1$s</string>
+    <string name="action_joinChat">Join Chat</string>
+    <string name="title_leaveChat">Leave Chat</string>
+    <string name="action_leaveChat">Leave</string>
+    <string name="prompt_title_leaveChat">Leave %1$s?</string>
+    <string name="prompt_description_leaveChat">You won’t receive new messages from this chat. You can join it again if it still lets you in</string>
+    <string name="error_title_failedToLeave">Something Went Wrong</string>
+    <string name="error_description_failedToLeave">We were unable to leave the chat. Please try again</string>
 
     <string name="prompt_title_cancelCashLinkPostShare">Are You Sure?</string>
     <string name="prompt_description_cancelCashLinkPostShare">Anyone you sent the link to won\'t be able to collect the cash</string>
@@ -898,6 +917,9 @@
     <string name="label_chat_preview_tippedCash">You tipped %1$s</string>
     <string name="label_chat_preview_receivedTip">Someone tipped you %1$s</string>
     <string name="label_chat_preview_sentMessage">You: %1$s</string>
+    <string name="label_chat_preview_senderMessage">%1$s: %2$s</string>
+    <string name="label_chat_preview_sentCash_bySender">%1$s sent %2$s</string>
+    <string name="label_chat_preview_tippedCash_bySender">%1$s tipped %2$s</string>
     <string name="label_isTyping">Is Typing…</string>
 
     <string name="label_edited">Edited</string>

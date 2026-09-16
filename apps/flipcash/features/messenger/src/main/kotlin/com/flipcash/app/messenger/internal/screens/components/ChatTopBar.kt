@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -37,10 +38,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.features.messenger.R
 import com.flipcash.shared.chat.MessageCapability
@@ -141,7 +144,7 @@ private fun ConversationTitleBar(
         },
         title = {
             Row(
-                // Profile open is only available for tip DMs (see State.canViewProfile).
+                // Profile open is the tip arm's answer alone (see State.canViewProfile).
                 modifier = Modifier
                     .fillMaxWidth()
                     .then(
@@ -156,21 +159,38 @@ private fun ConversationTitleBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             ) {
-                ParticipantAvatar(
-                    participant = state.participant,
+                ChatSubjectAvatar(
+                    subject = state.subject,
                     modifier = Modifier
                         .requiredSize(CodeTheme.dimens.staticGrid.x8)
                         .clip(CircleShape),
                 )
 
-                Text(
-                    modifier = Modifier.weight(1f),
-                    // Name-or-handle: the bar is one line (node 9443:9094), and the handle is
-                    // the only identity a name-less tip DM counterparty has.
-                    text = state.participant?.name.orEmpty(),
-                    style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textMain,
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        // Name-or-handle for a DM, the group's title for a group. A DM bar stays
+                        // one line (node 9443:9094): the handle is the only identity a name-less
+                        // tip counterparty has, so it is the title there rather than a second row.
+                        text = state.subject?.title.orEmpty(),
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textMain,
+                    )
+                    // A group always shows its size, whether or not the viewer is in it — the
+                    // count is what a join changes, and node 10125:19153 -> 10125:19201 is the
+                    // same bar at two values of it. A DM has nothing to count.
+                    val group = state.subject as? ChatSubject.Group
+                    if (group != null) {
+                        Text(
+                            text = pluralStringResource(
+                                R.plurals.subtitle_chatMemberCount,
+                                group.memberCount.toInt(),
+                                group.memberCount.toString(),
+                            ),
+                            style = CodeTheme.typography.textSmall,
+                            color = CodeTheme.colors.textSecondary,
+                        )
+                    }
+                }
             }
         }
     )
