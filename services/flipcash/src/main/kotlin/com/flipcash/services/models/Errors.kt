@@ -396,6 +396,22 @@ sealed class LeaveChatError(
     data class Other(override val cause: Throwable? = null) : LeaveChatError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class StartChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : StartChatError("Denied")
+    class TitleModerated(val category: ModerationResult.FlaggedCategory) : StartChatError("Title flagged: $category")
+    class PictureBlobNotAccepted : StartChatError("Picture blob not accepted")
+    class InvalidRules : StartChatError("Invalid rules")
+    // The caller does not meet the rules they are setting on the chat being created (e.g. a
+    // minimum balance requirement). Recoverable by the user, so deliberately not a
+    // NotifiableError, matching JoinChatError.RulesNotSatisfied.
+    class RulesNotSatisfied : StartChatError("Rules not satisfied")
+    class Unrecognized : StartChatError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : StartChatError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class GetMessageError(
     override val message: String? = null,
     override val cause: Throwable? = null

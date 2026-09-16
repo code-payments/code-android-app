@@ -5,6 +5,8 @@ import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.repository.ChatRepository
 import com.flipcash.services.user.UserManager
 import javax.inject.Inject
@@ -39,6 +41,25 @@ class ChatController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.getGroupChatFeed(owner, queryOptions)
+    }
+
+    /**
+     * Starts a new chat from [parameters].
+     *
+     * [idempotencyKey] is deliberately a required parameter rather than something this method
+     * mints itself: for the retry safety to hold, the *caller* must mint it once where the
+     * intent to start the chat originates (e.g. when the user taps "Create") and pass the same
+     * instance again on every retry of that attempt. Minting a fresh key here would make every
+     * retry look like a brand-new chat to the server.
+     */
+    suspend fun startChat(
+        parameters: StartChatParameters,
+        idempotencyKey: IdempotencyKey,
+    ): Result<ChatMetadata> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.startChat(owner, parameters, idempotencyKey)
     }
 
     suspend fun joinChat(chatId: ChatId): Result<ChatMetadata> {

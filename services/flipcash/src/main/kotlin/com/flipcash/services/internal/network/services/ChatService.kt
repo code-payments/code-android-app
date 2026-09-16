@@ -3,13 +3,17 @@ package com.flipcash.services.internal.network.services
 import com.codeinc.flipcash.gen.chat.v1.ChatService as RpcChatService
 import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
 import com.flipcash.services.internal.network.api.ChatApi
+import com.flipcash.services.internal.network.extensions.toFlaggedCategory
 import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.GetDmChatFeedError
 import com.flipcash.services.models.GetGroupChatFeedError
 import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.LeaveChatError
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.StartChatError
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
@@ -105,6 +109,33 @@ internal class ChatService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(cause.toValidationOrElse { JoinChatError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun startChat(
+        owner: KeyPair,
+        parameters: StartChatParameters,
+        idempotencyKey: IdempotencyKey,
+    ): Result<ChatModel.Metadata> {
+        return runCatching {
+            api.startChat(owner, parameters, idempotencyKey)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.StartChatResponse.Result.OK -> Result.success(response.chat)
+                    RpcChatService.StartChatResponse.Result.DENIED -> Result.failure(StartChatError.Denied())
+                    RpcChatService.StartChatResponse.Result.TITLE_MODERATED ->
+                        Result.failure(StartChatError.TitleModerated(response.flaggedCategory.toFlaggedCategory()))
+                    RpcChatService.StartChatResponse.Result.PICTURE_BLOB_NOT_ACCEPTED -> Result.failure(StartChatError.PictureBlobNotAccepted())
+                    RpcChatService.StartChatResponse.Result.INVALID_RULES -> Result.failure(StartChatError.InvalidRules())
+                    RpcChatService.StartChatResponse.Result.RULES_NOT_SATISFIED -> Result.failure(StartChatError.RulesNotSatisfied())
+                    RpcChatService.StartChatResponse.Result.UNRECOGNIZED -> Result.failure(StartChatError.Unrecognized())
+                    else -> Result.failure(StartChatError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { StartChatError.Other(cause = it) })
             }
         )
     }
