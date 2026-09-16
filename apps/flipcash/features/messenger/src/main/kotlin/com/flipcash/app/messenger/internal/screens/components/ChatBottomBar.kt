@@ -220,7 +220,9 @@ internal fun UserControlBottomBar(
                             CancelEditButton(
                                 onClick = { dispatch(ChatViewModel.Event.CancelEdit) },
                             )
-                        } else {
+                        } else if (state.chatType != ChatType.GROUP) {
+                            // Sending cash into a group is not wired up yet, so the button is left
+                            // out rather than shown and dead. The composer takes the row on its own.
                             SendCashButton(
                                 state = state,
                                 hazeState = hazeState,
